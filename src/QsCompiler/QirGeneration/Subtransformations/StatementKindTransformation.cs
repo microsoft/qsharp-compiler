@@ -140,8 +140,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// assuming that the scope doesn't end with a return statement</param>
         private void ProcessBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
         {
-            this.SharedState.SetCurrentBlock(block);
             this.SharedState.ScopeMgr.OpenScope();
+            this.SharedState.SetCurrentBlock(block);
             this.Transformation.Statements.OnScope(scope);
             var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
             this.SharedState.ScopeMgr.CloseScope(isTerminated);
@@ -373,9 +373,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
+                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.CurrentBuilder.Branch(repeatBlock);
                 this.SharedState.SetCurrentBlock(repeatBlock);
-                this.SharedState.ScopeMgr.OpenScope();
                 this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
                 if (this.SharedState.CurrentBlock?.Terminator == null)
                 {
@@ -384,10 +384,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 this.SharedState.SetCurrentBlock(testBlock);
                 var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition).Value;
+                this.SharedState.ScopeMgr.ApplyPendingReferences();
                 this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
 
                 // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
-                // We need to make sure to properly invoke all calls to unreference, release, and remove access counts
+                // We need to make sure to properly invoke all calls to unreference, release, and remove alias counts
                 // for variables and values in the repeat-block after the statement ends.
                 this.SharedState.SetCurrentBlock(contBlock);
                 this.SharedState.ScopeMgr.ExitScope(false);
@@ -421,39 +422,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 && symbols is SymbolTuple.VariableName symName
                 && symName.Item == varName.Item)
             {
-                // For copy-and-reassign statements we want to make sure that the access count is reduced
+                // For copy-and-reassign statements we want to make sure that the alias count is reduced
                 // before evaluating the copy-and-update expression, such that in the case where the variable
                 // that is reassigned is the only handle that has access to the original value, the copy is
-                // omitted. However, we need to make sure that the value is not released when decreasing the
-                // access count; we hence temporarily increase the reference count to avoid that.
-                // We can omit that access and reference count manipulation for inner items, since besides the
+                // omitted. We can omit that alias count manipulation for inner items, since besides the
                 // items that are updated, all counts will remain the same and while also doing the same for
                 // inner items could avoid copies in rare edge cases it is not worth the increased cost for
                 // the majority of cases. For the items that are updated, we need to make sure that the access
                 // count of the old item is decreased and the one of the new item is increased. CopyAndUpdate
-                // takes care of that when updateItemAccessCount is set to true.
+                // takes care of that when updateItemAliasCount is set to true.
 
                 var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(pointer, shallow: true);
-                this.SharedState.ScopeMgr.DecreaseAccessCount(pointer, shallow: true);
+                this.SharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow: true);
 
-                // Since the old value will no longer be accessible and hence no longer in use unless there
-                // is another handle pointing to it, we can reduce the reference count for the old value by 1
-                // and if we can omit the corresponding unreferencing at the end of the current scope.
-                // This is straightforward if the old value is unreferenced at the end of the current scope.
-                // If the old value on the other hand originates in a parent scope, then we cannot easily pull
-                // the unreferencing into the current scope, since the current scope may or may not execute.
-
-                var unreferenceOldValue = this.SharedState.ScopeMgr.TryRemoveValueFromCurrentScope(pointer);
                 QirExpressionKindTransformation.CopyAndUpdate(
                     this.SharedState,
                     (pointer.LoadValue(), ex.Item2, ex.Item3),
-                    updateItemAccessCount: true,
-                    unreferenceOriginal: unreferenceOldValue);
+                    updateItemAliasCount: true);
                 var value = this.SharedState.ValueStack.Pop();
 
-                this.SharedState.ScopeMgr.IncreaseAccessCount(value, shallow: true);
-                this.SharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow: true);
+                this.SharedState.ScopeMgr.IncreaseAliasCount(value, shallow: true);
                 pointer.StoreValue(value);
             }
             else
@@ -461,8 +449,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 void RebindVariable(string varName, IValue value)
                 {
                     var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
-                    this.SharedState.ScopeMgr.IncreaseAccessCount(value);
-                    this.SharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                    this.SharedState.ScopeMgr.IncreaseAliasCount(value);
+                    this.SharedState.ScopeMgr.DecreaseAliasCount(pointer);
                     pointer.StoreValue(value);
                 }
 
@@ -497,12 +485,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
+                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.CurrentBuilder.Branch(testBlock);
                 this.SharedState.SetCurrentBlock(testBlock);
 
-                // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
-                // expression to perform an allocation that needs to get cleaned up, so...
-                this.SharedState.ScopeMgr.OpenScope();
                 var test = this.SharedState.EvaluateSubexpression(stm.Condition).Value;
                 this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
                 this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);

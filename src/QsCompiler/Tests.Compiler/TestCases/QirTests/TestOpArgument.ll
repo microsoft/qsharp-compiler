@@ -8,7 +8,7 @@ entry:
   %2 = getelementptr { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %qs, i64 0, i32 1
   store %Qubit* %q1, %Qubit** %1
   store %Qubit* %q2, %Qubit** %2
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %0, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %0, i64 1)
   %3 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %4 = bitcast %Tuple* %3 to { %Callable*, %Qubit* }*
   %5 = getelementptr { %Callable*, %Qubit* }, { %Callable*, %Qubit* }* %4, i64 0, i32 0
@@ -18,7 +18,7 @@ entry:
   store %Qubit* %q1, %Qubit** %6
   %op = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, [2 x void (%Tuple*, i64)*]* @MemoryManagement__1, %Tuple* %3)
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %op, i64 1)
-  call void @__quantum__rt__callable_update_access_count(%Callable* %op, i64 1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i64 1)
   call void @__quantum__qis__cnot__body(%Qubit* %q1, %Qubit* %q2)
   call void @__quantum__qis__swap(%Qubit* %q1, %Qubit* %q2)
   %8 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
@@ -66,7 +66,6 @@ entry:
   %36 = getelementptr { %Callable*, { %Qubit*, %Qubit* }* }, { %Callable*, { %Qubit*, %Qubit* }* }* %35, i64 0, i32 0
   %37 = getelementptr { %Callable*, { %Qubit*, %Qubit* }* }, { %Callable*, { %Qubit*, %Qubit* }* }* %35, i64 0, i32 1
   %38 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR___Choose, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i64 1)
   store %Callable* %38, %Callable** %36
   store { %Qubit*, %Qubit* }* %qs, { %Qubit*, %Qubit* }** %37
   %39 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__6, [2 x void (%Tuple*, i64)*]* @MemoryManagement__5, %Tuple* %34)
@@ -74,10 +73,9 @@ entry:
   call void @__quantum__rt__callable_invoke(%Callable* %op, %Tuple* %0, %Tuple* null)
   call void @__quantum__rt__qubit_release(%Qubit* %q1)
   call void @__quantum__rt__qubit_release(%Qubit* %q2)
-  call void @__quantum__rt__tuple_update_access_count(%Tuple* %0, i64 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %0, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %op, i64 -1)
-  call void @__quantum__rt__callable_update_access_count(%Callable* %op, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i64 -1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %op, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %op, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %13, i64 -1)

@@ -183,6 +183,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void EndBranch() =>
             this.branchIds.Item2.Pop();
 
+        internal bool IsInlined => this.inlineLevels.Any();
+
         #endregion
 
         /// <summary>
@@ -356,7 +358,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // tuple library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCreate, this.Types.Tuple, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateAccessCount, this.Context.VoidType, this.Types.Tuple, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateAliasCount, this.Context.VoidType, this.Types.Tuple, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleUpdateReferenceCount, this.Context.VoidType, this.Types.Tuple, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.TupleCopy, this.Types.Tuple, this.Types.Tuple, this.Context.BoolType);
 
@@ -366,7 +368,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // TODO: figure out how to call a varargs function and get rid of these two functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCreate1d, this.Types.Array, this.Context.Int32Type, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetElementPtr1d, this.Context.Int8Type.CreatePointerType(), this.Types.Array, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateAccessCount, this.Context.VoidType, this.Types.Array, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateAliasCount, this.Context.VoidType, this.Types.Array, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateReferenceCount, this.Context.VoidType, this.Types.Array, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
@@ -380,7 +382,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableCopy, this.Types.Callable, this.Types.Callable, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeAdjoint, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateAccessCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateAliasCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Context.Int32Type, this.Types.Callable, this.Types.Int);
 
@@ -880,7 +882,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (!this.inlineLevels.Any())
             {
                 // The return value and its inner items either won't be unreferenced
-                // when exiting the scope or a reference will be added by ExitScope
+                // when exiting the function or a reference will be added by ExitScope
                 // before exiting the scope by since it will be used by the caller.
                 this.ScopeMgr.ExitFunction(returned: result);
 
@@ -1182,14 +1184,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If a constant array with the IrFunctions for managing access and reference counts
+        /// If a constant array with the IrFunctions for managing alias and reference counts
         /// for the given capture tuple already exists, returns the corresponding global variable.
         /// If no such array exists, creates a constant array and instantiates the necessary functions,
         /// queues the generation of their implementations, and returns the created global constant.
         /// The generation of the implementations is queued such that the current context is not modified
         /// beyond adding the corresponding constant and functions declarations.
         /// The table contains the function for updating the reference count as the first item,
-        /// and a null pointer for the function to update the access count as the second item.
+        /// and a null pointer for the function to update the alias count as the second item.
         /// If the given capture is null, returns a null pointer of suitable type.
         /// </summary>
         internal Constant GetOrCreateCallableMemoryManagementTable(TupleValue? capture)
@@ -1209,7 +1211,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var funcs = new Constant[2];
             var func = this.Module.CreateFunction($"{name}__RefCount", this.Types.CaptureCountFunction);
             funcs[0] = func;
-            func = this.Module.CreateFunction($"{name}__AccessCount", this.Types.CaptureCountFunction);
+            func = this.Module.CreateFunction($"{name}__AliasCount", this.Types.CaptureCountFunction);
             funcs[1] = func;
 
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
@@ -1344,8 +1346,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var functions = new List<(string, Action<IValue, IValue>)>
                 {
-                    ($"{table.Name}__RefCount", (arg, capture) => this.ScopeMgr.UpdateReferenceCount(arg, capture)),
-                    ($"{table.Name}__AccessCount", (arg, capture) => this.ScopeMgr.UpdateAccessCount(arg, capture))
+                    ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
+                    ($"{table.Name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture))
                 };
 
                 foreach (var (funcName, updateCounts) in functions)
@@ -1355,8 +1357,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         GenerateFunction(func, new[] { "capture-tuple", "count-change" }, parameters =>
                         {
                             var capture = GetArgumentTuple(type, parameters[0]);
-                            var argument = this.Values.FromSimpleValue(parameters[1], ResolvedType.New(ResolvedTypeKind.Int));
-                            this.ScopeMgr.UpdateReferenceCount(argument, capture);
+                            var countChange = this.Values.FromSimpleValue(parameters[1], ResolvedType.New(ResolvedTypeKind.Int));
+                            updateCounts(countChange, capture);
                         });
                     }
                     else
@@ -1389,25 +1391,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Contains the loop header that creates the phi-node, evaluates the condition,
             // and then branches into the body or exits the loop depending on whether the condition evaluates to true.
             var headerName = this.GenerateUniqueName("header");
-            var headerBlock = this.CurrentFunction.AppendBasicBlock(headerName);
+            BasicBlock headerBlock = this.CurrentFunction.AppendBasicBlock(headerName);
 
             // Contains the body of the loop, which has its own naming scope.
             var bodyName = this.GenerateUniqueName("body");
-            var bodyBlock = this.CurrentFunction.AppendBasicBlock(bodyName);
+            BasicBlock bodyBlock = this.CurrentFunction.AppendBasicBlock(bodyName);
 
             // Increments the loop variable and then branches into the header block
             // which determines whether to enter the next iteration.
             var exitingName = this.GenerateUniqueName("exiting");
-            var exitingBlock = this.CurrentFunction.AppendBasicBlock(exitingName);
+            BasicBlock exitingBlock = this.CurrentFunction.AppendBasicBlock(exitingName);
 
             // Empty block that will be entered when the loop exits that may get populated by subsequent computations.
             var exitName = this.GenerateUniqueName("exit");
-            var exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
+            BasicBlock exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
 
             PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
             {
                 // End the current block by branching into the header of the loop
                 BasicBlock precedingBlock = this.CurrentBlock ?? throw new InvalidOperationException("no preceding block");
+
+                // We need to open a scope before starting the for-loop by creating the header block, since
+                // it is possible for the condition to perform an allocation that needs to get cleaned up.
+                this.ScopeMgr.OpenScope();
                 this.CurrentBuilder.Branch(headerBlock);
 
                 // Header block: create/update phi node representing the iteration variable and evaluate the condition
@@ -1415,9 +1421,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
                 loopVariable.AddIncoming(startValue, precedingBlock);
 
-                // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
-                // expression to perform an allocation that needs to get cleaned up, so...
-                this.ScopeMgr.OpenScope();
                 var condition = evaluateCondition(loopVariable);
                 this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
 
@@ -1545,6 +1548,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)
         {
             var startValue = this.Context.CreateConstant(0L);
+            if (array.Length == startValue)
+            {
+                return;
+            }
+
             var increment = this.Context.CreateConstant(1L);
             var endValue = this.CurrentBuilder.Sub(array.Length, increment);
 
@@ -1756,6 +1764,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Evaluates the given expression and increases its reference count by 1,
         /// either by not registering a newly constructed item with the scope manager,
         /// or by explicitly increasing its reference count.
+        /// Note that increasing the reference count may be delayed until needed.
         /// </summary>
         internal IValue BuildSubitem(TypedExpression ex)
         {

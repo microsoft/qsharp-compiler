@@ -8,7 +8,27 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ubiquity.NET.Llvm" Version="10.0.0-alpha.3" />
+    <Reference Include="Ubiquity.NET.Llvm">
+      <HintPath>.\Llvm.NET\Ubiquity.NET.Llvm.dll</HintPath>
+    </Reference>
+    <Reference Include="Ubiquity.NET.Llvm.Interop">
+      <HintPath>.\Llvm.NET\Ubiquity.NET.Llvm.Interop.dll</HintPath>
+    </Reference>
+    <None Include=".\Llvm.NET\runtimes\linux-x64\native\*">
+      <Link>runtimes\linux-x64\native\%(FileName)%(Extension)</Link>
+      <PackagePath>runtimes\linux-x64\native\%(FileName)%(Extension)</PackagePath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include=".\Llvm.NET\runtimes\osx-x64\native\*">
+      <Link>runtimes\osx-x64\native\%(FileName)%(Extension)</Link>
+      <PackagePath>runtimes\osx-x64\native\%(FileName)%(Extension)</PackagePath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include=".\Llvm.NET\runtimes\win-x64\native\*">
+      <Link>runtimes\win-x64\native\%(FileName)%(Extension)</Link>
+      <PackagePath>runtimes\win-x64\native\%(FileName)%(Extension)</PackagePath>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
   <ItemGroup>

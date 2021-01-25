@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
@@ -16,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     /// <summary>
-    /// This class is used to track the validity of variables and values, to track access and reference counts,
+    /// This class is used to track the validity of variables and values, to track alias and reference counts,
     /// and to release and unreference values when they go out of scope.
     /// <para>
     /// There are two primary ways to leave a scope: close it and continue in the parent scope, or exit the current
@@ -37,9 +38,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             private readonly Dictionary<string, IValue> variables = new Dictionary<string, IValue>();
 
             /// <summary>
-            /// Contains all values that require unreferencing upon closing the scope.
+            /// Contains all values whose reference count has been increased.
+            /// The first items contains the value, and the second item indicates whether to recursively reference inner items.
             /// </summary>
-            private readonly List<IValue> trackedValues = new List<IValue>();
+            private readonly List<(IValue, bool)> pendingReferences = new List<(IValue, bool)>();
+
+            /// <summary>
+            /// Contains all values that require unreferencing upon closing the scope.
+            /// The first items contains the value, and the second item indicates whether to recursively unreference inner items.
+            /// </summary>
+            private readonly List<(IValue, bool)> requiredUnreferences = new List<(IValue, bool)>();
 
             /// <summary>
             /// Contains the values that require invoking a release function upon closing the scope,
@@ -52,20 +60,93 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.parent = parent;
             }
 
+            private static bool ValueEquals((IValue, bool) tracked, IValue expected) =>
+                tracked.Item1.Value == expected.Value && tracked.Item2;
+
+            private static bool ValueEquals((IValue, bool) tracked, (IValue, bool) expected) =>
+                tracked.Item1.Value == expected.Item1.Value && tracked.Item2 == expected.Item2;
+
+            private static bool TryRemoveValue(List<(IValue, bool)> values, Func<(IValue, bool), bool> condition)
+            {
+                var index = values.FindIndex(v => condition(v));
+                if (index < 0)
+                {
+                    return false;
+                }
+                else
+                {
+                    values.RemoveAt(index);
+                    return true;
+                }
+            }
+
+            private static IValue LoadValue(IValue value)
+            {
+                while (value is PointerValue ptr)
+                {
+                    value = ptr.LoadValue();
+                }
+                return value;
+            }
+
+            private static IEnumerable<(IValue, bool)> Expand(Func<ITypeRef, string?> getFunctionName, IValue value, bool recurIntoInnerItems, List<(IValue, bool)>? omitExpansion = null)
+            {
+                var func = getFunctionName(value.LlvmType);
+                if (func != null)
+                {
+                    omitExpansion ??= new List<(IValue, bool)>();
+                    var omitted = omitExpansion.FirstOrDefault(omitted => ValueEquals((value, recurIntoInnerItems), omitted));
+                    if (omitExpansion.Remove(omitted))
+                    {
+                        yield break;
+                    }
+
+                    if (value is TupleValue tuple)
+                    {
+                        for (var i = 0; i < tuple.StructType.Members.Count && recurIntoInnerItems; ++i)
+                        {
+                            var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
+                            if (itemFuncName != null)
+                            {
+                                var item = tuple.GetTupleElement(i);
+                                foreach (var inner in Expand(getFunctionName, item, true, omitExpansion))
+                                {
+                                    yield return inner;
+                                }
+                            }
+                        }
+                        yield return (value, false);
+                    }
+                    else
+                    {
+                        yield return (value, recurIntoInnerItems);
+                    }
+                }
+            }
+
             // public and internal methods
 
-            public void AddVariable(string varName, IValue value) =>
+            /// <summary>
+            /// Registers the given variable name with the scope.
+            /// Increases the alias and reference count for the value if necessary,
+            /// and ensures that both are decreased again when the variable goes out of scope.
+            /// The registered variable is mutable if the passed value is a pointer value.
+            /// </summary>
+            public void RegisterVariable(string varName, IValue value)
+            {
                 this.variables.Add(varName, value);
 
-            public void AddValue(IValue value, string? releaseFunction = null)
-            {
-                if (releaseFunction != null)
+                // Since the value is necessarily created in the current or a parent scope,
+                // it won't go out of scope before the variable does.
+                // There is hence no need to increase the reference count if the variable is never rebound.
+                this.parent.ModifyCounts(this.parent.AliasCountUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
+                if (value is PointerValue)
                 {
-                    this.requiredReleases.Add((value, releaseFunction));
-                }
-                if (this.parent.ReferencesUpdateFunctionForType(value.LlvmType) != null)
-                {
-                    this.trackedValues.Add(value);
+                    // If the variable can be rebound, however, then updating an item via a copy-and-reassign statement
+                    // potentially leads to the updated item(s) being unreferenced in an inner scope, i.e. before the
+                    // pending reference count increases of this scope are applied.
+                    // We hence need to make sure to increase the reference count immediately when binding to a mutable variable.
+                    this.parent.ModifyCounts(this.parent.ReferenceCountUpdateFunctionForType, this.parent.plusOne, value, recurIntoInnerItems: true);
                 }
             }
 
@@ -73,64 +154,145 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.variables.TryGetValue(varName, out value);
 
             /// <summary>
-            /// Removes the given value from the list of registered values such that it will no longer be
-            /// unreferenced when executing pending calls in preparation for exiting or closing the scope.
-            /// Any release function that has been specified when adding the value will still execute.
+            /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope,
+            /// and makes sure the release function is invoked before unreferending the value.
+            /// If the given value to register is a pointer, recursively loads its content and registers the loaded value.
             /// </summary>
-            internal bool TryRemoveValue(IValue value)
+            public void RegisterValue(IValue value, string? releaseFunction = null)
             {
-                var index = this.trackedValues.FindIndex(v => v.Value == value.Value);
-                if (index < 0)
+                if (releaseFunction != null)
                 {
-                    return false;
+                    this.requiredReleases.Add((LoadValue(value), releaseFunction));
                 }
-                else
+                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
                 {
-                    this.trackedValues.RemoveAt(index);
-                    return true;
+                    this.requiredUnreferences.Add((LoadValue(value), true));
                 }
             }
 
             /// <summary>
-            /// Returns true if the given value will be unreferenced by <see cref="ExecutePendingCalls" />
-            /// unless it is explicitly excluded.
+            /// Adds the given value to the list of values which have been referenced.
+            /// If the given value to unreference is a pointer, recursively loads its content and queues the loaded value for unreferencing.
             /// </summary>
-            internal bool WillBeUnreferenced(IValue value) =>
-                this.trackedValues.Exists(tracked => tracked.Value == value.Value);
-
-            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, Scope[])" />
-            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null) =>
-                ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), this);
+            internal void ReferenceValue(IValue value, bool recurIntoInnerItems)
+            {
+                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
+                {
+                    this.pendingReferences.Add((LoadValue(value), recurIntoInnerItems));
+                }
+            }
 
             /// <summary>
-            /// Generates the necessary calls to unreference the tracked values, decrease the access count for registered variables,
-            /// and invokes the specified release functions for values if necessary.
-            /// Skips unreferencing the values specified in omitUnreferencing, removing them from the list.
+            /// Returns true if the scope contains calls to reference values that have not been applied yet.
             /// </summary>
-            /// <param name="omitUnreferencing">
-            /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
-            /// </param>
-            internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, params Scope[] scopes)
+            public bool HasPendingReferences =>
+                this.pendingReferences.Any();
+
+            /// <summary>
+            /// Executes all pending calls to increase reference counts.
+            /// </summary>
+            internal void ApplyPendingReferences()
             {
+                var pending = this.pendingReferences.ToArray();
+                this.pendingReferences.Clear();
+                this.parent.ModifyCounts(this.parent.ReferenceCountUpdateFunctionForType, this.parent.plusOne, pending);
+            }
+
+            /// <summary>
+            /// Migrates all pending calls to increase reference counts from the current scope to the given scope,
+            /// clearing them from the current scope.
+            /// </summary>
+            internal void MigratePendingReferences(Scope scope)
+            {
+                scope.pendingReferences.AddRange(this.pendingReferences);
+                this.pendingReferences.Clear();
+            }
+
+            /// <summary>
+            /// Clears and returns all pending references from the scope.
+            /// </summary>
+            private List<(IValue, bool)> ClearPendingReferences()
+            {
+                var refs = this.pendingReferences.ToList();
+                this.pendingReferences.Clear();
+                return refs;
+            }
+
+            /// <summary>
+            /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope.
+            /// If the given value to unreference is a pointer, recursively loads its content and queues the loaded value for unreferencing.
+            /// </summary>
+            internal void UnreferenceValue(IValue value, bool recurIntoInnerItems)
+            {
+                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
+                {
+                    this.requiredUnreferences.Add((LoadValue(value), recurIntoInnerItems));
+                }
+            }
+
+            /// <summary>
+            /// Removes the given value from the list of registered values such that it will no longer be
+            /// unreferenced when executing pending calls in preparation for exiting or closing the scope.
+            /// Any release function that has been specified when adding the value will still execute.
+            /// </summary>
+            internal bool TryRemoveValue(IValue value) =>
+                TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, value));
+
+            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, bool, Scope[])" />
+            internal void ExecutePendingCalls(bool applyReferences = true) =>
+                ExecutePendingCalls(this.parent, applyReferences, this);
+
+            /// <summary>
+            /// Generates the necessary calls to unreference the tracked values, decrease the alias count for registered variables,
+            /// and invokes the specified release functions for values if necessary.
+            /// If no calls to decrease reference counts are needed in any of the given scopes,
+            /// does *not* apply pending calls to increase reference counts unless <paramref name="forceApplyReferences"/> is set to true.
+            /// </summary>
+            internal static void ExecutePendingCalls(ScopeManager parent, bool forceApplyReferences, params Scope[] scopes)
+            {
+                if (!scopes.Any())
+                {
+                    return;
+                }
+
                 foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
                 {
                     var func = parent.sharedState.GetOrCreateRuntimeFunction(funcName);
                     parent.sharedState.CurrentBuilder.Call(func, value.Value);
                 }
 
-                var pendingAccessCounts = scopes.SelectMany(s => s.variables).Select(kv => kv.Value).ToArray();
-                var pendingUnreferences = new Queue<IValue>();
-                foreach (var value in scopes.SelectMany(s => s.trackedValues))
+                // Not the most efficient way to go about this, but it will do for now.
+
+                var pendingAliasCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
+                var appliesUnreferences = pendingAliasCounts.Any(v => v.Value is PointerValue) || scopes.Any(s => s.requiredUnreferences.Any());
+
+                var pendingReferences = forceApplyReferences || appliesUnreferences
+                    ? scopes.First().ClearPendingReferences()
+                    : new List<(IValue, bool)>();
+
+                var pendingUnreferences = scopes
+                    .SelectMany(s => s.requiredUnreferences)
+                    .Concat(pendingAliasCounts.Where(v => v.Value is PointerValue))
+                    .SelectMany(v => Expand(parent.ReferenceCountUpdateFunctionForType, v.Item1, v.Item2, pendingReferences))
+                    .ToList();
+
+                pendingReferences = pendingReferences
+                    .SelectMany(v => Expand(parent.ReferenceCountUpdateFunctionForType, v.Item1, v.Item2))
+                    .ToList();
+
+                var lookup1 = pendingReferences.ToLookup(x => (x.Item1.Value, x.Item2));
+                var lookup2 = pendingUnreferences.ToLookup(x => (x.Item1.Value, x.Item2));
+                var unnecessaryRefModifications = lookup1.SelectMany(l1s => lookup2[l1s.Key].Zip(l1s, (l2, l1) => l1));
+                foreach (var item in unnecessaryRefModifications)
                 {
-                    var omitted = omitUnreferencing.FirstOrDefault(omitted => omitted.Value == value.Value);
-                    if (!omitUnreferencing.Remove(omitted))
-                    {
-                        pendingUnreferences.Enqueue(value);
-                    }
+                    var removedFromRefs = TryRemoveValue(pendingReferences, v => ValueEquals(v, item));
+                    var removedFromUnrefs = TryRemoveValue(pendingUnreferences, v => ValueEquals(v, item));
+                    Debug.Assert(removedFromRefs && removedFromUnrefs);
                 }
 
-                parent.RecursivelyModifyCounts(parent.AccessUpdateFunctionForType, false, parent.minusOne, pendingAccessCounts);
-                parent.RecursivelyModifyCounts(parent.ReferencesUpdateFunctionForType, false, parent.minusOne, pendingUnreferences.ToArray());
+                parent.ModifyCounts(parent.ReferenceCountUpdateFunctionForType, parent.plusOne, pendingReferences.ToArray());
+                parent.ModifyCounts(parent.AliasCountUpdateFunctionForType, parent.minusOne, pendingAliasCounts);
+                parent.ModifyCounts(parent.ReferenceCountUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
             }
         }
 
@@ -165,25 +327,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Gets the name of the runtime function to update the access count for a given LLVM type.
+        /// Gets the name of the runtime function to update the alias count for a given LLVM type.
         /// </summary>
         /// <param name="t">The LLVM type</param>
-        /// <returns>The name of the function to update the access count for this type</returns>
-        private string? AccessUpdateFunctionForType(ITypeRef t)
+        /// <returns>The name of the function to update the alias count for this type</returns>
+        private string? AliasCountUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
                 if (Types.IsTypedTuple(t))
                 {
-                    return RuntimeLibrary.TupleUpdateAccessCount;
+                    return RuntimeLibrary.TupleUpdateAliasCount;
                 }
                 else if (Types.IsArray(t))
                 {
-                    return RuntimeLibrary.ArrayUpdateAccessCount;
+                    return RuntimeLibrary.ArrayUpdateAliasCount;
                 }
                 else if (Types.IsCallable(t))
                 {
-                    return RuntimeLibrary.CallableUpdateAccessCount;
+                    return RuntimeLibrary.CallableUpdateAliasCount;
                 }
             }
             return null;
@@ -194,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="t">The LLVM type</param>
         /// <returns>The name of the function to update the reference count for this type</returns>
-        private string? ReferencesUpdateFunctionForType(ITypeRef t)
+        private string? ReferenceCountUpdateFunctionForType(ITypeRef t)
         {
             if (t.IsPointer)
             {
@@ -227,7 +389,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Each callable table contains a pointer to an array of function pointers to modify access and reference
+        /// Each callable table contains a pointer to an array of function pointers to modify alias and reference
         /// counts of the capture tuple.
         /// Given a callable value, invokes the function at the given index in the memory management table of the callable
         /// by calling the runtime function CallableMemoryManagement with the function index and the value by which to
@@ -240,80 +402,86 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// If the given function returns a function name for the given value,
-        /// applies the runtime function with that name to the given value, casting the value if necessary,
-        /// Recurs into contained items.
+        /// For each value for which the given function returns a function name,
+        /// applies the runtime function with that name to the value, casting the value if necessary.
+        /// Recurs into contained items if the bool passed with the value is true.
         /// </summary>
-        private void RecursivelyModifyCounts(Func<ITypeRef, string?> getFunctionName, bool shallow, IValue change, params IValue[] values)
+        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, params (IValue, bool)[] values)
         {
-            Value ProcessInnerItems(string funcName, IValue value)
+            foreach (var (value, recur) in values)
             {
-                if (value is TupleValue tuple)
-                {
-                    for (var i = 0; i < tuple.StructType.Members.Count && !shallow; ++i)
-                    {
-                        var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
-                        if (itemFuncName != null)
-                        {
-                            var item = tuple.GetTupleElement(i);
-                            ModifyCounts(itemFuncName, item);
-                        }
-                    }
-                    return tuple.OpaquePointer;
-                }
-                else if (value is ArrayValue array)
-                {
-                    var itemFuncName = getFunctionName(array.LlvmElementType);
-                    if (itemFuncName != null && !shallow)
-                    {
-                        this.sharedState.IterateThroughArray(array, arrItem => ModifyCounts(itemFuncName, arrItem));
-                    }
-                    return array.OpaquePointer;
-                }
-                else if (value is CallableValue callable && !shallow)
-                {
-                    var itemFuncId =
-                        funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
-                        funcName == RuntimeLibrary.CallableUpdateAccessCount ? 1 :
-                        throw new NotSupportedException("unknown function for capture tuple memory management");
-                    this.InvokeCallableMemoryManagement(itemFuncId, change, callable);
-                    return callable.Value;
-                }
-                else
-                {
-                    return value.Value;
-                }
+                this.ModifyCounts(getFunctionName, change, value, recur);
             }
+        }
 
-            void ModifyCounts(string funcName, IValue value)
+        /// <summary>
+        /// If the given function returns a function name for the given value,
+        /// applies the runtime function with that name to the given value, casting the value if necessary.
+        /// Recurs into contained items if the bool passed with the value is true.
+        /// </summary>
+        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, IValue value, bool recurIntoInnerItems)
+        {
+            void ProcessValue(string funcName, IValue value)
             {
                 if (value is PointerValue pointer)
                 {
-                    ModifyCounts(funcName, pointer.LoadValue());
+                    ProcessValue(funcName, pointer.LoadValue());
                 }
                 else
                 {
-                    var arg = ProcessInnerItems(funcName, value);
+                    Value arg;
+                    if (value is TupleValue tuple)
+                    {
+                        for (var i = 0; i < tuple.StructType.Members.Count && recurIntoInnerItems; ++i)
+                        {
+                            var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
+                            if (itemFuncName != null)
+                            {
+                                var item = tuple.GetTupleElement(i);
+                                ProcessValue(itemFuncName, item);
+                            }
+                        }
+                        arg = tuple.OpaquePointer;
+                    }
+                    else if (value is ArrayValue array)
+                    {
+                        var itemFuncName = getFunctionName(array.LlvmElementType);
+                        if (itemFuncName != null && recurIntoInnerItems)
+                        {
+                            this.sharedState.IterateThroughArray(array, arrItem => ProcessValue(itemFuncName, arrItem));
+                        }
+                        arg = array.OpaquePointer;
+                    }
+                    else if (value is CallableValue callable && recurIntoInnerItems)
+                    {
+                        var itemFuncId =
+                            funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
+                            funcName == RuntimeLibrary.CallableUpdateAliasCount ? 1 :
+                            throw new NotSupportedException("unknown function for capture tuple memory management");
+                        this.InvokeCallableMemoryManagement(itemFuncId, change, callable);
+                        arg = callable.Value;
+                    }
+                    else
+                    {
+                        arg = value.Value;
+                    }
+
                     var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
                     this.sharedState.CurrentBuilder.Call(func, arg, change.Value);
                 }
             }
 
-            foreach (var value in values)
+            var func = getFunctionName(value.LlvmType);
+            if (func != null)
             {
-                var func = getFunctionName(value.LlvmType);
-                if (func != null)
-                {
-                    ModifyCounts(func, value);
-                }
+                ProcessValue(func, value);
             }
         }
 
         // public and internal methods
 
         /// <summary>
-        /// Opens a new scope and pushes it on top of the naming scope stack.
-        /// Opening a new scope automatically opens a new naming scope as well.
+        /// Opens a new scope and pushes it on top of the scope stack.
         /// </summary>
         public void OpenScope()
         {
@@ -322,79 +490,99 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Closes the current scope by popping it off of the stack.
-        /// Closing the scope automatically also closes the current naming scope as well.
-        /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
+        /// Emits the queued calls to unreference, release, and/or decrease the alias counts for values going out of scope.
         /// If the current basic block is already terminated, presumably by a return, the calls are not generated.
         /// </summary>
+        /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
         public void CloseScope(bool isTerminated)
-        {
-            var scope = this.scopes.Pop();
-            if (!isTerminated)
-            {
-                scope.ExecutePendingCalls();
-            }
-        }
-
-        /// <summary>
-        /// Closes the current scope by popping it off of the stack.
-        /// Closing the scope automatically also closes the current naming scope as well.
-        /// Emits the queued calls to unreference, release, and/or decrease the access counts for values going out of scope.
-        /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
-        /// </summary>
-        public void CloseScope(IValue returned)
-        {
-            var scope = this.scopes.Pop();
-
-            if (!scope.WillBeUnreferenced(returned))
-            {
-                this.IncreaseReferenceCount(returned);
-            }
-
-            scope.ExecutePendingCalls(new List<IValue>() { returned });
-        }
-
-        /// <summary>
-        /// Exits the current scope by emitting the calls to unreference, release,
-        /// and/or decrease the access counts for values going out of scope,
-        /// decreasing access counts and invoking release functions if necessary.
-        /// Exiting the current scope does *not* close the scope.
-        /// </summary>
-        public void ExitScope(bool isTerminated)
         {
             var scope = this.scopes.Peek();
             if (!isTerminated)
             {
                 scope.ExecutePendingCalls();
             }
+
+            if (scope.HasPendingReferences)
+            {
+                throw new InvalidOperationException("cannot close scope that has pending calls to increase reference counts");
+            }
+            _ = this.scopes.Pop();
         }
 
         /// <summary>
-        /// Returns true if reference counts are tracked for values of the given LLVM type.
+        /// Closes the current scope by popping it off of the stack.
+        /// Emits the queued calls to unreference, release, and/or decrease the alias counts for values going out of scope.
+        /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
+        /// Delays applying pending calls to increase reference counts if no values are unreferenced unless allowDelayReferencing is set to false.
         /// </summary>
-        internal bool RequiresReferenceCount(ITypeRef t) =>
-            this.ReferencesUpdateFunctionForType(t) != null;
+        public void CloseScope(IValue returned, bool allowDelayReferencing = true)
+        {
+            var scope = this.scopes.Peek();
+            this.IncreaseReferenceCount(returned);
+
+            scope.ExecutePendingCalls(applyReferences: !allowDelayReferencing);
+            scope = this.scopes.Pop();
+
+            if (allowDelayReferencing)
+            {
+                scope.MigratePendingReferences(this.scopes.Peek());
+            }
+        }
+
+        /// <summary>
+        /// Executes all pending calls to increase reference counts in the current scope.
+        /// </summary>
+        internal void ApplyPendingReferences() =>
+            this.scopes.Peek().ApplyPendingReferences();
+
+        /// <summary>
+        /// Exits the current scope by emitting the calls to unreference, release,
+        /// and/or decrease the alias counts for values going out of scope, and invoking release functions if necessary.
+        /// Exiting the current scope does *not* close the scope.
+        /// All pending calls to increase reference counts for values need to be applied
+        /// using <see cref="ApplyPendingReferences"/> before exiting the scope.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
+        public void ExitScope(bool isTerminated)
+        {
+            var scope = this.scopes.Peek();
+            if (scope.HasPendingReferences)
+            {
+                throw new InvalidOperationException("cannot exit scope that has pending calls to increase reference counts");
+            }
+            if (!isTerminated)
+            {
+                scope.ExecutePendingCalls();
+            }
+        }
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.
+        /// The reference count is increased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is referenced</param>
         public void IncreaseReferenceCount(IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, shallow, this.plusOne, value);
+            this.scopes.Peek().ReferenceValue(value, !shallow);
 
         /// <summary>
         /// Adds a call to a runtime library function to decrease the reference count for the given value if necessary.
+        /// The reference count is decreased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is unreferenced</param>
         public void DecreaseReferenceCount(IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, shallow, this.minusOne, value);
+            this.scopes.Peek().UnreferenceValue(value, !shallow);
 
         /// <summary>
         /// Adds a call to a runtime library function to change the reference count for the given value.
+        /// The count is changed recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value for which to change the reference count</param>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
-        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.ReferencesUpdateFunctionForType, shallow, change, value);
+        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false)
+        {
+            this.scopes.Peek().ApplyPendingReferences();
+            this.ModifyCounts(this.ReferenceCountUpdateFunctionForType, change, value, !shallow);
+        }
 
         /// <summary>
         /// Given a callable value, increases the reference count of its capture tuple by 1.
@@ -404,42 +592,47 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.InvokeCallableMemoryManagement(0, this.plusOne, callable);
 
         /// <summary>
-        /// Returns true if access counts are tracked for values of the given LLVM type.
-        /// </summary>
-        internal bool RequiresAccessCount(ITypeRef t) =>
-            this.AccessUpdateFunctionForType(t) != null;
-
-        /// <summary>
-        /// Adds a call to a runtime library function to increase the access count for the given value if necessary.
+        /// Adds a call to a runtime library function to increase the alias count for the given value if necessary.
+        /// Adds a call to increase the reference count for the value. Both calls are executed immediately
+        /// opposed to only at the end of the scope.
+        /// Both counts are increased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAccessCount(IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, shallow, this.plusOne, value);
+        internal void IncreaseAliasCount(IValue value, bool shallow = false)
+        {
+            this.ModifyCounts(this.ReferenceCountUpdateFunctionForType, this.plusOne, value, !shallow);
+            this.ModifyCounts(this.AliasCountUpdateFunctionForType, this.plusOne, value, !shallow);
+        }
 
         /// <summary>
-        /// Adds a call to a runtime library function to decrease the access count for the given value if necessary.
+        /// Adds a call to a runtime library function to decrease the alias count for the given value if necessary.
+        /// Adds a call to decrease the reference count for the value to the list of pending calls.
+        /// Both counts are decreased recursively for subitems unless shallow is set to true.
         /// </summary>
         /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAccessCount(IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, shallow, this.minusOne, value);
+        internal void DecreaseAliasCount(IValue value, bool shallow = false)
+        {
+            this.DecreaseReferenceCount(value, shallow);
+            this.ModifyCounts(this.AliasCountUpdateFunctionForType, this.minusOne, value, !shallow);
+        }
 
         /// <summary>
-        /// Adds a call to a runtime library function to change the access count for the given value.
+        /// Adds a call to a runtime library function to change the alias count for the given value.
+        /// The alias count is changed recursively for subitems unless shallow is set to true.
+        /// Modifies *only* the alias count and not the reference count.
         /// </summary>
-        /// <param name="value">The value for which to change the access count</param>
-        /// <param name="change">The amount by which to change the access count given as i64</param>
-        internal void UpdateAccessCount(IValue change, IValue value, bool shallow = false) =>
-            this.RecursivelyModifyCounts(this.AccessUpdateFunctionForType, shallow, change, value);
+        /// <param name="value">The value for which to change the alias count</param>
+        /// <param name="change">The amount by which to change the alias count given as i64</param>
+        internal void UpdateAliasCount(IValue change, IValue value, bool shallow = false) =>
+            this.ModifyCounts(this.AliasCountUpdateFunctionForType, change, value, !shallow);
 
         /// <summary>
-        /// Queues a call to a suitable runtime library function that unreferences the value
-        /// when the scope is closed or exited.
+        /// Registers the given value with the current scope, such that a call to a suitable runtime library function
+        /// that unreferences the value is executed when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
-        public void RegisterValue(IValue value)
-        {
-            this.scopes.Peek().AddValue(value);
-        }
+        public void RegisterValue(IValue value) =>
+            this.scopes.Peek().RegisterValue(value);
 
         /// <summary>
         /// Adds a value constructed as part of a qubit allocation to the current topmost scope.
@@ -452,19 +645,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Types.IsArray(value.LlvmType) ? RuntimeLibrary.QubitReleaseArray :
                 Types.IsQubit(this.sharedState.Types.Qubit) ? RuntimeLibrary.QubitRelease :
                 throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
-            this.scopes.Peek().AddValue(value, releaser);
+            this.scopes.Peek().RegisterValue(value, releaser);
         }
 
         /// <summary>
         /// Registers a variable name as an alias for an LLVM value.
+        /// Increases the alias and reference count for the value if necessary,
+        /// and ensures that both are decreased again when the variable goes out of scope.
+        /// The registered variable is mutable if the passed value is a pointer value.
         /// </summary>
         /// <param name="name">The name to register</param>
         /// <param name="value">The LLVM value</param>
         internal void RegisterVariable(string name, IValue value)
         {
             value.RegisterName(this.sharedState.InlinedName(name));
-            this.IncreaseAccessCount(value);
-            this.scopes.Peek().AddVariable(name, value);
+            this.scopes.Peek().RegisterVariable(name, value);
         }
 
         /// <summary>
@@ -478,7 +673,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Gets the value of a named variable.
         /// The name must have been registered as an alias for the value using
-        /// <see cref="RegisterVariable(string, Value, bool)"/>.
+        /// <see cref="RegisterVariable(string, IValue)"/>.
         /// </summary>
         /// <param name="name">The registered variable name to look for</param>
         internal IValue GetVariable(string name)
@@ -494,15 +689,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Exits the current function by emitting the calls to unreference values going out of scope for all open scopes,
-        /// decreasing access counts and invoking release functions if necessary.
+        /// Exits the current function by applying all pending calls to change reference counts for values in all open scopes,
+        /// decreasing alias counts and invoking release functions if necessary.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
-        /// The calls are generated in using the current builder.
+        /// The calls are generated using the current builder.
         /// Exiting the current function does *not* close the scopes.
         /// </summary>
         /// <param name="returned">The value that is returned and expected to remain valid after exiting.</param>
+        /// <exception cref="InvalidOperationException">The current function is inlined.</exception>
         public void ExitFunction(IValue returned)
         {
+            if (this.sharedState.IsInlined)
+            {
+                throw new InvalidOperationException("cannot exit inlined function");
+            }
+
             // To avoid increasing the reference count for the returned value and all contained items
             // followed by immediately decreasing it again, we check whether we can avoid that.
             // There are a couple of pitfalls to watch out for when doing this:
@@ -519,17 +720,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // d) We can't modify the pending calls; they may be used by other execution paths that
             //    don't return the same value.
 
-            var returnWillBeUnreferenced = this.scopes.Any(scope => scope.WillBeUnreferenced(returned));
-            if (!returnWillBeUnreferenced)
-            {
-                this.IncreaseReferenceCount(returned);
-            }
-
             // We need to extract the scopes to iterate over since for loops to release array items
             // will create new scopes and hence modify the collection.
             var currentScopes = this.scopes.ToArray();
-            var omittedUnreferences = new List<IValue>() { returned };
-            Scope.ExecutePendingCalls(this, omittedUnreferences, currentScopes);
+            this.IncreaseReferenceCount(returned);
+            Scope.ExecutePendingCalls(this, true, currentScopes);
         }
     }
 }

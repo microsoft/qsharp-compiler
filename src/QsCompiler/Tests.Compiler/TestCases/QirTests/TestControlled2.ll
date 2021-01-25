@@ -20,9 +20,7 @@ entry:
   %15 = getelementptr { %Array*, { %Qubit*, i64 }* }, { %Array*, { %Qubit*, i64 }* }* %14, i64 0, i32 0
   %16 = getelementptr { %Array*, { %Qubit*, i64 }* }, { %Array*, { %Qubit*, i64 }* }* %14, i64 0, i32 1
   store %Array* %3, %Array** %15
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
   store { %Qubit*, i64 }* %10, { %Qubit*, i64 }** %16
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 1)
   %17 = bitcast %Tuple* %capture-tuple to { %Callable* }*
   %18 = getelementptr { %Callable* }, { %Callable* }* %17, i64 0, i32 0
   %19 = load %Callable*, %Callable** %18
@@ -30,8 +28,6 @@ entry:
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %20, i64 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %20)
   call void @__quantum__rt__callable_invoke(%Callable* %20, %Tuple* %13, %Tuple* %result-tuple)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %13, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %20, i64 -1)

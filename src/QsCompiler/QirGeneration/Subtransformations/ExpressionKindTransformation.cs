@@ -207,8 +207,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Evaluates the copy-and-update expression defined by the given left-hand side, the item access and the right-hand side
         /// within the given context.
-        /// If updateItemAccessCount is set to true, decreases the access count of the items that are updated by 1 and
-        /// increases the access count for the new items.
+        /// If updateItemAliasCount is set to true, decreases the alias count of the items that are updated by 1 and
+        /// increases the alias count for the new items.
         /// If unreferenceOriginal original is set to true, then the original value is effectively unreferenced by omitting to
         /// to increase the reference counts for items that are not updated, and decreasing the reference counts for items that
         /// are replaced.
@@ -216,73 +216,60 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="sharedState">The context within which to evaluate the expression</param>
         /// <param name="copyAndUpdate">
         /// Tuple containing the original value which should be copied and updated,
-        /// an access expression indicating the item(s) to update,
+        /// an alias expression indicating the item(s) to update,
         /// and the new value(s) for the item(s) to update.
         /// </param>
         internal static ResolvedExpression CopyAndUpdate(
             GenerationContext sharedState,
             (IValue, TypedExpression, TypedExpression) copyAndUpdate,
-            bool updateItemAccessCount = false,
+            bool updateItemAliasCount = false,
             bool unreferenceOriginal = false)
         {
             var (originalValue, accEx, updated) = copyAndUpdate;
-            void StoreElement(PointerValue pointer, IValue value)
+            void StoreElement(PointerValue pointer, IValue value, bool shallow = false)
             {
-                if (updateItemAccessCount)
+                if (updateItemAliasCount)
                 {
-                    sharedState.ScopeMgr.IncreaseAccessCount(value);
-                    sharedState.ScopeMgr.DecreaseAccessCount(pointer);
+                    sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
+                    sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
                 }
                 pointer.StoreValue(value);
             }
 
             IValue CopyAndUpdateArray(ArrayValue originalArray)
             {
-                // Since we keep track of access counts for arrays we always ask the runtime to create a shallow copy
+                // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
                 // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
-                // access count is larger than 0, and otherwise merely increases the reference count of the array by 1.
+                // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
                 var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                 var forceCopy = sharedState.Context.CreateConstant(false);
                 var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
                 var array = sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
                 sharedState.ScopeMgr.RegisterValue(array);
 
-                // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                // reference counts always need to be modified recursively. However, while the reference count for
-                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
-                // to increase the reference count of the contained items due to lacking type information.
-                // In the same way that we increase the reference count when we populate an array, we hence need to
-                // manually (recursively) increase the reference counts for all items.
-                if (sharedState.ScopeMgr.RequiresReferenceCount(array.LlvmElementType) && !unreferenceOriginal)
-                {
-                    // While we avoid increasing the reference count here for items if unreferenceOriginal is set to true,
-                    // we decrease the reference count for the original array itself at the end of the evaluation since
-                    // we need the array to stay alive for the evaluation.
-                    sharedState.IterateThroughArray(array, item => sharedState.ScopeMgr.IncreaseReferenceCount(item));
-                }
-
-                // The getNewItemForIndex function is expected to increase the reference count of the item by 1.
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
                 {
                     var elementPtr = array.GetArrayElementPointer(index);
-                    var newElement = getNewItemForIndex(index);
+                    if (unreferenceOriginal)
+                    {
+                        sharedState.ScopeMgr.DecreaseReferenceCount(elementPtr);
+                    }
 
-                    // Remark: Avoiding to increase and then decrease the reference count for the original item
-                    // would require generating a pointer comparison that is evaluated at runtime, and I am not sure
-                    // whether that would be much better.
-                    sharedState.ScopeMgr.DecreaseReferenceCount(elementPtr);
+                    var newElement = getNewItemForIndex(index);
                     StoreElement(elementPtr, newElement);
                 }
 
                 if (accEx.ResolvedType.Resolution.IsInt)
                 {
-                    IValue newItemValue = sharedState.BuildSubitem(updated);
+                    // do not increase the ref count here - we will increase the ref count of all new items at the end
+                    IValue newItemValue = sharedState.EvaluateSubexpression(updated);
                     var index = sharedState.EvaluateSubexpression(accEx);
                     UpdateElement(_ => newItemValue, index.Value);
                 }
                 else if (accEx.ResolvedType.Resolution.IsRange)
                 {
-                    var newItemValue = (ArrayValue)sharedState.BuildSubitem(updated);
+                    // do not increase the ref count here - we will increase the ref count of all new items at the end
+                    var newItemValue = (ArrayValue)sharedState.EvaluateSubexpression(updated);
                     var (getStart, getStep, getEnd) = RangeItems(sharedState, accEx);
                     sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
                     sharedState.ScopeMgr.DecreaseReferenceCount(newItemValue, shallow: true); // the items get unreferenced with the value of the copy-and-update expression
@@ -292,10 +279,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new InvalidOperationException("invalid item name in named item access");
                 }
 
-                if (unreferenceOriginal)
+                // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                // reference counts always need to be modified recursively. However, while the reference count for
+                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
+                // to increase the reference count of the contained items due to lacking type information.
+                // In the same way that we increase the reference count when we populate an array, we hence need to
+                // manually (recursively) increase the reference counts for all items.
+                if (!unreferenceOriginal)
                 {
-                    // We have already effectively decreased the reference count for the array items above by not increasing it
-                    // to reflect their use in the copy. What's left to do is to unreference the array itself.
+                    sharedState.ScopeMgr.IncreaseReferenceCount(array);
+                    sharedState.ScopeMgr.DecreaseReferenceCount(array, shallow: true);
+                }
+                else
+                {
+                    // We effectively decrease the reference count for the unmodified array items by not increasing it
+                    // to reflect their use in the copy, and we have manually decreased the reference count for the updated item(s).
+                    // What's left to do is to unreference the original array itself.
                     sharedState.ScopeMgr.DecreaseReferenceCount(originalArray, shallow: true);
                 }
                 return array;
@@ -303,22 +302,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateUdt(TupleValue originalValue)
             {
-                // Returns the shallow copy as tuple and pushes the given original into the copied tuples stack.
-                var copiedTuples = new Stack<TupleValue>();
                 TupleValue GetTupleCopy(TupleValue original)
                 {
-                    // If unreferenceOriginal is set to true, we need to make sure to explicitly unreference all tuples
-                    // for which we create a copy. We also need to make sure that we only decrease the reference count
-                    // for the tuples after we have evaluated the copy-and-update for them, and hence push them into a stack.
-                    copiedTuples.Push(original);
-
-                    // Since we keep track of access counts for tuples we always ask the runtime to create a shallow copy
+                    // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
                     // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
-                    // access count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
+                    // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
                     var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
                     var forceCopy = sharedState.Context.CreateConstant(false);
                     var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                    return sharedState.Values.FromTuple(copy, original.ElementTypes);
+                    return original.TypeName == null
+                        ? sharedState.Values.FromTuple(copy, original.ElementTypes)
+                        : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
                 }
 
                 var value = GetTupleCopy(originalValue);
@@ -333,54 +327,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     && id.Item1 is Identifier.LocalVariable name
                     && FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
                 {
-                    TupleValue innerTuple = value;
+                    var copies = new Stack<TupleValue>();
+                    copies.Push(value);
+
                     for (int depth = 0; depth < location.Count; depth++)
                     {
-                        // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                        // reference counts always need to be modified recursively. However, while the reference count for
-                        // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
-                        // to increase the reference count of the contained items due to lacking type information.
-                        // In the same way that we increase the reference count when we populate a tuple, we hence need to
-                        // manually (recursively) increase the reference counts for all items.
-                        var itemPointers = innerTuple.GetTupleElementPointers();
-                        var itemIndex = location[depth];
-                        for (var i = 0; i < itemPointers.Length && !unreferenceOriginal; ++i)
-                        {
-                            // We avoid increasing the reference count here for all items but the copied tuples if
-                            // unreferenceOriginal is set to true, effectively decreasing their reference count by 1.
-                            // The copied tuples themselves need to be unreferenced after evaluating the copy-and-update.
-                            if (i != itemIndex)
-                            {
-                                sharedState.ScopeMgr.IncreaseReferenceCount(itemPointers[i]);
-                            }
-                        }
-
+                        var itemPointer = copies.Peek().GetTupleElementPointer(location[depth]);
                         if (depth == location.Count - 1)
                         {
-                            var newItemValue = sharedState.BuildSubitem(updated);
-                            if (unreferenceOriginal)
-                            {
-                                sharedState.ScopeMgr.DecreaseReferenceCount(itemPointers[itemIndex]);
-                            }
-                            StoreElement(itemPointers[itemIndex], newItemValue);
+                            var newItemValue = sharedState.EvaluateSubexpression(updated);
+                            StoreElement(itemPointer, newItemValue);
                         }
                         else
                         {
                             // We load the original item at that location (which is an inner tuple),
                             // and replace it with a copy of it (if a copy is needed),
                             // such that we can then proceed to modify that copy (the next inner tuple).
-                            var originalItem = (TupleValue)itemPointers[itemIndex].LoadValue();
-                            innerTuple = GetTupleCopy(originalItem);
-                            StoreElement(itemPointers[itemIndex], innerTuple);
+                            var originalItem = (TupleValue)itemPointer.LoadValue();
+                            copies.Push(GetTupleCopy(originalItem));
+                            StoreElement(itemPointer, copies.Peek(), shallow: true);
                         }
                     }
 
-                    while (unreferenceOriginal && copiedTuples.TryPop(out var copiedTuple))
+                    // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                    // reference counts always need to be modified recursively. However, while the reference count for
+                    // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
+                    // to increase the reference count of the contained items due to lacking type information.
+                    // In the same way that we increase the reference count when we populate a tuple, we hence need to
+                    // manually (recursively) increase the reference counts for all items.
+                    sharedState.ScopeMgr.IncreaseReferenceCount(value);
+                    while (copies.TryPop(out var copy))
                     {
-                        // We explicitly unreference all copied tuples here. We don't need to recur into items since the
-                        // reference count for all items that have not been copied is effectively already reduced by 1
-                        // by not having increased it to reflect their use in the copy.
-                        sharedState.ScopeMgr.DecreaseReferenceCount(copiedTuple, shallow: true);
+                        sharedState.ScopeMgr.DecreaseReferenceCount(copy, shallow: true);
+                    }
+
+                    // We need to be careful to not unreference the old value before we have properly populated and
+                    // referenced all items in the new value.
+                    if (unreferenceOriginal)
+                    {
+                        sharedState.ScopeMgr.DecreaseReferenceCount(originalValue);
                     }
                     return value;
                 }
@@ -611,7 +596,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var callable = (CallableValue)this.SharedState.EvaluateSubexpression(ex);
 
-            // We don't keep track of access counts for callables and hence instead
+            // We don't keep track of alias counts for callables and hence instead
             // take care here to not make unnecessary copies. We have to be pessimistic, however,
             // and make a copy for anything that would require further evaluation of the expression,
             // such as e.g. if ex is a conditional expression.
@@ -647,7 +632,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (!modifyInPlace)
             {
-                // Since we track access counts for callables there is no need to force the copy.
+                // Since we track alias counts for callables there is no need to force the copy.
                 // While making a copy ensures that the callable is created with reference count 1,
                 // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
@@ -723,7 +708,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (exType.Resolution is ResolvedTypeKind.ArrayType elementType)
             {
-                // The runtime function ArrayConcatenate creates a new value with reference count 1 and access count 0.
+                // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromArray(res, elementType.Item);
@@ -757,11 +742,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                // Array slice creates a new array if the current access count is larger than zero.
-                // The created array is instantiated with reference count 1 and access count 0.
-                // If the current access count is zero, then the array may be modified in place.
+                // Array slice creates a new array if the current alias count is larger than zero.
+                // The created array is instantiated with reference count 1 and alias count 0.
+                // If the current alias count is zero, then the array may be modified in place.
                 // In this case, its reference count is increased by 1.
-                // Since we keep track of access counts for arrays, there is no need to force the copy.
+                // Since we keep track of alias counts for arrays, there is no need to force the copy.
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
@@ -975,12 +960,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
 
+                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.SetCurrentBlock(trueBlock);
-                var ifTrue = this.SharedState.BuildSubitem(ifTrueEx);
+                this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
+                var ifTrue = this.SharedState.ValueStack.Pop();
+                this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
+                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.SetCurrentBlock(falseBlock);
-                var ifFalse = this.SharedState.BuildSubitem(ifFalseEx);
+                this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
+                var ifFalse = this.SharedState.ValueStack.Pop();
+                this.SharedState.ScopeMgr.CloseScope(ifFalse, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(contBlock);

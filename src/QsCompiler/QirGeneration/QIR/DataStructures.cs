@@ -339,7 +339,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private Value AllocateTuple(bool registerWithScopeManager)
         {
-            // The runtime function TupleCreate creates a new value with reference count 1 and access count 0.
+            // The runtime function TupleCreate creates a new value with reference count 1 and alias count 0.
             var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
             var size = this.sharedState.ComputeSizeForType(this.StructType);
             var tuple = this.sharedState.CurrentBuilder.Call(constructor, size);
@@ -472,7 +472,7 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private Value AllocateArray(bool registerWithScopeManager)
         {
-            // The runtime function ArrayCreate1d creates a new value with reference count 1 and access count 0.
+            // The runtime function ArrayCreate1d creates a new value with reference count 1 and alias count 0.
             var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
             var elementSize = this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type);
             var pointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);

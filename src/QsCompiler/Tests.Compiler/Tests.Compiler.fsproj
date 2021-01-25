@@ -39,7 +39,19 @@
     <Content Include="TestCases\QirTests\TestArrayLoop.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestArrayUpdate.ll">
+    <Content Include="TestCases\QirTests\TestArrayUpdate1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestArrayUpdate2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestArrayUpdate3.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestArrayUpdate4.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestArrayUpdate5.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestArrayUpdate.qs">
@@ -249,7 +261,10 @@
     <Content Include="TestCases\QirTests\TestUdtConstruction.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestUdtUpdate.ll">
+    <Content Include="TestCases\QirTests\TestUdtUpdate1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestUdtUpdate2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestUdtUpdate.qs">
