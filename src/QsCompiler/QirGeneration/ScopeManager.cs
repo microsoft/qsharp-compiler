@@ -89,6 +89,41 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return value;
             }
 
+            private static IEnumerable<(IValue, bool)> Expand(Func<ITypeRef, string?> getFunctionName, IValue value, bool recurIntoInnerItems, List<(IValue, bool)>? omitExpansion = null)
+            {
+                var func = getFunctionName(value.LlvmType);
+                if (func != null)
+                {
+                    omitExpansion ??= new List<(IValue, bool)>();
+                    var omitted = omitExpansion.FirstOrDefault(omitted => ValueEquals((value, recurIntoInnerItems), omitted));
+                    if (omitExpansion.Remove(omitted))
+                    {
+                        yield break;
+                    }
+
+                    if (value is TupleValue tuple)
+                    {
+                        for (var i = 0; i < tuple.StructType.Members.Count && recurIntoInnerItems; ++i)
+                        {
+                            var itemFuncName = getFunctionName(tuple.StructType.Members[i]);
+                            if (itemFuncName != null)
+                            {
+                                var item = tuple.GetTupleElement(i);
+                                foreach (var inner in Expand(getFunctionName, item, true, omitExpansion))
+                                {
+                                    yield return inner;
+                                }
+                            }
+                        }
+                        yield return (value, false);
+                    }
+                    else
+                    {
+                        yield return (value, recurIntoInnerItems);
+                    }
+                }
+            }
+
             // public and internal methods
 
             /// <summary>
@@ -203,27 +238,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal bool TryRemoveValue(IValue value) =>
                 TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, value));
 
-            /// <summary>
-            /// Returns true if the given value will be unreferenced by <see cref="ExecutePendingCalls" />
-            /// unless it is explicitly excluded.
-            /// </summary>
-            internal bool WillBeUnreferenced(IValue value) =>
-                this.requiredUnreferences.Exists(tracked => ValueEquals(tracked, value));
-
             /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, bool, Scope[])" />
-            internal void ExecutePendingCalls(List<IValue>? omitUnreferencing = null, bool applyReferences = true) =>
-                ExecutePendingCalls(this.parent, omitUnreferencing ?? new List<IValue>(), applyReferences, this);
+            internal void ExecutePendingCalls(bool applyReferences = true) =>
+                ExecutePendingCalls(this.parent, applyReferences, this);
 
             /// <summary>
             /// Generates the necessary calls to unreference the tracked values, decrease the alias count for registered variables,
             /// and invokes the specified release functions for values if necessary.
-            /// Skips unreferencing the values specified in omitUnreferencing, removing them from the list.
-            /// Applies pending calls to increase reference counts *only* if <paramref name="applyReferences"/> is set to true.
+            /// If no calls to decrease reference counts are needed in any of the given scopes,
+            /// does *not* apply pending calls to increase reference counts unless <paramref name="forceApplyReferences"/> is set to true.
             /// </summary>
-            /// <param name="omitUnreferencing">
-            /// Values for which to omit the call to unreference them; for each value at most one call will be omitted and the value will be removed from the list
-            /// </param>
-            internal static void ExecutePendingCalls(ScopeManager parent, List<IValue> omitUnreferencing, bool applyReferences, params Scope[] scopes)
+            internal static void ExecutePendingCalls(ScopeManager parent, bool forceApplyReferences, params Scope[] scopes)
             {
                 if (!scopes.Any())
                 {
@@ -236,19 +261,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     parent.sharedState.CurrentBuilder.Call(func, value.Value);
                 }
 
-                var pendingAliasCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
-                var pendingUnreferences = new List<(IValue, bool)>(pendingAliasCounts.Where(v => v.Value is PointerValue));
-                foreach (var value in scopes.SelectMany(s => s.requiredUnreferences))
-                {
-                    var omitted = omitUnreferencing.FirstOrDefault(omitted => ValueEquals(value, omitted));
-                    if (!omitUnreferencing.Remove(omitted))
-                    {
-                        pendingUnreferences.Add(value);
-                    }
-                }
+                // Not the most efficient way to go about this, but it will do for now.
 
-                // Not the most efficient version, but it will do for now.
-                var pendingReferences = applyReferences ? scopes.First().ClearPendingReferences() : new List<(IValue, bool)>();
+                var pendingAliasCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
+                var appliesUnreferences = pendingAliasCounts.Any(v => v.Value is PointerValue) || scopes.Any(s => s.requiredUnreferences.Any());
+
+                var pendingReferences = forceApplyReferences || appliesUnreferences
+                    ? scopes.First().ClearPendingReferences()
+                    : new List<(IValue, bool)>();
+
+                var pendingUnreferences = scopes
+                    .SelectMany(s => s.requiredUnreferences)
+                    .Concat(pendingAliasCounts.Where(v => v.Value is PointerValue))
+                    .SelectMany(v => Expand(parent.ReferenceCountUpdateFunctionForType, v.Item1, v.Item2, pendingReferences))
+                    .ToList();
+
+                pendingReferences = pendingReferences
+                    .SelectMany(v => Expand(parent.ReferenceCountUpdateFunctionForType, v.Item1, v.Item2))
+                    .ToList();
+
                 var lookup1 = pendingReferences.ToLookup(x => (x.Item1.Value, x.Item2));
                 var lookup2 = pendingUnreferences.ToLookup(x => (x.Item1.Value, x.Item2));
                 var unnecessaryRefModifications = lookup1.SelectMany(l1s => lookup2[l1s.Key].Zip(l1s, (l2, l1) => l1));
@@ -487,23 +518,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public void CloseScope(IValue returned, bool allowDelayReferencing = true)
         {
             var scope = this.scopes.Peek();
-            var skipUnreference = scope.WillBeUnreferenced(returned);
+            this.IncreaseReferenceCount(returned);
 
-            if (!allowDelayReferencing && !skipUnreference)
-            {
-                this.IncreaseReferenceCount(returned);
-            }
-
-            scope.ExecutePendingCalls(new List<IValue>() { returned }, applyReferences: !allowDelayReferencing);
+            scope.ExecutePendingCalls(applyReferences: !allowDelayReferencing);
             scope = this.scopes.Pop();
 
             if (allowDelayReferencing)
             {
                 scope.MigratePendingReferences(this.scopes.Peek());
-                if (!skipUnreference)
-                {
-                    this.IncreaseReferenceCount(returned);
-                }
             }
         }
 
@@ -698,17 +720,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // d) We can't modify the pending calls; they may be used by other execution paths that
             //    don't return the same value.
 
-            var returnWillBeUnreferenced = this.scopes.Any(scope => scope.WillBeUnreferenced(returned));
-            if (!returnWillBeUnreferenced)
-            {
-                this.IncreaseReferenceCount(returned);
-            }
-
             // We need to extract the scopes to iterate over since for loops to release array items
             // will create new scopes and hence modify the collection.
             var currentScopes = this.scopes.ToArray();
-            var omittedUnreferences = new List<IValue>() { returned };
-            Scope.ExecutePendingCalls(this, omittedUnreferences, true, currentScopes);
+            this.IncreaseReferenceCount(returned);
+            Scope.ExecutePendingCalls(this, true, currentScopes);
         }
     }
 }

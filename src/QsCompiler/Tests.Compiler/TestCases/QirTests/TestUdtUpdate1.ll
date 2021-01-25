@@ -40,10 +40,8 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %11, i64 1)
   store { { double, %String* }*, i64 }* %12, { { double, %String* }*, i64 }** %x
-  call void @__quantum__rt__string_update_reference_count(%String* %a, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %16, i64 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %11, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %a, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %10, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %7, i64 -1)

@@ -26,8 +26,6 @@ entry:
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %18)
   call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* %12, %Tuple* %result-tuple)
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %3, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 -1)

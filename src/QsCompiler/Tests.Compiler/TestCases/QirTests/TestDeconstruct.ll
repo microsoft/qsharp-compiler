@@ -22,11 +22,9 @@ entry:
   store i64 %9, i64* %c
   %10 = mul i64 %7, %9
   %11 = add i64 %0, %10
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i64 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
   ret i64 %11
 }

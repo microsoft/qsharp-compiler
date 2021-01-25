@@ -143,14 +143,14 @@ continue__1:                                      ; preds = %then0__1, %body__1
   %56 = bitcast { %Array* }* %55 to %Tuple*
   call void @__quantum__rt__callable_invoke(%Callable* %51, %Tuple* %56, %Tuple* null)
   call void @__quantum__rt__qubit_release(%Qubit* %qb)
+  %57 = getelementptr { %Array* }, { %Array* }* %55, i64 0, i32 0
+  %58 = load %Array*, %Array** %57
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %12, i64 -1)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %51, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %51, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %52, i64 -1)
-  %57 = getelementptr { %Array* }, { %Array* }* %55, i64 0, i32 0
-  %58 = load %Array*, %Array** %57
   call void @__quantum__rt__array_update_reference_count(%Array* %58, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %56, i64 -1)
   br label %exiting__1
