@@ -1131,8 +1131,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         Seq.append
             (Seq.map (fun qsType -> qsType, true) (this.DefinedTypes()))
             (Seq.map (fun qsType -> qsType, false) (this.ImportedTypes()))
-        |> Seq.filter (fun (qsType, sameAssembly) ->
-            Namespace.IsDeclarationAccessible(sameAssembly, qsType.Visibility))
+        |> Seq.filter (fun (qsType, sameAssembly) -> Namespace.IsDeclarationAccessible(sameAssembly, qsType.Visibility))
         |> Seq.map fst
 
     /// removes the given source file and all its content from all namespaces

@@ -211,9 +211,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
 
-        Assert.True
-            (generated.Visibility = Internal,
-             "Callables originally internal should remain internal.")
+        Assert.True(generated.Visibility = Internal, "Callables originally internal should remain internal.")
 
         let generated =
             getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsInternalUsesPublic"
@@ -221,9 +219,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
 
-        Assert.True
-            (generated.Visibility = Internal,
-             "Callables originally internal should remain internal.")
+        Assert.True(generated.Visibility = Internal, "Callables originally internal should remain internal.")
 
         let generated =
             getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesInternal"
@@ -231,9 +227,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
 
-        Assert.True
-            (generated.Visibility = Internal,
-             "Callables with internal arguments should be internal.")
+        Assert.True(generated.Visibility = Internal, "Callables with internal arguments should be internal.")
 
         let generated =
             getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesPublic"

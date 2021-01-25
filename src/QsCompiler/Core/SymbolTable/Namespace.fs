@@ -44,8 +44,7 @@ type Namespace private (name,
         isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Visibility) false
         && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Visibility) false
         && Parts.Values.All(fun partial ->
-            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Visibility)
-                true
+            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Visibility) true
             && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Visibility) true)
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
@@ -310,13 +309,9 @@ type Namespace private (name,
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceType (typeHeader: TypeDeclarationHeader) =
-            if Namespace.IsDeclarationAccessible(false, typeHeader.Visibility) then
-                Found
-                    (typeHeader.Source,
-                     SymbolResolution.TryFindRedirect typeHeader.Attributes,
-                     typeHeader.Visibility)
-            else
-                Inaccessible
+            if Namespace.IsDeclarationAccessible(false, typeHeader.Visibility)
+            then Found(typeHeader.Source, SymbolResolution.TryFindRedirect typeHeader.Attributes, typeHeader.Visibility)
+            else Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetType tName with
@@ -600,9 +595,14 @@ type Namespace private (name,
             match this.TryFindCallable cName with
             | Found (declSource, _) ->
                 let qFunctorSupport, nrTypeParams, visibility = getRelevantDeclInfo declSource
+
                 let AddAndClearCache () =
                     CallablesDefinedInAllSourcesCache <- null
-                    partial.AddCallableSpecialization location kind (cName, generator, attributes, visibility, documentation)
+
+                    partial.AddCallableSpecialization
+                        location
+                        kind
+                        (cName, generator, attributes, visibility, documentation)
 
                 let givenNrTypeParams =
                     match generator.TypeArguments with

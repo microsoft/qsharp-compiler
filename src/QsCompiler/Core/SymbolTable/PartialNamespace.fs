@@ -206,7 +206,10 @@ type private PartialNamespace private (name: string,
                 Range = Value location.Range
             }
 
-        this.AddCallableSpecialization location QsBody (tName, bodyGen, ImmutableArray.Empty, visibility, ImmutableArray.Empty)
+        this.AddCallableSpecialization
+            location
+            QsBody
+            (tName, bodyGen, ImmutableArray.Empty, visibility, ImmutableArray.Empty)
 
     /// Adds a callable declaration of the given kind (operation or function)
     /// with the given callable name and signature to the dictionary of declared callables.
@@ -224,7 +227,11 @@ type private PartialNamespace private (name: string,
     /// already exists is up to the calling routine!
     member this.AddCallableSpecialization location
                                           kind
-                                          (cName, generator: QsSpecializationGenerator, attributes, visibility, documentation)
+                                          (cName,
+                                           generator: QsSpecializationGenerator,
+                                           attributes,
+                                           visibility,
+                                           documentation)
                                           =
         // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared,
         // but all specialized types need to be resolved according to *this* file
