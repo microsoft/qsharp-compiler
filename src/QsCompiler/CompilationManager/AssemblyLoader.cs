@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// TODO: Document.
         /// </summary>
-        private static IDictionary<string, Type?> syntaxTreeResources =
+        private static readonly IDictionary<string, Type?> SyntaxTreeResources =
             new Dictionary<string, Type?>()
             {
                 { DotnetCoreDll.ResourceName, null },
@@ -138,7 +138,8 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         // TODO: Document.
-        public static bool LoadSyntaxTree(
+        // TODO: This could be private.
+        private static bool LoadSyntaxTree(
             byte[] byteArray,
             string resourceName,
             [NotNullWhen(true)] out QsCompilation? compilation,
@@ -146,15 +147,27 @@ namespace Microsoft.Quantum.QsCompiler
             Action<Exception>? onDeserializationException = null)
         {
             compilation = null;
-
+            if (!SyntaxTreeResources.TryGetValue(resourceName, out var type))
+            {
+                // TODO: Provide a meaningful error message.
+                onDeserializationException?.Invoke(new ArgumentException());
+                return false;
+            }
 
             try
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
-                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(
-                    byteArray,
-                    typeof(BondSchemas.V1.QsCompilation),
-                    options);
+                if (type != null)
+                {
+                    compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(
+                        byteArray,
+                        type,
+                        options);
+                }
+                else
+                {
+                    LoadSyntaxTree(new MemoryStream(byteArray), out compilation, onDeserializationException);
+                }
 
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
@@ -282,7 +295,7 @@ namespace Microsoft.Quantum.QsCompiler
             var metadataReader = assemblyFile.GetMetadataReader();
             string? resourceName = null;
             ManifestResource resource = default;
-            foreach (var item in syntaxTreeResources)
+            foreach (var item in SyntaxTreeResources)
             {
                 if (metadataReader.Resources().TryGetValue(item.Key, out resource))
                 {
@@ -370,21 +383,6 @@ namespace Microsoft.Quantum.QsCompiler
                     return null;
                 }
             }
-            return null;
-        }
-
-        // TODO: Document.
-        private static (string ResourceName, ManifestResource Resource)? GetSyntaxTreeResourceTuple(MetadataReader metadataReader)
-        {
-            ManifestResource resource;
-            foreach (var resourceName in syntaxTreeResources.Keys)
-            {
-                if (metadataReader.Resources().TryGetValue(resourceName, out resource))
-                {
-                    return (resourceName, resource);
-                }
-            }
-
             return null;
         }
 
