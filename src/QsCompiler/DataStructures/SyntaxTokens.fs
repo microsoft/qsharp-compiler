@@ -231,15 +231,26 @@ type Modifiers =
         Access: AccessModifier
     }
 
+/// The visibility of a symbol limits where the symbol can be seen from.
 type Visibility =
+    /// The symbol can be seen only within the compilation unit or assembly in which it is declared.
     | Internal
+
+    /// The symbol can be seen from everywhere.
     | Public
 
+/// The relative proximity of one code location to another in terms that are relevant to symbol visibility.
 type Proximity =
+    /// The code locations are in the same compilation unit or assembly.
     | SameAssembly
+
+    /// The code locations are in different compilation units or assemblies.
     | OtherAssembly
 
 module Visibility =
+    /// <summary>
+    /// Returns true if symbols with a given visibility are visible from <paramref name="proximity"/>.
+    /// </summary>
     [<CompiledName "IsVisibleFrom">]
     let isVisibleFrom proximity =
         function
@@ -247,6 +258,9 @@ module Visibility =
         | Public -> true
 
 type Visibility with
+    /// <summary>
+    /// Returns true if symbols with this visibility are visible from <paramref name="proximity"/>.
+    /// </summary>
     member visibility.IsVisibleFrom proximity =
         visibility |> Visibility.isVisibleFrom proximity
 
@@ -265,17 +279,29 @@ module AccessModifier =
         | Public -> DefaultAccess
         | Internal -> AccessModifier.Internal
 
+/// A callable declaration.
 type CallableDeclaration =
     {
+        /// The name of the callable.
         Name: QsSymbol
+
+        /// The visibility of the callable, or Null if the callable has the default visibility.
         Visibility: Visibility QsNullable
+
+        /// The signature of the callable.
         Signature: CallableSignature
     }
 
+/// A type definition.
 type TypeDefinition =
     {
+        /// The name of the type.
         Name: QsSymbol
+
+        /// The visibility of the type, or Null if the type has the default visibility.
         Visibility: Visibility QsNullable
+
+        /// The type's underlying type.
         UnderlyingType: (QsSymbol * QsType) QsTuple
     }
 
