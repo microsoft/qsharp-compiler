@@ -821,8 +821,8 @@ type DiagnosticItem =
                 "Auto-generation of inversions is not supported for operations that contain operation calls outside expression statements."
             | ErrorCode.InvalidReassignmentInApplyBlock ->
                 "Variables that are used in the within-block (specifying the outer transformation) cannot be reassigned in the apply-block (specifying the inner transformation)."
-            | ErrorCode.TypeLessAccessibleThanParentType -> "The type {0} is less accessible than the parent type {1}."
-            | ErrorCode.TypeLessAccessibleThanParentCallable -> "The type {0} is less accessible than the callable {1}."
+            | ErrorCode.TypeLessAccessibleThanParentType -> "The type {0} is less visible than the parent type {1}."
+            | ErrorCode.TypeLessAccessibleThanParentCallable -> "The type {0} is less visible than the callable {1}."
 
             | ErrorCode.UnexpectedCommandLineCompilerException -> "The command line compiler threw an exception."
             | ErrorCode.MissingInputFileOrSnippet ->
