@@ -37,7 +37,6 @@ jobs:
   - template: wrap-up.yml
 
 - job: Style
-  dependsOn: Initialize
   steps:
   - script: dotnet tool restore
     displayName: Restore .NET tools
