@@ -351,7 +351,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// If <paramref name="deep" /> is set to true (default value), then the returned children are all following tokens
-        /// with a higher indentation level than the token corresponding to <paramref name="tIndex" /> 
+        /// with a higher indentation level than the token corresponding to <paramref name="tIndex" />
         /// up to the point where we are at the same indentation level again.
         /// If <paramref name="deep" /> is set to false, then of those only the tokens with an indentation level that is precisely
         /// one larger than the one of the parent token are returned.

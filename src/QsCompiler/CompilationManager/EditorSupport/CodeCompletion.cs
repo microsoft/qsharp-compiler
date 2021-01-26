@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the completion environment at <paramref name="position" /> in <paramref name="file" />, or 
+        /// Returns the completion environment at <paramref name="position" /> in <paramref name="file" />, or
         /// null if the environment cannot be determined.
         /// </summary>
         /// <param name="fragment">The code fragment found at or before <paramref name="position" />.</param>
@@ -490,7 +490,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the names of all namespaces that have been opened without an alias and are accessible from 
+        /// Returns the names of all namespaces that have been opened without an alias and are accessible from
         /// <paramref name="position" /> in <paramref name="file" />.
         /// </summary>
         /// <remarks>

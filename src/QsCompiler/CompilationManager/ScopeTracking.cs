@@ -377,7 +377,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the result of <paramref name="findIndex" /> applied to the text on the substring of length <paramref name="count" /> starting at <paramref name="start" /> 
+        /// Returns the result of <paramref name="findIndex" /> applied to the text on the substring of length <paramref name="count" /> starting at <paramref name="start" />
         /// when ignoring end of line comments, content within strings, and - if <paramref name="ignoreExcessBrackets" /> is set - excessive closing brackets.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="start" /> and <paramref name="count" /> do not define a valid range in the text of the given <paramref name="line" />.</exception>

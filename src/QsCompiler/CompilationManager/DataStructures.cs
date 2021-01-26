@@ -309,7 +309,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Returns the corresponding fragment for the token at the saved <see cref="TokenIndex" />. 
+            /// Returns the corresponding fragment for the token at the saved <see cref="TokenIndex" />.
             /// </summary>
             /// <returns>
             /// A copy of the token where its range denotes the absolute range within the file.
@@ -403,7 +403,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// Struct used to do the (local) type checking and build the <see cref="SyntaxTree" />. 
+    /// Struct used to do the (local) type checking and build the <see cref="SyntaxTree" />.
     /// </summary>
     internal struct FragmentTree
     {

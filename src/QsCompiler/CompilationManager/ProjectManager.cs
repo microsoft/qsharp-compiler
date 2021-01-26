@@ -325,7 +325,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
 
             /// <summary>
-            /// Loads <paramref name="projectReferences" /> from disk using <paramref name="projectOutputPaths" /> 
+            /// Loads <paramref name="projectReferences" /> from disk using <paramref name="projectOutputPaths" />
             /// to determine the path to the built dll for each project file,
             /// and updates the load diagnostics accordingly.
             /// </summary>
@@ -738,7 +738,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns a function that given the uris of all files that have been removed from a project,
-        /// waits for the given removal task to finish before querying <paramref name="openInEditor" /> 
+        /// waits for the given removal task to finish before querying <paramref name="openInEditor" />
         /// to determine which of those files are currently open in the editor.
         /// </summary>
         /// <remarks>

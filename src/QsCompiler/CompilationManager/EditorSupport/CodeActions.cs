@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all namespaces in which a callable with the name of the symbol at <paramref name="pos" /> in 
+        /// Returns all namespaces in which a callable with the name of the symbol at <paramref name="pos" /> in
         /// <paramref name="file" /> belongs to.
         /// </summary>
         /// <param name="idName">The name of the identifier if an unqualified symbol exists at <paramref name="pos" />.</param>
@@ -57,12 +57,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all namespaces in which a type with the name of the symbol at <paramref name="pos" /> in 
+        /// Returns all namespaces in which a type with the name of the symbol at <paramref name="pos" /> in
         /// <paramref name="file" /> belongs to.
         /// </summary>
         /// <param name="typeName">The name of the type if an unqualified symbol exists at <paramref name="pos" />.</param>
         /// <remarks>
-        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at 
+        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at
         /// <paramref name="pos" />, or if <paramref name="pos" /> is not part of a namespace.
         /// </remarks>
         private static IEnumerable<string> TypeNamespaceSuggestions(

@@ -629,7 +629,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an <see cref="Action" /> as out parameter that replaces the tokens at <paramref name="lineNr" /> 
+        /// Returns an <see cref="Action" /> as out parameter that replaces the tokens at <paramref name="lineNr" />
         /// with the ones returned by <paramref name="updatedTokens" /> when called on the current tokens
         /// (i.e. the ones after having applied Transformation) on that line.
         /// Applies <paramref name="modifiedTokens" /> to the tokens at <paramref name="lineNr" /> to obtain the list of tokens for which to mark all connections as edited.
@@ -1030,9 +1030,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Determines whether it is necessary to immediately update the file,
         /// updates the file if necessary, and queues <paramref name="change" /> otherwise.
         /// </summary>
-        /// <returns>
-        /// Whether or not diagnostics are to be published, via out parameter <paramref name="publishDiagnostics" />.
-        /// </returns>
+        /// <param name="publishDiagnostics">
+        /// Whether or not diagnostics are to be published.
+        /// </param>
         /// <exception cref="ArgumentException">The range of <paramref name="change" /> is invalid.</exception>
         /// <remarks>
         /// An update is considered necessary if <paramref name="change" /> replaces more than one line of the current content,

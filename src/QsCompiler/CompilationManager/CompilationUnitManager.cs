@@ -700,13 +700,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // editor commands that need to be blocking
 
-        /// <returns>
-        /// The workspace edit that describes the changes to be done if the symbol at the given position - if any - is renamed to the given name.
-        /// 
+        /// <summary>
+        /// Returns the workspace edit that describes the changes to be done if the symbol at the given position - if any - is renamed to the given name.
+        /// </summary>
+        /// <remarks>
         /// Null if no symbol exists at the specified position,
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the file.
-        /// </returns>
+        /// </remarks>
         public WorkspaceEdit? Rename(RenameParams? param)
         {
             if (param?.TextDocument?.Uri is null
@@ -773,7 +774,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // -> these routines will wait for any processing to finish before executing the query
 
         /// <summary>
-        /// Get all current diagnostics. 
+        /// Get all current diagnostics.
         /// </summary>
         /// <returns>
         /// If <paramref name="textDocument" /> is specified, an array with a single item containing all current diagnostics for the given file.

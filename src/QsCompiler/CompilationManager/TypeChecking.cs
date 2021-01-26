@@ -557,7 +557,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines for building statements
 
         /// <summary>
-        /// Builds the <see cref="QsScope" /> containing <paramref name="nodeContent" />,
+        /// Builds the <see cref="QsScope" /> containing <paramref name="nodes" />,
         /// calling <see cref="BuildStatement" /> for each of them, and using <paramref name="context" /> to verify and track all symbols.
         /// </summary>
         /// <param name="nodes">A list of tree nodes.</param>
@@ -600,7 +600,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Applies <paramref name="build" /> to the position relative to <paramref name="node" /> and <paramref name="context" /> 
+        /// Applies <paramref name="build" /> to the position relative to <paramref name="node" /> and <paramref name="context" />
         /// to get the desired object as well as a list of diagnostics.
         /// </summary>
         /// <param name="node">The tree root.</param>

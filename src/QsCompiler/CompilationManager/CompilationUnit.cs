@@ -400,9 +400,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Removes <paramref name="depLock" /> from the set of dependent locks.
         /// </summary>
-        /// <returns>
-        /// True if the lock was successfully removed and false otherwise.
-        /// </returns>
         internal void UnregisterDependentLock(ReaderWriterLockSlim depLock)
         {
             #if DEBUG
@@ -705,7 +702,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Constructs a suitable callable for <paramref name="header" />. 
+        /// Constructs a suitable callable for <paramref name="header" />.
         /// </summary>
         /// <remarks>
         /// Given all information about a callable except the implementation of its specializations,
@@ -963,7 +960,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// A new set of <see cref="LocalDeclarations" /> with the position information updated to the absolute values.
         /// If <paramref name="declarations" /> is null,
         /// all (valid) symbols defined as part of the declaration of <paramref name="parentCallable" /> with their position information set to the absolute value.
-        /// If <paramref name="parentCallable" /> is null or no callable with the name is currently compiled, <see cref="LocalDeclarations.Empty" />. 
+        /// If <paramref name="parentCallable" /> is null or no callable with the name is currently compiled, <see cref="LocalDeclarations.Empty" />.
         /// </returns>
         internal LocalDeclarations PositionedDeclarations(QsQualifiedName? parentCallable, Position? callablePos, Position? specPos, LocalDeclarations? declarations = null)
         {
@@ -987,12 +984,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all locally declared symbols at absolute position <paramref name="pos" /> in <paramref name="file" /> 
+        /// Returns all locally declared symbols at absolute position <paramref name="pos" /> in <paramref name="file" />
         /// and sets <paramref name="parentCallable" /> to the name of the parent callable at that position,
         /// assuming that the position corresponds to a piece of code within that file.
         /// </summary>
         /// <returns>
-        /// All locally declared symbols at absolute position <paramref name="pos" /> in <paramref name="file" /> 
+        /// All locally declared symbols at absolute position <paramref name="pos" /> in <paramref name="file" />
         /// and the name of the parent callable at that position as out parameter <paramref name="parentCallable" />.
         /// </returns>
         /// <remarks>
