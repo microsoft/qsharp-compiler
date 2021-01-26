@@ -16,10 +16,7 @@ steps:
     versionSpec: '5.6.0'
 
 - task: UseDotNet@2
-  displayName: 'Use .NET Core SDK 3.1.300'
+  displayName: 'Use .NET Core SDK 3.1.405'
   inputs:
     packageType: sdk
-    version: '3.1.300'
-
-- script: dotnet tool restore
-  displayName: 'Restore .NET tools'
+    version: '3.1.405'

@@ -49,10 +49,14 @@ type RuntimeCapability =
 
     /// Parses the string as a runtime capability.
     static member TryParse value =
+        // TODO: RELEASE 2021-04: Remove parsing for "QPRGen0", "QPRGen1", and "Unknown".
         match value with
-        | "BasicQuantumFunctionality" -> Value BasicQuantumFunctionality
-        | "BasicMeasurementFeedback" -> Value BasicMeasurementFeedback
-        | "FullComputation" -> Value FullComputation
+        | "BasicQuantumFunctionality"
+        | "QPRGen0" -> Value BasicQuantumFunctionality
+        | "BasicMeasurementFeedback"
+        | "QPRGen1" -> Value BasicMeasurementFeedback
+        | "FullComputation"
+        | "Unknown" -> Value FullComputation
         | _ -> Null
 
 // TODO: RELEASE 2021-04: Remove RuntimeCapabilitiesExtensions.
