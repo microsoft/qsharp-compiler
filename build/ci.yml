@@ -32,7 +32,7 @@ pool:
 jobs:
 - job: Initialize
   steps:
-  - template: steps.yml
+  - template: init.yml
 
 - job: Style
   dependsOn: Initialize
