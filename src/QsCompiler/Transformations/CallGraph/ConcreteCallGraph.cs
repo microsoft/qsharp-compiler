@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Immutable;
 using System.Linq;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker;
 
@@ -46,7 +45,8 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// Constructor for ConcreteCallGraphNode objects.
         /// Strips position info from the given type parameter resolutions.
         /// </summary>
-        public ConcreteCallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, TypeParameterResolutions paramResolutions) : base(callableName)
+        public ConcreteCallGraphNode(QsQualifiedName callableName, QsSpecializationKind kind, TypeParameterResolutions paramResolutions)
+            : base(callableName)
         {
             this.Kind = kind;
 

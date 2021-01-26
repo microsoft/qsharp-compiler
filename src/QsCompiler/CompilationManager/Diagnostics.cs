@@ -1,13 +1,15 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
@@ -15,25 +17,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     public static class Diagnostics
     {
-        internal static char ExpectedEnding(ErrorCode invalidFragmentEnding)
-        {
-            if (invalidFragmentEnding == ErrorCode.ExpectingOpeningBracket)
+        internal static ImmutableList<char> ExpectedEndings(ErrorCode invalidFragmentEnding) =>
+            invalidFragmentEnding switch
             {
-                return '{';
-            }
-            else if (invalidFragmentEnding == ErrorCode.ExpectingSemicolon)
-            {
-                return ';';
-            }
-            else if (invalidFragmentEnding == ErrorCode.UnexpectedFragmentDelimiter)
-            {
-                return CodeFragment.MissingDelimiter;
-            }
-            else
-            {
-                throw new NotImplementedException("unrecognized fragment ending");
-            }
-        }
+                ErrorCode.ExpectingOpeningBracket => ImmutableList.Create('{'),
+                ErrorCode.ExpectingSemicolon => ImmutableList.Create(';'),
+                ErrorCode.ExpectingOpeningBracketOrSemicolon => ImmutableList.Create('{', ';'),
+                ErrorCode.UnexpectedFragmentDelimiter => ImmutableList.Create(CodeFragment.MissingDelimiter),
+                _ => throw new ArgumentException("Unrecognized fragment ending.")
+            };
 
         private static DiagnosticSeverity Severity(QsCompilerDiagnostic msg)
         {

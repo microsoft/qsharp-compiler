@@ -40,7 +40,7 @@ let private qirMultiTest target name snippets =
         "--verbosity" 
         "Diagnostic"
     |]
-    |> testOne ReturnCode.SUCCESS
+    |> testOne ReturnCode.Success
     let fullText = (name+".ll") |> File.ReadAllText
     snippets |> List.map (fun s -> checkAltOutput (s+".ll") fullText)
 

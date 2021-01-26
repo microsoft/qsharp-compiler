@@ -11,45 +11,45 @@
   <Import Project="Sdk.targets" Sdk="Microsoft.NET.Sdk"/>
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.targets"/>
 
-  <!-- This needs to live in this file to ensure that it is evaluated after the 
-  modifications to the QsharpCompile ItemGroup in the project file are applied. -->
+  <!-- This needs to live in this file to ensure that it is evaluated after the
+  modifications to the QSharpCompile ItemGroup in the project file are applied. -->
   <ItemGroup>
-    <UpToDateCheckInput Include="@(QsharpCompile)" /> <!-- ensure that projects are recompiled if a Q# source file is modified -->
+    <UpToDateCheckInput Include="@(QSharpCompile)" /> <!-- ensure that projects are recompiled if a Q# source file is modified -->
   </ItemGroup>
 
 
   <!-- Target used to verify that the specified OutputType is valid. -->
-  <Target Name="VerifyOutputType" BeforeTargets="QsharpCompile">
+  <Target Name="VerifyOutputType" BeforeTargets="QSharpCompile">
     <Error Condition = "'$(OutputType)' == ''" Text="Missing OutputType. $(ValidOutputTypes)" />
-    <Error Condition = "'$(ResolvedQsharpOutputType)' == '' And '$(OutputType)' != ''" Text="Invalid OutputType '$(OutputType)'. $(ValidOutputTypes)" />
+    <Error Condition = "'$(ResolvedQSharpOutputType)' == '' And '$(OutputType)' != ''" Text="Invalid OutputType '$(OutputType)'. $(ValidOutputTypes)" />
   </Target>
 
   <!-- Target used to verify that the specified ExecutionTarget is valid. -->
-  <Target Name="VerifyExecutionTarget" BeforeTargets="QsharpCompile">
+  <Target Name="VerifyExecutionTarget" BeforeTargets="QSharpCompile">
     <Error Condition = "'$(ExecutionTarget)' == ''" Text="Missing ExecutionTarget. $(ValidExecutionTargets)" />
     <Error Condition = "'$(ResolvedProcessorArchitecture)' == '' And '$(ExecutionTarget)' != ''" Text="Invalid ExecutionTarget '$(ExecutionTarget)'. $(ValidExecutionTargets)" />
   </Target>
 
 
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
-  <Target Name="QsharpClean" BeforeTargets="Clean">
+  <Target Name="QSharpClean" BeforeTargets="Clean">
     <ItemGroup>
       <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
       <Compile Remove="$(_FilesToClean)**/*.g.cs" />
     </ItemGroup>
     <Delete Files="@(_FilesToClean)" />
-  </Target>  
+  </Target>
 
   <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
-  <Target Name="PrepareQsharpCompile" 
+  <Target Name="PrepareQSharpCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQsharpCompile;_CopyFilesMarkedCopyLocal" 
-          BeforeTargets="QsharpCompile">
+          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;_CopyFilesMarkedCopyLocal"
+          BeforeTargets="QSharpCompile">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
     <!-- create the necessary directories -->
     <MakeDir Condition="$(QirGeneration) And '$(QirOutputPath)' != ''" Directories="$(QirOutputPath)" />
-    <MakeDir Condition="$(QsharpDocsGeneration) And '$(QsharpDocsOutputPath)' != ''" Directories="$(QsharpDocsOutputPath)" />
+    <MakeDir Condition="$(QSharpDocsGeneration) And '$(QSharpDocsOutputPath)' != ''" Directories="$(QSharpDocsOutputPath)" />
     <MakeDir Condition="$(PerfDataGeneration) And '$(PerfDataOutputPath)' != ''" Directories="$(PerfDataOutputPath)" />
     <!-- generate a suitable build configuration for the Q# command line compiler (qsc) -->
     <PropertyGroup>
@@ -59,7 +59,7 @@
       <_BuildConfigGenerationQscReferencesFlag Condition="@(ResolvedQscReferencesAndPriorities->Count()) &gt; 0">--QscReferences "@(ResolvedQscReferencesAndPriorities,'" "')"</_BuildConfigGenerationQscReferencesFlag>
       <QscBuildConfigGeneration>$(QscBuildConfigExe) $(_VerbosityFlag) $(_BuildConfigGenerationOutputFlag) $(_BuildConfigGenerationQscReferencesFlag)</QscBuildConfigGeneration>
     </PropertyGroup>
-    <Exec Command="$(QscBuildConfigGeneration)" IgnoreExitCode="false" /> 
+    <Exec Command="$(QscBuildConfigGeneration)" IgnoreExitCode="false" />
     <!-- get the resolved Q# references and the qsc build configuration -->
     <ReadLinesFromFile File="$(_BuildConfigFile)">
       <Output TaskParameter="Lines" ItemName="_PrioritizedResolvedQscReferences"/>
@@ -67,46 +67,58 @@
     <ItemGroup>
       <PackageLoadFallbackFolder Include="$(MSBuildProjectDirectory)/$(OutputPath)" Condition="'$(OutputPath)' != '' And '$(MSBuildProjectDirectory)' != ''" />
       <ResolvedPackageLoadFallbackFolders Include="@(PackageLoadFallbackFolder->'$([MSBuild]::Unescape('%(PackageLoadFallbackFolder.Identity)').Replace('\','/'))')" />
-      <ResolvedQsharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
+      <ResolvedQSharpReferences Include="@(ReferencePath)" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch(%(FullPath), '(?i)system.|mscorlib|netstandard.library|microsoft.netcore.app|csharp|fsharp|microsoft.visualstudio|microsoft.testplatform|microsoft.codeanalysis|fparsec|newtonsoft|roslynwrapper|yamldotnet|markdig|serilog')) == false" />
     </ItemGroup>
     <!-- invoke the Q# command line compiler -->
     <PropertyGroup>
       <!-- For the package ID that gets displayed in documentation, we default
            to the actual package ID if it's set, but allow overriding with
-           QsharpDocsPackageId. -->
+           QSharpDocsPackageId. -->
+      <_NewLine>%0D%0A</_NewLine>
+      <_NewLineIndent>$(_NewLine)%20%20%20%20</_NewLineIndent>
+      <_QscCommandProjFlag>--proj$(_NewLineIndent)"$([System.IO.Path]::GetFullPath('$(PathCompatibleAssemblyName)'))"</_QscCommandProjFlag>
       <_QscDocsPackageId Condition="'$(PackageId)' != ''">$(PackageId)</_QscDocsPackageId>
-      <_QscDocsPackageId Condition="'$(QsharpDocsPackageId)' != ''">$(QsharpDocsPackageId)</_QscDocsPackageId>
-      <_QscCommandIsExecutableFlag Condition="'$(ResolvedQsharpOutputType)' == 'QsharpExe'">--build-exe</_QscCommandIsExecutableFlag>
-      <_QscCommandOutputFlag>--output "$(GeneratedFilesOutputPath)"</_QscCommandOutputFlag>
-      <_QscCommandInputFlag Condition="@(QsharpCompile->Count()) &gt; 0">--input "@(QsharpCompile,'" "')"</_QscCommandInputFlag>
-      <_QscCommandReferencesFlag Condition="@(ResolvedQsharpReferences->Count()) &gt; 0">--references "@(ResolvedQsharpReferences,'" "')"</_QscCommandReferencesFlag>
-      <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">--load "@(_PrioritizedResolvedQscReferences,'" "')"</_QscCommandLoadFlag>
-      <_QscCommandRuntimeFlag>--runtime $(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag> 
-      <_QscCommandQirGenerationFlag Condition="$(QirGeneration)">--qir $(QirOutputPath)</_QscCommandQirGenerationFlag>
-      <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">--pref $(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
-      <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">--target-specific-decompositions "@(ResolvedTargetSpecificDecompositions,'" "')"</_QscCommandTargetDecompositionsFlag>
-      <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">--load-test-names</_QscCommandTestNamesFlag>
-      <_QscCommandPredefinedAssemblyProperties>ProcessorArchitecture:$(ResolvedProcessorArchitecture) QsharpOutputType:$(ResolvedQsharpOutputType)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties) DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties) ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties) ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties) DocsPackageId:$(_QscDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(QirGeneration)'">$(_QscCommandPredefinedAssemblyProperties) QirOutputPath:"$(QirOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(QsharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties) DocsOutputPath:"$(QsharpDocsOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(PerfDataGeneration)'">$(_QscCommandPredefinedAssemblyProperties) PerfDataOutputPath:"$(PerfDataOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandAssemblyPropertiesFlag>--assembly-properties $(_QscCommandPredefinedAssemblyProperties) $(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
-      <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">--package-load-fallback-folders "@(ResolvedPackageLoadFallbackFolders,'" "')"</_QscPackageLoadFallbackFoldersFlag>
-      <_QscCommandArgs>--proj "$(PathCompatibleAssemblyName)" $(_QscCommandIsExecutableFlag) $(_QscCommandInputFlag) $(_QscCommandOutputFlag) $(_QscCommandReferencesFlag) $(_QscCommandLoadFlag) $(_QscCommandQirGenerationFlag) $(_QscCommandPerfDataGenerationFlag) $(_QscCommandRuntimeFlag) $(_QscCommandTargetDecompositionsFlag) $(_QscPackageLoadFallbackFoldersFlag) $(_QscCommandTestNamesFlag) $(_QscCommandAssemblyPropertiesFlag) $(AdditionalQscArguments)</_QscCommandArgs>
+      <_QscDocsPackageId Condition="'$(QSharpDocsPackageId)' != ''">$(QSharpDocsPackageId)</_QscDocsPackageId>
+      <_QscCommandIsExecutableFlag Condition="'$(ResolvedQSharpOutputType)' == 'QSharpExe'">$(_NewLine)--build-exe</_QscCommandIsExecutableFlag>
+      <_QscCommandInputFlag Condition="@(QSharpCompile->Count()) &gt; 0">$(_NewLine)--input$(_NewLineIndent)"@(QSharpCompile->'%(FullPath)', '"$(_NewLineIndent)"')"</_QscCommandInputFlag>
+      <_QscCommandOutputPath>$([System.IO.Path]::GetFullPath('$(GeneratedFilesOutputPath)'))</_QscCommandOutputPath>
+      <_QscCommandOutputPath>$([MSBuild]::Unescape('$(_QscCommandOutputPath)').Replace('\','/'))</_QscCommandOutputPath>
+      <_QscCommandOutputFlag>$(_NewLine)--output$(_NewLineIndent)"$(_QscCommandOutputPath)"</_QscCommandOutputFlag>
+      <_QscCommandReferencesFlag Condition="@(ResolvedQSharpReferences->Count()) &gt; 0">$(_NewLine)--references$(_NewLineIndent)"@(ResolvedQSharpReferences,'"$(_NewLineIndent)"')"</_QscCommandReferencesFlag>
+      <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">$(_NewLine)--load$(_NewLineIndent)"@(_PrioritizedResolvedQscReferences,'"$(_NewLineIndent)"')"</_QscCommandLoadFlag>
+      <_QscCommandRuntimeFlag>$(_NewLine)--runtime$(_NewLineIndent)$(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag>
+      <_QscCommandQirGenerationFlag Condition="$(QirGeneration)">$(_NewLine)--qir$(_NewLineIndent)$(QirOutputPath)</_QscCommandQirGenerationFlag>
+      <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">$(_NewLine)--pref$(_NewLineIndent)$(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
+      <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">$(_NewLine)--target-specific-decompositions$(_NewLineIndent)"@(ResolvedTargetSpecificDecompositions,'"$(_NewLineIndent)"')"</_QscCommandTargetDecompositionsFlag>
+      <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">$(_NewLine)--package-load-fallback-folders$(_NewLineIndent)"@(ResolvedPackageLoadFallbackFolders,'"$(_NewLineIndent)"')"</_QscPackageLoadFallbackFoldersFlag>
+      <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">$(_NewLine)--load-test-names</_QscCommandTestNamesFlag>
+      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsPackageId:$(_QscDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(QirGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)QirOutputPath:"$(QirOutputPath)"</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(QsharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsOutputPath:"$(QsharpDocsOutputPath)"</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(PerfDataGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)PerfDataOutputPath:"$(PerfDataOutputPath)"</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(GenerateConcreteIntrinsic)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)GenerateConcreteIntrinsic:$(GenerateConcreteIntrinsic)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandAssemblyPropertiesFlag>$(_NewLine)--assembly-properties$(_QscCommandPredefinedAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
+      <_QscCommandAssemblyPropertiesFlag Condition="'$(QscCommandAssemblyProperties)' != ''">$(_QscCommandAssemblyPropertiesFlag)$(_NewLineIndent)$(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
+      <AdditionalQscArguments Condition="'$(AdditionalQscArguments)' != ''">$(_NewLine)$(AdditionalQscArguments)</AdditionalQscArguments>
+      <_QscCommandArgs>$(_QscCommandProjFlag)$(_QscCommandIsExecutableFlag)$(_QscCommandInputFlag)$(_QscCommandOutputFlag)$(_QscCommandReferencesFlag)$(_QscCommandLoadFlag)$(_QscCommandQirGenerationFlag)$(_QscCommandPerfDataGenerationFlag)$(_QscCommandRuntimeFlag)$(_QscCommandTargetDecompositionsFlag)$(_QscPackageLoadFallbackFoldersFlag)$(_QscCommandTestNamesFlag)$(_QscCommandAssemblyPropertiesFlag)$(AdditionalQscArguments)</_QscCommandArgs>
       <_QscCommandArgsFile>$(QscBuildConfigOutputPath)qsc.rsp</_QscCommandArgsFile>
     </PropertyGroup>
+
+    <ItemGroup>
+      <_QscCommandArgsLines Include="$(_QscCommandArgs.Trim().Split($(_NewLine)))"/>
+    </ItemGroup>
 
     <!-- Only write to the file if there are any changes; this enables incremental build. -->
     <ReadLinesFromFile File="$(_QscCommandArgsFile)" >
       <Output TaskParameter="Lines" ItemName="OldCommandArgs"/>
     </ReadLinesFromFile>
-    <WriteLinesToFile Condition="'@(OldCommandArgs)' != '$(_QscCommandArgs.Trim())'"
+    <WriteLinesToFile Condition="'@(OldCommandArgs)' != '@(_QscCommandArgsLines)'"
       File="$(_QscCommandArgsFile)" Lines="$(_QscCommandArgs)" Overwrite="true"/>
-    
+
     <!-- Expose the file as build item. -->
     <ItemGroup>
       <QscCommandArgsFile Include="$(_QscCommandArgsFile)" />
@@ -114,12 +126,12 @@
   </Target>
 
   <!-- Invokes the Q# command line compiler to build the project. -->
-  <Target Name="QsharpCompile" 
+  <Target Name="QSharpCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          Inputs="@(QsharpCompile);@(ReferencePath);@(QscCommandArgsFile)"
+          Inputs="@(QSharpCompile);@(ReferencePath);@(QscCommandArgsFile)"
           Outputs="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson"
-          DependsOnTargets="PrepareQsharpCompile"
-          BeforeTargets="PrepareCsharpCompileAfterCsharpGeneration">
+          DependsOnTargets="PrepareQSharpCompile"
+          BeforeTargets="PrepareCSharpCompileAfterCSharpGeneration">
     <ItemGroup>
       <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/*.g.cs" />
       <Compile Remove="$(_GeneratedFilesToRemove)**/*.g.cs" />
@@ -128,7 +140,7 @@
     <PropertyGroup>
       <QscCommand>$(QscExe) build --format MsBuild $(_VerbosityFlag) --response-files @(QscCommandArgsFile)</QscCommand>
     </PropertyGroup>
-    <Exec Command="$(QscCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue"> 
+    <Exec Command="$(QscCommand)" IgnoreExitCode="false" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QscExitCode"/>
     </Exec>
     <Message Importance="low" Text="Qsc command exit code: $(QscExitCode)"/>
@@ -137,24 +149,24 @@
   </Target>
 
   <!-- Configures the dll built by the C# compiler. This target needs to execute during the C# design time build to get accurate intellisense information for (non-generate) C# source files. -->
-  <Target Name="PrepareCsharpCompileAfterCsharpGeneration" DependsOnTargets="QsharpCompile" AfterTargets="QsharpCompile" BeforeTargets="BeforeCsharpCompile;BeforeBuild">
+  <Target Name="PrepareCSharpCompileAfterCSharpGeneration" DependsOnTargets="QSharpCompile" AfterTargets="QSharpCompile" BeforeTargets="BeforeCSharpCompile;BeforeBuild">
     <ItemGroup>
       <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
-      <Compile Condition="$(CsharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
+      <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
     </ItemGroup>
-    <Message 
-      Condition="$(CsharpGeneration) And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
-      Text="C# files to compile: @(Compile)" 
-      Importance="High" /> 
-  </Target>   
+    <Message
+      Condition="$(CSharpGeneration) And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"
+      Text="C# files to compile: @(Compile)"
+      Importance="High" />
+  </Target>
 
 
-  <!-- The following targets need to live in this file since they are specifically defined 
-  anchor the targets that a project may redefine to execute at a certain stage during the build. 
+  <!-- The following targets need to live in this file since they are specifically defined
+  anchor the targets that a project may redefine to execute at a certain stage during the build.
   These targets hence must not be redefined by the project. -->
 
-  <!-- Helper target to anchor the BeforeCsharpCompile target. -->
-  <Target Name="_DependsOnBeforeCsharpCompile" DependsOnTargets="BeforeCsharpCompile" BeforeTargets="BeforeCompile">
-  </Target>  
+  <!-- Helper target to anchor the BeforeCSharpCompile target. -->
+  <Target Name="_DependsOnBeforeCSharpCompile" DependsOnTargets="BeforeCSharpCompile" BeforeTargets="BeforeCompile">
+  </Target>
 
 </Project>

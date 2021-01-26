@@ -8,182 +8,191 @@ open System.Collections.Immutable
 
 
 /// contains keywords for Q# types
-module Types = 
+module Types =
 
     // keyword for a Q# transformation characteristics annotation
     let Characteristics = "is"
-    // keyword for a predefined set of Q# transformation characteristics 
-    let AdjSet          = "Adj"
-    // keyword for a predefined set of Q# transformation characteristics 
-    let CtlSet          = "Ctl"
+    // keyword for a predefined set of Q# transformation characteristics
+    let AdjSet = "Adj"
+    // keyword for a predefined set of Q# transformation characteristics
+    let CtlSet = "Ctl"
 
     /// keyword for a predefined Q# type
-    let Unit   = "Unit"
+    let Unit = "Unit"
     /// keyword for a predefined Q# type
-    let Int    = "Int"
+    let Int = "Int"
     /// keyword for a predefined Q# type
     let BigInt = "BigInt"
     /// keyword for a predefined Q# type
     let Double = "Double"
     /// keyword for a predefined Q# type
-    let Bool   = "Bool"
+    let Bool = "Bool"
     /// keyword for a predefined Q# type
-    let Qubit  = "Qubit"     
+    let Qubit = "Qubit"
     /// keyword for a predefined Q# type
-    let Result = "Result" 
+    let Result = "Result"
     /// keyword for a predefined Q# type
-    let Pauli  = "Pauli"
+    let Pauli = "Pauli"
     /// keyword for a predefined Q# type
-    let Range  = "Range" 
+    let Range = "Range"
     /// keyword for a predefined Q# type
-    let String = "String" 
+    let String = "String"
 
 
 /// contains keywords for Q# literals
 module Literals =
 
     /// keyword for a Q# literal
-    let PauliX = "PauliX" 
+    let PauliX = "PauliX"
     /// keyword for a Q# literal
-    let PauliY = "PauliY" 
+    let PauliY = "PauliY"
     /// keyword for a Q# literal
-    let PauliZ = "PauliZ" 
+    let PauliZ = "PauliZ"
     /// keyword for a Q# literal
-    let PauliI = "PauliI" 
+    let PauliI = "PauliI"
 
     /// keyword for a Q# literal
-    let Zero   = "Zero"
+    let Zero = "Zero"
     /// keyword for a Q# literal
-    let One    = "One"
+    let One = "One"
 
     /// keyword for a Q# literal
-    let True   = "true"
+    let True = "true"
     /// keyword for a Q# literal
-    let False  = "false"
+    let False = "false"
 
 
 /// contains keywords for Q# functors
-module Functors = 
+module Functors =
 
     /// keyword for a Q# functor application
-    let Adjoint    = "Adjoint"
+    let Adjoint = "Adjoint"
     /// keyword for a Q# functor application
     let Controlled = "Controlled"
 
 
 /// contains keywords for Q# statements
-module Statements = 
+module Statements =
 
-    // simple statements 
+    // simple statements
 
     /// keyword for a Q# statement header
-    let Return  = "return"
+    let Return = "return"
     /// keyword for a Q# statement header
-    let Fail    = "fail"
+    let Fail = "fail"
     /// keyword for a Q# statement header
-    let Let     = "let"
+    let Let = "let"
     /// keyword for a Q# statement header
     let Mutable = "mutable"
     /// keyword for a Q# statement header
-    let Set     = "set"
+    let Set = "set"
 
     // control flow statements
 
     /// keyword for a Q# control flow statement
-    let If         = "if"
+    let If = "if"
     /// keyword for a Q# control flow statement
-    let Elif       = "elif"
+    let Elif = "elif"
     /// keyword for a Q# control flow statement
-    let Else       = "else"
+    let Else = "else"
 
     /// keyword for a Q# control flow statement
-    let For        = "for"
+    let For = "for"
     /// keyword for a Q# control flow statement
-    let In         = "in"
+    let In = "in"
 
     /// keyword for a Q# control flow statement
-    let While      = "while"
+    let While = "while"
 
     /// keyword for a Q# control flow statement
-    let Repeat     = "repeat"
+    let Repeat = "repeat"
     /// keyword for a Q# control flow statement
-    let Until      = "until"
+    let Until = "until"
     /// keyword for a Q# control flow statement
-    let Fixup      = "fixup"
+    let Fixup = "fixup"
 
     // block statements
 
     /// keyword for a Q# transformation pattern
-    let Within     = "within"
+    let Within = "within"
     /// keyword for a Q# transformation pattern
-    let Apply      = "apply"
+    let Apply = "apply"
 
     /// keyword for a Q# allocation statement
-    let Using      = "using"
+    let Use = "use"
+
     /// keyword for a Q# allocation statement
-    let Borrowing  = "borrowing"
+    [<Obsolete "This keyword will be replaced by Use.">]
+    let Using = "using"
+
+    /// keyword for a Q# allocation statement
+    let Borrow = "borrow"
+
+    /// keyword for a Q# allocation statement
+    [<Obsolete "This keyword will be replaced by Borrow.">]
+    let Borrowing = "borrowing"
 
 
-/// contains keywords for Q# expressions 
-module Expressions = 
+/// contains keywords for Q# expressions
+module Expressions =
 
     /// keyword used within a Q# new-array-expression
-    let New    = "new" 
+    let New = "new"
     /// keyword used as operator for Q# expressions
-    let Not    = "not"
+    let Not = "not"
     /// keyword used as operator for Q# expressions
-    let And    = "and"
+    let And = "and"
     /// keyword used as operator for Q# expressions
-    let Or     = "or"
+    let Or = "or"
 
 
 /// contains keywords for Q# declarations
-module Declarations = 
+module Declarations =
 
     /// keyword for a Q# declaration
-    let Body        = "body"
+    let Body = "body"
     /// keyword for a Q# declaration
-    let Adjoint     = "adjoint"
+    let Adjoint = "adjoint"
     /// keyword for a Q# declaration
-    let Controlled  = "controlled"
+    let Controlled = "controlled"
 
     /// keyword for a Q# declaration
-    let Operation   = "operation"
+    let Operation = "operation"
     /// keyword for a Q# declaration
-    let Function    = "function"
+    let Function = "function"
     /// keyword for a Q# declaration
-    let Type        = "newtype"
+    let Type = "newtype"
 
     /// keyword for a Q# declaration
-    let Namespace   = "namespace"
-    
+    let Namespace = "namespace"
+
     /// keyword for a Q# declaration modifier
-    let Internal    = "internal"
+    let Internal = "internal"
 
 
 /// contains keywords for Q# directives
-module Directives = 
+module Directives =
 
     /// keyword for a Q# directive
-    let Open        = "open"
+    let Open = "open"
     /// keyword for a Q# directive
-    let OpenedAs    = "as"
+    let OpenedAs = "as"
 
     /// keyword for a Q# directive
-    let Auto        = "auto"
+    let Auto = "auto"
     /// keyword for a Q# directive
-    let Intrinsic   = "intrinsic"
+    let Intrinsic = "intrinsic"
     /// keyword for a Q# directive
-    let Self        = "self"
+    let Self = "self"
     /// keyword for a Q# directive
-    let Invert      = "invert"
+    let Invert = "invert"
     /// keyword for a Q# directive
-    let Distribute  = "distribute"
+    let Distribute = "distribute"
 
 
 /// contains keywords reserved for internal use
-module InternalUse = 
-    // IMPORTANT: with the exception of the CsKeyworks the keywords here are expected to follow the pattern __*__ 
+module InternalUse =
+    // IMPORTANT: with the exception of the CsKeyworks the keywords here are expected to follow the pattern __*__
     // otherwise they need to be manually added to the list of reserved keywords in the TextProcessor!
 
     /// to be used as name for all namespaces that do not have a valid name
@@ -196,40 +205,41 @@ module InternalUse =
     let UnitArgument = "__unitArg__"
 
     /// contains all keywords reserved due to clashes with auto-generated Q# code, or generated C# code
-    let CsKeywords = ImmutableHashSet.CreateRange [
-
+    let CsKeywords =
+        [
             "Allocate"
-            "Release" 
-            "Borrow" 
+            "Release"
+            "Borrow"
             "Return"
 
             "QVoid"
-            "Int64" 
+            "Int64"
             "BigInteger"
             "Boolean"
-            "QArray" 
-            "QTuple" 
+            "QArray"
+            "QTuple"
             "UDTBase"
 
-            "IUnitary" 
+            "IUnitary"
             "IAdjointable"
-            "IControllable" 
+            "IControllable"
             "ICallable"
             "IOperationFactory"
             "IApplyData"
         ]
-    
-    // TODO: ReservedForFutureUse = ...
+        |> ImmutableHashSet.CreateRange
+
+// TODO: ReservedForFutureUse = ...
 
 
-/// contains the names used for compiler-generated Q# attributes 
+/// contains the names used for compiler-generated Q# attributes
 /// that do not and should not have a definition in source code
 module GeneratedAttributes =
     let Namespace = "Microsoft.Quantum.QsCompiler.Metadata.Attributes"
     let LoadedViaTestNameInsteadOf = "__LoadedViaTestNameInsteadOf__"
 
 /// contains project specific settings specified during Q# compilation
-module AssemblyConstants = 
+module AssemblyConstants =
     let OutputPath = "OutputPath"
     let AssemblyName = "AssemblyName"
     let QsharpOutputType = "QsharpOutputType"
@@ -249,6 +259,7 @@ module AssemblyConstants =
     let PerfDataOutputPath = "PerfDataOutputPath"
     let DocsOutputPath = "DocsOutputPath"
     let DocsPackageId = "DocsPackageId"
+    let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
 
     /// The runtime capabilities supported by an execution target. The names of the capabilities here match the ones
     /// defined by the SDK.
@@ -267,20 +278,25 @@ module AssemblyConstants =
         | QPRGen1 = 2
 
 /// contains reserved names for command line arguments of Q# projects
-module CommandLineArguments = 
+module CommandLineArguments =
     let SimulatorOption = ("simulator", "s")
-    let ReservedArguments = ImmutableArray.Create (fst SimulatorOption)
-    let ReservedArgumentAbbreviations = ImmutableArray.Create (snd SimulatorOption) 
+    let ReservedArguments = ImmutableArray.Create(fst SimulatorOption)
+    let ReservedArgumentAbbreviations = ImmutableArray.Create(snd SimulatorOption)
 
     let BuiltInSimulators =
-        [AssemblyConstants.QuantumSimulator; AssemblyConstants.ToffoliSimulator; AssemblyConstants.ResourcesEstimator]
+        [
+            AssemblyConstants.QuantumSimulator
+            AssemblyConstants.ToffoliSimulator
+            AssemblyConstants.ResourcesEstimator
+        ]
         |> ImmutableHashSet.CreateRange
 
 
 /// contains specific names used within Q# dlls
-module DotnetCoreDll = 
+module DotnetCoreDll =
     [<Obsolete("Replaced by ResourceNameQsDataBondV1. Used for DLLs generated by compiler versions up to 0.13.20102604.")>]
     let ResourceName = "__qsharp_data__.bson"
+
     let ResourceNameQsDataBondV1 = "__qsharp_data_bond_v1__.bson"
     // Should always provide the name of the resource currently used by the compiler to attach the syntax tree to a DLL.
     let SyntaxTreeResourceName = ResourceNameQsDataBondV1
@@ -288,4 +304,3 @@ module DotnetCoreDll =
     let ReferenceAlias = "__qsharp_reference__"
     let MetadataType = "Metadata"
     let Dependencies = "Dependencies"
-

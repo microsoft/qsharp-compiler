@@ -187,6 +187,16 @@ namespace Microsoft.Quantum.Documentation
             ? document
             : document.WithSection(name, contents);
 
+        internal static string WithSectionForEach(this string document, string name, IEnumerable<string> sections)
+        {
+            var accumulatedDocument = document;
+            foreach (var section in sections)
+            {
+                accumulatedDocument = document.WithSection(name, section);
+            }
+            return accumulatedDocument;
+        }
+
         internal static string WithSection(this string document, string name, string contents) =>
             $"{document}\n\n## {name}\n\n{contents}";
 
@@ -312,18 +322,16 @@ namespace Microsoft.Quantum.Documentation
                 _ => false,
             };
 
-        internal static bool IsInCompilationUnit(this QsCallable callable) =>
-            callable.SourceFile.EndsWith(".qs");
+        internal static bool IsInCompilationUnit(this QsCallable callable) => !callable.Source.IsReference;
 
-        internal static bool IsInCompilationUnit(this QsCustomType type) =>
-            type.SourceFile.EndsWith(".qs");
+        internal static bool IsInCompilationUnit(this QsCustomType type) => !type.Source.IsReference;
 
         internal static QsCustomType WithoutDocumentationAndComments(this QsCustomType type) =>
             new QsCustomType(
                 fullName: type.FullName,
                 attributes: type.Attributes,
                 modifiers: type.Modifiers,
-                sourceFile: type.SourceFile,
+                source: type.Source,
                 location: type.Location,
                 type: type.Type,
                 typeItems: type.TypeItems,

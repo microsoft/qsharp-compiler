@@ -14,14 +14,14 @@
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageProjectUrl>https://github.com/microsoft/qsharp-compiler</PackageProjectUrl>
     <PackageIconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</PackageIconUrl>
-    <PackageTags>Quantum Q# Qsharp</PackageTags>
+    <PackageTags>Quantum Q# QSharp</PackageTags>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
-  </PropertyGroup>  
+  </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\QsCompiler\Compiler\Compiler.csproj" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>

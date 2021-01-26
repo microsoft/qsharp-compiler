@@ -358,8 +358,8 @@
     <Compile Include="OptimizationTests.fs" />
     <Compile Include="AccessModifierTests.fs" />
     <Compile Include="CompilationLoaderTests.fs" />
+    <Compile Include="CompilationTrackerTests.fs" />
     <Compile Include="QirTests.fs" />
-  
 </ItemGroup>
 
   <ItemGroup>

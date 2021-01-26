@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 throw new ArgumentException("missing specification of the fragment kind");
             }
             var code = fragment.Kind.InvalidEnding;
-            if (Diagnostics.ExpectedEnding(code) != fragment.FollowedBy)
+            if (!Diagnostics.ExpectedEndings(code).Contains(fragment.FollowedBy))
             {
                 yield return Errors.InvalidFragmentEnding(filename, code, fragment.Range.End);
             }

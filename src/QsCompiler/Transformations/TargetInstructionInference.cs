@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                                     QsSpecializationKind.QsBody,
                                     genCallableName,
                                     spec.Attributes,
-                                    spec.SourceFile,
+                                    spec.Source,
                                     QsNullable<QsLocation>.Null,
                                     spec.TypeArguments,
                                     genCallableSignature,
@@ -186,7 +186,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                                     genCallableName,
                                     callable.Attributes,
                                     callable.Modifiers,
-                                    spec.SourceFile,
+                                    spec.Source,
                                     spec.Location,
                                     genCallableSignature,
                                     argTuple,
@@ -233,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                                 callable.FullName,
                                 ImmutableArray.Create(inlineAttribute),
                                 callable.Modifiers,
-                                callable.SourceFile,
+                                callable.Source,
                                 callable.Location,
                                 signature,
                                 callable.ArgumentTuple,

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -210,7 +210,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     var openedNS = imports[ns.Name].Where(o => o.Item2 == null).Select(o => o.Item1).ToImmutableHashSet();
                     var nsShortNames = imports[ns.Name]
                         .SelectNotNull(o => o.Item2?.Apply(item2 => (o.Item1, item2)))
-                        .ToImmutableDictionary(o => o.Item1, o => o.Item2);
+                        .ToImmutableDictionary(o => o.Item1, o => o.item2);
                     var context = new TransformationContext
                     {
                         CurrentNamespace = ns.Name,
@@ -1101,19 +1101,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             {
                 var symbols = this.SymbolTuple(stm.Binding.Lhs);
                 var initializers = this.InitializerTuple(stm.Binding.Rhs);
-                string header;
-                if (stm.Kind.IsBorrow)
-                {
-                    header = Keywords.qsBorrowing.id;
-                }
-                else if (stm.Kind.IsAllocate)
-                {
-                    header = Keywords.qsUsing.id;
-                }
-                else
-                {
-                    throw new NotImplementedException("unknown qubit scope");
-                }
+                var header =
+#pragma warning disable 618 // qsBorrowing and qsUsing are obsolete.
+                    stm.Kind.IsBorrow ? Keywords.qsBorrowing.id
+                    : stm.Kind.IsAllocate ? Keywords.qsUsing.id
+#pragma warning restore 618
+                    : throw new NotImplementedException("unknown qubit scope");
 
                 var intro = $"{header} ({symbols} = {initializers})";
                 this.AddBlockStatement(intro, stm.Body);

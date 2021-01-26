@@ -42,8 +42,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 var globals = compilation.Namespaces.GlobalCallableResolutions();
                 var walker = new BuildGraph(graph);
                 var entryPointNodes = compilation.EntryPoints.SelectMany(name =>
-                    GetSpecializationKinds(globals, name).Select(kind => new ConcreteCallGraphNode(name, kind, TypeParameterResolutions.Empty)));
-
+                    GetSpecializationKinds(globals, name).Select(kind =>
+                        new ConcreteCallGraphNode(name, kind, TypeParameterResolutions.Empty)));
                 foreach (var entryPoint in entryPointNodes)
                 {
                     // Make sure all the entry points are added to the graph
@@ -156,7 +156,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class BuildGraph : SyntaxTreeTransformation<TransformationState>
             {
-                public BuildGraph(ConcreteGraphBuilder graph) : base(new TransformationState(graph))
+                public BuildGraph(ConcreteGraphBuilder graph)
+                    : base(new TransformationState(graph))
                 {
                     this.Namespaces = new NamespaceWalker(this);
                     this.Statements = new CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.StatementWalker<TransformationState>(this);
@@ -175,7 +176,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = _ => Enumerable.Empty<QsSpecializationKind>();
                 private Range lastReferenceRange = Range.Zero; // This is used if a self-inverse generator directive is encountered.
 
-                internal TransformationState(ConcreteGraphBuilder graph) : base(graph)
+                internal TransformationState(ConcreteGraphBuilder graph)
+                    : base(graph)
                 {
                 }
 
@@ -255,20 +257,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         throw new ArgumentException("AddEdge requires CurrentNode to be non-null.");
                     }
 
+                    // Add an edge to the specific specialization kind referenced
                     var called = new ConcreteCallGraphNode(identifier, kind, typeRes);
                     var edge = new ConcreteCallGraphEdge(referenceRange);
                     this.Graph.AddDependency(this.CurrentNode, called, edge);
 
-                    // make sure we always build the dependencies for all specializations
-                    var newRequests = this.GetSpecializationKinds(identifier)
+                    // Add all the specializations of the referenced callable to the graph
+                    var newNodes = this.GetSpecializationKinds(identifier)
                         .Select(specKind => new ConcreteCallGraphNode(identifier, specKind, typeRes));
-
-                    foreach (var request in newRequests)
+                    foreach (var node in newNodes)
                     {
-                        if (!this.RequestStack.Contains(request) && !this.ResolvedNodeSet.Contains(request))
+                        if (!this.RequestStack.Contains(node) && !this.ResolvedNodeSet.Contains(node))
                         {
-                            this.Graph.AddNode(request);
-                            this.RequestStack.Push(request);
+                            this.Graph.AddNode(node);
+                            this.RequestStack.Push(node);
                         }
                     }
                 }
@@ -276,7 +278,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class NamespaceWalker : NamespaceTransformation<TransformationState>
             {
-                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 
@@ -313,7 +316,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class ExpressionKindWalker : ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -10,6 +10,7 @@ using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
+using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -47,11 +48,18 @@ namespace Microsoft.Quantum.QsCompiler
             using var assemblyFile = new PEReader(stream);
             if (ignoreDllResources || !FromResource(assemblyFile, out var compilation, onDeserializationException))
             {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.HeaderAttributesLoading);
                 var attributes = LoadHeaderAttributes(assemblyFile);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.HeaderAttributesLoading);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
                 headers = new References.Headers(id, attributes);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
                 return ignoreDllResources || !attributes.Any(); // just means we have no references
             }
+
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
             headers = new References.Headers(id, compilation?.Namespaces ?? ImmutableArray<QsNamespace>.Empty);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
             return true;
         }
 
@@ -103,7 +111,9 @@ namespace Microsoft.Quantum.QsCompiler
             compilation = null;
             try
             {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
                 compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)
             {
@@ -125,11 +135,15 @@ namespace Microsoft.Quantum.QsCompiler
             [NotNullWhen(true)] out QsCompilation? compilation,
             Action<Exception>? onDeserializationException = null)
         {
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.DeserializerInit);
             using var reader = new BsonDataReader(stream);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.DeserializerInit);
             (compilation, reader.ReadRootValueAsArray) = (null, false);
             try
             {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
                 compilation = Json.Serializer.Deserialize<QsCompilation>(reader);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)
             {
@@ -173,7 +187,9 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 isBondV1ResourcePresent = true;
             }
+#pragma warning disable 618 // ResourceName is obsolete.
             else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
+#pragma warning restore 618
             {
                 isNewtonSoftResourcePresent = true;
             }
@@ -193,12 +209,14 @@ namespace Microsoft.Quantum.QsCompiler
             // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
             // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB.
             // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
             var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
             var absResourceOffset = (int)resource.Offset + directoryOffset;
 
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
 
             // Use the correct method depending on the resource.
             if (isBondV1ResourcePresent)
@@ -207,7 +225,9 @@ namespace Microsoft.Quantum.QsCompiler
             }
             else if (isNewtonSoftResourcePresent)
             {
+#pragma warning disable 618 // LoadSyntaxTree is obsolete.
                 return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+#pragma warning restore 618
             }
 
             return false;
