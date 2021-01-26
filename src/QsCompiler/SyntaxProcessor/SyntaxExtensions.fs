@@ -34,7 +34,7 @@ let rec private collectWith collector (exs: 'a seq, ts: QsType seq): QsSymbol li
 
 and private TypeNameSymbols (t: QsType) =
     match t.Type with
-    | QsTypeKind.UnitType _ -> [ t ]
+    | QsTypeKind.UnitType _ -> [t]
     | QsTypeKind.Int _ -> [ t ]
     | QsTypeKind.BigInt _ -> [ t ]
     | QsTypeKind.Double _ -> [ t ]
