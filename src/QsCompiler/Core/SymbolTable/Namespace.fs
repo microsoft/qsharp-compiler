@@ -21,8 +21,8 @@ open Microsoft.Quantum.QsCompiler.Utils
 ///
 /// This class is *not* thread-safe.
 ///
-/// Access modifiers are taken into consideration when resolving symbols. Some methods bypass this (e.g., when returning
-/// a list of all declarations). Individual methods will mention if they adhere to symbol accessibility.
+/// Symbol visibility is taken into account when resolving symbols. Some methods bypass this (e.g., when returning a
+/// list of all declarations). Individual methods will mention if they follow visibility or not.
 type Namespace private (name,
                         parts: IEnumerable<KeyValuePair<string, PartialNamespace>>,
                         CallablesInReferences: ILookup<string, CallableDeclarationHeader>,
@@ -300,7 +300,7 @@ type Namespace private (name,
 
     /// Returns a resolution result for the type with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, a string indicating the redirection if it has been deprecated, and
-    /// its access modifier. Resolution is based on accessibility to source files in this compilation unit.
+    /// its visibility. Resolution is based on accessibility to source files in this compilation unit.
     ///
     /// Whether the type has been deprecated is determined by checking the associated attributes for an attribute with
     /// the corresponding name. Note that if the type is declared in a source files, the *unresolved* attributes will be
@@ -500,13 +500,13 @@ type Namespace private (name,
     /// If a type or callable with that name already exists, returns an array of suitable diagnostics.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, modifiers, documentation)
+    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, visibility, documentation)
                            : QsCompilerDiagnostic [] =
         match Parts.TryGetValue source with
         | true, partial when isNameAvailable tName ->
             TypesDefinedInAllSourcesCache <- null
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddType location (tName, typeTuple, attributes, modifiers, documentation)
+            partial.AddType location (tName, typeTuple, attributes, visibility, documentation)
             [||]
         | true, _ ->
             match this.TryFindType tName with
@@ -530,12 +530,12 @@ type Namespace private (name,
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member this.TryAddCallableDeclaration (source, location)
-                                          ((cName, cRange), (kind, signature), attributes, modifiers, documentation)
+                                          ((cName, cRange), (kind, signature), attributes, visibility, documentation)
                                           =
         match Parts.TryGetValue source with
         | true, partial when isNameAvailable cName ->
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation)
+            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, visibility, documentation)
             [||]
         | true, _ ->
             match this.TryFindType cName with
