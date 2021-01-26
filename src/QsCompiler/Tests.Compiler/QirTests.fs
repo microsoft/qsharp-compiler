@@ -36,10 +36,9 @@ let private qirMultiTest target name snippets =
         "--input"
         ("TestCases", "QirTests", name + ".qs") |> Path.Combine
         ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
-        (if target then
-             ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
-         else
-             "")
+        (if target
+         then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
+         else "")
         "--qir"
         Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
         "--verbosity"

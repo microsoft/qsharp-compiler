@@ -109,7 +109,7 @@ let public DeclaredCallableName this onInvalid =
 [<Extension>]
 let public DeclaredSpecialization this
                                   : QsNullable<(QsSpecializationKind * QsSpecializationGenerator) * QsNullable<ImmutableArray<QsType>>> =
-    match this with 
+    match this with
     | BodyDeclaration gen -> ((QsBody, gen), Null) |> Value
     | AdjointDeclaration gen -> ((QsAdjoint, gen), Null) |> Value
     | ControlledDeclaration gen -> ((QsControlled, gen), Null) |> Value
@@ -220,7 +220,7 @@ let public BuildArgumentControlledAdjoint (this: QsTuple<LocalVariableDeclaratio
 
 /// Given an immutable array with local variable declarations returns an immutable array containing only the declarations with a valid name.
 [<Extension>]
-let public ValidDeclarations (this : ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>) = 
+let public ValidDeclarations (this: ImmutableArray<LocalVariableDeclaration<QsLocalSymbol>>) =
     SyntaxGenerator.ValidDeclarations this
 
 /// For each contained declaration in the given LocalDeclarations object,

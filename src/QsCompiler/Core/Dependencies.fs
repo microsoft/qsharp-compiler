@@ -54,7 +54,7 @@ type BuiltIn =
         | Null -> false
 
     /// Returns true if the given attribute indicates that the corresponding callable should be inlined.
-    static member MarksInlining (att : QsDeclarationAttribute) = 
+    static member MarksInlining(att: QsDeclarationAttribute) =
         match att.TypeId with
         | Value tId -> tId.Namespace = BuiltIn.Inline.FullName.Namespace && tId.Name = BuiltIn.Inline.FullName.Name
         | Null -> false
@@ -66,15 +66,19 @@ type BuiltIn =
         | Null -> false
 
     /// Returns true if the given attribute indicates the runtime capability required for execution of the callable.
-    static member MarksRequiredCapability (att : QsDeclarationAttribute) = 
+    static member MarksRequiredCapability(att: QsDeclarationAttribute) =
         match att.TypeId with
-        | Value tId -> tId.Namespace = BuiltIn.RequiresCapability.FullName.Namespace && tId.Name = BuiltIn.RequiresCapability.FullName.Name
+        | Value tId ->
+            tId.Namespace = BuiltIn.RequiresCapability.FullName.Namespace
+            && tId.Name = BuiltIn.RequiresCapability.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute defines a code identifying an instruction within the quantum instruction set that matches this callable.
-    static member DefinesTargetInstruction (att : QsDeclarationAttribute) = 
+    static member DefinesTargetInstruction(att: QsDeclarationAttribute) =
         match att.TypeId with
-        | Value tId -> tId.Namespace = BuiltIn.TargetInstruction.FullName.Namespace && tId.Name = BuiltIn.TargetInstruction.FullName.Name
+        | Value tId ->
+            tId.Namespace = BuiltIn.TargetInstruction.FullName.Namespace
+            && tId.Name = BuiltIn.TargetInstruction.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute defines an alternative name that may be used when loading a type or callable for testing purposes.
@@ -101,28 +105,28 @@ type BuiltIn =
             Kind = Function(TypeParameters = ImmutableArray.Create "T")
         }
 
-    static member RangeStart = 
+    static member RangeStart =
         {
-            FullName = {Name = "RangeStart"; Namespace = BuiltIn.CoreNamespace}
-            Kind = Function (TypeParameters = ImmutableArray.Empty)
+            FullName = { Name = "RangeStart"; Namespace = BuiltIn.CoreNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
-    static member RangeStep = 
+    static member RangeStep =
         {
-            FullName = {Name = "RangeStep"; Namespace = BuiltIn.CoreNamespace}
-            Kind = Function (TypeParameters = ImmutableArray.Empty)
+            FullName = { Name = "RangeStep"; Namespace = BuiltIn.CoreNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
-    static member RangeEnd = 
+    static member RangeEnd =
         {
-            FullName = {Name = "RangeEnd"; Namespace = BuiltIn.CoreNamespace}
-            Kind = Function (TypeParameters = ImmutableArray.Empty)
+            FullName = { Name = "RangeEnd"; Namespace = BuiltIn.CoreNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
-    static member RangeReverse = 
+    static member RangeReverse =
         {
-            FullName = {Name = "RangeReverse"; Namespace = BuiltIn.CoreNamespace}
-            Kind = Function (TypeParameters = ImmutableArray.Empty)
+            FullName = { Name = "RangeReverse"; Namespace = BuiltIn.CoreNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
     static member Attribute = { FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
@@ -133,16 +137,15 @@ type BuiltIn =
     static member Deprecated =
         { FullName = { Name = "Deprecated"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
 
-    static member Inline = 
-        { FullName = {Name = "Inline"; Namespace = BuiltIn.CoreNamespace}; Kind = Attribute }
+    static member Inline = { FullName = { Name = "Inline"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
 
     // dependencies in Microsoft.Quantum.Targeting
 
-    static member TargetInstruction = 
-        { FullName = {Name = "TargetInstruction"; Namespace = BuiltIn.TargetingNamespace}; Kind = Attribute }
+    static member TargetInstruction =
+        { FullName = { Name = "TargetInstruction"; Namespace = BuiltIn.TargetingNamespace }; Kind = Attribute }
 
-    static member RequiresCapability = 
-        { FullName = {Name = "RequiresCapability"; Namespace = BuiltIn.TargetingNamespace}; Kind = Attribute }
+    static member RequiresCapability =
+        { FullName = { Name = "RequiresCapability"; Namespace = BuiltIn.TargetingNamespace }; Kind = Attribute }
 
     // dependencies in Microsoft.Quantum.Diagnostics
 

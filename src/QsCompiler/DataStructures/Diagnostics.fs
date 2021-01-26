@@ -879,7 +879,8 @@ type DiagnosticItem =
 
             | ErrorCode.PublishingPerfResultsFailed -> "Performance results failed to be published at \"{0}\"."
             | ErrorCode.PerformanceTrackingFailed -> "Performance tracking failed with error \"{0}\"."
-            | ErrorCode.SyntaxTreeNotMonomorphized -> "The given compilation contains type parameters. The monomorphization pass needs to be run to eliminate them."
+            | ErrorCode.SyntaxTreeNotMonomorphized ->
+                "The given compilation contains type parameters. The monomorphization pass needs to be run to eliminate them."
 
         code |> ApplyArguments
 
@@ -985,9 +986,10 @@ type DiagnosticItem =
             | WarningCode.CsharpGenerationGeneratedWarning -> ""
             | WarningCode.InvalidAssemblyProperties ->
                 "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
-            | WarningCode.MissingTargetInstructionName -> 
+            | WarningCode.MissingTargetInstructionName ->
                 "Missing target instruction name for intrinsic callable. The automatically determined name conflicts with another target instruction."
             | _ -> ""
+
         code |> ApplyArguments
 
     static member Message(code: InformationCode, args: IEnumerable<string>) =

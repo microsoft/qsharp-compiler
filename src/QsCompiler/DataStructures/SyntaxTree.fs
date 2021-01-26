@@ -141,8 +141,9 @@ type UserDefinedType =
         /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
         Range: QsNullable<Range>
     }
-    
-    member this.GetFullName () = {Namespace = this.Namespace; Name = this.Name}
+
+    member this.GetFullName() =
+        { Namespace = this.Namespace; Name = this.Name }
 
 
 
@@ -873,12 +874,10 @@ type QsCallable =
     member this.WithSource source = { this with Source = source }
 
     [<Newtonsoft.Json.JsonIgnore>]
-    member this.IsIntrinsic = 
-        this.Signature.Information.InferredInformation.IsIntrinsic
+    member this.IsIntrinsic = this.Signature.Information.InferredInformation.IsIntrinsic
 
     [<Newtonsoft.Json.JsonIgnore>]
-    member this.IsSelfAdjoint = 
-        this.Signature.Information.InferredInformation.IsSelfAdjoint
+    member this.IsSelfAdjoint = this.Signature.Information.InferredInformation.IsSelfAdjoint
 
     // TODO: RELEASE 2021-07: Remove QsCallable.SourceFile.
     [<Obsolete "Replaced by Source.">]

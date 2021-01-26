@@ -454,16 +454,20 @@ let Callables (syntaxTree: IEnumerable<QsNamespace>) =
             | _ -> None))
 
 [<Extension>]
-let Attributes (syntaxTree : IEnumerable<QsNamespace>) = 
-    let marksAttribute (att : QsDeclarationAttribute) = 
+let Attributes (syntaxTree: IEnumerable<QsNamespace>) =
+    let marksAttribute (att: QsDeclarationAttribute) =
         match att.TypeId with
-        | Value tId -> tId.Namespace = BuiltIn.Attribute.FullName.Namespace && tId.Name = BuiltIn.Attribute.FullName.Name
+        | Value tId ->
+            tId.Namespace = BuiltIn.Attribute.FullName.Namespace && tId.Name = BuiltIn.Attribute.FullName.Name
         | Null -> false
-    syntaxTree |> Seq.collect (fun ns -> 
-        ns.Elements |> Seq.choose (function
+
+    syntaxTree
+    |> Seq.collect (fun ns ->
+        ns.Elements
+        |> Seq.choose (function
             | QsCustomType t when t.Attributes |> Seq.exists marksAttribute -> Some t
             | _ -> None))
-    
+
 [<Extension>]
 let Specializations (syntaxTree: IEnumerable<QsNamespace>) =
     syntaxTree
