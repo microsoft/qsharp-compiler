@@ -45,7 +45,7 @@ jobs:
   steps:
   - template: steps.yml
 
-- job: Wrap-up
+- job: WrapUp
   dependsOn: Build
   condition: succeededOrFailed()
   steps:
