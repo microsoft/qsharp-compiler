@@ -364,61 +364,29 @@ let private controlledAdjointDeclaration =
 
 /// Uses buildFragment to parse a Q# OperationDeclaration as QsFragment.
 let private operationDeclaration =
-    let invalid =
-        OperationDeclaration
-            {
-                Name = invalidSymbol
-                Visibility = Null
-                Signature = CallableSignature.Invalid
-            }
+    let invalid = CallableDeclaration.Create(invalidSymbol, Null, CallableSignature.Invalid) |> OperationDeclaration
 
     let valid visibility (symbol, signature) =
-        OperationDeclaration
-            {
-                Name = symbol
-                Visibility = QsNullable.ofOption visibility
-                Signature = signature
-            }
+        CallableDeclaration.Create(symbol, QsNullable.ofOption visibility, signature)
+        |> OperationDeclaration
 
     buildFragment (opt visibility .>> opDeclHeader.parse |> attempt) signature invalid valid eof
 
 /// Uses buildFragment to parse a Q# FunctionDeclaration as QsFragment.
 let private functionDeclaration =
-    let invalid =
-        FunctionDeclaration
-            {
-                Name = invalidSymbol
-                Visibility = Null
-                Signature = CallableSignature.Invalid
-            }
+    let invalid = CallableDeclaration.Create(invalidSymbol, Null, CallableSignature.Invalid) |> FunctionDeclaration
 
     let valid visibility (symbol, signature) =
-        FunctionDeclaration
-            {
-                Name = symbol
-                Visibility = QsNullable.ofOption visibility
-                Signature = signature
-            }
+        CallableDeclaration.Create(symbol, QsNullable.ofOption visibility, signature) |> FunctionDeclaration
 
     buildFragment (opt visibility .>> fctDeclHeader.parse |> attempt) signature invalid valid eof
 
 /// Uses buildFragment to parse a Q# TypeDefinition as QsFragment.
 let private udtDeclaration =
-    let invalid =
-        TypeDefinition
-            {
-                Name = invalidSymbol
-                Visibility = Null
-                UnderlyingType = invalidArgTupleItem
-            }
+    let invalid = TypeDefinition.Create(invalidSymbol, Null, invalidArgTupleItem) |> TypeDefinition
 
     let valid visibility (symbol, underlyingType) =
-        TypeDefinition
-            {
-                Name = symbol
-                Visibility = QsNullable.ofOption visibility
-                UnderlyingType = underlyingType
-            }
+        TypeDefinition.Create(symbol, QsNullable.ofOption visibility, underlyingType) |> TypeDefinition
 
     let udtTuple = // not unified with the argument tuple for callable declarations, since the error handling needs to be different
         let asAnonymousItem t =

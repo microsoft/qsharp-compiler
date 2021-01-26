@@ -281,29 +281,53 @@ module AccessModifier =
 
 /// A callable declaration.
 type CallableDeclaration =
-    {
+    private
+        {
+            name: QsSymbol
+            visibility: Visibility QsNullable
+            signature: CallableSignature
+        }
+
+        static member Create(name, visibility, signature) =
+            {
+                name = name
+                visibility = visibility
+                signature = signature
+            }
+
         /// The name of the callable.
-        Name: QsSymbol
+        member callable.Name = callable.name
 
         /// The visibility of the callable, or Null if the callable has the default visibility.
-        Visibility: Visibility QsNullable
+        member callable.Visibility = callable.visibility
 
         /// The signature of the callable.
-        Signature: CallableSignature
-    }
+        member callable.Signature = callable.signature
 
 /// A type definition.
 type TypeDefinition =
-    {
+    private
+        {
+            name: QsSymbol
+            visibility: Visibility QsNullable
+            underlyingType: (QsSymbol * QsType) QsTuple
+        }
+
+        static member Create(name, visibility, underlyingType) =
+            {
+                name = name
+                visibility = visibility
+                underlyingType = underlyingType
+            }
+
         /// The name of the type.
-        Name: QsSymbol
+        member typeDef.Name = typeDef.name
 
         /// The visibility of the type, or Null if the type has the default visibility.
-        Visibility: Visibility QsNullable
+        member typeDef.Visibility = typeDef.visibility
 
         /// The type's underlying type.
-        UnderlyingType: (QsSymbol * QsType) QsTuple
-    }
+        member typeDef.UnderlyingType = typeDef.underlyingType
 
 type QsFragmentKind =
     | ExpressionStatement of QsExpression
