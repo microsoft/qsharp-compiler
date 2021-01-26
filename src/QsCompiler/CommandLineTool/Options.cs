@@ -69,11 +69,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             Required = false,
             SetName = CodeMode,
             HelpText = "Specifies the classical capabilites of the runtime. Determines what QIR profile to compile to.")]
-#pragma warning disable 618 // RuntimeCapabilities is obsolete.
-        public AssemblyConstants.RuntimeCapabilities RuntimeCapabilites { get; set; }
+        public string? RuntimeCapabilityName { get; set; }
 
-        internal RuntimeCapability RuntimeCapability => this.RuntimeCapabilites.ToCapability();
-#pragma warning restore 618
+        /// <summary>
+        /// The parsed <see cref="RuntimeCapabilityName"/>.
+        /// </summary>
+        internal RuntimeCapability RuntimeCapability =>
+            RuntimeCapability.TryParse(this.RuntimeCapabilityName).ValueOr(RuntimeCapability.FullComputation);
 
         [Option(
             "build-exe",
