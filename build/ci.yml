@@ -26,14 +26,27 @@ schedules:
     - main
   always: true
 
+pool:
+  vmImage: windows-latest
+
 jobs:
-- job: "QsCompiler"
-  pool: 
-    vmImage: 'windows-latest'
+- job: Initialize
   steps:
   - template: steps.yml
 
-  - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
-    displayName: 'Component detection'
-    inputs:
-      failOnAlert: true
+- job: Style
+  dependsOn: Initialize
+  steps:
+  - script: dotnet tool run fantomas -- --check --recurse .
+    displayName: Check style
+
+- job: Build
+  dependsOn: Initialize
+  steps:
+  - template: steps.yml
+
+- job: Wrap-up
+  dependsOn: Build
+  condition: succeededOrFailed()
+  steps:
+  - template: wrap-up.yml

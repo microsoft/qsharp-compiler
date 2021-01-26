@@ -2,9 +2,12 @@
 # Wrap-up, publish symbols and drop folder.
 ##
 steps:
+- pwsh: ./manifest.ps1
+  displayName: "List built packages & assemblies"
+  workingDirectory: '$(System.DefaultWorkingDirectory)/build'
+
 - task: PublishTestResults@2
   displayName: 'Publish tests results'
-  condition: succeededOrFailed()
   inputs:
     testResultsFormat: VSTest
     testResultsFiles: '$(System.DefaultWorkingDirectory)/**/*.trx'
@@ -12,7 +15,6 @@ steps:
 
 - task: CopyFiles@2
   displayName: 'Copy extensions to: $(VSIX.Outdir)'
-  condition: succeededOrFailed()
   inputs:
     SourceFolder: '$(System.DefaultWorkingDirectory)'
     Contents: 'src\**\*.vsix'
@@ -21,7 +23,11 @@ steps:
 
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: qsharp-compiler'
-  condition: succeededOrFailed()
   inputs:
     PathtoPublish: '$(Build.ArtifactStagingDirectory)'
     artifactName: qsharp-compiler
+
+- task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
+  displayName: 'Component detection'
+  inputs:
+    failOnAlert: true
