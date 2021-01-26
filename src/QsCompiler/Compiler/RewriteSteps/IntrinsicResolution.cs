@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution;
+using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {

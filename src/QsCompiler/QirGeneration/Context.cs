@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -28,8 +28,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// This class holds the shared state used across a QIR generation pass.
     /// It also holds a large number of shared utility routines.
     /// </summary>
+#pragma warning disable SA1404 // Code analysis suppression should have justification
     [SuppressMessage("StyleCop.CSharp.ReadabilityRules", "SA1124:Do not use regions")]
     [SuppressMessage("StyleCop.CSharp.LayoutRules", "SA1516:Elements should be separated by blank line")]
+#pragma warning restore SA1404 // Code analysis suppression should have justification
     public sealed class GenerationContext : IDisposable
     {
         private static readonly ILibLlvm LibContext;

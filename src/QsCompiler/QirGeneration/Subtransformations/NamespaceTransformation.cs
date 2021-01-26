@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -32,19 +32,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private readonly TransformationContext context = new TransformationContext();
 
-        public QirNamespaceTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation, TransformationOptions options) : base(parentTransformation, options)
+        public QirNamespaceTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation, TransformationOptions options)
+            : base(parentTransformation, options)
         {
         }
 
-        public QirNamespaceTransformation(GenerationContext sharedState, TransformationOptions options) : base(sharedState, options)
+        public QirNamespaceTransformation(GenerationContext sharedState, TransformationOptions options)
+            : base(sharedState, options)
         {
         }
 
-        public QirNamespaceTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation) : base(parentTransformation)
+        public QirNamespaceTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation)
+            : base(parentTransformation)
         {
         }
 
-        public QirNamespaceTransformation(GenerationContext sharedState) : base(sharedState)
+        public QirNamespaceTransformation(GenerationContext sharedState)
+            : base(sharedState)
         {
         }
 
