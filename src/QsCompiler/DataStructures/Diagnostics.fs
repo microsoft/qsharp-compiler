@@ -882,6 +882,8 @@ type DiagnosticItem =
             | ErrorCode.SyntaxTreeNotMonomorphized ->
                 "The given compilation contains type parameters. The monomorphization pass needs to be run to eliminate them."
 
+            | _ -> ""
+
         code |> ApplyArguments
 
     static member Message(code: WarningCode, args: IEnumerable<string>) =
