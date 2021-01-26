@@ -719,7 +719,7 @@ type Source with
                        [<Optional; DefaultParameterValue null>] ?assemblyFile) =
         { source with
             CodeFile = codeFile |> Option.defaultValue source.CodeFile
-            AssemblyFile = assemblyFile |> QsNullable<_>.FromOption |> QsNullable.orElse source.AssemblyFile
+            AssemblyFile = assemblyFile |> QsNullable.ofOption |> QsNullable.orElse source.AssemblyFile
         }
 
 
