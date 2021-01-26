@@ -147,7 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(
             IEnumerable<(QsQualifiedName Name, string Source, Visibility Visibility)> elements) =>
             elements
-                .Where(e => Namespace.IsDeclarationAccessible(false, e.Visibility))
+                .Where(e => e.Visibility.IsVisibleFrom(Proximity.OtherAssembly))
                 .GroupBy(e => e.Name)
                 .Where(g => g.Count() != 1)
                 .Select(g => (g.Key, string.Join(", ", g.Select(e => e.Source))))
@@ -689,7 +689,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private QsCallable GetImportedCallable(CallableDeclarationHeader header)
         {
             // TODO: this needs to be adapted if we want to support external specializations
-            if (Namespace.IsDeclarationAccessible(false, header.Visibility))
+            if (header.Visibility.IsVisibleFrom(Proximity.OtherAssembly))
             {
                 var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
                 QsCompilerError.Verify(
@@ -697,20 +697,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     "external specializations are currently not supported");
             }
 
-            var specializations =
-                this.GlobalSymbols
+            var specializations = this.GlobalSymbols
                 .ImportedSpecializations(header.QualifiedName)
                 .Where(specialization =>
                     // Either the callable is externally accessible, or all of its specializations must be defined in
                     // the same reference as the callable.
-                    Namespace.IsDeclarationAccessible(false, header.Visibility) ||
-                    specialization.Item1.Source.AssemblyFile.Equals(header.Source.AssemblyFile))
+                    header.Visibility.IsVisibleFrom(Proximity.OtherAssembly)
+                    || specialization.Item1.Source.AssemblyFile.Equals(header.Source.AssemblyFile))
                 .Select(specialization =>
                 {
                     var (specHeader, implementation) = specialization;
                     var specSignature = specHeader.Kind.IsQsControlled || specHeader.Kind.IsQsControlledAdjoint
                         ? SyntaxGenerator.BuildControlled(header.Signature)
                         : header.Signature;
+
                     return new QsSpecialization(
                         specHeader.Kind,
                         header.QualifiedName,
@@ -724,6 +724,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         QsComments.Empty);
                 })
                 .ToImmutableArray();
+
             return new QsCallable(
                 header.Kind,
                 header.QualifiedName,
@@ -1006,8 +1007,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 IEnumerable<(QsQualifiedName Name, string Source, Visibility Visibility)> group) =>
                 group
                     .Where(item =>
-                        !Namespace.IsDeclarationAccessible(false, item.Visibility) &&
-                        (predicate?.Invoke(item.Source) ?? true))
+                        !item.Visibility.IsVisibleFrom(Proximity.OtherAssembly)
+                        && (predicate?.Invoke(item.Source) ?? true))
                     .ToImmutableDictionary(
                         item => item.Name,
                         item => decorator.Decorate(item.Name, ids[item.Source]));

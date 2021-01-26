@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.SymbolManagement
 
+#nowarn "44" // AccessModifier is deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -11,7 +13,6 @@ open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Utils
@@ -36,23 +37,26 @@ type Namespace private (name,
 
     /// Returns true if the name is available for use in a new declaration.
     let isNameAvailable name =
-        let isAvailableWith declarationsGetter accessibilityGetter sameAssembly =
-            declarationsGetter name
-            |> Seq.exists (fun name -> Namespace.IsDeclarationAccessible(sameAssembly, accessibilityGetter name))
+        let isAvailableWith getDeclaration getVisibility proximity =
+            getDeclaration name
+            |> Seq.exists (fun name -> getVisibility name |> Visibility.isVisibleFrom proximity)
             |> not
 
-        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Visibility) false
-        && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Visibility) false
+        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Visibility) OtherAssembly
+        && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Visibility) OtherAssembly
         && Parts.Values.All(fun partial ->
-            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Visibility) true
-            && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Visibility) true)
+            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Visibility)
+                SameAssembly
+            && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Visibility) SameAssembly)
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
+    // TODO: RELEASE 2021-08: Remove IsDeclarationAccessible.
+    [<Obsolete "Use Visibility.isVisibleFrom instead.">]
     static member IsDeclarationAccessible(sameAssembly, access) =
         match access with
-        | Public -> true
-        | Internal -> sameAssembly
+        | DefaultAccess -> true
+        | AccessModifier.Internal -> sameAssembly
 
     /// name of the namespace
     member this.Name = name
@@ -89,19 +93,19 @@ type Namespace private (name,
             specializationsInRefs.Where(fun (header: SpecializationDeclarationHeader, _) ->
                 header.Parent.Namespace = name)
 
-        let discardConflicts getAccess (_, nameGroup) =
-            // Only one externally accessible declaration with the same name is allowed.
-            let isAccessible header =
-                Namespace.IsDeclarationAccessible(false, getAccess header)
+        let discardConflicts getVisibility (_, nameGroup) =
+            // Only one externally visible declaration with the same name is allowed.
+            let isVisible header =
+                getVisibility header |> Visibility.isVisibleFrom OtherAssembly
 
-            if nameGroup |> Seq.filter isAccessible |> Seq.length > 1
-            then nameGroup |> Seq.filter (not << isAccessible)
+            if nameGroup |> Seq.filter isVisible |> Seq.length > 1
+            then nameGroup |> Seq.filter (isVisible >> not)
             else nameGroup
 
-        let createLookup getName getAccess headers =
+        let createLookup getName getVisibility headers =
             headers
             |> Seq.groupBy getName
-            |> Seq.map (discardConflicts getAccess)
+            |> Seq.map (discardConflicts getVisibility)
             |> Seq.concat
             |> fun headers -> headers.ToLookup(Func<_, _> getName)
 
@@ -309,14 +313,14 @@ type Namespace private (name,
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceType (typeHeader: TypeDeclarationHeader) =
-            if Namespace.IsDeclarationAccessible(false, typeHeader.Visibility)
+            if typeHeader.Visibility |> Visibility.isVisibleFrom OtherAssembly
             then Found(typeHeader.Source, SymbolResolution.TryFindRedirect typeHeader.Attributes, typeHeader.Visibility)
             else Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetType tName with
             | true, qsType ->
-                if Namespace.IsDeclarationAccessible(true, qsType.Visibility) then
+                if qsType.Visibility |> Visibility.isVisibleFrom SameAssembly then
                     Found
                         ({ CodeFile = partial.Source; AssemblyFile = Null },
                          SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
@@ -349,14 +353,14 @@ type Namespace private (name,
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceCallable (callable: CallableDeclarationHeader) =
-            if Namespace.IsDeclarationAccessible(false, callable.Visibility)
+            if callable.Visibility |> Visibility.isVisibleFrom OtherAssembly
             then Found(callable.Source, SymbolResolution.TryFindRedirect callable.Attributes)
             else Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetCallable cName with
             | true, (_, callable) ->
-                if Namespace.IsDeclarationAccessible(true, callable.Visibility) then
+                if callable.Visibility |> Visibility.isVisibleFrom SameAssembly then
                     Found
                         ({ CodeFile = partial.Source; AssemblyFile = Null },
                          SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)

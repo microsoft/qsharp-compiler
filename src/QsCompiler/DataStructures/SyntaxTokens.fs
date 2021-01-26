@@ -235,6 +235,21 @@ type Visibility =
     | Internal
     | Public
 
+type Proximity =
+    | SameAssembly
+    | OtherAssembly
+
+module Visibility =
+    [<CompiledName "IsVisibleFrom">]
+    let isVisibleFrom proximity =
+        function
+        | Internal -> proximity = SameAssembly
+        | Public -> true
+
+type Visibility with
+    member visibility.IsVisibleFrom proximity =
+        visibility |> Visibility.isVisibleFrom proximity
+
 module AccessModifier =
     [<CompiledName "ToVisibility">]
     [<Obsolete "Use Visibility instead.">]
@@ -253,14 +268,14 @@ module AccessModifier =
 type CallableDeclaration =
     {
         Name: QsSymbol
-        Access: Visibility QsNullable
+        Visibility: Visibility QsNullable
         Signature: CallableSignature
     }
 
 type TypeDefinition =
     {
         Name: QsSymbol
-        Access: Visibility QsNullable
+        Visibility: Visibility QsNullable
         UnderlyingType: (QsSymbol * QsType) QsTuple
     }
 

@@ -72,7 +72,7 @@ let public OpenedNamespaceName this onInvalid =
 [<Extension>]
 let public DeclaredType this =
     match this with
-    | TypeDefinition typ -> (typ.Name, (typ.Access, typ.UnderlyingType)) |> Value
+    | TypeDefinition typ -> Value(typ.Name, typ)
     | _ -> Null
 
 /// If the given fragment kind is a type declaration,
@@ -89,8 +89,8 @@ let public DeclaredTypeName this onInvalid =
 [<Extension>]
 let public DeclaredCallable this =
     match this with
-    | FunctionDeclaration func -> (func.Name, (QsCallableKind.Function, func.Access, func.Signature)) |> Value
-    | OperationDeclaration op -> (op.Name, (QsCallableKind.Operation, op.Access, op.Signature)) |> Value
+    | FunctionDeclaration callable -> Value(callable.Name, (QsCallableKind.Function, callable))
+    | OperationDeclaration callable -> Value(callable.Name, (QsCallableKind.Operation, callable))
     | _ -> Null
 
 /// If the given fragment kind is a callable declaration,

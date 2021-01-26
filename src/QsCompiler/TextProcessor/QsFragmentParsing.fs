@@ -164,7 +164,7 @@ let private allocationScope =
     |>> fst
 
 /// Parses keywords that modify the visibility or behavior of a declaration.
-let private accessModifier = qsInternal.parse >>% Internal
+let private visibility = qsInternal.parse >>% Internal
 
 /// Parses a Q# operation or function signature.
 /// Expects type annotations for each symbol in the argument tuple, and raises Missing- or InvalidTypeAnnotation errors otherwise.
@@ -368,19 +368,19 @@ let private operationDeclaration =
         OperationDeclaration
             {
                 Name = invalidSymbol
-                Access = Null
+                Visibility = Null
                 Signature = CallableSignature.Invalid
             }
 
-    let valid access (symbol, signature) =
+    let valid visibility (symbol, signature) =
         OperationDeclaration
             {
                 Name = symbol
-                Access = QsNullable.ofOption access
+                Visibility = QsNullable.ofOption visibility
                 Signature = signature
             }
 
-    buildFragment (opt accessModifier .>> opDeclHeader.parse |> attempt) signature invalid valid eof
+    buildFragment (opt visibility .>> opDeclHeader.parse |> attempt) signature invalid valid eof
 
 /// Uses buildFragment to parse a Q# FunctionDeclaration as QsFragment.
 let private functionDeclaration =
@@ -388,19 +388,19 @@ let private functionDeclaration =
         FunctionDeclaration
             {
                 Name = invalidSymbol
-                Access = Null
+                Visibility = Null
                 Signature = CallableSignature.Invalid
             }
 
-    let valid access (symbol, signature) =
+    let valid visibility (symbol, signature) =
         FunctionDeclaration
             {
                 Name = symbol
-                Access = QsNullable.ofOption access
+                Visibility = QsNullable.ofOption visibility
                 Signature = signature
             }
 
-    buildFragment (opt accessModifier .>> fctDeclHeader.parse |> attempt) signature invalid valid eof
+    buildFragment (opt visibility .>> fctDeclHeader.parse |> attempt) signature invalid valid eof
 
 /// Uses buildFragment to parse a Q# TypeDefinition as QsFragment.
 let private udtDeclaration =
@@ -408,15 +408,15 @@ let private udtDeclaration =
         TypeDefinition
             {
                 Name = invalidSymbol
-                Access = Null
+                Visibility = Null
                 UnderlyingType = invalidArgTupleItem
             }
 
-    let valid access (symbol, underlyingType) =
+    let valid visibility (symbol, underlyingType) =
         TypeDefinition
             {
                 Name = symbol
-                Access = QsNullable.ofOption access
+                Visibility = QsNullable.ofOption visibility
                 UnderlyingType = underlyingType
             }
 
@@ -454,7 +454,7 @@ let private udtDeclaration =
 
     let declBody = expectedIdentifierDeclaration equal .>> equal .>>. udtTuple
 
-    buildFragment (opt accessModifier .>> typeDeclHeader.parse |> attempt) declBody invalid valid eof
+    buildFragment (opt visibility .>> typeDeclHeader.parse |> attempt) declBody invalid valid eof
 
 
 // statement parsing
