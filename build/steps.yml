@@ -21,3 +21,8 @@ steps:
       /p:DefineConstants=$(Assembly.Constants) 
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
+
+- pwsh: ./manifest.ps1
+  displayName: "List built packages & assemblies"
+  condition: succeededOrFailed()
+  workingDirectory: '$(System.DefaultWorkingDirectory)/build'

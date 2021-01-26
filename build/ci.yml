@@ -4,7 +4,7 @@ variables:
   Build.Major: 0
   Build.Minor: 14
   Assembly.Version: $(Build.BuildNumber)
-  Assembly.Constants: ""
+  Assembly.Constants: ''
   Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
   Nuget.Outdir: $(Drops.Dir)/nugets
   VSIX.Outdir: $(Drops.Dir)/vsix
@@ -20,7 +20,7 @@ pr:
 
 schedules:
 - cron: "0 9 * * Sat"
-  displayName: Build for Component Governance
+  displayName: 'Build for Component Governance'
   branches:
     include:
     - main
@@ -30,7 +30,7 @@ pool:
   vmImage: windows-latest
 
 jobs:
-- job: Compiler
+- job: Build
   steps:
   - template: init.yml
   - template: steps.yml
