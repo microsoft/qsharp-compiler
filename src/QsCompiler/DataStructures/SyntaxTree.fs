@@ -830,7 +830,7 @@ type QsCallable =
         FullName: QsQualifiedName
         /// contains all attributes associated with the callable
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        /// Represents the Q# keywords attached to the declaration that modify its behavior.
+        /// The visibility of the callable.
         Visibility: Visibility
         /// The source where the callable is declared in.
         Source: Source
@@ -889,7 +889,7 @@ type QsCustomType =
         FullName: QsQualifiedName
         /// contains all attributes associated with the type
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        /// Represents the Q# keywords attached to the declaration that modify its behavior.
+        /// The visibility of the type.
         Visibility: Visibility
         /// The source where the type is declared in.
         Source: Source

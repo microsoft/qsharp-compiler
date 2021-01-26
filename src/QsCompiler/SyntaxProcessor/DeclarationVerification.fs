@@ -72,7 +72,7 @@ let public OpenedNamespaceName this onInvalid =
 [<Extension>]
 let public DeclaredType this =
     match this with
-    | TypeDefinition typ -> Value(typ.Name, typ)
+    | TypeDefinition typeDef -> Value(typeDef.Name, typeDef)
     | _ -> Null
 
 /// If the given fragment kind is a type declaration,

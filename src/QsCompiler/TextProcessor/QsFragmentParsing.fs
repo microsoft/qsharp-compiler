@@ -163,7 +163,7 @@ let private allocationScope =
     deprecatedTupleBrackets (initializerTuple |> symbolBinding equal ErrorCode.ExpectingAssignment) eof
     |>> fst
 
-/// Parses keywords that modify the visibility or behavior of a declaration.
+/// Parses a symbol visibility modifier.
 let private visibility = qsInternal.parse >>% Internal
 
 /// Parses a Q# operation or function signature.
