@@ -4,6 +4,7 @@ steps:
 
 - script: dotnet tool run fantomas -- --check --recurse .
   displayName: "Check style"
+  continueOnError: true
 
 
 - pwsh: ./build.ps1
