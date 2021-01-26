@@ -4,7 +4,7 @@ variables:
   Build.Major: 0
   Build.Minor: 14
   Assembly.Version: $(Build.BuildNumber)
-  Assembly.Constants: ''
+  Assembly.Constants: ""
   Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
   Nuget.Outdir: $(Drops.Dir)/nugets
   VSIX.Outdir: $(Drops.Dir)/vsix
@@ -20,7 +20,7 @@ pr:
 
 schedules:
 - cron: "0 9 * * Sat"
-  displayName: 'Build for Component Governance'
+  displayName: Build for Component Governance
   branches:
     include:
     - main
@@ -30,23 +30,17 @@ pool:
   vmImage: windows-latest
 
 jobs:
-- job: Initialize
+- job: Compiler
   steps:
   - template: init.yml
+  - template: steps.yml
+  - template: wrap-up.yml
 
 - job: Style
   dependsOn: Initialize
   steps:
+  - script: dotnet tool restore
+    displayName: Restore .NET tools
+
   - script: dotnet tool run fantomas -- --check --recurse .
-    displayName: Check style
-
-- job: Build
-  dependsOn: Initialize
-  steps:
-  - template: steps.yml
-
-- job: WrapUp
-  dependsOn: Build
-  condition: succeededOrFailed()
-  steps:
-  - template: wrap-up.yml
+    displayName: Fantomas
