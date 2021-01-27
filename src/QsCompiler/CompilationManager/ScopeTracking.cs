@@ -583,6 +583,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     yield return Errors.ExcessBracketError(file.FileName, Position.Create(start, pos));
                 }
+                foreach (var pos in line.ErrorDelimiterPositions)
+                {
+                    yield return Errors.InvalidCharacterInInterpolatedArgument(file.FileName, Position.Create(start, pos), file.GetLine(start).Text[pos]);
+                }
                 ++start;
             }
         }

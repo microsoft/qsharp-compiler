@@ -50,6 +50,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
         internal readonly int Indentation; // Note: This denotes the initial indentation at the beginning of the line
         internal readonly ImmutableArray<int> ExcessBracketPositions;
+        internal readonly ImmutableArray<int> ErrorDelimiterPositions;
 
         // convention: first one opens a string, and we have the usual inclusions: {0,5} means the chars 0..4 are the content of a string
         // -> i.e. -1 means the string starts on a previous line, and an end delimiter that is equal to Text.Length means that the string continues on the next line
@@ -65,6 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             string? endOfLineComment,
             int indentation,
             IEnumerable<int> excessBracketPositions,
+            IEnumerable<int> errorDelimiterPositions,
             IEnumerable<int> stringDelimiters,
             StringContext beginningStringContext,
             StringContext endingStringContext)
@@ -75,6 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.EndOfLineComment = endOfLineComment;
             this.Indentation = indentation;
             this.ExcessBracketPositions = excessBracketPositions.ToImmutableArray();
+            this.ErrorDelimiterPositions = errorDelimiterPositions.ToImmutableArray();
             this.StringDelimiters = stringDelimiters.ToImmutableArray();
             this.BeginningStringContext = beginningStringContext;
             this.EndingStringContext = endingStringContext;
@@ -91,6 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.EndOfLineComment = null;
             this.Indentation = 0;
             this.ExcessBracketPositions = ImmutableArray<int>.Empty;
+            this.ErrorDelimiterPositions = ImmutableArray<int>.Empty;
             this.StringDelimiters = ImmutableArray<int>.Empty;
             this.BeginningStringContext = beginningStringContext;
             this.EndingStringContext = beginningStringContext;
@@ -107,8 +111,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.LineEnding = Utils.EndOfLine.Match(text).Value; // empty string if the matching failed
 
             this.BeginningStringContext = beginningStringContext;
-            int commentStart;
-            var delimiters = ComputeStringDelimiters(text, ref beginningStringContext, out commentStart);
+            var delimiters = ComputeStringDelimiters(text, ref beginningStringContext, out var commentStart, out var errorDelimiters);
+            this.ErrorDelimiterPositions = errorDelimiters.ToImmutableArray();
             this.EndingStringContext = beginningStringContext; // beginningStringContext has been updated to the context at the end of the line
 
             var lineLength = text.Length - this.LineEnding.Length;
@@ -142,6 +146,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.BeginningStringContext = beginningStringContext;
             this.EndingStringContext = beginningStringContext;
 
+            var delimiterBuilder = ImmutableArray.CreateBuilder<int>();
+            var errorDelimiterBuilder = ImmutableArray.CreateBuilder<int>();
+
             foreach (var delim in delimiters)
             {
                 if (delim == -1 || delim == text.Length)
@@ -156,7 +163,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     inputDelimiter = "$\"";
                 }
 
-                this.EndingStringContext = MoveToNextState(this.EndingStringContext, inputDelimiter);
+                bool validDelimiter;
+                (this.EndingStringContext, validDelimiter) = MoveToNextState(this.EndingStringContext, inputDelimiter);
+                if (!validDelimiter)
+                {
+                    // If the erroneous delimiter is $", mark the $ as the error and treat the " as a normal string delimiter
+                    if (inputDelimiter == "$\"")
+                    {
+                        errorDelimiterBuilder.Add(delim - 1); // Backup to the $ character
+                        delimiterBuilder.Add(delim);
+                    }
+                    else
+                    {
+                        errorDelimiterBuilder.Add(delim);
+                    }
+                }
+                else
+                {
+                    delimiterBuilder.Add(delim);
+                }
             }
             this.EndingStringContext = beginningStringContext; // beginningStringContext has been updated to the context at the end of the line
 
@@ -176,7 +201,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.EndOfLineComment = null;
             }
 
-            this.StringDelimiters = delimiters.ToImmutableArray();
+            this.StringDelimiters = delimiterBuilder.ToImmutable();
+            this.ErrorDelimiterPositions = errorDelimiterBuilder.ToImmutable();
             this.Indentation = indentation;
             this.ExcessBracketPositions = excessBrackets.ToImmutableArray();
             ScopeTracking.VerifyStringDelimiters(text, delimiters);
@@ -186,13 +212,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Computes the location of the string delimiters within a given text.
         /// </summary>
-        private static IEnumerable<int> ComputeStringDelimiters(string text, ref StringContext stringContext, out int commentIndex)
+        private static IEnumerable<int> ComputeStringDelimiters(string text, ref StringContext stringContext, out int commentIndex, out IEnumerable<int> errorDelimiters)
         {
-            var builder = ImmutableArray.CreateBuilder<int>();
+            var delimiterBuilder = ImmutableArray.CreateBuilder<int>();
+            var errorDelimiterBuilder = ImmutableArray.CreateBuilder<int>();
 
             if (stringContext >= StringContext.OpenString)
             {
-                builder.Add(-1);
+                delimiterBuilder.Add(-1);
             }
 
             commentIndex = -1;
@@ -246,9 +273,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     inputDelimiter = "$\"";
                 }
 
-                builder.Add(index + stringLength - text.Length);
+                var pos = index + stringLength - text.Length;
+                bool validDelimiter;
+                (stringContext, validDelimiter) = MoveToNextState(stringContext, inputDelimiter);
+                if (!validDelimiter)
+                {
+                    // If the erroneous delimiter is $", mark the $ as the error and treat the " as a normal string delimiter
+                    if (inputDelimiter == "$\"")
+                    {
+                        errorDelimiterBuilder.Add(pos - 1); // Backup to the $ character
+                        delimiterBuilder.Add(pos);
+                    }
+                    else
+                    {
+                        errorDelimiterBuilder.Add(pos);
+                    }
+                }
+                else
+                {
+                    delimiterBuilder.Add(pos);
+                }
                 text = text.Substring(index + 1);
-                stringContext = MoveToNextState(stringContext, inputDelimiter);
             }
 
             // commentIndex is only nonzero if we found \\ and we were not in a string,
@@ -260,13 +305,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             if (stringContext >= StringContext.OpenString)
             {
-                builder.Add(stringLength);
+                delimiterBuilder.Add(stringLength);
             }
 
-            return builder.ToImmutable();
+            errorDelimiters = errorDelimiterBuilder.ToImmutable();
+            return delimiterBuilder.ToImmutable();
         }
 
-        private static StringContext MoveToNextState(StringContext curr, string input)
+        private static (StringContext, bool) MoveToNextState(StringContext curr, string input)
         {
             switch (input)
             {
@@ -274,52 +320,52 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     switch (curr)
                     {
                         case StringContext.NoOpenString:
-                            return StringContext.OpenString;
+                            return (StringContext.OpenString, true);
                         case StringContext.OpenInterpolatedArgument:
-                            return StringContext.OpenStringInOpenInterpolatedArgument;
+                            return (StringContext.OpenStringInOpenInterpolatedArgument, true);
                         case StringContext.OpenString:
                         case StringContext.OpenInterpolatedString:
-                            return StringContext.NoOpenString;
+                            return (StringContext.NoOpenString, true);
                         case StringContext.OpenStringInOpenInterpolatedArgument:
-                            return StringContext.OpenInterpolatedArgument;
+                            return (StringContext.OpenInterpolatedArgument, true);
                         default:
-                            return curr;
+                            return (curr, true);
                     }
                 case "{":
                     switch (curr)
                     {
                         case StringContext.OpenInterpolatedArgument:
-                            throw new ArgumentException("Cannot have '{' or '}' nested inside of interpolated argument.");
+                            return (curr, false);
                         case StringContext.OpenInterpolatedString:
-                            return StringContext.OpenInterpolatedArgument;
+                            return (StringContext.OpenInterpolatedArgument, true);
                         default:
-                            return curr;
+                            return (curr, true);
                     }
                 case "}":
                     switch (curr)
                     {
                         case StringContext.OpenInterpolatedArgument:
-                            return StringContext.OpenInterpolatedString;
+                            return (StringContext.OpenInterpolatedString, true);
                         default:
-                            return curr;
+                            return (curr, true);
                     }
                 case "$\"":
                     switch (curr)
                     {
                         case StringContext.NoOpenString:
-                            return StringContext.OpenInterpolatedString;
+                            return (StringContext.OpenInterpolatedString, true);
                         case StringContext.OpenInterpolatedArgument:
-                            throw new ArgumentException("Cannot have interpolated string nested inside of interpolated argument.");
+                            return (StringContext.OpenStringInOpenInterpolatedArgument, false);
                         case StringContext.OpenString:
                         case StringContext.OpenInterpolatedString:
-                            return StringContext.NoOpenString;
+                            return (StringContext.NoOpenString, true);
                         case StringContext.OpenStringInOpenInterpolatedArgument:
-                            return StringContext.OpenInterpolatedArgument;
+                            return (StringContext.OpenInterpolatedArgument, true);
                         default:
-                            return curr;
+                            return (curr, true);
                     }
                 default:
-                    return curr;
+                    return (curr, true);
             }
         }
 
@@ -335,6 +381,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.EndOfLineComment,
                 newIndentation,
                 this.ExcessBracketPositions,
+                this.ErrorDelimiterPositions,
                 this.StringDelimiters,
                 this.BeginningStringContext,
                 this.EndingStringContext);
@@ -349,6 +396,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.EndOfLineComment,
                 this.Indentation,
                 newExcessBrackets,
+                this.ErrorDelimiterPositions,
                 this.StringDelimiters,
                 this.BeginningStringContext,
                 this.EndingStringContext);
