@@ -11,9 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
@@ -126,11 +124,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
-#pragma warning disable 618 // RuntimeCapabilities and ToCapability are obsolete.
-            var runtimeCapability = Enum.TryParse(resRuntimeCapability, out RuntimeCapabilities result)
-                ? result.ToCapability()
-#pragma warning restore 618
-                : RuntimeCapability.FullComputation;
+            var runtimeCapability = RuntimeCapability.TryParse(resRuntimeCapability).ValueOr(RuntimeCapability.FullComputation);
 
             var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
             var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
