@@ -4,7 +4,7 @@
     "name": "Quantum Application (Honeywell)",
     "description": "A project creating a Q# application that can be executed on a Honeywell backend via Azure Quantum.",
     "groupIdentity": "Microsoft.Common.Console",
-    "identity": "Microsoft.Common.Console.QSharp.#MAJOR_VERSION#.#MINOR_VERSION#",
+    "identity": "Microsoft.Common.Console.QSharp.Honeywell.#MAJOR_VERSION#.#MINOR_VERSION#",
     "shortName": "azqu-honeywell",
     "tags": {
       "language": "Q#",
