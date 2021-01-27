@@ -350,3 +350,9 @@ src/ProjectTemplates/Quantum.Test1/.template.config/template.json
 /src/VisualStudioExtension/QSharpAppTemplate/AppProjectTemplate.xml
 /src/VisualStudioExtension/QSharpLibTemplate/LibProjectTemplate.xml
 /src/VisualStudioExtension/QSharpTestTemplate/TestProjectTemplate.xml
+/src/ProjectTemplates/Quantum.App.Honeywell/Quantum.App1.csproj
+/src/ProjectTemplates/Quantum.App.Honeywell/.template.config/template.json
+/src/ProjectTemplates/Quantum.App.IonQ/.template.config/template.json
+/src/ProjectTemplates/Quantum.App.IonQ/Quantum.App1.csproj
+/src/VisualStudioExtension/QsharpHoneywellAppTemplate/AppProjectTemplate.xml
+/src/VisualStudioExtension/QsharpIonQAppTemplate/AppProjectTemplate.xml
