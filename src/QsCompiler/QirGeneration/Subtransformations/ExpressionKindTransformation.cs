@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -128,19 +128,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // constructors
 
-        public QirExpressionKindTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation) : base(parentTransformation)
+        public QirExpressionKindTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation)
+            : base(parentTransformation)
         {
         }
 
-        public QirExpressionKindTransformation(GenerationContext sharedState) : base(sharedState)
+        public QirExpressionKindTransformation(GenerationContext sharedState)
+            : base(sharedState)
         {
         }
 
-        public QirExpressionKindTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation, TransformationOptions options) : base(parentTransformation, options)
+        public QirExpressionKindTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation, TransformationOptions options)
+            : base(parentTransformation, options)
         {
         }
 
-        public QirExpressionKindTransformation(GenerationContext sharedState, TransformationOptions options) : base(sharedState, options)
+        public QirExpressionKindTransformation(GenerationContext sharedState, TransformationOptions options)
+            : base(sharedState, options)
         {
         }
 

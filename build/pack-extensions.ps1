@@ -71,7 +71,7 @@ function Pack-SelfContained() {
         @args `
         /property:Version=$Env:ASSEMBLY_VERSION `
         /property:InformationalVersion=$Env:SEMVER_VERSION
-        
+
     Write-Host "##[info]Packing $Project as a self-contained deployment...";
     $Runtimes.GetEnumerator() | ForEach-Object {
         $DotNetRuntimeID = $_.Key;
@@ -127,7 +127,7 @@ function Pack-VSCode() {
     if (Get-Command npx -ErrorAction SilentlyContinue) {
         Try {
             npx vsce package
-    
+
             if ($LastExitCode -ne 0) {
                 throw;
             }
@@ -146,10 +146,10 @@ function Pack-VSCode() {
 ##
 function Pack-VS() {
     Write-Host "##[info]Packing VisualStudio extension..."
-    Push-Location (Join-Path $PSScriptRoot '..\src\VisualStudioExtension\QsharpVSIX')
+    Push-Location (Join-Path $PSScriptRoot '..\src\VisualStudioExtension\QSharpVsix')
     if (Get-Command msbuild -ErrorAction SilentlyContinue) {
         Try {
-            msbuild QsharpVSIX.csproj `
+            msbuild QSharpVsix.csproj `
                 /t:CreateVsixContainer `
                 /property:Configuration=$Env:BUILD_CONFIGURATION `
                 /property:AssemblyVersion=$Env:ASSEMBLY_VERSION `
@@ -162,7 +162,7 @@ function Pack-VS() {
             Write-Host "##vso[task.logissue type=error;]Failed to pack VS extension."
             $Script:all_ok = $False
         }
-    } else {    
+    } else {
         Write-Host "msbuild not installed. Will skip creation of VisualStudio extension package"
     }
     Pop-Location

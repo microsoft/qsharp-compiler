@@ -5,8 +5,8 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <ExposeReferencesViaTestNames>true</ExposeReferencesViaTestNames>
-    <IncludeQsharpCorePackages>false</IncludeQsharpCorePackages>
-    <CsharpGeneration>false</CsharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
+    <IncludeQSharpCorePackages>false</IncludeQSharpCorePackages>
+    <CSharpGeneration>false</CSharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
     <NoWarn>0219</NoWarn> <!-- suppress C# warning for unused variables -->
   </PropertyGroup>
 
@@ -24,9 +24,9 @@
     <Compile Include="../Target/Driver.cs">
       <Visible>false</Visible>
     </Compile>
-    <QsharpCompile Include="../../../Tests.Compiler/TestCases/ExecutionTests/*.*">
+    <QSharpCompile Include="../../../Tests.Compiler/TestCases/ExecutionTests/*.*">
       <Link>$(ExecutionTestsDir)%(RecursiveDir)%(Filename)%(Extension)</Link>
-    </QsharpCompile>
+    </QSharpCompile>
   </ItemGroup>
 
   <ItemGroup>
@@ -40,7 +40,7 @@
     <ProjectReference Include="../../Libraries/Library2/Library2.csproj" />
   </ItemGroup>
 
-  <Target Name="BeforeCsharpCompile">
+  <Target Name="BeforeCSharpCompile">
     <ItemGroup>
       <Compile Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
     </ItemGroup>

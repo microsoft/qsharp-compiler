@@ -11,7 +11,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     <TargetFramework>netstandard2.1</TargetFramework>
                 </PropertyGroup>
                 <ItemGroup>
-                    <QsharpCompile Include=""{compilationScope}"" />
+                    <QSharpCompile Include=""{compilationScope}"" />
                 </ItemGroup>
             </Project>";
     }

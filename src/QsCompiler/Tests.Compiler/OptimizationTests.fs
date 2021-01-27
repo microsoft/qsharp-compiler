@@ -17,8 +17,10 @@ let private buildCompilation code =
     let fileId = new Uri(Path.GetFullPath "test-file.qs")
     let compilationUnit = new CompilationUnitManager(fun ex -> failwith ex.Message)
     let file = CompilationUnitManager.InitializeFileManager(fileId, code)
-    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore  // spawns a task that modifies the current compilation
-    let mutable compilation = compilationUnit.Build().BuiltCompilation  // will wait for any current tasks to finish
+    // spawns a task that modifies the current compilation
+    compilationUnit.AddOrUpdateSourceFileAsync file |> ignore
+    // will wait for any current tasks to finish
+    let mutable compilation = compilationUnit.Build().BuiltCompilation
     CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation) |> ignore
     compilation
 
@@ -57,7 +59,7 @@ let ``function evaluation`` () =
     assertOptimization "TestCases/OptimizerTests/FunctionEval"
 
 [<Fact>]
-let ``inlining`` () =
+let inlining () =
     // createTestCase "TestCases/OptimizerTests/Inlining"
     assertOptimization "TestCases/OptimizerTests/Inlining"
 
@@ -67,7 +69,7 @@ let ``loop unrolling`` () =
     assertOptimization "TestCases/OptimizerTests/LoopUnrolling"
 
 [<Fact>]
-let ``miscellaneous`` () =
+let miscellaneous () =
     // createTestCase "TestCases/OptimizerTests/Miscellaneous"
     assertOptimization "TestCases/OptimizerTests/Miscellaneous"
 
@@ -82,7 +84,7 @@ let ``partial evaluation`` () =
     assertOptimization "TestCases/OptimizerTests/PartialEval"
 
 [<Fact>]
-let ``reordering`` () =
+let reordering () =
     // createTestCase "TestCases/OptimizerTests/Reordering"
     assertOptimization "TestCases/OptimizerTests/Reordering"
 

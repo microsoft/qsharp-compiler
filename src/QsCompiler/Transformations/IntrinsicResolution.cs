@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -99,7 +99,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
     }
 }
 
+#pragma warning disable SA1403 // File may only contain a single namespace
 namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
+#pragma warning restore SA1403 // File may only contain a single namespace
 {
     [Obsolete("Please use Microsoft.Quantum.QsCompiler.Transformations.Targeting.ReplaceWithTargetIntrinsics instead.")]
     public static class ReplaceWithTargetIntrinsics
@@ -115,4 +117,3 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
             Targeting.ReplaceWithTargetIntrinsics.Apply(environment, target);
     }
 }
-

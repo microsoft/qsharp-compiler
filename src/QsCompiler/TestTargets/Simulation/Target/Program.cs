@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System.Collections.Generic;
@@ -16,10 +16,10 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
     /// Any class in this dll that implements the IRewriteStep interface will be detected during compilation,
     /// and its transformation and verfication step (if implemented) will be executed.
     /// </summary>
-    public class CsharpGeneration : IRewriteStep
+    public class CSharpGeneration : IRewriteStep
     {
         /// <inheritdoc/>
-        public string Name => "CsharpGeneration";
+        public string Name => "CSharpGeneration";
 
         /// <inheritdoc/>
         public int Priority => 0;

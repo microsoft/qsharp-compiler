@@ -114,7 +114,7 @@ namespace Microsoft.Quantum.Documentation
             {
                 this.TryWithExceptionsAsDiagnostics(
                     "creating directory",
-                    async () => Directory.CreateDirectory(outputPath))
+                    () => Task.FromResult(Directory.CreateDirectory(outputPath)))
                 .Wait();
             }
 
@@ -160,6 +160,7 @@ namespace Microsoft.Quantum.Documentation
 
 "
                 .MaybeWithSection("Description", docComment.Description)
+                .WithSectionForEach("Example", docComment.Examples)
                 .MaybeWithSection(
                     "See Also",
                     string.Join("\n", docComment.SeeAlso.Select(
@@ -167,8 +168,7 @@ namespace Microsoft.Quantum.Documentation
                 .WithYamlHeader(header);
 
             // Open a file to write the new doc to.
-            await this.WriteAllTextAsync(
-                $"{name}.md", document);
+            await this.WriteAllTextAsync($"{name}.md", document);
         }
 
         /// <summary>
@@ -229,6 +229,7 @@ Namespace: [{type.FullName.Namespace}](xref:{type.FullName.Namespace})
                         return $"### {itemName} : {resolvedType.ToMarkdownLink()}\n\n{documentation}";
                     })))
             .MaybeWithSection("Description", docComment.Description)
+            .WithSectionForEach("Example", docComment.Examples)
             .MaybeWithSection("Remarks", docComment.Remarks)
             .MaybeWithSection("References", docComment.References)
             .MaybeWithSection(
@@ -280,6 +281,13 @@ Namespace: [{type.FullName.Namespace}](xref:{type.FullName.Namespace})
                 ["qsharp.name"] = callable.FullName.Name,
                 ["qsharp.summary"] = docComment.Summary,
             };
+            var keyword = callable.Kind.Tag switch
+            {
+                QsCallableKind.Tags.Function => "function ",
+                QsCallableKind.Tags.Operation => "operation ",
+                QsCallableKind.Tags.TypeConstructor => "newtype ",
+                _ => ""
+            };
             var document = $@"
 # {title}
 
@@ -288,14 +296,8 @@ Namespace: [{callable.FullName.Namespace}](xref:{callable.FullName.Namespace})
 
 {docComment.Summary}
 
-```{this.LanguageMode}{callable.Kind.Tag switch
-{
-    QsCallableKind.Tags.Function => "function ",
-    QsCallableKind.Tags.Operation => "operation ",
-    QsCallableKind.Tags.TypeConstructor => "newtype ",
-    _ => ""
-}
-}{callable.ToSyntax()}
+```{this.LanguageMode}
+{keyword}{callable.ToSyntax()}
 ```
 "
             .MaybeWithSection("Description", docComment.Description)
@@ -321,6 +323,7 @@ Namespace: [{callable.FullName.Namespace}](xref:{callable.FullName.Namespace})
                             ? comment
                             : string.Empty)}"
                         : string.Empty)))
+            .WithSectionForEach("Example", docComment.Examples)
             .MaybeWithSection("Remarks", docComment.Remarks)
             .MaybeWithSection("References", docComment.References)
             .MaybeWithSection(

@@ -13,7 +13,7 @@
     <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
     <icon>images\qdk-nuget-icon.png</icon>
     <copyright>© Microsoft Corporation. All rights reserved.</copyright>
-    <tags>Quantum Q# Qsharp </tags>
+    <tags>Quantum Q# QSharp</tags>
     <packageTypes>
       <packageType name="Sdk" />
     </packageTypes>

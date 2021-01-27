@@ -1,6 +1,7 @@
-﻿using System.Reflection;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 using System.Runtime.CompilerServices;
-using System.Runtime.InteropServices;
 
 // Allow the test assembly to use our internal methods
 [assembly: InternalsVisibleTo("Tests.Microsoft.Quantum.QsDocumentationParser" + SigningConstants.PublicKey)]

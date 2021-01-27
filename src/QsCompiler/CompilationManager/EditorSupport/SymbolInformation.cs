@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -244,7 +243,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return false;
                 }
                 referenceLocations = parent.Specializations
-                    .Where(spec => spec.SourceFile == file.FileName)
+                    .Where(spec => spec.Source.AssemblyOrCodeFile == file.FileName)
                     .SelectMany(spec =>
                         spec.Implementation is SpecializationImplementation.Provided impl && spec.Location.IsValue
                             ? IdentifierReferences.Find(definition.Item.Item1, impl.Item2, file.FileName, spec.Location.Item.Offset)

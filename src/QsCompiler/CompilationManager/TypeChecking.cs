@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -464,8 +464,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return (item.Key, item.Value.Item1, nodes);
             });
             return specRoots.ToImmutableDictionary(
-                spec => spec.Item1,
-                spec => (spec.Item2, new FragmentTree(file.FileName, spec.Item1.Namespace, spec.Item1.Name, spec.Item3)));
+                spec => spec.Key,
+                spec => (spec.Item2, new FragmentTree(file.FileName, spec.Key.Namespace, spec.Key.Name, spec.nodes)));
         }
 
         /// <summary>
@@ -531,16 +531,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// If the set of required functors is unspecified or null, then the functors to support are determined by the parent scope.
         /// </summary>
         private static QsScope BuildScope(
-            IReadOnlyList<FragmentTree.TreeNode> nodeContent,
+            IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
             List<Diagnostic> diagnostics,
-            ImmutableHashSet<QsFunctor>? requiredFunctorSupport = null)
+            ImmutableHashSet<QsFunctor>? requiredFunctors = null)
         {
             var inheritedSymbols = context.Symbols.CurrentDeclarations;
-            context.Symbols.BeginScope(requiredFunctorSupport);
-            var statements = BuildStatements(nodeContent.GetEnumerator(), context, diagnostics);
+            context.Symbols.BeginScope(requiredFunctors);
+            var statements = BuildStatements(nodes, context, diagnostics);
             context.Symbols.EndScope();
             return new QsScope(statements, inheritedSymbols);
+        }
+
+        /// <summary>
+        /// If the current node is not followed by an opening bracket, builds a scope that implicitly starts with the
+        /// statement after the current node, and continues until the end of the current scope. Otherwise, builds a
+        /// scope using the current node's children.
+        /// </summary>
+        /// <seealso cref="BuildScope"/>
+        private static QsScope BuildImplicitScope(
+            IEnumerator<FragmentTree.TreeNode> nodes,
+            ScopeContext context,
+            List<Diagnostic> diagnostics,
+            ImmutableHashSet<QsFunctor>? requiredFunctors = null)
+        {
+            var children = nodes.Current.Fragment.FollowedBy == '{'
+                ? nodes.Current.Children.GetEnumerator()
+                : nodes;
+
+            return BuildScope(children, context, diagnostics, requiredFunctors);
         }
 
         /// <summary>
@@ -594,8 +613,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewAllocateScope(nodes.Current.Fragment.Comments, relPos, ctx, allocate.Item1, allocate.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
-                statement = allocationScope(body);
+                statement = allocationScope(BuildImplicitScope(nodes, context, diagnostics));
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
@@ -637,8 +655,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewBorrowScope(nodes.Current.Fragment.Comments, relPos, ctx, borrow.Item1, borrow.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
-                statement = borrowingScope(body);
+                statement = borrowingScope(BuildImplicitScope(nodes, context, diagnostics));
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
                 return true;
@@ -749,7 +766,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, symbols) => Statements.NewForStatement(nodes.Current.Fragment.Comments, relPos, symbols, forStatement.Item1, forStatement.Item2),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
+                var body = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                 statement = forLoop(body);
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
@@ -792,7 +809,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     (relPos, ctx) => Statements.NewWhileStatement(nodes.Current.Fragment.Comments, relPos, ctx, whileStatement.Item),
                     context,
                     diagnostics);
-                var body = BuildScope(nodes.Current.Children, context, diagnostics);
+                var body = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                 statement = whileLoop(body);
                 context.Symbols.EndScope();
                 proceed = nodes.MoveNext();
@@ -835,9 +852,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var buildClause = BuildStatement(
                     nodes.Current,
                     (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, ifCond.Item),
+#pragma warning disable 612 // WithinIfCondition is obsolete.
                     context.WithinIfCondition,
+#pragma warning restore 612
                     diagnostics);
-                var ifBlock = buildClause(BuildScope(nodes.Current.Children, context, diagnostics));
+                var ifBlock = buildClause(BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics));
 
                 // elif blocks
                 proceed = nodes.MoveNext();
@@ -847,9 +866,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     buildClause = BuildStatement(
                         nodes.Current,
                         (relPos, ctx) => Statements.NewConditionalBlock(nodes.Current.Fragment.Comments, relPos, ctx, elifCond.Item),
+#pragma warning disable 612 // WithinIfCondition is obsolete.
                         context.WithinIfCondition,
+#pragma warning restore 612
                         diagnostics);
-                    elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children, context, diagnostics)));
+                    elifBlocks.Add(buildClause(BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics)));
                     proceed = nodes.MoveNext();
                 }
 
@@ -857,7 +878,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var elseBlock = QsNullable<QsPositionedBlock>.Null;
                 if (proceed && nodes.Current.Fragment.Kind.IsElseClause)
                 {
-                    var scope = BuildScope(nodes.Current.Children, context, diagnostics);
+                    var scope = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                     var elseLocation = new QsLocation(nodes.Current.RelativePosition, nodes.Current.Fragment.HeaderRange);
                     elseBlock = QsNullable<QsPositionedBlock>.NewValue(
                         new QsPositionedBlock(scope, QsNullable<QsLocation>.NewValue(elseLocation), nodes.Current.Fragment.Comments));
@@ -904,12 +925,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // The requirement for outer blocks in conjugations is always that an adjoint can be auto-generated for them,
                 // independent on what functor specializations need to be auto-generated for the containing operation.
                 var requiredFunctorSupport = ImmutableHashSet.Create(QsFunctor.Adjoint);
-                var outerTranformation = BuildScope(nodes.Current.Children, context, diagnostics, requiredFunctorSupport);
+                var outerTranformation = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics, requiredFunctorSupport);
                 var outer = new QsPositionedBlock(outerTranformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
 
                 if (nodes.MoveNext() && nodes.Current.Fragment.Kind.IsApplyBlockIntro)
                 {
-                    var innerTransformation = BuildScope(nodes.Current.Children, context, diagnostics);
+                    var innerTransformation = BuildScope(nodes.Current.Children.GetEnumerator(), context, diagnostics);
                     var inner = new QsPositionedBlock(innerTransformation, RelativeLocation(nodes.Current), nodes.Current.Fragment.Comments);
                     var built = Statements.NewConjugation(outer, inner);
                     diagnostics.AddRange(built.Item2.Select(diagnostic => Diagnostics.Generate(
@@ -1287,7 +1308,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 diagnostics.AddRange(msgs.Select(msg => Diagnostics.Generate(sourceFile, msg, position)));
             }
 
-            var implementation = BuildScope(root.Children, context, diagnostics);
+            var implementation = BuildScope(root.Children.GetEnumerator(), context, diagnostics);
             context.Symbols.EndScope();
 
             // Verify that all paths return a value if needed (or fail), and that the specialization's required runtime
@@ -1295,16 +1316,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var (allPathsReturn, returnDiagnostics) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
             var capabilityDiagnostics = CapabilityInference.ScopeDiagnostics(context, implementation);
             var rootPosition = root.Fragment.Range.Start;
-            diagnostics.AddRange(
-                returnDiagnostics
-                    .Concat(capabilityDiagnostics)
-                    .Select(msg => Diagnostics.Generate(sourceFile, msg, rootPosition)));
-            if (!(context.ReturnType.Resolution.IsUnitType || context.ReturnType.Resolution.IsInvalidType) && !allPathsReturn)
+            diagnostics.AddRange(returnDiagnostics
+                .Concat(capabilityDiagnostics)
+                .Select(diagnostic => Diagnostics.Generate(sourceFile, diagnostic, rootPosition)));
+            if (!context.ReturnType.Resolution.IsUnitType && !context.ReturnType.Resolution.IsInvalidType && !allPathsReturn)
             {
                 var errRange = Parsing.HeaderDelimiters(root.Fragment.Kind?.IsControlledAdjointDeclaration ?? false ? 2 : 1).Invoke(root.Fragment.Text);
                 var missingReturn = new QsCompilerDiagnostic(DiagnosticItem.NewError(ErrorCode.MissingReturnOrFailStatement), Enumerable.Empty<string>(), errRange);
                 diagnostics.Add(Diagnostics.Generate(sourceFile, missingReturn, specPos));
             }
+
             return SpecializationImplementation.NewProvided(argTuple, implementation);
         }
 
@@ -1407,7 +1428,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     spec.Kind,
                     spec.Parent,
                     spec.Attributes,
-                    spec.SourceFile,
+                    spec.Source,
                     QsNullable<QsLocation>.Null,
                     spec.TypeArguments,
                     SyntaxGenerator.WithoutRangeInfo(signature),
@@ -1437,7 +1458,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var (arg, messages) = buildArg(userDefined.Item);
                     foreach (var msg in messages)
                     {
-                        diagnostics.Add(Diagnostics.Generate(spec.SourceFile, msg, specPos));
+                        diagnostics.Add(Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, msg, specPos));
                     }
 
                     QsGeneratorDirective? GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
@@ -1448,7 +1469,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         compilation.ProcessorArchitecture,
                         spec);
                     implementation = BuildUserDefinedImplementation(
-                        root, spec.SourceFile, arg, requiredFunctorSupport, context, diagnostics);
+                        root, spec.Source.AssemblyOrCodeFile, arg, requiredFunctorSupport, context, diagnostics);
                     QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
                 }
                 implementation = implementation ?? SpecializationImplementation.Intrinsic;
@@ -1623,14 +1644,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var declaredVariables = SyntaxGenerator.ExtractItems(info.ArgumentTuple);
 
                     // verify the variable declarations in the callable declaration
-                    var symbolTracker = new SymbolTracker(compilation.GlobalSymbols, info.SourceFile, parent); // only ever used to verify declaration args
+                    var symbolTracker = new SymbolTracker(compilation.GlobalSymbols, info.Source.AssemblyOrCodeFile, parent); // only ever used to verify declaration args
                     symbolTracker.BeginScope();
                     foreach (var decl in declaredVariables)
                     {
                         var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
                         QsCompilerError.Verify(offset != null, "missing position information for built callable");
                         var msgs = symbolTracker.TryAddVariableDeclartion(decl).Item2
-                            .Select(msg => Diagnostics.Generate(info.SourceFile, msg, offset));
+                            .Select(msg => Diagnostics.Generate(info.Source.AssemblyOrCodeFile, msg, offset));
                         diagnostics.AddRange(msgs);
                     }
                     symbolTracker.EndScope();
@@ -1640,7 +1661,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         parent,
                         info.Attributes,
                         info.Modifiers,
-                        info.SourceFile,
+                        info.Source,
                         QsNullable<QsLocation>.Null,
                         info.Signature,
                         info.ArgumentTuple,
@@ -1654,7 +1675,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     decl.Key,
                     decl.Value.Attributes,
                     decl.Value.Modifiers,
-                    decl.Value.SourceFile,
+                    decl.Value.Source,
                     decl.Value.Location,
                     decl.Value.Type,
                     decl.Value.TypeItems,
@@ -1687,7 +1708,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (callableDeclarations.TryGetValue(parent, out var info))
                 {
                     var offset = info.Position is DeclarationHeader.Offset.Defined pos ? pos.Item : null;
-                    diagnostics.Add(Diagnostics.Generate(info.SourceFile, diag, offset));
+                    diagnostics.Add(Diagnostics.Generate(info.Source.AssemblyOrCodeFile, diag, offset));
                 }
             }
         }

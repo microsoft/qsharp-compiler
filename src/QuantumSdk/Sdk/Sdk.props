@@ -12,19 +12,19 @@
   <Import Project="$(MSBuildThisFileDirectory)../ProjectSystem/ProjectSystem.props"/>
 
 
-  <!-- The following item groups indeed needs to live in this file to ensure 
+  <!-- The following item groups indeed needs to live in this file to ensure
   that they evaluated before the modifications in the project file are applied. -->
 
   <!-- Q# source files included by default. -->
   <ItemGroup>
-    <QsharpCompile Include="**/*.qs" Exclude="obj/**" />
+    <QSharpCompile Include="**/*.qs" Exclude="obj/**" />
   </ItemGroup>
 
   <!-- Q# package references included by default. -->
   <ItemGroup>
     <!-- Packages and libraries included for all execution targets. -->
-    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.13.201118474-beta" />
-    <PackageReference Condition="$(IncludeQsharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.13.201118474-beta" />
+    <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.13.201118474-beta" />
+    <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.13.201118474-beta" />
     <!-- Packages included for specific execution targets. -->
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.13.20102604" />
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.13.20102604" />
@@ -36,7 +36,7 @@
 
   <!-- Include the documentation generator package only if generating docs using Markdown output. -->
   <ItemGroup>
-    <PackageReference Condition="$(QsharpDocsGeneration)"
+    <PackageReference Condition="$(QSharpDocsGeneration)"
                       Include="Microsoft.Quantum.DocumentationGenerator" Version="0.13.201118474-beta"
                       IsImplicitlyDefined="true" 
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
@@ -44,27 +44,27 @@
 
   <!-- Packages for execution on the simulation framework. -->
   <ItemGroup>
-    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'" 
+    <PackageReference Condition="$(CSharpGeneration) And '$(ResolvedQSharpOutputType)' == 'QSharpExe'" 
                       Include="Microsoft.Quantum.Simulators" Version="0.13.201118474-beta" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CsharpGeneration)" 
+    <PackageReference Condition="$(CSharpGeneration)" 
                       Include="Microsoft.Quantum.Runtime.Core" Version="0.13.201118474-beta" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CsharpGeneration) And '$(ResolvedQsharpOutputType)' == 'QsharpExe'"
+    <PackageReference Condition="$(CSharpGeneration) And '$(ResolvedQSharpOutputType)' == 'QSharpExe'"
                       Include="Microsoft.Quantum.EntryPointDriver" Version="0.13.201118474-beta" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CsharpGeneration)"
-                      Include="Microsoft.Quantum.CsharpGeneration" Version="0.13.201118474-beta" IsImplicitlyDefined="true"
+    <PackageReference Condition="$(CSharpGeneration)"
+                      Include="Microsoft.Quantum.CSharpGeneration" Version="0.13.201118474-beta" IsImplicitlyDefined="true"
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
   </ItemGroup>
 
 
-  <!-- The following targets indeed need to live in this file since they are specifically defined 
+  <!-- The following targets indeed need to live in this file since they are specifically defined
   to be executed at a certain stage in the build and thus serve as handles that a project may redefine. -->
 
-  <!-- Empty target that can be redefined to run tasks just before QsharpCompile. -->
-  <Target Name="BeforeQsharpCompile">
-  </Target>  
+  <!-- Empty target that can be redefined to run tasks just before QSharpCompile. -->
+  <Target Name="BeforeQSharpCompile">
+  </Target>
 
-  <!-- Empty target that can be redefined to run tasks just before CsharpCompile. -->
-  <Target Name="BeforeCsharpCompile">
-  </Target>  
+  <!-- Empty target that can be redefined to run tasks just before CSharpCompile. -->
+  <Target Name="BeforeCSharpCompile">
+  </Target>
 
 </Project>

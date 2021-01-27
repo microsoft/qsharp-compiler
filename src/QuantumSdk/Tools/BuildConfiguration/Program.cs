@@ -1,8 +1,7 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using CommandLine;
-
 
 namespace Microsoft.Quantum.Sdk.Tools
 {
@@ -17,12 +16,11 @@ namespace Microsoft.Quantum.Sdk.Tools
             UNEXPECTED_ERROR = 100
         }
 
-        static int Main(string[] args) =>
+        private static int Main(string[] args) =>
             Parser.Default
                 .ParseArguments<Options>(args)
                 .MapResult(
                     (Options opts) => (int)BuildConfiguration.Generate(opts),
-                    (errs => (int)ReturnCode.INVALID_ARGUMENTS)
-                );
+                    errs => (int)ReturnCode.INVALID_ARGUMENTS);
     }
 }

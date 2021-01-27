@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -30,15 +30,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// Deserializes a Q# compilation object from its Bond simple binary representation.
         /// </summary>
         /// <param name="byteArray">Bond simple binary representation of a Q# compilation object.</param>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
             byte[] byteArray)
         {
             QsCompilation? bondCompilation = null;
-            lock(BondSharedDataStructuresLock)
+            var inputBuffer = new InputBuffer(byteArray);
+            var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
+            lock (BondSharedDataStructuresLock)
             {
-                var inputBuffer = new InputBuffer(byteArray);
                 var deserializer = GetSimpleBinaryDeserializer();
-                var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
                 bondCompilation = deserializer.Deserialize<QsCompilation>(reader);
             }
 
@@ -48,12 +49,50 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// <summary>
         /// Starts the creation of Bond serializers and deserializers.
         /// </summary>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static void Initialize()
         {
             lock (BondSharedDataStructuresLock)
             {
-                simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
-                simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+                if (simpleBinaryDeserializerInitialization == null)
+                {
+                    simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+                }
+
+                if (simpleBinarySerializerInitialization == null)
+                {
+                    simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Starts the creation of a Bond deserializer.
+        /// </summary>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
+        public static void InitializeDeserializer()
+        {
+            lock (BondSharedDataStructuresLock)
+            {
+                if (simpleBinaryDeserializerInitialization == null)
+                {
+                    simpleBinaryDeserializerInitialization = QueueSimpleBinaryDeserializerInitialization();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Starts the creation of a Bond serializer.
+        /// </summary>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
+        public static void InitializeSerializer()
+        {
+            lock (BondSharedDataStructuresLock)
+            {
+                if (simpleBinarySerializerInitialization == null)
+                {
+                    simpleBinarySerializerInitialization = QueueSimpleBinarySerializerInitialization();
+                }
             }
         }
 
@@ -62,16 +101,17 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// </summary>
         /// <param name="qsCompilation">Q# compilation object to serialize.</param>
         /// <param name="stream">Stream to write the serialization to.</param>
+        /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
         public static void SerializeQsCompilationToSimpleBinary(
             SyntaxTree.QsCompilation qsCompilation,
             Stream stream)
         {
-            lock(BondSharedDataStructuresLock)
+            var outputBuffer = new OutputBuffer();
+            var writer = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
+            var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
+            lock (BondSharedDataStructuresLock)
             {
-                var outputBuffer = new OutputBuffer();
                 var serializer = GetSimpleBinarySerializer();
-                var writer = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
-                var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
                 serializer.Serialize(bondCompilation, writer);
                 stream.Write(outputBuffer.Data);
             }
@@ -107,7 +147,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            return Task.Run(() => new SimpleBinaryDeserializer(typeof(QsCompilation)));
+
+            // inlineNested is false in order to decrease the time needed to initialize the deserializer.
+            // While this setting may also increase deserialization time, we did not notice any performance drawbacks with our Bond schemas.
+            return Task.Run(() => new SimpleBinaryDeserializer(
+                type: typeof(QsCompilation),
+                factory: (Factory?)null,
+                inlineNested: false));
         }
 
         private static Task<SimpleBinarySerializer> QueueSimpleBinarySerializerInitialization()
