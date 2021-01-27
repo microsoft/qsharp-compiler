@@ -9,6 +9,8 @@
 
   <ItemGroup>
     <PackageReference Include="System.Memory" Version="4.5.4" />
+    <ProjectReference Include="..\Llvm\Llvm.NET\Llvm.NET.csproj" />
+    <ProjectReference Include="..\Llvm\Llvm.NET.Interop\Llvm.NET.Interop.csproj" />
   </ItemGroup>
 
   <ItemGroup>
@@ -20,7 +22,7 @@
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
   </ItemGroup>
 
-  <PropertyGroup>
+  <!-- <PropertyGroup>
     <LlvmDotnetPath>$([MSBuild]::NormalizePath($(MSBuildThisFileDirectory)Llvm.Net/))</LlvmDotnetPath>
     <LlvmDotnetDll>$([MSBuild]::NormalizePath($(LlvmDotnetPath)lib/netstandard2.1/Ubiquity.NET.Llvm.dll))</LlvmDotnetDll>
     <LlvmDotnetInteropDll>$([MSBuild]::NormalizePath($(LlvmDotnetPath)lib/netstandard2.1/Ubiquity.NET.Llvm.Interop.dll))</LlvmDotnetInteropDll>
@@ -48,6 +50,6 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
       <Visible>false</Visible>
     </None>
-  </ItemGroup>
+  </ItemGroup> -->
 
 </Project>
