@@ -149,7 +149,7 @@ namespace Microsoft.Quantum.Documentation
                     range: null, // TODO: provide more exact locations once supported by DocParser.
                     source: type.Source.AssemblyOrCodeFile);
 
-                if (!type.Modifiers.Access.Equals(QsCompiler.SyntaxTokens.AccessModifier.Internal))
+                if (!type.Modifiers.Access.Equals(AccessModifier.Internal))
                 {
                     this.writer?.WriteOutput(type, docComment)?.Wait();
                 }
