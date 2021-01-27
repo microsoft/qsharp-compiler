@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -93,7 +93,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Creates a pointer to the given value.
         /// When needed, instructions are emitted using the current builder.
         /// </summary>
-        /// <param name="type">The Q# type of the value that the pointer points to</param>
+        /// <param name="value">The value that the pointer points to</param>
         internal PointerValue CreatePointer(IValue value) =>
             new PointerValue(value, this.sharedState);
 
@@ -132,8 +132,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// Increases the reference count for the tuple elements.
         /// </summary>
-        /// <param name="tupleElements">The tuple elements</param>
+        /// <param name="typeName">The name of the user defined typed that the tuple represents</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        /// <param name="tupleElements">The tuple elements</param>
         private TupleValue CreateTuple(UserDefinedType? typeName, bool registerWithScopeManager, params IValue[] tupleElements)
         {
             var elementTypes = tupleElements.Select(v => v.QSharpType).ToImmutableArray();
@@ -154,8 +155,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// Increases the reference count for the tuple elements.
         /// </summary>
-        /// <param name="tupleElements">The tuple elements</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        /// <param name="tupleElements">The tuple elements</param>
         internal TupleValue CreateTuple(bool registerWithScopeManager, params IValue[] tupleElements) =>
             this.CreateTuple(null, registerWithScopeManager, tupleElements);
 
@@ -174,8 +175,8 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Increases the reference count for the tuple elements.
         /// </summary>
         /// <param name="typeName">The name of the user defined type</param>
-        /// <param name="tupleElements">The tuple elements</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        /// <param name="tupleElements">The tuple elements</param>
         internal TupleValue CreateCustomType(UserDefinedType typeName, bool registerWithScopeManager, params IValue[] tupleElements) =>
             this.CreateTuple(typeName, registerWithScopeManager, tupleElements);
 
@@ -222,8 +223,9 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the value with the scope manager, unless registerWithScopeManager is set to false.
         /// Increases the reference count for the array elements.
         /// </summary>
-        /// <param name="arrayElements">The elements in the array</param>
+        /// <param name="elementType">The Q# type of the array elements</param>
         /// <param name="registerWithScopeManager">Whether or not to register the built tuple with the scope manager</param>
+        /// <param name="arrayElements">The elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, bool registerWithScopeManager, params IValue[] arrayElements)
         {
             var array = new ArrayValue((uint)arrayElements.Length, elementType, this.sharedState, registerWithScopeManager);

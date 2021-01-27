@@ -67,7 +67,9 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         // events required by ILanguageClient
 
         public event AsyncEventHandler<EventArgs> StartAsync;
+#pragma warning disable 67 // The event StopAsync is never used, but is required by ILanguageClient.
         public event AsyncEventHandler<EventArgs> StopAsync;
+#pragma warning restore 67
 
         // methods required by ILanguageClient
 
@@ -77,12 +79,12 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             await (StartAsync?.InvokeAsync(this, EventArgs.Empty)).ConfigureAwait(false);
 
         /// The server only processes any notifications *after* it has been initialized properly.
-        /// Hence we need to wait until after initialization to send all solution events that have already been raised, 
-        /// and start listening to new ones. 
+        /// Hence we need to wait until after initialization to send all solution events that have already been raised,
+        /// and start listening to new ones.
         public Task OnServerInitializedAsync() =>
             Task.Run(() => Telemetry.SendEvent(Telemetry.ExtensionEvent.LspReady));
 
-        /// We create a new pane to show the encountered exception. 
+        /// We create a new pane to show the encountered exception.
         public async Task OnServerInitializeFailedAsync(Exception ex)
         {
             await VisualStudio.Shell.ThreadHelper.JoinableTaskFactory.SwitchToMainThreadAsync();
@@ -96,16 +98,16 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             {
                 $"Server initialization failed.",
                 $"Path to the language server executable: \"{this.LanguageServerPath}\"",
-                $"Path to the log file: \"{this.LogFile}\"", 
+                $"Path to the log file: \"{this.LogFile}\"",
                 ex.ToString()
             };
-            customPane.OutputString(String.Join(Environment.NewLine, messages)); 
+            customPane.OutputString(String.Join(Environment.NewLine, messages));
             customPane.Activate(); // brings the pane into view
         }
 
-        /// Invoking the StartAsync event signals that the language server should be started, and triggers a call to this routine.  
+        /// Invoking the StartAsync event signals that the language server should be started, and triggers a call to this routine.
         /// This routine contains the logic to start the server and estabilishes a connection that is returned (exceptions here are shown in the info bar of VS).
-        public async Task<Connection> ActivateAsync(CancellationToken token) 
+        public async Task<Connection> ActivateAsync(CancellationToken token)
         {
             await Task.Yield();
             Telemetry.SendEvent(Telemetry.ExtensionEvent.Activate);
@@ -132,7 +134,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
 
                 var bufferSize = 256;
                 var pipeSecurity = new PipeSecurity();
-                var id = new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null); // I don't think WorldSid ("Everyone") is necessary 
+                var id = new SecurityIdentifier(WellKnownSidType.AuthenticatedUserSid, null); // I don't think WorldSid ("Everyone") is necessary
                 pipeSecurity.AddAccessRule(new PipeAccessRule(id, PipeAccessRights.ReadWrite, System.Security.AccessControl.AccessControlType.Allow));
                 var readerPipe = new NamedPipeServerStream(ServerWriterPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, bufferSize, bufferSize, pipeSecurity);
                 var writerPipe = new NamedPipeServerStream(ServerReaderPipe, PipeDirection.InOut, 4, PipeTransmissionMode.Message, PipeOptions.Asynchronous, bufferSize, bufferSize, pipeSecurity);
@@ -165,8 +167,8 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             }
         }
 
-        /// Setup to get the VS version number including the correct minor version, 
-        /// since the DTE.Version does not seem to accurately reflect that. 
+        /// Setup to get the VS version number including the correct minor version,
+        /// since the DTE.Version does not seem to accurately reflect that.
         private static string GetVisualStudioVersion()
         {
             FileVersionInfo versionInfo;

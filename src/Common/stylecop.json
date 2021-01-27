@@ -5,7 +5,11 @@
       "usingDirectivesPlacement": "preserve"
     },
     "documentationRules": {
-      "documentInternalElements": false
+      "copyrightText": "Copyright (c) Microsoft Corporation.\nLicensed under the MIT License.",
+      "documentInterfaces": false,
+      "documentExposedElements": false,
+      "documentInternalElements": false,
+      "xmlHeader": false
     }
   }
 }

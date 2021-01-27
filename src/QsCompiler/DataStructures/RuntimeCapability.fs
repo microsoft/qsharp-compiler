@@ -1,4 +1,9 @@
-﻿namespace Microsoft.Quantum.QsCompiler
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace Microsoft.Quantum.QsCompiler
+
+#nowarn "44" // RuntimeCapabilities is deprecated.
 
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
@@ -30,20 +35,17 @@ type RuntimeCapability =
     static member Combine x y =
         match x, y with
         | BasicQuantumFunctionality, other
-        | other, BasicQuantumFunctionality ->
-            other
-        | BasicMeasurementFeedback, BasicMeasurementFeedback ->
-            BasicMeasurementFeedback
+        | other, BasicQuantumFunctionality -> other
+        | BasicMeasurementFeedback, BasicMeasurementFeedback -> BasicMeasurementFeedback
         | FullComputation, _
-        | _, FullComputation ->
-            FullComputation
+        | _, FullComputation -> FullComputation
 
     /// The base runtime capability is the identity element when combined with another capability. It is implied by
     /// every other capability.
     static member Base = BasicQuantumFunctionality
 
     /// Returns true if both runtime capabilities are equal.
-    static member op_Equality (a : RuntimeCapability, b : RuntimeCapability) = a = b
+    static member op_Equality(a: RuntimeCapability, b: RuntimeCapability) = a = b
 
     /// Parses the string as a runtime capability.
     static member TryParse value =

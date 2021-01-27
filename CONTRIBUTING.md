@@ -60,10 +60,47 @@ and check if you can help someone who has already started working on it.
 
 Whether you want to help fixing bugs or add new features, please take a look at our general guide for [Contributing Code](https://docs.microsoft.com/quantum/contributing/code).
 
+## Formatting Code
+
+Contributions should follow the code formatting guidelines for this repository.
+
+### C#
+
+[StyleCop](https://github.com/DotNetAnalyzers/StyleCopAnalyzers) is configured for every C# project in this repository.
+Your IDE should warn you if you write code that does not follow the style guide.
+
+### F#
+
+F# code is automatically formatted using [Fantomas](https://github.com/fsprojects/fantomas).
+To install the correct version of Fantomas for this repository, run `dotnet tool restore`.
+To format a specific file, run `dotnet tool run fantomas MyFile.fs`.
+To format every file in a folder, run `dotnet tool run fantomas -r MyFolder`.
+
+You can also configure your editor to run Fantomas on the current file.
+For example, in Visual Studio, open Tools - External Tools.
+Click Add, and fill in the fields with:
+
+<dl>
+  <dt>Title</dt>
+  <dd>Fantomas</dd>
+
+  <dt>Command</dt>
+  <dd><code>dotnet.exe</code></dd>
+
+  <dt>Arguments</dt>
+  <dd><code>tool run fantomas $(ItemPath)</code></dd>
+
+  <dt>Initial directory</dt>
+  <dd><code>$(SolutionDir)</code></dd>
+</dl>
+
+You can now run Fantomas on the current file by clicking Tools - Fantomas.
+
+---
+
 And last but not least:
 
 # Thank You!
 
 Your contributions to open source, large or small, make great projects like this possible.
 Thank you for taking the time to contribute.
-

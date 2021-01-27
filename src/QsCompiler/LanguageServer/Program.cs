@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -18,8 +18,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         public class Options
         {
             // Note: items in one set are mutually exclusive with items from other sets
-            protected const string CONNECTION_VIA_SOCKET = "connectionViaSocket";
-            protected const string CONNECTION_VIA_PIPE = "connectionViaPipe";
+            protected const string ConnectionViaSocket = "connectionViaSocket";
+            protected const string ConnectionViaPipe = "connectionViaPipe";
 
             [Option(
                 'l',
@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 'p',
                 "port",
                 Required = true,
-                SetName = CONNECTION_VIA_SOCKET,
+                SetName = ConnectionViaSocket,
                 HelpText = "Port to use for TCP/IP connections.")]
             public int Port { get; set; }
 
@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 'w',
                 "writer",
                 Required = true,
-                SetName = CONNECTION_VIA_PIPE,
+                SetName = ConnectionViaPipe,
                 HelpText = "Named pipe to write to.")]
             public string? WriterPipeName { get; set; }
 
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 'r',
                 "reader",
                 Required = true,
-                SetName = CONNECTION_VIA_PIPE,
+                SetName = ConnectionViaPipe,
                 HelpText = "Named pipe to read from.")]
             public string? ReaderPipeName { get; set; }
         }
@@ -83,6 +83,11 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         public static int Main(string[] args)
         {
+            // We need to set the current directory to the same directory of
+            // the LanguageServer executable so that it will pick the global.json file
+            // and force the MSBuildLocator to use .NET Core SDK 3.1
+            Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+
             var parser = new Parser(parser => parser.HelpWriter = null); // we want our own custom format for the version info
             var options = parser.ParseArguments<Options>(args);
             return options.MapResult(
@@ -120,8 +125,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
             catch (Exception ex)
             {
+                // Don't exit here, since exiting without establishing a connection will result in a cryptic failure of the extension.
+                // Instead, we proceed to create a server instance and establish the connection.
+                // Any errors can then be properly processed via the standard server-client communication as needed.
                 Log("[ERROR] MsBuildLocator could not register defaults.", options.LogFile);
-                return LogAndExit(ReturnCode.MSBUILD_UNINITIALIZED, options.LogFile, ex.ToString());
+                Log(ex, options.LogFile);
             }
 
             QsLanguageServer server;
@@ -140,6 +148,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             Log("Listening...", options.LogFile);
             try
             {
+                server.CheckDotNetSdkVersion();
                 server.WaitForShutdown();
             }
             catch (Exception ex)

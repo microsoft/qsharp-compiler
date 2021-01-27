@@ -16,7 +16,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using GraphBuilder = CallGraphBuilder<CallGraphNode, CallGraphEdge>;
     using Range = DataTypes.Range;
-    using TypeParameterResolutions = ImmutableDictionary<Tuple<QsQualifiedName, string>, ResolvedType>;
 
     internal static partial class BuildCallGraph
     {
@@ -96,7 +95,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class BuildGraph : SyntaxTreeTransformation<TransformationState>
             {
-                public BuildGraph(GraphBuilder graph) : base(new TransformationState(graph))
+                public BuildGraph(GraphBuilder graph)
+                    : base(new TransformationState(graph))
                 {
                     this.Namespaces = new NamespaceWalker(this);
                     this.Statements = new CallGraphWalkerBase<GraphBuilder, CallGraphNode, CallGraphEdge>.StatementWalker<TransformationState>(this);
@@ -112,7 +112,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                 // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
                 internal bool WithTrimming = false;
 
-                internal TransformationState(GraphBuilder graph) : base(graph)
+                internal TransformationState(GraphBuilder graph)
+                    : base(graph)
                 {
                 }
 
@@ -150,7 +151,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class NamespaceWalker : NamespaceTransformation<TransformationState>
             {
-                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public NamespaceWalker(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 
@@ -168,7 +170,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class ExpressionKindWalker : ExpressionKindTransformation<TransformationState>
             {
-                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public ExpressionKindWalker(SyntaxTreeTransformation<TransformationState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 

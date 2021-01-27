@@ -1,4 +1,4 @@
 ﻿using System.Reflection;
 
-[assembly: AssemblyTitle("Microsoft.Quantum.QsharpLibTemplate")]
+[assembly: AssemblyTitle("Microsoft.Quantum.QSharpLibTemplate")]
 [assembly: AssemblyDescription("Q# library template")]

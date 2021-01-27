@@ -22,18 +22,19 @@ type TransformationBase private (_private_) =
         this.Changed <- false
         res
 
-    new () as this = 
-        new TransformationBase("_private_") then
-            this.Namespaces <- new NamespaceTransformationBase(this)
+    new() as this =
+        new TransformationBase("_private_")
+        then this.Namespaces <- new NamespaceTransformationBase(this)
 
 /// private helper class for OptimizingTransformation
-and private NamespaceTransformationBase (parent : TransformationBase) = 
+and private NamespaceTransformationBase(parent: TransformationBase) =
     inherit NamespaceTransformation(parent)
 
     /// Checks whether the syntax tree changed at all
     override this.OnNamespace x =
         let newX = base.OnNamespace x
-        if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then parent.Changed <- true
+
+        if (x.Elements, x.Name) <> (newX.Elements, newX.Name)
+        then parent.Changed <- true
+
         newX
-
-
