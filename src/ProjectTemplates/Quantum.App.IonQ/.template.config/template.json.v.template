@@ -5,7 +5,7 @@
     "description": "A project creating a Q# application that can be executed on an IonQ backend via Azure Quantum.",
     "groupIdentity": "Microsoft.Common.Console",
     "identity": "Microsoft.Common.Console.QSharp.#MAJOR_VERSION#.#MINOR_VERSION#",
-    "shortName": "console",
+    "shortName": "azqu-ionq",
     "tags": {
       "language": "Q#",
       "type": "project"
