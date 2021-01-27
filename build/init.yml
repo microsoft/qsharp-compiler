@@ -16,7 +16,7 @@ steps:
     versionSpec: 5.8.1
 
 - task: UseDotNet@2
-  displayName: Use .NET 5.0.2
+  displayName: Use .NET 5.0.102
   inputs:
     packageType: sdk
-    version: 5.0.2
+    version: 5.0.102
