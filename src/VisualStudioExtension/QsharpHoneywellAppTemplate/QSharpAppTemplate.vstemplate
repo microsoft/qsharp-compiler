@@ -6,7 +6,7 @@
     <Icon>MS_Quantum_Spot_Dev-32.png</Icon>
     <ProjectType>CSharp</ProjectType>
     <SortOrder>1000</SortOrder>
-    <TemplateID>Microsoft.Common.Console.QSharp</TemplateID>
+    <TemplateID>Microsoft.Common.Console.QSharp.Honeywell</TemplateID>
     <CreateNewFolder>true</CreateNewFolder>
     <CreateInPlace>true</CreateInPlace>
     <DefaultName>QSharpApplication</DefaultName>
