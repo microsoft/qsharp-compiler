@@ -10,6 +10,6 @@
       "language": "Q#",
       "type": "project"
     },
-    "sourceName": "Quantum.App1",
+    "sourceName": "Quantum.Honeywell.App1",
     "preferNameDirectory": true
 }
