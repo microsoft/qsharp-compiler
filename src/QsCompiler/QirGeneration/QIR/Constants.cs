@@ -12,6 +12,7 @@ namespace Microsoft.Quantum.QIR
     /// </summary>
     public class Constants
     {
+        public readonly Value UnitValue;
         public readonly Value ResultZero;
         public readonly Value ResultOne;
         public readonly Value PauliI;
@@ -25,6 +26,7 @@ namespace Microsoft.Quantum.QIR
             Value CreatePauli(string name, ulong idx) =>
                 module.AddGlobal(types.Pauli, true, Linkage.External, context.CreateConstant(types.Pauli, idx, false), name);
 
+            this.UnitValue = types.Tuple.GetNullValue();
             this.ResultZero = module.AddGlobal(types.Result, "ResultZero");
             this.ResultOne = module.AddGlobal(types.Result, "ResultOne");
             this.PauliI = CreatePauli("PauliI", 0);

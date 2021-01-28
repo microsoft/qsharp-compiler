@@ -427,11 +427,54 @@ let (|Missing|_|) arg =
     | Some [] -> Some Missing
     | _ -> None
 
-// filter for type parameter resolution dictionaries
+// extensions for typed expressions and resolved types
 
 [<Extension>]
-let FilterByOrigin (this: ImmutableDictionary<(QsQualifiedName * string), ResolvedType>) origin =
-    this |> Seq.filter (fun x -> fst x.Key = origin) |> ImmutableDictionary.CreateRange
+let TryGetArgumentType (this: ResolvedType) =
+    match this.Resolution with
+    | QsTypeKind.Function (argType, _)
+    | QsTypeKind.Operation ((argType, _), _) -> Value argType
+    | _ -> Null
+
+[<Extension>]
+let TryGetReturnType (this: ResolvedType) =
+    match this.Resolution with
+    | QsTypeKind.Function (_, retType)
+    | QsTypeKind.Operation ((_, retType), _) -> Value retType
+    | _ -> Null
+
+[<Extension>]
+let TryGetCallableInformation (this: ResolvedType) =
+    match this.Resolution with
+    | QsTypeKind.Operation (_, set) -> Value set
+    | _ -> Null
+
+[<Extension>]
+let TryAsGlobalCallable (this: TypedExpression) =
+    match this.Expression with
+    | Identifier (GlobalCallable cName, _) -> Value cName
+    | _ -> Null
+
+[<Extension>]
+let GetResolvedType (argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): ResolvedType =
+    let rec resolveArgTupleItem =
+        function
+        | QsTupleItem (decl: LocalVariableDeclaration<QsLocalSymbol>) -> decl.Type
+        | QsTuple elements when elements.Length = 0 ->
+            ArgumentException "argument tuple items cannot be empty tuples" |> raise
+        | QsTuple elements when elements.Length = 1 -> resolveArgTupleItem elements.[0]
+        | QsTuple elements -> buildTuple elements
+
+    and buildTuple elements =
+        let items = elements |> Seq.map resolveArgTupleItem |> ImmutableArray.CreateRange
+        items |> TupleType |> ResolvedType.New
+
+    match argTuple with
+    | QsTuple elements when elements.Length = 0 ->
+        ArgumentException "cannot construct symbol tuple for empty argument tuple" |> raise
+    | QsTuple elements when elements.Length = 1 -> resolveArgTupleItem elements.[0]
+    | QsTuple elements -> buildTuple elements
+    | _ -> ArgumentException "the argument tuple needs to be a QsTuple" |> raise
 
 // look-up for udt and global callables
 
@@ -500,3 +543,7 @@ let GlobalCallableResolutions (syntaxTree: IEnumerable<QsNamespace>) =
                 | _ -> None))
 
     callables.ToImmutableDictionary(fst, snd)
+
+[<Extension>]
+let FilterByOrigin (this: ImmutableDictionary<(QsQualifiedName * string), ResolvedType>) origin =
+    this |> Seq.filter (fun x -> fst x.Key = origin) |> ImmutableDictionary.CreateRange

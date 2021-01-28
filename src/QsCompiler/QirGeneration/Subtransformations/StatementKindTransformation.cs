@@ -3,21 +3,19 @@
 
 using System;
 using System.Collections.Immutable;
-using System.Diagnostics.Contracts;
 using System.Linq;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using QsResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ResolvedExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedInitializerKind = QsInitializerKind<ResolvedInitializer, TypedExpression>;
+    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     internal class QirStatementKindTransformation : StatementKindTransformation<GenerationContext>
     {
@@ -44,132 +42,93 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Binds a SymbolTuple, which may be a single Symbol or a tuple of Symbols and embedded tuples,
-        /// to a Value.
-        /// If the SymbolTuple to bind is structured, the Value will point to an LLVM structure with
-        /// matching structure.
+        /// Defines a new variable with the given name and binds it to the given value.
         /// </summary>
-        /// <param name="symbolTuple">The SymbolTuple to bind</param>
-        /// <param name="symbolValue">The Value to bind to</param>
-        /// <param name="symbolType">The Q# type of the SymbolTuple</param>
-        /// <param name="isImmutable">true if the binding is immutable, false if mutable</param>
-        private void BindSymbolTuple(SymbolTuple symbolTuple, Value symbolValue, ResolvedType symbolType, bool isImmutable)
+        /// <param name="varName">The name of the variable</param>
+        /// <param name="value">The value to bind the variable to</param>
+        /// <param name="mutable">Is true the variable may be rebound to another value</param>
+        private void CreateVariable(string varName, IValue value, bool mutable = false)
         {
-            // Bind a Value to a simple variable
-            void BindVariable(string variable, Value value, ResolvedType type)
+            if (mutable)
             {
-                if (isImmutable)
-                {
-                    this.SharedState.RegisterName(variable, value, false);
-                }
-                else
-                {
-                    var ptr = this.SharedState.CurrentBuilder.Alloca(this.SharedState.LlvmTypeFromQsharpType(type));
-                    this.SharedState.RegisterName(variable, ptr, true);
-                    this.SharedState.CurrentBuilder.Store(value, ptr);
-                }
+                var ptr = this.SharedState.Values.CreatePointer(value);
+                this.SharedState.ScopeMgr.RegisterVariable(varName, ptr);
             }
-
-            // Bind a structured Value to a tuple of variables (which might contain embedded tuples)
-            void BindTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedType> types, Value val)
+            else
             {
-                Contract.Assert(items.Length == types.Length, "Tuple to deconstruct doesn't match symbols");
-                var itemTypes = types.Select(this.SharedState.LlvmTypeFromQsharpType).ToArray();
-                var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
-                var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
-                for (int i = 0; i < items.Length; i++)
-                {
-                    var item = items[i];
-                    if (item.IsDiscardedItem || item.IsInvalidItem)
-                    {
-                        // Nothing to do
-                    }
-                    else
-                    {
-                        var itemValuePtr = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
-                        var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
-                        BindItem(item, itemValue, types[i]);
-                    }
-                }
+                this.SharedState.ScopeMgr.RegisterVariable(varName, value);
             }
-
-            // Bind a Value to an item, which might be a single variable or a tuple
-            void BindItem(SymbolTuple item, Value itemValue, ResolvedType itemType)
-            {
-                if (item is SymbolTuple.VariableName v)
-                {
-                    BindVariable(v.Item, itemValue, itemType);
-                }
-                else if (item is SymbolTuple.VariableNameTuple t)
-                {
-                    BindTuple(t.Item, ((QsResolvedTypeKind.TupleType)itemType.Resolution).Item, itemValue);
-                }
-            }
-
-            BindItem(symbolTuple, symbolValue, symbolType);
         }
 
         /// <summary>
-        /// Generate the allocations and bindings for the qubit bindings in a using statement.
+        /// Binds a symbol tuple by invoking the given action for each symbol name with a suitable value.
+        /// to a Value.
         /// </summary>
-        /// <param name="binding">The Q# binding to process</param>
-        private void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
+        /// <param name="symbols">The symbols to bind</param>
+        /// <param name="bindVariable">The action to invoke to bind each symbol</param>
+        /// <param name="ex">
+        /// The Q# expression that defines the value to bind the symbols to; it will be deconstructed if necessary
+        /// </param>
+        private void BindSymbolTuple(SymbolTuple symbols, TypedExpression ex, Action<string, IValue> bindVariable)
         {
-            ResolvedType qubitType = ResolvedType.New(QsResolvedTypeKind.Qubit);
-            IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
-            IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
-
-            // Generate the allocation for a single variable
-            void AllocateVariable(string variable, ResolvedInitializer init)
+            if (symbols is SymbolTuple.VariableNameTuple syms
+                && ex.Expression is ResolvedExpressionKind.ValueTuple vs)
             {
-                Value allocation;
-                if (init.Resolution.IsSingleQubitAllocation)
+                if (vs.Item.Length != syms.Item.Length)
                 {
-                    allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
-                    this.SharedState.ScopeMgr.AddQubitValue(allocation, qubitType);
+                    throw new InvalidOperationException("shape mismatch in symbol binding");
                 }
-                else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
-                {
-                    this.Transformation.Expressions.OnTypedExpression(reg.Item);
-                    var countValue = this.SharedState.ValueStack.Pop();
 
-                    allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
-                    this.SharedState.ScopeMgr.AddQubitValue(
-                        allocation,
-                        ResolvedType.New(QsResolvedTypeKind.NewArrayType(qubitType)));
-                }
-                else
+                foreach (var (sym, value) in syms.Item.Zip(vs.Item, (s, v) => (s, v)))
                 {
-                    allocation = Constant.UndefinedValueFor(this.SharedState.Types.Qubit);
-                }
-                this.SharedState.RegisterName(variable, allocation);
-            }
-
-            // Generate the allocations for a tuple of variables (or embedded tuples)
-            void AllocateTuple(ImmutableArray<SymbolTuple> items, ImmutableArray<ResolvedInitializer> types)
-            {
-                Contract.Assert(items.Length == types.Length, "Initialization list doesn't match symbols");
-                for (int i = 0; i < items.Length; i++)
-                {
-                    AllocateItem(items[i], types[i]);
+                    this.BindSymbolTuple(sym, value, bindVariable);
                 }
             }
-
-            // Generate the allocations for an item, which might be a single variable or might be a tuple
-            void AllocateItem(SymbolTuple item, ResolvedInitializer itemInit)
+            else
             {
-                switch (item)
+                var rhs = this.SharedState.EvaluateSubexpression(ex);
+                this.BindSymbolTuple(symbols, rhs, bindVariable);
+            }
+        }
+
+        /// <summary>
+        /// Binds a symbol tuple by invoking the given action for each symbol name with a suitable value.
+        /// to a Value.
+        /// </summary>
+        /// <param name="symbols">The symbols to bind</param>
+        /// <param name="value">The value to bind the symbols to; it will be deconstructed if necessary</param>
+        /// <param name="bindVariable">The action to invoke to bind each symbol</param>
+        private void BindSymbolTuple(SymbolTuple symbols, IValue value, Action<string, IValue> bindVariable)
+        {
+            void DestructTuple(ImmutableArray<SymbolTuple> symbols, IValue value)
+            {
+                if (!(value is TupleValue tuple) || symbols.Length != tuple.ElementTypes.Length)
                 {
-                    case SymbolTuple.VariableName v:
-                        AllocateVariable(v.Item, itemInit);
-                        break;
-                    case SymbolTuple.VariableNameTuple t:
-                        AllocateTuple(t.Item, ((ResolvedInitializerKind.QubitTupleAllocation)itemInit.Resolution).Item);
-                        break;
+                    throw new InvalidOperationException("shape mismatch in symbol binding");
+                }
+
+                for (int i = 0; i < symbols.Length; i++)
+                {
+                    if (!symbols[i].IsDiscardedItem)
+                    {
+                        var itemValue = tuple.GetTupleElement(i);
+                        this.BindSymbolTuple(symbols[i], itemValue, bindVariable);
+                    }
                 }
             }
 
-            AllocateItem(binding.Lhs, binding.Rhs);
+            if (symbols is SymbolTuple.VariableName varName)
+            {
+                bindVariable(varName.Item, value);
+            }
+            else if (symbols is SymbolTuple.VariableNameTuple syms)
+            {
+                DestructTuple(syms.Item, value);
+            }
+            else if (!symbols.IsDiscardedItem)
+            {
+                throw new NotImplementedException("unknown item in symbol tuple");
+            }
         }
 
         /// <summary>
@@ -185,8 +144,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// assuming that the scope doesn't end with a return statement</param>
         private void ProcessBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
         {
-            this.SharedState.SetCurrentBlock(block);
             this.SharedState.ScopeMgr.OpenScope();
+            this.SharedState.SetCurrentBlock(block);
             this.Transformation.Statements.OnScope(scope);
             var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
             this.SharedState.ScopeMgr.CloseScope(isTerminated);
@@ -196,41 +155,78 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        /// <summary>
-        /// Generate QIR for a Q# scope, with a specified continuation block.
-        /// The QIR starts in the current basic block, but may be generated into many blocks depending
-        /// on the Q# code.
-        /// This method does not open or close a reference-counting scope.
-        /// </summary>
-        /// <param name="block">The LLVM basic block to start in</param>
-        /// <param name="scope">The Q# scope to generate QIR for</param>
-        /// <param name="continuation">The block where execution should continue after this scope,
-        /// assuming that the scope doesn't end with a return statement</param>
-        private void ProcessUnscopedBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
-        {
-            this.SharedState.SetCurrentBlock(block);
-            this.Transformation.Statements.OnScope(scope);
-            if (this.SharedState.CurrentBlock?.Terminator == null)
-            {
-                this.SharedState.CurrentBuilder.Branch(continuation);
-            }
-        }
-
         // public overrides
 
-        public override QsStatementKind OnAllocateQubits(QsQubitScope stm)
+        public override QsStatementKind OnQubitScope(QsQubitScope stm)
         {
+            void ProcessQubitBinding(QsBinding<ResolvedInitializer> binding)
+            {
+                ResolvedType qubitType = ResolvedType.New(ResolvedTypeKind.Qubit);
+                IrFunction allocateOne = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocate);
+                IrFunction allocateArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.QubitAllocateArray);
+
+                IValue Allocate(ResolvedInitializer init)
+                {
+                    if (init.Resolution.IsSingleQubitAllocation)
+                    {
+                        Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
+                        var value = this.SharedState.Values.From(allocation, init.Type);
+                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
+                        return value;
+                    }
+                    else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
+                    {
+                        Value countValue = this.SharedState.EvaluateSubexpression(reg.Item).Value;
+                        Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
+                        var value = this.SharedState.Values.From(allocation, init.Type);
+                        this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
+                        return value;
+                    }
+                    else if (init.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits)
+                    {
+                        var items = inits.Item.Select(Allocate).ToArray();
+                        return this.SharedState.Values.CreateTuple(items);
+                    }
+                    else
+                    {
+                        throw new NotImplementedException("unknown initializer in qubit allocation");
+                    }
+                }
+
+                // Generate the allocations for an item, which might be a single variable or might be a tuple
+                void AllocateAndAssign(SymbolTuple item, ResolvedInitializer itemInit)
+                {
+                    switch (item)
+                    {
+                        case SymbolTuple.VariableName v:
+                            this.SharedState.ScopeMgr.RegisterVariable(v.Item, Allocate(itemInit));
+                            break;
+
+                        case SymbolTuple.VariableNameTuple syms:
+                            if (itemInit.Resolution is ResolvedInitializerKind.QubitTupleAllocation inits
+                                && inits.Item.Length == syms.Item.Length)
+                            {
+                                for (int i = 0; i < syms.Item.Length; i++)
+                                {
+                                    AllocateAndAssign(syms.Item[i], inits.Item[i]);
+                                }
+                                break;
+                            }
+                            else
+                            {
+                                throw new ArgumentException("shape of symbol tuple does not match initializers");
+                            }
+                    }
+                }
+
+                AllocateAndAssign(binding.Lhs, binding.Rhs);
+            }
+
             this.SharedState.ScopeMgr.OpenScope();
-            this.ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
+            ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
             this.Transformation.Statements.OnScope(stm.Body); // Process the body
             this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
             return QsStatementKind.EmptyStatement;
-        }
-
-        // We treat borrowing the same as allocating for now.
-        public override QsStatementKind OnBorrowQubits(QsQubitScope stm)
-        {
-            return this.OnAllocateQubits(stm);
         }
 
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
@@ -242,7 +238,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             var clauses = stm.ConditionalBlocks;
-            // Create the "continuation" block, used for all conditionals
             var contBlock = this.SharedState.AddBlockAfterCurrent("continue");
 
             // if/then/elif...else
@@ -253,21 +248,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // continuation block if not.
             for (int n = 0; n < clauses.Length; n++)
             {
-                var test = clauses[n].Item1;
-
                 // Evaluate the test, which should be a Boolean at this point
-                this.Transformation.Expressions.OnTypedExpression(test);
-                var testValue = this.SharedState.ValueStack.Pop();
-
-                // The success block is always then{n}
-                var successBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
+                var test = clauses[n].Item1;
+                var testValue = this.SharedState.EvaluateSubexpression(test).Value;
+                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
                             this.SharedState.GenerateUniqueName($"then{n}"), contBlock);
 
                 // If this is an intermediate clause, then the next block if the test fails
                 // is the next clause's test block.
                 // If this is the last clause, then the next block is the default clause's block
                 // if there is one, or the continue block if not.
-                var failureBlock = n < clauses.Length - 1
+                var nextConditional = n < clauses.Length - 1
                     ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.GenerateUniqueName($"test{n + 1}"), contBlock)
                     : (stm.Default.IsNull
                         ? contBlock
@@ -275,227 +266,91 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                 this.SharedState.GenerateUniqueName($"else"), contBlock));
 
                 // Create the branch
-                this.SharedState.CurrentBuilder.Branch(testValue, successBlock, failureBlock);
+                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
 
                 // Get a builder for the then block, make it current, and then process the block
-                var thenScope = clauses[n].Item2.Body;
-                this.SharedState.OpenNamingScope();
-                this.ProcessBlock(successBlock, thenScope, contBlock);
-                this.SharedState.CloseNamingScope();
+                this.SharedState.StartBranch();
+                this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock);
+                this.SharedState.EndBranch();
 
-                // Make the failure current for the next clause
-                this.SharedState.SetCurrentBlock(failureBlock);
+                this.SharedState.SetCurrentBlock(nextConditional);
             }
 
             // Deal with the default, if there is any
             if (stm.Default.IsValue)
             {
-                this.SharedState.OpenNamingScope();
+                this.SharedState.StartBranch();
                 this.ProcessBlock(this.SharedState.CurrentBlock, stm.Default.Item.Body, contBlock);
-                this.SharedState.CloseNamingScope();
+                this.SharedState.EndBranch();
             }
 
             // Finally, set the continuation block as current
             this.SharedState.SetCurrentBlock(contBlock);
-
             return QsStatementKind.EmptyStatement;
         }
 
         public override QsStatementKind OnExpressionStatement(TypedExpression ex)
         {
-            this.Transformation.Expressions.OnTypedExpression(ex);
-            // The Value computed is now on top of the stack. We need to pop it, even though it's Unit,
-            // since Unit is represented as a null TuplePointer.
-            this.SharedState.ValueStack.Pop();
-
+            this.SharedState.EvaluateSubexpression(ex);
             return QsStatementKind.EmptyStatement;
         }
 
         public override QsStatementKind OnFailStatement(TypedExpression ex)
         {
+            var message = this.SharedState.EvaluateSubexpression(ex);
+
             // Release any resources (qubits or memory) before we fail.
-            this.SharedState.ScopeMgr.ExitScope();
-
-            this.Transformation.Expressions.OnTypedExpression(ex);
-            var message = this.SharedState.ValueStack.Pop();
-
-            this.SharedState.CurrentBuilder.Call(this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail), message);
-            // Even though this terminates the block execution, we'll still wind up terminating
-            // the containing Q# statement block, and thus the LLVM basic block, so we don't need
-            // to tell LLVM that this is actually a terminator.
+            this.SharedState.ScopeMgr.ExitFunction(message);
+            var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
+            this.SharedState.CurrentBuilder.Call(fail, message.Value);
+            this.SharedState.CurrentBuilder.Unreachable();
 
             return QsStatementKind.EmptyStatement;
         }
 
-        /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
+        /// <exception cref="InvalidOperationException">
+        /// The current function or the current block is set to null, or if the iteration is not over an array or range.
+        /// </exception>
         public override QsStatementKind OnForStatement(QsForStatement stm)
         {
-            if (this.SharedState.CurrentFunction == null)
+            if (this.SharedState.CurrentFunction == null || this.SharedState.CurrentBlock == null)
             {
                 throw new InvalidOperationException("current function is set to null");
             }
 
-            Value PopAndRegister(string name, bool isMutable = false)
+            if (stm.IterationValues.ResolvedType.Resolution.IsRange)
             {
-                Value value = this.SharedState.ValueStack.Pop();
-                this.SharedState.RegisterName(name, value, isMutable);
-                return value;
-            }
-
-            // Loop variables
-            var startName = this.SharedState.GenerateUniqueName("start");
-            var stepName = this.SharedState.GenerateUniqueName("step");
-            var endName = this.SharedState.GenerateUniqueName("end");
-            var testName = this.SharedState.GenerateUniqueName("test");
-
-            // The array to iterate through, if any
-            (Value, ITypeRef)? array = null;
-
-            // First compute the iteration range
-            Value startValue;
-            Value stepValue;
-            Value endValue;
-            if (stm.IterationValues.Expression is ResolvedExpression.RangeLiteral rlit)
-            {
-                // Item2 is always the end. Either Item1 is the start and 1 is the step,
-                // or Item1 is a range expression itself, with Item1 the start and Item2 the step.
-                this.Transformation.Expressions.OnTypedExpression(rlit.Item2);
-                endValue = PopAndRegister(endName);
-
-                if (rlit.Item1.Expression is ResolvedExpression.RangeLiteral rlitInner)
+                void ExecuteBody(Value loopVariable)
                 {
-                    // Item2 is now the step
-                    this.Transformation.Expressions.OnTypedExpression(rlitInner.Item2);
-                    stepValue = PopAndRegister(stepName);
-                    // And Item1 the start
-                    this.Transformation.Expressions.OnTypedExpression(rlitInner.Item1);
-                    startValue = PopAndRegister(startName);
+                    // If we iterate through a range, we don't inject an additional binding for the loop variable
+                    // at the beginning of the body and instead directly register the iteration value under that name.
+                    var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
+                        ? name.Item
+                        : throw new ArgumentException("invalid loop variable name");
+                    var variableValue = this.SharedState.Values.From(loopVariable, ResolvedType.New(ResolvedTypeKind.Int));
+                    this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue);
+                    this.Transformation.Statements.OnScope(stm.Body);
                 }
-                else
+
+                var (getStart, getStep, getEnd) = QirExpressionKindTransformation.RangeItems(this.SharedState, stm.IterationValues);
+                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), ExecuteBody);
+            }
+            else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
+            {
+                void ExecuteBody(IValue arrayItem)
                 {
-                    // 1 is the step
-                    stepValue = this.SharedState.Context.CreateConstant(1L);
-                    this.SharedState.RegisterName(stepName, stepValue);
-                    // And the original Item1 is the start
-                    this.Transformation.Expressions.OnTypedExpression(rlit.Item1);
-                    startValue = PopAndRegister(startName);
+                    // If we iterate through an array, we inject a binding at the beginning of the body.
+                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, (n, v) => this.CreateVariable(n, v));
+                    this.Transformation.Statements.OnScope(stm.Body);
                 }
-            }
-            else if (stm.IterationValues.ResolvedType.Resolution.IsRange)
-            {
-                this.Transformation.Expressions.OnTypedExpression(stm.IterationValues);
-                var rangeValue = this.SharedState.ValueStack.Pop();
-                startValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 0);
-                stepValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 1);
-                endValue = this.SharedState.CurrentBuilder.ExtractValue(rangeValue, 2);
-                this.SharedState.RegisterName(startName, startValue);
-                this.SharedState.RegisterName(stepName, stepValue);
-                this.SharedState.RegisterName(endName, endValue);
-            }
-            else if (stm.IterationValues.ResolvedType.Resolution is QsResolvedTypeKind.ArrayType arrType)
-            {
-                var elementType = this.SharedState.LlvmTypeFromQsharpType(arrType.Item);
-                startValue = this.SharedState.Context.CreateConstant(0L);
-                stepValue = this.SharedState.Context.CreateConstant(1L);
-                this.Transformation.Expressions.OnTypedExpression(stm.IterationValues);
-                array = (this.SharedState.ValueStack.Pop(), elementType);
-                var arrayLength = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetLength),
-                    array.Value.Item1,
-                    this.SharedState.Context.CreateConstant(0));
-                endValue = this.SharedState.CurrentBuilder.Sub(
-                    arrayLength, this.SharedState.Context.CreateConstant(1L));
-                this.SharedState.RegisterName(startName, startValue);
-                this.SharedState.RegisterName(stepName, stepValue);
-                this.SharedState.RegisterName(endName, endValue);
+
+                var array = (ArrayValue)this.SharedState.EvaluateSubexpression(stm.IterationValues);
+                this.SharedState.IterateThroughArray(array, ExecuteBody);
             }
             else
             {
                 throw new InvalidOperationException("For loop through invalid value");
             }
-
-            // If we're iterating through a range, we can use the iteration variable name directly.
-            // Otherwise, we need to generate a unique name for the iteration through the array's indices.
-            var iterationVar = array == null && stm.LoopItem.Item1 is SymbolTuple.VariableName loopVar
-                ? loopVar.Item
-                : this.SharedState.GenerateUniqueName("iter");
-
-            // We need to reflect the standard LLVM block structure for a loop
-            var preheaderName = this.SharedState.GenerateUniqueName("preheader");
-            var headerName = this.SharedState.GenerateUniqueName("header");
-            var bodyName = this.SharedState.GenerateUniqueName("body");
-            var exitingName = this.SharedState.GenerateUniqueName("exiting");
-            var exitName = this.SharedState.GenerateUniqueName("exit");
-
-            var preheaderBlock = this.SharedState.CurrentFunction.AppendBasicBlock(preheaderName);
-            var headerBlock = this.SharedState.CurrentFunction.AppendBasicBlock(headerName);
-            var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(bodyName);
-            var exitingBlock = this.SharedState.CurrentFunction.AppendBasicBlock(exitingName);
-            var exitBlock = this.SharedState.CurrentFunction.AppendBasicBlock(exitName);
-
-            // End the current block by branching to the preheader
-            this.SharedState.CurrentBuilder.Branch(preheaderBlock);
-
-            // Start a new naming scope
-            this.SharedState.OpenNamingScope();
-
-            // Preheader block: compute the range and test direction for the loop, then branch to the header
-            this.SharedState.SetCurrentBlock(preheaderBlock);
-            var testValue = this.SharedState.CurrentBuilder.Compare(
-                IntPredicate.SignedGreaterThan,
-                stepValue,
-                this.SharedState.Context.CreateConstant(0L));
-            this.SharedState.RegisterName(testName, testValue);
-            this.SharedState.CurrentBuilder.Branch(headerBlock);
-
-            // Header block: phi node to assign the iteration variable, then test
-            this.SharedState.SetCurrentBlock(headerBlock);
-            var iterationValue = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.Types.Int);
-            iterationValue.AddIncoming(startValue, preheaderBlock);
-            this.SharedState.RegisterName(iterationVar, iterationValue);
-            // We can't add the other incoming value yet, because we haven't generated it yet.
-            // We'll add it when we generate the exiting block.
-            // TODO: simplify the following if the step is a compile-time constant
-            var aboveEnd = this.SharedState.CurrentBuilder.Compare(
-                IntPredicate.SignedGreaterThanOrEqual, iterationValue, endValue);
-            var belowEnd = this.SharedState.CurrentBuilder.Compare(
-                IntPredicate.SignedLessThanOrEqual, iterationValue, endValue);
-            var continueValue = this.SharedState.CurrentBuilder.Select(testValue, belowEnd, aboveEnd);
-            this.SharedState.CurrentBuilder.Branch(continueValue, bodyBlock, exitBlock);
-
-            // Body block -- first, if we're stepping through an array, we need to fetch the array element
-            // and potentially deconstruct it
-            this.SharedState.SetCurrentBlock(bodyBlock);
-            this.SharedState.ScopeMgr.OpenScope();
-            if (array != null)
-            {
-                var p = this.SharedState.CurrentBuilder.Call(
-                    this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array.Value.Item1, iterationValue);
-                var itemPtr = this.SharedState.CurrentBuilder.BitCast(p, array.Value.Item2.CreatePointerType());
-                var item = this.SharedState.CurrentBuilder.Load(array.Value.Item2, itemPtr);
-                this.BindSymbolTuple(stm.LoopItem.Item1, item, stm.LoopItem.Item2, true);
-            }
-
-            // Now finish the block with the statements in the body
-            this.Transformation.Statements.OnScope(stm.Body);
-            var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
-            this.SharedState.ScopeMgr.CloseScope(isTerminated);
-            if (!isTerminated)
-            {
-                this.SharedState.CurrentBuilder.Branch(exitingBlock);
-            }
-
-            // Exiting block -- update the iteration value and the phi node
-            this.SharedState.SetCurrentBlock(exitingBlock);
-            var nextValue = this.SharedState.CurrentBuilder.Add(iterationValue, stepValue);
-            iterationValue.AddIncoming(nextValue, exitingBlock);
-            this.SharedState.CurrentBuilder.Branch(headerBlock);
-
-            // And finally, the exit block -- empty to start with
-            this.SharedState.SetCurrentBlock(exitBlock);
-
-            // and close the naming scope
-            this.SharedState.CloseNamingScope();
 
             return QsStatementKind.EmptyStatement;
         }
@@ -515,121 +370,105 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // analyze the loop later if we do it this way.
             // We need to be a bit careful about scopes here, though.
 
-            this.SharedState.OpenNamingScope();
-
             var repeatBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("repeat"));
             var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("until"));
             var fixupBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("fixup"));
             var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("rend"));
 
-            this.SharedState.CurrentBuilder.Branch(repeatBlock);
+            this.SharedState.ExecuteLoop(contBlock, () =>
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.CurrentBuilder.Branch(repeatBlock);
+                this.SharedState.SetCurrentBlock(repeatBlock);
+                this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
+                if (this.SharedState.CurrentBlock?.Terminator == null)
+                {
+                    this.SharedState.CurrentBuilder.Branch(testBlock);
+                }
 
-            this.SharedState.ScopeMgr.OpenScope();
-            this.ProcessUnscopedBlock(repeatBlock, stm.RepeatBlock.Body, testBlock);
+                this.SharedState.SetCurrentBlock(testBlock);
+                var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition).Value;
+                this.SharedState.ScopeMgr.ApplyPendingReferences();
+                this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
 
-            this.SharedState.SetCurrentBlock(testBlock);
-            this.Transformation.Expressions.OnTypedExpression(stm.SuccessCondition);
-            var test = this.SharedState.ValueStack.Pop();
-            this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
+                // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
+                // We need to make sure to properly invoke all calls to unreference, release, and remove alias counts
+                // for variables and values in the repeat-block after the statement ends.
+                this.SharedState.SetCurrentBlock(contBlock);
+                this.SharedState.ScopeMgr.ExitScope(false);
 
-            this.ProcessUnscopedBlock(fixupBlock, stm.FixupBlock.Body, repeatBlock);
-
-            this.SharedState.SetCurrentBlock(contBlock);
-            this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
-
-            this.SharedState.CloseNamingScope();
+                this.SharedState.SetCurrentBlock(fixupBlock);
+                this.Transformation.Statements.OnScope(stm.FixupBlock.Body);
+                var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+                this.SharedState.ScopeMgr.CloseScope(isTerminated);
+                if (!isTerminated)
+                {
+                    this.SharedState.CurrentBuilder.Branch(repeatBlock);
+                }
+            });
 
             return QsStatementKind.EmptyStatement;
         }
 
         public override QsStatementKind OnReturnStatement(TypedExpression ex)
         {
-            // If we're not inlining, compute the result, release any pending qubits, and generate a return.
-            // Otherwise, just evaluate the result and leave it on top of the stack.
-            if (this.SharedState.CurrentInlineLevel == 0)
-            {
-                this.Transformation.Expressions.OnTypedExpression(ex);
-                Value result = this.SharedState.ValueStack.Pop();
-
-                // Make sure not to unreference the return value
-                this.SharedState.ScopeMgr.RemovePendingValue(result);
-
-                // Release any locally-allocated qubits and dereference allocated values
-                this.SharedState.ScopeMgr.ExitScope();
-
-                if (ex.ResolvedType.Resolution.IsUnitType)
-                {
-                    this.SharedState.CurrentBuilder.Return();
-                }
-                else
-                {
-                    this.SharedState.CurrentBuilder.Return(result);
-                }
-            }
-            else
-            {
-                this.Transformation.Expressions.OnTypedExpression(ex);
-            }
-
+            var result = this.SharedState.EvaluateSubexpression(ex);
+            this.SharedState.AddReturn(result, ex.ResolvedType.Resolution.IsUnitType);
             return QsStatementKind.EmptyStatement;
         }
 
         public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
         {
-            // Given a symbol with an existing binding, update the binding to a bew value and
-            // addref the new value (if it's a ref-counted type).
-            // The old value will get released when the scope is closed or exited.
-            void UpdateBinding(string symbol, Value newValue)
+            var symbols = SyntaxGenerator.ExpressionAsSymbolTuple(stm.Lhs);
+            if (stm.Rhs.Expression is ResolvedExpressionKind.CopyAndUpdate ex
+                && ex.Item1.Expression is ResolvedExpressionKind.Identifier id
+                && id.Item1 is Identifier.LocalVariable varName
+                && symbols is SymbolTuple.VariableName symName
+                && symName.Item == varName.Item)
             {
-                var ptr = this.SharedState.GetNamedPointer(symbol);
-                this.SharedState.CurrentBuilder.Store(newValue, ptr);
-                this.SharedState.AddReference(newValue);
+                // For copy-and-reassign statements we want to make sure that the alias count is reduced
+                // before evaluating the copy-and-update expression, such that in the case where the variable
+                // that is reassigned is the only handle that has access to the original value, the copy is
+                // omitted. We can omit that alias count manipulation for inner items, since besides the
+                // items that are updated, all counts will remain the same and while also doing the same for
+                // inner items could avoid copies in rare edge cases it is not worth the increased cost for
+                // the majority of cases. For the items that are updated, we need to make sure that the access
+                // count of the old item is decreased and the one of the new item is increased. CopyAndUpdate
+                // takes care of that when updateItemAliasCount is set to true.
+
+                var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
+                this.SharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow: true);
+
+                QirExpressionKindTransformation.CopyAndUpdate(
+                    this.SharedState,
+                    (pointer.LoadValue(), ex.Item2, ex.Item3),
+                    updateItemAliasCount: true);
+                var value = this.SharedState.ValueStack.Pop();
+
+                this.SharedState.ScopeMgr.IncreaseAliasCount(value, shallow: true);
+                pointer.StoreValue(value);
+            }
+            else
+            {
+                void RebindVariable(string varName, IValue value)
+                {
+                    var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
+                    this.SharedState.ScopeMgr.IncreaseAliasCount(value);
+                    this.SharedState.ScopeMgr.DecreaseAliasCount(pointer);
+                    pointer.StoreValue(value);
+                }
+
+                this.BindSymbolTuple(symbols, stm.Rhs, RebindVariable);
             }
 
-            // Update a tuple of items from a tuple value.
-            void UpdateTuple(ImmutableArray<TypedExpression> items, Value val)
-            {
-                var itemTypes = items.Select(i => this.SharedState.LlvmTypeFromQsharpType(i.ResolvedType)).ToArray();
-                var tupleType = this.SharedState.Types.CreateConcreteTupleType(itemTypes);
-                var tuplePointer = this.SharedState.CurrentBuilder.BitCast(val, tupleType.CreatePointerType());
-                for (int i = 0; i < items.Length; i++)
-                {
-                    var itemValuePtr = this.SharedState.GetTupleElementPointer(tupleType, tuplePointer, i + 1);
-                    var itemValue = this.SharedState.CurrentBuilder.Load(itemTypes[i], itemValuePtr);
-                    UpdateItem(items[i], itemValue);
-                }
-            }
-
-            // Update an item, which might be a single symbol or a tuple, to a new Value
-            void UpdateItem(TypedExpression item, Value itemValue)
-            {
-                if (item.Expression is ResolvedExpression.Identifier id && id.Item1 is Identifier.LocalVariable varName)
-                {
-                    UpdateBinding(varName.Item, itemValue);
-                }
-                else if (item.Expression is ResolvedExpression.ValueTuple tuple)
-                {
-                    UpdateTuple(tuple.Item, itemValue);
-                }
-                else
-                {
-                    // This should never happen
-                    throw new InvalidOperationException("set statement with invalid left-hand side");
-                }
-            }
-
-            this.Transformation.Expressions.OnTypedExpression(stm.Rhs);
-            var value = this.SharedState.ValueStack.Pop();
-            UpdateItem(stm.Lhs, value);
             return QsStatementKind.EmptyStatement;
         }
 
         public override QsStatementKind OnVariableDeclaration(QsBinding<TypedExpression> stm)
         {
-            this.Transformation.Expressions.OnTypedExpression(stm.Rhs);
-            var val = this.SharedState.ValueStack.Pop();
-            this.BindSymbolTuple(stm.Lhs, val, stm.Rhs.ResolvedType, stm.Kind.IsImmutableBinding);
-
+            void BindVariable(string varName, IValue value) =>
+                 this.CreateVariable(varName, value, stm.Kind.IsMutableBinding);
+            this.BindSymbolTuple(stm.Lhs, stm.Rhs, BindVariable);
             return QsStatementKind.EmptyStatement;
         }
 
@@ -648,20 +487,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("do"));
             var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("wend"));
 
-            this.SharedState.CurrentBuilder.Branch(testBlock);
-            this.SharedState.SetCurrentBlock(testBlock);
-            // The OpenScope is almost certainly unnecessary, but it is technically possible for the condition
-            // expression to perform an allocation that needs to get cleaned up, so...
-            this.SharedState.ScopeMgr.OpenScope();
-            this.Transformation.Expressions.OnTypedExpression(stm.Condition);
-            var test = this.SharedState.ValueStack.Pop();
-            this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
-            this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);
+            this.SharedState.ExecuteLoop(contBlock, () =>
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.CurrentBuilder.Branch(testBlock);
+                this.SharedState.SetCurrentBlock(testBlock);
 
-            this.SharedState.OpenNamingScope();
-            this.ProcessBlock(bodyBlock, stm.Body, testBlock);
-            this.SharedState.CloseNamingScope();
-            this.SharedState.SetCurrentBlock(contBlock);
+                var test = this.SharedState.EvaluateSubexpression(stm.Condition).Value;
+                this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
+                this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);
+                this.ProcessBlock(bodyBlock, stm.Body, testBlock);
+            });
+
             return QsStatementKind.EmptyStatement;
         }
     }

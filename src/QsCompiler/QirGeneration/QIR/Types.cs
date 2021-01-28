@@ -1,10 +1,12 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QIR
 {
@@ -74,7 +76,7 @@ namespace Microsoft.Quantum.QIR
         /// The type is a pointer to an opaque struct.
         /// For item access and deconstruction, tuple values need to be cast
         /// to a suitable concrete type depending on the types of their items.
-        /// Such a concrete tuple type is constructed using <see cref="CreateConcreteTupleType"/>.
+        /// Such a concrete tuple type is constructed using <see cref="TypedTuple"/>.
         /// </summary>
         public readonly IPointerType Tuple;
 
@@ -99,10 +101,13 @@ namespace Microsoft.Quantum.QIR
         /// </summary>
         public readonly IStructType Range;
 
-        // private fields
+        // private and internal fields
 
-        private readonly IStructType tupleHeader;
         private readonly Context context;
+
+        internal readonly IArrayType CallableTable;
+        internal readonly IFunctionType CaptureCountFunction;
+        internal readonly IArrayType CallableMemoryManagementTable;
 
         // constructor
 
@@ -110,54 +115,136 @@ namespace Microsoft.Quantum.QIR
         {
             this.context = context;
 
-            this.tupleHeader = context.CreateStructType(TypeNames.Tuple, false, context.Int32Type, context.Int32Type); // private
+            this.Int = context.Int64Type;
+            this.Double = context.DoubleType;
+            this.Bool = context.BoolType;
+            this.Pauli = context.GetIntType(2);
             this.Range = context.CreateStructType(TypeNames.Range, false, context.Int64Type, context.Int64Type, context.Int64Type);
 
             this.Result = context.CreateStructType(TypeNames.Result).CreatePointerType();
             this.Qubit = context.CreateStructType(TypeNames.Qubit).CreatePointerType();
             this.String = context.CreateStructType(TypeNames.String).CreatePointerType();
             this.BigInt = context.CreateStructType(TypeNames.BigInt).CreatePointerType();
-            this.Tuple = this.tupleHeader.CreatePointerType();
+            this.Tuple = context.CreateStructType(TypeNames.Tuple).CreatePointerType();
             this.Array = context.CreateStructType(TypeNames.Array).CreatePointerType();
             this.Callable = context.CreateStructType(TypeNames.Callable).CreatePointerType();
 
-            this.FunctionSignature = context.GetFunctionType(
-                context.VoidType,
-                new[] { this.Tuple, this.Tuple, this.Tuple });
-
-            this.Int = context.Int64Type;
-            this.Double = context.DoubleType;
-            this.Bool = context.BoolType;
-            this.Pauli = context.GetIntType(2);
+            this.FunctionSignature = context.GetFunctionType(context.VoidType, this.Tuple, this.Tuple, this.Tuple);
+            this.CallableTable = this.FunctionSignature.CreatePointerType().CreateArrayType(4);
+            this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, this.Int);
+            this.CallableMemoryManagementTable = this.CaptureCountFunction.CreatePointerType().CreateArrayType(2);
         }
+
+        // internal helpers to simplify common code
+
+        /// <summary>
+        /// Type by which data allocated as global constant array is passed to the runtime.
+        /// String and big integers for example are instantiated with a data array.
+        /// </summary>
+        internal IPointerType DataArrayPointer =>
+            this.context.Int8Type.CreatePointerType();
+
+        /// <summary>
+        /// Given the type of a pointer to a struct, returns the type of the struct.
+        /// This method thus is the inverse mapping of CreatePointerType.
+        /// Throws an argument exception if the given type is not a pointer to a struct.
+        /// </summary>
+        internal static IStructType StructFromPointer(ITypeRef pointer) =>
+            pointer is IPointerType pt && pt.ElementType is IStructType st ? st :
+            throw new ArgumentException("the given argument is not a pointer to a struct");
+
+        /// <summary>
+        /// Given a pointer, returns the type of the value it points to.
+        /// Casts the type of the given value to an IPointerType in the process,
+        /// throwing the corresponding exception if the cast fails.
+        /// </summary>
+        internal static ITypeRef PointerElementType(Value pointer) =>
+            ((IPointerType)pointer.NativeType).ElementType;
 
         // public members
 
         /// <summary>
         /// Creates the concrete type of a QIR tuple value that contains the given items.
-        /// Values of this type always contain a tuple header as the first item and are
-        /// always passed as a pointer to that item.
         /// </summary>
-        public IStructType CreateConcreteTupleType(IEnumerable<ITypeRef> items) =>
-            this.context.CreateStructType(false, items.Prepend(this.tupleHeader).ToArray());
+        public IStructType TypedTuple(params Value[] items) =>
+            this.context.CreateStructType(false, items.Select(v => v.NativeType).ToArray());
 
         /// <summary>
-        /// Creates the concrete type of a QIR tuple value that contains the given items.
-        /// Values of this type always contain a tuple header as the first item
-        /// and are always passed as a pointer to that item.
+        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
         /// </summary>
-        public IStructType CreateConcreteTupleType(params ITypeRef[] items) =>
-            this.CreateConcreteTupleType((IEnumerable<ITypeRef>)items);
+        public IStructType TypedTuple(IEnumerable<ITypeRef> items) =>
+            this.context.CreateStructType(false, items.ToArray());
 
         /// <summary>
-        /// Determines whether an LLVM type is a pointer to a tuple.
-        /// Tuple values in QIR always contain a tuple header as the first item.
+        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
         /// </summary>
-        public bool IsTupleType(ITypeRef t) =>
+        public IStructType TypedTuple(params ITypeRef[] items) =>
+            this.context.CreateStructType(false, items);
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to a typed tuple.
+        /// </summary>
+        public static bool IsTypedTuple(ITypeRef t) =>
             t is IPointerType pt
             && pt.ElementType is IStructType st
-            && st.Members.Count > 0
-            && st.Members[0] == this.tupleHeader;
+            && st.Name == null
+            && st.Members.Count > 0;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque tuple.
+        /// </summary>
+        public static bool IsTuple(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Tuple;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque array.
+        /// </summary>
+        public static bool IsArray(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Array;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a pointer to an opaque callable.
+        /// </summary>
+        public static bool IsCallable(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Callable;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a qubit pointer.
+        /// </summary>
+        public static bool IsQubit(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Qubit;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a measurement result pointer.
+        /// </summary>
+        public static bool IsResult(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.Result;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a big int pointer.
+        /// </summary>
+        public static bool IsBigInt(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.BigInt;
+
+        /// <summary>
+        /// Determines whether an LLVM type is a string pointer.
+        /// </summary>
+        public static bool IsString(ITypeRef t) =>
+            t is IPointerType pt
+            && pt.ElementType is IStructType st
+            && st.Name == TypeNames.String;
     }
 
     /// <summary>
@@ -179,11 +266,6 @@ namespace Microsoft.Quantum.QIR
         public const string BigInt = "BigInt";
         public const string String = "String";
         public const string Array = "Array";
-        public const string Tuple = "TupleHeader";
-
-        // There is no separate struct type for Tuple,
-        // since within QIR, there is not type distinction between tuples with different item types or number of items.
-        // Using the TupleHeader struct is hence sufficient to ensure this limited type safety.
-        // The Tuple pointer is hence simply a pointer to the tuple header and no additional separate struct exists.
+        public const string Tuple = "Tuple";
     }
 }

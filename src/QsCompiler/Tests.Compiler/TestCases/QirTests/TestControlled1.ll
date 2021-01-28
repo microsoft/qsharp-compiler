@@ -1,34 +1,34 @@
-﻿define void @Lifted__PartialApplication__2__ctl__wrapper(%TupleHeader* %capture-tuple, %TupleHeader* %arg-tuple, %TupleHeader* %result-tuple) {
+﻿define void @Lifted__PartialApplication__1__ctl__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
 entry:
-  %0 = bitcast %TupleHeader* %capture-tuple to { %TupleHeader, %Callable* }*
-  %1 = bitcast %TupleHeader* %arg-tuple to { %TupleHeader, %Array*, %TupleHeader* }*
-  %2 = getelementptr { %TupleHeader, %Array*, %TupleHeader* }, { %TupleHeader, %Array*, %TupleHeader* }* %1, i64 0, i32 1
-  %3 = getelementptr { %TupleHeader, %Array*, %TupleHeader* }, { %TupleHeader, %Array*, %TupleHeader* }* %1, i64 0, i32 2
-  %4 = bitcast %TupleHeader** %3 to { %TupleHeader, %Qubit*, i64 }*
-  %5 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %Qubit*, i64 }* getelementptr ({ %TupleHeader, %Qubit*, i64 }, { %TupleHeader, %Qubit*, i64 }* null, i32 1) to i64))
-  %6 = bitcast %TupleHeader* %5 to { %TupleHeader, %Qubit*, i64 }*
-  %7 = getelementptr { %TupleHeader, %Qubit*, i64 }, { %TupleHeader, %Qubit*, i64 }* %6, i64 0, i32 1
-  %8 = getelementptr { %TupleHeader, %Qubit*, i64 }, { %TupleHeader, %Qubit*, i64 }* %4, i64 0, i32 1
-  %9 = load %Qubit*, %Qubit** %8
-  store %Qubit* %9, %Qubit** %7
-  %10 = getelementptr { %TupleHeader, %Qubit*, i64 }, { %TupleHeader, %Qubit*, i64 }* %6, i64 0, i32 2
-  %11 = getelementptr { %TupleHeader, %Qubit*, i64 }, { %TupleHeader, %Qubit*, i64 }* %4, i64 0, i32 2
-  %12 = load i64, i64* %11
-  store i64 %12, i64* %10
-  %13 = call %TupleHeader* @__quantum__rt__tuple_create(i64 ptrtoint ({ %TupleHeader, %Array*, %TupleHeader* }* getelementptr ({ %TupleHeader, %Array*, %TupleHeader* }, { %TupleHeader, %Array*, %TupleHeader* }* null, i32 1) to i64))
-  %14 = bitcast %TupleHeader* %13 to { %TupleHeader, %Array*, %TupleHeader* }*
-  %15 = getelementptr { %TupleHeader, %Array*, %TupleHeader* }, { %TupleHeader, %Array*, %TupleHeader* }* %14, i64 0, i32 1
-  %16 = load %Array*, %Array** %2
-  store %Array* %16, %Array** %15
-  %17 = getelementptr { %TupleHeader, %Array*, %TupleHeader* }, { %TupleHeader, %Array*, %TupleHeader* }* %14, i64 0, i32 2
-  store %TupleHeader* %5, %TupleHeader** %17
-  %18 = getelementptr { %TupleHeader, %Callable* }, { %TupleHeader, %Callable* }* %0, i64 0, i32 1
-  %19 = load %Callable*, %Callable** %18
-  %20 = call %Callable* @__quantum__rt__callable_copy(%Callable* %19)
-  call void @__quantum__rt__callable_make_controlled(%Callable* %20)
-  call void @__quantum__rt__callable_invoke(%Callable* %20, %TupleHeader* %13, %TupleHeader* %result-tuple)
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %5)
-  call void @__quantum__rt__tuple_unreference(%TupleHeader* %13)
-  call void @__quantum__rt__callable_unreference(%Callable* %20)
+  %0 = bitcast %Tuple* %arg-tuple to { %Array*, %Qubit* }*
+  %1 = getelementptr { %Array*, %Qubit* }, { %Array*, %Qubit* }* %0, i64 0, i32 0
+  %2 = getelementptr { %Array*, %Qubit* }, { %Array*, %Qubit* }* %0, i64 0, i32 1
+  %3 = load %Array*, %Array** %1
+  %4 = load %Qubit*, %Qubit** %2
+  %5 = bitcast %Tuple* %capture-tuple to { %Callable*, i64 }*
+  %6 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %5, i64 0, i32 1
+  %7 = load i64, i64* %6
+  %8 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Qubit*, i64 }* getelementptr ({ %Qubit*, i64 }, { %Qubit*, i64 }* null, i32 1) to i64))
+  %9 = bitcast %Tuple* %8 to { %Qubit*, i64 }*
+  %10 = getelementptr { %Qubit*, i64 }, { %Qubit*, i64 }* %9, i64 0, i32 0
+  %11 = getelementptr { %Qubit*, i64 }, { %Qubit*, i64 }* %9, i64 0, i32 1
+  store %Qubit* %4, %Qubit** %10
+  store i64 %7, i64* %11
+  %12 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %13 = bitcast %Tuple* %12 to { %Array*, { %Qubit*, i64 }* }*
+  %14 = getelementptr { %Array*, { %Qubit*, i64 }* }, { %Array*, { %Qubit*, i64 }* }* %13, i64 0, i32 0
+  %15 = getelementptr { %Array*, { %Qubit*, i64 }* }, { %Array*, { %Qubit*, i64 }* }* %13, i64 0, i32 1
+  store %Array* %3, %Array** %14
+  store { %Qubit*, i64 }* %9, { %Qubit*, i64 }** %15
+  %16 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %5, i64 0, i32 0
+  %17 = load %Callable*, %Callable** %16
+  %18 = call %Callable* @__quantum__rt__callable_copy(%Callable* %17, i1 false)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 1)
+  call void @__quantum__rt__callable_make_controlled(%Callable* %18)
+  call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* %12, %Tuple* %result-tuple)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 -1)
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %18, i64 -1)
   ret void
 }

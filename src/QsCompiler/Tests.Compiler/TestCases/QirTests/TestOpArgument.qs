@@ -6,6 +6,15 @@ namespace Microsoft.Quantum.Testing.QIR
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Targeting;
 
+    @TargetInstruction("message")
+    function Message() : String {
+        body intrinsic;
+    }
+
+    operation Diagnose() : Unit is Adj + Ctl {
+        body intrinsic;
+    }
+
     @TargetInstruction("swap")
     operation _SWAP(q1 : Qubit, q2 : Qubit) : Unit {
         body intrinsic;
@@ -32,13 +41,22 @@ namespace Microsoft.Quantum.Testing.QIR
     }
 
     @EntryPoint()
-    operation TestOpArgument () : Unit {
-        using (q = Qubit()) {
-            Apply(CNOT(_, q)); 
-            Apply(_SWAP(_, q));
-            Apply(_Choose(q, (_, q))); 
-            Apply(_Choose(_,(q,q)));
+    operation TestOpArgument () : String {
+        using (qs = (Qubit(), Qubit())) {
+            let (q1, q2) = qs;
+            let op = _Choose(_, (q1, _));
+
+            CNOT(qs);
+            _SWAP(qs);
+            Apply(CNOT(_, q1)); 
+            Apply(_SWAP(_, q1));
+            Apply(_Choose(q1, (_, q2))); 
+            Apply(_Choose(_,(q1,q2)));
+            Apply(_Choose(_,qs));
+            op(qs);
         }
         InvokeAndIgnore(GetNestedTuple);
+        Diagnose();
+        return Message();
     }
 }

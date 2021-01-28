@@ -53,13 +53,36 @@ let private qirTest target name = qirMultiTest target name [ name ]
 
 
 [<Fact>]
-let ``QIR using`` () = qirTest false "TestUsing"
+let ``QIR using`` () =
+    qirMultiTest true "TestUsing" [ "TestUsing1"; "TestUsing2" ]
+
+[<Fact>]
+let ``QIR inlined call`` () = qirTest true "TestInline"
+
+[<Fact>]
+let ``QIR access counts`` () = qirTest false "TestAccessCounts"
 
 [<Fact>]
 let ``QIR array loop`` () = qirTest false "TestArrayLoop"
 
 [<Fact>]
-let ``QIR array update`` () = qirTest false "TestArrayUpdate"
+let ``QIR nested for loop`` () = qirTest false "TestForLoop"
+
+[<Fact>]
+let ``QIR caching of values`` () = qirTest true "TestCaching"
+
+[<Fact>]
+let ``QIR array update`` () =
+    qirMultiTest
+        false
+        "TestArrayUpdate"
+        [
+            "TestArrayUpdate1"
+            "TestArrayUpdate2"
+            "TestArrayUpdate3"
+            "TestArrayUpdate4"
+            "TestArrayUpdate5"
+        ]
 
 [<Fact>]
 let ``QIR tuple deconstructing`` () = qirTest false "TestDeconstruct"
@@ -74,13 +97,22 @@ let ``QIR UDT construction`` () = qirTest false "TestUdtConstruction"
 let ``QIR UDT accessor`` () = qirTest false "TestUdtAccessor"
 
 [<Fact>]
-let ``QIR UDT update`` () = qirTest false "TestUdtUpdate"
+let ``QIR UDT update`` () =
+    qirMultiTest false "TestUdtUpdate" [ "TestUdtUpdate1"; "TestUdtUpdate2" ]
 
 [<Fact>]
 let ``QIR UDT argument`` () = qirTest false "TestUdtArgument"
 
 [<Fact>]
+let ``QIR callable values`` () =
+    qirMultiTest false "TestLocalCallables" [ "TestLocalCallables1"; "TestLocalCallables2" ]
+
+[<Fact>]
 let ``QIR operation argument`` () = qirTest true "TestOpArgument"
+
+[<Fact>]
+let ``QIR operation call`` () =
+    qirMultiTest false "TestOpCall" [ "TestOpCall1"; "TestOpCall2" ]
 
 [<Fact>]
 let ``QIR while loop`` () = qirTest false "TestWhile"
@@ -112,6 +144,23 @@ let ``QIR partial applications`` () =
     qirMultiTest true "TestPartials" [ "TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4" ]
 
 [<Fact>]
+let ``QIR declarations`` () =
+    qirMultiTest
+        false
+        "TestDeclarations"
+        [
+            "TestDeclarations1"
+            "TestDeclarations2"
+            "TestDeclarations3"
+            "TestDeclarations4"
+            "TestDeclarations5"
+            "TestDeclarations6"
+        ]
+
+[<Fact>]
+let ``QIR functors`` () = qirTest true "TestFunctors"
+
+[<Fact>]
 let ``QIR paulis`` () = qirTest false "TestPaulis"
 
 [<Fact>]
@@ -125,6 +174,9 @@ let ``QIR strings`` () = qirTest false "TestStrings"
 
 [<Fact>]
 let ``QIR scoping`` () = qirTest false "TestScoping"
+
+[<Fact>]
+let ``QIR conditionals`` () = qirTest false "TestConditional"
 
 [<Fact>]
 let ``QIR expressions`` () = qirTest false "TestExpressions"

@@ -67,7 +67,8 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = InferTargetInstructions.LiftIntrinsicSpecializations(compilation);
+            transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(compilation);
+            transformed = InferTargetInstructions.LiftIntrinsicSpecializations(transformed);
             var allAttributesAdded = InferTargetInstructions.TryAddMissingTargetInstructionAttributes(transformed, out transformed);
             if (!allAttributesAdded)
             {
