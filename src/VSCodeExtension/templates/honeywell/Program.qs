@@ -4,7 +4,11 @@
     open Microsoft.Quantum.Intrinsic;
     
     @EntryPoint()
-    operation SayHello() : Unit {
-        Message("Hello quantum world!");
+    operation GetRandomResult() : Result {
+        use q = Qubit();
+        H(q);
+        return M(q);
     }
 }
+
+
