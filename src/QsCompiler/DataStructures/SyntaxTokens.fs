@@ -146,6 +146,8 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     /// For partial application.
     | MissingExpr
     | InvalidExpr
+    // TODO: Order of cases and binary compatibility?
+    | SizedArray of value: 'Expr * size: 'Expr
 
 type QsExpression =
     {
