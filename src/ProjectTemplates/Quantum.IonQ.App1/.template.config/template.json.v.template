@@ -1,0 +1,15 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "classifications": ["Common", "Console"],  
+    "name": "Quantum Application IonQ",
+    "description": "A project creating a Q# application that can be executed on an IonQ backend via Azure Quantum.",
+    "groupIdentity": "Microsoft.Common.Console.IonQ",
+    "identity": "Microsoft.Common.Console.QSharp.IonQ.#MAJOR_VERSION#.#MINOR_VERSION#",
+    "shortName": "azq-ionq",
+    "tags": {
+      "language": "Q#",
+      "type": "project"
+    },
+    "sourceName": "Quantum.App1",
+    "preferNameDirectory": true
+}
