@@ -4,7 +4,7 @@
     open Microsoft.Quantum.Intrinsic;
     
     @EntryPoint()
-    operation HelloQ() : Result {
+    operation GetRandomResult() : Result {
         use q = Qubit();
         H(q);
         return M(q);
