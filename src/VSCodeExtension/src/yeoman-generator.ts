@@ -25,6 +25,8 @@ export class QSharpGenerator extends yo {
         // of the folder with the corresponding template files.
         const projectTypes: {[key: string]: string} = {
             "Standalone console application": "application",
+            "Quantum application targeted to Honeywell backend": "honeywell",
+            "Quantum application targeted to IonQ backend": "ionq",
             "Quantum library": "library",
             "Unit testing project": "unittest"
         };

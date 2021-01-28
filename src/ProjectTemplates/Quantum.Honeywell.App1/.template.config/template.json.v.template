@@ -1,0 +1,15 @@
+{
+    "$schema": "http://json.schemastore.org/template",
+    "classifications": ["Common", "Console"],  
+    "name": "Quantum Application Honeywell",
+    "description": "A project creating a Q# application that can be executed on a Honeywell backend via Azure Quantum.",
+    "groupIdentity": "Microsoft.Common.Console.Honeywell",
+    "identity": "Microsoft.Common.Console.QSharp.Honeywell.#MAJOR_VERSION#.#MINOR_VERSION#",
+    "shortName": "azq-honeywell",
+    "tags": {
+      "language": "Q#",
+      "type": "project"
+    },
+    "sourceName": "Quantum.App1",
+    "preferNameDirectory": true
+}
