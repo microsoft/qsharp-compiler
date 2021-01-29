@@ -38,7 +38,7 @@ namespace Ubiquity.NET.Llvm.Types
         {
             if( typeRef.Kind != LLVMTypeKind.LLVMArrayTypeKind )
             {
-                throw new ArgumentException( Resources.Array_type_reference_expected, nameof( typeRef ) );
+                throw new ArgumentException( );
             }
         }
     }

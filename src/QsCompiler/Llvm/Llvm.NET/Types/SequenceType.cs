@@ -46,7 +46,7 @@ namespace Ubiquity.NET.Llvm.Types
         {
             if( !IsSequenceTypeRef( typeRef ) )
             {
-                throw new ArgumentException( Resources.Expected_a_sequence_type, nameof( typeRef ) );
+                throw new ArgumentException( );
             }
         }
 

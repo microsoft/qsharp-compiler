@@ -33,7 +33,7 @@ namespace Ubiquity.NET.Llvm.Values
             var kind = typeRef.Kind;
             if( kind == TypeKind.Label || kind == TypeKind.Function || ( typeRef is StructType structType && structType.IsOpaque ) )
             {
-                throw new ArgumentException( Resources.Cannot_get_null_for_labels_and_opaque_types );
+                throw new ArgumentException( );
             }
 
             return FromHandle<Constant>( LLVM.ConstNull( typeRef.GetTypeRef( ) ) )!;

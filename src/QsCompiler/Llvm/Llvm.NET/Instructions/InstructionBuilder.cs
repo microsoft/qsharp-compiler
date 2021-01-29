@@ -294,12 +294,12 @@ namespace Ubiquity.NET.Llvm.Instructions
             var retType = InsertBlock.ContainingFunction.ReturnType;
             if( retType.IsVoid )
             {
-                throw new ArgumentException( Resources.Return_instruction_for_void_function_must_not_have_a_value, nameof( value ) );
+                throw new ArgumentException( );
             }
 
             if( retType != value.NativeType )
             {
-                throw new ArgumentException( Resources.Value_for_return_must_match_the_function_signature_s_return_type, nameof( value ) );
+                throw new ArgumentException( );
             }
 
             var handle = BuilderHandle.BuildRet( value.ValueHandle );
@@ -336,14 +336,14 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( !( destination.NativeType is IPointerType ptrType ) )
             {
-                throw new ArgumentException( Resources.Expected_pointer_value, nameof( destination ) );
+                throw new ArgumentException( );
             }
 
             if( !ptrType.ElementType.Equals( value.NativeType )
              || ( value.NativeType.Kind == TypeKind.Integer && value.NativeType.IntegerBitWidth != ptrType.ElementType.IntegerBitWidth )
               )
             {
-                throw new ArgumentException( string.Format( CultureInfo.CurrentCulture, Resources.Incompatible_types_destination_pointer_must_be_same_type_0_1, ptrType.ElementType, value.NativeType ) );
+                throw new ArgumentException( );
             }
 
             LLVMValueRef valueRef = BuilderHandle.BuildStore( value.ValueHandle, destination.ValueHandle );
@@ -359,7 +359,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( !( sourcePtr.NativeType is IPointerType ptrType ) )
             {
-                throw new ArgumentException( Resources.Expected_a_pointer_value, nameof( sourcePtr ) );
+                throw new ArgumentException( );
             }
 
             return Load( ptrType.ElementType, sourcePtr );
@@ -377,12 +377,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( sourcePtr.NativeType.Kind != TypeKind.Pointer )
             {
-                throw new ArgumentException( Resources.Expected_a_pointer_value, nameof( sourcePtr ) );
+                throw new ArgumentException( );
             }
 
             if( !type.IsSized )
             {
-                throw new ArgumentException( Resources.Cannot_load_a_value_for_an_opaque_or_unsized_type, nameof( type ) );
+                throw new ArgumentException( );
             }
 
             // TODO: validate sourceptr is opaque or sourcePtr.Type.ElementType == type
@@ -712,12 +712,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( ptrValue.NativeType.Kind != TypeKind.Pointer )
             {
-                throw new ArgumentException( Resources.Expected_a_pointer_value, nameof( ptrValue ) );
+                throw new ArgumentException( );
             }
 
             if( intType.Kind != TypeKind.Integer )
             {
-                throw new ArgumentException( Resources.Expected_pointer_to_integral_type, nameof( intType ) );
+                throw new ArgumentException( );
             }
 
             if ( ptrValue is Constant )
@@ -770,12 +770,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( !lhs.NativeType.IsInteger && !lhs.NativeType.IsPointer )
             {
-                throw new ArgumentException( Resources.Expecting_an_integer_or_pointer_type, nameof( lhs ) );
+                throw new ArgumentException( );
             }
 
             if( !rhs.NativeType.IsInteger && !lhs.NativeType.IsPointer )
             {
-                throw new ArgumentException( Resources.Expecting_an_integer_or_pointer_type, nameof( rhs ) );
+                throw new ArgumentException( );
             }
 
             var handle = BuilderHandle.BuildICmp( ( LLVMIntPredicate )predicate, lhs.ValueHandle, rhs.ValueHandle, string.Empty );
@@ -791,12 +791,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( !lhs.NativeType.IsFloatingPoint )
             {
-                throw new ArgumentException( Resources.Expecting_an_integer_type, nameof( lhs ) );
+                throw new ArgumentException( );
             }
 
             if( !rhs.NativeType.IsFloatingPoint )
             {
-                throw new ArgumentException( Resources.Expecting_an_integer_type, nameof( rhs ) );
+                throw new ArgumentException( );
             }
 
             var handle = BuilderHandle.BuildFCmp( ( LLVMRealPredicate )predicate
@@ -824,7 +824,7 @@ namespace Ubiquity.NET.Llvm.Instructions
                 return Compare( ( IntPredicate )predicate, lhs, rhs );
             }
 
-            throw new ArgumentOutOfRangeException( nameof( predicate ), string.Format( CultureInfo.CurrentCulture, Resources._0_is_not_a_valid_value_for_a_compare_predicate, predicate ) );
+            throw new ArgumentOutOfRangeException( );
         }
 
         /// <summary>Creates a zero extend or bit cast instruction</summary>
@@ -1119,26 +1119,26 @@ namespace Ubiquity.NET.Llvm.Instructions
 
             if( ifCondition.NativeType.IntegerBitWidth != 1 && conditionVectorType != null && conditionVectorType.ElementType.IntegerBitWidth != 1 )
             {
-                throw new ArgumentException( Resources.Condition_value_must_be_an_i1_or_vector_of_i1, nameof( ifCondition ) );
+                throw new ArgumentException( );
             }
 
             if( conditionVectorType != null )
             {
                 if( !( thenValue.NativeType is IVectorType thenVector ) || thenVector.Size != conditionVectorType.Size )
                 {
-                    throw new ArgumentException( Resources.When_condition_is_a_vector__selected_values_must_be_a_vector_of_the_same_size, nameof( thenValue ) );
+                    throw new ArgumentException( );
                 }
 
                 if( !( elseValue.NativeType is IVectorType elseVector ) || elseVector.Size != conditionVectorType.Size )
                 {
-                    throw new ArgumentException( Resources.When_condition_is_a_vector__selected_values_must_be_a_vector_of_the_same_size, nameof( elseValue ) );
+                    throw new ArgumentException( );
                 }
             }
             else
             {
                 if( elseValue.NativeType != thenValue.NativeType )
                 {
-                    throw new ArgumentException( Resources.Selected_values_must_have_the_same_type );
+                    throw new ArgumentException( );
                 }
             }
 
@@ -1219,27 +1219,27 @@ namespace Ubiquity.NET.Llvm.Instructions
 
             if( destination == source )
             {
-                throw new InvalidOperationException( Resources.Source_and_destination_arguments_are_the_same_value );
+                throw new InvalidOperationException( );
             }
 
             if( !( destination.NativeType is IPointerType dstPtrType ) )
             {
-                throw new ArgumentException( Resources.Pointer_type_expected, nameof( destination ) );
+                throw new ArgumentException( );
             }
 
             if( !( source.NativeType is IPointerType srcPtrType ) )
             {
-                throw new ArgumentException( Resources.Pointer_type_expected, nameof( source ) );
+                throw new ArgumentException( );
             }
 
             if( !len.NativeType.IsInteger )
             {
-                throw new ArgumentException( Resources.Integer_type_expected, nameof( len ) );
+                throw new ArgumentException( );
             }
 
             if( Context != module.Context )
             {
-                throw new ArgumentException( Resources.Module_and_instruction_builder_must_come_from_the_same_context );
+                throw new ArgumentException( );
             }
 
             if( !dstPtrType.ElementType.IsInteger )
@@ -1283,27 +1283,27 @@ namespace Ubiquity.NET.Llvm.Instructions
 
             if( destination == source )
             {
-                throw new InvalidOperationException( Resources.Source_and_destination_arguments_are_the_same_value );
+                throw new InvalidOperationException( );
             }
 
             if( !( destination.NativeType is IPointerType dstPtrType ) )
             {
-                throw new ArgumentException( Resources.Pointer_type_expected, nameof( destination ) );
+                throw new ArgumentException( );
             }
 
             if( !( source.NativeType is IPointerType srcPtrType ) )
             {
-                throw new ArgumentException( Resources.Pointer_type_expected, nameof( source ) );
+                throw new ArgumentException( );
             }
 
             if( !len.NativeType.IsInteger )
             {
-                throw new ArgumentException( Resources.Integer_type_expected, nameof( len ) );
+                throw new ArgumentException( );
             }
 
             if( Context != module.Context )
             {
-                throw new ArgumentException( Resources.Module_and_instruction_builder_must_come_from_the_same_context );
+                throw new ArgumentException( );
             }
 
             if( !dstPtrType.ElementType.IsInteger )
@@ -1342,27 +1342,27 @@ namespace Ubiquity.NET.Llvm.Instructions
 
             if( !( destination.NativeType is IPointerType dstPtrType ) )
             {
-                throw new ArgumentException( Resources.Pointer_type_expected, nameof( destination ) );
+                throw new ArgumentException( );
             }
 
             if( dstPtrType.ElementType != value.NativeType )
             {
-                throw new ArgumentException( Resources.Pointer_type_doesn_t_match_the_value_type );
+                throw new ArgumentException( );
             }
 
             if( !value.NativeType.IsInteger )
             {
-                throw new ArgumentException( Resources.Integer_type_expected, nameof( value ) );
+                throw new ArgumentException( );
             }
 
             if( !len.NativeType.IsInteger )
             {
-                throw new ArgumentException( Resources.Integer_type_expected, nameof( len ) );
+                throw new ArgumentException( );
             }
 
             if( Context != module.Context )
             {
-                throw new ArgumentException( Resources.Module_and_instruction_builder_must_come_from_the_same_context );
+                throw new ArgumentException( );
             }
 
             if( !dstPtrType.ElementType.IsInteger )
@@ -1446,7 +1446,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( !( pointer.NativeType is IPointerType pointerType ) )
             {
-                throw new ArgumentException( Resources.Pointer_value_expected, nameof( pointer ) );
+                throw new ArgumentException( );
             }
 
             if( pointerType.ElementType.GetTypeRef( ) != type.GetTypeRef( ) )
@@ -1488,13 +1488,13 @@ namespace Ubiquity.NET.Llvm.Instructions
             var argsArray = args as Value[ ] ?? args.ToArray( );
             if( argsArray.Any( a => !a.NativeType.IsInteger ) )
             {
-                throw new ArgumentException( Resources.GEP_index_arguments_must_be_integers );
+                throw new ArgumentException( );
             }
 
             LLVMValueRef[ ] llvmArgs = argsArray.Select( a => a.ValueHandle ).ToArray( );
             if( llvmArgs.Length == 0 )
             {
-                throw new ArgumentException( Resources.There_must_be_at_least_one_index_argument, nameof( args ) );
+                throw new ArgumentException( );
             }
 
             return llvmArgs;
@@ -1506,22 +1506,22 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( !( pointer.NativeType is IPointerType ptrType ) )
             {
-                throw new ArgumentException( Resources.Pointer_value_expected, nameof( pointer ) );
+                throw new ArgumentException( );
             }
 
             if( !( ptrType.ElementType is IStructType elementStructType ) )
             {
-                throw new ArgumentException( Resources.Pointer_to_a_structure_expected, nameof( pointer ) );
+                throw new ArgumentException( );
             }
 
             if( !elementStructType.IsSized && index > 0 )
             {
-                throw new ArgumentException( Resources.Cannot_get_element_of_unsized_opaque_structures );
+                throw new ArgumentException( );
             }
 
             if( index >= elementStructType.Members.Count )
             {
-                throw new ArgumentException( Resources.Index_exceeds_number_of_members_in_the_type, nameof( index ) );
+                throw new ArgumentException( );
             }
         }
 
@@ -1530,7 +1530,7 @@ namespace Ubiquity.NET.Llvm.Instructions
             var module = InsertBlock?.ContainingFunction?.ParentModule;
             if( module == null )
             {
-                throw new InvalidOperationException( Resources.Cannot_insert_when_no_block_module_is_available );
+                throw new InvalidOperationException( );
             }
 
             return module;
@@ -1557,7 +1557,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( lhs.NativeType != rhs.NativeType )
             {
-                throw new ArgumentException( Resources.Types_of_binary_operators_must_be_identical );
+                throw new ArgumentException( );
             }
 
             var valueRef = opFactory( BuilderHandle, lhs.ValueHandle, rhs.ValueHandle );
@@ -1568,12 +1568,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             if( !( func.NativeType is IPointerType funcPtrType ) )
             {
-                throw new ArgumentException( Resources.Expected_pointer_to_function, nameof( func ) );
+                throw new ArgumentException( );
             }
 
             if( !( funcPtrType.ElementType is FunctionType signatureType ) )
             {
-                throw new ArgumentException( Resources.A_pointer_to_a_function_is_required_for_an_indirect_call, nameof( func ) );
+                throw new ArgumentException( );
             }
 
             // validate arg count; too few or too many (unless the signature supports varargs) is an error
@@ -1581,15 +1581,14 @@ namespace Ubiquity.NET.Llvm.Instructions
                 || ( args.Count > signatureType.ParameterTypes.Count && !signatureType.IsVarArg )
               )
             {
-                throw new ArgumentException( Resources.Mismatched_parameter_count_with_call_site, nameof( args ) );
+                throw new ArgumentException( );
             }
 
             for( int i = 0; i < signatureType.ParameterTypes.Count; ++i )
             {
                 if( args[ i ].NativeType != signatureType.ParameterTypes[ i ] )
                 {
-                    string msg = string.Format( CultureInfo.CurrentCulture, Resources.Call_site_argument_type_mismatch_for_function_0_at_index_1_argType_equals_2_signatureType_equals_3, func, i, args[ i ].NativeType, signatureType.ParameterTypes[ i ] );
-                    throw new ArgumentException( msg, nameof( args ) );
+                    throw new ArgumentException( );
                 }
             }
 

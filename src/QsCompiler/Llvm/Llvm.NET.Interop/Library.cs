@@ -99,7 +99,7 @@ namespace Ubiquity.NET.Llvm.Interop
                                                                                 );
             if( previousState != InitializationState.Uninitialized )
             {
-                throw new InvalidOperationException( Resources.Llvm_already_initialized );
+                throw new InvalidOperationException( );
             }
 
             // initialize the static fields
@@ -821,7 +821,7 @@ namespace Ubiquity.NET.Llvm.Interop
                                                                                 );
             if( previousState != InitializationState.Initialized )
             {
-                throw new InvalidOperationException( Resources.Llvm_not_initialized );
+                throw new InvalidOperationException( );
             }
 
             LLVM.Shutdown( );

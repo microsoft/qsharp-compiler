@@ -364,7 +364,7 @@ namespace Ubiquity.NET.Llvm.Values
         {
             if( string.IsNullOrWhiteSpace( name ) )
             {
-                throw new ArgumentException( Resources.Name_cannot_be_null_or_empty, nameof( name ) );
+                throw new ArgumentException( );
             }
             var handle = LLVM.GetStringAttributeAtIndex( ValueHandle, ( uint )index, name.AsMarshaledString(), (uint)name.Length );
             return AttributeValue.FromHandle( Context, handle );
@@ -381,7 +381,7 @@ namespace Ubiquity.NET.Llvm.Values
         {
             if( string.IsNullOrWhiteSpace( name ) )
             {
-                throw new ArgumentException( Resources.Name_cannot_be_null_or_empty, nameof( name ) );
+                throw new ArgumentException( );
             }
             LLVM.RemoveStringAttributeAtIndex( ValueHandle, ( uint )index, name.AsMarshaledString(), ( uint )name.Length );
         }

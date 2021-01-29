@@ -469,7 +469,7 @@ namespace Ubiquity.NET.Llvm.Instructions
             {
                 if( !IsMemoryAccess )
                 {
-                    throw new InvalidOperationException( Resources.Alignment_only_allowed_on_memory_instructions );
+                    throw new InvalidOperationException( );
                 }
 
                 LLVM.SetAlignment( ValueHandle, value );

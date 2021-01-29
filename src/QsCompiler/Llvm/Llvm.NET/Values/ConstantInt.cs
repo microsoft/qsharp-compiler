@@ -27,13 +27,13 @@ namespace Ubiquity.NET.Llvm.Values
         /// <exception cref="InvalidOperationException">If <see cref="BitWidth"/> is greater than 64 bits</exception>
         public UInt64 ZeroExtendedValue
             => BitWidth <= 64 ? ValueHandle.ConstIntZExt
-                              : throw new InvalidOperationException( Resources.APInt_exceeds_size_of_UInt64 );
+                              : throw new InvalidOperationException( );
 
         /// <summary>Gets the value of the constant sign extended to a 64 bit value</summary>
         /// <exception cref="InvalidOperationException">If <see cref="BitWidth"/> is greater than 64 bits</exception>
         public Int64 SignExtendedValue
             => BitWidth <= 64 ? ValueHandle.ConstIntSExt
-                              : throw new InvalidOperationException( Resources.APInt_exceeds_size_of_Int64 );
+                              : throw new InvalidOperationException( );
 
         internal ConstantInt( LLVMValueRef valueRef )
             : base( valueRef )

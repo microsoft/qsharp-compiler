@@ -42,12 +42,12 @@ namespace Ubiquity.NET.Llvm.Interop
                 // Marshal.GetFunctionPointerForDelegate will create an exception for this but the
                 // error message is, pardon the pun, a bit too generic. Hopefully, this makes it a
                 // bit more clear.
-                throw new ArgumentException( Resources.Marshaling_of_Generic_delegate_types_to_a_native_callback_is_not_supported );
+                throw new ArgumentException( );
             }
 
             if( d.GetType( ).GetCustomAttributes( typeof( UnmanagedFunctionPointerAttribute ), true ).Length == 0 )
             {
-                throw new ArgumentException( Resources.Marshalling_a_delegate_to_a_native_callback_requires_an_UnmanagedFunctionPointerAttribute_for_the_delegate_type );
+                throw new ArgumentException( );
             }
 
             UnpinnedDelegate = d;
