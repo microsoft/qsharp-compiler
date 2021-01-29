@@ -15,7 +15,6 @@ using System.Linq;
 using LLVMSharp.Interop;
 
 using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Properties;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
@@ -83,7 +82,7 @@ namespace Ubiquity.NET.Llvm
         }
 
         /// <summary>Gets the <see cref="GlobalVariable"/>s contained by this module</summary>
-        public IEnumerable<Values.GlobalVariable> Globals
+        public IEnumerable<GlobalVariable> Globals
         {
             get
             {
@@ -91,7 +90,7 @@ namespace Ubiquity.NET.Llvm
                 var current = ModuleHandle.FirstGlobal;
                 while( current != default )
                 {
-                    yield return Values.Value.FromHandle<Values.GlobalVariable>( current )!;
+                    yield return Value.FromHandle<GlobalVariable>( current )!;
                     current = current.NextGlobal;
                 }
             }
@@ -106,14 +105,14 @@ namespace Ubiquity.NET.Llvm
                 var current = ModuleHandle.FirstFunction;
                 while( current != default )
                 {
-                    yield return Values.Value.FromHandle<IrFunction>( current )!;
+                    yield return Value.FromHandle<IrFunction>( current )!;
                     current = current.NextFunction;
                 }
             }
         }
 
         /// <summary>Gets the global aliases in this module</summary>
-        public IEnumerable<Values.GlobalAlias> Aliases
+        public IEnumerable<GlobalAlias> Aliases
         {
             get
             {
@@ -121,7 +120,7 @@ namespace Ubiquity.NET.Llvm
                 var current = ModuleHandle.FirstGlobalAlias();
                 while( current != default )
                 {
-                    yield return Values.Value.FromHandle<Values.GlobalAlias>( current )!;
+                    yield return Value.FromHandle<GlobalAlias>( current )!;
                     current = current.NextGlobalAlias();
                 }
             }
@@ -189,32 +188,32 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Gets a function by name from this module</summary>
         /// <param name="name">Name of the function to get</param>
-        /// <returns>The function or null if not found</returns>
+        /// <returns>The function or default if not found</returns>
         [Obsolete( "Use TryGetFunction instead" )]
-        public IrFunction? GetFunction( string name )
+        public IrFunction GetFunction( string name )
         {
             ThrowIfDisposed( );
 
             var funcRef = ModuleHandle.GetNamedFunction( name );
-            return funcRef == default ? null : Values.Value.FromHandle<IrFunction>( funcRef );
+            return funcRef == default ? default : Value.FromHandle<IrFunction>( funcRef );
         }
 
         /// <summary>Looks up a function in the module by name</summary>
         /// <param name="name">Name of the function</param>
-        /// <param name="function">The function or <see langword="null"/> if not found</param>
+        /// <param name="function">The function or <see langword="default"/> if not found</param>
         /// <returns><see langword="true"/> if the function was found or <see langword="false"/> if not</returns>
-        public bool TryGetFunction( string name, [MaybeNullWhen( false )] out IrFunction function )
+        public bool TryGetFunction( string name, out IrFunction function )
         {
             ThrowIfDisposed( );
 
             var funcRef = ModuleHandle.GetNamedFunction( name );
             if( funcRef == default )
             {
-                function = null;
+                function = default;
                 return false;
             }
 
-            function = Values.Value.FromHandle<IrFunction>( funcRef )!;
+            function = Value.FromHandle<IrFunction>( funcRef )!;
             return true;
         }
 
@@ -255,7 +254,7 @@ namespace Ubiquity.NET.Llvm
             {
                 valueRef = ModuleHandle.AddFunction( name, signature.GetTypeRef( ) );
             }
-            return Values.Value.FromHandle<IrFunction>( valueRef )!;
+            return Value.FromHandle<IrFunction>( valueRef )!;
         }
 
         /// <summary>Writes a bit-code module to a file</summary>
@@ -313,23 +312,23 @@ namespace Ubiquity.NET.Llvm
         /// <param name="aliasee">Value being aliased</param>
         /// <param name="aliasName">Name of the alias</param>
         /// <returns><see cref="GlobalAlias"/> for the alias</returns>
-        public Values.GlobalAlias AddAlias( Values.Value aliasee, string aliasName )
+        public GlobalAlias AddAlias( Value aliasee, string aliasName )
         {
             ThrowIfDisposed( );
 
             var handle = ModuleHandle.AddAlias( aliasee.NativeType.GetTypeRef( ), aliasee.ValueHandle, aliasName );
-            return Values.Value.FromHandle<Values.GlobalAlias>( handle )!;
+            return Value.FromHandle<GlobalAlias>( handle )!;
         }
 
         /// <summary>Get an alias by name</summary>
         /// <param name="name">name of the alias to get</param>
-        /// <returns>Alias matching <paramref name="name"/> or null if no such alias exists</returns>
-        public Values.GlobalAlias? GetAlias( string name )
+        /// <returns>Alias matching <paramref name="name"/> or default if no such alias exists</returns>
+        public GlobalAlias GetAlias( string name )
         {
             ThrowIfDisposed( );
 
             var handle = ModuleHandle.GetNamedGlobalAlias( name );
-            return Values.Value.FromHandle<Values.GlobalAlias>( handle );
+            return Value.FromHandle<GlobalAlias>( handle );
         }
 
         /// <summary>Adds a global to this module with a specific address space</summary>
@@ -340,12 +339,12 @@ namespace Ubiquity.NET.Llvm
         /// <openissues>
         /// - What does LLVM do if creating a second Global with the same name (return null, throw, crash??,...)
         /// </openissues>
-        public Values.GlobalVariable AddGlobalInAddressSpace( uint addressSpace, ITypeRef typeRef, string name )
+        public GlobalVariable AddGlobalInAddressSpace( uint addressSpace, ITypeRef typeRef, string name )
         {
             ThrowIfDisposed( );
 
             var handle = ModuleHandle.AddGlobalInAddressSpace( typeRef.GetTypeRef( ), name, addressSpace );
-            return Values.Value.FromHandle<Values.GlobalVariable>( handle )!;
+            return Value.FromHandle<GlobalVariable>( handle )!;
         }
 
         /// <summary>Adds a global to this module</summary>
@@ -355,7 +354,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="linkage">Linkage type for this global</param>
         /// <param name="constVal">Initial value for the global</param>
         /// <returns>New global variable</returns>
-        public Values.GlobalVariable AddGlobalInAddressSpace( uint addressSpace, ITypeRef typeRef, bool isConst, Linkage linkage, Values.Constant constVal )
+        public GlobalVariable AddGlobalInAddressSpace( uint addressSpace, ITypeRef typeRef, bool isConst, Linkage linkage, Constant constVal )
         {
             ThrowIfDisposed( );
 
@@ -370,7 +369,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="constVal">Initial value for the global</param>
         /// <param name="name">Name of the variable</param>
         /// <returns>New global variable</returns>
-        public Values.GlobalVariable AddGlobalInAddressSpace( uint addressSpace, ITypeRef typeRef, bool isConst, Linkage linkage, Values.Constant constVal, string name )
+        public GlobalVariable AddGlobalInAddressSpace( uint addressSpace, ITypeRef typeRef, bool isConst, Linkage linkage, Constant constVal, string name )
         {
             ThrowIfDisposed( );
 
@@ -388,12 +387,12 @@ namespace Ubiquity.NET.Llvm
         /// <openissues>
         /// - What does LLVM do if creating a second Global with the same name (return null, throw, crash??,...)
         /// </openissues>
-        public Values.GlobalVariable AddGlobal( ITypeRef typeRef, string name )
+        public GlobalVariable AddGlobal( ITypeRef typeRef, string name )
         {
             ThrowIfDisposed( );
 
             var handle = ModuleHandle.AddGlobal( typeRef.GetTypeRef( ), name );
-            return Values.Value.FromHandle<Values.GlobalVariable>( handle )!;
+            return Value.FromHandle<GlobalVariable>( handle )!;
         }
 
         /// <summary>Adds a global to this module</summary>
@@ -402,7 +401,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="linkage">Linkage type for this global</param>
         /// <param name="constVal">Initial value for the global</param>
         /// <returns>New global variable</returns>
-        public Values.GlobalVariable AddGlobal( ITypeRef typeRef, bool isConst, Linkage linkage, Values.Constant constVal )
+        public GlobalVariable AddGlobal( ITypeRef typeRef, bool isConst, Linkage linkage, Constant constVal )
         {
             ThrowIfDisposed( );
 
@@ -416,7 +415,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="constVal">Initial value for the global</param>
         /// <param name="name">Name of the variable</param>
         /// <returns>New global variable</returns>
-        public Values.GlobalVariable AddGlobal( ITypeRef typeRef, bool isConst, Linkage linkage, Values.Constant constVal, string name )
+        public GlobalVariable AddGlobal( ITypeRef typeRef, bool isConst, Linkage linkage, Constant constVal, string name )
         {
             ThrowIfDisposed( );
 
@@ -429,24 +428,24 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Retrieves a <see cref="ITypeRef"/> by name from the module</summary>
         /// <param name="name">Name of the type</param>
-        /// <returns>The type or null if no type with the specified name exists in the module</returns>
-        public ITypeRef? GetTypeByName( string name )
+        /// <returns>The type or default if no type with the specified name exists in the module</returns>
+        public ITypeRef GetTypeByName( string name )
         {
             ThrowIfDisposed( );
 
             var hType = ModuleHandle.GetTypeByName( name );
-            return hType == default ? null : TypeRef.FromHandle( hType );
+            return hType == default ? default : TypeRef.FromHandle( hType );
         }
 
         /// <summary>Retrieves a named global from the module</summary>
         /// <param name="name">Name of the global</param>
-        /// <returns><see cref="GlobalVariable"/> or <see langword="null"/> if not found</returns>
-        public Values.GlobalVariable? GetNamedGlobal( string name )
+        /// <returns><see cref="GlobalVariable"/> or <see langword="default"/> if not found</returns>
+        public GlobalVariable GetNamedGlobal( string name )
         {
             ThrowIfDisposed( );
 
             var hGlobal = ModuleHandle.GetNamedGlobal( name );
-            return hGlobal == default ? null : Values.Value.FromHandle<Values.GlobalVariable>( hGlobal );
+            return hGlobal == default ? default : Value.FromHandle<GlobalVariable>( hGlobal );
         }
 
         /// <summary>Gets a declaration for an LLVM intrinsic function</summary>
@@ -484,7 +483,7 @@ namespace Ubiquity.NET.Llvm
 
             LLVMTypeRef[ ] llvmArgs = args.Select( a => a.GetTypeRef( ) ).ToArray( );
             LLVMValueRef valueRef = ModuleHandle.GetIntrinsicDeclaration( id, llvmArgs );
-            return ( IrFunction )Values.Value.FromHandle( valueRef )!;
+            return ( IrFunction )Value.FromHandle( valueRef )!;
         }
 
         /// <summary>Clones the current module</summary>
@@ -554,10 +553,10 @@ namespace Ubiquity.NET.Llvm
             Context.RemoveModule( this );
             var retVal = ModuleHandle;
             ModuleHandle = default;
-            return retVal!; // can't be null as ThrowIfDisposed would consider it disposed
+            return retVal;
         }
 
-        internal static BitcodeModule? FromHandle( LLVMModuleRef nativeHandle )
+        internal static BitcodeModule FromHandle( LLVMModuleRef nativeHandle )
         {
             var contextRef = nativeHandle.Context;
             Context context = ContextCache.GetContextFor( contextRef );
@@ -600,7 +599,7 @@ namespace Ubiquity.NET.Llvm
         {
             if( IsDisposed )
             {
-                throw new ObjectDisposedException( );
+                throw new ObjectDisposedException( this.GetType( ).ToString( ) );
             }
         }
     }

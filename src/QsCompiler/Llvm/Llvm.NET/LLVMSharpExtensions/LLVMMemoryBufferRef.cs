@@ -9,7 +9,7 @@ namespace LLVMSharp.Interop
         public static void Close( this LLVMMemoryBufferRef self )
         {
             LLVM.DisposeMemoryBuffer( self );
-            self.Handle = IntPtr.Zero;
+            self.Handle = default;
         }
     }
 }

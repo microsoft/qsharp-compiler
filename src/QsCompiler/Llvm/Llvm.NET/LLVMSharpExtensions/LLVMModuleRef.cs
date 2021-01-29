@@ -6,18 +6,18 @@ namespace LLVMSharp.Interop
     public static unsafe class LLVMModuleRefExtensions
     {
         /// <summary>Convenience wrapper for LLVM.GetFirstGlobalAlias</summary>
-        public static LLVMValueRef FirstGlobalAlias( this LLVMModuleRef self ) => ( self.Handle != IntPtr.Zero ) ? LLVM.GetFirstGlobalAlias(self) : default;
+        public static LLVMValueRef FirstGlobalAlias( this LLVMModuleRef self ) => ( self.Handle != default ) ? LLVM.GetFirstGlobalAlias(self) : default;
 
         /// <summary>Convenience wrapper for LLVM.GetModuleIdentifier</summary>
         public static string GetModuleIdentifier( this LLVMModuleRef self )
         {
-            if ( self.Handle == IntPtr.Zero )
+            if ( self.Handle == default )
             {
                 return string.Empty;
             }
             UIntPtr len;
             var pStr = LLVM.GetModuleIdentifier( self, &len );
-            if ( pStr is null )
+            if ( pStr == default )
             {
                 return string.Empty;
             }
@@ -30,7 +30,7 @@ namespace LLVMSharp.Interop
         /// <summary>Convenience wrapper for LLVM.AddGlobalIFunc</summary>
         public static LLVMValueRef AddGlobalIFunc( this LLVMModuleRef self, string name, LLVMTypeRef typeRef, uint addrSpace, LLVMValueRef resolver )
         {
-            if ( self.Handle == IntPtr.Zero )
+            if ( self.Handle == default )
             {
                 return default;
             }
@@ -41,7 +41,7 @@ namespace LLVMSharp.Interop
         /// <summary>Convenience wrapper for LLVM.GetNamedGlobalIFunc</summary>
         public static LLVMValueRef GetNamedGlobalIFunc( this LLVMModuleRef self, string name )
         {
-            if ( self.Handle == IntPtr.Zero )
+            if ( self.Handle == default )
             {
                 return default;
             }
@@ -52,7 +52,7 @@ namespace LLVMSharp.Interop
         /// <summary>Convenience wrapper for LLVM.GetNamedGlobalAlias</summary>
         public static LLVMValueRef GetNamedGlobalAlias( this LLVMModuleRef self, string name )
         {
-            if ( self.Handle == IntPtr.Zero )
+            if ( self.Handle == default )
             {
                 return default;
             }

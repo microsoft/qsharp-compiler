@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Properties;
+
 
 namespace Ubiquity.NET.Llvm.Values
 {
@@ -27,7 +27,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// </remarks>
         public unsafe void Add( BasicBlock item )
         {
-            if( item.ContainingFunction == null )
+            if( item.ContainingFunction == default )
             {
                 LLVM.AppendExistingBasicBlock( ContainingFunction.ValueHandle, item.BlockHandle );
             }

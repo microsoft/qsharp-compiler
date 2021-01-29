@@ -12,7 +12,7 @@ using System.Linq;
 
 using LLVMSharp.Interop;
 
-using Ubiquity.NET.Llvm.Properties;
+
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
@@ -44,23 +44,23 @@ namespace Ubiquity.NET.Llvm.Instructions
         public Context Context { get; }
 
         /// <summary>Gets the <see cref="BasicBlock"/> this builder is building instructions for</summary>
-        public BasicBlock? InsertBlock
+        public BasicBlock InsertBlock
         {
             get
             {
                 var handle = BuilderHandle.InsertBlock;
-                return handle == default ? null : BasicBlock.FromHandle( BuilderHandle.InsertBlock );
+                return handle == default ? default : BasicBlock.FromHandle( BuilderHandle.InsertBlock );
             }
         }
 
         /// <summary>Gets the function this builder currently inserts into</summary>
-        public IrFunction? InsertFunction => InsertBlock?.ContainingFunction;
+        public IrFunction InsertFunction => InsertBlock?.ContainingFunction;
 
         /// <summary>Positions the builder at the end of a given <see cref="BasicBlock"/></summary>
         /// <param name="basicBlock">Block to set the position of</param>
         public void PositionAtEnd( BasicBlock basicBlock )
         {
-            if( basicBlock == null )
+            if( basicBlock == default )
             {
                 throw new ArgumentNullException( nameof( basicBlock ) );
             }
@@ -80,7 +80,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public void PositionBefore( Instruction instr )
         {
-            if( instr == null )
+            if( instr == default )
             {
                 throw new ArgumentNullException( nameof( instr ) );
             }
@@ -234,12 +234,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public Alloca Alloca( ITypeRef typeRef, ConstantInt elements )
         {
-            if( typeRef == null )
+            if( typeRef == default )
             {
                 throw new ArgumentNullException( nameof( typeRef ) );
             }
 
-            if( elements == null )
+            if( elements == default )
             {
                 throw new ArgumentNullException( nameof( elements ) );
             }
@@ -258,12 +258,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// <exception cref="ArgumentException"> the function has a non-void return type</exception>
         public ReturnInstruction Return( )
         {
-            if( InsertBlock is null )
+            if( InsertBlock == default )
             {
                 throw new InvalidOperationException( "No insert block is set for this builder" );
             }
 
-            if( InsertBlock.ContainingFunction is null )
+            if( InsertBlock.ContainingFunction == default )
             {
                 throw new InvalidOperationException( "Insert block is not associated with a function; inserting a return requires validation of the function signature" );
             }
@@ -281,12 +281,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// <returns><see cref="ReturnInstruction"/></returns>
         public ReturnInstruction Return( Value value )
         {
-            if( InsertBlock is null )
+            if( InsertBlock == default )
             {
                 throw new InvalidOperationException( "No insert block is set for this builder" );
             }
 
-            if( InsertBlock.ContainingFunction is null )
+            if( InsertBlock.ContainingFunction == default )
             {
                 throw new InvalidOperationException( "Insert block is not associated with a function; inserting a return requires validation of the function signature" );
             }
@@ -1117,12 +1117,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             var conditionVectorType = ifCondition.NativeType as IVectorType;
 
-            if( ifCondition.NativeType.IntegerBitWidth != 1 && conditionVectorType != null && conditionVectorType.ElementType.IntegerBitWidth != 1 )
+            if( ifCondition.NativeType.IntegerBitWidth != 1 && conditionVectorType != default && conditionVectorType.ElementType.IntegerBitWidth != 1 )
             {
                 throw new ArgumentException( );
             }
 
-            if( conditionVectorType != null )
+            if( conditionVectorType != default )
             {
                 if( !( thenValue.NativeType is IVectorType thenVector ) || thenVector.Size != conditionVectorType.Size )
                 {
@@ -1172,7 +1172,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// <summary>Creates a call to the llvm.donothing intrinsic</summary>
         /// <returns><see cref="CallInstruction"/></returns>
         /// <exception cref="InvalidOperationException">
-        /// <see cref="InsertBlock"/> is <see langword="null"/> or it's <see cref="BasicBlock.ContainingFunction"/> is null or has a <see langword="null"/> <see cref="GlobalValue.ParentModule"/>
+        /// <see cref="InsertBlock"/> is <see langword="default"/> or it's <see cref="BasicBlock.ContainingFunction"/> is default or has a <see langword="default"/> <see cref="GlobalValue.ParentModule"/>
         /// </exception>
         public CallInstruction DoNothing( )
         {
@@ -1528,7 +1528,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         private BitcodeModule GetModuleOrThrow( )
         {
             var module = InsertBlock?.ContainingFunction?.ParentModule;
-            if( module == null )
+            if( module == default )
             {
                 throw new InvalidOperationException( );
             }

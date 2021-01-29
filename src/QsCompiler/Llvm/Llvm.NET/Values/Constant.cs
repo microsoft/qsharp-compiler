@@ -8,7 +8,7 @@ using System;
 
 using LLVMSharp.Interop;
 
-using Ubiquity.NET.Llvm.Properties;
+
 using Ubiquity.NET.Llvm.Types;
 
 namespace Ubiquity.NET.Llvm.Values
@@ -25,7 +25,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <returns>Constant NULL pointer of the specified type</returns>
         public static Constant NullValueFor( ITypeRef typeRef )
         {
-            if( typeRef == null )
+            if( typeRef == default )
             {
                 throw new ArgumentNullException( nameof( typeRef ) );
             }

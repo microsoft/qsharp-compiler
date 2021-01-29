@@ -18,8 +18,8 @@ namespace Ubiquity.NET.Llvm.Instructions
         public bool IsConditional => ValueHandle.IsConditional;
 
         /// <summary>Gets the condition for the branch, if any</summary>
-        public Value? Condition
-            => !IsConditional ? null : FromHandle<Value>( ValueHandle.Condition );
+        public Value Condition
+            => !IsConditional ? default : FromHandle<Value>( ValueHandle.Condition );
 
         internal Branch( LLVMValueRef valueRef )
             : base( valueRef )

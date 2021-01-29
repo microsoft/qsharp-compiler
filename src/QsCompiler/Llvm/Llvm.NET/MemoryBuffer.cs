@@ -10,7 +10,7 @@ using System.Runtime.InteropServices;
 
 using LLVMSharp.Interop;
 
-using Ubiquity.NET.Llvm.Properties;
+
 
 namespace Ubiquity.NET.Llvm
 {
@@ -41,7 +41,7 @@ namespace Ubiquity.NET.Llvm
         /// This constructor makes a copy of the data array as a <see cref="MemoryBuffer"/> the memory in the buffer
         /// is unmanaged memory usable by the LLVM native code. It is released in the Dispose method
         /// </remarks>
-        public MemoryBuffer( byte[] data, string? name = null)
+        public MemoryBuffer( byte[] data, string name = default )
         {
             fixed (byte* pData = data.AsSpan( ) )
             {
@@ -57,13 +57,13 @@ namespace Ubiquity.NET.Llvm
         }
 
         /// <summary>Gets the size of the buffer</summary>
-        public int Size => BufferHandle.Handle == IntPtr.Zero ? 0 : ( int )LLVM.GetBufferSize( BufferHandle );
+        public int Size => BufferHandle.Handle == default ? 0 : ( int )LLVM.GetBufferSize( BufferHandle );
 
         /// <summary>Gets an array of bytes from the buffer</summary>
         /// <returns>Array of bytes copied from the buffer</returns>
         public byte[ ] ToArray( )
         {
-            if( BufferHandle.Handle == IntPtr.Zero )
+            if( BufferHandle.Handle == default )
             {
                 throw new InvalidOperationException( );
             }
@@ -87,7 +87,7 @@ namespace Ubiquity.NET.Llvm
         /// <remarks>Creates an efficient means of accessing the raw data of a buffer</remarks>
         public ReadOnlySpan<byte> Slice( int start = 0, int length = -1 )
         {
-            if( BufferHandle.Handle == IntPtr.Zero )
+            if( BufferHandle.Handle == default )
             {
                 throw new InvalidOperationException( );
             }

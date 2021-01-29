@@ -7,7 +7,7 @@
 using System;
 
 using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Properties;
+
 
 // Interface+internal type matches file name
 #pragma warning disable SA1649

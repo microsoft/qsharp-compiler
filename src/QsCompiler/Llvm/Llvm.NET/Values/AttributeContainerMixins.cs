@@ -31,7 +31,7 @@ namespace Ubiquity.NET.Llvm.Values
         public static T AddAttributes<T>( this T self, FunctionAttributeIndex index, params AttributeKind[ ] values )
             where T : class, IAttributeContainer
         {
-            if( values != null )
+            if( values != default )
             {
                 foreach( var kind in values )
                 {
@@ -114,7 +114,7 @@ namespace Ubiquity.NET.Llvm.Values
         public static T AddAttributes<T>( this T self, FunctionAttributeIndex index, IEnumerable<AttributeValue> attributes )
             where T : class, IAttributeContainer
         {
-            if( attributes != null )
+            if( attributes != default )
             {
                 foreach( var attrib in attributes )
                 {

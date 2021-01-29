@@ -10,7 +10,7 @@
   <ItemGroup>
     <PackageReference Include="System.Memory" Version="4.5.4" />
     <ProjectReference Include="..\Llvm\Llvm.NET\Llvm.NET.csproj" />
-    <ProjectReference Include="..\Llvm\Llvm.NET.Interop\Llvm.NET.Interop.csproj" />
+    <!-- <PackageReference Include="Ubiquity.NET.Llvm" Version="10.0.0-alpha.3" /> -->
   </ItemGroup>
 
   <ItemGroup>

@@ -45,7 +45,7 @@ namespace Ubiquity.NET.Llvm.Values
             for( int i = 0; i < Count; ++i )
             {
                 var element = GetOperand<T>( i );
-                if( element is null )
+                if( element == default )
                 {
                     yield break;
                 }

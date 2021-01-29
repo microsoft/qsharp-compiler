@@ -29,7 +29,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <returns><see langword="true"/> if <paramref name="name"/> was in <paramref name="set"/> before being removed</returns>
         public static bool Remove( this ICollection<AttributeValue> set, string name )
         {
-            if ( set == null )
+            if ( set == default )
             {
                 throw new ArgumentNullException( nameof( set ) );
             }

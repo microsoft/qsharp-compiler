@@ -14,7 +14,7 @@ using System.Text;
 using LLVMSharp.Interop;
 
 using Ubiquity.NET.Llvm.Interop;
-using Ubiquity.NET.Llvm.Properties;
+
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
@@ -589,7 +589,7 @@ namespace Ubiquity.NET.Llvm
         /// </remarks>
         public uint GetMDKindId( string name )
         {
-            return LLVM.GetMDKindIDInContext( ContextHandle, name.AsMarshaledString(), name == null ? 0u : ( uint )name.Length );
+            return LLVM.GetMDKindIDInContext( ContextHandle, name.AsMarshaledString(), name == default ? 0u : ( uint )name.Length );
         }
 
         internal LLVMContextRef ContextHandle { get; }
@@ -610,7 +610,7 @@ namespace Ubiquity.NET.Llvm
 
         internal void RemoveModule( BitcodeModule module )
         {
-            if( module.ModuleHandle.Handle != IntPtr.Zero )
+            if( module.ModuleHandle.Handle != default )
             {
                 ModuleCache.Remove( module.ModuleHandle );
             }
@@ -644,7 +644,7 @@ namespace Ubiquity.NET.Llvm
 
         internal Context( LLVMContextRef contextRef )
         {
-            if( contextRef.Handle == IntPtr.Zero )
+            if( contextRef.Handle == default )
             {
                 throw new ArgumentNullException( nameof( contextRef ) );
             }
@@ -656,7 +656,7 @@ namespace Ubiquity.NET.Llvm
             TypeCache = new TypeRef.InterningFactory( this );
             AttributeValueCache = new AttributeValue.InterningFactory( this );
 
-            LLVM.ContextSetDiagnosticHandler( ContextHandle, ActiveHandler, (void*)IntPtr.Zero );
+            LLVM.ContextSetDiagnosticHandler( ContextHandle, ActiveHandler, (void*)default );
         }
 
         /// <summary>Disposes the context to release unmanaged resources deterministically</summary>
@@ -669,7 +669,7 @@ namespace Ubiquity.NET.Llvm
         {
             // disconnect all modules so that any future critical finalization has no impact
             var handles = from m in Modules
-                          where !(m.ModuleHandle.Handle == IntPtr.Zero)
+                          where !(m.ModuleHandle.Handle == default)
                           select m.ModuleHandle;
 
             foreach( var handle in handles )
@@ -677,7 +677,7 @@ namespace Ubiquity.NET.Llvm
                 handle.Dispose( );
             }
 
-            LLVM.ContextSetDiagnosticHandler( ContextHandle, IntPtr.Zero, (void*)IntPtr.Zero );
+            LLVM.ContextSetDiagnosticHandler( ContextHandle, default, (void*)default );
             ActiveHandler.Dispose( );
 
             ContextCache.TryRemove( ContextHandle );

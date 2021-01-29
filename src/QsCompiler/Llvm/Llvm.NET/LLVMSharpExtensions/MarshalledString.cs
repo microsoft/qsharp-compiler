@@ -37,10 +37,10 @@ namespace LLVMSharp.Interop
 
         public void Dispose()
         {
-            if (Value != null)
+            if (Value != default)
             {
                 Marshal.FreeHGlobal((IntPtr)Value);
-                Value = null;
+                Value = default;
                 Length = 0;
             }
         }
