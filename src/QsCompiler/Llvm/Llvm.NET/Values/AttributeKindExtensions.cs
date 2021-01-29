@@ -362,10 +362,6 @@ namespace Ubiquity.NET.Llvm.Values
                         function = f;
                         break;
 
-                    case Invoke inv:
-                        function = inv.TargetFunction;
-                        break;
-
                     case CallInstruction call:
                         function = call.TargetFunction;
                         break;
@@ -403,10 +399,6 @@ namespace Ubiquity.NET.Llvm.Values
                 {
                 case IrFunction f:
                     function = f;
-                    break;
-
-                case Invoke inv:
-                    function = inv.TargetFunction;
                     break;
 
                 case CallInstruction call:

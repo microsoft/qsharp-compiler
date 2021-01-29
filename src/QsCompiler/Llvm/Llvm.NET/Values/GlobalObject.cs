@@ -20,7 +20,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <summary>Gets or sets the alignment requirements for this object</summary>
         public uint Alignment
         {
-            get => ValueHandle.Alignment;
+            get => ValueHandle == default ? default : ValueHandle.Alignment;
             set
             {
                 var val = ValueHandle;
@@ -31,7 +31,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <summary>Gets or sets the linker section this object belongs to</summary>
         public string Section
         {
-            get => ValueHandle.Section;
+            get => ValueHandle == default ? default : ValueHandle.Section;
             set
             {
                 var val = ValueHandle;

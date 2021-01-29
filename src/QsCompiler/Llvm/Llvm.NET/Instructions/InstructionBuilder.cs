@@ -124,12 +124,6 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// <returns><see cref="Value"/> for the instruction</returns>
         public Value FDiv( Value lhs, Value rhs ) => BuildBinOp( (b, v1, v2) => LLVM.BuildFDiv(b, v1, v2, string.Empty.AsMarshaledString()), lhs, rhs );
 
-        /// <summary>Creates a floating point remainder operator</summary>
-        /// <param name="lhs">left hand side operand</param>
-        /// <param name="rhs">right hand side operand</param>
-        /// <returns><see cref="Value"/> for the instruction</returns>
-        public Value FRem( Value lhs, Value rhs ) => BuildBinOp( (b, v1, v2) => LLVM.BuildFRem(b, v1, v2, string.Empty.AsMarshaledString()), lhs, rhs );
-
         /// <summary>Creates an integer negation operator</summary>
         /// <param name="value">operand to negate</param>
         /// <returns><see cref="Value"/> for the instruction</returns>
@@ -328,65 +322,6 @@ namespace Ubiquity.NET.Llvm.Instructions
             return Value.FromHandle<CallInstruction>( hCall )!;
         }
 
-        /// <summary>Creates an <see cref="Instructions.Invoke"/> instruction</summary>
-        /// <param name="func">Function to invoke</param>
-        /// <param name="args">arguments to pass to the function</param>
-        /// <param name="then">Successful continuation block</param>
-        /// <param name="catchBlock">Exception handling block</param>
-        /// <returns><see cref="Instructions.Invoke"/></returns>
-        public Invoke Invoke( Value func, IReadOnlyList<Value> args, BasicBlock then, BasicBlock catchBlock )
-        {
-            ValidateCallArgs( func, args );
-
-            LLVMValueRef[ ] llvmArgs = args.Select( v => v.ValueHandle ).ToArray( );
-            fixed ( LLVMValueRef* pLlvmArgs = llvmArgs.AsSpan( ) )
-            {
-                LLVMValueRef invoke = LLVM.BuildInvoke2( BuilderHandle
-                                                    , func.NativeType.GetTypeRef( )
-                                                    , func.ValueHandle
-                                                    , (LLVMOpaqueValue**)pLlvmArgs
-                                                    , ( uint )llvmArgs.Length
-                                                    , then.BlockHandle
-                                                    , catchBlock.BlockHandle
-                                                    , null
-                                                    );
-
-                return Value.FromHandle<Invoke>( invoke )!;
-            }
-        }
-
-        /// <summary>Creates a <see cref="Instructions.LandingPad"/> instruction</summary>
-        /// <param name="resultType">Result type for the pad</param>
-        /// <returns><see cref="Instructions.LandingPad"/></returns>
-        public LandingPad LandingPad( ITypeRef resultType )
-        {
-            LLVMValueRef landingPad = BuilderHandle.BuildLandingPad( resultType.GetTypeRef( )
-                                                         , default // personality function no longer part of instruction
-                                                         , 0
-                                                         , string.Empty
-                                                         );
-
-            return Value.FromHandle<LandingPad>( landingPad )!;
-        }
-
-        /// <summary>Creates a <see cref="Instructions.Freeze"/> instruction</summary>
-        /// <param name="value">Value to freeze</param>
-        /// <returns><see cref="Instructions.Freeze"/></returns>
-        public Freeze Freeze( Value value )
-        {
-            LLVMValueRef inst = BuilderHandle.BuildFreeze( value.ValueHandle, string.Empty );
-            return Value.FromHandle<Freeze>( inst )!;
-        }
-
-        /// <summary>Creates a <see cref="Instructions.ResumeInstruction"/></summary>
-        /// <param name="exception">Exception value</param>
-        /// <returns><see cref="Instructions.ResumeInstruction"/></returns>
-        public ResumeInstruction Resume( Value exception )
-        {
-            LLVMValueRef resume = BuilderHandle.BuildResume( exception.ValueHandle );
-            return Value.FromHandle<ResumeInstruction>( resume )!;
-        }
-
         /// <summary>Builds an LLVM Store instruction</summary>
         /// <param name="value">Value to store in destination</param>
         /// <param name="destination">value for the destination</param>
@@ -451,119 +386,8 @@ namespace Ubiquity.NET.Llvm.Instructions
             }
 
             // TODO: validate sourceptr is opaque or sourcePtr.Type.ElementType == type
-            var handle = LLVM.BuildLoad2( BuilderHandle, type.GetTypeRef( ), sourcePtr.ValueHandle, null );
+            var handle = LLVM.BuildLoad2( BuilderHandle, type.GetTypeRef( ), sourcePtr.ValueHandle, string.Empty.AsMarshaledString() );
             return Value.FromHandle<Load>( handle )!;
-        }
-
-        /// <summary>Creates an atomic exchange (Read, Modify, Write) instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicXchg( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpXchg, ptr, val );
-
-        /// <summary>Creates an atomic add instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicAdd( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpAdd, ptr, val );
-
-        /// <summary>Creates an atomic subtraction instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicSub( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpSub, ptr, val );
-
-        /// <summary>Creates an atomic AND instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicAnd( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpAnd, ptr, val );
-
-        /// <summary>Creates an atomic NAND instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicNand( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpNand, ptr, val );
-
-        /// <summary>Creates an atomic or instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicOr( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpOr, ptr, val );
-
-        /// <summary>Creates an atomic XOR instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicXor( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpXor, ptr, val );
-
-        /// <summary>Creates an atomic ADD instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicMax( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpMax, ptr, val );
-
-        /// <summary>Creates an atomic MIN instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicMin( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpMin, ptr, val );
-
-        /// <summary>Creates an atomic UMax instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicUMax( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpUMax, ptr, val );
-
-        /// <summary>Creates an atomic UMin instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicUMin( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpUMin, ptr, val );
-
-        /// <summary>Creates an atomic FAdd instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicFadd( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpFAdd, ptr, val );
-
-        /// <summary>Creates an atomic FSub instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="val">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicRMW AtomicFSub( Value ptr, Value val ) => BuildAtomicRMW( LLVMAtomicRMWBinOp.LLVMAtomicRMWBinOpFSub, ptr, val );
-
-        /// <summary>Creates an atomic Compare exchange instruction</summary>
-        /// <param name="ptr">Pointer to the value to update (e.g. destination and the left hand operand)</param>
-        /// <param name="cmp">Comparand for the operation</param>
-        /// <param name="value">Right hand side operand</param>
-        /// <returns><see cref="AtomicRMW"/></returns>
-        public AtomicCmpXchg AtomicCmpXchg( Value ptr, Value cmp, Value value )
-        {
-            if( !( ptr.NativeType is IPointerType ptrType ) )
-            {
-                throw new ArgumentException( Resources.Expected_pointer_value, nameof( ptr ) );
-            }
-
-            if( ptrType.ElementType != cmp.NativeType )
-            {
-                throw new ArgumentException( string.Format( CultureInfo.CurrentCulture, Resources.Incompatible_types_destination_pointer_must_be_same_type_0_1, ptrType.ElementType, cmp.NativeType ) );
-            }
-
-            if( ptrType.ElementType != value.NativeType )
-            {
-                throw new ArgumentException( string.Format( CultureInfo.CurrentCulture, Resources.Incompatible_types_destination_pointer_must_be_same_type_0_1, ptrType.ElementType, value.NativeType ) );
-            }
-
-            var handle = LLVM.BuildAtomicCmpXchg( BuilderHandle
-                                               , ptr.ValueHandle
-                                               , cmp.ValueHandle
-                                               , value.ValueHandle
-                                               , LLVMAtomicOrdering.LLVMAtomicOrderingSequentiallyConsistent
-                                               , LLVMAtomicOrdering.LLVMAtomicOrderingSequentiallyConsistent
-                                               , 0
-                                               );
-            return Value.FromHandle<AtomicCmpXchg>( handle )!;
         }
 
         /// <summary>Creates a <see cref="Value"/> that accesses an element (field) of a structure</summary>
@@ -641,7 +465,7 @@ namespace Ubiquity.NET.Llvm.Instructions
                                         , pointer.ValueHandle
                                         , (LLVMOpaqueValue**)pLlvmArgs
                                         , ( uint )llvmArgs.Length
-                                        , null
+                                        , string.Empty.AsMarshaledString()
                                         );
                 return Value.FromHandle( handle )!;
             }
@@ -757,7 +581,7 @@ namespace Ubiquity.NET.Llvm.Instructions
                                                 , pointer.ValueHandle
                                                 , (LLVMOpaqueValue**)pLlvmArgs
                                                 , ( uint )llvmArgs.Length
-                                                , null
+                                                , string.Empty.AsMarshaledString()
                                                 );
                 return Value.FromHandle( hRetVal )!;
             }
@@ -1345,21 +1169,6 @@ namespace Ubiquity.NET.Llvm.Instructions
             return Value.FromHandle( handle )!;
         }
 
-        /// <summary>Creates a switch instruction</summary>
-        /// <param name="value">Value to switch on</param>
-        /// <param name="defaultCase">default case if <paramref name="value"/> does match any case</param>
-        /// <param name="numCases">Number of cases for the switch</param>
-        /// <returns><see cref="Instructions.Switch"/></returns>
-        /// <remarks>
-        /// Callers can use <see cref="Instructions.Switch.AddCase(Value, BasicBlock)"/> to add cases to the
-        /// instruction.
-        /// </remarks>
-        public Switch Switch( Value value, BasicBlock defaultCase, uint numCases )
-        {
-            var handle = BuilderHandle.BuildSwitch( value.ValueHandle, defaultCase.BlockHandle, numCases );
-            return Value.FromHandle<Switch>( handle )!;
-        }
-
         /// <summary>Creates a call to the llvm.donothing intrinsic</summary>
         /// <returns><see cref="CallInstruction"/></returns>
         /// <exception cref="InvalidOperationException">
@@ -1753,22 +1562,6 @@ namespace Ubiquity.NET.Llvm.Instructions
 
             var valueRef = opFactory( BuilderHandle, lhs.ValueHandle, rhs.ValueHandle );
             return Value.FromHandle( valueRef )!;
-        }
-
-        private AtomicRMW BuildAtomicRMW( LLVMAtomicRMWBinOp op, Value ptr, Value val )
-        {
-            if( !( ptr.NativeType is IPointerType ptrType ) )
-            {
-                throw new ArgumentException( Resources.Expected_pointer_type, nameof( ptr ) );
-            }
-
-            if( ptrType.ElementType != val.NativeType )
-            {
-                throw new ArgumentException( string.Format( CultureInfo.CurrentCulture, Resources.Incompatible_types_destination_pointer_must_be_same_type_0_1, ptrType.ElementType, val.NativeType ) );
-            }
-
-            var handle = BuilderHandle.BuildAtomicRMW( op, ptr.ValueHandle, val.ValueHandle, LLVMAtomicOrdering.LLVMAtomicOrderingSequentiallyConsistent, false );
-            return Value.FromHandle<AtomicRMW>( handle )!;
         }
 
         private static FunctionType ValidateCallArgs( Value func, IReadOnlyList<Value> args )
