@@ -110,8 +110,8 @@ namespace Microsoft.Quantum.Documentation
                         ns.Documentation.SelectMany(group => group).SelectMany(comments => comments));
                     if (ns.Elements.Any(element => element switch
                         {
-                            QsNamespaceElement.QsCallable { Item: var callable } => callable.Modifiers.Access.IsDefaultAccess,
-                            QsNamespaceElement.QsCustomType { Item: var type } => type.Modifiers.Access.IsDefaultAccess,
+                            QsNamespaceElement.QsCallable { Item: var callable } => callable.Visibility.IsPublic,
+                            QsNamespaceElement.QsCustomType { Item: var type } => type.Visibility.IsPublic,
                             _ => false
                         }))
                     {
@@ -150,7 +150,7 @@ namespace Microsoft.Quantum.Documentation
                     range: null, // TODO: provide more exact locations once supported by DocParser.
                     source: type.Source.AssemblyOrCodeFile);
 
-                if (!type.Modifiers.Access.Equals(AccessModifier.Internal))
+                if (type.Visibility.IsPublic)
                 {
                     this.writer?.WriteOutput(type, docComment)?.Wait();
                 }
@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.Documentation
                     range: null, // TODO: provide more exact locations once supported by DocParser.
                     source: callable.Source.AssemblyOrCodeFile);
 
-                if (!callable.Modifiers.Access.Equals(AccessModifier.Internal))
+                if (callable.Visibility.IsPublic)
                 {
                     this.writer?.WriteOutput(callable, docComment)?.Wait();
                 }
