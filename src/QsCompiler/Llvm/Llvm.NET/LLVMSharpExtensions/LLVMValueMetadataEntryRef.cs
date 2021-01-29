@@ -41,6 +41,6 @@ namespace LLVMSharp.Interop
         public override string ToString() => $"{nameof(LLVMValueMetadataEntryRef)}: {Handle:X}";
 
         /// <summary>Convenience wrapper for LLVm.ValueMetadataEntriesGetMetadata</summary>
-        public LLVMMetadataRef ValueMetadataEntriesGetMetadata( uint i ) => ( this.Handle != IntPtr.Zero ) ? LLVM.ValueMetadataEntriesGetMetadata( this, i ) : default;
+        public LLVMMetadataRef ValueMetadataEntriesGetMetadata( uint i ) => ( this.Handle != default ) ? LLVM.ValueMetadataEntriesGetMetadata( this, i ) : default;
     }
 }

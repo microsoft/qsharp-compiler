@@ -6,22 +6,22 @@ namespace LLVMSharp.Interop
     public static unsafe class LLVMValueRefExtensions
     {
         /// <summary>Convenience wrapper for LLVM.GetNextGlobalAlias.</summary>
-        public static LLVMValueRef NextGlobalAlias( this LLVMValueRef self ) => ( self.Handle != IntPtr.Zero ) ? LLVM.GetNextGlobalAlias( self ) : default;
+        public static LLVMValueRef NextGlobalAlias( this LLVMValueRef self ) => ( self.Handle != default ) ? LLVM.GetNextGlobalAlias( self ) : default;
 
         /// <summary>Convenience wrapper for LLVM.GetNextGlobalIFunc</summary>
-        public static LLVMValueRef NextGlobalIFunc( this LLVMValueRef self ) => ( self.Handle != IntPtr.Zero ) ? LLVM.GetNextGlobalIFunc( self ) : default;
+        public static LLVMValueRef NextGlobalIFunc( this LLVMValueRef self ) => ( self.Handle != default ) ? LLVM.GetNextGlobalIFunc( self ) : default;
 
         /// <summary>Convenience wrapper for LLVM.GetMDString</summary>
         public static string GetMDString( this LLVMValueRef self )
         {
             var mdString = self.IsAMDString;
-            if ( mdString.Handle == IntPtr.Zero )
+            if ( mdString.Handle == default )
             {
                 return string.Empty;
             }
             uint len;
             var pStr = LLVM.GetMDString( mdString, &len );
-            if ( pStr is null )
+            if ( pStr == default )
             {
                 return string.Empty;
             }

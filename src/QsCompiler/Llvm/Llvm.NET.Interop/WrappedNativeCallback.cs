@@ -6,8 +6,6 @@ using System;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.InteropServices;
 
-using Ubiquity.NET.Llvm.Interop.Properties;
-
 namespace Ubiquity.NET.Llvm.Interop
 {
     /// <summary>Keep alive holder to ensure native call back delegates are not destroyed while registered with native code</summary>
@@ -59,7 +57,7 @@ namespace Ubiquity.NET.Llvm.Interop
         protected override void Dispose( bool disposing )
         {
             Handle.Free( );
-            UnpinnedDelegate = null;
+            UnpinnedDelegate = default;
         }
 
         /// <summary>Gets a delegate from the raw native callback</summary>
@@ -74,7 +72,7 @@ namespace Ubiquity.NET.Llvm.Interop
         private readonly IntPtr NativeFuncPtr;
 
         // keeps a live ref for the delegate around so GC won't clean it up
-        private Delegate? UnpinnedDelegate;
+        private Delegate UnpinnedDelegate;
 
         private readonly GCHandle Handle;
     }

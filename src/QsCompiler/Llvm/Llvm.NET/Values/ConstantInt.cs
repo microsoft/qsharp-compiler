@@ -7,7 +7,7 @@
 using System;
 
 using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Properties;
+
 
 namespace Ubiquity.NET.Llvm.Values
 {

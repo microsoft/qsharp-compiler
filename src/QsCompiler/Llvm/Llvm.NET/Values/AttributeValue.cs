@@ -58,7 +58,7 @@ namespace Ubiquity.NET.Llvm.Values
                 {
                     uint len;
                     var pStr = LLVM.GetStringAttributeKind( NativeAttribute, &len );
-                    if ( pStr is null )
+                    if ( pStr == default )
                     {
                         return string.Empty;
                     }
@@ -72,8 +72,8 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets the value for named attributes with values</summary>
-        /// <value>The value as a string or <see lang="null"/> if the attribute has no value</value>
-        public string? StringValue
+        /// <value>The value as a string or <see lang="default"/> if the attribute has no value</value>
+        public string StringValue
         {
             get
             {
@@ -81,19 +81,19 @@ namespace Ubiquity.NET.Llvm.Values
                 {
                     uint len;
                     var pStr = LLVM.GetStringAttributeValue( NativeAttribute, &len );
-                    if ( pStr is null )
+                    if ( pStr == default )
                     {
                         return string.Empty;
                     }
                     return ( new ReadOnlySpan<byte>( pStr, (int)len ) ).AsString( );
                 }
 
-                return null;
+                return default;
             }
         }
 
-        /// <summary>Gets the Integer value of the attribute or <see lang="null"/> if the attribute doesn't have a value</summary>
-        public UInt64? IntegerValue => HasIntegerVaue ? LLVM.GetEnumAttributeValue( NativeAttribute ) : ( UInt64? )null;
+        /// <summary>Gets the Integer value of the attribute or <see lang="default"/> if the attribute doesn't have a value</summary>
+        public UInt64? IntegerValue => HasIntegerVaue ? LLVM.GetEnumAttributeValue( NativeAttribute ) : ( UInt64? )default;
 
         /// <summary>Gets a value indicating whether this attribute is a target specific string value</summary>
         public bool IsString => LLVM.IsStringAttribute( NativeAttribute ) == 1;
@@ -110,7 +110,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <returns><see lang="true"/> if the attribute is valid on the specified <paramref name="index"/> of the given <paramref name="value"/></returns>
         public bool IsValidOn( FunctionAttributeIndex index, Value value )
         {
-            if( value == null )
+            if( value == default )
             {
                 throw new ArgumentNullException( nameof( value ) );
             }
@@ -131,7 +131,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <exception cref="ArgumentException">The attribute is not valid on <paramref name="value"/> for the <paramref name="index"/></exception>
         public void VerifyValidOn( FunctionAttributeIndex index, Value value )
         {
-            if( value == null )
+            if( value == default )
             {
                 throw new ArgumentNullException( nameof( value ) );
             }

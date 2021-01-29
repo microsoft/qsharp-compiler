@@ -8,7 +8,6 @@ using System.Runtime.InteropServices;
 using System.Threading;
 
 using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Interop.Properties;
 
 namespace Ubiquity.NET.Llvm.Interop
 {
@@ -830,6 +829,6 @@ namespace Ubiquity.NET.Llvm.Interop
         }
 
         // lazy initialized singleton unmanaged delegate so it is never collected
-        private static Lazy<LLVMFatalErrorHandler>? FatalErrorHandlerDelegate;
+        private static Lazy<LLVMFatalErrorHandler> FatalErrorHandlerDelegate;
     }
 }

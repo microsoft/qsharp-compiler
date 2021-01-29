@@ -13,7 +13,7 @@ using System.Linq;
 using LLVMSharp.Interop;
 
 using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Properties;
+
 
 namespace Ubiquity.NET.Llvm.Values
 {
@@ -345,7 +345,7 @@ namespace Ubiquity.NET.Llvm.Values
             // case FunctionAttributeIndex.Parameter0:
             default:
                 {
-                    if( value == null )
+                    if( value == default )
                     {
                         throw new ArgumentNullException( nameof( value ) );
                     }
@@ -355,7 +355,7 @@ namespace Ubiquity.NET.Llvm.Values
                         return false;
                     }
 
-                    IrFunction? function;
+                    IrFunction function;
                     switch( value )
                     {
                     case IrFunction f:
@@ -371,7 +371,7 @@ namespace Ubiquity.NET.Llvm.Values
                         break;
 
                     default:
-                        function = null;
+                        function = default;
                         break;
                     }
 
@@ -394,7 +394,7 @@ namespace Ubiquity.NET.Llvm.Values
 
             if( index >= FunctionAttributeIndex.Parameter0 )
             {
-                IrFunction? function;
+                IrFunction function;
                 switch( value )
                 {
                 case IrFunction f:
@@ -410,7 +410,7 @@ namespace Ubiquity.NET.Llvm.Values
                     break;
 
                 default:
-                    function = null;
+                    function = default;
                     break;
                 }
 
@@ -566,29 +566,6 @@ namespace Ubiquity.NET.Llvm.Values
                 return FunctionIndexKinds.Function;
             }
         }
-
-        /*
-        private static Function GetFunctionForAttributes( Value value )
-        {
-            switch( value )
-            {
-            case Function f:
-                return f;
-
-            case Invoke inv:
-                return inv.TargetFunction;
-
-            case CallInstruction call:
-                return call.TargetFunction;
-
-            case Argument arg:
-                return arg.ContainingFunction;
-
-            default:
-                return null;
-            }
-        }
-        */
 
         // use complement and compare technique for efficiency
         private static bool IsPowerOfTwo( ulong x ) => ( x != 0 ) && ( ( x & ( ~x + 1 ) ) == x );

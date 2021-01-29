@@ -9,7 +9,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Properties;
+
 using Ubiquity.NET.Llvm.Types;
 
 namespace Ubiquity.NET.Llvm.Values
@@ -213,8 +213,8 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets the Entry block for this function</summary>
-        public BasicBlock? EntryBlock
-            => ValueHandle.BasicBlocksCount == 0 ? null : BasicBlock.FromHandle( ValueHandle.EntryBasicBlock );
+        public BasicBlock EntryBlock
+            => ValueHandle.BasicBlocksCount == 0 ? default : BasicBlock.FromHandle( ValueHandle.EntryBasicBlock );
 
         /// <summary>Gets the basic blocks for the function</summary>
         public ICollection<BasicBlock> BasicBlocks { get; }
@@ -243,9 +243,9 @@ namespace Ubiquity.NET.Llvm.Values
         public ITypeRef ReturnType => Signature.ReturnType;
 
         /// <summary>Gets or sets the personality function for exception handling in this function</summary>
-        public unsafe IrFunction? PersonalityFunction
+        public unsafe IrFunction PersonalityFunction
         {
-            get => 0 == LLVM.HasPersonalityFn( ValueHandle ) ? null : FromHandle<IrFunction>( ValueHandle.PersonalityFn )!;
+            get => 0 == LLVM.HasPersonalityFn( ValueHandle ) ? default : FromHandle<IrFunction>( ValueHandle.PersonalityFn )!;
 
             set
             {
@@ -315,7 +315,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <exception cref="ArgumentException"><paramref name="insertBefore"/> belongs to a different function</exception>
         public BasicBlock InsertBasicBlock( string name, BasicBlock insertBefore )
         {
-            if( insertBefore.ContainingFunction != null && insertBefore.ContainingFunction != this )
+            if( insertBefore.ContainingFunction != default && insertBefore.ContainingFunction != this )
             {
                 throw new ArgumentException( "Basic block belongs to another function", nameof( insertBefore ) );
             }

@@ -10,7 +10,7 @@ using System.Linq;
 
 using LLVMSharp.Interop;
 
-using Ubiquity.NET.Llvm.Properties;
+
 using Ubiquity.NET.Llvm.Values;
 
 namespace Ubiquity.NET.Llvm.Instructions

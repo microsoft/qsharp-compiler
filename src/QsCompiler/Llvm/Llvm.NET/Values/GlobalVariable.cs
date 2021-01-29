@@ -48,12 +48,12 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets or sets the initial value for the variable</summary>
-        public Constant? Initializer
+        public Constant Initializer
         {
             get
             {
                 var handle = ValueHandle.Initializer;
-                return handle == default ? null : FromHandle<Constant>( handle );
+                return handle == default ? default : FromHandle<Constant>( handle );
             }
 
             set

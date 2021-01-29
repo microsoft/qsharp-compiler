@@ -45,7 +45,7 @@ namespace Ubiquity.NET.Llvm.Values
         {
             /* ReSharper disable ConditionIsAlwaysTrueOrFalse */
             /* ReSharper disable HeuristicUnreachableCode */
-            if( array == null )
+            if( array == default )
             {
                 return;
             }

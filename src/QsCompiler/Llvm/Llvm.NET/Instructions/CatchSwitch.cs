@@ -26,12 +26,12 @@ namespace Ubiquity.NET.Llvm.Instructions
         }
 
         /// <summary>Gets or sets the Unwind destination for this <see cref="CatchSwitch"/></summary>
-        public unsafe BasicBlock? UnwindDestination
+        public unsafe BasicBlock UnwindDestination
         {
             get
             {
                 var handle = LLVM.GetUnwindDest( ValueHandle );
-                return handle == default ? null : BasicBlock.FromHandle( handle );
+                return handle == default ? default : BasicBlock.FromHandle( handle );
             }
 
             set

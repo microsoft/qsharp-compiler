@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using LLVMSharp.Interop;
 
 using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Properties;
+
 
 namespace Ubiquity.NET.Llvm.Values
 {
@@ -24,14 +24,14 @@ namespace Ubiquity.NET.Llvm.Values
         : Value
     {
         /// <summary>Gets the function containing the block</summary>
-        public IrFunction? ContainingFunction
+        public IrFunction ContainingFunction
         {
             get
             {
                 var parent = BlockHandle.Parent;
                 if( parent == default )
                 {
-                    return null;
+                    return default;
                 }
 
                 // cache functions and use lookups to ensure
@@ -42,22 +42,22 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets the first instruction in the block</summary>
-        public Instruction? FirstInstruction
+        public Instruction FirstInstruction
         {
             get
             {
                 var firstInst = BlockHandle.FirstInstruction;
-                return firstInst == default ? null : FromHandle<Instruction>( firstInst );
+                return firstInst == default ? default : FromHandle<Instruction>( firstInst );
             }
         }
 
         /// <summary>Gets the last instruction in the block</summary>
-        public Instruction? LastInstruction
+        public Instruction LastInstruction
         {
             get
             {
                 var lastInst = BlockHandle.LastInstruction;
-                return lastInst == default ? null : FromHandle<Instruction>( lastInst );
+                return lastInst == default ? default : FromHandle<Instruction>( lastInst );
             }
         }
 
@@ -66,12 +66,12 @@ namespace Ubiquity.NET.Llvm.Values
         /// May be null if the block is not yet well-formed
         /// as is commonly the case while generating code for a new block
         /// </remarks>
-        public Instruction? Terminator
+        public Instruction Terminator
         {
             get
             {
                 var terminator = BlockHandle.Terminator;
-                return terminator == default ? null : FromHandle<Instruction>( terminator );
+                return terminator == default ? default : FromHandle<Instruction>( terminator );
             }
         }
 
@@ -81,7 +81,7 @@ namespace Ubiquity.NET.Llvm.Values
             get
             {
                 var current = FirstInstruction;
-                while( current != null )
+                while( current != default )
                 {
                     yield return current;
                     current = GetNextInstruction( current );
@@ -91,11 +91,11 @@ namespace Ubiquity.NET.Llvm.Values
 
         /// <summary>Gets the instruction that follows a given instruction in a block</summary>
         /// <param name="instruction">instruction in the block to get the next instruction from</param>
-        /// <returns>Next instruction or null if none</returns>
+        /// <returns>Next instruction or default if none</returns>
         /// <exception cref="ArgumentException">Thrown when <paramref cref="Instruction"/> is from a different block</exception>
-        public Instruction? GetNextInstruction( Instruction instruction )
+        public Instruction GetNextInstruction( Instruction instruction )
         {
-            if( instruction == null )
+            if( instruction == default )
             {
                 throw new ArgumentNullException( nameof( instruction ) );
             }
@@ -106,7 +106,7 @@ namespace Ubiquity.NET.Llvm.Values
             }
 
             var hInst = instruction.ValueHandle.NextInstruction;
-            return hInst == default ? null : FromHandle<Instruction>( hInst );
+            return hInst == default ? default : FromHandle<Instruction>( hInst );
         }
 
         internal BasicBlock( LLVMValueRef valueRef )
@@ -116,7 +116,7 @@ namespace Ubiquity.NET.Llvm.Values
 
         internal LLVMBasicBlockRef BlockHandle => ValueHandle.AsBasicBlock( );
 
-        internal static BasicBlock? FromHandle( LLVMBasicBlockRef basicBlockRef )
+        internal static BasicBlock FromHandle( LLVMBasicBlockRef basicBlockRef )
         {
             return FromHandle<BasicBlock>( basicBlockRef.AsValue( ) );
         }

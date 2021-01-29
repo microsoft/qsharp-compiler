@@ -10,7 +10,7 @@ using LLVMSharp.Interop;
 
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Instructions;
-using Ubiquity.NET.Llvm.Properties;
+
 
 namespace Ubiquity.NET.Llvm.Values
 {
@@ -72,7 +72,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <param name="other">New value</param>
         public void ReplaceAllUsesWith( Value other )
         {
-            if( other == null )
+            if( other == default )
             {
                 throw new ArgumentNullException( nameof( other ) );
             }
