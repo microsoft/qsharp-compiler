@@ -11,12 +11,16 @@ steps:
 # Pre-reqs
 ##
 - task: NuGetToolInstaller@0
-  displayName: 'Use NuGet 5.6.0'
+  displayName: Use NuGet 5.8.1
   inputs:
-    versionSpec: '5.6.0'
+    versionSpec: 5.8.1
 
 - task: UseDotNet@2
-  displayName: 'Use .NET Core SDK 3.1.405'
+  displayName: Use .NET SDK 5.0.102
   inputs:
-    packageType: sdk
-    version: '3.1.405'
+    version: 5.0.102
+
+- task: UseDotNet@2
+  displayName: Use .NET Core SDK 3.1.405
+  inputs:
+    version: 3.1.405
