@@ -99,7 +99,7 @@ namespace Ubiquity.NET.Llvm
 
             if( ( start + length ) > Size )
             {
-                throw new ArgumentException( Resources.start_plus_length_exceeds_size_of_buffer );
+                throw new ArgumentException( );
             }
 
             unsafe

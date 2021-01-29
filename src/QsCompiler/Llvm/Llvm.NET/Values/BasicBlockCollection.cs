@@ -34,10 +34,10 @@ namespace Ubiquity.NET.Llvm.Values
 
             if( item.ContainingFunction != ContainingFunction )
             {
-                throw new ArgumentException( Resources.Cannot_add_a_block_belonging_to_a_different_function, nameof( item ) );
+                throw new ArgumentException( );
             }
 
-            throw new ArgumentException( Resources.Block_already_exists_in_function, nameof( item ) );
+            throw new ArgumentException( );
         }
 
         /// <inheritdoc/>

@@ -166,12 +166,12 @@ namespace Ubiquity.NET.Llvm
 
             if( otherModule.Context != Context )
             {
-                throw new ArgumentException( Resources.Linking_modules_from_different_contexts_is_not_allowed, nameof( otherModule ) );
+                throw new ArgumentException( );
             }
 
             if( ModuleHandle.Link( otherModule.ModuleHandle ) )
             {
-                throw new InternalCodeGeneratorException( Resources.Module_link_error );
+                throw new InternalCodeGeneratorException( );
             }
 
             Context.RemoveModule( otherModule );
@@ -272,7 +272,7 @@ namespace Ubiquity.NET.Llvm
             var status = ModuleHandle.WriteBitcodeToFile( path );
             if( 0 != status )
             {
-                throw new IOException( string.Format( CultureInfo.CurrentCulture, Resources.Error_writing_bit_code_file_0, path ), status );
+                throw new IOException( );
             }
         }
 
@@ -477,9 +477,9 @@ namespace Ubiquity.NET.Llvm
         /// <returns>Function declaration</returns>
         public IrFunction GetIntrinsicDeclaration( UInt32 id, params ITypeRef[ ] args )
         {
-            if( 0 != LLVM.IntrinsicIsOverloaded( id ) && args.Length > 0 )
+            if( 0 == LLVM.IntrinsicIsOverloaded( id ) && args.Length > 0 )
             {
-                throw new ArgumentException( string.Format( CultureInfo.CurrentCulture, Resources.Intrinsic_0_is_not_overloaded_and_therefore_does_not_require_type_arguments, id ) );
+                throw new ArgumentException( );
             }
 
             LLVMTypeRef[ ] llvmArgs = args.Select( a => a.GetTypeRef( ) ).ToArray( );
@@ -509,7 +509,6 @@ namespace Ubiquity.NET.Llvm
 
             var buffer = WriteToBuffer( );
             var retVal = LoadFrom( buffer, targetContext );
-            Debug.Assert( retVal.Context == targetContext, Resources.Expected_to_get_a_module_bound_to_the_specified_context );
             return retVal;
         }
 
@@ -521,7 +520,7 @@ namespace Ubiquity.NET.Llvm
         {
             if( !File.Exists( path ) )
             {
-                throw new FileNotFoundException( Resources.Specified_bit_code_file_does_not_exist, path );
+                throw new FileNotFoundException( );
             }
 
             var buffer = new MemoryBuffer( path );
@@ -543,7 +542,7 @@ namespace Ubiquity.NET.Llvm
         public static BitcodeModule LoadFrom( MemoryBuffer buffer, Context context )
         {
             return context.ContextHandle.TryParseBitcode( buffer.BufferHandle, out LLVMModuleRef modRef, out string message )
-                ? throw new InternalCodeGeneratorException( Resources.Could_not_parse_bit_code_from_buffer, new InternalCodeGeneratorException( message ) )
+                ? throw new InternalCodeGeneratorException( message )
                 : context.GetModuleFor( modRef );
         }
 
@@ -586,7 +585,7 @@ namespace Ubiquity.NET.Llvm
             {
                 var contextRef = handle.Context;
                 return Context.ContextHandle != contextRef
-                    ? throw new ArgumentException( Resources.Context_mismatch_cannot_cache_modules_from_multiple_contexts )
+                    ? throw new ArgumentException( )
                     : new BitcodeModule( handle );
             }
         }
@@ -601,7 +600,7 @@ namespace Ubiquity.NET.Llvm
         {
             if( IsDisposed )
             {
-                throw new ObjectDisposedException( Resources.Module_was_explicitly_destroyed_or_ownership_transferred_to_native_library );
+                throw new ObjectDisposedException( );
             }
         }
     }

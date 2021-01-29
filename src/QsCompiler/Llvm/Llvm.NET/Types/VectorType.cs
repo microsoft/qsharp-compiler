@@ -33,7 +33,7 @@ namespace Ubiquity.NET.Llvm.Types
         {
             if( typeRef.Kind != LLVMTypeKind.LLVMVectorTypeKind )
             {
-                throw new ArgumentException( Resources.Vector_type_reference_expected, nameof( typeRef ) );
+                throw new ArgumentException( );
             }
         }
     }

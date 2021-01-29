@@ -35,7 +35,7 @@ namespace Ubiquity.NET.Llvm.Types
         {
             if( typeRef.Kind != LLVMTypeKind.LLVMPointerTypeKind )
             {
-                throw new ArgumentException( Resources.Pointer_type_reference_expected, nameof( typeRef ) );
+                throw new ArgumentException( );
             }
         }
     }

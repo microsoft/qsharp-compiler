@@ -102,7 +102,7 @@ namespace Ubiquity.NET.Llvm
 
             if( elementType.Context != this )
             {
-                throw new ArgumentException( Resources.Cannot_mix_types_from_different_contexts, nameof( elementType ) );
+                throw new ArgumentException( );
             }
 
             return TypeRef.FromHandle<IPointerType>( LLVM.PointerType( elementType.GetTypeRef( ), 0 ) );
@@ -121,7 +121,7 @@ namespace Ubiquity.NET.Llvm
         {
             if( bitWidth == 0 )
             {
-                throw new ArgumentException( Resources.Integer_bit_width_must_be_greater_than_0 );
+                throw new ArgumentException( );
             }
 
             return bitWidth switch
@@ -159,7 +159,7 @@ namespace Ubiquity.NET.Llvm
         {
             if( ContextHandle != returnType.Context.ContextHandle )
             {
-                throw new ArgumentException( Resources.Mismatched_context, nameof( returnType ) );
+                throw new ArgumentException( );
             }
 
             LLVMTypeRef[ ] llvmArgs = args.Select( a => a.GetTypeRef( ) ).ToArray( );
@@ -255,14 +255,14 @@ namespace Ubiquity.NET.Llvm
         {
             if( type.Context != this )
             {
-                throw new ArgumentException( Resources.Cannot_create_named_constant_struct_with_type_from_another_context, nameof( type ) );
+                throw new ArgumentException( );
             }
 
             var valueList = values as IList<Constant> ?? values.ToList( );
             var valueHandles = valueList.Select( v => v.ValueHandle ).ToArray( );
             if( type.Members.Count != valueHandles.Length )
             {
-                throw new ArgumentException( Resources.Number_of_values_provided_must_match_the_number_of_elements_in_the_specified_type );
+                throw new ArgumentException( );
             }
 
             var mismatchedTypes = from indexedVal in valueList.Select( ( v, i ) => new { Value = v, Index = i } )
@@ -271,19 +271,7 @@ namespace Ubiquity.NET.Llvm
 
             if( mismatchedTypes.Any( ) )
             {
-                var msg = new StringBuilder( Resources.One_or_more_values_provided_do_not_match_the_corresponding_member_type_ );
-                msg.AppendLine( );
-                foreach( var mismatch in mismatchedTypes )
-                {
-                    msg.AppendFormat( CultureInfo.CurrentCulture
-                                    , Resources.MismatchedType_0_member_type_equals_1_value_type_equals_2
-                                    , mismatch.Index
-                                    , type.Members[ mismatch.Index ]
-                                    , valueList[ mismatch.Index ].NativeType
-                                    );
-                }
-
-                throw new ArgumentException( msg.ToString( ) );
+                throw new ArgumentException( );
             }
 
             fixed (LLVMValueRef* pValueHandles = valueHandles.AsSpan( ))
@@ -484,12 +472,12 @@ namespace Ubiquity.NET.Llvm
         {
             if( intType.Context != this )
             {
-                throw new ArgumentException( Resources.Cannot_mix_types_from_different_contexts, nameof( intType ) );
+                throw new ArgumentException( );
             }
 
             if( intType.Kind != TypeKind.Integer )
             {
-                throw new ArgumentException( Resources.Integer_type_required, nameof( intType ) );
+                throw new ArgumentException( );
             }
 
             LLVMValueRef valueRef = LLVM.ConstInt( intType.GetTypeRef( ), constValue, signExtend ? 1 : 0 );
@@ -515,7 +503,7 @@ namespace Ubiquity.NET.Llvm
         {
             if( kind.RequiresIntValue( ) )
             {
-                throw new ArgumentException( string.Format( CultureInfo.CurrentCulture, Resources.Attribute_0_requires_a_value, kind ), nameof( kind ) );
+                throw new ArgumentException( );
             }
 
             var handle = LLVM.CreateEnumAttribute( ContextHandle
@@ -545,7 +533,7 @@ namespace Ubiquity.NET.Llvm
         {
             if( !kind.RequiresIntValue( ) )
             {
-                throw new ArgumentException( string.Format( CultureInfo.CurrentCulture, Resources.Attribute_0_does_not_support_a_value, kind ), nameof( kind ) );
+                throw new ArgumentException( );
             }
 
             var handle = LLVM.CreateEnumAttribute( ContextHandle
@@ -637,7 +625,7 @@ namespace Ubiquity.NET.Llvm
             var hModuleContext = LLVM.GetModuleContext( moduleRef );
             if( hModuleContext != ContextHandle )
             {
-                throw new ArgumentException( Resources.Incorrect_context_for_module );
+                throw new ArgumentException( );
             }
 
             // make sure handle to existing module isn't auto disposed.
@@ -704,7 +692,6 @@ namespace Ubiquity.NET.Llvm
             var level = LLVM.GetDiagInfoSeverity( param0 );
             Debug.WriteLine( "{0}: {1}", level, span.Slice(0, span.IndexOf((byte)'\0')).AsString() );
             LLVM.DisposeErrorMessage(msg);
-            Debug.Assert( level != LLVMDiagnosticSeverity.LLVMDSError, Resources.Assert_Unexpected_Debug_state );
         }
 
         private readonly WrappedNativeCallback<LLVMDiagnosticHandler> ActiveHandler;

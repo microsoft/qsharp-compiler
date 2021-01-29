@@ -102,7 +102,7 @@ namespace Ubiquity.NET.Llvm.Values
 
             if( instruction.ContainingBlock != this )
             {
-                throw new ArgumentException( Resources.Instruction_is_from_a_different_block, nameof( instruction ) );
+                throw new ArgumentException( );
             }
 
             var hInst = instruction.ValueHandle.NextInstruction;

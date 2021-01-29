@@ -93,7 +93,7 @@ namespace Ubiquity.NET.Llvm.Values
                 var handleContext = handle.GetContext();
                 if( handleContext != Context )
                 {
-                    throw new ArgumentException( Resources.Context_for_the_handle_provided_doesn_t_match_the_context_for_this_cache, nameof( handle ) );
+                    throw new ArgumentException( );
                 }
 
                 var kind = handle.Kind;

@@ -417,7 +417,7 @@ namespace Ubiquity.NET.Llvm.Values
                 int paramIndex = index - FunctionAttributeIndex.Parameter0;
                 if( paramIndex > ( ( function?.Parameters.Count ?? 0 ) - 1 ) )
                 {
-                    throw new ArgumentException( Resources.Specified_parameter_index_exceeds_the_number_of_parameters_in_the_function, nameof( index ) );
+                    throw new ArgumentException( );
                 }
             }
         }
@@ -430,7 +430,7 @@ namespace Ubiquity.NET.Llvm.Values
             case FunctionAttributeIndex.Function:
                 if( !allowedIndexes.HasFlag( FunctionIndexKinds.Function ) )
                 {
-                    throw new ArgumentException( Resources.Attribute_not_allowed_on_functions, nameof( index ) );
+                    throw new ArgumentException( );
                 }
 
                 break;
@@ -438,7 +438,7 @@ namespace Ubiquity.NET.Llvm.Values
             case FunctionAttributeIndex.ReturnType:
                 if( !allowedIndexes.HasFlag( FunctionIndexKinds.Return ) )
                 {
-                    throw new ArgumentException( Resources.Attribute_not_allowed_on_function_Return, nameof( index ) );
+                    throw new ArgumentException( );
                 }
 
                 break;
@@ -447,7 +447,7 @@ namespace Ubiquity.NET.Llvm.Values
             default:
                 if( !allowedIndexes.HasFlag( FunctionIndexKinds.Parameter ) )
                 {
-                    throw new ArgumentException( Resources.Attribute_not_allowed_on_function_parameter, nameof( index ) );
+                    throw new ArgumentException( );
                 }
 
                 break;
@@ -469,7 +469,7 @@ namespace Ubiquity.NET.Llvm.Values
             case AttributeKind.Alignment:
                 if( value > UInt32.MaxValue )
                 {
-                    throw new ArgumentOutOfRangeException( nameof( value ), Resources.Expected_a_32_bit_value_for_alignment );
+                    throw new ArgumentOutOfRangeException( );
                 }
 
                 break;
@@ -477,12 +477,12 @@ namespace Ubiquity.NET.Llvm.Values
             case AttributeKind.StackAlignment:
                 if( value > UInt32.MaxValue )
                 {
-                    throw new ArgumentOutOfRangeException( nameof( value ), Resources.Expected_a_32_bit_value_for_stack_alignment );
+                    throw new ArgumentOutOfRangeException( );
                 }
 
                 if( value != 0 && !IsPowerOfTwo( value ) )
                 {
-                    throw new ArgumentException( Resources.Stack_alignment_value_must_be_a_power_of_2, nameof( value ) );
+                    throw new ArgumentException( );
                 }
 
                 break;
@@ -492,7 +492,7 @@ namespace Ubiquity.NET.Llvm.Values
                 break;
 
             default:
-                throw new ArgumentException( string.Format( CultureInfo.CurrentCulture, Resources.Attribute_0_does_not_support_an_argument, kind ), nameof( kind ) );
+                throw new ArgumentException( );
             }
         }
 
