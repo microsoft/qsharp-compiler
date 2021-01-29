@@ -630,6 +630,10 @@ namespace Ubiquity.NET.Llvm
 
         internal BitcodeModule GetModuleFor( LLVMModuleRef moduleRef )
         {
+            if ( moduleRef == default )
+            {
+                throw new ArgumentNullException();
+            }
             var hModuleContext = LLVM.GetModuleContext( moduleRef );
             if( hModuleContext != ContextHandle )
             {

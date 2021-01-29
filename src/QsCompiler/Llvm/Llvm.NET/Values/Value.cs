@@ -66,7 +66,7 @@ namespace Ubiquity.NET.Llvm.Values
 
         /// <summary>Generates a string representing the LLVM syntax of the value</summary>
         /// <returns>string version of the value formatted by LLVM</returns>
-        public override string ToString( ) => ValueHandle.PrintToString( );
+        public override string ToString( ) => ValueHandle == default ? default : ValueHandle.PrintToString( );
 
         /// <summary>Replace all uses of a <see cref="Value"/> with another one</summary>
         /// <param name="other">New value</param>
@@ -127,10 +127,56 @@ namespace Ubiquity.NET.Llvm.Values
                     return new ConstantArray( handle );
 
                 case LLVMValueKind.LLVMInstructionValueKind:
+                    // Need to determine what kind of instruction it is.
+                    if ( handle.IsAAllocaInst is LLVMValueRef allocaInst &&
+                        allocaInst != default )
+                    {
+                        return new Alloca( allocaInst );
+                    }
+                    else if ( handle.IsABranchInst is LLVMValueRef branchInst &&
+                        branchInst != default )
+                    {
+                        return new Branch( branchInst );
+                    }
+                    else if ( handle.IsACallInst is LLVMValueRef callInst &&
+                        callInst != default )
+                    {
+                        return new CallInstruction( callInst );
+                    }
+                    else if ( handle.IsALoadInst is LLVMValueRef loadInst &&
+                        loadInst != default )
+                    {
+                        return new Load( loadInst );
+                    }
+                    else if ( handle.IsAPHINode is LLVMValueRef phiNode &&
+                        phiNode != default )
+                    {
+                        return new PhiNode( phiNode );
+                    }
+                    else if ( handle.IsAReturnInst is LLVMValueRef returnInst &&
+                        returnInst != default )
+                    {
+                        return new ReturnInstruction( returnInst );
+                    }
+                    else if ( handle.IsAStoreInst is LLVMValueRef storeInst &&
+                        storeInst != default )
+                    {
+                        return new Store( storeInst );
+                    }
+                    else if ( handle.IsAUnreachableInst is LLVMValueRef unreachableInst &&
+                        unreachableInst != default )
+                    {
+                        return new Unreachable( unreachableInst );
+                    }
                     return new Instruction( handle );
 
                 // Default to generic base Value
                 default:
+                    if ( handle.IsAConstant is LLVMValueRef constantVal &&
+                        constantVal != default )
+                    {
+                        return new Constant( constantVal );
+                    }
                     return new Value( handle );
                 }
             }
