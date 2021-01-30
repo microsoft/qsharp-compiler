@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>QsFmt.Parser</AssemblyName>
+    <RootNamespace>$(AssemblyName)</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.9.1" />
+  </ItemGroup>
+
+  <Target Name="ANTLR" BeforeTargets="CoreCompile" Inputs="QSharpLexer.g4; QSharpParser.g4" Outputs="obj\Antlr\QSharpBaseVisitor.cs; obj\Antlr\QSharpLexer.cs; obj\Antlr\QSharpParser.cs; obj\Antlr\QSharpVisitor.cs">
+    <DownloadFile DestinationFolder="obj\Antlr" SourceUrl="https://www.antlr.org/download/antlr-4.9.1-complete.jar" />
+    <Exec Command="java -jar obj/Antlr/antlr-4.9.1-complete.jar -o obj/Antlr -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp QSharpLexer.g4 QSharpParser.g4" />
+    <ItemGroup>
+      <Compile Include="obj\Antlr\*.cs" />
+    </ItemGroup>
+  </Target>
+</Project>

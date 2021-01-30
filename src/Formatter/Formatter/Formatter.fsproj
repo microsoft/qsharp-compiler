@@ -1,0 +1,36 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>QsFmt.Formatter</AssemblyName>
+    <RootNamespace>$(AssemblyName)</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Utils.fs" />
+    <Compile Include="SyntaxTree\Node.fs" />
+    <Compile Include="SyntaxTree\Type.fs" />
+    <Compile Include="SyntaxTree\Expression.fs" />
+    <Compile Include="SyntaxTree\Statement.fs" />
+    <Compile Include="SyntaxTree\Namespace.fs" />
+    <Compile Include="SyntaxTree\Rewriter.fs" />
+    <Compile Include="SyntaxTree\Reducer.fs" />
+    <Compile Include="ParseTree\Node.fs" />
+    <Compile Include="ParseTree\Type.fs" />
+    <Compile Include="ParseTree\Expression.fs" />
+    <Compile Include="ParseTree\Statement.fs" />
+    <Compile Include="ParseTree\Namespace.fs" />
+    <Compile Include="Printer.fs" />
+    <Compile Include="Rules.fs" />
+    <Compile Include="Errors.fs" />
+    <Compile Include="Formatter.fsi" />
+    <Compile Include="Formatter.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Parser\Parser.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="System.Collections.Immutable" Version="1.7.1" />
+  </ItemGroup>
+</Project>
