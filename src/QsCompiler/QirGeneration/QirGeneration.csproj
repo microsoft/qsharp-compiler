@@ -4,7 +4,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>Microsoft.Quantum.QsCompiler.QirGeneration</RootNamespace>
-    <AssemblyName>Microsoft.Quantum.QsCompiler.QirGeneration</AssemblyName>
+    <AssemblyName>Microsoft.Quantum.QirGeneration</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
