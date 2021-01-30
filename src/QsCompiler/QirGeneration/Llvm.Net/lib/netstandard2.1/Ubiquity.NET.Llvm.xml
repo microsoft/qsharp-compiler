@@ -5070,10 +5070,15 @@
             <param name="item">Item to look for</param>
             <returns><see langword="true"/> if the item is found</returns>
         </member>
-        <member name="M:Ubiquity.NET.Llvm.IOperandCollection`1.Slice(System.Int32,System.Int32)">
+        <member name="T:Ubiquity.NET.Llvm.IOperandCollectionExtension">
+            <summary>Extensions to allow slicing of IOperandCollection</summary>
+        </member>
+        <member name="M:Ubiquity.NET.Llvm.IOperandCollectionExtension.Slice``1(Ubiquity.NET.Llvm.IOperandCollection{``0},System.Int32,System.Int32)">
             <summary>Creates a slice of the collection</summary>
+            <param name="self">Extension this</param>
             <param name="start">Inclusive start index for the slice</param>
             <param name="end">Exclusive end index for the slice</param>
+            <typeparam name="T">Type of elements in the container</typeparam>
             <returns>Slice of the collection</returns>
         </member>
         <member name="T:Ubiquity.NET.Llvm.JIT.GenericValue">
