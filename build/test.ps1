@@ -21,7 +21,7 @@ function Test-One {
 
     if ("" -ne "$Env:ASSEMBLY_CONSTANTS") {
         $args = @("/property:DefineConstants=$Env:ASSEMBLY_CONSTANTS");
-    }  else {
+    } else {
         $args = @();
     }
     dotnet test (Join-Path $PSScriptRoot $project) `
@@ -32,16 +32,15 @@ function Test-One {
         /property:Version=$Env:ASSEMBLY_VERSION `
         /property:InformationalVersion=$Env:SEMVER_VERSION
 
-    if  ($LastExitCode -ne 0) {
+    if ($LastExitCode -ne 0) {
         Write-Host "##vso[task.logissue type=error;]Failed to test $project."
         $script:all_ok = $False
     }
 }
 
 Test-One '../QsCompiler.sln'
+Test-One '../Formatter.sln'
 
-
-if (-not $all_ok) 
-{
+if (-not $all_ok) {
     throw "Running tests failed. Check the logs."
 }
