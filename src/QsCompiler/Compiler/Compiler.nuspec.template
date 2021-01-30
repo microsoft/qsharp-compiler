@@ -20,6 +20,6 @@
   </metadata>
   <files>
     <file src="..\..\..\build\assets\qdk-nuget-icon.png" target="images" />
-    <file src="..\QirGeneration\bin\$Configuration$\**\*Ubiquity.*" />
+    <file src="..\QirGeneration\bin\$Configuration$\**\*Ubiquity.*" target="lib" />
   </files>
 </package>
