@@ -23,5 +23,6 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
+    <PackageReference Include="StrongNamer" Version="0.2.5" />
   </ItemGroup>
 </Project>
