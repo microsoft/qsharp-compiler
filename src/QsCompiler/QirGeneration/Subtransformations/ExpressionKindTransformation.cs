@@ -406,12 +406,31 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private bool TryEvaluateRuntimeFunction(QsQualifiedName name, TypedExpression arg, [MaybeNullWhen(false)] out IValue evaluated)
         {
             var intType = ResolvedType.New(ResolvedTypeKind.Int);
+            var bigintType = ResolvedType.New(ResolvedTypeKind.BigInt);
+            var doubleType = ResolvedType.New(ResolvedTypeKind.Double);
             var rangeType = ResolvedType.New(ResolvedTypeKind.Range);
 
             if (name.Equals(BuiltIn.Length.FullName))
             {
                 var arrayArg = (ArrayValue)this.SharedState.EvaluateSubexpression(arg);
                 evaluated = this.SharedState.Values.FromSimpleValue(arrayArg.Length, intType);
+                return true;
+            }
+            else if (name.Equals(BuiltIn.IntAsDouble.FullName))
+            {
+                var value = this.SharedState.EvaluateSubexpression(arg);
+                var cast = this.SharedState.CurrentBuilder.SIToFPCast(value.Value, this.SharedState.Types.Double);
+                evaluated = this.SharedState.Values.FromSimpleValue(cast, doubleType);
+                return true;
+            }
+            else if (name.Equals(BuiltIn.IntAsBigInt.FullName))
+            {
+                // The runtime function BigIntCreateI64 creates a value with reference count 1.
+                var createBigInt = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64);
+                var value = this.SharedState.EvaluateSubexpression(arg);
+                var res = this.SharedState.CurrentBuilder.Call(createBigInt, value.Value);
+                evaluated = this.SharedState.Values.From(res, bigintType);
+                this.SharedState.ScopeMgr.RegisterValue(evaluated);
                 return true;
             }
             else if (name.Equals(BuiltIn.RangeStart.FullName))

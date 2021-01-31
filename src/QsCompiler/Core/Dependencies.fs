@@ -30,6 +30,7 @@ type BuiltIn =
     static member IntrinsicNamespace = "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = "Microsoft.Quantum.Arrays"
     static member TargetingNamespace = "Microsoft.Quantum.Targeting"
+    static member internal ConvertNamespace = "Microsoft.Quantum.Convert"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create(BuiltIn.CoreNamespace)
@@ -160,6 +161,20 @@ type BuiltIn =
         {
             FullName = { Name = "NoOp"; Namespace = BuiltIn.CanonNamespace }
             Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false)
+        }
+
+    // dependencies in Microsoft.Quantum.Convert
+
+    static member IntAsDouble =
+        {
+            FullName = { Name = "IntAsDouble"; Namespace = BuiltIn.ConvertNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
+    static member IntAsBigInt =
+        {
+            FullName = { Name = "IntAsBigInt"; Namespace = BuiltIn.ConvertNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
     // dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
