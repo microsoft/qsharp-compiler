@@ -332,7 +332,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
-                var (getStart, getStep, getEnd) = QirExpressionKindTransformation.RangeItems(this.SharedState, stm.IterationValues);
+                var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(stm.IterationValues);
                 this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), ExecuteBody);
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
