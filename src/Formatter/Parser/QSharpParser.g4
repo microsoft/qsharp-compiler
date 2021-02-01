@@ -1,3 +1,6 @@
+// This grammar is based on:
+// https://github.com/microsoft/qsharp-language/blob/main/Specifications/Language/5_Grammar/QSharpParser.g4
+
 parser grammar QSharpParser;
 
 options {
