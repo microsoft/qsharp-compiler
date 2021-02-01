@@ -1,4 +1,7 @@
-﻿/// Tools for creating syntax tree nodes from parse tree nodes.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// Tools for creating syntax tree nodes from parse tree nodes.
 module internal QsFmt.Formatter.ParseTree.Node
 
 open System.Collections.Generic

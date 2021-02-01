@@ -1,4 +1,7 @@
-﻿module QsFmt.Formatter.Formatter
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+module QsFmt.Formatter.Formatter
 
 open Antlr4.Runtime
 open QsFmt.Formatter.Errors

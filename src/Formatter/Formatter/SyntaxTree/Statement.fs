@@ -1,4 +1,7 @@
-﻿namespace QsFmt.Formatter.SyntaxTree
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace QsFmt.Formatter.SyntaxTree
 
 /// A declaration for a new symbol.
 type internal SymbolDeclaration =

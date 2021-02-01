@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+//
 // This grammar is based on:
 // https://github.com/microsoft/qsharp-language/blob/main/Specifications/Language/5_Grammar/QSharpLexer.g4
 

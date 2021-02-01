@@ -1,4 +1,7 @@
-﻿/// General utility functions.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// General utility functions.
 module internal QsFmt.Formatter.Utils
 
 /// Curries a function of two arguments.

@@ -1,4 +1,7 @@
-﻿/// Syntax tree rewriters for formatting rules.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// Syntax tree rewriters for formatting rules.
 module internal QsFmt.Formatter.Rules
 
 open QsFmt.Formatter.SyntaxTree

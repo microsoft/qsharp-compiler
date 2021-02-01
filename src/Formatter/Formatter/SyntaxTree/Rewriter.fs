@@ -1,4 +1,7 @@
-﻿namespace QsFmt.Formatter.SyntaxTree
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace QsFmt.Formatter.SyntaxTree
 
 open QsFmt.Formatter.Utils
 

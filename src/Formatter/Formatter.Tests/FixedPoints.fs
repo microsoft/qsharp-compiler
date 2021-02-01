@@ -1,4 +1,10 @@
-﻿module QsFmt.Formatter.Tests.FixedPoints
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// <summary>
+/// <see cref="QsFmt.Formatter.Tests.FixedPoint"/> test cases.
+/// </summary>
+module QsFmt.Formatter.Tests.FixedPoints
 
 open QsFmt.Formatter.Tests
 

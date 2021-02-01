@@ -1,4 +1,7 @@
-﻿namespace QsFmt.Formatter.ParseTree
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace QsFmt.Formatter.ParseTree
 
 open QsFmt.Formatter.SyntaxTree
 open QsFmt.Parser

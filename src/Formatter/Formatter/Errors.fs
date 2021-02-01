@@ -1,4 +1,7 @@
-﻿/// Parse tree error handling.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// Parse tree error handling.
 module internal QsFmt.Formatter.Errors
 
 open Antlr4.Runtime

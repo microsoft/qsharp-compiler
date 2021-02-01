@@ -1,4 +1,10 @@
-﻿module QsFmt.Formatter.Tests.Examples
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// <summary>
+/// <see cref="QsFmt.Formatter.Tests.Example"/> test cases.
+/// </summary>
+module QsFmt.Formatter.Tests.Examples
 
 [<Example>]
 let ``Indents function`` =

@@ -1,4 +1,7 @@
-﻿open System.IO
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+open System.IO
 open QsFmt.Formatter
 
 /// Runs the Q# formatter.

@@ -1,4 +1,7 @@
-﻿namespace QsFmt.Formatter.Tests
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace QsFmt.Formatter.Tests
 
 open QsFmt.Formatter
 open System

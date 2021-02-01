@@ -1,4 +1,7 @@
-﻿/// Syntax tree printing.
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// Syntax tree printing.
 module internal QsFmt.Formatter.Printer
 
 open System
