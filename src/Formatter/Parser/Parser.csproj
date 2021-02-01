@@ -5,12 +5,10 @@
     <RootNamespace>$(AssemblyName)</RootNamespace>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Antlr4.Runtime.Standard" Version="4.9.1" />
-  </ItemGroup>
-
   <PropertyGroup>
-    <AntlrUrl>https://www.antlr.org/download/antlr-4.9.1-complete.jar</AntlrUrl>
+    <AntlrVersion>4.9.1</AntlrVersion>
+    <AntlrJar>antlr-$(AntlrVersion)-complete.jar</AntlrJar>
+    <AntlrJarUrl>https://www.antlr.org/download/$(AntlrJar)</AntlrJarUrl>
     <AntlrPath>$(BaseIntermediateOutputPath)Antlr</AntlrPath>
   </PropertyGroup>
 
@@ -24,10 +22,14 @@
   </ItemGroup>
 
   <Target Name="Antlr" BeforeTargets="CoreCompile" Inputs="@(AntlrInput)" Outputs="@(AntlrOutput)">
-    <DownloadFile DestinationFolder="$(AntlrPath)" SourceUrl="$(AntlrUrl)" />
-    <Exec Command="java -jar $(AntlrPath)/antlr-4.9.1-complete.jar -o $(AntlrPath) -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp QSharpLexer.g4 QSharpParser.g4" />
+    <DownloadFile DestinationFolder="$(AntlrPath)" SourceUrl="$(AntlrJarUrl)" />
+    <Exec Command="java -jar $(AntlrPath)/$(AntlrJar) -o $(AntlrPath) -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp QSharpLexer.g4 QSharpParser.g4" />
     <ItemGroup>
       <Compile Include="@(AntlrOutput)" />
     </ItemGroup>
   </Target>
+
+  <ItemGroup>
+    <PackageReference Include="Antlr4.Runtime.Standard" Version="$(AntlrVersion)" />
+  </ItemGroup>
 </Project>
