@@ -1,15 +1,17 @@
-﻿# Q# Formatter
+﻿# QsFmt: Q# Formatter
 
-This is a source code formatter for Q#.
+QsFmt is a source code formatter for Q#.
+It's in the very early stages of development and is currently experimental.
+It has a command-line interface that you can use by running `dotnet run -p App` from this folder.
 
 ## Design
 
-Q# Formatter uses a [concrete syntax tree](https://en.wikipedia.org/wiki/Parse_tree), which is lossless: a Q# program parsed into a CST can be converted back into a string without any loss of information.
-Q# Formatter's syntax tree is modeled on the Q# compiler's abstract syntax tree, but with additional information on every node for tokens like semicolons and curly braces that are unnecessary in an AST.
+QsFmt uses a [concrete syntax tree](https://en.wikipedia.org/wiki/Parse_tree), which is lossless: a Q# program parsed into a CST can be converted back into a string without any loss of information.
+QsFmt's syntax tree is modeled on the Q# compiler's abstract syntax tree, but with additional information on every node for tokens like semicolons and curly braces that are unnecessary in an AST.
 Whitespace and comment tokens, known as *trivia tokens*, are attached as a prefix to a non-trivia token.
 For example, in the expression `x + y`, `x` has prefix `""`, `+` has prefix `" "`, and `y` has prefix `" "`.
 
-Q# Formatter uses [ANTLR](https://www.antlr.org/) to parse Q# programs.
+QsFmt uses [ANTLR](https://www.antlr.org/) to parse Q# programs.
 It uses a grammar based on the [grammar in the Q# language specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/Language/5_Grammar).
 ANTLR's parse tree is then converted into Q# Formatter's concrete syntax tree.
 
