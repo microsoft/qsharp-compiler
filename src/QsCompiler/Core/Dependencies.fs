@@ -31,6 +31,7 @@ type BuiltIn =
     static member StandardArrayNamespace = "Microsoft.Quantum.Arrays"
     static member TargetingNamespace = "Microsoft.Quantum.Targeting"
     static member internal ConvertNamespace = "Microsoft.Quantum.Convert"
+    static member internal MathNamespace = "Microsoft.Quantum.Math"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create(BuiltIn.CoreNamespace)
@@ -174,6 +175,14 @@ type BuiltIn =
     static member IntAsBigInt =
         {
             FullName = { Name = "IntAsBigInt"; Namespace = BuiltIn.ConvertNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
+    // dependencies in Microsoft.Quantum.Math
+
+    static member Truncate =
+        {
+            FullName = { Name = "Truncate"; Namespace = BuiltIn.MathNamespace }
             Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 

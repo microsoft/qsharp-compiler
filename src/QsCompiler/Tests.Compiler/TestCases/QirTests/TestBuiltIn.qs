@@ -12,12 +12,21 @@ namespace Microsoft.Quantum.Convert {
     }
 }
 
+namespace Microsoft.Quantum.Math {
+    
+    function Truncate (a : Double) : Int {
+        body intrinsic;
+    }
+}
+
 namespace Microsoft.Quantum.Testing.QIR {
     open Microsoft.Quantum.Convert;
+    open Microsoft.Quantum.Math;
 
-    function TestBuiltIn (arg : Int) : (Double, BigInt) {
+    function TestBuiltIn (arg : Int) : (Double, BigInt, Int) {
         let d = IntAsDouble(arg);
         let bi = IntAsBigInt(arg);
-        return (d, bi);
+        let i = Truncate(d);
+        return (d, bi, i);
     }
 }
