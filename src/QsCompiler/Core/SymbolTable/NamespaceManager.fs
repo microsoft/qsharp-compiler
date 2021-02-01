@@ -411,16 +411,17 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
                 false, errs
             else
-                match GetEntryPoints() |> Seq.tryHead with
-                | None -> isExecutable, errs
-                | Some (epName, epSource) ->
-                    let msgArgs = [ sprintf "%s.%s" epName.Namespace epName.Name; epSource ]
-
-                    errs.Add
-                        (offset,
-                         range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.OtherEntryPointExists, msgArgs))
-
-                    false, errs
+                isExecutable, errs
+                //match GetEntryPoints() |> Seq.tryHead with
+                //| None -> isExecutable, errs
+                //| Some (epName, epSource) ->
+                //    let msgArgs = [ sprintf "%s.%s" epName.Namespace epName.Name; epSource ]
+                //
+                //    errs.Add
+                //        (offset,
+                //         range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.OtherEntryPointExists, msgArgs))
+                //
+                //    false, errs
         | _ ->
             errs.Add(offset, range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.InvalidEntryPointPlacement, []))
             false, errs
