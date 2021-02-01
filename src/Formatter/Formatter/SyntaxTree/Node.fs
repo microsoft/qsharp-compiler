@@ -32,9 +32,7 @@ module internal Trivia =
     /// A <see cref="Trivia"/> node containing <paramref name="count"/> number of space characters.
     /// </summary>
     let spaces count =
-        String.replicate count " "
-        |> Whitespace.Whitespace
-        |> Whitespace
+        String.replicate count " " |> Whitespace.Whitespace |> Whitespace
 
     /// Replaces each occurrence of more than one whitespace character in a row with a single space.
     let collapseSpaces =
@@ -66,9 +64,7 @@ module internal Trivia =
         | Prefix "\r\n" (_, rest)
         | Prefix "\r" (_, rest)
         | Prefix "\n" (_, rest) -> NewLine :: ofString rest
-        | Prefix "\s+" (result, rest) ->
-            Whitespace(Whitespace.Whitespace result)
-            :: ofString rest
+        | Prefix "\s+" (result, rest) -> Whitespace(Whitespace.Whitespace result) :: ofString rest
         | Prefix "//[^\r\n]*" (result, rest) -> Comment(Comment.Comment result) :: ofString rest
         | _ ->
             // TODO: Use option.
@@ -76,57 +72,66 @@ module internal Trivia =
 
 /// A terminal symbol has no child nodes and represents a token in the source code.
 type internal Terminal =
-    { /// The trivia preceding the terminal.
-      Prefix: Trivia list
+    {
+        /// The trivia preceding the terminal.
+        Prefix: Trivia list
 
-      /// The text content of the terminal.
-      Text: string }
+        /// The text content of the terminal.
+        Text: string
+    }
 
 module internal Terminal =
     /// <summary>
     /// Maps <paramref name="terminal"/> by applying <paramref name="mapper"/> to its trivia prefix.
     /// </summary>
     let mapPrefix mapper terminal =
-        { terminal with
-              Prefix = mapper terminal.Prefix }
+        { terminal with Prefix = mapper terminal.Prefix }
 
 /// An item in a comma-separated sequence.
 type internal 'a SequenceItem =
-    { /// The item.
-      Item: 'a option
+    {
+        /// The item.
+        Item: 'a option
 
-      /// The comma following the item.
-      Comma: Terminal option }
+        /// The comma following the item.
+        Comma: Terminal option
+    }
 
 /// A tuple.
 type internal 'a Tuple =
-    { /// The opening parenthesis.
-      OpenParen: Terminal
+    {
+        /// The opening parenthesis.
+        OpenParen: Terminal
 
-      /// The items in the tuple.
-      Items: 'a SequenceItem list
+        /// The items in the tuple.
+        Items: 'a SequenceItem list
 
-      /// The closing parenthesis.
-      CloseParen: Terminal }
+        /// The closing parenthesis.
+        CloseParen: Terminal
+    }
 
 /// A binary operator.
 type internal 'a BinaryOperator =
-    { /// The left-hand side.
-      Left: 'a
+    {
+        /// The left-hand side.
+        Left: 'a
 
-      /// The operator.
-      Operator: Terminal
+        /// The operator.
+        Operator: Terminal
 
-      /// The right-hand side.
-      Right: 'a }
+        /// The right-hand side.
+        Right: 'a
+    }
 
 /// A block.
 type internal 'a Block =
-    { /// The opening brace.
-      OpenBrace: Terminal
+    {
+        /// The opening brace.
+        OpenBrace: Terminal
 
-      /// The items in the block.
-      Items: 'a list
+        /// The items in the block.
+        Items: 'a list
 
-      /// The closing brace.
-      CloseBrace: Terminal }
+        /// The closing brace.
+        CloseBrace: Terminal
+    }

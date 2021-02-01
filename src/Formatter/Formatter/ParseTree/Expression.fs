@@ -15,13 +15,10 @@ type internal ExpressionVisitor(tokens) =
         Node.toUnknown tokens node |> Expression.Unknown
 
     override _.VisitMissingExpression context =
-        context.Underscore().Symbol
-        |> Node.toTerminal tokens
-        |> Missing
+        context.Underscore().Symbol |> Node.toTerminal tokens |> Missing
 
     override _.VisitIdentifierExpression context =
-        { Prefix = Node.prefix tokens context.name.Start.TokenIndex
-          Text = context.name.GetText() }
+        { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
         |> Literal
 
     override _.VisitIntegerExpression context =
@@ -30,31 +27,37 @@ type internal ExpressionVisitor(tokens) =
     override visitor.VisitTupleExpression context =
         let expressions = context._items |> Seq.map visitor.Visit
 
-        let commas =
-            context._commas
-            |> Seq.map (Node.toTerminal tokens)
+        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
 
-        { OpenParen = context.openParen |> Node.toTerminal tokens
-          Items = Node.tupleItems expressions commas
-          CloseParen = context.closeParen |> Node.toTerminal tokens }
+        {
+            OpenParen = context.openParen |> Node.toTerminal tokens
+            Items = Node.tupleItems expressions commas
+            CloseParen = context.closeParen |> Node.toTerminal tokens
+        }
         |> Tuple
 
     override visitor.VisitAddExpression context =
-        { Left = visitor.Visit context.left
-          Operator = context.operator |> Node.toTerminal tokens
-          Right = visitor.Visit context.right }
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
         |> BinaryOperator
 
     override visitor.VisitEqualsExpression context =
-        { Left = visitor.Visit context.left
-          Operator = context.operator |> Node.toTerminal tokens
-          Right = visitor.Visit context.right }
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
         |> BinaryOperator
 
     override visitor.VisitUpdateExpression context =
-        { Record = visitor.Visit context.record
-          With = context.``with`` |> Node.toTerminal tokens
-          Item = visitor.Visit context.item
-          Arrow = context.arrow |> Node.toTerminal tokens
-          Value = visitor.Visit context.value }
+        {
+            Record = visitor.Visit context.record
+            With = context.``with`` |> Node.toTerminal tokens
+            Item = visitor.Visit context.item
+            Arrow = context.arrow |> Node.toTerminal tokens
+            Value = visitor.Visit context.value
+        }
         |> Update

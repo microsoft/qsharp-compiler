@@ -140,14 +140,14 @@ type internal 'result Reducer() as reducer =
     abstract Terminal: Terminal -> 'result
 
     default _.Document document =
-        (document.Namespaces |> List.map reducer.Namespace)
-        @ [ reducer.Terminal document.Eof ]
-        |> reduce
+        (document.Namespaces |> List.map reducer.Namespace) @ [ reducer.Terminal document.Eof ] |> reduce
 
     default _.Namespace ns =
-        [ reducer.Terminal ns.NamespaceKeyword
-          reducer.Terminal ns.Name
-          reducer.Block(reducer.NamespaceItem, ns.Block) ]
+        [
+            reducer.Terminal ns.NamespaceKeyword
+            reducer.Terminal ns.Name
+            reducer.Block(reducer.NamespaceItem, ns.Block)
+        ]
         |> reduce
 
     default _.NamespaceItem item =
@@ -156,11 +156,13 @@ type internal 'result Reducer() as reducer =
         | Unknown terminal -> reducer.Terminal terminal
 
     default _.CallableDeclaration callable =
-        [ reducer.Terminal callable.CallableKeyword
-          reducer.Terminal callable.Name
-          reducer.SymbolBinding callable.Parameters
-          reducer.TypeAnnotation callable.ReturnType
-          reducer.Block(reducer.Statement, callable.Block) ]
+        [
+            reducer.Terminal callable.CallableKeyword
+            reducer.Terminal callable.Name
+            reducer.SymbolBinding callable.Parameters
+            reducer.TypeAnnotation callable.ReturnType
+            reducer.Block(reducer.Statement, callable.Block)
+        ]
         |> reduce
 
     default _.Type typ =
@@ -175,34 +177,38 @@ type internal 'result Reducer() as reducer =
         | Type.Unknown terminal -> reducer.Terminal terminal
 
     default _.TypeAnnotation annotation =
-        [ reducer.Terminal annotation.Colon
-          reducer.Type annotation.Type ]
-        |> reduce
+        [ reducer.Terminal annotation.Colon; reducer.Type annotation.Type ] |> reduce
 
     default _.ArrayType array =
-        [ reducer.Type array.ItemType
-          reducer.Terminal array.OpenBracket
-          reducer.Terminal array.CloseBracket ]
+        [
+            reducer.Type array.ItemType
+            reducer.Terminal array.OpenBracket
+            reducer.Terminal array.CloseBracket
+        ]
         |> reduce
 
     default _.CallableType callable =
-        [ reducer.Type callable.FromType
-          reducer.Terminal callable.Arrow
-          reducer.Type callable.ToType ]
-        @ (callable.Characteristics
-           |> Option.map reducer.CharacteristicSection
-           |> Option.toList)
+        [
+            reducer.Type callable.FromType
+            reducer.Terminal callable.Arrow
+            reducer.Type callable.ToType
+        ]
+        @ (callable.Characteristics |> Option.map reducer.CharacteristicSection |> Option.toList)
         |> reduce
 
     default _.CharacteristicSection section =
-        [ reducer.Terminal section.IsKeyword
-          reducer.Characteristic section.Characteristic ]
+        [
+            reducer.Terminal section.IsKeyword
+            reducer.Characteristic section.Characteristic
+        ]
         |> reduce
 
     default _.CharacteristicGroup group =
-        [ reducer.Terminal group.OpenParen
-          reducer.Characteristic group.Characteristic
-          reducer.Terminal group.CloseParen ]
+        [
+            reducer.Terminal group.OpenParen
+            reducer.Characteristic group.Characteristic
+            reducer.Terminal group.CloseParen
+        ]
         |> reduce
 
     default _.Characteristic characteristic =
@@ -221,28 +227,36 @@ type internal 'result Reducer() as reducer =
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
     default _.Let lets =
-        [ reducer.Terminal lets.LetKeyword
-          reducer.SymbolBinding lets.Binding
-          reducer.Terminal lets.Equals
-          reducer.Expression lets.Value
-          reducer.Terminal lets.Semicolon ]
+        [
+            reducer.Terminal lets.LetKeyword
+            reducer.SymbolBinding lets.Binding
+            reducer.Terminal lets.Equals
+            reducer.Expression lets.Value
+            reducer.Terminal lets.Semicolon
+        ]
         |> reduce
 
     default _.Return returns =
-        [ reducer.Terminal returns.ReturnKeyword
-          reducer.Expression returns.Expression
-          reducer.Terminal returns.Semicolon ]
+        [
+            reducer.Terminal returns.ReturnKeyword
+            reducer.Expression returns.Expression
+            reducer.Terminal returns.Semicolon
+        ]
         |> reduce
 
     default _.If ifs =
-        [ reducer.Terminal ifs.IfKeyword
-          reducer.Expression ifs.Condition
-          reducer.Block(reducer.Statement, ifs.Block) ]
+        [
+            reducer.Terminal ifs.IfKeyword
+            reducer.Expression ifs.Condition
+            reducer.Block(reducer.Statement, ifs.Block)
+        ]
         |> reduce
 
     default _.Else elses =
-        [ reducer.Terminal elses.ElseKeyword
-          reducer.Block(reducer.Statement, elses.Block) ]
+        [
+            reducer.Terminal elses.ElseKeyword
+            reducer.Block(reducer.Statement, elses.Block)
+        ]
         |> reduce
 
     default _.SymbolBinding binding =
@@ -252,9 +266,7 @@ type internal 'result Reducer() as reducer =
 
     default _.SymbolDeclaration declaration =
         reducer.Terminal declaration.Name
-        :: (declaration.Type
-            |> Option.map reducer.TypeAnnotation
-            |> Option.toList)
+        :: (declaration.Type |> Option.map reducer.TypeAnnotation |> Option.toList)
         |> reduce
 
     default _.Expression expression =
@@ -267,35 +279,34 @@ type internal 'result Reducer() as reducer =
         | Expression.Unknown terminal -> reducer.Terminal terminal
 
     default _.Update update =
-        [ reducer.Expression update.Record
-          reducer.Terminal update.With
-          reducer.Expression update.Item
-          reducer.Terminal update.Arrow
-          reducer.Expression update.Value ]
+        [
+            reducer.Expression update.Record
+            reducer.Terminal update.With
+            reducer.Expression update.Item
+            reducer.Terminal update.Arrow
+            reducer.Expression update.Value
+        ]
         |> reduce
 
     default _.Block(mapper, block) =
-        reducer.Terminal block.OpenBrace
-        :: (block.Items |> List.map mapper)
+        reducer.Terminal block.OpenBrace :: (block.Items |> List.map mapper)
         @ [ reducer.Terminal block.CloseBrace ]
         |> reduce
 
     default _.Tuple(mapper, tuple) =
-        reducer.Terminal tuple.OpenParen
-        :: (tuple.Items
-            |> List.map (curry reducer.SequenceItem mapper))
+        reducer.Terminal tuple.OpenParen :: (tuple.Items |> List.map (curry reducer.SequenceItem mapper))
         @ [ reducer.Terminal tuple.CloseParen ]
         |> reduce
 
     default _.SequenceItem(mapper, item) =
         (item.Item |> Option.map mapper |> Option.toList)
-        @ (item.Comma
-           |> Option.map reducer.Terminal
-           |> Option.toList)
+        @ (item.Comma |> Option.map reducer.Terminal |> Option.toList)
         |> reduce
 
     default _.BinaryOperator(mapper, operator) =
-        [ mapper operator.Left
-          reducer.Terminal operator.Operator
-          mapper operator.Right ]
+        [
+            mapper operator.Left
+            reducer.Terminal operator.Operator
+            mapper operator.Right
+        ]
         |> reduce

@@ -25,4 +25,5 @@ let printer =
         override _.Combine(x, y) = x + y
 
         override _.Terminal terminal =
-            printPrefix terminal.Prefix + terminal.Text }
+            printPrefix terminal.Prefix + terminal.Text
+    }

@@ -35,8 +35,7 @@ let prefix tokens index =
 /// Creates a syntax tree <see cref="Terminal"/> node from the given parse tree <paramref name="terminal"/>.
 /// </summary>
 let toTerminal tokens (terminal: IToken) =
-    { Prefix = prefix tokens terminal.TokenIndex
-      Text = terminal.Text }
+    { Prefix = prefix tokens terminal.TokenIndex; Text = terminal.Text }
 
 /// <summary>
 /// Creates a syntax tree <see cref="Terminal"/> node from the given parse tree <paramref name="node"/> that represents
@@ -48,8 +47,7 @@ let toUnknown (tokens: IToken ImmutableArray) (node: IRuleNode) =
         |> Seq.map (fun token -> token.Text)
         |> Seq.fold (+) ""
 
-    { Prefix = prefix tokens node.SourceInterval.a
-      Text = text }
+    { Prefix = prefix tokens node.SourceInterval.a; Text = text }
 
 /// Zips two sequences. The shorter sequence is padded with the given padding element.
 let private padZip (source1: _ seq, padding1) (source2: _ seq, padding2) =
@@ -64,9 +62,7 @@ let private padZip (source1: _ seq, padding1) (source2: _ seq, padding2) =
         | None, None -> None
         | next1, next2 -> Some(next1 |> Option.defaultValue padding1, next2 |> Option.defaultValue padding2)
 
-    Seq.initInfinite nextPair
-    |> Seq.takeWhile Option.isSome
-    |> Seq.choose id
+    Seq.initInfinite nextPair |> Seq.takeWhile Option.isSome |> Seq.choose id
 
 /// <summary>
 /// Creates a list of sequence items by pairing each item in <paramref name="items"/> with its respective comma in

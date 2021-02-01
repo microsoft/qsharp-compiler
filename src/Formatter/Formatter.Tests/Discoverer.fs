@@ -6,25 +6,31 @@ open System.Reflection
 open Xunit
 
 type Example =
-    { Name: string
-      Skip: string option
-      Before: string
-      After: string }
+    {
+        Name: string
+        Skip: string option
+        Before: string
+        After: string
+    }
 
     override example.ToString() = example.Name
 
 type FixedPoint =
-    { Name: string
-      Skip: string option
-      Source: string }
+    {
+        Name: string
+        Skip: string option
+        Source: string
+    }
 
     override fixedPoint.ToString() = fixedPoint.Name
 
 module internal Example =
     let toFixedPoint (example: Example) =
-        { Name = example.Name
-          Skip = example.Skip
-          Source = example.After }
+        {
+            Name = example.Name
+            Skip = example.Skip
+            Source = example.After
+        }
 
 type ExampleAttribute() =
     inherit Attribute()
@@ -50,10 +56,12 @@ module Discoverer =
         |> Seq.choose (fun (attribute, property) ->
             match property.GetValue null with
             | :? (string * string) as example ->
-                { Name = property.Name
-                  Skip = Option.ofObj attribute.Skip
-                  Before = fst example
-                  After = snd example }
+                {
+                    Name = property.Name
+                    Skip = Option.ofObj attribute.Skip
+                    Before = fst example
+                    After = snd example
+                }
                 |> Some
             | _ -> None)
 
@@ -62,9 +70,11 @@ module Discoverer =
         |> Seq.choose (fun (attribute, property) ->
             match property.GetValue null with
             | :? string as source ->
-                { Name = property.Name
-                  Skip = Option.ofObj attribute.Skip
-                  Source = source }
+                {
+                    Name = property.Name
+                    Skip = Option.ofObj attribute.Skip
+                    Source = source
+                }
                 |> Some
             | _ -> None)
 
@@ -76,11 +86,7 @@ module Discoverer =
     type private FixedPointData() as data =
         inherit TheoryData<FixedPoint>()
 
-        do
-            examples
-            |> Seq.map Example.toFixedPoint
-            |> Seq.append fixedPoints
-            |> Seq.iter data.Add
+        do examples |> Seq.map Example.toFixedPoint |> Seq.append fixedPoints |> Seq.iter data.Add
 
     [<SkippableTheory>]
     [<ClassData(typeof<ExampleData>)>]

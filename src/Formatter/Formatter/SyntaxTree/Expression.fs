@@ -2,22 +2,24 @@
 
 /// A copy-and-update expression.
 type internal Update =
-    { /// The record to update.
-      Record: Expression
+    {
+        /// The record to update.
+        Record: Expression
 
-      /// <summary>
-      /// The <c>w/</c> symbol.
-      /// </summary>
-      With: Terminal
+        /// <summary>
+        /// The <c>w/</c> symbol.
+        /// </summary>
+        With: Terminal
 
-      /// The item to update.
-      Item: Expression
+        /// The item to update.
+        Item: Expression
 
-      /// The left arrow symbol.
-      Arrow: Terminal
+        /// The left arrow symbol.
+        Arrow: Terminal
 
-      /// The value to assign to the item.
-      Value: Expression }
+        /// The value to assign to the item.
+        Value: Expression
+    }
 
 /// An expression.
 and internal Expression =

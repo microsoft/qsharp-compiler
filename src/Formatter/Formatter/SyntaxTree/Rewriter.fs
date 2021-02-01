@@ -133,87 +133,81 @@ type internal 'context Rewriter() =
     abstract Terminal: 'context * Terminal -> Terminal
 
     default rewriter.Document(context, document) =
-        { Namespaces =
-              document.Namespaces
-              |> List.map (curry rewriter.Namespace context)
-          Eof = rewriter.Terminal(context, document.Eof) }
+        {
+            Namespaces = document.Namespaces |> List.map (curry rewriter.Namespace context)
+            Eof = rewriter.Terminal(context, document.Eof)
+        }
 
     default rewriter.Namespace(context, ns) =
-        { NamespaceKeyword = rewriter.Terminal(context, ns.NamespaceKeyword)
-          Name = rewriter.Terminal(context, ns.Name)
-          Block = rewriter.Block(context, rewriter.NamespaceItem, ns.Block) }
+        {
+            NamespaceKeyword = rewriter.Terminal(context, ns.NamespaceKeyword)
+            Name = rewriter.Terminal(context, ns.Name)
+            Block = rewriter.Block(context, rewriter.NamespaceItem, ns.Block)
+        }
 
     default rewriter.NamespaceItem(context, item) =
         match item with
-        | CallableDeclaration callable ->
-            rewriter.CallableDeclaration(context, callable)
-            |> CallableDeclaration
+        | CallableDeclaration callable -> rewriter.CallableDeclaration(context, callable) |> CallableDeclaration
         | Unknown terminal -> rewriter.Terminal(context, terminal) |> Unknown
 
     default rewriter.CallableDeclaration(context, callable) =
-        { CallableKeyword = rewriter.Terminal(context, callable.CallableKeyword)
-          Name = rewriter.Terminal(context, callable.Name)
-          Parameters = rewriter.SymbolBinding(context, callable.Parameters)
-          ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
-          Block = rewriter.Block(context, rewriter.Statement, callable.Block) }
+        {
+            CallableKeyword = rewriter.Terminal(context, callable.CallableKeyword)
+            Name = rewriter.Terminal(context, callable.Name)
+            Parameters = rewriter.SymbolBinding(context, callable.Parameters)
+            ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
+            Block = rewriter.Block(context, rewriter.Statement, callable.Block)
+        }
 
     default rewriter.Type(context, typ) =
         match typ with
-        | Type.Missing missing ->
-            rewriter.Terminal(context, missing)
-            |> Type.Missing
+        | Type.Missing missing -> rewriter.Terminal(context, missing) |> Type.Missing
         | Parameter name -> rewriter.Terminal(context, name) |> Parameter
         | BuiltIn name -> rewriter.Terminal(context, name) |> BuiltIn
         | UserDefined name -> rewriter.Terminal(context, name) |> UserDefined
-        | Type.Tuple tuple ->
-            rewriter.Tuple(context, rewriter.Type, tuple)
-            |> Type.Tuple
+        | Type.Tuple tuple -> rewriter.Tuple(context, rewriter.Type, tuple) |> Type.Tuple
         | Array array -> rewriter.ArrayType(context, array) |> Array
-        | Type.Callable callable ->
-            rewriter.CallableType(context, callable)
-            |> Type.Callable
-        | Type.Unknown terminal ->
-            rewriter.Terminal(context, terminal)
-            |> Type.Unknown
+        | Type.Callable callable -> rewriter.CallableType(context, callable) |> Type.Callable
+        | Type.Unknown terminal -> rewriter.Terminal(context, terminal) |> Type.Unknown
 
     default rewriter.TypeAnnotation(context, annotation) =
-        { Colon = rewriter.Terminal(context, annotation.Colon)
-          Type = rewriter.Type(context, annotation.Type) }
+        { Colon = rewriter.Terminal(context, annotation.Colon); Type = rewriter.Type(context, annotation.Type) }
 
     default rewriter.ArrayType(context, array) =
-        { ItemType = rewriter.Type(context, array.ItemType)
-          OpenBracket = rewriter.Terminal(context, array.OpenBracket)
-          CloseBracket = rewriter.Terminal(context, array.CloseBracket) }
+        {
+            ItemType = rewriter.Type(context, array.ItemType)
+            OpenBracket = rewriter.Terminal(context, array.OpenBracket)
+            CloseBracket = rewriter.Terminal(context, array.CloseBracket)
+        }
 
     default rewriter.CallableType(context, callable) =
-        { FromType = rewriter.Type(context, callable.FromType)
-          Arrow = rewriter.Terminal(context, callable.Arrow)
-          ToType = rewriter.Type(context, callable.ToType)
-          Characteristics =
-              callable.Characteristics
-              |> Option.map (curry rewriter.CharacteristicSection context) }
+        {
+            FromType = rewriter.Type(context, callable.FromType)
+            Arrow = rewriter.Terminal(context, callable.Arrow)
+            ToType = rewriter.Type(context, callable.ToType)
+            Characteristics = callable.Characteristics |> Option.map (curry rewriter.CharacteristicSection context)
+        }
 
     default rewriter.CharacteristicSection(context, section) =
-        { IsKeyword = rewriter.Terminal(context, section.IsKeyword)
-          Characteristic = rewriter.Characteristic(context, section.Characteristic) }
+        {
+            IsKeyword = rewriter.Terminal(context, section.IsKeyword)
+            Characteristic = rewriter.Characteristic(context, section.Characteristic)
+        }
 
     default rewriter.CharacteristicGroup(context, group) =
-        { OpenParen = rewriter.Terminal(context, group.OpenParen)
-          Characteristic = rewriter.Characteristic(context, group.Characteristic)
-          CloseParen = rewriter.Terminal(context, group.CloseParen) }
+        {
+            OpenParen = rewriter.Terminal(context, group.OpenParen)
+            Characteristic = rewriter.Characteristic(context, group.Characteristic)
+            CloseParen = rewriter.Terminal(context, group.CloseParen)
+        }
 
     default rewriter.Characteristic(context, characteristic) =
         match characteristic with
         | Adjoint adjoint -> rewriter.Terminal(context, adjoint) |> Adjoint
-        | Controlled controlled ->
-            rewriter.Terminal(context, controlled)
-            |> Controlled
-        | Group group ->
-            rewriter.CharacteristicGroup(context, group)
-            |> Group
+        | Controlled controlled -> rewriter.Terminal(context, controlled) |> Controlled
+        | Group group -> rewriter.CharacteristicGroup(context, group) |> Group
         | Characteristic.BinaryOperator operator ->
-            rewriter.BinaryOperator(context, rewriter.Characteristic, operator)
-            |> Characteristic.BinaryOperator
+            rewriter.BinaryOperator(context, rewriter.Characteristic, operator) |> Characteristic.BinaryOperator
 
     default rewriter.Statement(context, statement) =
         match statement with
@@ -221,89 +215,91 @@ type internal 'context Rewriter() =
         | Return returns -> rewriter.Return(context, returns) |> Return
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
-        | Statement.Unknown terminal ->
-            rewriter.Terminal(context, terminal)
-            |> Statement.Unknown
+        | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
     default rewriter.Let(context, lets) =
-        { LetKeyword = rewriter.Terminal(context, lets.LetKeyword)
-          Binding = rewriter.SymbolBinding(context, lets.Binding)
-          Equals = rewriter.Terminal(context, lets.Equals)
-          Value = rewriter.Expression(context, lets.Value)
-          Semicolon = rewriter.Terminal(context, lets.Semicolon) }
+        {
+            LetKeyword = rewriter.Terminal(context, lets.LetKeyword)
+            Binding = rewriter.SymbolBinding(context, lets.Binding)
+            Equals = rewriter.Terminal(context, lets.Equals)
+            Value = rewriter.Expression(context, lets.Value)
+            Semicolon = rewriter.Terminal(context, lets.Semicolon)
+        }
 
     default rewriter.Return(context, returns) =
-        { ReturnKeyword = rewriter.Terminal(context, returns.ReturnKeyword)
-          Expression = rewriter.Expression(context, returns.Expression)
-          Semicolon = rewriter.Terminal(context, returns.Semicolon) }
+        {
+            ReturnKeyword = rewriter.Terminal(context, returns.ReturnKeyword)
+            Expression = rewriter.Expression(context, returns.Expression)
+            Semicolon = rewriter.Terminal(context, returns.Semicolon)
+        }
 
     default rewriter.If(context, ifs) =
-        { IfKeyword = rewriter.Terminal(context, ifs.IfKeyword)
-          Condition = rewriter.Expression(context, ifs.Condition)
-          Block = rewriter.Block(context, rewriter.Statement, ifs.Block) }
+        {
+            IfKeyword = rewriter.Terminal(context, ifs.IfKeyword)
+            Condition = rewriter.Expression(context, ifs.Condition)
+            Block = rewriter.Block(context, rewriter.Statement, ifs.Block)
+        }
 
     default rewriter.Else(context, elses) =
-        { ElseKeyword = rewriter.Terminal(context, elses.ElseKeyword)
-          Block = rewriter.Block(context, rewriter.Statement, elses.Block) }
+        {
+            ElseKeyword = rewriter.Terminal(context, elses.ElseKeyword)
+            Block = rewriter.Block(context, rewriter.Statement, elses.Block)
+        }
 
     default rewriter.SymbolBinding(context, binding) =
         match binding with
-        | SymbolDeclaration declaration ->
-            rewriter.SymbolDeclaration(context, declaration)
-            |> SymbolDeclaration
-        | SymbolTuple tuple ->
-            rewriter.Tuple(context, rewriter.SymbolBinding, tuple)
-            |> SymbolTuple
+        | SymbolDeclaration declaration -> rewriter.SymbolDeclaration(context, declaration) |> SymbolDeclaration
+        | SymbolTuple tuple -> rewriter.Tuple(context, rewriter.SymbolBinding, tuple) |> SymbolTuple
 
     default rewriter.SymbolDeclaration(context, declaration) =
-        { Name = rewriter.Terminal(context, declaration.Name)
-          Type =
-              declaration.Type
-              |> Option.map (curry rewriter.TypeAnnotation context) }
+        {
+            Name = rewriter.Terminal(context, declaration.Name)
+            Type = declaration.Type |> Option.map (curry rewriter.TypeAnnotation context)
+        }
 
     default rewriter.Expression(context, expression) =
         match expression with
         | Missing terminal -> rewriter.Terminal(context, terminal) |> Missing
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
-        | Tuple tuple ->
-            rewriter.Tuple(context, rewriter.Expression, tuple)
-            |> Tuple
-        | BinaryOperator operator ->
-            rewriter.BinaryOperator(context, rewriter.Expression, operator)
-            |> BinaryOperator
+        | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
+        | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
         | Update update -> rewriter.Update(context, update) |> Update
-        | Expression.Unknown terminal ->
-            rewriter.Terminal(context, terminal)
-            |> Expression.Unknown
+        | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
 
     default rewriter.Update(context, update) =
-        { Record = rewriter.Expression(context, update.Record)
-          With = rewriter.Terminal(context, update.With)
-          Item = rewriter.Expression(context, update.Item)
-          Arrow = rewriter.Terminal(context, update.Arrow)
-          Value = rewriter.Expression(context, update.Value) }
+        {
+            Record = rewriter.Expression(context, update.Record)
+            With = rewriter.Terminal(context, update.With)
+            Item = rewriter.Expression(context, update.Item)
+            Arrow = rewriter.Terminal(context, update.Arrow)
+            Value = rewriter.Expression(context, update.Value)
+        }
 
     default rewriter.Block(context, mapper, block) =
-        { OpenBrace = rewriter.Terminal(context, block.OpenBrace)
-          Items = block.Items |> List.map (curry mapper context)
-          CloseBrace = rewriter.Terminal(context, block.CloseBrace) }
+        {
+            OpenBrace = rewriter.Terminal(context, block.OpenBrace)
+            Items = block.Items |> List.map (curry mapper context)
+            CloseBrace = rewriter.Terminal(context, block.CloseBrace)
+        }
 
     default rewriter.Tuple(context, mapper, tuple) =
-        { OpenParen = rewriter.Terminal(context, tuple.OpenParen)
-          Items =
-              tuple.Items
-              |> List.map (fun item -> rewriter.SequenceItem(context, mapper, item))
-          CloseParen = rewriter.Terminal(context, tuple.CloseParen) }
+        {
+            OpenParen = rewriter.Terminal(context, tuple.OpenParen)
+            Items = tuple.Items |> List.map (fun item -> rewriter.SequenceItem(context, mapper, item))
+            CloseParen = rewriter.Terminal(context, tuple.CloseParen)
+        }
 
     default rewriter.SequenceItem(context, mapper, item) =
-        { Item = item.Item |> Option.map (curry mapper context)
-          Comma =
-              item.Comma
-              |> Option.map (curry rewriter.Terminal context) }
+        {
+            Item = item.Item |> Option.map (curry mapper context)
+            Comma = item.Comma |> Option.map (curry rewriter.Terminal context)
+        }
 
     default rewriter.BinaryOperator(context, mapper, operator) =
-        { Left = mapper (context, operator.Left)
-          Operator = rewriter.Terminal(context, operator.Operator)
-          Right = mapper (context, operator.Right) }
+        {
+            Left = mapper (context, operator.Left)
+            Operator = rewriter.Terminal(context, operator.Operator)
+            Right = mapper (context, operator.Right)
+        }
 
     default _.Terminal(_, terminal) = terminal

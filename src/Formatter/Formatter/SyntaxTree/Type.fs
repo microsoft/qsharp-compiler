@@ -2,14 +2,16 @@
 
 /// A parenthesized characteristic.
 type internal CharacteristicGroup =
-    { /// The opening parenthesis.
-      OpenParen: Terminal
+    {
+        /// The opening parenthesis.
+        OpenParen: Terminal
 
-      /// The characteristic.
-      Characteristic: Characteristic
+        /// The characteristic.
+        Characteristic: Characteristic
 
-      /// The closing parenthesis.
-      CloseParen: Terminal }
+        /// The closing parenthesis.
+        CloseParen: Terminal
+    }
 
 /// A callable characteristic.
 and internal Characteristic =
@@ -27,38 +29,44 @@ and internal Characteristic =
 
 /// A section attached to a callable type or declaration describing its characteristics.
 type internal CharacteristicSection =
-    { /// <summary>
-      /// The <c>is</c> keyword.
-      /// </summary>
-      IsKeyword: Terminal
+    {
+        /// <summary>
+        /// The <c>is</c> keyword.
+        /// </summary>
+        IsKeyword: Terminal
 
-      /// The characteristic.
-      Characteristic: Characteristic }
+        /// The characteristic.
+        Characteristic: Characteristic
+    }
 
 /// An array type.
 and internal ArrayType =
-    { /// The type of items in the array.
-      ItemType: Type
+    {
+        /// The type of items in the array.
+        ItemType: Type
 
-      /// The opening bracket
-      OpenBracket: Terminal
+        /// The opening bracket
+        OpenBracket: Terminal
 
-      /// The closing bracket.
-      CloseBracket: Terminal }
+        /// The closing bracket.
+        CloseBracket: Terminal
+    }
 
 /// A callable type.
 and internal CallableType =
-    { /// The input type.
-      FromType: Type
+    {
+        /// The input type.
+        FromType: Type
 
-      /// The arrow separating input and output types.
-      Arrow: Terminal
+        /// The arrow separating input and output types.
+        Arrow: Terminal
 
-      /// The output type.
-      ToType: Type
+        /// The output type.
+        ToType: Type
 
-      /// The characteristics.
-      Characteristics: CharacteristicSection option }
+        /// The characteristics.
+        Characteristics: CharacteristicSection option
+    }
 
 /// A type.
 and internal Type =
@@ -88,8 +96,10 @@ and internal Type =
 
 /// A type annotation attached to a binding.
 type internal TypeAnnotation =
-    { /// The colon between the binding and the type.
-      Colon: Terminal
+    {
+        /// The colon between the binding and the type.
+        Colon: Terminal
 
-      /// The type of the binding.
-      Type: Type }
+        /// The type of the binding.
+        Type: Type
+    }

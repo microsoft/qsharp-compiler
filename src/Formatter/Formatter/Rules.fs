@@ -12,9 +12,7 @@ let private collectWithAdjacent =
         function
         | [] -> []
         | [ x ] -> mapping before x None
-        | x :: y :: rest ->
-            mapping before x (Some y)
-            @ withBefore (Some x) mapping (y :: rest)
+        | x :: y :: rest -> mapping before x (Some y) @ withBefore (Some x) mapping (y :: rest)
 
     withBefore None
 
@@ -31,18 +29,16 @@ let private collapseTriviaSpaces previous trivia _ =
 let collapsedSpaces =
     { new Rewriter<_>() with
         override _.Terminal((), terminal) =
-            terminal
-            |> Terminal.mapPrefix (collectWithAdjacent collapseTriviaSpaces) }
+            terminal |> Terminal.mapPrefix (collectWithAdjacent collapseTriviaSpaces)
+    }
 
 /// Ensures that operators are spaced correctly relative to their operands.
 let operatorSpacing =
     { new Rewriter<_>() with
         override _.Let((), lets) =
-            let equals =
-                { lets.Equals with
-                      Prefix = [ Trivia.spaces 1 ] }
-
-            { lets with Equals = equals } }
+            let equals = { lets.Equals with Prefix = [ Trivia.spaces 1 ] }
+            { lets with Equals = equals }
+    }
 
 /// <summary>
 /// Indents the <see cref="Trivia"/> list to the given indentation <paramref name="level"/>.
@@ -66,20 +62,17 @@ let private indentTerminal level = indentPrefix level |> Terminal.mapPrefix
 let indentation =
     { new Rewriter<_>() with
         override _.Namespace(level, ns) =
-            { base.Namespace(level, ns) with
-                  NamespaceKeyword = indentTerminal level ns.NamespaceKeyword }
+            { base.Namespace(level, ns) with NamespaceKeyword = indentTerminal level ns.NamespaceKeyword }
 
         override _.NamespaceItem(level, item) =
-            base.NamespaceItem(level, item)
-            |> NamespaceItem.mapPrefix (indentPrefix level)
+            base.NamespaceItem(level, item) |> NamespaceItem.mapPrefix (indentPrefix level)
 
         override _.Statement(level, statement) =
-            base.Statement(level, statement)
-            |> Statement.mapPrefix (indentPrefix level)
+            base.Statement(level, statement) |> Statement.mapPrefix (indentPrefix level)
 
         override _.Block(level, mapper, block) =
-            { base.Block(level + 1, mapper, block) with
-                  CloseBrace = indentTerminal level block.CloseBrace } }
+            { base.Block(level + 1, mapper, block) with CloseBrace = indentTerminal level block.CloseBrace }
+    }
 
 /// <summary>
 /// Prepends the <paramref name="prefix"/> with a new line <see cref="Trivia"/> node if it does not already contain one.
@@ -93,8 +86,7 @@ let private ensureNewLine prefix =
 let newLines =
     { new Rewriter<_>() with
         override _.NamespaceItem((), item) =
-            base.NamespaceItem((), item)
-            |> NamespaceItem.mapPrefix ensureNewLine
+            base.NamespaceItem((), item) |> NamespaceItem.mapPrefix ensureNewLine
 
         override _.Statement((), statement) =
             let statement = base.Statement((), statement)
@@ -106,8 +98,7 @@ let newLines =
         override _.Block((), mapper, block) =
             let block = base.Block((), mapper, block)
 
-            if List.isEmpty block.Items then
-                block
-            else
-                { block with
-                      CloseBrace = Terminal.mapPrefix ensureNewLine block.CloseBrace } }
+            if List.isEmpty block.Items
+            then block
+            else { block with CloseBrace = Terminal.mapPrefix ensureNewLine block.CloseBrace }
+    }

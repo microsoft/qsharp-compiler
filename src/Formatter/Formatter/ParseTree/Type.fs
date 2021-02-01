@@ -15,11 +15,8 @@ type internal TypeVisitor(tokens) =
         Node.toUnknown tokens node |> Type.Unknown
 
     override _.VisitIntType context =
-        context.Int().Symbol
-        |> Node.toTerminal tokens
-        |> BuiltIn
+        context.Int().Symbol |> Node.toTerminal tokens |> BuiltIn
 
     override _.VisitUserDefinedType context =
-        { Prefix = Node.prefix tokens context.name.Start.TokenIndex
-          Text = context.name.GetText() }
+        { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
         |> UserDefined

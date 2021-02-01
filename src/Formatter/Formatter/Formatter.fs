@@ -11,21 +11,14 @@ open System.Collections.Immutable
 
 [<CompiledName "Format">]
 let format (source: string) =
-    let tokenStream =
-        source
-        |> AntlrInputStream
-        |> QSharpLexer
-        |> CommonTokenStream
+    let tokenStream = source |> AntlrInputStream |> QSharpLexer |> CommonTokenStream
 
     let parser = QSharpParser tokenStream
     let errorListener = ErrorListListener()
     parser.AddErrorListener errorListener
     let documentContext = parser.document ()
 
-    let tokens =
-        tokenStream.GetTokens()
-        |> hideTokens errorListener.ErrorTokens
-        |> ImmutableArray.CreateRange
+    let tokens = tokenStream.GetTokens() |> hideTokens errorListener.ErrorTokens |> ImmutableArray.CreateRange
 
     documentContext
     |> toDocument tokens

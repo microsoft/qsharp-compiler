@@ -27,5 +27,4 @@ let private hideToken (token: IToken): IToken =
 /// <paramref name="toHide"/> are moved to the <see cref="QSharpLexer.Hidden"/> channel.
 /// </summary>
 let hideTokens toHide =
-    Seq.map
-    <| fun token -> if toHide |> Seq.contains token then hideToken token else token
+    Seq.map <| fun token -> if toHide |> Seq.contains token then hideToken token else token
