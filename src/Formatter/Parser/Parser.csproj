@@ -23,7 +23,7 @@
 
   <Target Name="Antlr" BeforeTargets="CoreCompile" Inputs="@(AntlrInput)" Outputs="@(AntlrOutput)">
     <DownloadFile DestinationFolder="$(AntlrPath)" SourceUrl="$(AntlrJarUrl)" />
-    <Exec Command="java -jar &quot;$(AntlrPath)/$(AntlrJar)&quot; -o &quot;$(AntlrPath)&quot; -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp QSharpLexer.g4 QSharpParser.g4" />
+    <Exec Command="java -jar &quot;$(AntlrPath)/$(AntlrJar)&quot; -o &quot;$(AntlrPath)&quot; -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp &quot;@(AntlrInput, '&quot; &quot;')&quot;" />
     <ItemGroup>
       <Compile Include="@(AntlrOutput)" />
     </ItemGroup>
