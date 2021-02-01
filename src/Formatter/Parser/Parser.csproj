@@ -9,11 +9,25 @@
     <PackageReference Include="Antlr4.Runtime.Standard" Version="4.9.1" />
   </ItemGroup>
 
-  <Target Name="ANTLR" BeforeTargets="CoreCompile" Inputs="QSharpLexer.g4; QSharpParser.g4" Outputs="obj\Antlr\QSharpBaseVisitor.cs; obj\Antlr\QSharpLexer.cs; obj\Antlr\QSharpParser.cs; obj\Antlr\QSharpVisitor.cs">
-    <DownloadFile DestinationFolder="obj\Antlr" SourceUrl="https://www.antlr.org/download/antlr-4.9.1-complete.jar" />
-    <Exec Command="java -jar obj/Antlr/antlr-4.9.1-complete.jar -o obj/Antlr -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp QSharpLexer.g4 QSharpParser.g4" />
+  <PropertyGroup>
+    <AntlrUrl>https://www.antlr.org/download/antlr-4.9.1-complete.jar</AntlrUrl>
+    <AntlrPath>$(BaseIntermediateOutputPath)Antlr</AntlrPath>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <AntlrInput Include="*.g4" />
+
+    <AntlrOutput Include="$(AntlrPath)\QSharpLexer.cs" />
+    <AntlrOutput Include="$(AntlrPath)\QSharpParser.cs" />
+    <AntlrOutput Include="$(AntlrPath)\QSharpParserBaseVisitor.cs" />
+    <AntlrOutput Include="$(AntlrPath)\QSharpParserVisitor.cs" />
+  </ItemGroup>
+
+  <Target Name="Antlr" BeforeTargets="CoreCompile" Inputs="@(AntlrInput)" Outputs="@(AntlrOutput)">
+    <DownloadFile DestinationFolder="$(AntlrPath)" SourceUrl="$(AntlrUrl)" />
+    <Exec Command="java -jar $(AntlrPath)/antlr-4.9.1-complete.jar -o $(AntlrPath) -no-listener -visitor -package &quot;$(RootNamespace)&quot; -Dlanguage=CSharp QSharpLexer.g4 QSharpParser.g4" />
     <ItemGroup>
-      <Compile Include="obj\Antlr\*.cs" />
+      <Compile Include="@(AntlrOutput)" />
     </ItemGroup>
   </Target>
 </Project>
