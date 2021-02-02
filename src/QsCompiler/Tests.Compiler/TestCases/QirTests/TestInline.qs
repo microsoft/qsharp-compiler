@@ -30,7 +30,11 @@ namespace Microsoft.Quantum.Intrinsic {
 namespace Microsoft.Quantum.Testing.QIR
 {
     open Microsoft.Quantum.Intrinsic;
- 
+
+    internal operation AsTuple(q : Qubit) : (Double, Qubit) {
+        return (0.3, q);
+    }
+
     internal function UpdatedValues(res : Result, (x : Double, y : Double)) : (Double, Double) {
         return res == Zero ? (x - 0.5, y) | (x, y + 0.5);
     }
@@ -41,7 +45,9 @@ namespace Microsoft.Quantum.Testing.QIR
         mutable (x, y) = (0., 0.);
         using (q = Qubit()) {
 
-            K(0.3, q);
+            K(AsTuple(q));
+            K(AsTuple(q));
+            K(AsTuple(q));
             set (x, y) = UpdatedValues(M(q), (x, y));
         }
 
