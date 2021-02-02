@@ -27,9 +27,9 @@ then0__1:                                         ; preds = %body__1
   br label %continue__1
 
 else__1:                                          ; preds = %body__1
-  %x1 = mul i64 %i, 2
+  %x__1 = mul i64 %i, 2
   %9 = load i64, i64* %sum
-  %10 = add i64 %9, %x1
+  %10 = add i64 %9, %x__1
   store i64 %10, i64* %sum
   br label %continue__1
 
@@ -52,9 +52,9 @@ header__2:                                        ; preds = %exiting__2, %exit__
 body__2:                                          ; preds = %header__2
   %15 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 %13)
   %16 = bitcast i8* %15 to i64*
-  %i2 = load i64, i64* %16
+  %i__1 = load i64, i64* %16
   %17 = load i64, i64* %sum
-  %18 = add i64 %17, %i2
+  %18 = add i64 %17, %i__1
   store i64 %18, i64* %sum
   br label %exiting__2
 

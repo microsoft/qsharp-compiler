@@ -658,7 +658,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="value">The LLVM value</param>
         internal void RegisterVariable(string name, IValue value)
         {
-            value.RegisterName(this.sharedState.InlinedName(name));
+            value.RegisterName(this.sharedState.VariableName(name));
             this.scopes.Peek().RegisterVariable(name, value);
         }
 
