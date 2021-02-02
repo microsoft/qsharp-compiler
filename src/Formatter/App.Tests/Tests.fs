@@ -1,7 +1,7 @@
 /// Tests for the command-line interface.
-module QsFmt.App.Tests
+module Microsoft.Quantum.QsFmt.App.Tests
 
-open QsFmt.App.Program
+open Microsoft.Quantum.QsFmt.App.Program
 open System
 open System.IO
 open Xunit

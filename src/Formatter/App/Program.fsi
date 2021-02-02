@@ -1,4 +1,4 @@
-﻿module QsFmt.App.Program
+﻿module Microsoft.Quantum.QsFmt.App.Program
 
 /// Runs the Q# formatter.
 [<CompiledName "Main">]

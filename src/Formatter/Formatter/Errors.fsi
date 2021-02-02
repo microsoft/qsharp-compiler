@@ -1,5 +1,5 @@
 ﻿/// Parse tree error handling.
-module QsFmt.Formatter.Errors
+module Microsoft.Quantum.QsFmt.Formatter.Errors
 
 open Antlr4.Runtime
 

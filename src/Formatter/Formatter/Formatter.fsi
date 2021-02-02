@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 /// The Q# formatter.
-module QsFmt.Formatter.Formatter
+module Microsoft.Quantum.QsFmt.Formatter.Formatter
 
-open QsFmt.Formatter.Errors
+open Microsoft.Quantum.QsFmt.Formatter.Errors
 
 /// Formats the given Q# source code.
 [<CompiledName "Format">]

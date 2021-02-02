@@ -3,7 +3,7 @@
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>qsfmt</AssemblyName>
-    <RootNamespace>QsFmt.App</RootNamespace>
+    <RootNamespace>Microsoft.Quantum.QsFmt.App</RootNamespace>
   </PropertyGroup>
 
   <ItemGroup>

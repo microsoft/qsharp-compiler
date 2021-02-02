@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 /// General utility functions.
-module internal QsFmt.Formatter.Utils
+module internal Microsoft.Quantum.QsFmt.Formatter.Utils
 
 /// Curries a function of two arguments.
 let curry f x y = f (x, y)

@@ -4,7 +4,7 @@
 /// <summary>
 /// <see cref="QsFmt.Formatter.Tests.Example"/> test cases.
 /// </summary>
-module QsFmt.Formatter.Tests.Examples
+module Microsoft.Quantum.QsFmt.Formatter.Tests.Examples
 
 [<Example>]
 let ``Indents function`` =

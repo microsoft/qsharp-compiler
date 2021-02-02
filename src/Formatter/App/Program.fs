@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module QsFmt.App.Program
+module Microsoft.Quantum.QsFmt.App.Program
 
 open Argu
-open QsFmt.Formatter
+open Microsoft.Quantum.QsFmt.Formatter
 open System.IO
 
 [<HelpDescription "Display this list of options.">]

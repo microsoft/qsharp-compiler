@@ -1,6 +1,6 @@
-﻿module QsFmt.Formatter.Tests.Errors
+﻿module Microsoft.Quantum.QsFmt.Formatter.Tests.Errors
 
-open QsFmt.Formatter
+open Microsoft.Quantum.QsFmt.Formatter
 open Xunit
 
 [<Fact>]

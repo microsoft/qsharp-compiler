@@ -1,15 +1,15 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module QsFmt.Formatter.Formatter
+module Microsoft.Quantum.QsFmt.Formatter.Formatter
 
 open Antlr4.Runtime
-open QsFmt.Formatter.Errors
-open QsFmt.Formatter.ParseTree.Namespace
-open QsFmt.Formatter.Printer
-open QsFmt.Formatter.Rules
-open QsFmt.Formatter.Utils
-open QsFmt.Parser
+open Microsoft.Quantum.QsFmt.Formatter.Errors
+open Microsoft.Quantum.QsFmt.Formatter.ParseTree.Namespace
+open Microsoft.Quantum.QsFmt.Formatter.Printer
+open Microsoft.Quantum.QsFmt.Formatter.Rules
+open Microsoft.Quantum.QsFmt.Formatter.Utils
+open Microsoft.Quantum.QsFmt.Parser
 open System.Collections.Immutable
 
 /// <summary>

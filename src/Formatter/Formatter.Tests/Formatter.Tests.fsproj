@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <AssemblyName>QsFmt.Formatter.Tests</AssemblyName>
+    <AssemblyName>Microsoft.Quantum.QsFmt.Formatter.Tests</AssemblyName>
     <RootNamespace>$(AssemblyName)</RootNamespace>
   </PropertyGroup>
 

@@ -4,12 +4,12 @@
 /// <summary>
 /// <see cref="QsFmt.Formatter.Tests.FixedPoint"/> test cases.
 /// </summary>
-module QsFmt.Formatter.Tests.FixedPoints
+module Microsoft.Quantum.QsFmt.Formatter.Tests.FixedPoints
 
 open Antlr4.Runtime
-open QsFmt.Formatter
-open QsFmt.Formatter.Tests
-open QsFmt.Parser
+open Microsoft.Quantum.QsFmt.Formatter
+open Microsoft.Quantum.QsFmt.Formatter.Tests
+open Microsoft.Quantum.QsFmt.Parser
 open System.IO
 open Xunit
 

@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-module QsFmt.Formatter.Errors
+module Microsoft.Quantum.QsFmt.Formatter.Errors
 
 open Antlr4.Runtime
 

@@ -1,10 +1,10 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace QsFmt.Formatter.ParseTree
+namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 
-open QsFmt.Formatter.SyntaxTree
-open QsFmt.Parser
+open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
+open Microsoft.Quantum.QsFmt.Parser
 
 /// <summary>
 /// Creates syntax tree <see cref="SymbolBinding"/> nodes from a parse tree and the list of tokens.

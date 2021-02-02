@@ -2,11 +2,11 @@
 // Licensed under the MIT License.
 
 /// Syntax tree printing.
-module internal QsFmt.Formatter.Printer
+module internal Microsoft.Quantum.QsFmt.Formatter.Printer
 
 open System
 
-open QsFmt.Formatter.SyntaxTree
+open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 /// <summary>
 /// Prints a <see cref="Trivia"/> node to a string.

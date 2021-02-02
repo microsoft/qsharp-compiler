@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace QsFmt.Formatter.Tests
+namespace Microsoft.Quantum.QsFmt.Formatter.Tests
 
-open QsFmt.Formatter
+open Microsoft.Quantum.QsFmt.Formatter
 open System
 open System.Reflection
 open Xunit

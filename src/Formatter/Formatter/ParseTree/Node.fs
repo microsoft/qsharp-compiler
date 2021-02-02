@@ -2,15 +2,15 @@
 // Licensed under the MIT License.
 
 /// Tools for creating syntax tree nodes from parse tree nodes.
-module internal QsFmt.Formatter.ParseTree.Node
+module internal Microsoft.Quantum.QsFmt.Formatter.ParseTree.Node
 
 open System.Collections.Generic
 open System.Collections.Immutable
 
 open Antlr4.Runtime
 open Antlr4.Runtime.Tree
-open QsFmt.Formatter.SyntaxTree
-open QsFmt.Parser
+open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
+open Microsoft.Quantum.QsFmt.Parser
 
 /// <summary>
 /// The contiguous sequence of tokens in the hidden channel that occur before the token with the given

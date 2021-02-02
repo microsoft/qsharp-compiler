@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace QsFmt.Formatter.SyntaxTree
+namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 /// A declaration for a new symbol.
 type internal SymbolDeclaration =

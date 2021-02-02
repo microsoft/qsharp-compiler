@@ -2,9 +2,9 @@
 // Licensed under the MIT License.
 
 /// Syntax tree rewriters for formatting rules.
-module internal QsFmt.Formatter.Rules
+module internal Microsoft.Quantum.QsFmt.Formatter.Rules
 
-open QsFmt.Formatter.SyntaxTree
+open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 /// <summary>
 /// Maps a <see cref="Trivia"/> list by applying the mapping function with the <see cref="Trivia"/> nodes before and

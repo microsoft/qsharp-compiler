@@ -1,9 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace QsFmt.Formatter.SyntaxTree
+namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-open QsFmt.Formatter.Utils
+open Microsoft.Quantum.QsFmt.Formatter.Utils
 
 /// <summary>
 /// Reduces a syntax tree to a single value.
