@@ -16,6 +16,7 @@
     <Compile Include="Discoverer.fs" />
     <Compile Include="Examples.fs" />
     <Compile Include="FixedPoints.fs" />
+    <Compile Include="Errors.fs" />
   </ItemGroup>
 
   <ItemGroup>
