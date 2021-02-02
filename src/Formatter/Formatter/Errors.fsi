@@ -8,11 +8,11 @@ type SyntaxError
 
 /// Builds a list of syntax errors that occur during parsing.
 [<Sealed>]
-type internal ErrorListListener =
+type internal ListErrorListener =
     /// <summary>
-    /// Creates a new <see cref="ErrorListListener"/>.
+    /// Creates a new <see cref="ListErrorListener"/>.
     /// </summary>
-    new: unit -> ErrorListListener
+    new: unit -> ListErrorListener
 
     /// The accumulated syntax errors.
     member SyntaxErrors: SyntaxError list

@@ -22,7 +22,7 @@ type SyntaxError =
             sprintf "Line %d, column %d: %s" error.line error.column error.message
 
 [<Sealed>]
-type internal ErrorListListener() =
+type internal ListErrorListener() =
     let mutable errors = []
 
     member _.SyntaxErrors = errors

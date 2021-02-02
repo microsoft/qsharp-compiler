@@ -19,8 +19,10 @@ let private parse (source: string) =
     let tokenStream = source |> AntlrInputStream |> QSharpLexer |> CommonTokenStream
 
     let parser = QSharpParser tokenStream
-    let errorListener = ErrorListListener()
+    parser.RemoveErrorListener ConsoleErrorListener.Instance
+    let errorListener = ListErrorListener()
     parser.AddErrorListener errorListener
+
     let documentContext = parser.document ()
 
     if List.isEmpty errorListener.SyntaxErrors then

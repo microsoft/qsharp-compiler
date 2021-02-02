@@ -98,9 +98,13 @@ let ``Formats standard input`` () =
 
 [<Fact>]
 let ``Shows syntax errors`` () =
-    // TODO: Remove the duplicate error messages.
-    let error = "line 1:16 mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
-Line 1, column 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
+    let error = "Line 1, column 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
 "
 
-    Assert.Equal({ Code = 1; Out = ""; Error = error }, run [| "-" |] "namespace Foo { invalid syntax; } ")
+    Assert.Equal
+        ({
+             Code = 1
+             Out = ""
+             Error = error
+         },
+         run [| "-" |] "namespace Foo { invalid syntax; } ")
