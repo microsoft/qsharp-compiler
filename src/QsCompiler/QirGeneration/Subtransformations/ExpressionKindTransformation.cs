@@ -1840,7 +1840,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.SharedState.GeneratePartialApplication(name, kind, BuildPartialApplicationBody);
             }
 
-            var liftedName = this.SharedState.GenerateUniqueName("PartialApplication");
+            var liftedName = this.SharedState.GenerateUniqueName("PartialApplication", local: false);
             ResolvedType CallableArgumentType(ResolvedType t) => t.Resolution switch
             {
                 ResolvedTypeKind.Function paf => paf.Item1,

@@ -158,7 +158,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// returns unit or has exactly one return statement, this restriction could be lifted in the future.
         /// </summary>
         private readonly Stack<(string, IValue)> inlineLevels;
-        private readonly Dictionary<string, int> uniqueNameIds = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> uniqueLocalNames = new Dictionary<string, int>();
+        private readonly Dictionary<string, int> uniqueGlobalNames = new Dictionary<string, int>();
 
         private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
@@ -823,7 +824,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("Processing of the current function and needs to be properly terminated before starting a new one");
             }
 
-            this.uniqueNameIds.Clear();
+            this.uniqueLocalNames.Clear();
             this.ScopeMgr.OpenScope();
         }
 
@@ -1209,7 +1210,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return table;
             }
 
-            var name = this.GenerateUniqueName("MemoryManagement");
+            var name = this.GenerateUniqueName("MemoryManagement", local: false);
             var funcs = new Constant[2];
             var func = this.Module.CreateFunction($"{name}__RefCount", this.Types.CaptureCountFunction);
             funcs[0] = func;
@@ -1392,20 +1393,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Contains the loop header that creates the phi-node, evaluates the condition,
             // and then branches into the body or exits the loop depending on whether the condition evaluates to true.
-            var headerName = this.GenerateUniqueName("header");
+            var headerName = this.GenerateUniqueName("header", local: true);
             BasicBlock headerBlock = this.CurrentFunction.AppendBasicBlock(headerName);
 
             // Contains the body of the loop, which has its own naming scope.
-            var bodyName = this.GenerateUniqueName("body");
+            var bodyName = this.GenerateUniqueName("body", local: true);
             BasicBlock bodyBlock = this.CurrentFunction.AppendBasicBlock(bodyName);
 
             // Increments the loop variable and then branches into the header block
             // which determines whether to enter the next iteration.
-            var exitingName = this.GenerateUniqueName("exiting");
+            var exitingName = this.GenerateUniqueName("exiting", local: true);
             BasicBlock exitingBlock = this.CurrentFunction.AppendBasicBlock(exitingName);
 
             // Empty block that will be entered when the loop exits that may get populated by subsequent computations.
-            var exitName = this.GenerateUniqueName("exit");
+            var exitName = this.GenerateUniqueName("exit", local: true);
             BasicBlock exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
 
             PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
@@ -1503,7 +1504,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // The returned value evaluates to true if he given increment is positive.
             Value CreatePreheader(Value increment)
             {
-                var preheaderName = this.GenerateUniqueName("preheader");
+                var preheaderName = this.GenerateUniqueName("preheader", local: true);
                 var preheaderBlock = this.CurrentFunction.AppendBasicBlock(preheaderName);
 
                 // End the current block by branching to the preheader
@@ -1661,7 +1662,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void StartInlining()
         {
             this.ScopeMgr.OpenScope();
-            var inlineId = this.GenerateUniqueName("__inline");
+            var inlineId = this.GenerateUniqueName("__inline", local: true);
             this.inlineLevels.Push((inlineId, this.Values.Unit));
         }
 
@@ -1733,7 +1734,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     flag = true;
                 }
             }
-            var continueName = this.GenerateUniqueName(name);
+            var continueName = this.GenerateUniqueName(name, local: true);
             return next == null
                 ? this.CurrentFunction.AppendBasicBlock(continueName)
                 : this.CurrentFunction.InsertBasicBlock(continueName, next);
@@ -1744,10 +1745,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="prefix">The prefix</param>
         /// <returns>A string that is unique across calls to this method</returns>
-        internal string GenerateUniqueName(string prefix)
+        internal string GenerateUniqueName(string prefix, bool local)
         {
-            var index = this.uniqueNameIds.TryGetValue(prefix, out int n) ? n + 1 : 1;
-            this.uniqueNameIds[prefix] = index;
+            var names = local ? this.uniqueLocalNames : this.uniqueGlobalNames;
+            var index = names.TryGetValue(prefix, out int n) ? n + 1 : 1;
+            names[prefix] = index;
             return $"{prefix}__{index}";
         }
 

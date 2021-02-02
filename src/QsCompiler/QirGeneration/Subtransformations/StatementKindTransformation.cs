@@ -252,18 +252,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var test = clauses[n].Item1;
                 var testValue = this.SharedState.EvaluateSubexpression(test).Value;
                 var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
-                            this.SharedState.GenerateUniqueName($"then{n}"), contBlock);
+                            this.SharedState.GenerateUniqueName($"then{n}", local: true), contBlock);
 
                 // If this is an intermediate clause, then the next block if the test fails
                 // is the next clause's test block.
                 // If this is the last clause, then the next block is the default clause's block
                 // if there is one, or the continue block if not.
                 var nextConditional = n < clauses.Length - 1
-                    ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.GenerateUniqueName($"test{n + 1}"), contBlock)
+                    ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.GenerateUniqueName($"test{n + 1}", local: true), contBlock)
                     : (stm.Default.IsNull
                         ? contBlock
                         : this.SharedState.CurrentFunction.InsertBasicBlock(
-                                this.SharedState.GenerateUniqueName($"else"), contBlock));
+                                this.SharedState.GenerateUniqueName($"else", local: true), contBlock));
 
                 // Create the branch
                 this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
@@ -370,10 +370,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // analyze the loop later if we do it this way.
             // We need to be a bit careful about scopes here, though.
 
-            var repeatBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("repeat"));
-            var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("until"));
-            var fixupBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("fixup"));
-            var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("rend"));
+            var repeatBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("repeat", local: true));
+            var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("until", local: true));
+            var fixupBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("fixup", local: true));
+            var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("rend", local: true));
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
@@ -483,9 +483,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // The basic approach here is to put the evaluation of the test expression into one basic block,
             // the body of the loop in a second basic block, and then have a third basic block as the continuation.
 
-            var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("while"));
-            var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("do"));
-            var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("wend"));
+            var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("while", local: true));
+            var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("do", local: true));
+            var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.GenerateUniqueName("wend", local: true));
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
