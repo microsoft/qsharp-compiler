@@ -13,4 +13,8 @@
   <ItemGroup>
     <ProjectReference Include="..\Formatter\Formatter.fsproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Argu" Version="6.1.1" />
+  </ItemGroup>
 </Project>

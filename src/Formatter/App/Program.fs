@@ -1,14 +1,33 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-open System.IO
+open Argu
 open QsFmt.Formatter
+open System.IO
+
+[<HelpDescription "Display this list of options.">]
+type private Argument =
+    | [<MainCommand; Unique>] Input of string
+
+    interface IArgParserTemplate with
+        member arg.Usage =
+            match arg with
+            | Input _ -> "File to format or \"-\" to read from standard input."
 
 /// Runs the Q# formatter.
 [<EntryPoint>]
 let private main args =
-    if Array.isEmpty args
-    then stdin.ReadToEnd() |> Formatter.format |> printfn "%s"
-    else args |> Array.map (File.ReadAllText >> Formatter.format) |> Array.iter (printfn "%s")
+    let parser = ArgumentParser.Create<Argument>()
 
-    0
+    try
+        let results = parser.Parse args
+        let input = results.GetResult Input
+
+        if input = "-" then stdin.ReadToEnd() else File.ReadAllText input
+        |> Formatter.format
+        |> printfn "%s"
+
+        0
+    with :? ArguParseException as ex ->
+        eprintf "%s" ex.Message
+        1
