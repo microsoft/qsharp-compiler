@@ -17,7 +17,7 @@ type private Argument =
 /// Runs the Q# formatter.
 [<EntryPoint>]
 let private main args =
-    let parser = ArgumentParser.Create<Argument>()
+    let parser = ArgumentParser.Create()
 
     try
         let results = parser.Parse args
