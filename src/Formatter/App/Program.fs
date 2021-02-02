@@ -7,12 +7,14 @@ open Argu
 open Microsoft.Quantum.QsFmt.Formatter
 open System.IO
 
+/// A command-line argument.
 [<HelpDescription "Display this list of options.">]
 type private Argument =
+    /// The path to the input file.
     | [<MainCommand; Unique>] Input of string
 
     interface IArgParserTemplate with
-        member arg.Usage =
+        override arg.Usage =
             match arg with
             | Input _ -> "File to format or \"-\" to read from standard input."
 
