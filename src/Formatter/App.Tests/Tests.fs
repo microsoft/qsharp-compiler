@@ -108,3 +108,10 @@ let ``Shows syntax errors`` () =
              Error = error
          },
          run [| "-" |] "namespace Foo { invalid syntax; } ")
+
+[<Fact>]
+let ``Shows file not found error`` () =
+    let result = run [| "NotFound.qs" |] ""
+    Assert.Equal(3, result.Code)
+    Assert.Empty result.Out
+    Assert.NotEmpty result.Error

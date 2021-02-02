@@ -5,6 +5,7 @@ module Microsoft.Quantum.QsFmt.App.Program
 
 open Argu
 open Microsoft.Quantum.QsFmt.Formatter
+open System
 open System.IO
 
 /// A command-line argument.
@@ -35,6 +36,13 @@ let main args =
         | Error errors ->
             errors |> List.iter (eprintfn "%O")
             1
-    with :? ArguParseException as ex ->
+    with
+    | :? ArguParseException as ex ->
         eprintf "%s" ex.Message
         2
+    | :? IOException as ex ->
+        eprintfn "%s" ex.Message
+        3
+    | :? UnauthorizedAccessException as ex ->
+        eprintfn "%s" ex.Message
+        4
