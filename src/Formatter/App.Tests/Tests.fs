@@ -66,52 +66,57 @@ OPTIONS:
          },
          run [||] "")
 
-[<Fact>]
-let ``Formats file`` () =
-    Assert.Equal
-        ({
-             Code = 0
-             Out = "namespace Foo {
+[<Theory>]
+[<InlineData("Example.qs",
+             "namespace Foo {
     function Bar() : Int {
         return 0;
     }
 }
-"
-             Error = ""
-         },
-         run [| "Example.qs" |] "")
-
-[<Fact>]
-let ``Formats standard input`` () =
+")>]
+let ``Formats file`` path output =
     Assert.Equal
         ({
              Code = 0
-             Out = "namespace Foo {
+             Out = output
+             Error = ""
+         },
+         run [| path |] "")
+
+[<Theory>]
+[<InlineData("namespace Foo { function Bar() : Int { return 0; } }\n",
+             "namespace Foo {
     function Bar() : Int {
         return 0;
     }
 }
-"
+")>]
+let ``Formats standard input`` input output =
+    Assert.Equal
+        ({
+             Code = 0
+             Out = output
              Error = ""
          },
-         run [| "-" |] "namespace Foo { function Bar() : Int { return 0; } }\n")
+         run [| "-" |] input)
 
-[<Fact>]
-let ``Shows syntax errors`` () =
-    let error = "Line 1, column 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
-"
-
+[<Theory>]
+[<InlineData("namespace Foo { invalid syntax; } ",
+             "Line 1, column 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
+")>]
+let ``Shows syntax errors`` input errors =
     Assert.Equal
         ({
              Code = 1
              Out = ""
-             Error = error
+             Error = errors
          },
-         run [| "-" |] "namespace Foo { invalid syntax; } ")
+         run [| "-" |] input)
 
-[<Fact>]
-let ``Shows file not found error`` () =
-    let result = run [| "NotFound.qs" |] ""
+[<Theory>]
+[<InlineData "NotFound.qs">]
+let ``Shows file not found error`` path =
+    let result = run [| path |] ""
     Assert.Equal(3, result.Code)
     Assert.Empty result.Out
     Assert.NotEmpty result.Error
