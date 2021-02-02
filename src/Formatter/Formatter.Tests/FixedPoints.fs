@@ -6,14 +6,27 @@
 /// </summary>
 module QsFmt.Formatter.Tests.FixedPoints
 
-open System.IO
+open Antlr4.Runtime
 open QsFmt.Formatter
 open QsFmt.Formatter.Tests
+open QsFmt.Parser
+open System.IO
 open Xunit
 
+/// <summary>
+/// Returns true if <paramref name="source"/> is valid Q# syntax.
+/// </summary>
+let private isValidSyntax (source: string) =
+    let parser = source |> AntlrInputStream |> QSharpLexer |> CommonTokenStream |> QSharpParser
+    parser.document () |> ignore
+    parser.NumberOfSyntaxErrors = 0
+
+/// Test case files with valid syntax.
 let private testCases () =
     Directory.GetFiles("TestCases", "*.qs", EnumerationOptions(RecurseSubdirectories = true))
-    |> Seq.map (File.ReadAllText >> Array.create 1)
+    |> Seq.map File.ReadAllText
+    |> Seq.filter isValidSyntax
+    |> Seq.map (Array.create 1)
 
 [<Theory(Skip = "Not supported.")>]
 [<MemberData(nameof testCases)>]
