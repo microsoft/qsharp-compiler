@@ -19,7 +19,7 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    using ResolvedExpression = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
+    using ResolvedExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
 
     internal class QirExpressionKindTransformation : ExpressionKindTransformation<GenerationContext>
@@ -128,45 +128,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // static methods
 
-        /// <param name="sharedState">The generation context in which to emit the instructions</param>
-        /// <param name="rangeEx">The range expression for which to create the access functions</param>
-        /// <returns>
-        /// Three functions to access the start, step, and end of a range.
-        /// The function to access the step may return null if the given range does not specify the step.
-        /// In that case, the step size defaults to be 1L.
-        /// </returns>
-        internal static (Func<Value> GetStart, Func<Value?> GetStep, Func<Value> GetEnd) RangeItems(GenerationContext sharedState, TypedExpression rangeEx)
-        {
-            Func<Value> startValue;
-            Func<Value?> stepValue;
-            Func<Value> endValue;
-            if (rangeEx.Expression is ResolvedExpression.RangeLiteral rlit)
-            {
-                if (rlit.Item1.Expression is ResolvedExpression.RangeLiteral rlitInner)
-                {
-                    startValue = () => sharedState.EvaluateSubexpression(rlitInner.Item1).Value;
-                    stepValue = () => sharedState.EvaluateSubexpression(rlitInner.Item2).Value;
-                }
-                else
-                {
-                    startValue = () => sharedState.EvaluateSubexpression(rlit.Item1).Value;
-                    stepValue = () => null;
-                }
-
-                // Item2 is always the end. Either Item1 is the start and 1 is the step,
-                // or Item1 is a range expression itself, with Item1 the start and Item2 the step.
-                endValue = () => sharedState.EvaluateSubexpression(rlit.Item2).Value;
-            }
-            else
-            {
-                var range = sharedState.EvaluateSubexpression(rangeEx).Value;
-                startValue = () => sharedState.CurrentBuilder.ExtractValue(range, 0);
-                stepValue = () => sharedState.CurrentBuilder.ExtractValue(range, 1);
-                endValue = () => sharedState.CurrentBuilder.ExtractValue(range, 2);
-            }
-            return (startValue, stepValue, endValue);
-        }
-
         /// <summary>
         /// Determines the location of the item with the given name within the tuple of type items.
         /// The returned list contains the index of the item starting from the outermost tuple
@@ -223,7 +184,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// an alias expression indicating the item(s) to update,
         /// and the new value(s) for the item(s) to update.
         /// </param>
-        internal static ResolvedExpression CopyAndUpdate(
+        internal static ResolvedExpressionKind CopyAndUpdate(
             GenerationContext sharedState,
             (IValue, TypedExpression, TypedExpression) copyAndUpdate,
             bool updateItemAliasCount = false,
@@ -274,7 +235,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     // do not increase the ref count here - we will increase the ref count of all new items at the end
                     var newItemValue = (ArrayValue)sharedState.EvaluateSubexpression(updated);
-                    var (getStart, getStep, getEnd) = RangeItems(sharedState, accEx);
+                    var (getStart, getStep, getEnd) = sharedState.Functions.RangeItems(accEx);
                     sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
                     sharedState.ScopeMgr.DecreaseReferenceCount(newItemValue, shallow: true); // the items get unreferenced with the value of the copy-and-update expression
                 }
@@ -327,7 +288,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     throw new InvalidOperationException("Q# declaration for type not found");
                 }
-                else if (accEx.Expression is ResolvedExpression.Identifier id
+                else if (accEx.Expression is ResolvedExpressionKind.Identifier id
                     && id.Item1 is Identifier.LocalVariable name
                     && FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
                 {
@@ -394,73 +355,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             sharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
         // private helpers
-
-        /// <returns>
-        /// The result of the evaluation if the given name matches one of the recognized runtime functions,
-        /// and null otherwise.
-        /// </returns>
-        private bool TryEvaluateRuntimeFunction(QsQualifiedName name, TypedExpression arg, [MaybeNullWhen(false)] out IValue evaluated)
-        {
-            var intType = ResolvedType.New(ResolvedTypeKind.Int);
-            var rangeType = ResolvedType.New(ResolvedTypeKind.Range);
-
-            if (name.Equals(BuiltIn.Length.FullName))
-            {
-                var arrayArg = (ArrayValue)this.SharedState.EvaluateSubexpression(arg);
-                evaluated = this.SharedState.Values.FromSimpleValue(arrayArg.Length, intType);
-                return true;
-            }
-            else if (name.Equals(BuiltIn.RangeStart.FullName))
-            {
-                var (getStart, _, _) = RangeItems(this.SharedState, arg);
-                evaluated = this.SharedState.Values.FromSimpleValue(getStart(), intType);
-                return true;
-            }
-            else if (name.Equals(BuiltIn.RangeStep.FullName))
-            {
-                var (_, getStep, _) = RangeItems(this.SharedState, arg);
-                var res = getStep() ?? this.SharedState.Context.CreateConstant(1L);
-                evaluated = this.SharedState.Values.FromSimpleValue(res, intType);
-                return true;
-            }
-            else if (name.Equals(BuiltIn.RangeEnd))
-            {
-                var (_, _, getEnd) = RangeItems(this.SharedState, arg);
-                evaluated = this.SharedState.Values.FromSimpleValue(getEnd(), intType);
-                return true;
-            }
-            else if (name.Equals(BuiltIn.RangeReverse.FullName))
-            {
-                var (getStart, getStep, getEnd) = RangeItems(this.SharedState, arg);
-                var start = getStart();
-                var step = getStep() ?? this.SharedState.Context.CreateConstant(1L);
-                var end = getEnd();
-
-                var newStart = this.SharedState.CurrentBuilder.Add(
-                    start,
-                    this.SharedState.CurrentBuilder.Mul(
-                        step,
-                        this.SharedState.CurrentBuilder.SDiv(
-                            this.SharedState.CurrentBuilder.Sub(end, start), step)));
-                Value reversed = this.SharedState.CurrentBuilder.Load(
-                    this.SharedState.Types.Range,
-                    this.SharedState.Constants.EmptyRange);
-                reversed = this.SharedState.CurrentBuilder.InsertValue(reversed, newStart, 0u);
-                reversed = this.SharedState.CurrentBuilder.InsertValue(reversed, this.SharedState.CurrentBuilder.Neg(step), 1u);
-                reversed = this.SharedState.CurrentBuilder.InsertValue(reversed, start, 2u);
-                evaluated = this.SharedState.Values.From(reversed, rangeType);
-                return true;
-            }
-            else
-            {
-                evaluated = null;
-                return false;
-            }
-        }
 
         /// <summary>
         /// Handles calls to specific functor specializations of global callables.
@@ -479,7 +377,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     args = Enumerable.Empty<IValue>();
                 }
-                else if (arg.ResolvedType.Resolution.IsTupleType && arg.Expression is ResolvedExpression.ValueTuple vs)
+                else if (arg.ResolvedType.Resolution.IsTupleType && arg.Expression is ResolvedExpressionKind.ValueTuple vs)
                 {
                     args = vs.Item.Select(this.SharedState.EvaluateSubexpression);
                 }
@@ -596,7 +494,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Does not validate the given arguments.
         /// </summary>
         /// <returns>An invalid expression</returns>
-        private ResolvedExpression ApplyFunctor(string runtimeFunctionName, TypedExpression ex)
+        private ResolvedExpressionKind ApplyFunctor(string runtimeFunctionName, TypedExpression ex)
         {
             var callable = (CallableValue)this.SharedState.EvaluateSubexpression(ex);
 
@@ -618,7 +516,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var value = this.ApplyFunctor(runtimeFunctionName, callable, safeToModify);
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
         /// <summary>
@@ -677,7 +575,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // public overrides
 
-        public override ResolvedExpression OnAddition(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnAddition(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -724,13 +622,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnAdjointApplication(TypedExpression ex) =>
+        public override ResolvedExpressionKind OnAdjointApplication(TypedExpression ex) =>
             this.ApplyFunctor(RuntimeLibrary.CallableMakeAdjoint, ex);
 
-        public override ResolvedExpression OnArrayItem(TypedExpression arr, TypedExpression idx)
+        public override ResolvedExpressionKind OnArrayItem(TypedExpression arr, TypedExpression idx)
         {
             // TODO: handle multi-dimensional arrays
             var array = (ArrayValue)this.SharedState.EvaluateSubexpression(arr);
@@ -763,10 +661,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnBigIntLiteral(BigInteger b)
+        public override ResolvedExpressionKind OnBigIntLiteral(BigInteger b)
         {
             var exType = this.SharedState.CurrentExpressionType();
 
@@ -802,10 +700,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnBitwiseAnd(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnBitwiseAnd(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -831,10 +729,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnBitwiseExclusiveOr(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnBitwiseExclusiveOr(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -860,10 +758,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnBitwiseNot(TypedExpression ex)
+        public override ResolvedExpressionKind OnBitwiseNot(TypedExpression ex)
         {
             var exValue = this.SharedState.EvaluateSubexpression(ex);
             var exType = this.SharedState.CurrentExpressionType();
@@ -889,10 +787,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnBitwiseOr(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnBitwiseOr(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -918,19 +816,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnBoolLiteral(bool b)
+        public override ResolvedExpressionKind OnBoolLiteral(bool b)
         {
             var constant = this.SharedState.Context.CreateConstant(b);
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.FromSimpleValue(constant, exType);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnConditionalExpression(TypedExpression condEx, TypedExpression ifTrueEx, TypedExpression ifFalseEx)
+        public override ResolvedExpressionKind OnConditionalExpression(TypedExpression condEx, TypedExpression ifTrueEx, TypedExpression ifFalseEx)
         {
             static bool ExpressionIsSelfEvaluating(TypedExpression ex) =>
                 ex.Expression.IsIdentifier || ex.Expression.IsBoolLiteral || ex.Expression.IsDoubleLiteral
@@ -987,19 +885,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnControlledApplication(TypedExpression ex) =>
+        public override ResolvedExpressionKind OnControlledApplication(TypedExpression ex) =>
             this.ApplyFunctor(RuntimeLibrary.CallableMakeControlled, ex);
 
-        public override ResolvedExpression OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
+        public override ResolvedExpressionKind OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
         {
             var originalValue = this.SharedState.EvaluateSubexpression(lhs);
             return CopyAndUpdate(this.SharedState, (originalValue, accEx, rhs));
         }
 
-        public override ResolvedExpression OnDivision(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnDivision(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1030,19 +928,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnDoubleLiteral(double d)
+        public override ResolvedExpressionKind OnDoubleLiteral(double d)
         {
             var res = this.SharedState.Context.CreateConstant(d);
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.FromSimpleValue(res, exType);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnEquality(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnEquality(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1089,10 +987,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnExponentiate(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnExponentiate(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1129,10 +1027,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnFunctionCall(TypedExpression method, TypedExpression arg)
+        public override ResolvedExpressionKind OnFunctionCall(TypedExpression method, TypedExpression arg)
         {
             IValue value;
             var callableName = method.TryAsGlobalCallable().ValueOr(null);
@@ -1141,7 +1039,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // deal with local values; i.e. callables e.g. from partial applications or stored in local variables
                 value = this.InvokeLocalCallable(method, arg);
             }
-            else if (this.TryEvaluateRuntimeFunction(callableName, arg, out var evaluated))
+            else if (this.SharedState.Functions.TryEvaluate(callableName, arg, out var evaluated))
             {
                 // deal with recognized runtime functions
                 value = evaluated;
@@ -1153,10 +1051,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnGreaterThan(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnGreaterThan(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1185,10 +1083,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnGreaterThanOrEqual(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnGreaterThanOrEqual(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1217,10 +1115,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
+        public override ResolvedExpressionKind OnIdentifier(Identifier sym, QsNullable<ImmutableArray<ResolvedType>> tArgs)
         {
             var exType = this.SharedState.CurrentExpressionType();
 
@@ -1247,10 +1145,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnInequality(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnInequality(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1297,19 +1195,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnIntLiteral(long i)
+        public override ResolvedExpressionKind OnIntLiteral(long i)
         {
             var constant = this.SharedState.Context.CreateConstant(i);
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.FromSimpleValue(constant, exType);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnLeftShift(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnLeftShift(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1335,10 +1233,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnLessThan(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnLessThan(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1367,10 +1265,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnLessThanOrEqual(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnLessThanOrEqual(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1399,10 +1297,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnLogicalAnd(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnLogicalAnd(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1410,10 +1308,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var res = this.SharedState.CurrentBuilder.And(lhs.Value, rhs.Value);
             var value = this.SharedState.Values.FromSimpleValue(res, exType);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnLogicalNot(TypedExpression ex)
+        public override ResolvedExpressionKind OnLogicalNot(TypedExpression ex)
         {
             // Get the Value for the expression
             var arg = this.SharedState.EvaluateSubexpression(ex);
@@ -1421,10 +1319,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.FromSimpleValue(res, exType);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnLogicalOr(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnLogicalOr(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1432,10 +1330,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var res = this.SharedState.CurrentBuilder.Or(lhs.Value, rhs.Value);
             var value = this.SharedState.Values.FromSimpleValue(res, exType);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnModulo(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnModulo(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1461,10 +1359,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnMultiplication(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnMultiplication(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1495,10 +1393,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnNamedItem(TypedExpression ex, Identifier acc)
+        public override ResolvedExpressionKind OnNamedItem(TypedExpression ex, Identifier acc)
         {
             IValue value;
             if (!(ex.ResolvedType.Resolution is ResolvedTypeKind.UserDefinedType udt))
@@ -1523,10 +1421,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnNegative(TypedExpression ex)
+        public override ResolvedExpressionKind OnNegative(TypedExpression ex)
         {
             var exValue = this.SharedState.EvaluateSubexpression(ex);
             var exType = this.SharedState.CurrentExpressionType();
@@ -1556,10 +1454,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnNewArray(ResolvedType elementType, TypedExpression lengthEx)
+        public override ResolvedExpressionKind OnNewArray(ResolvedType elementType, TypedExpression lengthEx)
         {
             IValue DefaultValue(ResolvedType type)
             {
@@ -1661,7 +1559,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.ValueStack.Push(array);
             if (array.Length == this.SharedState.Context.CreateConstant(0L))
             {
-                return ResolvedExpression.InvalidExpr;
+                return ResolvedExpressionKind.InvalidExpr;
             }
 
             // We need to populate the array
@@ -1676,16 +1574,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 array.GetArrayElementPointer(index).StoreValue(value);
             }
             this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnOperationCall(TypedExpression method, TypedExpression arg)
+        public override ResolvedExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
         {
             (TypedExpression, bool, int) StripModifiers(TypedExpression m, bool a, int c) =>
                 m.Expression switch
                 {
-                    ResolvedExpression.AdjointApplication adj => StripModifiers(adj.Item, !a, c),
-                    ResolvedExpression.ControlledApplication con => StripModifiers(con.Item, a, c + 1),
+                    ResolvedExpressionKind.AdjointApplication adj => StripModifiers(adj.Item, !a, c),
+                    ResolvedExpressionKind.ControlledApplication con => StripModifiers(con.Item, a, c + 1),
                     _ => (m, a, c),
                 };
 
@@ -1693,7 +1591,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // throws an InvalidOperationException if the remainingArg is not a tuple with two items
                 (TypedExpression, TypedExpression) TupleItems(TypedExpression remainingArg) =>
-                    (remainingArg.Expression is ResolvedExpression.ValueTuple tuple && tuple.Item.Length == 2)
+                    (remainingArg.Expression is ResolvedExpressionKind.ValueTuple tuple && tuple.Item.Length == 2)
                     ? (tuple.Item[0], tuple.Item[1])
                     : throw new InvalidOperationException("control count is inconsistent with the shape of the argument tuple");
 
@@ -1741,10 +1639,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnPartialApplication(TypedExpression method, TypedExpression arg)
+        public override ResolvedExpressionKind OnPartialApplication(TypedExpression method, TypedExpression arg)
         {
             PartialApplicationArgument BuildPartialArgList(ResolvedType argType, TypedExpression arg, IList<ResolvedType> remainingArgs, IList<TypedExpression> capturedValues)
             {
@@ -1755,7 +1653,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var itemType = this.SharedState.LlvmTypeFromQsharpType(argType);
                     return new InnerArg(this.SharedState, itemType, remainingArgs.Count - 1);
                 }
-                else if (arg.Expression is ResolvedExpression.ValueTuple tuple
+                else if (arg.Expression is ResolvedExpressionKind.ValueTuple tuple
                     && argType.Resolution is ResolvedTypeKind.TupleType types)
                 {
                     var items = types.Item.Zip(tuple.Item, (t, v) => BuildPartialArgList(t, v, remainingArgs, capturedValues));
@@ -1893,10 +1791,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var value = this.CreateCallableValue(exType, table, capture);
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnPauliLiteral(QsPauli p)
+        public override ResolvedExpressionKind OnPauliLiteral(QsPauli p)
         {
             IValue LoadPauli(Value pauli)
             {
@@ -1928,16 +1826,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnRangeLiteral(TypedExpression lhs, TypedExpression rhs)
+        public override ResolvedExpressionKind OnRangeLiteral(TypedExpression lhs, TypedExpression rhs)
         {
             Value start;
             Value step;
             switch (lhs.Expression)
             {
-                case ResolvedExpression.RangeLiteral lit:
+                case ResolvedExpressionKind.RangeLiteral lit:
                     start = this.SharedState.EvaluateSubexpression(lit.Item1).Value;
                     step = this.SharedState.EvaluateSubexpression(lit.Item2).Value;
                     break;
@@ -1958,20 +1856,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var value = this.SharedState.Values.From(constant, exType);
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnResultLiteral(QsResult r)
+        public override ResolvedExpressionKind OnResultLiteral(QsResult r)
         {
             var valuePtr = r.IsOne ? this.SharedState.Constants.ResultOne : this.SharedState.Constants.ResultZero;
             var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, valuePtr);
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.From(constant, exType);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnRightShift(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnRightShift(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1997,10 +1895,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnStringLiteral(string str, ImmutableArray<TypedExpression> exs)
+        public override ResolvedExpressionKind OnStringLiteral(string str, ImmutableArray<TypedExpression> exs)
         {
             static (int, int, int) FindNextExpression(string s, int start)
             {
@@ -2204,10 +2102,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.ScopeMgr.RegisterValue(value);
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnSubtraction(TypedExpression lhsEx, TypedExpression rhsEx)
+        public override ResolvedExpressionKind OnSubtraction(TypedExpression lhsEx, TypedExpression rhsEx)
         {
             var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
             var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -2238,17 +2136,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnUnitValue()
+        public override ResolvedExpressionKind OnUnitValue()
         {
             var value = this.SharedState.Values.Unit;
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnValueArray(ImmutableArray<TypedExpression> vs)
+        public override ResolvedExpressionKind OnValueArray(ImmutableArray<TypedExpression> vs)
         {
             // TODO: handle multi-dimensional arrays
             var elementType = this.SharedState.CurrentExpressionType().Resolution is ResolvedTypeKind.ArrayType arrItemType
@@ -2257,17 +2155,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             var value = this.SharedState.Values.CreateArray(elementType, vs);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnValueTuple(ImmutableArray<TypedExpression> vs)
+        public override ResolvedExpressionKind OnValueTuple(ImmutableArray<TypedExpression> vs)
         {
             var value = this.SharedState.Values.CreateTuple(vs);
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpression OnUnwrapApplication(TypedExpression ex)
+        public override ResolvedExpressionKind OnUnwrapApplication(TypedExpression ex)
         {
             // Since we simply represent user defined types as tuples, we don't need to do anything
             // except pushing the value on the value stack unless the tuples contains a single item,
@@ -2287,7 +2185,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.ValueStack.Push(value);
-            return ResolvedExpression.InvalidExpr;
+            return ResolvedExpressionKind.InvalidExpr;
         }
     }
 }
