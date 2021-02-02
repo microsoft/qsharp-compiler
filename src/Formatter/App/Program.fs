@@ -25,7 +25,7 @@ let main args =
         let results = parser.Parse args
         let input = results.GetResult Input
 
-        if input = "-" then stdin.ReadToEnd() else File.ReadAllText input
+        (if input = "-" then stdin.ReadToEnd() else File.ReadAllText input)
         |> Formatter.format
         |> printf "%s"
 
