@@ -85,6 +85,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsCallable OnCallableDeclaration(QsCallable c)
         {
+            if (this.SharedState.Functions.BuiltIn.ContainsKey(c.FullName))
+            {
+                return c;
+            }
+
             this.context.SetCurrentCallable(c);
             c = base.OnCallableDeclaration(c);
             this.context.SetCurrentCallable(null);
