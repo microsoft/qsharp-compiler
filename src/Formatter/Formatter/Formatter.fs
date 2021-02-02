@@ -24,8 +24,7 @@ let private parse (source: string) =
     let documentContext = parser.document ()
 
     if List.isEmpty errorListener.SyntaxErrors then
-        let errorTokens = errorListener.SyntaxErrors |> Seq.map (fun error -> error.Token)
-        let tokens = tokenStream.GetTokens() |> hideTokens errorTokens |> ImmutableArray.CreateRange
+        let tokens = tokenStream.GetTokens() |> ImmutableArray.CreateRange
         documentContext |> toDocument tokens |> Ok
     else
         errorListener.SyntaxErrors |> Error

@@ -51,7 +51,7 @@ let private run args input =
 let ``Shows help with no arguments`` () =
     Assert.Equal
         ({
-             Code = 1
+             Code = 2
              Out = ""
              Error = "ERROR: missing argument '<string>'.
 
