@@ -2,7 +2,10 @@
 
 QsFmt is a source code formatter for Q#.
 It's in the very early stages of development and is currently experimental.
-It has a command-line interface that you can use by running `dotnet run -p App` from this folder.
+It will very likely eat your code when it tries to format it!
+
+You can use the command-line tool by running `dotnet run -p App` from this folder.
+This will only print the formatted code to the console, and won't overwrite your files, so it's safe to use.
 
 ## Design
 
