@@ -22,6 +22,7 @@
     <file src="..\..\..\build\assets\qdk-nuget-icon.png" target="images" />
     <file src="..\QirGeneration\bin\$Configuration$\**\Ubiquity.NET.Llvm.dll" target="lib" />
     <file src="..\QirGeneration\bin\$Configuration$\**\Ubiquity.NET.Llvm.Interop.dll" target="lib" />
+    <file src="..\QirGeneration\bin\$Configuration$\**\Ubiquity.ArgValidators.dll" target="lib" />
     <file src="..\QirGeneration\Llvm.Net\runtimes\linux-x64\native\*" target="runtimes\linux-x64\native" />
     <file src="..\QirGeneration\Llvm.Net\runtimes\osx-x64\native\*" target="runtimes\osx-x64\native" />
     <file src="..\QirGeneration\Llvm.Net\runtimes\win-x64\native\*" target="runtimes\win-x64\native" />
