@@ -63,6 +63,9 @@ let ``QIR inlined call`` () = qirTest true "TestInline"
 let ``QIR access counts`` () = qirTest false "TestAccessCounts"
 
 [<Fact>]
+let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
+
+[<Fact>]
 let ``QIR array loop`` () = qirTest false "TestArrayLoop"
 
 [<Fact>]

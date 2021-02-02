@@ -126,6 +126,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal readonly QirValues Values;
 
         /// <summary>
+        /// Tools to invoke built-in functions.
+        /// </summary>
+        internal readonly Functions Functions;
+
+        /// <summary>
         /// The syntax tree transformation that constructs QIR.
         /// </summary>
         /// <exception cref="InvalidOperationException">The transformation has not been set via <see cref="SetTransformation"/>.</exception>
@@ -208,6 +213,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Types = new Types(this.Context);
             this.Constants = new Constants(this.Context, this.Module, this.Types);
             this.Values = new QirValues(this, this.Constants);
+            this.Functions = new Functions(this);
             this.transformation = null; // needs to be set by the instantiating transformation
 
             this.CurrentBuilder = new InstructionBuilder(this.Context);
@@ -221,10 +227,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.runtimeLibrary = new FunctionLibrary(
                 this.Module,
-                s => Callables.FunctionName(Component.RuntimeLibrary, s));
+                s => Functions.FunctionName(Component.RuntimeLibrary, s));
             this.quantumInstructionSet = new FunctionLibrary(
                 this.Module,
-                s => Callables.FunctionName(Component.QuantumInstructionSet, s));
+                s => Functions.FunctionName(Component.QuantumInstructionSet, s));
         }
 
         /// <summary>
