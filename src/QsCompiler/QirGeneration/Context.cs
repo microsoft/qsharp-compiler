@@ -1359,7 +1359,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var functions = new List<(string, Action<IValue, IValue>)>
                 {
                     ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
-                    ($"{table.Name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture))
+                    ($"{table.Name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
                 };
 
                 foreach (var (funcName, updateCounts) in functions)
