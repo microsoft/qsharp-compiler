@@ -6,6 +6,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="$(SolutionDir)src\QsCompiler\Tests.Compiler\TestCases\**\*.qs">
+      <Link>TestCases\%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
     <Compile Include="Discoverer.fs" />
     <Compile Include="Examples.fs" />
     <Compile Include="FixedPoints.fs" />

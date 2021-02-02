@@ -6,7 +6,19 @@
 /// </summary>
 module QsFmt.Formatter.Tests.FixedPoints
 
+open System.IO
+open QsFmt.Formatter
 open QsFmt.Formatter.Tests
+open Xunit
+
+let private testCases () =
+    Directory.GetFiles("TestCases", "*.qs", EnumerationOptions(RecurseSubdirectories = true))
+    |> Seq.map (File.ReadAllText >> Array.create 1)
+
+[<Theory(Skip = "Not supported.")>]
+[<MemberData(nameof testCases)>]
+let ``Identity preserves original source code`` source =
+    Assert.Equal(source, Formatter.identity source)
 
 [<FixedPoint>]
 let ``Namespace comments`` = """/// The Foo namespace.

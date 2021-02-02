@@ -12,8 +12,10 @@ open QsFmt.Formatter.Utils
 open QsFmt.Parser
 open System.Collections.Immutable
 
-[<CompiledName "Format">]
-let format (source: string) =
+/// <summary>
+/// Parses the Q# source code into a <see cref="QsFmt.Formatter.SyntaxTree.Document"/>.
+/// </summary>
+let private parse (source: string) =
     let tokenStream = source |> AntlrInputStream |> QSharpLexer |> CommonTokenStream
 
     let parser = QSharpParser tokenStream
@@ -22,11 +24,16 @@ let format (source: string) =
     let documentContext = parser.document ()
 
     let tokens = tokenStream.GetTokens() |> hideTokens errorListener.ErrorTokens |> ImmutableArray.CreateRange
+    documentContext |> toDocument tokens
 
-    documentContext
-    |> toDocument tokens
+[<CompiledName "Format">]
+let format source =
+    parse source
     |> curry collapsedSpaces.Document ()
     |> curry operatorSpacing.Document ()
     |> curry newLines.Document ()
     |> curry indentation.Document 0
     |> printer.Document
+
+[<CompiledName "Identity">]
+let identity source = parse source |> printer.Document

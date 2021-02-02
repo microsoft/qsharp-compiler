@@ -55,7 +55,11 @@ type private NamespaceItemVisitor(tokens) =
     override _.VisitChildren node = Node.toUnknown tokens node |> Unknown
 
     override _.VisitCallableElement context =
-        let scope = context.callable.body.scope () // TODO
+        let scope = context.callable.body.scope ()
+
+        if isNull scope then
+            // TODO: Support specialization generators.
+            failwith "Callables with specialization generators are not supported."
 
         {
             CallableKeyword = context.callable.keyword |> Node.toTerminal tokens
