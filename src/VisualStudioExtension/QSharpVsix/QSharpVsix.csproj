@@ -96,6 +96,20 @@
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
       <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
     </ProjectReference>
+    <ProjectReference Include="..\QsharpHoneywellAppTemplate\QSharpHoneywellAppTemplate.csproj">
+      <Project>{126c7559-6990-4885-b3e4-c84eab9153df}</Project>
+      <Name>QSharpHoneywellAppTemplate</Name>
+      <VSIXSubPath>ProjectTemplates</VSIXSubPath>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+    </ProjectReference>
+    <ProjectReference Include="..\QsharpIonQAppTemplate\QSharpIonQAppTemplate.csproj">
+      <Project>{ed8f03ee-5cb2-4a1f-8cba-1e0e12b83077}</Project>
+      <Name>QSharpIonQAppTemplate</Name>
+      <VSIXSubPath>ProjectTemplates</VSIXSubPath>
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+      <IncludeOutputGroupsInVSIX>TemplateProjectOutputGroup%3b</IncludeOutputGroupsInVSIX>
+    </ProjectReference>
     <ProjectReference Include="..\QSharpLibTemplate\QSharpLibTemplate.csproj">
       <Project>{9EF3C982-D6B4-47BE-A0FE-660F91738881}</Project>
       <Name>QSharpLibTemplate</Name>

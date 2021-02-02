@@ -1,0 +1,20 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<VSTemplate Version="3.0.0" Type="Project" xmlns="http://schemas.microsoft.com/developer/vstemplate/2005" xmlns:sdk="http://schemas.microsoft.com/developer/vstemplate-sdkextension/2010">
+  <TemplateData>
+    <Name>Q# Application (Honeywell)</Name>
+    <Description>A project creating a Q# application that can be executed on a Honeywell backend via Azure Quantum.</Description>
+    <Icon>MS_Quantum_Spot_Dev-32.png</Icon>
+    <ProjectType>CSharp</ProjectType>
+    <SortOrder>1000</SortOrder>
+    <TemplateID>Microsoft.Common.Console.QSharp.Honeywell</TemplateID>
+    <CreateNewFolder>true</CreateNewFolder>
+    <CreateInPlace>true</CreateInPlace>
+    <DefaultName>QSharpApplication</DefaultName>
+    <ProvideDefaultName>true</ProvideDefaultName>
+  </TemplateData>
+  <TemplateContent>
+    <Project File="HoneywellAppProjectTemplate.xml" TargetFileName="$projectname$.csproj" ReplaceParameters="true">
+      <ProjectItem ReplaceParameters="true" OpenInEditor="true">Program.qs</ProjectItem>
+    </Project>
+  </TemplateContent>
+</VSTemplate>
