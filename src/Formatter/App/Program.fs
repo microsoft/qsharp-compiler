@@ -24,12 +24,15 @@ let main args =
     try
         let results = parser.Parse args
         let input = results.GetResult Input
+        let source = if input = "-" then stdin.ReadToEnd() else File.ReadAllText input
 
-        (if input = "-" then stdin.ReadToEnd() else File.ReadAllText input)
-        |> Formatter.format
-        |> printf "%s"
-
-        0
+        match Formatter.format source with
+        | Ok result ->
+            printf "%s" result
+            0
+        | Error errors ->
+            errors |> List.iter (eprintfn "%O")
+            1
     with :? ArguParseException as ex ->
         eprintf "%s" ex.Message
-        1
+        2

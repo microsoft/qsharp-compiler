@@ -23,17 +23,23 @@ let private parse (source: string) =
     parser.AddErrorListener errorListener
     let documentContext = parser.document ()
 
-    let tokens = tokenStream.GetTokens() |> hideTokens errorListener.ErrorTokens |> ImmutableArray.CreateRange
-    documentContext |> toDocument tokens
+    if List.isEmpty errorListener.SyntaxErrors then
+        let errorTokens = errorListener.SyntaxErrors |> Seq.map (fun error -> error.Token)
+        let tokens = tokenStream.GetTokens() |> hideTokens errorTokens |> ImmutableArray.CreateRange
+        documentContext |> toDocument tokens |> Ok
+    else
+        errorListener.SyntaxErrors |> Error
 
 [<CompiledName "Format">]
 let format source =
     parse source
-    |> curry collapsedSpaces.Document ()
-    |> curry operatorSpacing.Document ()
-    |> curry newLines.Document ()
-    |> curry indentation.Document 0
-    |> printer.Document
+    |> Result.map
+        (curry collapsedSpaces.Document ()
+         >> curry operatorSpacing.Document ()
+         >> curry newLines.Document ()
+         >> curry indentation.Document 0
+         >> printer.Document)
 
 [<CompiledName "Identity">]
-let identity source = parse source |> printer.Document
+let identity source =
+    parse source |> Result.map printer.Document

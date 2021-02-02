@@ -1,21 +1,49 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/// Parse tree error handling.
-module internal QsFmt.Formatter.Errors
+module QsFmt.Formatter.Errors
 
 open Antlr4.Runtime
 open QsFmt.Parser
 
-/// Builds a list of tokens that occur in syntax errors.
-type ErrorListListener() =
-    let mutable errorTokens = []
+type SyntaxError =
+    private
+        {
+            /// The line number.
+            line: int
 
-    /// The accumulated tokens that have occurred in a syntax error.
-    member _.ErrorTokens = errorTokens
+            /// The column number.
+            column: int
+
+            /// The token that caused the syntax error.
+            token: IToken
+
+            /// The error message.
+            message: string
+        }
+
+        member error.Token = error.token
+
+        override error.ToString() =
+            sprintf "Line %d, column %d: %s" error.line error.column error.message
+
+[<Sealed>]
+type internal ErrorListListener() =
+    let mutable errors = []
+
+    member _.SyntaxErrors = errors
 
     interface IToken IAntlrErrorListener with
-        override _.SyntaxError(_, _, token, _, _, _, _) = errorTokens <- token :: errorTokens
+        override _.SyntaxError(_, _, token, line, column, message, _) =
+            let error =
+                {
+                    line = line
+                    column = column
+                    token = token
+                    message = message
+                }
+
+            errors <- error :: errors
 
 /// <summary>
 /// Duplicates <paramref name="token"/> and sets it channel to <see cref="QSharpLexer.Hidden"/>.
@@ -25,9 +53,5 @@ let private hideToken (token: IToken): IToken =
     token'.Channel <- QSharpLexer.Hidden
     upcast token'
 
-/// <summary>
-/// Maps an <see cref="IToken"/> sequence to a sequence where all <see cref="IToken"/>s equal to any token in
-/// <paramref name="toHide"/> are moved to the <see cref="QSharpLexer.Hidden"/> channel.
-/// </summary>
-let hideTokens toHide =
+let internal hideTokens toHide =
     Seq.map <| fun token -> if toHide |> Seq.contains token then hideToken token else token

@@ -4,10 +4,12 @@
 /// The Q# formatter.
 module QsFmt.Formatter.Formatter
 
+open QsFmt.Formatter.Errors
+
 /// Formats the given Q# source code.
 [<CompiledName "Format">]
-val format: string -> string
+val format: string -> Result<string, SyntaxError list>
 
 /// Parses then un-parses the given Q# source code without formatting.
 [<CompiledName "Identity">]
-val identity: string -> string
+val identity: string -> Result<string, SyntaxError list>

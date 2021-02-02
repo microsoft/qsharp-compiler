@@ -142,7 +142,7 @@ module Discoverer =
     let ``Code is formatted correctly`` (example: Example) =
         match example.Skip with
         | Some reason -> Skip.If(true, reason)
-        | None -> Assert.Equal(example.After, Formatter.format example.Before)
+        | None -> Assert.Equal(Ok example.After, Formatter.format example.Before)
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="FixedPoint"/> test cases are correct.
@@ -152,4 +152,4 @@ module Discoverer =
     let ``Formatted code is unchanged`` fixedPoint =
         match fixedPoint.Skip with
         | Some reason -> Skip.If(true, reason)
-        | None -> Assert.Equal(fixedPoint.Source, Formatter.format fixedPoint.Source)
+        | None -> Assert.Equal(Ok fixedPoint.Source, Formatter.format fixedPoint.Source)
