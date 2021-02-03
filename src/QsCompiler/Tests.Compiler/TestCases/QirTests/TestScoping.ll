@@ -27,9 +27,9 @@ then0__1:                                         ; preds = %body__1
   br label %continue__1
 
 else__1:                                          ; preds = %body__1
-  %x1 = mul i64 %i, 2
+  %x__1 = mul i64 %i, 2
   %9 = load i64, i64* %sum
-  %10 = add i64 %9, %x1
+  %10 = add i64 %9, %x__1
   store i64 %10, i64* %sum
   br label %continue__1
 
@@ -52,9 +52,9 @@ header__2:                                        ; preds = %exiting__2, %exit__
 body__2:                                          ; preds = %header__2
   %15 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 %13)
   %16 = bitcast i8* %15 to i64*
-  %i2 = load i64, i64* %16
+  %i__1 = load i64, i64* %16
   %17 = load i64, i64* %sum
-  %18 = add i64 %17, %i2
+  %18 = add i64 %17, %i__1
   store i64 %18, i64* %sum
   br label %exiting__2
 
@@ -63,7 +63,17 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  %20 = load i64, i64* %sum
+  %20 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
+  %21 = bitcast %Tuple* %20 to { %Callable*, i64 }*
+  %22 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %21, i64 0, i32 0
+  %23 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %21, i64 0, i32 1
+  %24 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Foo, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
+  store %Callable* %24, %Callable** %22
+  store i64 1, i64* %23
+  %25 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__3, [2 x void (%Tuple*, i64)*]* @MemoryManagement__3, %Tuple* %20)
+  %26 = load i64, i64* %sum
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i64 -1)
-  ret i64 %20
+  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %25, i64 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %25, i64 -1)
+  ret i64 %26
 }

@@ -1738,12 +1738,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.SharedState.GeneratePartialApplication(name, kind, BuildPartialApplicationBody);
             }
 
-            var liftedName = this.SharedState.GenerateUniqueName("PartialApplication");
+            var liftedName = this.SharedState.GlobalName("PartialApplication");
             ResolvedType CallableArgumentType(ResolvedType t) => t.Resolution switch
             {
                 ResolvedTypeKind.Function paf => paf.Item1,
                 ResolvedTypeKind.Operation pao => pao.Item1.Item1,
-                _ => throw new InvalidOperationException("expecting an operation or function type")
+                _ => throw new InvalidOperationException("expecting an operation or function type"),
             };
 
             // Figure out the inputs to the resulting callable based on the signature of the partial application expression

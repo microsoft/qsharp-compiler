@@ -3,6 +3,13 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    function Foo (i : Int, bi : BigInt, n : String) : Unit {
+    }
+
+    function Bar() : Unit {
+        let (f1, f2) = (Foo(1, 1L, _), Foo(1, _, ""));
+    }
+
     function TestScoping (a : Int[]) : Int
     {
         mutable sum = 0;
@@ -25,6 +32,7 @@ namespace Microsoft.Quantum.Testing.QIR
             set sum = sum + i;
         }
 
+        let _ = Foo(1, _, _);
         return sum;
     }
 }
