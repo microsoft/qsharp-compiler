@@ -21,8 +21,8 @@ open Microsoft.Quantum.QsCompiler.Utils
 ///
 /// This class is *not* thread-safe.
 ///
-/// Symbol visibility is taken into account when resolving symbols. Some methods bypass this (e.g., when returning a
-/// list of all declarations). Individual methods will mention if they follow visibility or not.
+/// Symbol accessibility is considered when resolving symbols. Some methods bypass this (e.g., when returning a list of
+/// all declarations). Individual methods will mention if they follow accessibility or not.
 type Namespace private (name,
                         parts: IEnumerable<KeyValuePair<string, PartialNamespace>>,
                         CallablesInReferences: ILookup<string, CallableDeclarationHeader>,
@@ -52,7 +52,7 @@ type Namespace private (name,
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
     // TODO: RELEASE 2021-08: Remove IsDeclarationAccessible.
-    [<Obsolete "Use Visibility.isVisibleFrom instead.">]
+    [<Obsolete "Use Access.isAccessibleFrom instead.">]
     static member IsDeclarationAccessible(sameAssembly, access) =
         match access with
         | DefaultAccess -> true
@@ -102,10 +102,10 @@ type Namespace private (name,
             then nameGroup |> Seq.filter (isAccessible >> not)
             else nameGroup
 
-        let createLookup getName getVisibility headers =
+        let createLookup getName getAccess headers =
             headers
             |> Seq.groupBy getName
-            |> Seq.map (discardConflicts getVisibility)
+            |> Seq.map (discardConflicts getAccess)
             |> Seq.concat
             |> fun headers -> headers.ToLookup(Func<_, _> getName)
 
@@ -300,7 +300,7 @@ type Namespace private (name,
 
     /// Returns a resolution result for the type with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, a string indicating the redirection if it has been deprecated, and
-    /// its visibility. Resolution is based on accessibility to source files in this compilation unit.
+    /// its accessibility. Resolution is based on accessibility to source files in this compilation unit.
     ///
     /// Whether the type has been deprecated is determined by checking the associated attributes for an attribute with
     /// the corresponding name. Note that if the type is declared in a source files, the *unresolved* attributes will be
@@ -500,13 +500,13 @@ type Namespace private (name,
     /// If a type or callable with that name already exists, returns an array of suitable diagnostics.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, visibility, documentation)
+    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, access, documentation)
                            : QsCompilerDiagnostic [] =
         match Parts.TryGetValue source with
         | true, partial when isNameAvailable tName ->
             TypesDefinedInAllSourcesCache <- null
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddType location (tName, typeTuple, attributes, visibility, documentation)
+            partial.AddType location (tName, typeTuple, attributes, access, documentation)
             [||]
         | true, _ ->
             match this.TryFindType tName with
@@ -530,12 +530,12 @@ type Namespace private (name,
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member this.TryAddCallableDeclaration (source, location)
-                                          ((cName, cRange), (kind, signature), attributes, visibility, documentation)
+                                          ((cName, cRange), (kind, signature), attributes, access, documentation)
                                           =
         match Parts.TryGetValue source with
         | true, partial when isNameAvailable cName ->
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, visibility, documentation)
+            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, access, documentation)
             [||]
         | true, _ ->
             match this.TryFindType cName with
@@ -598,7 +598,7 @@ type Namespace private (name,
         | true, partial ->
             match this.TryFindCallable cName with
             | Found (declSource, _) ->
-                let qFunctorSupport, nrTypeParams, visibility = getRelevantDeclInfo declSource
+                let qFunctorSupport, nrTypeParams, access = getRelevantDeclInfo declSource
 
                 let AddAndClearCache () =
                     CallablesDefinedInAllSourcesCache <- null
@@ -606,7 +606,7 @@ type Namespace private (name,
                     partial.AddCallableSpecialization
                         location
                         kind
-                        (cName, generator, attributes, visibility, documentation)
+                        (cName, generator, attributes, access, documentation)
 
                 let givenNrTypeParams =
                     match generator.TypeArguments with

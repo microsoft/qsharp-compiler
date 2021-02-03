@@ -141,7 +141,7 @@ type private PartialNamespace private (name: string,
     /// Adds the corresponding type constructor to the dictionary of declared callables.
     /// The given location is associated with both the type constructor and the type itself and accessible via the record properties Position and SymbolRange.
     /// -> Note that this routine will fail with the standard dictionary.Add error if either a type or a callable with that name already exists.
-    member this.AddType (location: QsLocation) (tName, typeTuple, attributes, visibility, documentation) =
+    member this.AddType (location: QsLocation) (tName, typeTuple, attributes, access, documentation) =
         let mutable anonItemId = 0
         let withoutRange sym = { Symbol = sym; Range = Null }
 
@@ -193,11 +193,11 @@ type private PartialNamespace private (name: string,
             then ImmutableArray.Create deprecationWithoutRedirect
             else ImmutableArray.Empty
 
-        TypeDeclarations.Add(tName, (typeTuple, attributes, visibility, documentation) |> unresolved location)
+        TypeDeclarations.Add(tName, (typeTuple, attributes, access, documentation) |> unresolved location)
 
         this.AddCallableDeclaration
             location
-            (tName, (TypeConstructor, constructorSignature), constructorAttr, visibility, ImmutableArray.Empty)
+            (tName, (TypeConstructor, constructorSignature), constructorAttr, access, ImmutableArray.Empty)
 
         let bodyGen =
             {
@@ -209,7 +209,7 @@ type private PartialNamespace private (name: string,
         this.AddCallableSpecialization
             location
             QsBody
-            (tName, bodyGen, ImmutableArray.Empty, visibility, ImmutableArray.Empty)
+            (tName, bodyGen, ImmutableArray.Empty, access, ImmutableArray.Empty)
 
     /// Adds a callable declaration of the given kind (operation or function)
     /// with the given callable name and signature to the dictionary of declared callables.
@@ -230,12 +230,12 @@ type private PartialNamespace private (name: string,
                                           (cName,
                                            generator: QsSpecializationGenerator,
                                            attributes,
-                                           visibility,
+                                           access,
                                            documentation)
                                           =
         // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared,
         // but all specialized types need to be resolved according to *this* file
-        let spec = kind, (generator, attributes, visibility, documentation) |> unresolved location
+        let spec = kind, (generator, attributes, access, documentation) |> unresolved location
 
         match CallableSpecializations.TryGetValue cName with
         | true, specs -> specs.Add spec // it is up to the namespace to verify the type specializations

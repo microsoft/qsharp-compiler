@@ -269,8 +269,8 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         finally
             syncRoot.ExitReadLock()
 
-    /// Compares the visibility of the parent declaration with the visibility of the UDT being referenced. If the
-    /// visibility of a referenced type is less than the visibility of the parent, returns a diagnostic using the
+    /// Compares the accessibility of the parent declaration with the accessibility of the UDT being referenced. If the
+    /// accessibility of a referenced type is less than the accessibility of the parent, returns a diagnostic using the
     /// given error code. Otherwise, returns an empty array.
     let checkUdtAccess code (parent, parentAccess) (udt: UserDefinedType, udtAccess) =
         [|
@@ -651,8 +651,8 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// Resolves the underlying type as well as all named and unnamed items for the given type declaration in the
     /// specified source file using ResolveType.
     ///
-    /// Generates the same diagnostics as ResolveType, as well as additional diagnostics when the visibility of the
-    /// type declaration is greater than the visibility of any part of its underlying type.
+    /// Generates the same diagnostics as ResolveType, as well as additional diagnostics when the accessibility of the
+    /// type declaration is greater than the accessibility of any part of its underlying type.
     ///
     /// IMPORTANT: for performance reasons does *not* verify if the given the given parent and/or source file is
     /// consistent with the defined types.
@@ -660,9 +660,9 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined types.
     /// </summary>
     /// <exception cref="ArgumentException"><paramref name="typeTuple"/> is an empty <see cref="QsTuple"/>.</exception>
-    member private this.ResolveTypeDeclaration (fullName: QsQualifiedName, source, visibility) typeTuple =
+    member private this.ResolveTypeDeclaration (fullName: QsQualifiedName, source, access) typeTuple =
         // Currently, type parameters for UDTs are not supported.
-        let checkAccess = checkUdtAccess ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, visibility)
+        let checkAccess = checkUdtAccess ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, access)
 
         let resolveType qsType =
             resolveType (fullName, ImmutableArray<_>.Empty, source) qsType checkAccess
@@ -673,8 +673,8 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// Given the namespace and the name of the callable that the given signature belongs to, as well as its kind and
     /// the source file it is declared in, fully resolves all Q# types in the signature using ResolveType.
     ///
-    /// Generates the same diagnostics as ResolveType, as well as additional diagnostics when the visibility of the
-    /// callable declaration is greater than the visibility of any type in its signature.
+    /// Generates the same diagnostics as ResolveType, as well as additional diagnostics when the accessibility of the
+    /// callable declaration is greater than the accessibility of any type in its signature.
     ///
     /// Returns a new signature with the resolved types, the resolved argument tuple, as well as the array of
     /// diagnostics created during type resolution.
@@ -999,7 +999,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             syncRoot.ExitReadLock()
 
     /// Returns the source file and CallableDeclarationHeader of all callables imported from referenced assemblies,
-    /// regardless of visibility.
+    /// regardless of accessibility.
     member this.ImportedCallables() =
         // TODO: this needs to be adapted if we support external specializations
         syncRoot.EnterReadLock()
@@ -1012,7 +1012,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             syncRoot.ExitReadLock()
 
     /// <summary>
-    /// Returns the declaration headers for all callables defined in source files, regardless of visibility.
+    /// Returns the declaration headers for all callables defined in source files, regardless of accessibility.
     /// </summary>
     /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.DefinedCallables() =
@@ -1065,7 +1065,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         |> Seq.map fst
 
     /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies, regardless
-    /// of visibility.
+    /// of accessibility.
     member this.ImportedTypes() =
         syncRoot.EnterReadLock()
 
@@ -1077,7 +1077,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             syncRoot.ExitReadLock()
 
     /// <summary>
-    /// Returns the declaration headers for all types defined in source files, regardless of visibility.
+    /// Returns the declaration headers for all types defined in source files, regardless of accessibility.
     /// </summary>
     /// <exception cref="InvalidOperationException">The symbols are not currently resolved.</exception>
     member this.DefinedTypes() =
