@@ -29,7 +29,7 @@ let private testCases () =
     |> Seq.map (Array.create 1)
 
 [<Theory(Skip = "Not supported.")>]
-[<MemberData(nameof testCases)>]
+[<MemberData "testCases">]
 let ``Identity preserves original source code`` source =
     Assert.Equal(Ok source, Formatter.identity source)
 
