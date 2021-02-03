@@ -33,7 +33,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal DocNamespace(QsNamespace ns, IEnumerable<string>? sourceFiles = null)
         {
             var sourceFileSet = sourceFiles == null ? null : new HashSet<string>(sourceFiles);
-            bool IsAccessible(string source, Access access, string name)
+            bool ShouldInclude(string source, Access access, string name)
             {
                 var includeInDocs = sourceFileSet == null || sourceFileSet.Contains(source);
                 return includeInDocs && access.IsPublic && !(name.StartsWith("_") || name.EndsWith("_")
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 if (item is QsNamespaceElement.QsCallable c)
                 {
                     var callable = c.Item;
-                    if (IsAccessible(callable.Source.AssemblyOrCodeFile, callable.Access, callable.FullName.Name) &&
+                    if (ShouldInclude(callable.Source.AssemblyOrCodeFile, callable.Access, callable.FullName.Name) &&
                         (callable.Kind != QsCallableKind.TypeConstructor))
                     {
                         this.items.Add(new DocCallable(this.name, callable));
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 else if (item is QsNamespaceElement.QsCustomType u)
                 {
                     var udt = u.Item;
-                    if (IsAccessible(udt.Source.AssemblyOrCodeFile, udt.Access, udt.FullName.Name))
+                    if (ShouldInclude(udt.Source.AssemblyOrCodeFile, udt.Access, udt.FullName.Name))
                     {
                         this.items.Add(new DocUdt(this.name, udt));
                     }
