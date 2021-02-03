@@ -1,0 +1,23 @@
+{
+  "Registrations": [
+    {
+      "Component": {
+        "Type": "git",
+        "Git": {
+          "RepositoryUrl": "https://github.com/msr-quarc/Llvm.NET",
+          "CommitHash": "7d6f40634b2bf08e2bfebde53ae860be241b59fc"
+        }
+      },
+      "DevelopmentDependency": [ false ]
+    },
+    {
+      "Component": {
+        "Type": "nuget",
+        "NuGet": {
+          "Name": "Ubiquity.ArgValidators",
+          "Version": "6.0.1"
+        }
+      }
+    }
+  ]
+}

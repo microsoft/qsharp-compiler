@@ -1,0 +1,145 @@
+<?xml version="1.0"?>
+<doc>
+    <assembly>
+        <name>Ubiquity.ArgValidators</name>
+    </assembly>
+    <members>
+        <member name="T:Ubiquity.ArgValidators.Properties.Resources">
+            <summary>
+              A strongly-typed resource class, for looking up localized strings, etc.
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.ResourceManager">
+            <summary>
+              Returns the cached ResourceManager instance used by this class.
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.Culture">
+            <summary>
+              Overrides the current thread's CurrentUICulture property for all
+              resource lookups using this strongly typed resource class.
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.Accepted_range_0_1_">
+            <summary>
+              Looks up a localized string similar to Accepted range: [{0}, {1}].
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.Expected_string_with_length_in_the_range_0_1_">
+            <summary>
+              Looks up a localized string similar to Expected string with length in the range [{0}, {1}].
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.Must_not_be_null_or_whitespace">
+            <summary>
+              Looks up a localized string similar to Must not be null or whitespace.
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.String_Must_not_be_empty">
+            <summary>
+              Looks up a localized string similar to String must not be empty.
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.String_must_not_be_whitespace">
+            <summary>
+              Looks up a localized string similar to String must not contain only whitespace characters.
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.test">
+            <summary>
+              Looks up a localized string similar to ttt.
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.Type_0_does_not_define_an_enumerated_value_for_1_">
+            <summary>
+              Looks up a localized string similar to Type {0} does not define an enumerated value for &apos;{1}&apos;.
+            </summary>
+        </member>
+        <member name="P:Ubiquity.ArgValidators.Properties.Resources.Value_does_not_conform_to_required_format_0_">
+            <summary>
+              Looks up a localized string similar to Value does not conform to required format: {0}.
+            </summary>
+        </member>
+        <member name="T:Ubiquity.ArgValidators.ValidatedNotNullAttribute">
+            <summary>Marker Attribute to inform CodeAnalysis that a parameter is validated as non-null in a method.</summary>
+        </member>
+        <member name="T:Ubiquity.ArgValidators.Validators">
+            <summary>Parameter validation extension set.</summary>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidateNotDefault``1(``0,System.String)">
+            <summary>Verifies that a value is not equal to the default for the type.</summary>
+            <typeparam name="T">Type of value to test for.</typeparam>
+            <param name="value">Value to test.</param>
+            <param name="paramName">Name of the parameter for the argument exception generated.</param>
+            <returns><paramref name="value"/> for fluent design usage.</returns>
+            <exception cref="T:System.ArgumentNullException"><paramref name="value"/> is the default value for value types or <see lang="null"/> for reference types.</exception>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidateNotNull``1(``0,System.String)">
+            <summary>Verifies an object isn't null.</summary>
+            <typeparam name="T">Type of value to test for.</typeparam>
+            <param name="value">Object instance to check.</param>
+            <param name="paramName">Name of the parameter for the exception if <paramref name="value"/> is <see lang="null"/>.</param>
+            <returns><paramref name="value"/> for fluent design usage.</returns>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidateNotNull(System.IntPtr,System.String)">
+            <summary>Verifies an IntPtr isn't null.</summary>
+            <param name="value">value to check.</param>
+            <param name="paramName">Name of the parameter for the exception if <paramref name="value"/> is <see lang="null"/>.</param>
+            <returns><paramref name="value"/> for fluent design usage.</returns>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidateNotNull(System.UIntPtr,System.String)">
+            <summary>Verifies an UIntPtr isn't null.</summary>
+            <param name="value">value to check.</param>
+            <param name="paramName">Name of the parameter for the exception if <paramref name="value"/> is <see lang="null"/>.</param>
+            <returns><paramref name="value"/> for fluent design usage.</returns>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidateNotNullOrWhiteSpace(System.String,System.String)">
+            <summary>Validates a parameter string is not null or white space.</summary>
+            <param name="value">string to test.</param>
+            <param name="paramName">Name of the parameter for the exception if the <paramref name="value"/> is <see lang="null"/> or whitespace.</param>
+            <returns><paramref name="value"/> for fluent design usage.</returns>
+            <remarks>
+            This validation provides a distinct exception or exception message depending on the input <paramref name="value"/>.
+            </remarks>
+            <exception cref="T:System.ArgumentNullException">If <paramref name="value"/> is <see lang="null"/>.</exception>
+            <exception cref="T:System.ArgumentException">If the string is empty or all whitespace (<see cref="P:System.Exception.Message"/> message will indicate which condition triggered the exception).</exception>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidateRange``1(``0,``0,``0,System.String)">
+            <summary>Verifies a parameter is within a valid range.</summary>
+            <typeparam name="T">Type of the parameter (must be primitive type supporting comparisons).</typeparam>
+            <param name="i">Value of the parameter to test.</param>
+            <param name="min">Minimum allowed value.</param>
+            <param name="max">Maximum allowed value.</param>
+            <param name="paramName">Name of the parameter for the exception if the <paramref name="i"/> is outside the specified range.</param>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidatePattern(System.String,System.String,System.String)">
+            <summary>Verifies that a string matches a Regular expression pattern.</summary>
+            <param name="value">String value to validate.</param>
+            <param name="pattern">Pattern to use for testing <paramref name="value"/>.</param>
+            <param name="paramName">Name of the parameter for the exception message if <paramref name="value"/> does not match the pattern.</param>
+            <returns><see cref="T:System.Text.RegularExpressions.Match"/> from a successful pattern match.</returns>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidatePattern(System.String,System.Text.RegularExpressions.Regex,System.String)">
+            <summary>Verifies that a string matches a Regular expression pattern.</summary>
+            <param name="value">String value to validate.</param>
+            <param name="pattern">Pattern to use for testing <paramref name="value"/>.</param>
+            <param name="paramName">Name of the parameter for the exception message if <paramref name="value"/> does not match the pattern.</param>
+            <returns><see cref="T:System.Text.RegularExpressions.Match"/> from a successful pattern match.</returns>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidateLength(System.String,System.Int32,System.Int32,System.String)">
+            <summary>Validates a string length falls within a specific range.</summary>
+            <param name="value">String to validate.</param>
+            <param name="min">Minimum allowed number of characters in the string.</param>
+            <param name="max">Maximum allowed number of characters in the string.</param>
+            <param name="paramName">Name of the parameter for the exception message if <paramref name="value"/> length is outside the specified range.</param>
+            <returns><paramref name="value"/> for fluent design usage.</returns>
+        </member>
+        <member name="M:Ubiquity.ArgValidators.Validators.ValidateDefined``1(``0,System.String)">
+            <summary>Validates that a value is defined on the Enum type.</summary>
+            <typeparam name="T">Enumeration type.</typeparam>
+            <param name="value">Value to check is defined.</param>
+            <param name="paramName">name of the parameter owning the value.</param>
+            <returns><paramref name="value"/> for fluent design usage.</returns>
+        </member>
+    </members>
+</doc>

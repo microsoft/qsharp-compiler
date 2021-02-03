@@ -1,15 +1,14 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>Microsoft.Quantum.QsCompiler.QirGeneration</RootNamespace>
-    <AssemblyName>Microsoft.Quantum.QsCompiler.QirGeneration</AssemblyName>
-    <NoWarn>8002</NoWarn>    
+    <AssemblyName>Microsoft.Quantum.QirGeneration</AssemblyName>
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Ubiquity.NET.Llvm" Version="10.0.0-alpha.3" />
+    <PackageReference Include="System.Memory" Version="4.5.4" />
   </ItemGroup>
 
   <ItemGroup>
@@ -19,6 +18,36 @@
 
   <ItemGroup>
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <LlvmDotnetPath>$([MSBuild]::NormalizePath($(MSBuildThisFileDirectory)Llvm.Net/))</LlvmDotnetPath>
+    <LlvmDotnetDll>$([MSBuild]::NormalizePath($(LlvmDotnetPath)lib/netstandard2.1/Ubiquity.NET.Llvm.dll))</LlvmDotnetDll>
+    <LlvmDotnetInteropDll>$([MSBuild]::NormalizePath($(LlvmDotnetPath)lib/netstandard2.1/Ubiquity.NET.Llvm.Interop.dll))</LlvmDotnetInteropDll>
+    <LlvmDotnetArgValidatorDll>$([MSBuild]::NormalizePath($(LlvmDotnetPath)lib/netstandard2.1/Ubiquity.ArgValidators.dll))</LlvmDotnetArgValidatorDll>
+    <LlvmDotnetRuntimeMac>$([MSBuild]::NormalizePath($(LlvmDotnetPath)runtimes/osx-x64/native/libUbiquity.NET.LibLlvm.dylib))</LlvmDotnetRuntimeMac>
+    <LlvmDotnetRuntimeLinux>$([MSBuild]::NormalizePath($(LlvmDotnetPath)runtimes/linux-x64/native/libUbiquity.NET.LibLlvm.so))</LlvmDotnetRuntimeLinux>
+    <LlvmDotnetRuntimeWindows>$([MSBuild]::NormalizePath($(LlvmDotnetPath)runtimes/win-x64/native/Ubiquity.NET.LibLlvm.dll))</LlvmDotnetRuntimeWindows>
+    <LlvmDotnetRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(LlvmDotnetRuntimeMac)</LlvmDotnetRuntime>
+    <LlvmDotnetRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(LlvmDotnetRuntimeLinux)</LlvmDotnetRuntime>
+    <LlvmDotnetRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(LlvmDotnetRuntimeWindows)</LlvmDotnetRuntime>
+  </PropertyGroup>
+  
+  <ItemGroup>
+    <Reference Include="Ubiquity.NET.Llvm">
+      <HintPath>$(LlvmDotnetDll)</HintPath>
+    </Reference>
+    <Reference Include="Ubiquity.NET.Llvm.Interop">
+      <HintPath>$(LlvmDotnetInteropDll)</HintPath>
+    </Reference>
+    <Reference Include="Ubiquity.ArgValidators">
+      <HintPath>$(LlvmDotnetArgValidatorDll)</HintPath>
+    </Reference>
+    <None Include="$(LlvmDotnetRuntime)">
+      <Link>Ubiquity.NET.LibLlvm.dll</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <Visible>false</Visible>
+    </None>
   </ItemGroup>
 
 </Project>
