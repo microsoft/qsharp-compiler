@@ -10,13 +10,14 @@ using Microsoft.Quantum.QsCompiler.BondSchemas.V1;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas.V2
 {
+    /// <summary>
+    /// This class translates Bond schema objects to C# compiler objects.
+    /// </summary>
     internal static class CompilerObjectTranslator
     {
-
         /// <summary>
         /// Creates a C# QsCompilation compiler object from a Bond schema QsCompilation object.
         /// </summary>
-        /// //
         public static SyntaxTree.QsCompilation CreateQsCompilation(
             QsCompilation bondCompilation,
             Protocols.Option[]? options = null) =>

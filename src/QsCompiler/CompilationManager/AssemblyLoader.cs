@@ -273,11 +273,16 @@ namespace Microsoft.Quantum.QsCompiler
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
+            var options = new BondSchemas.Protocols.Option[]
+            {
+                BondSchemas.Protocols.Option.ExcludeNamespaceDocumentation
+            };
+
             return LoadSyntaxTree(
                 resourceData,
                 resourceName,
                 out compilation,
-                new BondSchemas.Protocols.Option[] { },
+                options,
                 onDeserializationException);
         }
 

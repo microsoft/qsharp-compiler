@@ -22,7 +22,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
     /// </summary>
     public static class Protocols
     {
-        // TODO: Document.
+        /// <summary>
+        /// Options that can be provided to APIs related to Bond schemas.
+        /// </summary>
         public enum Option
         {
             ExcludeNamespaceDocumentation
