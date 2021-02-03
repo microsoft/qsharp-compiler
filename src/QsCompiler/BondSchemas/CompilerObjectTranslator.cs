@@ -39,11 +39,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 start: range.Start.ToCompilerObject(),
                 end: range.End.ToCompilerObject());
 
-        private static SyntaxTokens.Visibility ToCompilerObject(this AccessModifier bondAccessModifier) =>
+        private static SyntaxTokens.Access ToCompilerObject(this AccessModifier bondAccessModifier) =>
             bondAccessModifier switch
             {
-                AccessModifier.DefaultAccess => SyntaxTokens.Visibility.Public,
-                AccessModifier.Internal => SyntaxTokens.Visibility.Internal,
+                AccessModifier.DefaultAccess => SyntaxTokens.Access.Public,
+                AccessModifier.Internal => SyntaxTokens.Access.Internal,
                 _ => throw new ArgumentException($"Unsupported Bond AccessModifier '{bondAccessModifier}'")
             };
 
@@ -194,7 +194,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 kind: bondQsCallable.Kind.ToCompilerObject(),
                 fullName: bondQsCallable.FullName.ToCompilerObject(),
                 attributes: bondQsCallable.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
-                visibility: bondQsCallable.Modifiers.Access.ToCompilerObject(),
+                access: bondQsCallable.Modifiers.Access.ToCompilerObject(),
                 source: bondQsCallable.SourceFile.ToSource(),
                 location: bondQsCallable.Location != null ?
                     bondQsCallable.Location.ToCompilerObject().ToQsNullableGeneric() :
@@ -235,7 +235,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.QsCustomType(
                 fullName: bondQsCustomType.FullName.ToCompilerObject(),
                 attributes: bondQsCustomType.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
-                visibility: bondQsCustomType.Modifiers.Access.ToCompilerObject(),
+                access: bondQsCustomType.Modifiers.Access.ToCompilerObject(),
                 source: bondQsCustomType.SourceFile.ToSource(),
                 location: bondQsCustomType.Location != null ?
                     bondQsCustomType.Location.ToCompilerObject().ToQsNullableGeneric() :

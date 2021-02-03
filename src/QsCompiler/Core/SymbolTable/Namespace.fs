@@ -37,17 +37,17 @@ type Namespace private (name,
 
     /// Returns true if the name is available for use in a new declaration.
     let isNameAvailable name =
-        let isAvailableWith getDeclaration getVisibility proximity =
+        let isAvailableWith getDeclaration getAccess proximity =
             getDeclaration name
-            |> Seq.exists (fun name -> getVisibility name |> Visibility.isVisibleFrom proximity)
+            |> Seq.exists (fun name -> getAccess name |> Access.isAccessibleFrom proximity)
             |> not
 
-        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Visibility) OtherAssembly
-        && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Visibility) OtherAssembly
+        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Access) OtherAssembly
+        && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Access) OtherAssembly
         && Parts.Values.All(fun partial ->
-            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Visibility)
+            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Access)
                 SameAssembly
-            && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Visibility) SameAssembly)
+            && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Access) SameAssembly)
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
@@ -93,13 +93,13 @@ type Namespace private (name,
             specializationsInRefs.Where(fun (header: SpecializationDeclarationHeader, _) ->
                 header.Parent.Namespace = name)
 
-        let discardConflicts getVisibility (_, nameGroup) =
-            // Only one externally visible declaration with the same name is allowed.
-            let isVisible header =
-                getVisibility header |> Visibility.isVisibleFrom OtherAssembly
+        let discardConflicts getAccess (_, nameGroup) =
+            // Only one externally accessible declaration with the same name is allowed.
+            let isAccessible header =
+                getAccess header |> Access.isAccessibleFrom OtherAssembly
 
-            if nameGroup |> Seq.filter isVisible |> Seq.length > 1
-            then nameGroup |> Seq.filter (isVisible >> not)
+            if nameGroup |> Seq.filter isAccessible |> Seq.length > 1
+            then nameGroup |> Seq.filter (isAccessible >> not)
             else nameGroup
 
         let createLookup getName getVisibility headers =
@@ -109,8 +109,8 @@ type Namespace private (name,
             |> Seq.concat
             |> fun headers -> headers.ToLookup(Func<_, _> getName)
 
-        let types = typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Visibility)
-        let callables = callablesInRefs |> createLookup (fun c -> c.QualifiedName.Name) (fun c -> c.Visibility)
+        let types = typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Access)
+        let callables = callablesInRefs |> createLookup (fun c -> c.QualifiedName.Name) (fun c -> c.Access)
 
         let specializations =
             specializationsInRefs
@@ -313,18 +313,18 @@ type Namespace private (name,
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceType (typeHeader: TypeDeclarationHeader) =
-            if typeHeader.Visibility |> Visibility.isVisibleFrom OtherAssembly
-            then Found(typeHeader.Source, SymbolResolution.TryFindRedirect typeHeader.Attributes, typeHeader.Visibility)
+            if typeHeader.Access |> Access.isAccessibleFrom OtherAssembly
+            then Found(typeHeader.Source, SymbolResolution.TryFindRedirect typeHeader.Attributes, typeHeader.Access)
             else Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetType tName with
             | true, qsType ->
-                if qsType.Visibility |> Visibility.isVisibleFrom SameAssembly then
+                if qsType.Access |> Access.isAccessibleFrom SameAssembly then
                     Found
                         ({ CodeFile = partial.Source; AssemblyFile = Null },
                          SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
-                         qsType.Visibility)
+                         qsType.Access)
                 else
                     Inaccessible
             | false, _ -> NotFound
@@ -353,14 +353,14 @@ type Namespace private (name,
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceCallable (callable: CallableDeclarationHeader) =
-            if callable.Visibility |> Visibility.isVisibleFrom OtherAssembly
+            if callable.Access |> Access.isAccessibleFrom OtherAssembly
             then Found(callable.Source, SymbolResolution.TryFindRedirect callable.Attributes)
             else Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetCallable cName with
             | true, (_, callable) ->
-                if callable.Visibility |> Visibility.isVisibleFrom SameAssembly then
+                if callable.Access |> Access.isAccessibleFrom SameAssembly then
                     Found
                         ({ CodeFile = partial.Source; AssemblyFile = Null },
                          SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
@@ -588,11 +588,11 @@ type Namespace private (name,
                     |> Seq.exactlyOne
 
                 let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t: ResolvedType) -> t.Resolution)
-                unitReturn, cDecl.Signature.TypeParameters.Length, cDecl.Visibility
+                unitReturn, cDecl.Signature.TypeParameters.Length, cDecl.Access
             else
                 let _, cDecl = Parts.[declSource.CodeFile].GetCallable cName
                 let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t: QsType) -> t.Type)
-                unitReturn, cDecl.Defined.TypeParameters.Length, cDecl.Visibility
+                unitReturn, cDecl.Defined.TypeParameters.Length, cDecl.Access
 
         match Parts.TryGetValue source with
         | true, partial ->

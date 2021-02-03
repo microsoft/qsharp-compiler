@@ -272,9 +272,9 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// Compares the visibility of the parent declaration with the visibility of the UDT being referenced. If the
     /// visibility of a referenced type is less than the visibility of the parent, returns a diagnostic using the
     /// given error code. Otherwise, returns an empty array.
-    let checkUdtVisibility code (parent, parentVisibility) (udt: UserDefinedType, udtVisibility) =
+    let checkUdtAccess code (parent, parentAccess) (udt: UserDefinedType, udtAccess) =
         [|
-            if udtVisibility < parentVisibility
+            if udtAccess < parentAccess
             then yield QsCompilerDiagnostic.Error (code, [ udt.Name; parent ]) (udt.Range.ValueOr Range.Zero)
         |]
 
@@ -662,10 +662,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// <exception cref="ArgumentException"><paramref name="typeTuple"/> is an empty <see cref="QsTuple"/>.</exception>
     member private this.ResolveTypeDeclaration (fullName: QsQualifiedName, source, visibility) typeTuple =
         // Currently, type parameters for UDTs are not supported.
-        let checkVisibility = checkUdtVisibility ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, visibility)
+        let checkAccess = checkUdtAccess ErrorCode.TypeLessAccessibleThanParentType (fullName.Name, visibility)
 
         let resolveType qsType =
-            resolveType (fullName, ImmutableArray<_>.Empty, source) qsType checkVisibility
+            resolveType (fullName, ImmutableArray<_>.Empty, source) qsType checkAccess
 
         SymbolResolution.ResolveTypeDeclaration resolveType typeTuple
 
@@ -691,11 +691,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     member private this.ResolveCallableSignature (parentKind, parentName: QsQualifiedName, source, access)
                                                  (signature, specBundleCharacteristics)
                                                  =
-        let checkVisibility =
-            checkUdtVisibility ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access)
+        let checkAccess = checkUdtAccess ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access)
 
         let resolveType tpNames qsType =
-            let res, errs = resolveType (parentName, tpNames, source) qsType checkVisibility
+            let res, errs = resolveType (parentName, tpNames, source) qsType checkAccess
             if parentKind <> TypeConstructor then res, errs else res.WithoutRangeInfo, errs // strip positional info for auto-generated type constructors
 
         SymbolResolution.ResolveCallableSignature (resolveType, specBundleCharacteristics) signature
@@ -734,7 +733,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     let fullName = { Namespace = ns.Name; Name = tName }
 
                     let resolved, resErrs =
-                        qsType.Defined |> this.ResolveTypeDeclaration(fullName, source, qsType.Visibility)
+                        qsType.Defined |> this.ResolveTypeDeclaration(fullName, source, qsType.Access)
 
                     ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty)
 
@@ -836,7 +835,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
                     let resolved, msgs =
                         (signature.Defined, characteristics)
-                        |> this.ResolveCallableSignature(kind, parent, source, signature.Visibility) // no positional info for type constructors
+                        |> this.ResolveCallableSignature(kind, parent, source, signature.Access) // no positional info for type constructors
 
                     ns.SetCallableResolution source (parent.Name, resolved |> Value, callableAttributes)
 
@@ -1040,7 +1039,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                                     Kind = kind
                                     QualifiedName = { Namespace = ns.Name; Name = cName }
                                     Attributes = declaration.ResolvedAttributes
-                                    Visibility = declaration.Visibility
+                                    Access = declaration.Access
                                     Source = { CodeFile = source; AssemblyFile = Null }
                                     Position = DeclarationHeader.Offset.Defined declaration.Position
                                     SymbolRange = DeclarationHeader.Range.Defined declaration.Range
@@ -1062,7 +1061,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         Seq.append
             (Seq.map (fun callable -> callable, SameAssembly) (this.DefinedCallables()))
             (Seq.map (fun callable -> callable, OtherAssembly) (this.ImportedCallables()))
-        |> Seq.filter (fun (callable, proximity) -> callable.Visibility |> Visibility.isVisibleFrom proximity)
+        |> Seq.filter (fun (callable, proximity) -> callable.Access |> Access.isAccessibleFrom proximity)
         |> Seq.map fst
 
     /// Returns the source file and TypeDeclarationHeader of all types imported from referenced assemblies, regardless
@@ -1104,7 +1103,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                                 {
                                     QualifiedName = { Namespace = ns.Name; Name = tName }
                                     Attributes = qsType.ResolvedAttributes
-                                    Visibility = qsType.Visibility
+                                    Access = qsType.Access
                                     Source = { CodeFile = source; AssemblyFile = Null }
                                     Position = DeclarationHeader.Offset.Defined qsType.Position
                                     SymbolRange = DeclarationHeader.Range.Defined qsType.Range
@@ -1126,7 +1125,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         Seq.append
             (Seq.map (fun qsType -> qsType, SameAssembly) (this.DefinedTypes()))
             (Seq.map (fun qsType -> qsType, OtherAssembly) (this.ImportedTypes()))
-        |> Seq.filter (fun (qsType, proximity) -> qsType.Visibility |> Visibility.isVisibleFrom proximity)
+        |> Seq.filter (fun (qsType, proximity) -> qsType.Access |> Access.isAccessibleFrom proximity)
         |> Seq.map fst
 
     /// removes the given source file and all its content from all namespaces
@@ -1257,7 +1256,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let buildHeader fullName (source, kind, declaration) =
             let fallback () =
                 (declaration.Defined, [ CallableInformation.Invalid ])
-                |> this.ResolveCallableSignature(kind, callableName, source, declaration.Visibility)
+                |> this.ResolveCallableSignature(kind, callableName, source, declaration.Access)
                 |> fst
 
             let resolvedSignature, argTuple = declaration.Resolved.ValueOrApply fallback
@@ -1266,7 +1265,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 Kind = kind
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
-                Visibility = declaration.Visibility
+                Access = declaration.Access
                 Source = { CodeFile = source; AssemblyFile = Null }
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
@@ -1278,7 +1277,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let findInReferences (ns: Namespace) =
             ns.CallablesInReferencedAssemblies.[callableName.Name]
             |> Seq.map (fun callable ->
-                if callable.Visibility |> Visibility.isVisibleFrom OtherAssembly
+                if callable.Access |> Access.isAccessibleFrom OtherAssembly
                 then Found callable
                 else Inaccessible)
             |> ResolutionResult.AtMostOne
@@ -1289,13 +1288,13 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 // OK to use CallableInSource because this is only evaluated if the callable is not in a reference.
                 let kind, declaration = ns.CallableInSource source callableName.Name
 
-                if declaration.Visibility |> Visibility.isVisibleFrom SameAssembly
+                if declaration.Access |> Access.isAccessibleFrom SameAssembly
                 then Found(buildHeader { callableName with Namespace = ns.Name } (source, kind, declaration))
                 else Inaccessible
             | None ->
                 match ns.CallablesDefinedInAllSources().TryGetValue callableName.Name with
                 | true, (source, (kind, declaration)) ->
-                    if declaration.Visibility |> Visibility.isVisibleFrom SameAssembly
+                    if declaration.Access |> Access.isAccessibleFrom SameAssembly
                     then Found(buildHeader { callableName with Namespace = ns.Name } (source, kind, declaration))
                     else Inaccessible
                 | false, _ -> NotFound
@@ -1363,14 +1362,14 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     member private this.TryGetTypeHeader (typeName: QsQualifiedName, declSource) (nsName, source) =
         let buildHeader fullName (source, declaration) =
             let fallback () =
-                declaration.Defined |> this.ResolveTypeDeclaration(typeName, source, declaration.Visibility) |> fst
+                declaration.Defined |> this.ResolveTypeDeclaration(typeName, source, declaration.Access) |> fst
 
             let underlyingType, items = declaration.Resolved.ValueOrApply fallback
 
             {
                 QualifiedName = fullName
                 Attributes = declaration.ResolvedAttributes
-                Visibility = declaration.Visibility
+                Access = declaration.Access
                 Source = { CodeFile = source; AssemblyFile = Null }
                 Position = DeclarationHeader.Offset.Defined declaration.Position
                 SymbolRange = DeclarationHeader.Range.Defined declaration.Range
@@ -1382,7 +1381,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let findInReferences (ns: Namespace) =
             ns.TypesInReferencedAssemblies.[typeName.Name]
             |> Seq.map (fun typeHeader ->
-                if typeHeader.Visibility |> Visibility.isVisibleFrom OtherAssembly
+                if typeHeader.Access |> Access.isAccessibleFrom OtherAssembly
                 then Found typeHeader
                 else Inaccessible)
             |> ResolutionResult.AtMostOne
@@ -1393,13 +1392,13 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 // OK to use TypeInSource because this is only evaluated if the type is not in a reference.
                 let declaration = ns.TypeInSource source typeName.Name
 
-                if declaration.Visibility |> Visibility.isVisibleFrom SameAssembly
+                if declaration.Access |> Access.isAccessibleFrom SameAssembly
                 then Found(buildHeader { typeName with Namespace = ns.Name } (source, declaration))
                 else Inaccessible
             | None ->
                 match ns.TypesDefinedInAllSources().TryGetValue typeName.Name with
                 | true, (source, declaration) ->
-                    if declaration.Visibility |> Visibility.isVisibleFrom SameAssembly
+                    if declaration.Access |> Access.isAccessibleFrom SameAssembly
                     then Found(buildHeader { typeName with Namespace = ns.Name } (source, declaration))
                     else Inaccessible
                 | false, _ -> NotFound

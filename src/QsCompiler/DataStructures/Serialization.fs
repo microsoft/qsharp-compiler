@@ -281,7 +281,7 @@ type private QsCallableConverter() =
             Kind = schema.Kind
             FullName = schema.FullName
             Attributes = schema.Attributes
-            Visibility = schema.Modifiers.Access |> AccessModifier.toVisibility Public
+            Access = schema.Modifiers.Access |> AccessModifier.toAccess Public
             Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             Signature = schema.Signature
@@ -297,7 +297,7 @@ type private QsCallableConverter() =
                 Kind = value.Kind
                 FullName = value.FullName
                 Attributes = value.Attributes
-                Modifiers = { Access = AccessModifier.ofVisibility value.Visibility }
+                Modifiers = { Access = AccessModifier.ofAccess value.Access }
                 SourceFile = value.Source.CodeFile
                 Location = value.Location
                 Signature = value.Signature
@@ -346,7 +346,7 @@ type private QsCustomTypeConverter() =
         {
             FullName = schema.FullName
             Attributes = schema.Attributes
-            Visibility = schema.Modifiers.Access |> AccessModifier.toVisibility Public
+            Access = schema.Modifiers.Access |> AccessModifier.toAccess Public
             Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             Type = schema.Type
@@ -360,7 +360,7 @@ type private QsCustomTypeConverter() =
             {
                 FullName = value.FullName
                 Attributes = value.Attributes
-                Modifiers = { Access = AccessModifier.ofVisibility value.Visibility }
+                Modifiers = { Access = AccessModifier.ofAccess value.Access }
                 SourceFile = value.Source.CodeFile
                 Location = value.Location
                 Type = value.Type

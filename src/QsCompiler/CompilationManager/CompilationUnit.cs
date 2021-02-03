@@ -145,9 +145,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if the given sequence of elements is null.
         /// </summary>
         private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(
-            IEnumerable<(QsQualifiedName Name, string Source, Visibility Visibility)> elements) =>
+            IEnumerable<(QsQualifiedName Name, string Source, Access Access)> elements) =>
             elements
-                .Where(e => e.Visibility.IsVisibleFrom(Proximity.OtherAssembly))
+                .Where(e => e.Access.IsAccessibleFrom(Proximity.OtherAssembly))
                 .GroupBy(e => e.Name)
                 .Where(g => g.Count() != 1)
                 .Select(g => (g.Key, string.Join(", ", g.Select(e => e.Source))))
@@ -209,8 +209,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return;
             }
             var conflicting = new List<(string, string)>();
-            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.Source.AssemblyOrCodeFile, c.Visibility));
-            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.Source.AssemblyOrCodeFile, t.Visibility));
+            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.Source.AssemblyOrCodeFile, c.Access));
+            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.Source.AssemblyOrCodeFile, t.Access));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(callables));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(types));
 
@@ -255,8 +255,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 additionalAssemblies: additionalAssemblies);
 
             var conflicting = new List<(string, string)>();
-            var callableElems = callables.Select(c => (c.FullName, c.Source.AssemblyOrCodeFile, c.Visibility));
-            var typeElems = types.Select(t => (t.FullName, t.Source.AssemblyOrCodeFile, t.Visibility));
+            var callableElems = callables.Select(c => (c.FullName, c.Source.AssemblyOrCodeFile, c.Access));
+            var typeElems = types.Select(t => (t.FullName, t.Source.AssemblyOrCodeFile, t.Access));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(callableElems));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(typeElems));
             foreach (var (name, conflicts) in conflicting.Distinct())
@@ -545,7 +545,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var type = new QsCustomType(
                         compiled.FullName,
                         compiled.Attributes,
-                        compiled.Visibility,
+                        compiled.Access,
                         compiled.Source,
                         header.Location,
                         compiled.Type,
@@ -615,7 +615,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             header.Kind,
                             header.QualifiedName,
                             header.Attributes,
-                            header.Visibility,
+                            header.Access,
                             header.Source,
                             header.Location,
                             header.Signature,
@@ -664,7 +664,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         compiled.Kind,
                         compiled.FullName,
                         compiled.Attributes,
-                        compiled.Visibility,
+                        compiled.Access,
                         compiled.Source,
                         header.Location,
                         compiled.Signature,
@@ -689,7 +689,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private QsCallable GetImportedCallable(CallableDeclarationHeader header)
         {
             // TODO: this needs to be adapted if we want to support external specializations
-            if (header.Visibility.IsVisibleFrom(Proximity.OtherAssembly))
+            if (header.Access.IsAccessibleFrom(Proximity.OtherAssembly))
             {
                 var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
                 QsCompilerError.Verify(
@@ -702,7 +702,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Where(specialization =>
                     // Either the callable is externally accessible, or all of its specializations must be defined in
                     // the same reference as the callable.
-                    header.Visibility.IsVisibleFrom(Proximity.OtherAssembly)
+                    header.Access.IsAccessibleFrom(Proximity.OtherAssembly)
                     || specialization.Item1.Source.AssemblyFile.Equals(header.Source.AssemblyFile))
                 .Select(specialization =>
                 {
@@ -729,7 +729,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 header.Kind,
                 header.QualifiedName,
                 header.Attributes,
-                header.Visibility,
+                header.Access,
                 header.Source,
                 header.Location,
                 header.Signature,
@@ -746,7 +746,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new QsCustomType(
                 header.QualifiedName,
                 header.Attributes,
-                header.Visibility,
+                header.Access,
                 header.Source,
                 header.Location,
                 header.Type,
@@ -1004,10 +1004,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToImmutableDictionary(entry => entry.source, entry => entry.idx + additionalAssemblies);
 
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
-                IEnumerable<(QsQualifiedName Name, string Source, Visibility Visibility)> group) =>
+                IEnumerable<(QsQualifiedName Name, string Source, Access Access)> group) =>
                 group
                     .Where(item =>
-                        !item.Visibility.IsVisibleFrom(Proximity.OtherAssembly)
+                        !item.Access.IsAccessibleFrom(Proximity.OtherAssembly)
                         && (predicate?.Invoke(item.Source) ?? true))
                     .ToImmutableDictionary(
                         item => item.Name,
@@ -1017,9 +1017,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             var transformations = callables
                 .Select(callable =>
-                    (name: callable.FullName, source: callable.Source.AssemblyOrCodeFile, access: callable.Visibility))
+                    (name: callable.FullName, source: callable.Source.AssemblyOrCodeFile, access: callable.Access))
                 .Concat(types.Select(type =>
-                    (name: type.FullName, source: type.Source.AssemblyOrCodeFile, access: type.Visibility)))
+                    (name: type.FullName, source: type.Source.AssemblyOrCodeFile, access: type.Access)))
                 .GroupBy(item => item.source)
                 .ToImmutableDictionary(
                     group => group.Key,

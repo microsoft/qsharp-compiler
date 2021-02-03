@@ -24,12 +24,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 EntryPoints = qsCompilation.EntryPoints.Select(e => e.ToBondSchema()).ToList()
             };
 
-        private static AccessModifier ToBondSchema(this SyntaxTokens.Visibility visibility) =>
-            visibility.Tag switch
+        private static AccessModifier ToBondSchema(this SyntaxTokens.Access access) =>
+            access.Tag switch
             {
-                SyntaxTokens.Visibility.Tags.Public => AccessModifier.DefaultAccess,
-                SyntaxTokens.Visibility.Tags.Internal => AccessModifier.Internal,
-                _ => throw new ArgumentException($"Unsupported AccessModifier: {visibility}")
+                SyntaxTokens.Access.Tags.Public => AccessModifier.DefaultAccess,
+                SyntaxTokens.Access.Tags.Internal => AccessModifier.Internal,
+                _ => throw new ArgumentException($"Unsupported Access: {access}")
             };
 
         private static CallableInformation ToBondSchema(this SyntaxTree.CallableInformation callableInformation) =>
@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Kind = qsCallable.Kind.ToBondSchema(),
                 FullName = qsCallable.FullName.ToBondSchema(),
                 Attributes = qsCallable.Attributes.Select(a => a.ToBondSchema()).ToList(),
-                Modifiers = new Modifiers { Access = qsCallable.Visibility.ToBondSchema() },
+                Modifiers = new Modifiers { Access = qsCallable.Access.ToBondSchema() },
                 SourceFile = qsCallable.Source.CodeFile,
                 Location = qsCallable.Location.IsNull ?
                     null :
@@ -169,7 +169,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 FullName = qsCustomType.FullName.ToBondSchema(),
                 Attributes = qsCustomType.Attributes.Select(a => a.ToBondSchema()).ToList(),
-                Modifiers = new Modifiers { Access = qsCustomType.Visibility.ToBondSchema() },
+                Modifiers = new Modifiers { Access = qsCustomType.Access.ToBondSchema() },
                 SourceFile = qsCustomType.Source.CodeFile,
                 Location = qsCustomType.Location.IsNull ?
                     null :

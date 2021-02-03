@@ -331,8 +331,8 @@ let private namespaceDocumentation (docs: ILookup<_, ImmutableArray<_>>, markdow
     let allDoc = docs.SelectMany(fun entry -> entry.SelectMany(fun d -> d.AsEnumerable())) // the key is the source file
     PrintSummary allDoc markdown
 
-/// Attaches the visibility to the declaration kind string.
-let private showVisibility kind =
+/// Attaches the access modifier to the declaration kind string.
+let private showAccess kind =
     function
     | Public -> kind
     | Internal -> ReservedKeywords.Declarations.Internal + " " + kind
@@ -371,7 +371,7 @@ let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType:
     let udtInfo udt =
         match udt |> globalTypeResolution symbolTable (currentNS, source) with
         | Some decl, _ ->
-            let kind = showVisibility "user-defined type" decl.Visibility |> toUpperFirst
+            let kind = showAccess "user-defined type" decl.Access |> toUpperFirst
             let name = decl.QualifiedName.Name |> withNewLine
             let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
             let info = sprintf "Underlying type: %s" (TypeName decl.Type)
@@ -450,7 +450,7 @@ let public PrintSignature (header: CallableDeclarationHeader) =
             (header.Source, Null)
             (header.QualifiedName,
              header.Attributes,
-             header.Visibility,
+             header.Access,
              header.ArgumentTuple,
              header.Signature,
              ImmutableArray.Empty,
@@ -470,7 +470,7 @@ let public VariableInfo (symbolTable: NamespaceManager)
                         =
     match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
     | Some decl, _ ->
-        let kind = showVisibility (printCallableKind decl.Kind) decl.Visibility |> toUpperFirst
+        let kind = showAccess (printCallableKind decl.Kind) decl.Access |> toUpperFirst
         let nameAndSignature = PrintSignature decl |> withNewLine
         let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace
         let doc = PrintSummary decl.Documentation markdown
@@ -504,7 +504,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
         | false, _ ->
             match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be before querying callables
             | Some decl, _ ->
-                let kind = showVisibility "user-defined type" decl.Visibility
+                let kind = showAccess "user-defined type" decl.Access
                 let name = decl.QualifiedName.Name |> withNewLine
                 let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
                 let info = sprintf "Underlying type: %s" (decl.Type |> TypeName)
@@ -513,7 +513,7 @@ let public DeclarationInfo symbolTable (locals: LocalDeclarations) (currentNS, s
             | None, _ ->
                 match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
                 | Some decl, _ ->
-                    let kind = showVisibility (printCallableKind decl.Kind) decl.Visibility
+                    let kind = showAccess (printCallableKind decl.Kind) decl.Access
                     let name = decl.QualifiedName.Name |> withNewLine
                     let ns = sprintf "Namespace: %s" decl.QualifiedName.Namespace |> withNewLine
                     let input = sprintf "Input type: %s" (decl.Signature.ArgumentType |> TypeName) |> withNewLine

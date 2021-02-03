@@ -257,7 +257,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             name,
                             decl.UnderlyingType,
                             att,
-                            decl.Visibility.ValueOr(Visibility.Public),
+                            decl.Access.ValueOr(Access.Public),
                             doc),
                     file.FileName,
                     diagnostics);
@@ -279,7 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             name,
                             Tuple.Create(decl.Item1, decl.Item2.Signature),
                             att,
-                            decl.Item2.Visibility.ValueOr(Visibility.Public),
+                            decl.Item2.Access.ValueOr(Access.Public),
                             doc),
                     file.FileName,
                     diagnostics);
@@ -1678,7 +1678,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         info.Kind,
                         parent,
                         info.Attributes,
-                        info.Visibility,
+                        info.Access,
                         info.Source,
                         QsNullable<QsLocation>.Null,
                         info.Signature,
@@ -1692,7 +1692,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var types = typeDeclarations.Select(decl => new QsCustomType(
                     decl.Key,
                     decl.Value.Attributes,
-                    decl.Value.Visibility,
+                    decl.Value.Access,
                     decl.Value.Source,
                     decl.Value.Location,
                     decl.Value.Type,

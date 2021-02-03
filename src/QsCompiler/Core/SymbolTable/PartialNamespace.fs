@@ -28,13 +28,13 @@ type private PartialNamespace private (name: string,
     let keySelector (item: KeyValuePair<'k, 'v>) = item.Key
     let valueSelector (item: KeyValuePair<'k, 'v>) = item.Value
 
-    let unresolved (location: QsLocation) (definition, attributes, visibility, doc) =
+    let unresolved (location: QsLocation) (definition, attributes, access, doc) =
         {
             Defined = definition
             DefinedAttributes = attributes
             Resolved = Null
             ResolvedAttributes = ImmutableArray.Empty
-            Visibility = visibility
+            Access = access
             Position = location.Offset
             Range = location.Range
             Documentation = doc

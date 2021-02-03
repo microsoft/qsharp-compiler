@@ -211,7 +211,7 @@ type CallableSignature =
     }
 
 /// Defines where a global declaration may be accessed.
-[<Obsolete "Use Visibility instead.">]
+[<Obsolete "Use Access instead.">]
 [<Struct>]
 type AccessModifier =
     /// For callables and types, the default access modifier is public, which means the type or callable can be used
@@ -223,7 +223,7 @@ type AccessModifier =
     | Internal
 
 /// Used to represent Q# keywords that may be attached to a declaration to modify its visibility or behavior.
-[<Obsolete "Use Visibility instead.">]
+[<Obsolete "Use Access instead.">]
 [<Struct>]
 type Modifiers =
     {
@@ -231,15 +231,15 @@ type Modifiers =
         Access: AccessModifier
     }
 
-/// The visibility of a symbol limits where the symbol can be seen from.
-type Visibility =
-    /// The symbol can be seen only within the compilation unit or assembly in which it is declared.
+/// The accessibility of a symbol that limits where the symbol can be used from.
+type Access =
+    /// The symbol can be seen used within the compilation unit or assembly in which it is declared.
     | Internal
 
-    /// The symbol can be seen from everywhere.
+    /// The symbol can be used from anywhere.
     | Public
 
-/// The relative proximity of one code location to another in terms that are relevant to symbol visibility.
+/// The relative proximity of one code location to another in terms that are relevant to symbol accessibility.
 type Proximity =
     /// The code locations are in the same compilation unit or assembly.
     | SameAssembly
@@ -247,34 +247,34 @@ type Proximity =
     /// The code locations are in different compilation units or assemblies.
     | OtherAssembly
 
-module Visibility =
+module Access =
     /// <summary>
-    /// Returns true if symbols with a given visibility are visible from <paramref name="proximity"/>.
+    /// Returns true if symbols with a given accessibility are accessible from <paramref name="proximity"/>.
     /// </summary>
-    [<CompiledName "IsVisibleFrom">]
-    let isVisibleFrom proximity =
+    [<CompiledName "IsAccessibleFrom">]
+    let isAccessibleFrom proximity =
         function
         | Internal -> proximity = SameAssembly
         | Public -> true
 
-type Visibility with
+type Access with
     /// <summary>
-    /// Returns true if symbols with this visibility are visible from <paramref name="proximity"/>.
+    /// Returns true if symbols with this accessibility are accessible from <paramref name="proximity"/>.
     /// </summary>
-    member visibility.IsVisibleFrom proximity =
-        visibility |> Visibility.isVisibleFrom proximity
+    member access.IsAccessibleFrom proximity =
+        access |> Access.isAccessibleFrom proximity
 
 module AccessModifier =
-    [<CompiledName "ToVisibility">]
-    [<Obsolete "Use Visibility instead.">]
-    let toVisibility defaultVisibility =
+    [<CompiledName "ToAccess">]
+    [<Obsolete "Use Access instead.">]
+    let toAccess defaultAccess =
         function
-        | DefaultAccess -> defaultVisibility
+        | DefaultAccess -> defaultAccess
         | AccessModifier.Internal -> Internal
 
-    [<CompiledName "FromVisibility">]
-    [<Obsolete "Use Visibility instead.">]
-    let ofVisibility =
+    [<CompiledName "FromAccess">]
+    [<Obsolete "Use Access instead.">]
+    let ofAccess =
         function
         | Public -> DefaultAccess
         | Internal -> AccessModifier.Internal
@@ -284,22 +284,22 @@ type CallableDeclaration =
     private
         {
             name: QsSymbol
-            visibility: Visibility QsNullable
+            access: Access QsNullable
             signature: CallableSignature
         }
 
-        static member Create(name, visibility, signature) =
+        static member Create(name, access, signature) =
             {
                 name = name
-                visibility = visibility
+                access = access
                 signature = signature
             }
 
         /// The name of the callable.
         member callable.Name = callable.name
 
-        /// The visibility of the callable, or Null if the callable has the default visibility.
-        member callable.Visibility = callable.visibility
+        /// The accessibility of the callable, or Null if the callable has the default accessibility.
+        member callable.Access = callable.access
 
         /// The signature of the callable.
         member callable.Signature = callable.signature
@@ -309,22 +309,22 @@ type TypeDefinition =
     private
         {
             name: QsSymbol
-            visibility: Visibility QsNullable
+            access: Access QsNullable
             underlyingType: (QsSymbol * QsType) QsTuple
         }
 
-        static member Create(name, visibility, underlyingType) =
+        static member Create(name, access, underlyingType) =
             {
                 name = name
-                visibility = visibility
+                access = access
                 underlyingType = underlyingType
             }
 
         /// The name of the type.
         member typeDef.Name = typeDef.name
 
-        /// The visibility of the type, or Null if the type has the default visibility.
-        member typeDef.Visibility = typeDef.visibility
+        /// The accessibility of the type, or Null if the type has the default accessibility.
+        member typeDef.Access = typeDef.access
 
         /// The type's underlying type.
         member typeDef.UnderlyingType = typeDef.underlyingType

@@ -46,7 +46,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 .Select(n => new ConcreteCallGraphNode(n.CallableName, QsSpecializationKind.QsBody, n.ParamResolutions))
                 .ToImmutableHashSet();
 
-            var getVisibilities = new GetVisibilities(typeName => GetVisibility(compilation.Namespaces.GlobalTypeResolutions(), typeName));
+            var getAccessModifiers = new GetAccessModifiers((typeName) => GetAccessModifier(compilation.Namespaces.GlobalTypeResolutions(), typeName));
 
             // Loop through the nodes, getting a list of concrete callables
             foreach (var node in nodes)
@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     concreteNames[node] = concreteName;
 
                     // Generate the concrete version of the callable
-                    var concrete = ReplaceTypeParamImplementations.Apply(originalGlobal, node.ParamResolutions, getVisibilities);
+                    var concrete = ReplaceTypeParamImplementations.Apply(originalGlobal, node.ParamResolutions, getAccessModifiers);
                     concretizations.Add(
                         concrete.WithFullName(oldName => concreteName)
                         .WithSpecializations(specs => specs.Select(spec => spec.WithParent(_ => concreteName)).ToImmutableArray()));
@@ -167,39 +167,39 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
         // Rewrite Implementations
 
-        private static Visibility GetVisibility(ImmutableDictionary<QsQualifiedName, QsCustomType> userDefinedTypes, QsQualifiedName typeName)
+        private static Access GetAccessModifier(ImmutableDictionary<QsQualifiedName, QsCustomType> userDefinedTypes, QsQualifiedName typeName)
         {
             // If there is a reference to an unknown type, throw exception
             if (!userDefinedTypes.TryGetValue(typeName, out var type))
             {
                 throw new ArgumentException($"Couldn't find definition for user defined type: {typeName}");
             }
-            return type.Visibility;
+            return type.Access;
         }
 
         private class ReplaceTypeParamImplementations :
             SyntaxTreeTransformation<ReplaceTypeParamImplementations.TransformationState>
         {
-            public static QsCallable Apply(QsCallable callable, TypeParameterResolutions typeParams, GetVisibilities getVisibilities)
+            public static QsCallable Apply(QsCallable callable, TypeParameterResolutions typeParams, GetAccessModifiers getAccessModifiers)
             {
-                var filter = new ReplaceTypeParamImplementations(typeParams, getVisibilities);
+                var filter = new ReplaceTypeParamImplementations(typeParams, getAccessModifiers);
                 return filter.Namespaces.OnCallableDeclaration(callable);
             }
 
             public class TransformationState
             {
                 public readonly TypeParameterResolutions TypeParams;
-                public readonly GetVisibilities GetVisibilities;
+                public readonly GetAccessModifiers GetAccessModifiers;
 
-                public TransformationState(TypeParameterResolutions typeParams, GetVisibilities getVisibilities)
+                public TransformationState(TypeParameterResolutions typeParams, GetAccessModifiers getAccessModifiers)
                 {
                     this.TypeParams = typeParams;
-                    this.GetVisibilities = getVisibilities;
+                    this.GetAccessModifiers = getAccessModifiers;
                 }
             }
 
-            private ReplaceTypeParamImplementations(TypeParameterResolutions typeParams, GetVisibilities getVisibilities)
-                : base(new TransformationState(typeParams, getVisibilities))
+            private ReplaceTypeParamImplementations(TypeParameterResolutions typeParams, GetAccessModifiers getAccessModifiers)
+                : base(new TransformationState(typeParams, getAccessModifiers))
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation<TransformationState>(this);
@@ -218,14 +218,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
                 public override QsCallable OnCallableDeclaration(QsCallable c)
                 {
-                    var relevantVisibilities = this.SharedState.GetVisibilities.Apply(this.SharedState.TypeParams.Values)
-                        .Append(c.Visibility);
+                    var relevantAccessModifiers = this.SharedState.GetAccessModifiers.Apply(this.SharedState.TypeParams.Values)
+                        .Append(c.Access);
 
                     c = new QsCallable(
                         c.Kind,
                         c.FullName,
                         c.Attributes,
-                        relevantVisibilities.Min(),
+                        relevantAccessModifiers.Min(),
                         c.Source,
                         c.Location,
                         c.Signature,
@@ -281,37 +281,37 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
         }
 
-        private class GetVisibilities : TypeTransformation<GetVisibilities.TransformationState>
+        private class GetAccessModifiers : TypeTransformation<GetAccessModifiers.TransformationState>
         {
-            public IEnumerable<Visibility> Apply(IEnumerable<ResolvedType> types)
+            public IEnumerable<Access> Apply(IEnumerable<ResolvedType> types)
             {
-                this.SharedState.Visibilities.Clear();
+                this.SharedState.AccessModifiers.Clear();
                 foreach (var res in types)
                 {
                     this.OnType(res);
                 }
-                return this.SharedState.Visibilities.ToImmutableArray();
+                return this.SharedState.AccessModifiers.ToImmutableArray();
             }
 
             internal class TransformationState
             {
-                public readonly HashSet<Visibility> Visibilities = new HashSet<Visibility>();
-                public readonly Func<QsQualifiedName, Visibility> GetVisibility;
+                public readonly HashSet<Access> AccessModifiers = new HashSet<Access>();
+                public readonly Func<QsQualifiedName, Access> GetAccessModifier;
 
-                public TransformationState(Func<QsQualifiedName, Visibility> getVisibility)
+                public TransformationState(Func<QsQualifiedName, Access> getAccessModifier)
                 {
-                    this.GetVisibility = getVisibility;
+                    this.GetAccessModifier = getAccessModifier;
                 }
             }
 
-            public GetVisibilities(Func<QsQualifiedName, Visibility> getVisibility)
-                : base(new TransformationState(getVisibility), TransformationOptions.NoRebuild)
+            public GetAccessModifiers(Func<QsQualifiedName, Access> getAccessModifier)
+                : base(new TransformationState(getAccessModifier), TransformationOptions.NoRebuild)
             {
             }
 
             public override ResolvedTypeKind OnUserDefinedType(UserDefinedType udt)
             {
-                this.SharedState.Visibilities.Add(this.SharedState.GetVisibility(new QsQualifiedName(udt.Namespace, udt.Name)));
+                this.SharedState.AccessModifiers.Add(this.SharedState.GetAccessModifier(new QsQualifiedName(udt.Namespace, udt.Name)));
                 return base.OnUserDefinedType(udt);
             }
         }

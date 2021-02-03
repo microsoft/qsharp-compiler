@@ -211,7 +211,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
 
-        Assert.True(generated.Visibility = Internal, "Callables originally internal should remain internal.")
+        Assert.True(generated.Access = Internal, "Callables originally internal should remain internal.")
 
         let generated =
             getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsInternalUsesPublic"
@@ -219,7 +219,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
 
-        Assert.True(generated.Visibility = Internal, "Callables originally internal should remain internal.")
+        Assert.True(generated.Access = Internal, "Callables originally internal should remain internal.")
 
         let generated =
             getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesInternal"
@@ -227,7 +227,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
 
-        Assert.True(generated.Visibility = Internal, "Callables with internal arguments should be internal.")
+        Assert.True(generated.Access = Internal, "Callables with internal arguments should be internal.")
 
         let generated =
             getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesPublic"
@@ -236,8 +236,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 Seq.item 0 x)
 
         Assert.True
-            (generated.Visibility = Public,
-             "Callables originally public should remain public if all arguments are public.")
+            (generated.Access = Public, "Callables originally public should remain public if all arguments are public.")
 
 
     [<Fact>]
@@ -691,11 +690,11 @@ type LinkingTests(output: ITestOutputHelper) =
                 | false, _ -> Assert.True(false, "wrong source")
 
             let onTypeDecl (tDecl: QsCustomType) =
-                AssertSource(tDecl.FullName, Source.assemblyOrCodeFile tDecl.Source, Some tDecl.Visibility)
+                AssertSource(tDecl.FullName, Source.assemblyOrCodeFile tDecl.Source, Some tDecl.Access)
                 tDecl
 
             let onCallableDecl (cDecl: QsCallable) =
-                AssertSource(cDecl.FullName, Source.assemblyOrCodeFile cDecl.Source, Some cDecl.Visibility)
+                AssertSource(cDecl.FullName, Source.assemblyOrCodeFile cDecl.Source, Some cDecl.Access)
                 cDecl
 
             let onSpecDecl (sDecl: QsSpecialization) =
