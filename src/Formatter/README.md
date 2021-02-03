@@ -7,6 +7,13 @@ It will very likely eat your code when it tries to format it!
 You can use the command-line tool by running `dotnet run -p App` from this folder.
 This will only print the formatted code to the console, and won't overwrite your files, so it's safe to use.
 
+## Limitations
+
+* The current formatting capabilities are very simple, with only basic indentation and whitespace normalization.
+* Many types of syntax are not yet supported and will remain unchanged by the formatter.
+* There are several bugs related to other types of syntax, especially callable declaration syntax like attributes, type parameters, and specializations.
+  These may be swallowed by the formatter, resulting in incorrect output.
+
 ## Design
 
 QsFmt uses a [concrete syntax tree](https://en.wikipedia.org/wiki/Parse_tree), which is lossless: a Q# program parsed into a CST can be converted back into a string without any loss of information.
