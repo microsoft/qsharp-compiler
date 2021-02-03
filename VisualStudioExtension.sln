@@ -13,6 +13,10 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpTestTemplate", "src\V
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpLibTemplate", "src\VisualStudioExtension\QSharpLibTemplate\QSharpLibTemplate.csproj", "{9EF3C982-D6B4-47BE-A0FE-660F91738881}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpHoneywellAppTemplate", "src\VisualStudioExtension\QsharpHoneywellAppTemplate\QSharpHoneywellAppTemplate.csproj", "{126C7559-6990-4885-B3E4-C84EAB9153DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "QSharpIonQAppTemplate", "src\VisualStudioExtension\QsharpIonQAppTemplate\QSharpIonQAppTemplate.csproj", "{ED8F03EE-5CB2-4A1F-8CBA-1E0E12B83077}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -39,6 +43,14 @@ Global
 		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9EF3C982-D6B4-47BE-A0FE-660F91738881}.Release|Any CPU.Build.0 = Release|Any CPU
+		{126C7559-6990-4885-B3E4-C84EAB9153DF}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{126C7559-6990-4885-B3E4-C84EAB9153DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{126C7559-6990-4885-B3E4-C84EAB9153DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{126C7559-6990-4885-B3E4-C84EAB9153DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{ED8F03EE-5CB2-4A1F-8CBA-1E0E12B83077}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{ED8F03EE-5CB2-4A1F-8CBA-1E0E12B83077}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{ED8F03EE-5CB2-4A1F-8CBA-1E0E12B83077}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{ED8F03EE-5CB2-4A1F-8CBA-1E0E12B83077}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
