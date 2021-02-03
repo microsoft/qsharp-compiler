@@ -400,6 +400,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                          range.ValueOr decl.Range
                          |> QsCompilerDiagnostic.Warning(WarningCode.ReservedEntryPointArgumentName, []))
 
+
             simplifiedArgNames |> List.iteri verifyArgument
 
             // check that there is no more than one entry point, and no entry point if the project is not executable
@@ -412,16 +413,16 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 false, errs
             else
                 isExecutable, errs
-                //match GetEntryPoints() |> Seq.tryHead with
-                //| None -> isExecutable, errs
-                //| Some (epName, epSource) ->
-                //    let msgArgs = [ sprintf "%s.%s" epName.Namespace epName.Name; epSource ]
-                //
-                //    errs.Add
-                //        (offset,
-                //         range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.OtherEntryPointExists, msgArgs))
-                //
-                //    false, errs
+        //match GetEntryPoints() |> Seq.tryHead with
+        //| None -> isExecutable, errs
+        //| Some (epName, epSource) ->
+        //    let msgArgs = [ sprintf "%s.%s" epName.Namespace epName.Name; epSource ]
+        //
+        //    errs.Add
+        //        (offset,
+        //         range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.OtherEntryPointExists, msgArgs))
+        //
+        //    false, errs
         | _ ->
             errs.Add(offset, range |> orDefault |> QsCompilerDiagnostic.Error(ErrorCode.InvalidEntryPointPlacement, []))
             false, errs
