@@ -588,6 +588,13 @@ type LocalVerificationTests() =
         this.Expect "StringInterpolationDollarSignTest5" []
         this.Expect "StringInterpolationDollarSignTest6" []
 
+        this.Expect "StringInterpolationOpenBraceTest1" []
+        this.Expect "StringInterpolationOpenBraceTest2" []
+        this.Expect "StringInterpolationOpenBraceTest3" []
+        this.Expect "StringInterpolationOpenBraceTest4" []
+        this.Expect "StringInterpolationOpenBraceTest5" []
+        this.Expect "StringInterpolationOpenBraceTest6" []
+
         this.Expect "StringInterpolationWithCommentTest1" []
         this.Expect "StringInterpolationWithCommentTest2" []
         this.Expect "StringInterpolationWithCommentTest3" []

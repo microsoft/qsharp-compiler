@@ -141,6 +141,43 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
                 $"
         }";
     }
+
+    operation StringInterpolationOpenBraceTest1 () : Unit {
+        let str = $"{"{"}";
+    }
+    
+    operation StringInterpolationOpenBraceTest2 () : Unit {
+        let str = $"{
+            "{"
+        }";
+    }
+    
+    operation StringInterpolationOpenBraceTest3 () : Unit {
+        let str = $"{"
+            {
+        "}";
+    }
+    
+     operation StringInterpolationOpenBraceTest4 () : Unit {
+        let str = $"{"
+            {"
+        }";
+    }
+    
+    operation StringInterpolationOpenBraceTest5 () : Unit {
+        let str = $"{
+            "
+                {
+            "
+        }";
+    }
+    
+    operation StringInterpolationOpenBraceTest6 () : Unit {
+        let str = $"{
+            "
+                {"
+        }";
+    }
     
     operation StringNestedInterpolationTest1 () : Unit {
         let x = 0;
