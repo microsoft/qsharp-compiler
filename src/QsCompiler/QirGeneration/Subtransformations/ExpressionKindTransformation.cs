@@ -1573,6 +1573,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.CloseScope(value);
                 array.GetArrayElementPointer(index).StoreValue(value);
             }
+
             this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
             return ResolvedExpressionKind.InvalidExpr;
         }

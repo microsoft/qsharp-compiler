@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 if (node.ParamResolutions.Any())
                 {
                     // Get concrete name
-                    var concreteName = UniqueVariableNames.PrependGuid(node.CallableName);
+                    var concreteName = NameDecorator.PrependGuid(node.CallableName);
 
                     // Add to concrete name mapping
                     concreteNames[node] = concreteName;
