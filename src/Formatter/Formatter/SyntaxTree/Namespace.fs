@@ -4,6 +4,7 @@
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 /// A callable declaration.
+// TODO: Add attributes, type parameters, and specialization generators.
 type internal CallableDeclaration =
     {
         /// <summary>
