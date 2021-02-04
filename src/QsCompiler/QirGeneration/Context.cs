@@ -49,38 +49,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal readonly string BaseName;
 
             /// <summary>
-            /// The first item contains the array type, and the second item contains the array count name.
+            /// The first item contains the array element type, and the second item contains the array count name.
             /// If <see cref="arrayInfo"/> is not null, then <see cref="structInfo"/> is null.
             /// </summary>
-            private readonly (ITypeRef, string)? arrayInfo;
-
-            /// <summary>
-            /// Contains the struct type.
-            /// If <see cref="structInfo"/> is not null, then <see cref="arrayInfo"/> is null.
-            /// </summary>
-            private readonly ITypeRef? structInfo;
+            private readonly (ResolvedType, string)? arrayInfo;
 
             internal bool IsArray => this.arrayInfo != null;
-            internal ITypeRef ArrayType => this.arrayInfo?.Item1 ?? throw new InvalidOperationException("not an array");
+            internal ResolvedType ArrayElementType => this.arrayInfo?.Item1 ?? throw new InvalidOperationException("not an array");
             internal string ArrayCountName => this.arrayInfo?.Item2 ?? throw new InvalidOperationException("not an array");
 
-            internal bool IsStruct => this.structInfo != null;
-            internal ITypeRef StructType => this.structInfo ?? throw new InvalidOperationException("not a struct");
-
-            private ArgMapping(string baseName, (ITypeRef, string)? arrayInfo = null, ITypeRef? structInfo = null)
+            private ArgMapping(string baseName, (ResolvedType, string)? arrayInfo = null)
             {
                 this.BaseName = baseName;
                 this.arrayInfo = arrayInfo;
-                this.structInfo = structInfo;
             }
 
             internal static ArgMapping Create(string baseName) =>
                 new ArgMapping(baseName);
 
-            internal ArgMapping WithArrayInfo(ITypeRef arrayType, string arrayCountName) =>
-                new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
-
-            internal ArgMapping WithStructInfo(ITypeRef arrayType, string arrayCountName) =>
+            internal ArgMapping WithArrayInfo(ResolvedType arrayType, string arrayCountName) =>
                 new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
         }
 
@@ -539,20 +526,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var map = ArgMapping.Create(baseName);
                     switch (item.Item.Type.Resolution)
                     {
-                        case ResolvedTypeKind.ArrayType array:
-                            // TODO: Handle multidimensional arrays
-                            // TODO: Handle arrays of structs
+                        case ResolvedTypeKind.ArrayType elementType:
                             yield return this.Context.Int64Type;
-                            var elementTypeRef = this.LlvmTypeFromQsharpType(array.Item);
+                            var elementTypeRef = this.LlvmTypeFromQsharpType(elementType.Item);
                             yield return elementTypeRef.CreatePointerType();
                             var arrayCountName = $"{baseName}__count";
                             nameList.Add(arrayCountName);
                             nameList.Add(baseName);
-                            map = map.WithArrayInfo(elementTypeRef, arrayCountName);
+                            map = map.WithArrayInfo(elementType.Item, arrayCountName);
                             mappingList.Add(map);
-                            break;
-                        case ResolvedTypeKind.TupleType _:
-                            // TODO: Handle structs
                             break;
                         default:
                             yield return this.LlvmTypeFromQsharpType(item.Item.Type);
@@ -579,14 +561,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (!entryPointType.Equals(func.Signature))
                 {
                     this.StartFunction();
-                    var epFunc = this.Module.CreateFunction(entryPointName, entryPointType);
+                    this.CurrentFunction = this.Module.CreateFunction(entryPointName, entryPointType);
                     var namedValues = new Dictionary<string, Value>();
                     for (var i = 0; i < mappedNameList.Count; i++)
                     {
-                        epFunc.Parameters[i].Name = mappedNameList[i];
-                        namedValues[epFunc.Parameters[i].Name] = epFunc.Parameters[i];
+                        this.CurrentFunction.Parameters[i].Name = mappedNameList[i];
+                        namedValues[this.CurrentFunction.Parameters[i].Name] = this.CurrentFunction.Parameters[i];
                     }
-                    var entryBlock = epFunc.AppendBasicBlock("entry");
+                    var entryBlock = this.CurrentFunction.AppendBasicBlock("entry");
                     this.SetCurrentBlock(entryBlock);
 
                     // Build the argument list for the inner function
@@ -595,31 +577,48 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         if (mapping.IsArray)
                         {
-                            var elementSize64 = this.ComputeSizeForType(mapping.ArrayType);
-                            var elementSize = this.CurrentBuilder.IntCast(elementSize64, this.Context.Int32Type, false);
                             var length = namedValues[mapping.ArrayCountName];
-                            var array = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d), elementSize, length);
-                            argValueList.Add(array);
-                            //arraysToReleaseList.Add(array);
-                            // Fill in the array if the length is >0. Since the QIR array is new, we assume we can use memcpy.
-                            var copyBlock = epFunc.AppendBasicBlock("copy");
-                            var nextBlock = epFunc.AppendBasicBlock("next");
+                            ArrayValue array = this.Values.CreateArray(length, mapping.ArrayElementType);
+                            argValueList.Add(array.OpaquePointer);
+
+                            // Fill in the array if the length is >0.
+                            // Since the QIR array is new, we assume we can use memcpy. // FIXME: THIS ASSUMPTION IS NOT VALID EITHER...!
+                            var copyBlock = this.CurrentFunction.AppendBasicBlock("copy");
+                            var nextBlock = this.CurrentFunction.AppendBasicBlock("next");
                             var cond = this.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
                             this.CurrentBuilder.Branch(cond, copyBlock, nextBlock);
 
-                            this.CurrentBuilder = new InstructionBuilder(copyBlock);
-                            var destBase = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array, this.Context.CreateConstant(0L));
-                            this.CurrentBuilder.MemCpy(
-                                destBase,
-                                namedValues[mapping.BaseName],
-                                this.CurrentBuilder.Mul(length, this.CurrentBuilder.IntCast(elementSize, this.Context.Int64Type, true)),
-                                false);
+                            this.SetCurrentBlock(copyBlock);
+                            var getArrayItem = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
+
+                            var givenArray = namedValues[mapping.BaseName];
+                            var givenArrayPtr = this.CurrentBuilder.PointerToInt(givenArray, this.Context.Int64Type);
+                            var givenArrElementType = Types.PointerElementType(givenArray);
+                            var givenArrElementSize = this.ComputeSizeForType(givenArrElementType);
+
+                            ////
+                            // We need to populate the array
+                            var start = this.Context.CreateConstant(0L);
+                            var end = this.CurrentBuilder.Sub(array.Length, this.Context.CreateConstant(1L));
+                            void PopulateItem(Value index)
+                            {
+                                // We need to make sure that the reference count for the built item is increased by 1.
+                                //this.ScopeMgr.OpenScope();
+                                //var value = DefaultValue(elementType);
+                                //this.ScopeMgr.CloseScope(value);
+                                var arrayElementType = this.LlvmTypeFromQsharpType(mapping.ArrayElementType);
+                                var offset = this.CurrentBuilder.Mul(index, givenArrElementSize);
+                                var elementPointer = this.CurrentBuilder.Add(givenArrayPtr, offset);
+
+                                var loaded = this.CurrentBuilder.Load(arrayElementType, this.CurrentBuilder.IntToPointer(elementPointer, (IPointerType)givenArray.NativeType));
+                                var element = this.Values.From(loaded, mapping.ArrayElementType); // FIXME: THIS IS NOT CORRECT IF WE HAVE ARRAY OF ARRAY
+                                array.GetArrayElementPointer(index).StoreValue(element);
+                            }
+                            this.IterateThroughRange(start, null, end, PopulateItem);
+                            ////
+
                             this.CurrentBuilder.Branch(nextBlock);
                             this.SetCurrentBlock(nextBlock);
-                        }
-                        else if (mapping.IsStruct)
-                        {
-                            // TODO: map structures
                         }
                         else
                         {
@@ -628,23 +627,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     Value result = this.CurrentBuilder.Call(func, argValueList);
-                    // TODO: release array
-
-                    if (func.ReturnType.IsVoid)
-                    {
-                        this.CurrentBuilder.Return();
-                    }
-                    else
-                    {
-                        if (mappedResultType != func.ReturnType)
-                        {
-                            result = this.CurrentBuilder.BitCast(result, mappedResultType);
-                        }
-                        this.CurrentBuilder.Return(result);
-                    }
+                    var mappedResult = mappedResultType.IsVoid || mappedResultType == func.ReturnType
+                        ? this.Values.From(result, callable.Signature.ReturnType)
+                        // FIME: WHY WOULD THAT BE OK; WE NEED TO DO THE SAME TRANSLATION AS FOR THE INPUT...
+                        : this.Values.From(this.CurrentBuilder.BitCast(result, mappedResultType), callable.Signature.ReturnType); // FIXME: NOT CORRECT
+                    this.AddReturn(mappedResult, mappedResultType.IsVoid);
+                    this.EndFunction();
 
                     // Mark the function as an entry point
-                    epFunc.AddAttributeAtIndex(FunctionAttributeIndex.Function, entryPointAttribute);
+                    this.CurrentFunction.AddAttributeAtIndex(FunctionAttributeIndex.Function, entryPointAttribute);
                 }
                 else
                 {
@@ -1116,11 +1107,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Tries to get the QIR function for a Q# specialization by name so it can be called.
         /// If the function hasn't been generated yet, false is returned.
         /// </summary>
-        /// <param name="namespaceName">The callable's namespace</param>
-        /// <param name="name">The Q# callable's name</param>
-        /// <param name="kind">The Q# specialization kind</param>
-        /// <param name="function">Gets filled in with the LLVM function object if it exists already</param>
-        /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
+        /// <param name="callableName">The name of the Q# callable.</param>
+        /// <param name="kind">The Q# specialization kind.</param>
+        /// <param name="function">Gets filled in with the LLVM function object if it exists already.</param>
+        /// <returns>true if the function has already been declared/defined, or false otherwise.</returns>
         private bool TryGetFunction(QsQualifiedName callableName, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
         {
             var fullName = FunctionName(callableName, kind);
@@ -1131,9 +1121,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Gets the QIR function for a Q# specialization by name so it can be called.
         /// If the function hasn't been generated yet, its declaration is generated so that it can be called.
         /// </summary>
-        /// <param name="namespaceName">The callable's namespace</param>
-        /// <param name="name">The Q# callable's name</param>
-        /// <param name="kind">The Q# specialization kind</param>
         /// <returns>The LLVM object for the corresponding LLVM function</returns>
         internal IrFunction GetFunctionByName(QsQualifiedName fullName, QsSpecializationKind kind)
         {

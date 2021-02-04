@@ -472,7 +472,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         // static methods for name decorations in general
 
         private static readonly Regex GUID =
-            new Regex(@"_[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?_", RegexOptions.IgnoreCase);
+            new Regex(@"^_[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?_", RegexOptions.IgnoreCase);
 
         internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
             new QsQualifiedName(
