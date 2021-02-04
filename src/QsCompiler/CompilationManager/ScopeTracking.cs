@@ -316,44 +316,36 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> do not define a valid range in the text of the given <paramref name="line"/>.</exception>
         internal static int FindInCode(this CodeLine line, Func<string, int> findIndex, int start, int count, bool ignoreExcessBrackets = true)
         {
+            CodeLine GetCodeLine(int start, int count, CodeLine.StringContext beginningStringContext)
+            {
+                var prefixDelims = TruncateStringDelimiters(line.StringDelimiters, start, count);
+                if (start < line.WithoutEnding.Length && start + count > line.WithoutEnding.Length)
+                {
+                    count = line.WithoutEnding.Length - start;
+                }
+                var prefixText = line.WithoutEnding.Substring(start, count);
+                var prefixExcessClosings = line.ExcessBracketPositions
+                    .Where(pos => start <= pos && pos < start + count)
+                    .Select(pos => pos - start);
+                // line indentation and comment position are irrelevant here
+                return new CodeLine(
+                    prefixText,
+                    beginningStringContext,
+                    prefixDelims,
+                    -1, // The comment will have been removed by this point
+                    0,
+                    prefixExcessClosings);
+            }
+
             var beginningStringContext = line.BeginningStringContext;
             if (start > 0)
             {
-                // Get the beginning string context for the truncated line by calculating
-                // the ending context of the line up to the start of the truncated line.
-
-                var prefixDelims = TruncateStringDelimiters(line.StringDelimiters, 0, start);
-                var prefixText = line.WithoutEnding.Substring(0, start);
-                var prefixExcessClosings = line.ExcessBracketPositions.Where(pos => pos < start);
-                var prefixLine = new CodeLine(
-                    prefixText,
-                    line.BeginningStringContext,
-                    prefixDelims,
-                    -1,
-                    0,
-                    prefixExcessClosings);
-                beginningStringContext = prefixLine.EndingStringContext;
+                // Get the beginning string context for the truncated line by calculating the
+                // ending context of the original line up to the start of the truncated line.
+                beginningStringContext = GetCodeLine(0, start, beginningStringContext).EndingStringContext;
             }
 
-            var truncatedDelims = TruncateStringDelimiters(line.StringDelimiters, start, count);
-            if (start < line.WithoutEnding.Length && start + count > line.WithoutEnding.Length)
-            {
-                count = line.WithoutEnding.Length - start;
-            }
-            var truncatedText = line.WithoutEnding.Substring(start, count); // will throw if start and count are out of range
-            var truncatedExcessClosings =
-                line.ExcessBracketPositions
-                .Where(pos => start <= pos && pos < start + count)
-                .Select(pos => pos - start);
-
-            // line indentation and comment position are irrelevant here
-            var truncatedLine = new CodeLine(
-                truncatedText,
-                beginningStringContext,
-                truncatedDelims,
-                -1, // The comment should have been removed by this point
-                0,
-                truncatedExcessClosings);
+            var truncatedLine = GetCodeLine(start, count, beginningStringContext);
             var foundIndex = truncatedLine.FindInCode(findIndex, ignoreExcessBrackets);
             return foundIndex < 0 ? foundIndex : start + foundIndex;
         }
