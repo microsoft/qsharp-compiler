@@ -41,7 +41,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation StringInterpolationQuoteTest1 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{" \" "}";
         }
     }
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationQuoteTest2 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{
                 "\""
             }";
@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
 
     operation StringInterpolationQuoteTest3 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{"
                 \"
             "}";
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationQuoteTest4 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{
                 "
                     \"
@@ -177,7 +177,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     //}
     
     operation StringInterpolationWithCommentTest1 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{//;
                 "Hello"
             }";
@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationWithCommentTest2 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{//"
                 "Hello"
             }";
@@ -197,7 +197,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationWithCommentTest3 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{//}
                 "Hello"
             }";
@@ -207,7 +207,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationWithCommentTest4 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{//}"
                 "Hello"
             }";
@@ -217,7 +217,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationWithCommentTest5 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{
                 //;
                 "Hello"
@@ -228,7 +228,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationWithCommentTest6 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{
                 //"
                 "Hello"
@@ -239,7 +239,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationWithCommentTest7 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{
                 //}
                 "Hello"
@@ -250,7 +250,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
     operation StringInterpolationWithCommentTest8 () : Unit {
-        using (q = Qubit()) { // This provides an extra scope for the test to close if it is erroneous.
+        use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.
             let str = $"{
                 //}"
                 "Hello"
