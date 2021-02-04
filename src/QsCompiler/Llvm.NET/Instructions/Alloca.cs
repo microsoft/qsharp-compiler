@@ -20,7 +20,7 @@ namespace Ubiquity.NET.Llvm.Instructions
     {
         /// <summary>Gets the type of the alloca element</summary>
         /// <remarks>
-        /// The <see cref="Ubiquity.NET.Llvm.Values.Value.NativeType"/> of an <see cref="Alloca"/>
+        /// The <see cref="Values.Value.NativeType"/> of an <see cref="Alloca"/>
         /// is always a pointer type, this provides the ElementType (e.g. the pointee type)
         /// for the alloca.
         /// </remarks>

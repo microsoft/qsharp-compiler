@@ -109,7 +109,7 @@ namespace Ubiquity.NET.Llvm.Values
 
         /// <summary>The inalloca argument attribute allows the caller to take the address of outgoing stack arguments.</summary>
         /// <remarks>
-        /// <para>An inalloca argument must be a pointer to stack memory produced by an <see cref="Instructions.Alloca"/>
+        /// <para>An inalloca argument must be a pointer to stack memory produced by an <see cref="Alloca"/>
         /// instruction. The alloca, or argument allocation, must also be tagged with the inalloca keyword.
         /// Only the last argument may have the inalloca attribute, and that argument is guaranteed to be
         /// passed in memory.</para>

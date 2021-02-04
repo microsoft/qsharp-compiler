@@ -80,11 +80,11 @@ namespace Ubiquity.NET.Llvm.Interop
 
         /// <summary>Initializes the native LLVM library support</summary>
         /// <returns>
-        /// <see cref="System.IDisposable"/> implementation for the library
+        /// <see cref="IDisposable"/> implementation for the library
         /// </returns>
         /// <remarks>
         /// This can only be called once per application to initialize the
-        /// LLVM library. <see cref="System.IDisposable.Dispose()"/> will release
+        /// LLVM library. <see cref="IDisposable.Dispose()"/> will release
         /// any resources allocated by the library. The current LLVM library does
         /// *NOT* support re-initialization within the same process. Thus, this
         /// is best used at the top level of the application and released at or

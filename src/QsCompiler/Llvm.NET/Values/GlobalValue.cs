@@ -78,13 +78,13 @@ namespace Ubiquity.NET.Llvm.Values
 
     /// <summary>Enumeration for the visibility of a global value</summary>
     /// <remarks>
-    /// A symbol with <see cref="Ubiquity.NET.Llvm.Values.Linkage.Internal"/> or <see cref="Ubiquity.NET.Llvm.Values.Linkage.Private"/>
+    /// A symbol with <see cref="Linkage.Internal"/> or <see cref="Linkage.Private"/>
     /// must have <see cref="Default"/> visibility.
     /// </remarks>
     /// <seealso href="xref:llvm_langref#visibility-styles">LLVM Visibility Styles</seealso>
     public enum Visibility
     {
-        /// <summary>Default visibility for a <see cref="Ubiquity.NET.Llvm.Values.GlobalValue"/></summary>
+        /// <summary>Default visibility for a <see cref="GlobalValue"/></summary>
         Default = LLVMVisibility.LLVMDefaultVisibility,
 
         /// <summary>Two declarations of an object with hidden visibility refer to the same object if they are in the same shared object</summary>

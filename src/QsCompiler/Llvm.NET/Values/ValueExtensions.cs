@@ -27,22 +27,22 @@ namespace Ubiquity.NET.Llvm.Values
         /// <param name="value">Value to set register name for</param>
         /// <param name="name">Name for the virtual register the value represents</param>
         /// <remarks>
-        /// <para>Technically speaking only an <see cref="Instructions.Instruction"/> can have register name
-        /// information. However, since LLVM will perform constant folding in the <see cref="Instructions.InstructionBuilder"/>
-        /// most of the methods in <see cref="Instructions.InstructionBuilder"/> return a <see cref="Value"/> rather
-        /// than a more specific <see cref="Instructions.Instruction"/>. Thus, without this extension method here,
+        /// <para>Technically speaking only an <see cref="Instruction"/> can have register name
+        /// information. However, since LLVM will perform constant folding in the <see cref="InstructionBuilder"/>
+        /// most of the methods in <see cref="InstructionBuilder"/> return a <see cref="Value"/> rather
+        /// than a more specific <see cref="Instruction"/>. Thus, without this extension method here,
         /// code would need to know ahead of time that an actual instruction would be produced then cast the result
-        /// to an <see cref="Instructions.Instruction"/> and then set the debug location. This makes the code rather
+        /// to an <see cref="Instruction"/> and then set the debug location. This makes the code rather
         /// ugly and tedious to manage. Placing this as a generic extension method ensures that the return type matches
         /// the original and no additional casting is needed, which would defeat the purpose of doing this. For
         /// <see cref="Value"/> types that are not instructions this does nothing. This allows for a simpler fluent
-        /// style of programming where the actual type is retained even in cases where an <see cref="Instructions.InstructionBuilder"/>
+        /// style of programming where the actual type is retained even in cases where an <see cref="InstructionBuilder"/>
         /// method will always return an actual instruction.</para>
         /// <para>Since the <see cref="Value.Name"/> property is available on all <see cref="Value"/>s this is slightly
         /// redundant. It is useful for maintaining the fluent style of coding along with expressing intent more clearly.
         /// (e.g. using this makes it expressly clear that the intent is to set the virtual register name and not the
         /// name of a local variable etc...) Using the fluent style allows a significant reduction in the number of
-        /// overloaded methods in <see cref="Instructions.InstructionBuilder"/> to account for all variations with or without a name.
+        /// overloaded methods in <see cref="InstructionBuilder"/> to account for all variations with or without a name.
         /// </para>
         /// </remarks>
         /// <returns><paramref name="value"/> for fluent usage</returns>

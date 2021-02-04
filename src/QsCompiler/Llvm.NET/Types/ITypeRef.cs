@@ -39,28 +39,28 @@ namespace Ubiquity.NET.Llvm.Types
         /// <summary>128 bit floating point type (two 64-bits)</summary>
         Float128 = LLVMTypeKind.LLVMPPC_FP128TypeKind,
 
-        /// <summary><see cref="Ubiquity.NET.Llvm.Values.BasicBlock"/> instruction label</summary>
+        /// <summary><see cref="BasicBlock"/> instruction label</summary>
         Label = LLVMTypeKind.LLVMLabelTypeKind,
 
         /// <summary>Arbitrary bit width integers</summary>
         Integer = LLVMTypeKind.LLVMIntegerTypeKind,
 
-        /// <summary><see cref="Ubiquity.NET.Llvm.Types.IFunctionType"/></summary>
+        /// <summary><see cref="IFunctionType"/></summary>
         Function = LLVMTypeKind.LLVMFunctionTypeKind,
 
-        /// <summary><see cref="Ubiquity.NET.Llvm.Types.IStructType"/></summary>
+        /// <summary><see cref="IStructType"/></summary>
         Struct = LLVMTypeKind.LLVMStructTypeKind,
 
-        /// <summary><see cref="Ubiquity.NET.Llvm.Types.IArrayType"/></summary>
+        /// <summary><see cref="IArrayType"/></summary>
         Array = LLVMTypeKind.LLVMArrayTypeKind,
 
-        /// <summary><see cref="Ubiquity.NET.Llvm.Types.IPointerType"/></summary>
+        /// <summary><see cref="IPointerType"/></summary>
         Pointer = LLVMTypeKind.LLVMPointerTypeKind,
 
-        /// <summary>SIMD 'packed' format, or other <see cref="Ubiquity.NET.Llvm.Types.IVectorType"/> implementation</summary>
+        /// <summary>SIMD 'packed' format, or other <see cref="IVectorType"/> implementation</summary>
         Vector = LLVMTypeKind.LLVMVectorTypeKind,
 
-        /// <summary><see cref="Ubiquity.NET.Llvm.LlvmMetadata"/></summary>
+        /// <summary><see cref="Llvm.LlvmMetadata"/></summary>
         Metadata = LLVMTypeKind.LLVMMetadataTypeKind,
 
         /// <summary>x86 MMX data type</summary>
