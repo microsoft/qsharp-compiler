@@ -403,28 +403,45 @@ let ``Identifier tests`` () =
 [<Fact>]
 let ``Complex literal tests`` () =
     [
-        ("[1,2,3]", true, toArray [ toInt 1; toInt 2; toInt 3 ], [])
-        ("[1,x,3]",
-         true,
-         toArray [ toInt 1
-                   toIdentifier "x"
-                   toInt 3 ],
-         [])
-        ("(1,2,3)", true, toTuple [ toInt 1; toInt 2; toInt 3 ], [])
-        ("(x,2,3)",
-         true,
-         toTuple [ toIdentifier "x"
-                   toInt 2
-                   toInt 3 ],
-         [])
-        ("1..2", true, toExpr (RangeLiteral(toInt 1, toInt 2)), [])
-        ("1..2..3", true, toExpr (RangeLiteral(RangeLiteral(toInt 1, toInt 2) |> toExpr, toInt 3)), [])
-        ("1..2..x", true, toExpr (RangeLiteral(RangeLiteral(toInt 1, toInt 2) |> toExpr, toIdentifier "x")), [])
-        ("1..x..3", true, toExpr (RangeLiteral(RangeLiteral(toInt 1, toIdentifier "x") |> toExpr, toInt 3)), [])
-        ("x..2..3", true, toExpr (RangeLiteral(RangeLiteral(toIdentifier "x", toInt 2) |> toExpr, toInt 3)), [])
-        ("1..x", true, toExpr (RangeLiteral(toInt 1, toIdentifier "x")), [])
-        ("x..2", true, toExpr (RangeLiteral(toIdentifier "x", toInt 2)), [])
-        ("x..y", true, toExpr (RangeLiteral(toIdentifier "x", toIdentifier "y")), [])
+        "[1,2,3]", true, toArray [ toInt 1; toInt 2; toInt 3 ], []
+
+        "[1,x,3]",
+        true,
+        toArray [ toInt 1
+                  toIdentifier "x"
+                  toInt 3 ],
+        []
+
+        "[1, size = 3]", true, SizedArray(toInt 1, toInt 3) |> toExpr, []
+        "[1, size = n]", true, SizedArray(toInt 1, toIdentifier "n") |> toExpr, []
+        "[x, size = n]", true, SizedArray(toIdentifier "x", toIdentifier "n") |> toExpr, []
+        "[x, size=n]", true, SizedArray(toIdentifier "x", toIdentifier "n") |> toExpr, []
+        "[x,size=n]", true, SizedArray(toIdentifier "x", toIdentifier "n") |> toExpr, []
+        "[[x],size=n]", true, SizedArray(toArray [ toIdentifier "x" ], toIdentifier "n") |> toExpr, []
+
+        "[\"foo\", size = n + 1]",
+        true,
+        SizedArray(StringLiteral("foo", ImmutableArray.Empty) |> toExpr, ADD(toIdentifier "n", toInt 1) |> toExpr)
+        |> toExpr,
+        []
+
+        "(1,2,3)", true, toTuple [ toInt 1; toInt 2; toInt 3 ], []
+
+        "(x,2,3)",
+        true,
+        toTuple [ toIdentifier "x"
+                  toInt 2
+                  toInt 3 ],
+        []
+
+        "1..2", true, toExpr (RangeLiteral(toInt 1, toInt 2)), []
+        "1..2..3", true, toExpr (RangeLiteral(RangeLiteral(toInt 1, toInt 2) |> toExpr, toInt 3)), []
+        "1..2..x", true, toExpr (RangeLiteral(RangeLiteral(toInt 1, toInt 2) |> toExpr, toIdentifier "x")), []
+        "1..x..3", true, toExpr (RangeLiteral(RangeLiteral(toInt 1, toIdentifier "x") |> toExpr, toInt 3)), []
+        "x..2..3", true, toExpr (RangeLiteral(RangeLiteral(toIdentifier "x", toInt 2) |> toExpr, toInt 3)), []
+        "1..x", true, toExpr (RangeLiteral(toInt 1, toIdentifier "x")), []
+        "x..2", true, toExpr (RangeLiteral(toIdentifier "x", toInt 2)), []
+        "x..y", true, toExpr (RangeLiteral(toIdentifier "x", toIdentifier "y")), []
     ]
     |> List.iter testExpr
 
