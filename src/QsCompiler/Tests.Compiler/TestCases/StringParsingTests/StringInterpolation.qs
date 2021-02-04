@@ -142,39 +142,32 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         }";
     }
     
-    // ToDo: These tests break the file when uncommented, they need proper error handling before uncommenting
-    //operation StringNestedInterpolationTest1 () : Unit {
-    //    let x = 0;
-    //    let str = $"Outer { $"Middle { $"Inner {x}" }" }";
-    //}
-    //
-    //operation StringNestedInterpolationTest2 () : Unit {
-    //    let x = 0;
-    //    let str = $"Outer {
-    //        $"Middle {
-    //            $"Inner {
-    //                x
-    //            }"
-    //        }"
-    //    }";
-    //}
-    //
-    //operation StringNestedInterpolationTest3 () : Unit {
-    //    let x = 0;
-    //    let str = $"Outer
-    //    {
-    //        $"Middle
-    //        {
-    //            $"Inner
-    //            {
-    //                x
-    //            }
-    //            "
-    //        }
-    //        "
-    //    }
-    //    ";
-    //}
+    operation StringNestedInterpolationTest1 () : Unit {
+        let x = 0;
+        let str = $"Outer { $"Inner {x}" }";
+    }
+    
+    operation StringNestedInterpolationTest2 () : Unit {
+        let x = 0;
+        let str = $"Outer {
+            $"Inner {
+                x
+            }"
+        }";
+    }
+    
+    operation StringNestedInterpolationTest3 () : Unit {
+        let x = 0;
+        let str = $"Outer
+        {
+            $"Inner
+            {
+                x
+            }
+            "
+        }
+        ";
+    }
     
     operation StringInterpolationWithCommentTest1 () : Unit {
         use q = Qubit() { // This provides an extra scope for the test to close if it is erroneous.

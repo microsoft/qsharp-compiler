@@ -598,11 +598,11 @@ type LocalVerificationTests() =
         this.Expect "StringInterpolationWithCommentTest8" []
 
 
-    [<Fact(Skip = "These Tests Need Proper Error Handling")>]
+    [<Fact>]
     member this.``Nested Interpolation Strings``() =
-        this.Expect "StringNestedInterpolationTest1" []
-        this.Expect "StringNestedInterpolationTest2" []
-        this.Expect "StringNestedInterpolationTest3" []
+        this.Expect "StringNestedInterpolationTest1" [ Error ErrorCode.InvalidCharacterInInterpolatedArgument ]
+        this.Expect "StringNestedInterpolationTest2" [ Error ErrorCode.InvalidCharacterInInterpolatedArgument ]
+        this.Expect "StringNestedInterpolationTest3" [ Error ErrorCode.InvalidCharacterInInterpolatedArgument ]
 
     [<Fact>]
     member this.``Deprecated qubit allocation keywords``() =
