@@ -316,6 +316,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> do not define a valid range in the text of the given <paramref name="line"/>.</exception>
         internal static int FindInCode(this CodeLine line, Func<string, int> findIndex, int start, int count, bool ignoreExcessBrackets = true)
         {
+            var beginningStringContext = line.BeginningStringContext;
+            if (start > 0)
+            {
+                // Get the beginning string context for the truncated line by calculating
+                // the ending context of the line up to the start of the truncated line.
+
+                var prefixDelims = TruncateStringDelimiters(line.StringDelimiters, 0, start);
+                var prefixText = line.WithoutEnding.Substring(0, start);
+                var prefixExcessClosings = line.ExcessBracketPositions.Where(pos => pos < start);
+                var prefixLine = new CodeLine(
+                    prefixText,
+                    line.BeginningStringContext,
+                    prefixDelims,
+                    -1,
+                    0,
+                    prefixExcessClosings);
+                beginningStringContext = prefixLine.EndingStringContext;
+            }
+
             var truncatedDelims = TruncateStringDelimiters(line.StringDelimiters, start, count);
             if (start < line.WithoutEnding.Length && start + count > line.WithoutEnding.Length)
             {
@@ -330,7 +349,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // line indentation and comment position are irrelevant here
             var truncatedLine = new CodeLine(
                 truncatedText,
-                CodeLine.StringContext.NoOpenString,
+                beginningStringContext,
                 truncatedDelims,
                 -1, // The comment should have been removed by this point
                 0,

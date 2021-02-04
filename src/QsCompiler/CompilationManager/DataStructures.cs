@@ -111,9 +111,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.LineEnding = Utils.EndOfLine.Match(text).Value; // empty string if the matching failed
 
             this.BeginningStringContext = beginningStringContext;
-            var delimiters = ComputeStringDelimiters(text, ref beginningStringContext, out var commentStart, out var errorDelimiters);
+            this.EndingStringContext = beginningStringContext;
+
+            var delimiters = ComputeStringDelimiters(text, ref this.EndingStringContext, out var commentStart, out var errorDelimiters);
             this.ErrorDelimiterPositions = errorDelimiters.ToImmutableArray();
-            this.EndingStringContext = beginningStringContext; // beginningStringContext has been updated to the context at the end of the line
 
             var lineLength = text.Length - this.LineEnding.Length;
             // if there is a comment
@@ -153,6 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             {
                 if (delim == -1 || delim == text.Length)
                 {
+                    delimiterBuilder.Add(delim);
                     continue;
                 }
 
@@ -183,7 +185,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     delimiterBuilder.Add(delim);
                 }
             }
-            this.EndingStringContext = beginningStringContext; // beginningStringContext has been updated to the context at the end of the line
 
             var lineLength = text.Length - this.LineEnding.Length;
             // if there is a comment
@@ -205,7 +206,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.ErrorDelimiterPositions = errorDelimiterBuilder.ToImmutable();
             this.Indentation = indentation;
             this.ExcessBracketPositions = excessBrackets.ToImmutableArray();
-            ScopeTracking.VerifyStringDelimiters(text, delimiters);
+            ScopeTracking.VerifyStringDelimiters(text, this.StringDelimiters);
             ScopeTracking.VerifyExcessBracketPositions(this, excessBrackets);
         }
 
