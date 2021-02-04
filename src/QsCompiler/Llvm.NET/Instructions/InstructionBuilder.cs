@@ -722,12 +722,12 @@ namespace Ubiquity.NET.Llvm.Instructions
 
             if ( ptrValue is Constant )
             {
-                var handle = LLVM.ConstIntToPtr( ptrValue.ValueHandle, intType.GetTypeRef( ) );
+                var handle = LLVM.ConstPtrToInt( ptrValue.ValueHandle, intType.GetTypeRef( ) );
                 return Value.FromHandle( handle )!;
             }
             else
             {
-                var handle = BuilderHandle.BuildIntToPtr( ptrValue.ValueHandle, intType.GetTypeRef( ), string.Empty );
+                var handle = BuilderHandle.BuildPtrToInt( ptrValue.ValueHandle, intType.GetTypeRef( ), string.Empty );
                 return Value.FromHandle( handle )!;
             }
         }
