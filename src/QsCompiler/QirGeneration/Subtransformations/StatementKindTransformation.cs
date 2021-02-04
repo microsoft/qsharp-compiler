@@ -324,11 +324,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     // If we iterate through a range, we don't inject an additional binding for the loop variable
                     // at the beginning of the body and instead directly register the iteration value under that name.
-                    var loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name
-                        ? name.Item
-                        : throw new ArgumentException("invalid loop variable name");
+                    // We don't need to register a name if e.g. the loop variable is discarded.
+                    string? loopVarName = stm.LoopItem.Item1 is SymbolTuple.VariableName name ? name.Item : null;
                     var variableValue = this.SharedState.Values.From(loopVariable, ResolvedType.New(ResolvedTypeKind.Int));
-                    this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue);
+                    if (loopVarName != null)
+                    {
+                        this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue);
+                    }
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
