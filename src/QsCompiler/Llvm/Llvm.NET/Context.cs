@@ -629,7 +629,7 @@ namespace Ubiquity.NET.Llvm
             }
 
             // make sure handle to existing module isn't auto disposed.
-            return ModuleCache.GetOrCreateItem( moduleRef, h => h.Dispose() );
+            return ModuleCache.GetOrCreateItem( moduleRef );
         }
 
         internal Value GetValueFor( LLVMValueRef valueRef )
