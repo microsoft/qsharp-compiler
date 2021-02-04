@@ -5,44 +5,60 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 open System.Text.RegularExpressions
 
-/// A contiguous region of whitespace.
-type internal Whitespace = private Whitespace of string
-
-module internal Whitespace =
-    /// Renders this whitespace as a string.
-    let toString (Whitespace ws) = ws
-
-/// A comment.
-type internal Comment = private Comment of string
-
-module internal Comment =
-    /// Renders this comment as a string, including the prefix.
-    let toString (Comment comment) = comment
-
 /// A trivia node is any piece of the source code that isn't relevant to the grammar.
 type internal Trivia =
+    private
+
     /// A contiguous region of whitespace.
-    | Whitespace of Whitespace
+    | Whitespace of string
 
     /// A new line character.
     | NewLine
 
     /// A comment.
-    | Comment of Comment
+    | Comment of string
 
 module internal Trivia =
     /// <summary>
+    /// Active pattern for <see cref="Trivia"/> nodes.
+    ///
+    /// <list type="table">
+    ///   <item>
+    ///     <term><see cref="Whitespace"/></term>
+    ///     <description>A contiguous region of whitespace.</description>
+    ///   </item>
+    ///   <item>
+    ///     <term><see cref="NewLine"/></term>
+    ///     <description>A new line character.</description>
+    ///   </item>
+    ///   <item>
+    ///     <term><see cref="Comment"/></term>
+    ///     <description>A comment.</description>
+    ///   </item>
+    /// </list>
+    /// </summary>
+    let (|Whitespace|NewLine|Comment|) =
+        function
+        | Whitespace ws -> Whitespace ws
+        | NewLine -> NewLine
+        | Comment comment -> Comment comment
+
+    /// <summary>
     /// A <see cref="Trivia"/> node containing <paramref name="count"/> number of space characters.
     /// </summary>
-    let spaces count =
-        String.replicate count " " |> Whitespace.Whitespace |> Whitespace
+    let spaces count = String.replicate count " " |> Whitespace
+
+    /// <summary>
+    /// The new line <see cref="Trivia"/> node.
+    /// </summary>
+    let newLine = NewLine
 
     /// Replaces each occurrence of more than one whitespace character in a row with a single space.
     let collapseSpaces =
         let replace str = Regex.Replace(str, "\s+", " ")
 
         function
-        | Whitespace (Whitespace.Whitespace ws) -> Whitespace(replace ws |> Whitespace.Whitespace)
+        | Whitespace ws -> replace ws |> Whitespace
         | NewLine -> NewLine
         | Comment comment -> Comment comment
 
@@ -67,8 +83,8 @@ module internal Trivia =
         | Prefix "\r\n" (_, rest)
         | Prefix "\r" (_, rest)
         | Prefix "\n" (_, rest) -> NewLine :: ofString rest
-        | Prefix "\s+" (result, rest) -> Whitespace(Whitespace.Whitespace result) :: ofString rest
-        | Prefix "//[^\r\n]*" (result, rest) -> Comment(Comment.Comment result) :: ofString rest
+        | Prefix "\s+" (result, rest) -> Whitespace result :: ofString rest
+        | Prefix "//[^\r\n]*" (result, rest) -> Comment result :: ofString rest
         | _ ->
             // TODO: Use option.
             failwith "String contains invalid trivia."

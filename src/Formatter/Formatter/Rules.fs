@@ -5,6 +5,7 @@
 module internal Microsoft.Quantum.QsFmt.Formatter.Rules
 
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
+open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree.Trivia
 
 /// <summary>
 /// Maps a <see cref="Trivia"/> list by applying the mapping function with the <see cref="Trivia"/> nodes before and
@@ -25,7 +26,7 @@ let private collectWithAdjacent =
 let private collapseTriviaSpaces previous trivia _ =
     match previous, trivia with
     | Some NewLine, Whitespace _ -> [ trivia ]
-    | _, Whitespace _ -> [ Trivia.collapseSpaces trivia ]
+    | _, Whitespace _ -> [ collapseSpaces trivia ]
     | _ -> [ trivia ]
 
 /// Collapses adjacent whitespace characters into a single space character.
@@ -39,7 +40,7 @@ let collapsedSpaces =
 let operatorSpacing =
     { new Rewriter<_>() with
         override _.Let((), lets) =
-            let equals = { lets.Equals with Prefix = [ Trivia.spaces 1 ] }
+            let equals = { lets.Equals with Prefix = [ spaces 1 ] }
             { lets with Equals = equals }
     }
 
@@ -49,9 +50,9 @@ let operatorSpacing =
 let private indentPrefix level =
     let indentTrivia previous trivia after =
         match previous, trivia, after with
-        | Some NewLine, Whitespace _, _ -> [ Trivia.spaces (4 * level) ]
+        | Some NewLine, Whitespace _, _ -> [ spaces (4 * level) ]
         | _, NewLine, Some (Comment _)
-        | _, NewLine, None -> [ NewLine; Trivia.spaces (4 * level) ]
+        | _, NewLine, None -> [ newLine; spaces (4 * level) ]
         | _ -> [ trivia ]
 
     collectWithAdjacent indentTrivia
@@ -81,7 +82,7 @@ let indentation =
 /// Prepends the <paramref name="prefix"/> with a new line <see cref="Trivia"/> node if it does not already contain one.
 /// </summary>
 let private ensureNewLine prefix =
-    if List.contains NewLine prefix then prefix else NewLine :: prefix
+    if List.contains newLine prefix then prefix else newLine :: prefix
 
 /// <summary>
 /// Ensures that new lines are used where needed.

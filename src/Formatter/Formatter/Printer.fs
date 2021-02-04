@@ -7,15 +7,16 @@ module internal Microsoft.Quantum.QsFmt.Formatter.Printer
 open System
 
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
+open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree.Trivia
 
 /// <summary>
 /// Prints a <see cref="Trivia"/> node to a string.
 /// </summary>
 let private printTrivia =
     function
-    | Whitespace ws -> Whitespace.toString ws
+    | Whitespace ws -> ws
     | NewLine -> Environment.NewLine
-    | Comment comment -> Comment.toString comment
+    | Comment comment -> comment
 
 /// <summary>
 /// Prints a <see cref="Trivia"/> prefix list to a string.
