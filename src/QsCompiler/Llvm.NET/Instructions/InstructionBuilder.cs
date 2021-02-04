@@ -21,8 +21,8 @@ namespace Ubiquity.NET.Llvm.Instructions
     /// <summary>LLVM Instruction builder allowing managed code to generate IR instructions</summary>
     public sealed unsafe class InstructionBuilder
     {
-        
-        /// <summary>Initializes a new instance of the <see cref="InstructionBuilder"/> class for a given <see cref="Ubiquity.NET.Llvm.Context"/></summary>
+
+        /// <summary>Initializes a new instance of the <see cref="InstructionBuilder"/> class for a given <see cref="Llvm.Context"/></summary>
         /// <param name="context">Context used for creating instructions</param>
         public InstructionBuilder( Context context )
         {
@@ -1104,7 +1104,7 @@ namespace Ubiquity.NET.Llvm.Instructions
             }
         }
 
-        /// <summary>Builds a <see cref="Ubiquity.NET.Llvm.Instructions.SelectInstruction"/> instruction</summary>
+        /// <summary>Builds a <see cref="SelectInstruction"/> instruction</summary>
         /// <param name="ifCondition">Value for the condition to select between the values</param>
         /// <param name="thenValue">Result value if <paramref name="ifCondition"/> evaluates to 1</param>
         /// <param name="elseValue">Result value if <paramref name="ifCondition"/> evaluates to 0</param>
@@ -1384,7 +1384,7 @@ namespace Ubiquity.NET.Llvm.Instructions
             return Value.FromHandle( call )!;
         }
 
-        /// <summary>Builds an <see cref="Ubiquity.NET.Llvm.Instructions.InsertValue"/> instruction </summary>
+        /// <summary>Builds an <see cref="Instructions.InsertValue"/> instruction </summary>
         /// <param name="aggValue">Aggregate value to insert <paramref name="elementValue"/> into</param>
         /// <param name="elementValue">Value to insert into <paramref name="aggValue"/></param>
         /// <param name="index">Index to insert the value into</param>

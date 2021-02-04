@@ -80,7 +80,7 @@ namespace Ubiquity.NET.Llvm
         [SuppressMessage( "Usage", "CA2225:Operator overloads have named alternates", Justification = "Named alternate exists - Slice()" )]
         public static implicit operator ReadOnlySpan<byte>( MemoryBuffer buffer ) => buffer.Slice( 0, -1 );
 
-        /// <summary>Create a <see cref="System.ReadOnlySpan{T}"/> for a slice of the buffer</summary>
+        /// <summary>Create a <see cref="ReadOnlySpan{T}"/> for a slice of the buffer</summary>
         /// <param name="start">Starting index for the slice [default = 0]</param>
         /// <param name="length">Length of the slice or -1 to include up to the end of the buffer [default = -1]</param>
         /// <returns>New Span</returns>
@@ -111,7 +111,7 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Detaches the underlying buffer from automatic management</summary>
         /// <remarks>
-        /// This is used when passing the memory buffer to an LLVM object (like <see cref="Ubiquity.NET.Llvm.ObjectFile.TargetBinary"/>
+        /// This is used when passing the memory buffer to an LLVM object (like <see cref="Llvm.ObjectFile.TargetBinary"/>
         /// that takes ownership of the underlying buffer. Any use of the buffer after this point results in
         /// an <see cref="InvalidOperationException"/>.
         /// </remarks>

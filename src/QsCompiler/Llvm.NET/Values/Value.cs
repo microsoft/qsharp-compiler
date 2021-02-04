@@ -23,7 +23,7 @@ namespace Ubiquity.NET.Llvm.Values
     /// fundamentally the same value). This is generally hidden in the internals of the Ubiquity.NET.Llvm library so
     /// that callers need not be concerned with the details but can rely on the expected behavior that two
     /// Value instances referring to the same actual value (i.e. a function) are actually the same .NET object
-    /// as well within the same <see cref="Ubiquity.NET.Llvm.Context"/>
+    /// as well within the same <see cref="Llvm.Context"/>
     /// </remarks>
     public class Value
     {

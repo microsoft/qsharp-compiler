@@ -29,7 +29,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         /* Terminator Instructions */
 
         /// <summary>Return instruction</summary>
-        /// <seealso cref="Instructions.ReturnInstruction"/>
+        /// <seealso cref="ReturnInstruction"/>
         /// <seealso href="xref:llvm_langref#ret-instruction">LLVM ret Instruction</seealso>
         /// <seealso href="xref:llvm_langref#terminator-instructions">LLVM Terminator Instructions</seealso>
         Return = LLVMOpcode.LLVMRet,
@@ -67,73 +67,73 @@ namespace Ubiquity.NET.Llvm.Instructions
         /* Standard Binary Operators */
 
         /// <summary>Add instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#add-instruction">LLVM add instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         Add = LLVMOpcode.LLVMAdd,
 
         /// <summary>FAdd instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#fadd-instruction">LLVM FAdd instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         FAdd = LLVMOpcode.LLVMFAdd,
 
         /// <summary>Sub instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         /// <seealso href="xref:llvm_langref#sub-instruction">LLVM sub instruction</seealso>
         Sub = LLVMOpcode.LLVMSub,
 
         /// <summary>FSub instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#fsub-instruction">LLVM fsub instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         FSub = LLVMOpcode.LLVMFSub,
 
         /// <summary>Mul instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#mul-instruction">LLVM mul instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         Mul = LLVMOpcode.LLVMMul,
 
         /// <summary>FMul instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#fmul-instruction">LLVM fmul instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         FMul = LLVMOpcode.LLVMFMul,
 
         /// <summary>UDiv instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#udiv-instruction">LLVM udiv instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         UDiv = LLVMOpcode.LLVMUDiv,
 
         /// <summary>SDiv instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#sdiv-instruction">LLVM sdiv instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         SDiv = LLVMOpcode.LLVMSDiv,
 
         /// <summary>FDiv instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#fdiv-instruction">LLVM fdiv instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         FDiv = LLVMOpcode.LLVMFDiv,
 
         /// <summary>URem instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#urem-instruction">LLVM urem instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         URem = LLVMOpcode.LLVMURem,
 
         /// <summary>SRem instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#srem-instruction">LLVM srem instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         SRem = LLVMOpcode.LLVMSRem,
 
         /// <summary>FRem instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#frem-instruction">LLVM frem instruction</seealso>
         /// <seealso href="xref:llvm_langref#binary-operations">LLVM Binary Operations</seealso>
         FRem = LLVMOpcode.LLVMFRem,
@@ -141,37 +141,37 @@ namespace Ubiquity.NET.Llvm.Instructions
         /* Logical Operators */
 
         /// <summary>Shift Left instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#shl-instruction">LLVM shl instruction</seealso>
         /// <seealso href="xref:llvm_langref#bitwise-binary-operations">LLVM Bitwise Binary Operations</seealso>
         Shl = LLVMOpcode.LLVMShl,
 
         /// <summary>Logical Shift Right instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#lshr-instruction">LLVM lshr instruction</seealso>
         /// <seealso href="xref:llvm_langref#bitwise-binary-operations">LLVM Bitwise Binary Operations</seealso>
         LShr = LLVMOpcode.LLVMLShr,
 
         /// <summary>Arithmetic Shift Right instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#ashr-instruction">LLVM ashr instruction</seealso>
         /// <seealso href="xref:llvm_langref#bitwise-binary-operations">LLVM Bitwise Binary Operations</seealso>
         AShr = LLVMOpcode.LLVMAShr,
 
         /// <summary>Bitwise And instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#an-instruction">LLVM and instruction</seealso>
         /// <seealso href="xref:llvm_langref#bitwise-binary-operations">LLVM Bitwise Binary Operations</seealso>
         And = LLVMOpcode.LLVMAnd,
 
         /// <summary>Bitwise Or instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#or-instruction">LLVM or instruction</seealso>
         /// <seealso href="xref:llvm_langref#bitwise-binary-operations">LLVM Bitwise Binary Operations</seealso>
         Or = LLVMOpcode.LLVMOr,
 
         /// <summary>Bitwise Xor instruction</summary>
-        /// <seealso cref="Instructions.BinaryOperator"/>
+        /// <seealso cref="BinaryOperator"/>
         /// <seealso href="xref:llvm_langref#xor-instruction">LLVM xor instruction</seealso>
         /// <seealso href="xref:llvm_langref#bitwise-binary-operations">LLVM Bitwise Binary Operations</seealso>
         Xor = LLVMOpcode.LLVMXor,
@@ -277,13 +277,13 @@ namespace Ubiquity.NET.Llvm.Instructions
         FPExt = LLVMOpcode.LLVMFPExt,
 
         /// <summary>ptrtoint .. to instruction</summary>
-        /// <seealso cref="Instructions.PointerToInt"/>
+        /// <seealso cref="PointerToInt"/>
         /// <seealso href="xref:llvm_langref#ptrtoint-to-instruction">LLVM ptrtoint .. to instruction</seealso>
         /// <seealso href="xref:llvm_langref#conversion-operations">LLVM Conversion Operations</seealso>
         PtrToInt = LLVMOpcode.LLVMPtrToInt,
 
         /// <summary>inttoptr .. to instruction</summary>
-        /// <seealso cref="Instructions.IntToPointer"/>
+        /// <seealso cref="IntToPointer"/>
         /// <seealso href="xref:llvm_langref#inttoptr-to-instruction">LLVM inttoptr .. to instruction</seealso>
         /// <seealso href="xref:llvm_langref#conversion-operations">LLVM Conversion Operations</seealso>
         IntToPtr = LLVMOpcode.LLVMIntToPtr,
@@ -295,14 +295,14 @@ namespace Ubiquity.NET.Llvm.Instructions
         BitCast = LLVMOpcode.LLVMBitCast,
 
         /// <summary>addressspacecast .. to instruction</summary>
-        /// <seealso cref="Instructions.AddressSpaceCast"/>
+        /// <seealso cref="AddressSpaceCast"/>
         /// <seealso href="xref:llvm_langref#addressspacecast-to-instruction">LLVM addressspacecast .. to instruction</seealso>
         AddrSpaceCast = LLVMOpcode.LLVMAddrSpaceCast,
 
         /* Other Operators */
 
         /// <summary>icmp instruction</summary>
-        /// <seealso cref="Instructions.IntCmp"/>
+        /// <seealso cref="IntCmp"/>
         /// <seealso href="xref:llvm_langref#icmp-instruction">LLVM icmp instruction</seealso>
         /// <seealso href="xref:llvm_langref#other-operations">LLVM Other Operations</seealso>
         ICmp = LLVMOpcode.LLVMICmp,
@@ -314,19 +314,19 @@ namespace Ubiquity.NET.Llvm.Instructions
         FCmp = LLVMOpcode.LLVMFCmp,
 
         /// <summary>phi instruction</summary>
-        /// <seealso cref="Instructions.PhiNode"/>
+        /// <seealso cref="PhiNode"/>
         /// <seealso href="xref:llvm_langref#phi-instruction">LLVM phi instruction</seealso>
         /// <seealso href="xref:llvm_langref#other-operations">LLVM Other Operations</seealso>
         Phi = LLVMOpcode.LLVMPHI,
 
         /// <summary>call instruction</summary>
-        /// <seealso cref="Instructions.CallInstruction"/>
+        /// <seealso cref="CallInstruction"/>
         /// <seealso href="xref:llvm_langref#call-instruction">LLVM call instruction</seealso>
         /// <seealso href="xref:llvm_langref#other-operations">LLVM Other Operations</seealso>
         Call = LLVMOpcode.LLVMCall,
 
         /// <summary>select instruction</summary>
-        /// <seealso cref="Instructions.SelectInstruction"/>
+        /// <seealso cref="SelectInstruction"/>
         /// <seealso href="xref:llvm_langref#select-instruction">LLVM select instruction</seealso>
         /// <seealso href="xref:llvm_langref#other-operations">LLVM Other Operations</seealso>
         Select = LLVMOpcode.LLVMSelect,

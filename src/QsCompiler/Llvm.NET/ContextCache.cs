@@ -15,7 +15,7 @@ namespace Ubiquity.NET.Llvm
 {
     /// <summary>Maintains a global cache of <see cref="LLVMContextRef"/> to <see cref="Context"/> mappings</summary>
     /// <remarks>
-    /// The public constructor <see cref="Context.Context()"/> will add itself to the cache, since it is a new instance
+    /// The public constructor <see cref="Context()"/> will add itself to the cache, since it is a new instance
     /// that is a safe operation. In all other cases a lookup in the cache based on the underlying LLVM handle is
     /// performed in a thread safe manner.
     /// </remarks>
