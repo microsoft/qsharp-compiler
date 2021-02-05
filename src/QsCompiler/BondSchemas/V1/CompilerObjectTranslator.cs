@@ -19,8 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
         /// Creates a C# QsCompilation compiler object from a Bond schema QsCompilation object.
         /// </summary>
         public static SyntaxTree.QsCompilation CreateQsCompilation(
-            QsCompilation bondCompilation,
-            Protocols.Option[]? options = null) =>
+            QsCompilation bondCompilation) =>
                 new SyntaxTree.QsCompilation(
                     namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
                     entryPoints: bondCompilation.EntryPoints.Select(e => e.ToCompilerObject()).ToImmutableArray());

@@ -23,21 +23,15 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
     public static class Protocols
     {
         /// <summary>
-        /// Options that can be provided to APIs related to Bond schemas.
-        /// </summary>
-        public enum Option
-        {
-            ExcludeNamespaceDocumentation
-        }
-
-        /// <summary>
         /// Provides thread-safe access to the members and methods of this class.
         /// </summary>
         private static readonly object BondSharedDataStructuresLock = new object();
         private static readonly IDictionary<Type, Task<SimpleBinaryDeserializer>?> DeserializerInitializations =
             new Dictionary<Type, Task<SimpleBinaryDeserializer>?>()
             {
+#pragma warning disable IDE0001 // Simplify Names
                 { typeof(V1.QsCompilation), null },
+#pragma warning restore IDE0001 // Simplify Names
                 { typeof(V2.QsCompilation), null }
             };
 
@@ -48,10 +42,10 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// </summary>
         /// <param name="byteArray">Bond simple binary representation of a Q# compilation object.</param>
         /// <remarks>This method waits for <see cref="Task"/>s to complete and may deadlock if invoked through a <see cref="Task"/>.</remarks>
+        // N.B. Consider adding an options argument to this method to allow for selection of payload to deserialize.
         public static SyntaxTree.QsCompilation? DeserializeQsCompilationFromSimpleBinary(
             byte[] byteArray,
-            Type bondSchemaType,
-            Option[]? options = null)
+            Type bondSchemaType)
         {
             object? bondCompilation = null;
             var inputBuffer = new InputBuffer(byteArray);
@@ -61,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 bondCompilation = DeserializeBondSchemaFromSimpleBinary(reader, bondSchemaType);
             }
 
-            return Translators.FromBondSchemaToSyntaxTree(bondCompilation, options);
+            return Translators.FromBondSchemaToSyntaxTree(bondCompilation);
         }
 
         /// <summary>
@@ -130,6 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             Type bondSchemaType)
         {
             var deserializer = GetSimpleBinaryDeserializer(bondSchemaType);
+#pragma warning disable IDE0001 // Simplify Names
             if (bondSchemaType == typeof(V1.QsCompilation))
             {
                 return deserializer.Deserialize<V1.QsCompilation>(reader);
@@ -138,6 +133,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 return deserializer.Deserialize<BondQsCompilation>(reader);
             }
+#pragma warning restore IDE0001 // Simplify Names
 
             // TODO: Use specific message.
             throw new ArgumentException();

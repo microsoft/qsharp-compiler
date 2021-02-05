@@ -32,7 +32,9 @@ namespace Microsoft.Quantum.QsCompiler
         private static readonly IDictionary<string, Type?> SyntaxTreeResources =
             new Dictionary<string, Type?>()
             {
+#pragma warning disable CS0618 // Type or member is obsolete
                 { DotnetCoreDll.ResourceName, null },
+#pragma warning restore CS0618 // Type or member is obsolete
                 { DotnetCoreDll.ResourceNameQsDataBondV1, typeof(BondSchemas.V1.QsCompilation) },
                 { DotnetCoreDll.ResourceNameQsDataBondV2, typeof(BondSchemas.V2.QsCompilation) }
             };
@@ -143,7 +145,6 @@ namespace Microsoft.Quantum.QsCompiler
             byte[] byteArray,
             string resourceName,
             [NotNullWhen(true)] out QsCompilation? compilation,
-            BondSchemas.Protocols.Option[]? options = null,
             Action<Exception>? onDeserializationException = null)
         {
             compilation = null;
@@ -161,8 +162,7 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(
                         byteArray,
-                        type,
-                        options);
+                        type);
                 }
                 else
                 {
@@ -241,7 +241,7 @@ namespace Microsoft.Quantum.QsCompiler
             string? resourceName = null;
             ManifestResource resource = default;
 
-            //
+            // Get the resource name of the syntax tree resource name included in this DLL.
             foreach (var item in SyntaxTreeResources)
             {
                 if (metadataReader.Resources().TryGetValue(item.Key, out resource))
@@ -273,16 +273,10 @@ namespace Microsoft.Quantum.QsCompiler
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
-            var options = new BondSchemas.Protocols.Option[]
-            {
-                BondSchemas.Protocols.Option.ExcludeNamespaceDocumentation
-            };
-
             return LoadSyntaxTree(
                 resourceData,
                 resourceName,
                 out compilation,
-                options,
                 onDeserializationException);
         }
 
