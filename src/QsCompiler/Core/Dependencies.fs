@@ -172,6 +172,12 @@ type BuiltIn =
             Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
+    static member DoubleAsInt =
+        {
+            FullName = { Name = "DoubleAsInt"; Namespace = BuiltIn.ConvertNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
     static member IntAsBigInt =
         {
             FullName = { Name = "IntAsBigInt"; Namespace = BuiltIn.ConvertNamespace }

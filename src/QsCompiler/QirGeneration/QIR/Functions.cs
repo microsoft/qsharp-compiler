@@ -47,6 +47,7 @@ namespace Microsoft.Quantum.QIR
             var dict = ImmutableDictionary.CreateBuilder<QsQualifiedName, Func<TypedExpression, IValue>>();
             dict.Add(QsCompiler.BuiltIn.Length.FullName, this.Length);
             dict.Add(QsCompiler.BuiltIn.IntAsDouble.FullName, this.IntAsDouble);
+            dict.Add(QsCompiler.BuiltIn.DoubleAsInt.FullName, this.DoubleAsInt);
             dict.Add(QsCompiler.BuiltIn.IntAsBigInt.FullName, this.IntAsBigInt);
             dict.Add(QsCompiler.BuiltIn.RangeStart.FullName, this.RangeStart);
             dict.Add(QsCompiler.BuiltIn.RangeStep.FullName, this.RangeStep);
@@ -149,6 +150,13 @@ namespace Microsoft.Quantum.QIR
             var value = this.sharedState.EvaluateSubexpression(arg);
             var cast = this.sharedState.CurrentBuilder.SIToFPCast(value.Value, this.sharedState.Types.Double);
             return this.sharedState.Values.FromSimpleValue(cast, Double);
+        }
+
+        private IValue DoubleAsInt(TypedExpression arg)
+        {
+            var value = this.sharedState.EvaluateSubexpression(arg);
+            var cast = this.sharedState.CurrentBuilder.FPToSICast(value.Value, this.sharedState.Types.Int);
+            return this.sharedState.Values.FromSimpleValue(cast, Int);
         }
 
         private IValue IntAsBigInt(TypedExpression arg)
