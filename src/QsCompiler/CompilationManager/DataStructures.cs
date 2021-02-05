@@ -59,7 +59,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal readonly StringContext BeginningStringContext;
         internal readonly StringContext EndingStringContext;
 
-        public CodeLine(
+        /// <summary>
+        /// Verbose constructor that allows all fields to be specified.
+        /// </summary>
+        private CodeLine(
             string text,
             string lineEnding,
             string withoutEnding,
@@ -86,6 +89,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             ScopeTracking.VerifyExcessBracketPositions(this, excessBracketPositions);
         }
 
+        /// <summary>
+        /// Constructor for an empty code line. Requires a beginning string context.
+        /// </summary>
         private CodeLine(StringContext beginningStringContext)
         {
             this.Text = string.Empty;
@@ -100,12 +106,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.EndingStringContext = beginningStringContext;
         }
 
+        /// <summary>
+        /// Constructs a code line from text and optionally a beginning string context.
+        /// Other information about the code line is calculated automatically.
+        /// </summary>
         public CodeLine(string text, StringContext beginningStringContext = StringContext.NoOpenString)
             : this(text, beginningStringContext, 0, new List<int>())
         {
         }
 
-        public CodeLine(string text, StringContext beginningStringContext, int indentation, IEnumerable<int> excessBrackets)
+        /// <summary>
+        /// Constructs a code line from text. Beginning string context, indentation, and excess brackets are also required.
+        /// Other information about the code line is calculated automatically.
+        /// </summary>
+        private CodeLine(string text, StringContext beginningStringContext, int indentation, IEnumerable<int> excessBrackets)
         {
             this.Text = text;
             this.LineEnding = Utils.EndOfLine.Match(text).Value; // empty string if the matching failed
@@ -139,6 +153,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             ScopeTracking.VerifyExcessBracketPositions(this, excessBrackets);
         }
 
+        /// <summary>
+        /// Constructs a code line using provided information. Here, delimiters are provided rather than calculated.
+        /// </summary>
         public CodeLine(string text, StringContext beginningStringContext, IEnumerable<int> delimiters, int commentStart, int indentation, IEnumerable<int> excessBrackets)
         {
             this.Text = text;
@@ -313,7 +330,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             return delimiterBuilder.ToImmutable();
         }
 
-        private static (StringContext, bool) MoveToNextState(StringContext curr, string input)
+        private static (StringContext NextState, bool IsValidInput) MoveToNextState(StringContext curr, string input)
         {
             switch (input)
             {
