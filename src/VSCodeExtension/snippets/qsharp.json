@@ -24,7 +24,7 @@
         ],
         "description": "Create new operation"
 	},
-	
+
 	"Function": {
 		"prefix": "function",
 		"body": [
@@ -34,7 +34,7 @@
 		],
         "description": "Create new function"
 	},
-	
+
 	"///": {
 		"prefix": "///",
 		"body": [
@@ -47,7 +47,7 @@
 			"///",
 			"/// # Remarks",
 			"/// ## Example",
-			"/// ```Q#",
+			"/// ```qsharp",
 			"/// ${4:// ...}",
 			"/// ```",
 			"///",
