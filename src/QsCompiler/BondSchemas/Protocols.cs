@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
             stream.Flush();
             stream.Position = 0;
-        }   
+        }
 
         private static object DeserializeBondSchemaFromSimpleBinary(
             SimpleBinaryReader<InputBuffer> reader,

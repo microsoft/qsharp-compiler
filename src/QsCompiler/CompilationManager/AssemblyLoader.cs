@@ -240,7 +240,7 @@ namespace Microsoft.Quantum.QsCompiler
             string? resourceName = null;
             ManifestResource resource = default;
 
-            // Get the resource name of the syntax tree resource name included in this DLL.
+            // Get the resource name of the syntax tree resource name included in this assembly.
             foreach (var item in SyntaxTreeResources)
             {
                 if (metadataReader.Resources().TryGetValue(item.Key, out resource))
