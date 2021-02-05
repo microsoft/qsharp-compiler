@@ -19,7 +19,7 @@ using Newtonsoft.Json.Bson;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    using BondQsCompilation = BondSchemas.V1.QsCompilation;
+    using BondQsCompilation = BondSchemas.V2.QsCompilation;
 
     /// <summary>
     /// This class relies on the ECMA-335 standard to extract information contained in compiled binaries.

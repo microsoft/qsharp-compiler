@@ -13,7 +13,7 @@ using Bond.Protocols;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
-    using BondQsCompilation = V1.QsCompilation;
+    using BondQsCompilation = V2.QsCompilation;
     using SimpleBinaryDeserializer = Deserializer<SimpleBinaryReader<InputBuffer>>;
     using SimpleBinarySerializer = Serializer<SimpleBinaryWriter<OutputBuffer>>;
 
@@ -31,8 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
 #pragma warning disable IDE0001 // Simplify Names
                 { typeof(V1.QsCompilation), null },
-#pragma warning restore IDE0001 // Simplify Names
                 { typeof(V2.QsCompilation), null }
+#pragma warning restore IDE0001 // Simplify Names
             };
 
         private static Task<SimpleBinarySerializer>? serializerInitialization = null;
@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
             stream.Flush();
             stream.Position = 0;
-        }
+        }   
 
         private static object DeserializeBondSchemaFromSimpleBinary(
             SimpleBinaryReader<InputBuffer> reader,
@@ -129,9 +129,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 return deserializer.Deserialize<V1.QsCompilation>(reader);
             }
-            else if (bondSchemaType == typeof(BondQsCompilation))
+            else if (bondSchemaType == typeof(V2.QsCompilation))
             {
-                return deserializer.Deserialize<BondQsCompilation>(reader);
+                return deserializer.Deserialize<V2.QsCompilation>(reader);
             }
 #pragma warning restore IDE0001 // Simplify Names
 
@@ -181,8 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             VerifyLockAcquired(BondSharedDataStructuresLock);
             if (!DeserializerInitializations.TryGetValue(bondSchemaType, out var deserializerInitialization))
             {
-                // TODO: Use the correct message.
-                throw new ArgumentException();
+                throw new ArgumentException($"Unknown Bond schema type '{bondSchemaType}'");
             }
 
             if (deserializerInitialization == null)

@@ -5,7 +5,7 @@ using System;
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas
 {
-    using BondQsCompilation = V1.QsCompilation;
+    using BondQsCompilation = V2.QsCompilation;
 
     internal static class Translators
     {
@@ -22,13 +22,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     return V2.CompilerObjectTranslator.CreateQsCompilation(bondCompilationV2);
 
                 default:
-                    // TODO: Use a more meaningful message.
                     throw new ArgumentException($"Unknown Bond schema type '{typeof(TBond)}'");
 #pragma warning restore IDE0001 // Simplify Names
             }
         }
 
         public static BondQsCompilation FromSyntaxTreeToBondSchema(SyntaxTree.QsCompilation qsCompilation) =>
-            V1.BondSchemaTranslator.CreateBondCompilation(qsCompilation);
+            V2.BondSchemaTranslator.CreateBondCompilation(qsCompilation);
     }
 }
