@@ -19,6 +19,8 @@ using Newtonsoft.Json.Bson;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    using BondQsCompilation = BondSchemas.V1.QsCompilation;
+
     /// <summary>
     /// This class relies on the ECMA-335 standard to extract information contained in compiled binaries.
     /// The standard can be found here: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-335.pdf,
@@ -35,8 +37,10 @@ namespace Microsoft.Quantum.QsCompiler
 #pragma warning disable CS0618 // Type or member is obsolete
                 { DotnetCoreDll.ResourceName, null },
 #pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning disable IDE0001 // Simplify Names
                 { DotnetCoreDll.ResourceNameQsDataBondV1, typeof(BondSchemas.V1.QsCompilation) },
                 { DotnetCoreDll.ResourceNameQsDataBondV2, typeof(BondSchemas.V2.QsCompilation) }
+#pragma warning restore IDE0001 // Simplify Names
             };
 
         /// <summary>
@@ -125,9 +129,7 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
-                // TODO: This should be always call the latest version of the Bond schemas.
-                // TODO: Call the new version of LoadSyntaxTree leveraging ResourceName.
-                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray, typeof(BondSchemas.V1.QsCompilation));
+                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray, typeof(BondQsCompilation));
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)
@@ -139,8 +141,6 @@ namespace Microsoft.Quantum.QsCompiler
             return compilation != null && IsValidCompilation(compilation);
         }
 
-        // TODO: Document.
-        // TODO: This could be private.
         private static bool LoadSyntaxTree(
             byte[] byteArray,
             string resourceName,
@@ -150,8 +150,7 @@ namespace Microsoft.Quantum.QsCompiler
             compilation = null;
             if (!SyntaxTreeResources.TryGetValue(resourceName, out var type))
             {
-                // TODO: Provide a meaningful error message.
-                onDeserializationException?.Invoke(new ArgumentException());
+                onDeserializationException?.Invoke(new ArgumentException($"Unknown syntax tree resource name '{resourceName}'"));
                 return false;
             }
 

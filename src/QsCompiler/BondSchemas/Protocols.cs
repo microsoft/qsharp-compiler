@@ -135,8 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
 #pragma warning restore IDE0001 // Simplify Names
 
-            // TODO: Use specific message.
-            throw new ArgumentException();
+            throw new ArgumentException($"Unknown Bond schema type '{bondSchemaType}'");
         }
 
         private static SimpleBinaryDeserializer GetSimpleBinaryDeserializer(Type bondSchemaType)

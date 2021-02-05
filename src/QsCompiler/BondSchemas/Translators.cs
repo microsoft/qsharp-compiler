@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
 
                 default:
                     // TODO: Use a more meaningful message.
-                    throw new ArgumentException();
+                    throw new ArgumentException($"Unknown Bond schema type '{typeof(TBond)}'");
 #pragma warning restore IDE0001 // Simplify Names
             }
         }
