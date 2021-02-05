@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler
     {
         /// <summary>
         /// Loads the Q# data structures in a referenced assembly given <paramref name="asm" />,
-        /// and returns the loaded content as <paramref name="headers" />.
+        /// and returns the loaded content via <paramref name="headers" />.
         /// </summary>
         /// <param name="asm">The uri of the referenced assembly.</param>
         /// <returns>
