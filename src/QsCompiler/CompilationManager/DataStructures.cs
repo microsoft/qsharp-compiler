@@ -18,7 +18,7 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 {
     /// <summary>
-    /// Contains all information managed by the <see cref="ScopeTracking" />.
+    /// Contains all information managed by the <see cref="ScopeTracking"/>.
     /// </summary>
     /// <remarks>
     /// All properties are readonly, and any modification leads to the creation of a new instance.
@@ -115,9 +115,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     /// Contains all information managed by the language processor.
     /// </summary>
     /// <remarks>
-    /// All properties except <see cref="IncludeInCompilation" /> are readonly, and any modification leads to the creation of a new instance.
-    /// <para />
-    /// Access to <see cref="IncludeInCompilation" /> is limited to be via the <see cref="TokenIndex" /> subclass.
+    /// All properties except <see cref="IncludeInCompilation"/> are readonly, and any modification leads to the creation of a new instance.
+    /// <para/>
+    /// Access to <see cref="IncludeInCompilation"/> is limited to be via the <see cref="TokenIndex"/> subclass.
     /// </remarks>
     public class CodeFragment
     {
@@ -225,7 +225,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// A class to conveniently walk the saved tokens.
         /// </summary>
         /// <remarks>
-        /// This class is a subclass of <see cref="CodeFragment" /> to limit access to <see cref="IncludeInCompilation" /> to be via <see cref="TokenIndex" />.
+        /// This class is a subclass of <see cref="CodeFragment"/> to limit access to <see cref="IncludeInCompilation"/> to be via <see cref="TokenIndex"/>.
         /// </remarks>
         internal class TokenIndex // not disposable because File mustn't be disposed since several token indices may be using it
         {
@@ -238,13 +238,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Initializes a new instance of the <see cref="TokenIndex"/> class.
             /// <remarks>
-            /// Verifies line number <paramref name="line" /> and <paramref name="index" /> *only* against the Tokens listed in <paramref name="file" /> (and not against the
+            /// Verifies line number <paramref name="line"/> and <paramref name="index"/> *only* against the Tokens listed in <paramref name="file"/> (and not against the
             /// content).
             /// </remarks>
             /// </summary>
-            /// <exception cref="ArgumentOutOfRangeException"><paramref name="line" /> or <paramref name="index" /> are negative.</exception>
+            /// <exception cref="ArgumentOutOfRangeException"><paramref name="line"/> or <paramref name="index"/> are negative.</exception>
             /// <exception cref="FileContentException">
-            /// <paramref name="line" /> is outside the bounds of <paramref name="file" />, or <paramref name="index" /> is outside the bounds of <paramref name="line" />.
+            /// <paramref name="line"/> is outside the bounds of <paramref name="file"/>, or <paramref name="index"/> is outside the bounds of <paramref name="line"/>.
             /// </exception>
             internal TokenIndex(FileContentManager file, int line, int index)
             {
@@ -279,7 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.Line < this.file.NrTokenizedLines() && this.Index < this.file.GetTokenizedLine(this.Line).Length;
 
             /// <summary>
-            /// Marks the token returned by <see cref="FileContentManager.GetTokenizedLine" /> for the associated file as excluded from the compilation.
+            /// Marks the token returned by <see cref="FileContentManager.GetTokenizedLine"/> for the associated file as excluded from the compilation.
             /// </summary>
             /// <exception cref="FileContentException">
             /// The line or index are no longer within the associated file.
@@ -294,7 +294,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Marks the token returned by <see cref="FileContentManager.GetTokenizedLine" /> for the associated file as included in the compilation.
+            /// Marks the token returned by <see cref="FileContentManager.GetTokenizedLine"/> for the associated file as included in the compilation.
             /// </summary>
             /// <exception cref="FileContentException">
             /// The line or index are no longer within the associated file.
@@ -309,7 +309,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Returns the corresponding fragment for the token at the saved <see cref="TokenIndex" />.
+            /// Returns the corresponding fragment for the token at the saved <see cref="TokenIndex"/>.
             /// </summary>
             /// <returns>
             /// A copy of the token where its range denotes the absolute range within the file.
@@ -327,13 +327,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Returns the corresponding fragment for the token at the saved <see cref="TokenIndex" /> including any closing comments for that fragment.
+            /// Returns the corresponding fragment for the token at the saved <see cref="TokenIndex"/> including any closing comments for that fragment.
             /// </summary>
             /// <returns>
-            /// A copy of the token where its range denotes the absolute range within <see cref="file" />.
+            /// A copy of the token where its range denotes the absolute range within <see cref="file"/>.
             /// </returns>
             /// <exception cref="FileContentException">
-            /// <see cref="Line" /> or <see cref="Index" /> are no longer within <see cref="file" />.
+            /// <see cref="Line"/> or <see cref="Index"/> are no longer within <see cref="file"/>.
             /// </exception>
             internal CodeFragment GetFragmentWithClosingComments()
             {
@@ -353,10 +353,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Returns the <see cref="TokenIndex" /> of the next token in <see cref="file" /> or null if no such token exists.
+            /// Returns the <see cref="TokenIndex"/> of the next token in <see cref="file"/> or null if no such token exists.
             /// </summary>
             /// <exception cref="FileContentException">
-            /// The <see cref="Line" /> or <see cref="Index" /> are no longer within <see cref="file" />.
+            /// The <see cref="Line"/> or <see cref="Index"/> are no longer within <see cref="file"/>.
             /// </exception>
             public TokenIndex? Next()
             {
@@ -377,10 +377,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Returns the <see cref="TokenIndex" /> of the previous token in <see cref="file" /> or null if no such token exists.
+            /// Returns the <see cref="TokenIndex"/> of the previous token in <see cref="file"/> or null if no such token exists.
             /// </summary>
             /// <exception cref="FileContentException">
-            /// The <see cref="Line" /> or <see cref="Index" /> are no longer within <see cref="file" />.
+            /// The <see cref="Line"/> or <see cref="Index"/> are no longer within <see cref="file"/>.
             /// </exception>
             public TokenIndex? Previous()
             {
@@ -403,7 +403,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// Struct used to do the (local) type checking and build the <see cref="SyntaxTree" />.
+    /// Struct used to do the (local) type checking and build the <see cref="SyntaxTree"/>.
     /// </summary>
     internal struct FragmentTree
     {
@@ -424,12 +424,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             /// <summary>
             /// Initializes a new instance of the <see cref="TreeNode"/> struct,
-            /// consisting of <paramref name="fragment" /> and <paramref name="children" />.
+            /// consisting of <paramref name="fragment"/> and <paramref name="children"/>.
             /// </summary>
+            /// <exception cref="ArgumentException"><paramref name="parentStart"/> is larger than the start position of <paramref name="fragment"/>.</exception>
             /// <remarks>
-            /// <see cref="RelativePosition" /> is set to the position of the fragment start relative to <paramref name="parentStart" />.
+            /// <see cref="RelativePosition"/> is set to the position of the fragment start relative to <paramref name="parentStart"/>.
             /// </remarks>
-            /// <exception cref="ArgumentException"><paramref name="parentStart" /> is larger than the start position of <paramref name="fragment" />.</exception>
             public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Position parentStart)
             {
                 if (fragment.Range.Start < parentStart)
@@ -491,15 +491,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         }
 
         /// <summary>
-        /// Tries to construct a <see cref="HeaderEntry{T}" /> from <paramref name="tIndex" /> using <paramref name="getDeclaration" />.
+        /// Tries to construct a <see cref="HeaderEntry{T}"/> from <paramref name="tIndex"/> using <paramref name="getDeclaration"/>.
         /// </summary>
         /// <exception cref="ArgumentException">The symbol of the extracted declaration is not an unqualified or invalid symbol.</exception>
         /// <exception cref="ArgumentException">The extracted declaration is Null.</exception>
         /// <remarks>
-        /// If the construction succeeds, returns the <see cref="HeaderEntry{T}" />.
+        /// If the construction succeeds, returns the <see cref="HeaderEntry{T}"/>.
         /// If the symbol of the extracted declaration is not an unqualified symbol,
-        /// verifies that it corresponds instead to an invalid symbol and returns null unless the <paramref name="keepInvalid" /> parameter has been set to a string value.
-        /// If the <paramref name="keepInvalid" /> parameter has been set to a (non-null) string, uses that string as the <see cref="SymbolName" /> for the returned <see cref="HeaderEntry{T}" /> instance.
+        /// verifies that it corresponds instead to an invalid symbol and returns null unless the <paramref name="keepInvalid"/> parameter has been set to a string value.
+        /// If the <paramref name="keepInvalid"/> parameter has been set to a (non-null) string, uses that string as the <see cref="SymbolName"/> for the returned <see cref="HeaderEntry{T}"/> instance.
         /// </remarks>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
@@ -551,11 +551,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         }
 
         /// <summary>
-        /// Invalidates (i.e. removes) all elements in the range [<paramref name="start" />, <paramref name="start" /> + <paramref name="count" />), and
-        /// updates all elements that are larger than or equal to <paramref name="start" /> + <paramref name="count" /> with <paramref name="lineNrChange" />.
+        /// Invalidates (i.e. removes) all elements in the range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>), and
+        /// updates all elements that are larger than or equal to <paramref name="start"/> + <paramref name="count"/> with <paramref name="lineNrChange"/>.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
-        /// <paramref name="start" /> or <paramref name="count" /> are negative, or <paramref name="lineNrChange" /> is smaller than -<paramref name="count" />.
+        /// <paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.
         /// </exception>
         public void InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
@@ -654,7 +654,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// Thread-safe wrapper to <see cref="SortedSet{T}" /> whose generic type argument is <see cref="int" />.
+    /// Thread-safe wrapper to <see cref="SortedSet{T}"/> whose generic type argument is <see cref="int"/>.
     /// </summary>
     public class ManagedSortedSet // *don't* dispose of the sync root!
     {
@@ -715,13 +715,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         }
 
         /// <summary>
-        /// Removes all elements in the range [<paramref name="start" />, <paramref name="start" /> + <paramref name="count" />) from the set, and
-        /// updates all elements that are larger than or equal to <paramref name="start" /> + <paramref name="count" /> with lineNr =&gt; lineNr + <paramref name="lineNrChange" />.
+        /// Removes all elements in the range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) from the set, and
+        /// updates all elements that are larger than or equal to <paramref name="start"/> + <paramref name="count"/> with lineNr =&gt; lineNr + <paramref name="lineNrChange"/>.
         /// </summary>
         /// <returns>
         /// The number of removed elements.
         /// </returns>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start" /> or <paramref name="count" /> are negative, or <paramref name="lineNrChange" /> is smaller than -<paramref name="count" />.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/> is smaller than -<paramref name="count"/>.</exception>
         public int InvalidateOrUpdate(int start, int count, int lineNrChange)
         {
             if (start < 0)
@@ -757,7 +757,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// Thread-safe wrapper to <see cref="HashSet{T}" />.
+    /// Thread-safe wrapper to <see cref="HashSet{T}"/>.
     /// </summary>
     public class ManagedHashSet<T> // *don't* dispose of the sync root!
     {
@@ -816,7 +816,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     }
 
     /// <summary>
-    /// Thread-safe wrapper to <see cref="List{T}" />.
+    /// Thread-safe wrapper to <see cref="List{T}"/>.
     /// </summary>
     public class ManagedList<T> // *don't* dispose of the sync root!
     {
@@ -948,9 +948,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         }
 
         /// <summary>
-        /// Gets the item at <paramref name="index" /> if <paramref name="index" /> does not exceed the bounds of the list.
+        /// Gets the item at <paramref name="index"/> if <paramref name="index"/> does not exceed the bounds of the list.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index" /> is less than 0.</exception>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.</exception>
         internal bool TryGetItem(int index, [MaybeNullWhen(false)] out T item)
         {
             this.SyncRoot.EnterReadLock();

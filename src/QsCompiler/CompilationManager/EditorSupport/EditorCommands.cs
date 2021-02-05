@@ -21,13 +21,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class EditorCommands
     {
         /// <summary>
-        /// Returns an array of all namespace declarations, type declarations, and callable declarations in <paramref name="file" />.
-        /// <seealso cref="SymbolInfo.NamespaceDeclarationsSymbolInfo" />
-        /// <seealso cref="SymbolInfo.TypeDeclarationsSymbolInfo" />
-        /// <seealso cref="SymbolInfo.CallableDeclarationsSymbolInfo" />
+        /// Returns an array of all namespace declarations, type declarations, and callable declarations in <paramref name="file"/>.
+        /// <seealso cref="SymbolInfo.NamespaceDeclarationsSymbolInfo"/>
+        /// <seealso cref="SymbolInfo.TypeDeclarationsSymbolInfo"/>
+        /// <seealso cref="SymbolInfo.CallableDeclarationsSymbolInfo"/>
         /// </summary>
         /// <remarks>
-        /// Returns null if <paramref name="file" /> is null.
+        /// Returns null if <paramref name="file"/> is null.
         /// </remarks>
         public static SymbolInformation[]? DocumentSymbols(this FileContentManager file)
         {
@@ -42,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the source file and position where the item at <paramref name="position" /> is declared at,
+        /// Returns the source file and position where the item at <paramref name="position"/> is declared at,
         /// if such a declaration exists, and returns null otherwise.
         /// </summary>
         public static Location? DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position? position)
@@ -74,12 +74,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an array with all locations where the symbol at <paramref name="position" /> - if any - is referenced.
+        /// Returns an array with all locations where the symbol at <paramref name="position"/> - if any - is referenced.
         /// </summary>
         /// <remarks>
         /// Returns null if some parameters are unspecified (null),
-        /// or if <paramref name="position" /> is not a valid position within the currently processed file content,
-        /// or if no symbol exists at <paramref name="position" /> at this time.
+        /// or if <paramref name="position"/> is not a valid position within the currently processed file content,
+        /// or if no symbol exists at <paramref name="position"/> at this time.
         /// </remarks>
         public static Location[]? SymbolReferences(this FileContentManager file, CompilationUnit compilation, Position? position, ReferenceContext? context)
         {
@@ -97,12 +97,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the workspace edit that describes the changes to be done if the symbol at <paramref name="position" /> - if any - is renamed to <paramref name="newName" />.
+        /// Returns the workspace edit that describes the changes to be done if the symbol at <paramref name="position"/> - if any - is renamed to <paramref name="newName"/>.
         /// </summary>
         /// <remarks>
-        /// Returns null if no symbol exists at <paramref name="position" />,
+        /// Returns null if no symbol exists at <paramref name="position"/>,
         /// or if some parameters are unspecified (null),
-        /// or if <paramref name="position" /> is not a valid position within <paramref name="file" />.
+        /// or if <paramref name="position"/> is not a valid position within <paramref name="file"/>.
         /// </remarks>
         public static WorkspaceEdit? Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
         {
@@ -138,11 +138,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a look-up of workspace edits suggested by the compiler for <paramref name="range" /> and <paramref name="context" />.
+        /// Returns a look-up of workspace edits suggested by the compiler for <paramref name="range"/> and <paramref name="context"/>.
         /// </summary>
         /// <remarks>
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
-        /// <para />
+        /// <para/>
         /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
         /// </remarks>
         public static ILookup<string, WorkspaceEdit>? CodeActions(this FileContentManager file, CompilationUnit compilation, Range? range, CodeActionContext? context)
@@ -163,13 +163,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an array with all usages of the identifier at <paramref name="position" /> (if any)
-        /// as a <see cref="DocumentHighlight" /> array.
+        /// Returns an array with all usages of the identifier at <paramref name="position"/> (if any)
+        /// as a <see cref="DocumentHighlight"/> array.
         /// </summary>
         /// <remarks>
         /// Returns null if some parameters are unspecified (null),
-        /// or if <paramref name="position" /> is not a valid position within the currently processed file content,
-        /// or if no identifier exists at <paramref name="position" /> at this time.
+        /// or if <paramref name="position"/> is not a valid position within the currently processed file content,
+        /// or if no identifier exists at <paramref name="position"/> at this time.
         /// </remarks>
         public static DocumentHighlight[]? DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position? position)
         {
@@ -204,12 +204,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns information about the item <paramref name="position" /> as <see cref="Hover" /> information.
+        /// Returns information about the item <paramref name="position"/> as <see cref="Hover"/> information.
         /// </summary>
         /// <remarks>
         /// Returns null if some parameters are unspecified (null),
-        /// or if <paramref name="position" /> is not a valid position within the currently processed file content,
-        /// or if no token exists at <paramref name="position" />.
+        /// or if <paramref name="position"/> is not a valid position within the currently processed file content,
+        /// or if no token exists at <paramref name="position"/>.
         /// </remarks>
         public static Hover? HoverInformation(
             this FileContentManager file,
@@ -254,13 +254,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the signature help information for a call expression if there is such an expression at <paramref name="position" />.
+        /// Returns the signature help information for a call expression if there is such an expression at <paramref name="position"/>.
         /// </summary>
         /// <remarks>
         /// Returns null if some parameters are unspecified (null),
-        /// or if <paramref name="position" /> is not a valid position within the currently processed file content,
-        /// or if no call expression exists at <paramref name="position" /> at this time,
-        /// or if no signature help information can be provided for the call expression at <paramref name="position" />.
+        /// or if <paramref name="position"/> is not a valid position within the currently processed file content,
+        /// or if no call expression exists at <paramref name="position"/> at this time,
+        /// or if no signature help information can be provided for the call expression at <paramref name="position"/>.
         /// </remarks>
         public static SignatureHelp? SignatureHelp(
             this FileContentManager file,

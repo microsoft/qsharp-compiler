@@ -68,12 +68,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Generates a suitable <see cref="Diagnostic" /> from <paramref name="msg" /> returned by the Q# compiler.
+        /// Generates a suitable <see cref="Diagnostic"/> from <paramref name="msg"/> returned by the Q# compiler.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">The contained range contains zero or negative entries, or its Start is bigger than its End.</exception>
         /// <remarks>
-        /// The message range contained in <paramref name="msg" /> is first converted to a <see cref="Position" /> object,
-        /// and then added to <paramref name="positionOffset" /> if the latter is not null.
+        /// The message range contained in <paramref name="msg"/> is first converted to a <see cref="Position"/> object,
+        /// and then added to <paramref name="positionOffset"/> if the latter is not null.
         /// </remarks>
         internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position? positionOffset = null) =>
             new Diagnostic

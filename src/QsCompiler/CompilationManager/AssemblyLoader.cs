@@ -27,18 +27,18 @@ namespace Microsoft.Quantum.QsCompiler
     public static class AssemblyLoader
     {
         /// <summary>
-        /// Loads the Q# data structures in a referenced assembly given <paramref name="asm" />,
-        /// and returns the loaded content via <paramref name="headers" />.
+        /// Loads the Q# data structures in a referenced assembly given <paramref name="asm"/>,
+        /// and returns the loaded content via <paramref name="headers"/>.
         /// </summary>
         /// <param name="asm">The uri of the referenced assembly.</param>
         /// <returns>
         /// False if some of the content could not be loaded successfully,
         /// possibly because the referenced assembly has been compiled with an older compiler version.
         /// </returns>
-        /// <exception cref="FileNotFoundException"><paramref name="asm" /> does not exist.</exception>
-        /// <exception cref="ArgumentException"><paramref name="asm" /> is not an absolute file URI.</exception>
+        /// <exception cref="FileNotFoundException"><paramref name="asm"/> does not exist.</exception>
+        /// <exception cref="ArgumentException"><paramref name="asm"/> is not an absolute file URI.</exception>
         /// <remarks>
-        /// If <paramref name="onDeserializationException" /> is specified, it will be invoked on any exception thrown during deserialization.
+        /// If <paramref name="onDeserializationException"/> is specified, it will be invoked on any exception thrown during deserialization.
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </remarks>
         public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception>? onDeserializationException = null)
@@ -69,17 +69,17 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Loads the Q# data structures in a referenced assembly given <paramref name="asmPath" />,
-        /// and returns the loaded content as <paramref name="compilation" />.
+        /// Loads the Q# data structures in a referenced assembly given <paramref name="asmPath"/>,
+        /// and returns the loaded content as <paramref name="compilation"/>.
         /// </summary>
         /// <returns>
         /// False if some of the content could not be loaded successfully,
         /// possibly because the referenced assembly has been compiled with an older compiler version.
         /// </returns>
-        /// <exception cref="FileNotFoundException"><paramref name="asmPath" /> does not exist.</exception>
+        /// <exception cref="FileNotFoundException"><paramref name="asmPath"/> does not exist.</exception>
         /// <remarks>
-        /// Catches any exception throw upon loading the compilation, and invokes <paramref name="onException" /> with it if specified.
-        /// Sets <paramref name="compilation" /> to null if an exception occurred during loading.
+        /// Catches any exception throw upon loading the compilation, and invokes <paramref name="onException"/> with it if specified.
+        /// Sets <paramref name="compilation"/> to null if an exception occurred during loading.
         /// </remarks>
         public static bool LoadReferencedAssembly(
             string asmPath,
@@ -111,13 +111,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given a binary representation of compiled Q# code, returns the corresponding Q# compilation.
         /// </summary>
         /// <param name="byteArray">A binary representation of compiled Q# code.</param>
-        /// <param name="compilation">The compilation deserialized from <paramref name="byteArray" />.</param>
+        /// <param name="compilation">The compilation deserialized from <paramref name="byteArray"/>.</param>
         /// <param name="onDeserializationException">Called if an exception is thrown during deserialization.</param>
         /// <returns>
         /// True if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.
         /// </returns>
         /// <remarks>
-        /// If <paramref name="onDeserializationException" /> is specified, it is invoked on any exception thrown during deserialization.
+        /// If <paramref name="onDeserializationException"/> is specified, it is invoked on any exception thrown during deserialization.
         /// </remarks>
         public static bool LoadSyntaxTree(
             byte[] byteArray,
@@ -144,13 +144,13 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given a stream containing a binary representation of compiled Q# code, returns the corresponding Q# compilation.
         /// </summary>
         /// <param name="stream">A stream containing the binary representation of compiled Q# code.</param>
-        /// <param name="compilation">The compilation deserialized from <paramref name="stream" />.</param>
+        /// <param name="compilation">The compilation deserialized from <paramref name="stream"/>.</param>
         /// <param name="onDeserializationException">Called if an exception is thrown during deserialization.</param>
         /// <returns>
         /// True if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.
         /// </returns>
         /// <remarks>
-        /// If <paramref name="onDeserializationException" /> is specified, it is invoked on any exception thrown during deserialization.
+        /// If <paramref name="onDeserializationException"/> is specified, it is invoked on any exception thrown during deserialization.
         /// </remarks>
         [Obsolete("Only loads binary representations generated by compiler versions up to 0.13.20102604.")]
         public static bool LoadSyntaxTree(
@@ -181,7 +181,7 @@ namespace Microsoft.Quantum.QsCompiler
             !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
 
         /// <summary>
-        /// Creates a dictionary of all manifest resources in <paramref name="reader" />.
+        /// Creates a dictionary of all manifest resources in <paramref name="reader"/>.
         /// </summary>
         private static ImmutableDictionary<string, ManifestResource> Resources(this MetadataReader reader) =>
             reader.ManifestResources
@@ -194,14 +194,14 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given a reader for the byte stream of a dotnet DLL, loads any Q# compilation included as a resource.
         /// </summary>
         /// <param name="assemblyFile">The dotnet DLL from which to load the compilation.</param>
-        /// <param name="compilation">The Q# compilation included as a resource of <paramref name="assemblyFile" />.</param>
+        /// <param name="compilation">The Q# compilation included as a resource of <paramref name="assemblyFile"/>.</param>
         /// <param name="onDeserializationException">Called if an exception is thrown during deserialization.</param>
         /// <returns>
-        /// True if <paramref name="assemblyFile" /> includes a suitable resource, false otherwise.
+        /// True if <paramref name="assemblyFile"/> includes a suitable resource, false otherwise.
         /// </returns>
         /// <remarks>
-        /// If <paramref name="onDeserializationException" /> is specified, it is invoked on any exception thrown during deserialization.
-        /// May throw an exception if <paramref name="assemblyFile" /> has been compiled with a different compiler version.
+        /// If <paramref name="onDeserializationException"/> is specified, it is invoked on any exception thrown during deserialization.
+        /// May throw an exception if <paramref name="assemblyFile"/> has been compiled with a different compiler version.
         /// </remarks>
         private static bool FromResource(
             PEReader assemblyFile,
@@ -266,10 +266,10 @@ namespace Microsoft.Quantum.QsCompiler
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)
 
         /// <summary>
-        /// This routine extracts the namespace and type name of <paramref name="attribute" />.
+        /// This routine extracts the namespace and type name of <paramref name="attribute"/>.
         /// </summary>
         /// <returns>
-        /// The tuple (namespace, name), or null if the constructor handle is not a <see cref="HandleKind.MethodDefinition" /> or a <see cref="HandleKind.MemberReference" />.
+        /// The tuple (namespace, name), or null if the constructor handle is not a <see cref="HandleKind.MethodDefinition"/> or a <see cref="HandleKind.MemberReference"/>.
         /// </returns>
         /// <remarks>
         /// There are two possible handle kinds in use for the constructor of a custom attribute,

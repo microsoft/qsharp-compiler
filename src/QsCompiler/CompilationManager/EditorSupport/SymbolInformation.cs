@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             AsLocation(loc.SourceFile, loc.DeclarationOffset + loc.RelativeStatementLocation.Offset, loc.SymbolRange);
 
         /// <summary>
-        /// Returns the <see cref="SymbolInformation" /> for all namespace declarations in <paramref name="file" />.
+        /// Returns the <see cref="SymbolInformation"/> for all namespace declarations in <paramref name="file"/>.
         /// </summary>
         public static IEnumerable<SymbolInformation> NamespaceDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetNamespaceDeclarations().Select(tuple => new SymbolInformation
@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// Returns the <see cref="SymbolInformation" /> for all type declarations in <paramref name="file" />.
+        /// Returns the <see cref="SymbolInformation"/> for all type declarations in <paramref name="file"/>.
         /// </summary>
         public static IEnumerable<SymbolInformation> TypeDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetTypeDeclarations().Select(tuple => new SymbolInformation
@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// Returns the <see cref="SymbolInformation" /> for all method declarations in <paramref name="file" />.
+        /// Returns the <see cref="SymbolInformation"/> for all method declarations in <paramref name="file"/>.
         /// </summary>
         public static IEnumerable<SymbolInformation> CallableDeclarationsSymbolInfo(this FileContentManager file) =>
             file.GetCallableDeclarations().Select(tuple => new SymbolInformation
@@ -73,15 +73,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// If an overlapping code fragment exists, returns all symbol declarations, variable, Q# types, and Q# literals
-        /// that *overlap* with <paramref name="position" /> as a <see cref="QsSymbolInfo" />.
+        /// that *overlap* with <paramref name="position"/> as a <see cref="QsSymbolInfo"/>.
         /// </summary>
         /// <param name="fragment">
-        /// The code fragment that overlaps with <paramref name="position" /> in <paramref name="file" />,
+        /// The code fragment that overlaps with <paramref name="position"/> in <paramref name="file"/>,
         /// or null if no such fragment exists.
         /// </param>
         /// <remarks>
-        /// Returns null if no such fragment exists, or <paramref name="file" /> and/or <paramref name="position" />
-        /// is null, or <paramref name="position" /> is invalid.
+        /// Returns null if no such fragment exists, or <paramref name="file"/> and/or <paramref name="position"/>
+        /// is null, or <paramref name="position"/> is invalid.
         /// </remarks>
         internal static QsSymbolInfo? TryGetQsSymbolInfo(
             this FileContentManager file,
@@ -124,18 +124,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Searches <paramref name="compilation" /> for all references to a globally defined type or callable with <paramref name="fullName" />.
+        /// Searches <paramref name="compilation"/> for all references to a globally defined type or callable with <paramref name="fullName"/>.
         /// </summary>
         /// <param name="referenceLocations">
-        /// The reference locations where type or callable <paramref name="fullName" /> is defined,
-        /// or null if the declaration is not within <paramref name="compilation" />, limited by <paramref name="limitToSourceFiles" />.
+        /// The reference locations where type or callable <paramref name="fullName"/> is defined,
+        /// or null if the declaration is not within <paramref name="compilation"/>, limited by <paramref name="limitToSourceFiles"/>.
         /// </param>
         /// <param name="limitToSourceFiles">Limit the search to these files, only.</param>
         /// <returns>
         /// True if the search completed successfully, and false otherwise.
         /// </returns>
         /// <remarks>
-        /// If <paramref name="compilation" /> or <paramref name="fullName" /> is null, returns false without raising an exception.
+        /// If <paramref name="compilation"/> or <paramref name="fullName"/> is null, returns false without raising an exception.
         /// </remarks>
         internal static bool TryGetReferences(
             this CompilationUnit compilation,
@@ -169,19 +169,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Searches <paramref name="compilation" /> for all references to the identifier or type at <paramref name="position" /> in <paramref name="file" />,
+        /// Searches <paramref name="compilation"/> for all references to the identifier or type at <paramref name="position"/> in <paramref name="file"/>,
         /// and returns their locations as out parameter.
         /// </summary>
         /// <param name="referenceLocations">
-        /// The reference locations where the identifier or type at <paramref name="position" /> is defined
-        /// or null if the declaration is not within <paramref name="compilation" />, limited by <paramref name="limitToSourceFiles" />.
+        /// The reference locations where the identifier or type at <paramref name="position"/> is defined
+        /// or null if the declaration is not within <paramref name="compilation"/>, limited by <paramref name="limitToSourceFiles"/>.
         /// </param>
         /// <param name="limitToSourceFiles">Limit the search to these files, only.</param>
         /// <returns>
         /// True if the search completed successfully, and false otherwise.
         /// </returns>
         /// <remarks>
-        /// If <paramref name="file" />, <paramref name="compilation" />, or <paramref name="position" /> is null, returns false without raising an exception.
+        /// If <paramref name="file"/>, <paramref name="compilation"/>, or <paramref name="position"/> is null, returns false without raising an exception.
         /// </remarks>
         internal static bool TryGetReferences(
             this FileContentManager file,
