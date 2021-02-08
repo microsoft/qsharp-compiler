@@ -279,8 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Generates a mangled name for a callable specialization wrapper.
         /// Wrapper names are the mangled specialization name followed by double underscore and "wrapper".
         /// </summary>
-        /// <param name="namespaceName">The namespace of the Q# callable.</param>
-        /// <param name="name">The unqualified name of the Q# callable.</param>
+        /// <param name="fullName">The unqualified name of the Q# callable.</param>
         /// <param name="kind">The specialization kind.</param>
         /// <returns>The mangled name for the wrapper.</returns>
         public static string FunctionWrapperName(QsQualifiedName fullName, QsSpecializationKind kind) =>
@@ -603,9 +602,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             void PopulateItem(Value index)
                             {
                                 // We need to make sure that the reference count for the built item is increased by 1.
-                                //this.ScopeMgr.OpenScope();
-                                //var value = DefaultValue(elementType);
-                                //this.ScopeMgr.CloseScope(value);
+                                // this.ScopeMgr.OpenScope();
+                                // var value = DefaultValue(elementType);
+                                // this.ScopeMgr.CloseScope(value);
                                 var arrayElementType = this.LlvmTypeFromQsharpType(mapping.ArrayElementType);
                                 var offset = this.CurrentBuilder.Mul(index, givenArrElementSize);
                                 var elementPointer = this.CurrentBuilder.Add(givenArrayPtr, offset);
@@ -801,8 +800,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
         /// </summary>
-        /// <param name="nsName">The callable's namespace</param>
-        /// <param name="name">The callable's name</param>
+        /// <param name="fullName">The callable's name</param>
         /// <param name="callable">The Q# callable, if found</param>
         /// <returns>true if the callable is found, false if not</returns>
         internal bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
@@ -811,8 +809,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Tries to find a Q# user-defined type in the current compilation.
         /// </summary>
-        /// <param name="nsName">The UDT's namespace</param>
-        /// <param name="name">The UDT's name</param>
+        /// <param name="fullName">The UDT's name</param>
         /// <param name="udt">The Q# UDT< if found</param>
         /// <returns>true if the UDT is found, false if not</returns>
         internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
@@ -929,7 +926,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// generated as declarations with no definition.
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function</param>
-        /// <param name="argTuple">The specialization's argument tuple</param>
         internal IrFunction RegisterFunction(QsSpecialization spec)
         {
             var name = FunctionName(spec.Parent, spec.Kind);
@@ -1553,7 +1549,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Iterates through the given array and executes the given action on each element.
         /// The action is executed within its own scope.
         /// </summary>
-        /// <param name="elementType">The type of an array item</param>
         /// <param name="array">The array to iterate over</param>
         /// <param name="executeBody">The action to perform on each item</param>
         internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)
