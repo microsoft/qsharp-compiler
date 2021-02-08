@@ -872,6 +872,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
             else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.RangeLiteral) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.ArrayItem) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.SizedArray) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.ADD) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.SUB) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.MUL) ||
@@ -905,6 +906,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         NewRangeLiteral(item1: compilerExpression1, item2: compilerExpression2),
                     QsExpressionKind.ArrayItem => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewArrayItem(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.SizedArray => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewSizedArray(compilerExpression1, compilerExpression2),
                     QsExpressionKind.ADD => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewADD(item1: compilerExpression1, item2: compilerExpression2),
                     QsExpressionKind.SUB => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.

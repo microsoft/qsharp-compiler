@@ -865,6 +865,14 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 kind = QsExpressionKind.ValueArray;
                 bondExpressionArray = compilerValueArray.Item.Select(e => expressionTranslator(e)).ToList();
             }
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.SizedArray compilerSizedArray)
+            {
+                kind = QsExpressionKind.SizedArray;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    compilerSizedArray.value,
+                    compilerSizedArray.size,
+                    expressionTranslator);
+            }
             else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.ArrayItem compilerArrayItem)
             {
                 kind = QsExpressionKind.ArrayItem;
