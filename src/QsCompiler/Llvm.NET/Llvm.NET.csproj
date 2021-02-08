@@ -3,6 +3,7 @@
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>CS8002</NoWarn> <!-- Suppress warning regarding strong name signing. Remove before merge to main! -->
   </PropertyGroup>
 
   <ItemGroup>
