@@ -19,6 +19,8 @@ using Newtonsoft.Json.Bson;
 
 namespace Microsoft.Quantum.QsCompiler
 {
+    using BondQsCompilation = BondSchemas.V2.QsCompilation;
+
     /// <summary>
     /// This class relies on the ECMA-335 standard to extract information contained in compiled binaries.
     /// The standard can be found here: https://www.ecma-international.org/publications/files/ECMA-ST/ECMA-335.pdf,
@@ -26,6 +28,21 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public static class AssemblyLoader
     {
+        /// <summary>
+        /// TODO: Document.
+        /// </summary>
+        private static readonly IDictionary<string, Type?> SyntaxTreeResources =
+            new Dictionary<string, Type?>()
+            {
+#pragma warning disable CS0618 // Type or member is obsolete
+                { DotnetCoreDll.ResourceName, null },
+#pragma warning restore CS0618 // Type or member is obsolete
+#pragma warning disable IDE0001 // Simplify Names
+                { DotnetCoreDll.ResourceNameQsDataBondV1, typeof(BondSchemas.V1.QsCompilation) },
+                { DotnetCoreDll.ResourceNameQsDataBondV2, typeof(BondSchemas.V2.QsCompilation) }
+#pragma warning restore IDE0001 // Simplify Names
+            };
+
         /// <summary>
         /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
         /// and returns the loaded content as out parameter.
@@ -112,7 +129,47 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
-                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray);
+                compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(byteArray, typeof(BondQsCompilation));
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
+            }
+            catch (Exception ex)
+            {
+                onDeserializationException?.Invoke(ex);
+                return false;
+            }
+
+            return compilation != null && IsValidCompilation(compilation);
+        }
+
+        private static bool LoadSyntaxTree(
+            byte[] byteArray,
+            string resourceName,
+            [NotNullWhen(true)] out QsCompilation? compilation,
+            Action<Exception>? onDeserializationException = null)
+        {
+            compilation = null;
+            if (!SyntaxTreeResources.TryGetValue(resourceName, out var type))
+            {
+                onDeserializationException?.Invoke(new ArgumentException($"Unknown syntax tree resource name '{resourceName}'"));
+                return false;
+            }
+
+            try
+            {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeDeserialization);
+                if (type != null)
+                {
+                    compilation = BondSchemas.Protocols.DeserializeQsCompilationFromSimpleBinary(
+                        byteArray,
+                        type);
+                }
+                else
+                {
+#pragma warning disable 618 // LoadSyntaxTree is obsolete.
+                    LoadSyntaxTree(new MemoryStream(byteArray), out compilation, onDeserializationException);
+#pragma warning restore 618
+                }
+
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeDeserialization);
             }
             catch (Exception ex)
@@ -180,27 +237,25 @@ namespace Microsoft.Quantum.QsCompiler
         {
             compilation = null;
             var metadataReader = assemblyFile.GetMetadataReader();
-            bool isBondV1ResourcePresent = false;
-            bool isNewtonSoftResourcePresent = false;
-            ManifestResource resource;
-            if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataBondV1, out resource))
+            string? resourceName = null;
+            ManifestResource resource = default;
+
+            // Get the resource name of the syntax tree resource name included in this assembly.
+            foreach (var item in SyntaxTreeResources)
             {
-                isBondV1ResourcePresent = true;
-            }
-#pragma warning disable 618 // ResourceName is obsolete.
-            else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
-#pragma warning restore 618
-            {
-                isNewtonSoftResourcePresent = true;
+                if (metadataReader.Resources().TryGetValue(item.Key, out resource))
+                {
+                    resourceName = item.Key;
+                    break;
+                }
             }
 
             // The offset of resources is relative to the resources directory.
             // It is possible that there is no offset given because a valid dll allows for extenal resources.
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler.
-            var isResourcePresent = isBondV1ResourcePresent || isNewtonSoftResourcePresent;
             var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
             if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !isResourcePresent ||
+                (resourceName == null) ||
                 !resource.Implementation.IsNil)
             {
                 return false;
@@ -217,20 +272,11 @@ namespace Microsoft.Quantum.QsCompiler
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
             var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
-
-            // Use the correct method depending on the resource.
-            if (isBondV1ResourcePresent)
-            {
-                return LoadSyntaxTree(resourceData, out compilation, onDeserializationException);
-            }
-            else if (isNewtonSoftResourcePresent)
-            {
-#pragma warning disable 618 // LoadSyntaxTree is obsolete.
-                return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
-#pragma warning restore 618
-            }
-
-            return false;
+            return LoadSyntaxTree(
+                resourceData,
+                resourceName,
+                out compilation,
+                onDeserializationException);
         }
 
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)

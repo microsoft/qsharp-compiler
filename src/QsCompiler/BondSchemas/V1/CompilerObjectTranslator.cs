@@ -8,7 +8,7 @@ using System.Numerics;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.V1
 {
     /// <summary>
     /// This class translates Bond schema objects to C# compiler objects.
@@ -18,28 +18,29 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         /// <summary>
         /// Creates a C# QsCompilation compiler object from a Bond schema QsCompilation object.
         /// </summary>
-        public static SyntaxTree.QsCompilation CreateQsCompilation(QsCompilation bondCompilation) =>
-            new SyntaxTree.QsCompilation(
-                namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
-                entryPoints: bondCompilation.EntryPoints.Select(e => e.ToCompilerObject()).ToImmutableArray());
+        public static SyntaxTree.QsCompilation CreateQsCompilation(
+            QsCompilation bondCompilation) =>
+                new SyntaxTree.QsCompilation(
+                    namespaces: bondCompilation.Namespaces.Select(n => n.ToCompilerObject()).ToImmutableArray(),
+                    entryPoints: bondCompilation.EntryPoints.Select(e => e.ToCompilerObject()).ToImmutableArray());
 
-        private static BigInteger ToBigInteger(this ArraySegment<byte> blob) =>
+        internal static BigInteger ToBigInteger(this ArraySegment<byte> blob) =>
             new BigInteger(blob);
 
-        private static Source ToSource(this string sourceFile) =>
+        internal static Source ToSource(this string sourceFile) =>
             new Source(sourceFile, QsNullable<string>.Null);
 
-        private static DataTypes.Position ToCompilerObject(this Position position) =>
+        internal static DataTypes.Position ToCompilerObject(this Position position) =>
             DataTypes.Position.Create(
                 line: position.Line,
                 column: position.Column);
 
-        private static DataTypes.Range ToCompilerObject(this Range range) =>
+        internal static DataTypes.Range ToCompilerObject(this Range range) =>
             DataTypes.Range.Create(
                 start: range.Start.ToCompilerObject(),
                 end: range.End.ToCompilerObject());
 
-        private static SyntaxTokens.AccessModifier ToCompilerObject(this AccessModifier bondAccessModifier) =>
+        internal static SyntaxTokens.AccessModifier ToCompilerObject(this AccessModifier bondAccessModifier) =>
             bondAccessModifier switch
             {
                 AccessModifier.DefaultAccess => SyntaxTokens.AccessModifier.DefaultAccess,
@@ -47,18 +48,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond AccessModifier '{bondAccessModifier}'")
             };
 
-        private static SyntaxTokens.CharacteristicsKind<SyntaxTree.ResolvedCharacteristics> ToCompilerObject(
+        internal static SyntaxTokens.CharacteristicsKind<SyntaxTree.ResolvedCharacteristics> ToCompilerObject(
             this CharacteristicsKindComposition<ResolvedCharacteristics> bondCharacteristicsKindComposition) =>
             bondCharacteristicsKindComposition.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
-        private static SyntaxTokens.QsExpressionKind<SyntaxTree.TypedExpression, SyntaxTree.Identifier, SyntaxTree.ResolvedType> ToCompilerObject(
+        internal static SyntaxTokens.QsExpressionKind<SyntaxTree.TypedExpression, SyntaxTree.Identifier, SyntaxTree.ResolvedType> ToCompilerObject(
             this QsExpressionKindComposition<TypedExpression, Identifier, ResolvedType> bondQsExpressionKindComposition) =>
             bondQsExpressionKindComposition.ToCompilerObjectGeneric(
                 expressionTranslator: ToCompilerObject,
                 symbolTranslator: ToCompilerObject,
                 typeTranslator: ToCompilerObject);
 
-        private static SyntaxTokens.QsGeneratorDirective ToCompilerObject(this QsGeneratorDirective bondQsGeneratorDirective) =>
+        internal static SyntaxTokens.QsGeneratorDirective ToCompilerObject(this QsGeneratorDirective bondQsGeneratorDirective) =>
             bondQsGeneratorDirective switch
             {
                 QsGeneratorDirective.Distribute => SyntaxTokens.QsGeneratorDirective.Distribute,
@@ -68,17 +69,17 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond QsGeneratorDirective '{bondQsGeneratorDirective}'")
             };
 
-        private static SyntaxTokens.QsInitializerKind<SyntaxTree.ResolvedInitializer, SyntaxTree.TypedExpression> ToCompilerObject(
+        internal static SyntaxTokens.QsInitializerKind<SyntaxTree.ResolvedInitializer, SyntaxTree.TypedExpression> ToCompilerObject(
             this QsInitializerKindComposition<ResolvedInitializer, TypedExpression> bondQsInitializerKindComposition) =>
             bondQsInitializerKindComposition.ToCompilerObjectGeneric(
                 initializerTranslator: ToCompilerObject,
                 expressionTranslator: ToCompilerObject);
 
-        private static SyntaxTokens.Modifiers ToCompilerObject(this Modifiers bondModifiers) =>
+        internal static SyntaxTokens.Modifiers ToCompilerObject(this Modifiers bondModifiers) =>
             new SyntaxTokens.Modifiers(
                 access: bondModifiers.Access.ToCompilerObject());
 
-        private static SyntaxTokens.OpProperty ToCompilerObject(this OpProperty bondOpProperty) =>
+        internal static SyntaxTokens.OpProperty ToCompilerObject(this OpProperty bondOpProperty) =>
             bondOpProperty switch
             {
                 OpProperty.Adjointable => SyntaxTokens.OpProperty.Adjointable,
@@ -86,7 +87,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond OpProperty '{bondOpProperty}'")
             };
 
-        private static SyntaxTokens.QsPauli ToCompilerObject(this QsPauli bondQsPauli) =>
+        internal static SyntaxTokens.QsPauli ToCompilerObject(this QsPauli bondQsPauli) =>
             bondQsPauli switch
             {
                 QsPauli.PauliI => SyntaxTokens.QsPauli.PauliI,
@@ -96,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond QsPauli '{bondQsPauli}'")
             };
 
-        private static SyntaxTokens.QsResult ToCompilerObject(this QsResult bondQsResult) =>
+        internal static SyntaxTokens.QsResult ToCompilerObject(this QsResult bondQsResult) =>
             bondQsResult switch
             {
                 QsResult.Zero => SyntaxTokens.QsResult.Zero,
@@ -104,15 +105,15 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond QsResult '{bondQsResult}'")
             };
 
-        private static SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> ToCompilerObject(
+        internal static SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> ToCompilerObject(
             this QsTuple<LocalVariableDeclaration<QsLocalSymbol>> bondQsTuple) =>
             bondQsTuple.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
-        private static SyntaxTokens.QsTuple<SyntaxTree.QsTypeItem> ToCompilerObject(
+        internal static SyntaxTokens.QsTuple<SyntaxTree.QsTypeItem> ToCompilerObject(
             this QsTuple<QsTypeItem> bondQsTuple) =>
             bondQsTuple.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
-        private static SyntaxTokens.QsTypeKind<SyntaxTree.ResolvedType, SyntaxTree.UserDefinedType, SyntaxTree.QsTypeParameter, SyntaxTree.CallableInformation> ToCompilerObject(
+        internal static SyntaxTokens.QsTypeKind<SyntaxTree.ResolvedType, SyntaxTree.UserDefinedType, SyntaxTree.QsTypeParameter, SyntaxTree.CallableInformation> ToCompilerObject(
             this QsTypeKindComposition<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation> bondQsTypeKindComposition) =>
             bondQsTypeKindComposition.ToCompilerObjectGeneric(
                 typeTranslator: ToCompilerObject,
@@ -120,12 +121,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 paramTranslator: ToCompilerObject,
                 characteristicsTranslator: ToCompilerObject);
 
-        private static SyntaxTree.CallableInformation ToCompilerObject(this CallableInformation bondCallableInformation) =>
+        internal static SyntaxTree.CallableInformation ToCompilerObject(this CallableInformation bondCallableInformation) =>
             new SyntaxTree.CallableInformation(
                 characteristics: bondCallableInformation.Characteristics.ToCompilerObject(),
                 inferredInformation: bondCallableInformation.InferredInformation.ToCompilerObject());
 
-        private static SyntaxTree.Identifier ToCompilerObject(Identifier bondIdentifier)
+        internal static SyntaxTree.Identifier ToCompilerObject(Identifier bondIdentifier)
         {
             string UnexpectedNullFieldMessage(string fieldName) =>
                 $"Bond Identifier '{fieldName}' field is null when Kind is '{bondIdentifier.Kind}'";
@@ -152,40 +153,40 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.InferredCallableInformation ToCompilerObject(
+        internal static SyntaxTree.InferredCallableInformation ToCompilerObject(
             this InferredCallableInformation bondInferredCallableInformation) =>
             new SyntaxTree.InferredCallableInformation(
                 isSelfAdjoint: bondInferredCallableInformation.IsSelfAdjoint,
                 isIntrinsic: bondInferredCallableInformation.IsIntrinsic);
 
-        private static SyntaxTree.InferredExpressionInformation ToCompilerObject(
+        internal static SyntaxTree.InferredExpressionInformation ToCompilerObject(
             this InferredExpressionInformation bondInferredExpressionInformation) =>
             new SyntaxTree.InferredExpressionInformation(
                 isMutable: bondInferredExpressionInformation.IsMutable,
                 hasLocalQuantumDependency: bondInferredExpressionInformation.HasLocalQuantumDependency);
 
-        private static SyntaxTree.LocalDeclarations ToCompilerObject(
+        internal static SyntaxTree.LocalDeclarations ToCompilerObject(
             this LocalDeclarations bondLocalDeclarations) =>
             new SyntaxTree.LocalDeclarations(
                 variables: bondLocalDeclarations.Variables.Select(v => v.ToCompilerObject()).ToImmutableArray());
 
-        private static SyntaxTree.LocalVariableDeclaration<string> ToCompilerObject(
+        internal static SyntaxTree.LocalVariableDeclaration<string> ToCompilerObject(
             this LocalVariableDeclaration<string> bondLocalVariableDeclaration) =>
             bondLocalVariableDeclaration.ToCompilerObjectGeneric(typeTranslator: s => s);
 
-        private static SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol> ToCompilerObject(
+        internal static SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol> ToCompilerObject(
             this LocalVariableDeclaration<QsLocalSymbol> bondLocalVariableDeclaration) =>
             bondLocalVariableDeclaration.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
-        public static SyntaxTree.QsBinding<SyntaxTree.ResolvedInitializer> ToCompilerObject(
+        internal static SyntaxTree.QsBinding<SyntaxTree.ResolvedInitializer> ToCompilerObject(
             this QsBinding<ResolvedInitializer> bondQsBinding) =>
             bondQsBinding.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
-        private static SyntaxTree.QsBinding<SyntaxTree.TypedExpression> ToCompilerObject(
+        internal static SyntaxTree.QsBinding<SyntaxTree.TypedExpression> ToCompilerObject(
             this QsBinding<TypedExpression> bondQsBinding) =>
             bondQsBinding.ToCompilerObjectGeneric(typeTranslator: ToCompilerObject);
 
-        private static SyntaxTree.QsBindingKind ToCompilerObject(this QsBindingKind bondQsBindingKind) =>
+        internal static SyntaxTree.QsBindingKind ToCompilerObject(this QsBindingKind bondQsBindingKind) =>
             bondQsBindingKind switch
             {
                 QsBindingKind.ImmutableBinding => SyntaxTree.QsBindingKind.ImmutableBinding,
@@ -193,7 +194,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond QsBindingKind '{bondQsBindingKind}'")
             };
 
-        private static SyntaxTree.QsCallable ToCompilerObject(this QsCallable bondQsCallable) =>
+        internal static SyntaxTree.QsCallable ToCompilerObject(this QsCallable bondQsCallable) =>
             new SyntaxTree.QsCallable(
                 kind: bondQsCallable.Kind.ToCompilerObject(),
                 fullName: bondQsCallable.FullName.ToCompilerObject(),
@@ -209,7 +210,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 documentation: bondQsCallable.Documentation.ToImmutableArray(),
                 comments: bondQsCallable.Comments.ToCompilerObject());
 
-        private static SyntaxTree.QsCallableKind ToCompilerObject(this QsCallableKind bondQsCallableKind) =>
+        internal static SyntaxTree.QsCallableKind ToCompilerObject(this QsCallableKind bondQsCallableKind) =>
             bondQsCallableKind switch
             {
                 QsCallableKind.Operation => SyntaxTree.QsCallableKind.Operation,
@@ -218,24 +219,24 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond QsCallableKind '{bondQsCallableKind}'")
             };
 
-        private static SyntaxTree.QsComments ToCompilerObject(this QsComments bondQsComments) =>
+        internal static SyntaxTree.QsComments ToCompilerObject(this QsComments bondQsComments) =>
             new SyntaxTree.QsComments(
                 openingComments: bondQsComments.OpeningComments.ToImmutableArray(),
                 closingComments: bondQsComments.ClosingComments.ToImmutableArray());
 
-        private static SyntaxTree.QsConditionalStatement ToCompilerObject(this QsConditionalStatement bondQsConditionalStatement) =>
+        internal static SyntaxTree.QsConditionalStatement ToCompilerObject(this QsConditionalStatement bondQsConditionalStatement) =>
             new SyntaxTree.QsConditionalStatement(
                 conditionalBlocks: bondQsConditionalStatement.ConditionalBlocks.Select(c => c.ToCompilerObject()).ToImmutableArray(),
                 @default: bondQsConditionalStatement.Default != null ?
                     bondQsConditionalStatement.Default.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.QsPositionedBlock>.Null);
 
-        private static SyntaxTree.QsConjugation ToCompilerObject(this QsConjugation bondQsConjugation) =>
+        internal static SyntaxTree.QsConjugation ToCompilerObject(this QsConjugation bondQsConjugation) =>
             new SyntaxTree.QsConjugation(
                 outerTransformation: bondQsConjugation.OuterTransformation.ToCompilerObject(),
                 innerTransformation: bondQsConjugation.InnerTransformation.ToCompilerObject());
 
-        private static SyntaxTree.QsCustomType ToCompilerObject(this QsCustomType bondQsCustomType) =>
+        internal static SyntaxTree.QsCustomType ToCompilerObject(this QsCustomType bondQsCustomType) =>
             new SyntaxTree.QsCustomType(
                 fullName: bondQsCustomType.FullName.ToCompilerObject(),
                 attributes: bondQsCustomType.Attributes.Select(a => a.ToCompilerObject()).ToImmutableArray(),
@@ -249,7 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 documentation: bondQsCustomType.Documentation.ToImmutableArray(),
                 comments: bondQsCustomType.Comments.ToCompilerObject());
 
-        private static SyntaxTree.QsDeclarationAttribute ToCompilerObject(this QsDeclarationAttribute bondQsDeclarationAttribute) =>
+        internal static SyntaxTree.QsDeclarationAttribute ToCompilerObject(this QsDeclarationAttribute bondQsDeclarationAttribute) =>
             new SyntaxTree.QsDeclarationAttribute(
                 typeId: bondQsDeclarationAttribute.TypeId != null ?
                     bondQsDeclarationAttribute.TypeId.ToCompilerObject().ToQsNullableGeneric() :
@@ -258,13 +259,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 offset: bondQsDeclarationAttribute.Offset.ToCompilerObject(),
                 comments: bondQsDeclarationAttribute.Comments.ToCompilerObject());
 
-        private static SyntaxTree.QsForStatement ToCompilerObject(this QsForStatement bondQsForStatement) =>
+        internal static SyntaxTree.QsForStatement ToCompilerObject(this QsForStatement bondQsForStatement) =>
             new SyntaxTree.QsForStatement(
                 loopItem: bondQsForStatement.LoopItem.ToCompilerObject(),
                 iterationValues: bondQsForStatement.IterationValues.ToCompilerObject(),
                 body: bondQsForStatement.Body.ToCompilerObject());
 
-        private static SyntaxTree.QsLocalSymbol ToCompilerObject(this QsLocalSymbol bondQsLocalSymbol)
+        internal static SyntaxTree.QsLocalSymbol ToCompilerObject(this QsLocalSymbol bondQsLocalSymbol)
         {
             if (bondQsLocalSymbol.Kind == QsLocalSymbolKind.ValidName)
             {
@@ -284,12 +285,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.QsLocation ToCompilerObject(this QsLocation bondQsLocation) =>
+        internal static SyntaxTree.QsLocation ToCompilerObject(this QsLocation bondQsLocation) =>
             new SyntaxTree.QsLocation(
                 offset: bondQsLocation.Offset.ToCompilerObject(),
                 range: bondQsLocation.Range.ToCompilerObject());
 
-        private static SyntaxTree.QsNamespace ToCompilerObject(this QsNamespace bondQsNamespace) =>
+        internal static SyntaxTree.QsNamespace ToCompilerObject(this QsNamespace bondQsNamespace) =>
             new SyntaxTree.QsNamespace(
                 name: bondQsNamespace.Name,
                 elements: bondQsNamespace.Elements.Select(e => e.ToCompilerObject()).ToImmutableArray(),
@@ -297,7 +298,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     p => p.FileName,
                     p => p.DocumentationItems.ToImmutableArray()));
 
-        private static SyntaxTree.QsNamespaceElement ToCompilerObject(this QsNamespaceElement bondQsNamespaceElement)
+        internal static SyntaxTree.QsNamespaceElement ToCompilerObject(this QsNamespaceElement bondQsNamespaceElement)
         {
             string UnexpectedNullFieldMessage(string fieldName) =>
                 $"Bond QsNamespaceElement '{fieldName}' field is null when Kind is '{bondQsNamespaceElement.Kind}'";
@@ -324,7 +325,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.QsPositionedBlock ToCompilerObject(this QsPositionedBlock bondQsPositionedBlock) =>
+        internal static SyntaxTree.QsPositionedBlock ToCompilerObject(this QsPositionedBlock bondQsPositionedBlock) =>
             new SyntaxTree.QsPositionedBlock(
                 body: bondQsPositionedBlock.Body.ToCompilerObject(),
                 location: bondQsPositionedBlock.Location != null ?
@@ -332,18 +333,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     QsNullable<SyntaxTree.QsLocation>.Null,
                 comments: bondQsPositionedBlock.Comments.ToCompilerObject());
 
-        private static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName) =>
+        internal static SyntaxTree.QsQualifiedName ToCompilerObject(this QsQualifiedName bondQsQualifiedName) =>
             new SyntaxTree.QsQualifiedName(
                 @namespace: bondQsQualifiedName.Namespace,
                 name: bondQsQualifiedName.Name);
 
-        private static SyntaxTree.QsQubitScope ToCompilerObject(this QsQubitScope bondQsQubitScope) =>
+        internal static SyntaxTree.QsQubitScope ToCompilerObject(this QsQubitScope bondQsQubitScope) =>
             new SyntaxTree.QsQubitScope(
                 kind: bondQsQubitScope.Kind.ToCompilerObject(),
                 binding: bondQsQubitScope.Binding.ToCompilerObject(),
                 body: bondQsQubitScope.Body.ToCompilerObject());
 
-        private static SyntaxTree.QsQubitScopeKind ToCompilerObject(this QsQubitScopeKind bondQsQubitScopeKind) =>
+        internal static SyntaxTree.QsQubitScopeKind ToCompilerObject(this QsQubitScopeKind bondQsQubitScopeKind) =>
             bondQsQubitScopeKind switch
             {
                 QsQubitScopeKind.Allocate => SyntaxTree.QsQubitScopeKind.Allocate,
@@ -351,18 +352,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond QsQubitScopeKind '{bondQsQubitScopeKind}'")
             };
 
-        private static SyntaxTree.QsRepeatStatement ToCompilerObject(this QsRepeatStatement bondQsRepeatStatement) =>
+        internal static SyntaxTree.QsRepeatStatement ToCompilerObject(this QsRepeatStatement bondQsRepeatStatement) =>
             new SyntaxTree.QsRepeatStatement(
                 repeatBlock: bondQsRepeatStatement.RepeatBlock.ToCompilerObject(),
                 successCondition: bondQsRepeatStatement.SuccessCondition.ToCompilerObject(),
                 fixupBlock: bondQsRepeatStatement.FixupBlock.ToCompilerObject());
 
-        private static SyntaxTree.QsScope ToCompilerObject(this QsScope bondQsScope) =>
+        internal static SyntaxTree.QsScope ToCompilerObject(this QsScope bondQsScope) =>
             new SyntaxTree.QsScope(
                 statements: bondQsScope.Statements.Select(s => s.ToCompilerObject()).ToImmutableArray(),
                 knownSymbols: bondQsScope.KnownSymbols.ToCompilerObject());
 
-        private static SyntaxTree.QsSpecialization ToCompilerObject(this QsSpecialization bondQsSpecialization) =>
+        internal static SyntaxTree.QsSpecialization ToCompilerObject(this QsSpecialization bondQsSpecialization) =>
             new SyntaxTree.QsSpecialization(
                 kind: bondQsSpecialization.Kind.ToCompilerObject(),
                 parent: bondQsSpecialization.Parent.ToCompilerObject(),
@@ -379,7 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 documentation: bondQsSpecialization.Documentation.ToImmutableArray(),
                 comments: bondQsSpecialization.Comments.ToCompilerObject());
 
-        private static SyntaxTree.QsSpecializationKind ToCompilerObject(this QsSpecializationKind bondQsSpecializationKind) =>
+        internal static SyntaxTree.QsSpecializationKind ToCompilerObject(this QsSpecializationKind bondQsSpecializationKind) =>
             bondQsSpecializationKind switch
             {
                 QsSpecializationKind.QsAdjoint => SyntaxTree.QsSpecializationKind.QsAdjoint,
@@ -389,7 +390,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 _ => throw new ArgumentException($"Unsupported Bond QsSpecializationKind '{bondQsSpecializationKind}'")
             };
 
-        private static SyntaxTree.QsStatement ToCompilerObject(this QsStatement bondQsStatement) =>
+        internal static SyntaxTree.QsStatement ToCompilerObject(this QsStatement bondQsStatement) =>
             new SyntaxTree.QsStatement(
                 statement: bondQsStatement.Statement.ToCompilerObject(),
                 symbolDeclarations: bondQsStatement.SymbolDeclarations.ToCompilerObject(),
@@ -398,7 +399,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     QsNullable<SyntaxTree.QsLocation>.Null,
                 comments: bondQsStatement.Comments.ToCompilerObject());
 
-        private static SyntaxTree.QsStatementKind ToCompilerObject(
+        internal static SyntaxTree.QsStatementKind ToCompilerObject(
             this QsStatementKindComposition bondQsStatementKindComposition)
         {
             string InvalidKindForFieldMessage(string fieldName) =>
@@ -509,7 +510,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.QsTypeItem ToCompilerObject(this QsTypeItem bondQsTypeItem)
+        internal static SyntaxTree.QsTypeItem ToCompilerObject(this QsTypeItem bondQsTypeItem)
         {
             string UnexpectedNullFieldMessage(string fieldName) =>
                 $"Bond QsTypeItem '{fieldName}' field is null when Kind is '{bondQsTypeItem.Kind}'";
@@ -537,7 +538,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.QsTypeParameter ToCompilerObject(this QsTypeParameter bondQsTypeParameter) =>
+        internal static SyntaxTree.QsTypeParameter ToCompilerObject(this QsTypeParameter bondQsTypeParameter) =>
             new SyntaxTree.QsTypeParameter(
                 origin: bondQsTypeParameter.Origin.ToCompilerObject(),
                 typeName: bondQsTypeParameter.TypeName,
@@ -545,34 +546,34 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondQsTypeParameter.Range.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<DataTypes.Range>.Null);
 
-        private static SyntaxTree.QsWhileStatement ToCompilerObject(this QsWhileStatement bondQsWhileStatement) =>
+        internal static SyntaxTree.QsWhileStatement ToCompilerObject(this QsWhileStatement bondQsWhileStatement) =>
             new SyntaxTree.QsWhileStatement(
                 condition: bondQsWhileStatement.Condition.ToCompilerObject(),
                 body: bondQsWhileStatement.Body.ToCompilerObject());
 
-        private static SyntaxTree.QsValueUpdate ToCompilerObject(this QsValueUpdate bondQsValueUpdate) =>
+        internal static SyntaxTree.QsValueUpdate ToCompilerObject(this QsValueUpdate bondQsValueUpdate) =>
             new SyntaxTree.QsValueUpdate(
                 lhs: bondQsValueUpdate.Lhs.ToCompilerObject(),
                 rhs: bondQsValueUpdate.Rhs.ToCompilerObject());
 
-        private static SyntaxTree.ResolvedCharacteristics ToCompilerObject(this ResolvedCharacteristics bondResolvedCharacteristics) =>
+        internal static SyntaxTree.ResolvedCharacteristics ToCompilerObject(this ResolvedCharacteristics bondResolvedCharacteristics) =>
             SyntaxTree.ResolvedCharacteristics.New(kind: bondResolvedCharacteristics.Expression.ToCompilerObject());
 
         // TODO: Check whether this translation is correct in a round-trip.
-        private static SyntaxTree.ResolvedInitializer ToCompilerObject(this ResolvedInitializer bondResolvedInitializer) =>
+        internal static SyntaxTree.ResolvedInitializer ToCompilerObject(this ResolvedInitializer bondResolvedInitializer) =>
             SyntaxTree.ResolvedInitializer.New(kind: bondResolvedInitializer.Initializer.ToCompilerObject());
 
-        private static SyntaxTree.ResolvedSignature ToCompilerObject(this ResolvedSignature bondResolvedSignature) =>
+        internal static SyntaxTree.ResolvedSignature ToCompilerObject(this ResolvedSignature bondResolvedSignature) =>
             new SyntaxTree.ResolvedSignature(
                 typeParameters: bondResolvedSignature.TypeParameters.Select(tp => tp.ToCompilerObject()).ToImmutableArray(),
                 argumentType: bondResolvedSignature.ArgumentType.ToCompilerObject(),
                 returnType: bondResolvedSignature.ReturnType.ToCompilerObject(),
                 information: bondResolvedSignature.Information.ToCompilerObject());
 
-        private static SyntaxTree.ResolvedType ToCompilerObject(this ResolvedType bondResolvedType) =>
+        internal static SyntaxTree.ResolvedType ToCompilerObject(this ResolvedType bondResolvedType) =>
             SyntaxTree.ResolvedType.New(bondResolvedType.TypeKind.ToCompilerObject());
 
-        private static SyntaxTree.SpecializationImplementation ToCompilerObject(
+        internal static SyntaxTree.SpecializationImplementation ToCompilerObject(
             this SpecializationImplementation bondSpecializationImplementation)
         {
             string UnexpectedNullFieldMessage(string fieldName) =>
@@ -608,7 +609,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.SymbolTuple ToCompilerObject(this SymbolTuple bondSymbolTuple)
+        internal static SyntaxTree.SymbolTuple ToCompilerObject(this SymbolTuple bondSymbolTuple)
         {
             string UnexpectedNullFieldMessage(string fieldName) =>
                 $"Bond SymbolTuple '{fieldName}' field is null when Kind is '{bondSymbolTuple.Kind}'";
@@ -641,7 +642,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.TypedExpression ToCompilerObject(this TypedExpression bondTypedExpression) =>
+        internal static SyntaxTree.TypedExpression ToCompilerObject(this TypedExpression bondTypedExpression) =>
             new SyntaxTree.TypedExpression(
                 expression: bondTypedExpression.Expression.ToCompilerObject(),
                 typeArguments: bondTypedExpression.TypedArguments.
@@ -653,7 +654,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondTypedExpression.Range.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<DataTypes.Range>.Null);
 
-        private static SyntaxTree.UserDefinedType ToCompilerObject(this UserDefinedType bondUserDefinedType) =>
+        internal static SyntaxTree.UserDefinedType ToCompilerObject(this UserDefinedType bondUserDefinedType) =>
             new SyntaxTree.UserDefinedType(
                 @namespace: bondUserDefinedType.Namespace,
                 name: bondUserDefinedType.Name,
@@ -661,18 +662,18 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     bondUserDefinedType.Range.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<DataTypes.Range>.Null);
 
-        private static Tuple<SyntaxTree.SymbolTuple, SyntaxTree.ResolvedType> ToCompilerObject(this QsLoopItem bondQsLoopItem) =>
+        internal static Tuple<SyntaxTree.SymbolTuple, SyntaxTree.ResolvedType> ToCompilerObject(this QsLoopItem bondQsLoopItem) =>
             new Tuple<SyntaxTree.SymbolTuple, SyntaxTree.ResolvedType>(
                 item1: bondQsLoopItem.SymbolTuple.ToCompilerObject(),
                 item2: bondQsLoopItem.ResolvedType.ToCompilerObject());
 
-        private static Tuple<SyntaxTree.TypedExpression, SyntaxTree.QsPositionedBlock> ToCompilerObject(
+        internal static Tuple<SyntaxTree.TypedExpression, SyntaxTree.QsPositionedBlock> ToCompilerObject(
             this QsConditionalBlock bondQsConditionalBlock) =>
             new Tuple<SyntaxTree.TypedExpression, SyntaxTree.QsPositionedBlock>(
                 item1: bondQsConditionalBlock.Expression.ToCompilerObject(),
                 item2: bondQsConditionalBlock.Block.ToCompilerObject());
 
-        private static SyntaxTokens.CharacteristicsKind<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
+        internal static SyntaxTokens.CharacteristicsKind<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
             this CharacteristicsKindComposition<TBond> bondCharacteristicsKindComposition,
             Func<TBond, TCompiler> typeTranslator)
         {
@@ -722,7 +723,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType> ToCompilerObjectGeneric<
+        internal static SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType> ToCompilerObjectGeneric<
             TCompilerExpression,
             TCompilerSymbol,
             TCompilerType,
@@ -999,7 +1000,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression> ToCompilerObjectGeneric<
+        internal static SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression> ToCompilerObjectGeneric<
             TCompilerInitializer,
             TCompilerExpression,
             TBondInitializer,
@@ -1042,7 +1043,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTokens.QsTuple<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
+        internal static SyntaxTokens.QsTuple<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
             this QsTuple<TBond> bondQsTuple,
             Func<TBond, TCompiler> typeTranslator)
         {
@@ -1072,7 +1073,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics> ToCompilerObjectGeneric<
+        internal static SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics> ToCompilerObjectGeneric<
             TCompilerType,
             TCompilerUdt,
             TCompilerParam,
@@ -1183,7 +1184,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
         }
 
-        private static SyntaxTree.LocalVariableDeclaration<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
+        internal static SyntaxTree.LocalVariableDeclaration<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
             this LocalVariableDeclaration<TBond> bondLocalVariableDeclaration,
             Func<TBond, TCompiler> typeTranslator) =>
             new SyntaxTree.LocalVariableDeclaration<TCompiler>(
@@ -1195,7 +1196,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     QsNullable<DataTypes.Position>.Null,
                 range: bondLocalVariableDeclaration.Range.ToCompilerObject());
 
-        private static SyntaxTree.QsBinding<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
+        internal static SyntaxTree.QsBinding<TCompiler> ToCompilerObjectGeneric<TCompiler, TBond>(
             this QsBinding<TBond> bondQsBinding,
             Func<TBond, TCompiler> typeTranslator) =>
             new SyntaxTree.QsBinding<TCompiler>(
@@ -1203,7 +1204,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 lhs: bondQsBinding.Lhs.ToCompilerObject(),
                 rhs: typeTranslator(bondQsBinding.Rhs));
 
-        private static QsNullable<T> ToQsNullableGeneric<T>(this T obj) =>
+        internal static QsNullable<T> ToQsNullableGeneric<T>(this T obj) =>
                 QsNullable<T>.NewValue(obj);
     }
 }
