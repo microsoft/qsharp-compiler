@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QIR
             dict.Add(QsCompiler.BuiltIn.RangeStep.FullName, this.RangeStep);
             dict.Add(QsCompiler.BuiltIn.RangeEnd.FullName, this.RangeEnd);
             dict.Add(QsCompiler.BuiltIn.RangeReverse.FullName, this.RangeReverse);
-            dict.Add(QsCompiler.BuiltIn.Truncate.FullName, this.Truncate);
+            dict.Add(QsCompiler.BuiltIn.Truncate.FullName, this.DoubleAsInt); // This redundancy needs to be eliminated in the Q# libraries.
 
             this.sharedState = sharedState;
             this.BuiltIn = dict.ToImmutable();
@@ -209,13 +209,6 @@ namespace Microsoft.Quantum.QIR
             reversed = this.sharedState.CurrentBuilder.InsertValue(reversed, this.sharedState.CurrentBuilder.Neg(step), 1u);
             reversed = this.sharedState.CurrentBuilder.InsertValue(reversed, start, 2u);
             return this.sharedState.Values.From(reversed, Range);
-        }
-
-        private IValue Truncate(TypedExpression arg)
-        {
-            var value = this.sharedState.EvaluateSubexpression(arg);
-            var truncated = this.sharedState.CurrentBuilder.FPTrunc(value.Value, this.sharedState.Types.Int);
-            return this.sharedState.Values.FromSimpleValue(truncated, Int);
         }
     }
 }
