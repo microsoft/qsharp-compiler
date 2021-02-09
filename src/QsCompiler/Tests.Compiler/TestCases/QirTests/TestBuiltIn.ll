@@ -3,7 +3,7 @@ entry:
   %d = sitofp i64 %arg to double
   %i = fptosi double %d to i64
   %bi = call %BigInt* @__quantum__rt__bigint_create_i64(i64 %arg)
-  %t = fptrunc double %d to i64
+  %t = fptosi double %d to i64
   %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, i64, %BigInt*, i64 }* getelementptr ({ double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* null, i32 1) to i64))
   %1 = bitcast %Tuple* %0 to { double, i64, %BigInt*, i64 }*
   %2 = getelementptr { double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* %1, i64 0, i32 0
