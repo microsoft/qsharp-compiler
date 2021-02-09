@@ -989,12 +989,12 @@ type QsExpression with
             (ValueArray resolvedValues, resolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
 
         let buildSizedArray value (size: QsExpression) =
+            let value = InnerExpression value
+            let arrayType = ArrayType value.ResolvedType |> ResolvedType.New
+
             let sizeRange = size.RangeOrDefault
             let size = InnerExpression size
             VerifyIsInteger addError (size.ResolvedType, sizeRange)
-
-            let value = InnerExpression value
-            let arrayType = ArrayType value.ResolvedType |> ResolvedType.New
 
             let quantumDependency =
                 value.InferredInformation.HasLocalQuantumDependency
