@@ -988,6 +988,7 @@ type QsExpression with
 
             (ValueArray resolvedValues, resolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
 
+        /// Resolves and verifies the sized array constructor expression and returns it as a typed expression.
         let buildSizedArray value (size: QsExpression) =
             let value = InnerExpression value
             let arrayType = ArrayType value.ResolvedType |> ResolvedType.New
