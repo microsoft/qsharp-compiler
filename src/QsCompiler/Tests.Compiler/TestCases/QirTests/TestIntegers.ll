@@ -6,10 +6,10 @@ entry:
   %2 = udiv i64 %b, 7
   %d = sub i64 %1, %2
   %e = ashr i64 %d, 3
-  %3 = sitofp i64 %d to double
+  %3 = sitofp i64 %d to fp128
   %4 = trunc i64 %b to i32
-  %5 = call double @llvm.powi.f64(double %3, i32 %4)
-  %f = fptosi double %5 to i64
+  %5 = call fp128 @llvm.powi.f128(fp128 %3, i32 %4)
+  %f = fptosi fp128 %5 to i64
   %6 = and i64 %e, %f
   %g = or i64 %6, 65535
   %7 = xor i64 %g, -1
