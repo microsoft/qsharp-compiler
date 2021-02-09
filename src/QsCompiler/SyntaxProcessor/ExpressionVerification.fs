@@ -988,17 +988,19 @@ type QsExpression with
 
             (ValueArray resolvedValues, resolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
 
-        let buildSizedArray value size =
-            let value' = InnerExpression value
-            let size' = InnerExpression size
-            VerifyIsInteger addError (size'.ResolvedType, size.RangeOrDefault)
-            let arrayType = ArrayType value'.ResolvedType |> ResolvedType.New
+        let buildSizedArray value (size: QsExpression) =
+            let sizeRange = size.RangeOrDefault
+            let size = InnerExpression size
+            VerifyIsInteger addError (size.ResolvedType, sizeRange)
+
+            let value = InnerExpression value
+            let arrayType = ArrayType value.ResolvedType |> ResolvedType.New
 
             let quantumDependency =
-                value'.InferredInformation.HasLocalQuantumDependency
-                || size'.InferredInformation.HasLocalQuantumDependency
+                value.InferredInformation.HasLocalQuantumDependency
+                || size.InferredInformation.HasLocalQuantumDependency
 
-            (SizedArray(value', size'), arrayType, quantumDependency, this.Range) |> ExprWithoutTypeArgs false
+            (SizedArray(value, size), arrayType, quantumDependency, this.Range) |> ExprWithoutTypeArgs false
 
         /// Resolves and verifies the given array expression and index expression of an array item access expression,
         /// and returns the corresponding ArrayItem expression as typed expression.
