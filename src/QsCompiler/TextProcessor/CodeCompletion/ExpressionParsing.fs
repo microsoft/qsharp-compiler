@@ -14,9 +14,13 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
 
 #nowarn "40"
 
-/// Parses an array of items each parsed by `expression`.
+/// <summary>
+/// Parses an array of items each parsed by <paramref name="expression"/>.
+/// </summary>
 let private array expression =
-    let sized expression = expression ?>> (comma >>. expectedKeyword size ?>> (equal >>. expression))
+    let sized expression =
+        expression ?>> (comma >>. expectedKeyword size ?>> (equal >>. expression))
+
     let items = sepBy1 expression comma |>> List.last
     brackets (lArray, rArray) (sized expression <|>@ items)
 
