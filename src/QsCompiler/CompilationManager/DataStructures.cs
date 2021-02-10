@@ -265,10 +265,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             commentIndex = -1;
-            var stringLength = text.Length;
             var noOpenStringDelimiters = new[] { '"', '/' };
             var openInterpolatedArgumentDelimiters = new[] { '"', '}', '/' };
             var openInterpolatedStringDelimiters = new[] { '"', '{' };
+
+            bool IsLoneSlash(int index) => index >= 0 && text[index] == '/' && (index + 1 == text.Length || text[index + 1] != '/');
+            bool IsEscaped(int index) => index > 0 && text[index - 1] == '\\';
 
             var pos = 0;
             while (pos < text.Length)
@@ -277,17 +279,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 switch (stringContext)
                 {
                     case StringContext.NoOpenString:
-                        // Find the next "
+                        // Find the next " or comment
                         indexOfDelim = text.IndexOfAny(noOpenStringDelimiters, pos);
-                        while (indexOfDelim > 0 && text[indexOfDelim] == '/' && (indexOfDelim + 1 == text.Length || text[indexOfDelim + 1] != '/'))
+                        // Don't stop if index is a lone /
+                        while (IsLoneSlash(indexOfDelim))
                         {
                             indexOfDelim = text.IndexOfAny(noOpenStringDelimiters, indexOfDelim + 1);
                         }
                         break;
                     case StringContext.OpenInterpolatedArgument:
-                        // Find the next " or }
+                        // Find the next " or } or comment
                         indexOfDelim = text.IndexOfAny(openInterpolatedArgumentDelimiters, pos);
-                        while (indexOfDelim > 0 && text[indexOfDelim] == '/' && (indexOfDelim + 1 == text.Length || text[indexOfDelim + 1] != '/'))
+                        // Don't stop if index is a lone /
+                        while (IsLoneSlash(indexOfDelim))
                         {
                             indexOfDelim = text.IndexOfAny(openInterpolatedArgumentDelimiters, indexOfDelim + 1);
                         }
@@ -295,7 +299,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     case StringContext.OpenInterpolatedString:
                         // Find the next " or {, neither or which being preceded by \
                         indexOfDelim = text.IndexOfAny(openInterpolatedStringDelimiters, pos);
-                        while (indexOfDelim > 0 && text[indexOfDelim - 1] == '\\')
+                        while (IsEscaped(indexOfDelim))
                         {
                             indexOfDelim = text.IndexOfAny(openInterpolatedStringDelimiters, indexOfDelim + 1);
                         }
@@ -304,7 +308,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     case StringContext.OpenStringInOpenInterpolatedArgument:
                         // Find the next " not preceded by \
                         indexOfDelim = text.IndexOf('"', pos);
-                        while (indexOfDelim > 0 && text[indexOfDelim - 1] == '\\')
+                        while (IsEscaped(indexOfDelim))
                         {
                             indexOfDelim = text.IndexOf('"', indexOfDelim + 1);
                         }
@@ -321,13 +325,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     commentIndex = indexOfDelim;
                     break;
                 }
-
-                // Check for a comment start if we are outside a string
-                //commentIndex = stringContext >= StringContext.OpenString ? -1 : text.IndexOf("//", pos);
-                //if (indexOfDelim < 0 || (commentIndex > -1 && commentIndex < indexOfDelim))
-                //{
-                //    break;
-                //}
 
                 // Get the delimiter
                 var inputDelimiter = text[indexOfDelim].ToString();
@@ -360,92 +357,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 pos = indexOfDelim + 1;
             }
 
-            /*/
-
-            while (text != string.Empty)
-            {
-                // Check for a comment start if we are outside a string
-                commentIndex = stringContext >= StringContext.OpenString ? -1 : text.IndexOf("//");
-
-                var index = -1;
-                switch (stringContext)
-                {
-                    case StringContext.NoOpenString:
-                        // Find the next "
-                        index = text.IndexOf('"');
-                        break;
-                    case StringContext.OpenInterpolatedArgument:
-                        // Find the next " or }
-                        index = text.IndexOfAny(openInterpolatedArgumentDelimiters);
-                        break;
-                    case StringContext.OpenInterpolatedString:
-                        // Find the next " or {, neither or which being preceded by \
-                        index = text.IndexOfAny(openInterpolatedStringDelimiters);
-                        while (index > 0 && text[index - 1] == '\\')
-                        {
-                            var next = text.Substring(index + 1).IndexOfAny(openInterpolatedStringDelimiters);
-                            index = next < 0 ? next : index + 1 + next;
-                        }
-                        break;
-                    case StringContext.OpenString:
-                    case StringContext.OpenStringInOpenInterpolatedArgument:
-                        // Find the next " not preceded by \
-                        index = text.IndexOf('"');
-                        while (index > 0 && text[index - 1] == '\\')
-                        {
-                            var next = text.Substring(index + 1).IndexOf('"');
-                            index = next < 0 ? next : index + 1 + next;
-                        }
-                        break;
-                }
-
-                if (index < 0 || (commentIndex > -1 && commentIndex < index))
-                {
-                    break;
-                }
-
-                var inputDelimiter = text[index].ToString();
-                // If the input is a " preceded by a $ than the input needs to be updated to $"
-                if (index > 0 && inputDelimiter == "\"" && text[index - 1] == '$')
-                {
-                    inputDelimiter = "$\"";
-                }
-
-                var pos = index + stringLength - text.Length;
-                bool validDelimiter;
-                (stringContext, validDelimiter) = MoveToNextState(stringContext, inputDelimiter);
-                if (!validDelimiter)
-                {
-                    // If the erroneous delimiter is $", mark the $ as the error and treat the " as a normal string delimiter
-                    if (inputDelimiter == "$\"")
-                    {
-                        errorDelimiterBuilder.Add(pos - 1); // Backup to the $ character
-                        delimiterBuilder.Add(pos);
-                    }
-                    else
-                    {
-                        errorDelimiterBuilder.Add(pos);
-                    }
-                }
-                else
-                {
-                    delimiterBuilder.Add(pos);
-                }
-                text = text.Substring(index + 1);
-            }
-
-            // commentIndex is only nonzero if we found "//" and we were not in a string,
-            // so it should be the genuine start of a comment
-            if (commentIndex > -1)
-            {
-                commentIndex += stringLength - text.Length;
-            }
-
-            /**/
-
             if (stringContext >= StringContext.OpenString)
             {
-                delimiterBuilder.Add(stringLength);
+                delimiterBuilder.Add(text.Length);
             }
 
             errorDelimiters = errorDelimiterBuilder.ToImmutable();
