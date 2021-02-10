@@ -14,13 +14,21 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
 
 #nowarn "40"
 
+/// Parses an array of items each parsed by `expression`.
+let private array expression =
+    let sized expression = expression ?>> (comma >>. expectedKeyword size ?>> (equal >>. expression))
+    let items = sepBy1 expression comma |>> List.last
+    brackets (lArray, rArray) (sized expression <|>@ items)
+
+/// The missing expression keyword.
+let private missingExpr = { parse = keyword "_"; id = "_" }
 
 /// Parses a prefix operator.
 let private prefixOp = expectedKeyword notOperator <|> operator qsNEGop.op "" <|> operator qsBNOTop.op ""
 
 /// Parses an infix operator.
 let private infixOp =
-    operatorLike ""
+    operatorLikeExcluding ""
     <|> pcollect [ expectedKeyword andOperator
                    expectedKeyword orOperator ]
 
@@ -53,8 +61,8 @@ let rec expression =
                 ?>> expression
 
             let typeParamListOrLessThan =
-                // This is a parsing hack for the < operator, which can be either less-than or the start of a type parameter
-                // list.
+                // This is a parsing hack for the < operator, which can be either less-than or the start of a type
+                // parameter list.
                 operator qsLTop.op "=-" ?>> ((sepByLast qsType comma ?>> expected (bracket rAngle)) <|>@ expression)
 
             choice [ operator qsUnwrapModifier.op ""
@@ -69,6 +77,10 @@ let rec expression =
             expectedKeyword arrayDecl
             ?>> nonArrayType
             ?>> manyR (brackets (lArray, rArray) (emptySpace >>% [])) (preturn ()) @>> array expression
+
+        let numericLiteral =
+            numericLiteral
+            >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
 
         let stringLiteral =
             let unescaped p = previousCharSatisfies ((<>) '\\') >>. p
@@ -90,16 +102,18 @@ let rec expression =
             interpolated <|> uninterpolated
 
         let expTerm =
-            pcollect [ operator qsOpenRangeOp.op "" >>. opt expression |>> Option.defaultValue []
-                       newArray
-                       tuple1 expression
-                       array expression
-                       keywordLiteral
-                       numericLiteral
-                       >>. (previousCharSatisfiesNot Char.IsWhiteSpace >>. optional eot >>% [] <|> preturn [])
-                       stringLiteral
-                       manyR functor symbol @>> expectedQualifiedSymbol Callable
-                       expectedId Variable (term symbol) .>> nextCharSatisfiesNot ((=) '.') ]
+            [
+                operator qsOpenRangeOp.op "" >>. opt expression |>> Option.defaultValue []
+                newArray
+                tuple1 expression
+                array expression
+                keywordLiteral
+                numericLiteral
+                stringLiteral
+                manyR functor symbol @>> expectedQualifiedSymbol Callable
+                expectedId Variable (term symbol) .>> nextCharSatisfiesNot ((=) '.')
+            ]
+            |> pcollect
 
         return! createExpressionParser prefixOp infixOp postfixOp expTerm
     }
