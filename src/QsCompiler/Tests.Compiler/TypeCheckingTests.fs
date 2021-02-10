@@ -8,10 +8,16 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
+/// Tests for type checking of Q# programs.
 module TypeCheckingTests =
+    /// The compiled type-checking tests.
     let private tests =
         CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ]) |> CompilerTests
 
+    /// <summary>
+    /// Asserts that the declaration with the given <paramref name="name"/> has the given
+    /// <paramref name="diagnostics"/>.
+    /// </summary>
     let internal expect name diagnostics =
         let ns = "Microsoft.Quantum.Testing.TypeChecking"
         tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
