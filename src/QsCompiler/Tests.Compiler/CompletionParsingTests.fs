@@ -799,7 +799,7 @@ let ``Expression parser tests`` () =
             ("[x,", Keyword "size" :: expression)
             ("[x, ", Keyword "size" :: expression)
             ("[x, size ", infix)
-            // TODO: ("[x, size =", infix)
+            ("[x, size =", expression)
             ("[x, size = ", expression)
             ("[x, size = n", expression)
             ("[x, size = n]", infix)
