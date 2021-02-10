@@ -463,7 +463,7 @@ let private valueTuple item = // allows something like (a,(),b)
 /// Parses a Q# value array as QsExpression.
 /// Uses commaSep1 to generate suitable errors for invalid or missing expressions within the array.
 let private valueArray =
-    let sized = expr .>>. (comma >>. keyword "size" >>. equal >>. expr) |>> SizedArray
+    let sized = expr .>>. (comma >>. size.parse >>. equal >>. expr) |>> SizedArray
 
     // This disallows [].
     let items =
