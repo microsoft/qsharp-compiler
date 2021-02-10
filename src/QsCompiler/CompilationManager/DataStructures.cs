@@ -23,6 +23,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     /// </summary>
     internal class CodeLine
     {
+        /// <summary>
+        /// The state used in determining what string context we are in as we calculate delimiters.
+        /// The order is important as OpenString and greater are considered "string" states and
+        /// lesser are considered "non-string" states.
+        ///
+        /// Here is an example of how these states relate to Q# text:
+        ///     let str = <NoOpenString> " <OpenString> Hello World" <NoOpenString>;
+        ///     let str2 = <NoOpenString> $" <OpenInterpolatedString> Hello
+        ///         { <OpenInterpolatedArgument> " <OpenStringInOpenInterpolatedArgument> World" <OpenInterpolatedArgument> }
+        ///         <OpenInterpolatedString> " <NoOpenString>;
+        /// </summary>
         internal enum StringContext
         {
             NoOpenString,
@@ -227,6 +238,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             ScopeTracking.VerifyExcessBracketPositions(this, excessBrackets);
         }
 
+        /// <summary>
+        /// Returns true if the given string context is indicative of being
+        /// inside any kind of string, false otherwise.
+        /// </summary>
+        private static bool IsInAString(StringContext context) => context >= StringContext.OpenString;
+
         private static int FindNextDelimOrComment(string text, char[] delimiters, int startIndex)
         {
             var delimitersAndComment = delimiters.Append('/').ToArray();
@@ -259,7 +276,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             var delimiterBuilder = ImmutableArray.CreateBuilder<int>();
             var errorDelimiterBuilder = ImmutableArray.CreateBuilder<int>();
 
-            if (stringContext >= StringContext.OpenString)
+            if (IsInAString(stringContext))
             {
                 delimiterBuilder.Add(-1);
             }
@@ -357,7 +374,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 pos = indexOfDelim + 1;
             }
 
-            if (stringContext >= StringContext.OpenString)
+            if (IsInAString(stringContext))
             {
                 delimiterBuilder.Add(text.Length);
             }
