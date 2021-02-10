@@ -6,6 +6,7 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxTree
 open System
 open System.Collections.Immutable
 open System.Linq
+open System.Runtime.InteropServices
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 
@@ -221,9 +222,11 @@ type ResolvedCharacteristics =
             | Intersection (s1, s2) -> { _Characteristics = Intersection(s1, s2) } |> ResolvedCharacteristics.Simplify
             | InvalidSetExpr -> { _Characteristics = InvalidSetExpr }
 
+        /// <summary>
         /// Given the resolved characteristics of a set of specializations,
         /// determines and returns the minimal characteristics of any one of the specializations.
-        /// Throws an ArgumentException if the given list is empty.
+        /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="characteristics"/> is empty.</exception>
         static member internal Common(characteristics: ResolvedCharacteristics list) =
             let rec common current =
                 function
@@ -255,9 +258,12 @@ type ResolvedCharacteristics =
             | [] -> EmptySet |> ResolvedCharacteristics.New
             | head :: tail -> tail |> addProperties (SimpleSet head |> ResolvedCharacteristics.New)
 
+        /// <summary>
         /// Determines which properties are supported by a callable with the given characteristics and returns them.
-        /// Throws an InvalidOperationException if the properties cannot be determined
-        /// either because the characteristics expression contains unresolved parameters or is invalid.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">
+        /// The properties cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
+        /// </exception>
         member this.GetProperties() =
             match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
             | Some props -> props.ToImmutableHashSet()
@@ -315,10 +321,12 @@ type CallableInformation =
             InferredInformation = InferredCallableInformation.NoInformation
         }
 
+    /// <summary>
     /// Given a sequence of CallableInformation items,
     /// determines the common characteristics as well as the information that was inferred for all given items.
     /// Any positive property (either from characteristics, or from inferred information) in the returned CallableInformation holds true for any one of the given items.
-    /// Throws an ArgumentException if the given sequence is empty.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="infos"/> is empty.</exception>
     static member Common(infos: CallableInformation seq) =
         let commonCharacteristics =
             infos |> Seq.map (fun info -> info.Characteristics) |> Seq.toList |> ResolvedCharacteristics.Common
@@ -348,9 +356,11 @@ type ResolvedType =
         /// By construction never contains any arity-0 or arity-1 tuple types.
         member this.Resolution = this._TypeKind
 
+        /// <summary>
         /// Builds a ResolvedType based on a compatible Q# type kind, and replaces the (inaccessible) record constructor.
         /// Replaces an arity-1 tuple by its item type.
-        /// Throws an ArgumentException if the given type kind is an empty tuple.
+        /// </summary>
+        /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
         static member New kind = ResolvedType.New(false, kind)
 
         static member internal New(keepRangeInfo,
@@ -464,9 +474,11 @@ type ResolvedInitializer =
         /// the fully resolved Q# type of the initializer.
         member this.Type = this._ResolvedType
 
+        /// <summary>
         /// Builds a ResolvedInitializer based on a compatible Q# initializer kind, and replaces the (inaccessible) record constructor.
         /// Replaces an arity-1 tuple by its item type.
-        /// Throws an ArgumentException if the given type kind is an empty tuple.
+        /// </summary>
+        /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
         static member New(kind: QsInitializerKind<ResolvedInitializer, TypedExpression>) =
             let qArrayT = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
 
@@ -671,6 +683,46 @@ and QsStatement =
     }
 
 
+/// The source files of a syntax tree node.
+type Source =
+    {
+        /// The path to the original source code file.
+        CodeFile: string
+        /// The path to the assembly file if the node was loaded from a reference.
+        AssemblyFile: string QsNullable
+    }
+
+/// The module for source files.
+module Source =
+    /// The assembly file path for this source if one exists, otherwise the code file path.
+    [<CompiledName "AssemblyOrCodeFile">]
+    let assemblyOrCodeFile source =
+        source.AssemblyFile.ValueOr source.CodeFile
+
+    /// Whether the source is from a referenced assembly.
+    [<CompiledName "IsReference">]
+    let isReference (source: Source) = QsNullable.isValue source.AssemblyFile
+
+// C# API for Source.
+type Source with
+    /// The assembly file path for this source if one exists, otherwise the code file path.
+    member source.AssemblyOrCodeFile = Source.assemblyOrCodeFile source
+
+    /// Whether the source is from a referenced assembly.
+    member source.IsReference = Source.isReference source
+
+    /// <summary>
+    /// Returns a copy of this source with the given <paramref name="codeFile"/> or <paramref name="assemblyFile"/> if
+    /// provided.
+    /// </summary>
+    member source.With([<Optional; DefaultParameterValue null>] ?codeFile,
+                       [<Optional; DefaultParameterValue null>] ?assemblyFile) =
+        { source with
+            CodeFile = codeFile |> Option.defaultValue source.CodeFile
+            AssemblyFile = assemblyFile |> QsNullable<_>.FromOption |> QsNullable.orElse source.AssemblyFile
+        }
+
+
 /// used to represent the names of declared type parameters or the name of the declared argument items of a callable
 type QsLocalSymbol =
     | ValidName of string
@@ -732,8 +784,9 @@ type QsSpecialization =
         Parent: QsQualifiedName
         /// contains all attributes associated with the specialization
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        /// identifier for the file the specialization is declared in (not necessarily the same as the one of the callable it extends)
-        SourceFile: string
+        /// The source where the specialization is declared in (not necessarily the same as the one of the callable it
+        /// extends).
+        Source: Source
         /// Contains the location information for the declared specialization.
         /// The position offset represents the position in the source file where the specialization is declared,
         /// and the range contains the range of the corresponding specialization header.
@@ -761,7 +814,11 @@ type QsSpecialization =
     member this.WithParent(getName: Func<_, _>) =
         { this with Parent = getName.Invoke(this.Parent) }
 
-    member this.WithSourceFile file = { this with SourceFile = file }
+    member this.WithSource source = { this with Source = source }
+
+    // TODO: RELEASE 2021-07: Remove QsSpecialization.SourceFile.
+    [<Obsolete "Replaced by Source.">]
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
 
 /// describes a Q# function, operation, or type constructor
@@ -775,8 +832,8 @@ type QsCallable =
         Attributes: ImmutableArray<QsDeclarationAttribute>
         /// Represents the Q# keywords attached to the declaration that modify its behavior.
         Modifiers: Modifiers
-        /// identifier for the file the callable is declared in
-        SourceFile: string
+        /// The source where the callable is declared in.
+        Source: Source
         /// Contains the location information for the declared callable.
         /// The position offset represents the position in the source file where the callable is declared,
         /// and the range contains the range occupied by its name relative to that position.
@@ -810,7 +867,11 @@ type QsCallable =
     member this.WithFullName(getName: Func<_, _>) =
         { this with FullName = getName.Invoke(this.FullName) }
 
-    member this.WithSourceFile file = { this with SourceFile = file }
+    member this.WithSource source = { this with Source = source }
+
+    // TODO: RELEASE 2021-07: Remove QsCallable.SourceFile.
+    [<Obsolete "Replaced by Source.">]
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
 
 /// used to represent the named and anonymous items in a user defined type
@@ -830,8 +891,8 @@ type QsCustomType =
         Attributes: ImmutableArray<QsDeclarationAttribute>
         /// Represents the Q# keywords attached to the declaration that modify its behavior.
         Modifiers: Modifiers
-        /// identifier for the file the type is declared in
-        SourceFile: string
+        /// The source where the type is declared in.
+        Source: Source
         /// Contains the location information for the declared type.
         /// The position offset represents the position in the source file where the type is declared,
         /// and the range contains the range occupied by the type name relative to that position.
@@ -858,7 +919,11 @@ type QsCustomType =
     member this.WithFullName(getName: Func<_, _>) =
         { this with FullName = getName.Invoke(this.FullName) }
 
-    member this.WithSourceFile file = { this with SourceFile = file }
+    member this.WithSource source = { this with Source = source }
+
+    // TODO: RELEASE 2021-07: Remove QsCustomType.SourceFile.
+    [<Obsolete "Replaced by Source.">]
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
 
 /// Describes a valid Q# namespace element.

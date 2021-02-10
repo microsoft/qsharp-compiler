@@ -19,7 +19,6 @@
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Client" Version="16.3.57" />
     <PackageReference Include="MSTest.TestAdapter" Version="2.0.0" />
     <PackageReference Include="MSTest.TestFramework" Version="2.0.0" />
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.164" PrivateAssets="All" />
     <PackageReference Include="System.IO.Pipes" Version="4.3.0" />
   </ItemGroup>
 
@@ -42,9 +41,5 @@
 
   <ItemGroup>
     <Compile Include="..\..\Common\DelaySign.cs" Link="DelaySign.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
-    <AdditionalFiles Include="..\..\Common\stylecop.json" Link="stylecop.json" />
   </ItemGroup>
 </Project>

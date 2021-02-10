@@ -17,7 +17,7 @@
     <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
 
     <copyright>© Microsoft Corporation. All rights reserved.</copyright>
-    <tags>Quantum Q# Qsharp</tags>
+    <tags>Quantum Q# QSharp</tags>
 
     <packageTypes>
       <packageType name="Template" />

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -11,9 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
@@ -96,7 +94,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         private static IEnumerable<string> GetItemsByType(ProjectInstance project, string itemType) =>
             project.Items
-                .Where(item => item.ItemType == itemType && item.EvaluatedInclude != null)
+                .Where(item => item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase) && item.EvaluatedInclude != null)
                 .Select(item => Path.Combine(project.Directory, item.EvaluatedInclude));
 
         /// <summary>
@@ -126,18 +124,16 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
-            var runtimeCapability = Enum.TryParse(resRuntimeCapability, out RuntimeCapabilities result)
-                ? result.ToCapability()
-                : RuntimeCapability.FullComputation;
+            var runtimeCapability = RuntimeCapability.TryParse(resRuntimeCapability).ValueOr(RuntimeCapability.FullComputation);
 
-            var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
+            var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
             var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
 
-            var version = projectInstance.GetPropertyValue("QsharpLangVersion");
-            var isExecutable = "QsharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQsharpOutputType"), StringComparison.InvariantCultureIgnoreCase);
-            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.InvariantCultureIgnoreCase);
+            var version = projectInstance.GetPropertyValue("QSharpLangVersion");
+            var isExecutable = "QSharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQSharpOutputType"), StringComparison.OrdinalIgnoreCase);
+            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.OrdinalIgnoreCase);
             var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
 
             var telemetryMeas = new Dictionary<string, int>();
@@ -254,7 +250,8 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     showError?.Invoke(
                         $"Version control and opening multiple versions of the same file in the editor are currently not supported. \n" +
-                        $"Intellisense has been disable for the file '{textDocument.Uri.LocalPath}'. An editor restart is required to enable intellisense again.", MessageType.Error);
+                        $"Intellisense has been disable for the file '{textDocument.Uri.LocalPath}'. An editor restart is required to enable intellisense again.",
+                        MessageType.Error);
                     #if DEBUG
                     if (showError == null)
                     {

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -35,11 +35,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             byte[] byteArray)
         {
             QsCompilation? bondCompilation = null;
-            lock(BondSharedDataStructuresLock)
+            var inputBuffer = new InputBuffer(byteArray);
+            var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
+            lock (BondSharedDataStructuresLock)
             {
-                var inputBuffer = new InputBuffer(byteArray);
                 var deserializer = GetSimpleBinaryDeserializer();
-                var reader = new SimpleBinaryReader<InputBuffer>(inputBuffer);
                 bondCompilation = deserializer.Deserialize<QsCompilation>(reader);
             }
 
@@ -106,12 +106,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             SyntaxTree.QsCompilation qsCompilation,
             Stream stream)
         {
-            lock(BondSharedDataStructuresLock)
+            var outputBuffer = new OutputBuffer();
+            var writer = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
+            var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
+            lock (BondSharedDataStructuresLock)
             {
-                var outputBuffer = new OutputBuffer();
                 var serializer = GetSimpleBinarySerializer();
-                var writer = new SimpleBinaryWriter<OutputBuffer>(outputBuffer);
-                var bondCompilation = BondSchemaTranslator.CreateBondCompilation(qsCompilation);
                 serializer.Serialize(bondCompilation, writer);
                 stream.Write(outputBuffer.Data);
             }
@@ -147,7 +147,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
         private static Task<SimpleBinaryDeserializer> QueueSimpleBinaryDeserializerInitialization()
         {
             VerifyLockAcquired(BondSharedDataStructuresLock);
-            return Task.Run(() => new SimpleBinaryDeserializer(typeof(QsCompilation)));
+
+            // inlineNested is false in order to decrease the time needed to initialize the deserializer.
+            // While this setting may also increase deserialization time, we did not notice any performance drawbacks with our Bond schemas.
+            return Task.Run(() => new SimpleBinaryDeserializer(
+                type: typeof(QsCompilation),
+                factory: (Factory?)null,
+                inlineNested: false));
         }
 
         private static Task<SimpleBinarySerializer> QueueSimpleBinarySerializerInitialization()

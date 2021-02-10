@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -16,11 +16,12 @@ namespace Microsoft.Quantum.QsCompiler
 {
     /// <summary>
     /// Loads all DLLs passed into the configuration as containing external rewrite steps.
-    /// Disocvers and instantiates all types implementing IRewriteStep 
+    /// Discovers and instantiates all types implementing IRewriteStep
     /// </summary>
     internal class AssemblyRewriteStepsLoader : AbstractRewriteStepsLoader
     {
-        public AssemblyRewriteStepsLoader(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null) : base(onDiagnostic, onException)
+        public AssemblyRewriteStepsLoader(Action<Diagnostic>? onDiagnostic = null, Action<Exception>? onException = null)
+            : base(onDiagnostic, onException)
         {
         }
 
@@ -47,8 +48,8 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             var specifiedPluginDlls = rewriteStepAssemblies.SelectNotNull(step => WithFullPath(step.Item1)?.Apply(path => (path, step.Item2)));
-            var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.Item1.LocalPath));
-            foreach (var file in notFoundDlls.Select(step => step.Item1).Distinct())
+            var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.path.LocalPath));
+            foreach (var file in notFoundDlls.Select(step => step.path).Distinct())
             {
                 this.onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath));
             }

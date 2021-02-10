@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -56,6 +56,7 @@ namespace Microsoft.Quantum.QsCompiler
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
                 return ignoreDllResources || !attributes.Any(); // just means we have no references
             }
+
             PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceHeadersCreation);
             headers = new References.Headers(id, compilation?.Namespaces ?? ImmutableArray<QsNamespace>.Empty);
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceHeadersCreation);
@@ -186,7 +187,9 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 isBondV1ResourcePresent = true;
             }
+#pragma warning disable 618 // ResourceName is obsolete.
             else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
+#pragma warning restore 618
             {
                 isNewtonSoftResourcePresent = true;
             }
@@ -222,7 +225,9 @@ namespace Microsoft.Quantum.QsCompiler
             }
             else if (isNewtonSoftResourcePresent)
             {
+#pragma warning disable 618 // LoadSyntaxTree is obsolete.
                 return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+#pragma warning restore 618
             }
 
             return false;

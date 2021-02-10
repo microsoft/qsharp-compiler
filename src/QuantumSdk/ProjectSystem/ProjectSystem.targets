@@ -8,14 +8,14 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectCapability Include="QsharpProject" />
+    <ProjectCapability Include="QSharpProject" />
   </ItemGroup>
 
   <ItemGroup>
     <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/ProjectItemsSchema.xaml">
       <Context>Project</Context>
     </PropertyPageSchema>
-    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/QsharpSourceFile.xaml">
+    <PropertyPageSchema Include="$(MSBuildThisFileDirectory)Rules/QSharpSourceFile.xaml">
       <Context>File;BrowseObject</Context>
     </PropertyPageSchema>
   </ItemGroup>

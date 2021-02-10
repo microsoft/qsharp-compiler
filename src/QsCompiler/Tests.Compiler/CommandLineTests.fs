@@ -29,11 +29,11 @@ let private testSnippet expected args =
 
 [<Fact>]
 let ``valid snippet`` () =
-    [| "-s"; "let a = 0;"; "-v n" |] |> testSnippet ReturnCode.SUCCESS
+    [| "-s"; "let a = 0;"; "-v n" |] |> testSnippet ReturnCode.Success
 
 [<Fact>]
 let ``invalid snippet`` () =
-    [| "-s"; "let a = " |] |> testSnippet ReturnCode.COMPILATION_ERRORS
+    [| "-s"; "let a = " |] |> testSnippet ReturnCode.CompilationErrors
 
 
 [<Fact>]
@@ -44,7 +44,7 @@ let ``one valid file`` () =
         "--verbosity"
         "Diagnostic"
     |]
-    |> testInput ReturnCode.SUCCESS
+    |> testInput ReturnCode.Success
 
 [<Fact>]
 let ``multiple valid file`` () =
@@ -53,13 +53,13 @@ let ``multiple valid file`` () =
         ("TestCases", "General.qs") |> Path.Combine
         ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
     |]
-    |> testInput ReturnCode.SUCCESS
+    |> testInput ReturnCode.Success
 
 
 [<Fact>]
 let ``one invalid file`` () =
     [| "-i"; ("TestCases", "TypeChecking.qs") |> Path.Combine |]
-    |> testInput ReturnCode.COMPILATION_ERRORS
+    |> testInput ReturnCode.CompilationErrors
 
 
 [<Fact>]
@@ -69,39 +69,39 @@ let ``mixed files`` () =
         ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
         ("TestCases", "TypeChecking.qs") |> Path.Combine
     |]
-    |> testInput ReturnCode.COMPILATION_ERRORS
+    |> testInput ReturnCode.CompilationErrors
 
 
 [<Fact>]
 let ``missing file`` () =
-    [| "-i"; ("TestCases", "NonExistent.qs") |> Path.Combine |] |> testInput ReturnCode.UNRESOLVED_FILES
+    [| "-i"; ("TestCases", "NonExistent.qs") |> Path.Combine |] |> testInput ReturnCode.UnresolvedFiles
 
     [|
         "-i"
         ("TestCases", "LinkingTests", "Core.qs") |> Path.Combine
         ("TestCases", "NonExistent.qs") |> Path.Combine
     |]
-    |> testInput ReturnCode.UNRESOLVED_FILES
+    |> testInput ReturnCode.UnresolvedFiles
 
 
 [<Fact>]
 let ``invalid argument`` () =
     [| "-i"; ("TestCases", "General.qs") |> Path.Combine; "--foo" |]
-    |> testInput ReturnCode.INVALID_ARGUMENTS
+    |> testInput ReturnCode.InvalidArguments
 
 
 [<Fact>]
 let ``missing verb`` () =
     let args = [| "-i"; ("TestCases", "General.qs") |> Path.Combine |]
     let result = Program.Main args
-    Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
+    Assert.Equal(ReturnCode.InvalidArguments, result)
 
 
 [<Fact>]
 let ``invalid verb`` () =
     let args = [| "foo"; "-i"; ("TestCases", "General.qs") |> Path.Combine |]
     let result = Program.Main args
-    Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
+    Assert.Equal(ReturnCode.InvalidArguments, result)
 
 
 [<Fact>]
@@ -117,7 +117,7 @@ let ``diagnose outputs`` () =
         |]
 
     let result = Program.Main args
-    Assert.Equal(ReturnCode.INVALID_ARGUMENTS, result)
+    Assert.Equal(ReturnCode.InvalidArguments, result)
 
 
 [<Fact>]
@@ -138,7 +138,7 @@ let ``options from response files`` () =
         |]
 
     let result = Program.Main commandLineArgs
-    Assert.Equal(ReturnCode.SUCCESS, result)
+    Assert.Equal(ReturnCode.Success, result)
 
 
 [<Fact>]

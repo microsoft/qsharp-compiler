@@ -8,6 +8,9 @@
 /// closed if it is still valid for the bracket to be closed later.
 module Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing
 
+#nowarn "40" // Parsers use recursive object references.
+#nowarn "44" // qsUsing and qsBorrowing are deprecated.
+
 open FParsec
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -18,9 +21,6 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ExpressionParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.TypeParsing
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.ParsingPrimitives
-
-#nowarn "40"
-
 
 /// Parses a declaration modifier list.
 let private modifiers = expectedKeyword qsInternal
@@ -154,12 +154,16 @@ let rec private qubitInitializerTuple =
 /// Parses a using-block intro.
 let private usingHeader =
     let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
-    expectedKeyword qsUsing ?>> expectedBrackets (lTuple, rTuple) binding
+
+    expectedKeyword qsUse <|>@ hide (expectedKeyword qsUsing)
+    ?>> (brackets (lTuple, rTuple) binding <|>@ binding)
 
 /// Parses a borrowing-block intro.
 let private borrowingHeader =
     let binding = symbolTuple Declaration ?>> expected equal ?>> qubitInitializerTuple
-    expectedKeyword qsBorrowing ?>> expectedBrackets (lTuple, rTuple) binding
+
+    expectedKeyword qsBorrow <|>@ hide (expectedKeyword qsBorrowing)
+    ?>> (brackets (lTuple, rTuple) binding <|>@ binding)
 
 /// Parses an operation specialization declaration.
 let private specializationDeclaration =

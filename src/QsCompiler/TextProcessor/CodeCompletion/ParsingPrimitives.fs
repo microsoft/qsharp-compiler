@@ -119,6 +119,9 @@ let expectedQualifiedSymbol kind =
     <|> attempt (term qualifiedSymbol |>> fst .>> previousCharSatisfiesNot Char.IsWhiteSpace .>> optional eot)
     <|> (term qualifiedSymbol >>% [])
 
+/// Parses `p` but hides its code completion results.
+let hide p = p >>% []
+
 /// Optionally parses `p`, backtracking if it consumes EOT so another parser can try, too. Best if used with `@>>`,
 /// e.g., `optR foo @>> bar`.
 let optR p =
