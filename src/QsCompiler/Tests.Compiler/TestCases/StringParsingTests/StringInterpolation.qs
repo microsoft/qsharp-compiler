@@ -80,7 +80,6 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     
 //"} // This comment helps prevent parsing problems in previous tests from affecting the rest of the code.
     
-    // ToDo: Make the semicolon tests fail harder
     operation StringInterpolationSemicolonTest1 () : Unit {
         let str = $"{";"}";
     }
