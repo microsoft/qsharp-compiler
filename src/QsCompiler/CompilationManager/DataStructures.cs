@@ -227,6 +227,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             ScopeTracking.VerifyExcessBracketPositions(this, excessBrackets);
         }
 
+        private static int FindNextDelimOrComment(string text, char[] delimiters, int startIndex)
+        {
+            var delimitersAndComment = delimiters.Append('/').ToArray();
+
+            var index = text.IndexOfAny(delimitersAndComment, startIndex);
+            if (index >= 0 && text[index] == '/')
+            {
+                // Found a comment
+                if (index + 1 < text.Length && text[index + 1] == '/')
+                {
+                    return index;
+                }
+                else
+                {
+                    // Just a lone /, move past it and try again
+                    return FindNextDelimOrComment(text, delimiters, index + 1);
+                }
+            }
+            else
+            {
+                return index;
+            }
+        }
+
         /// <summary>
         /// Computes the location of the string delimiters within a given text.
         /// </summary>
@@ -242,8 +266,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
             commentIndex = -1;
             var stringLength = text.Length;
+            var noOpenStringDelimiters = new[] { '"', '/' };
+            var openInterpolatedArgumentDelimiters = new[] { '"', '}', '/' };
             var openInterpolatedStringDelimiters = new[] { '"', '{' };
-            var openInterpolatedArgumentDelimiters = new[] { '"', '}' };
 
             var pos = 0;
             while (pos < text.Length)
@@ -253,11 +278,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     case StringContext.NoOpenString:
                         // Find the next "
-                        indexOfDelim = text.IndexOf('"', pos);
+                        indexOfDelim = text.IndexOfAny(noOpenStringDelimiters, pos);
+                        while (indexOfDelim > 0 && text[indexOfDelim] == '/' && (indexOfDelim + 1 == text.Length || text[indexOfDelim + 1] != '/'))
+                        {
+                            indexOfDelim = text.IndexOfAny(noOpenStringDelimiters, indexOfDelim + 1);
+                        }
                         break;
                     case StringContext.OpenInterpolatedArgument:
                         // Find the next " or }
                         indexOfDelim = text.IndexOfAny(openInterpolatedArgumentDelimiters, pos);
+                        while (indexOfDelim > 0 && text[indexOfDelim] == '/' && (indexOfDelim + 1 == text.Length || text[indexOfDelim + 1] != '/'))
+                        {
+                            indexOfDelim = text.IndexOfAny(openInterpolatedArgumentDelimiters, indexOfDelim + 1);
+                        }
                         break;
                     case StringContext.OpenInterpolatedString:
                         // Find the next " or {, neither or which being preceded by \
@@ -278,12 +311,23 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                         break;
                 }
 
-                // Check for a comment start if we are outside a string
-                commentIndex = stringContext >= StringContext.OpenString ? -1 : text.IndexOf("//", pos);
-                if (indexOfDelim < 0 || (commentIndex > -1 && commentIndex < indexOfDelim))
+                if (indexOfDelim < 0)
                 {
                     break;
                 }
+
+                if (text[indexOfDelim] == '/')
+                {
+                    commentIndex = indexOfDelim;
+                    break;
+                }
+
+                // Check for a comment start if we are outside a string
+                //commentIndex = stringContext >= StringContext.OpenString ? -1 : text.IndexOf("//", pos);
+                //if (indexOfDelim < 0 || (commentIndex > -1 && commentIndex < indexOfDelim))
+                //{
+                //    break;
+                //}
 
                 // Get the delimiter
                 var inputDelimiter = text[indexOfDelim].ToString();
