@@ -46,6 +46,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         internal readonly string Text;
         internal readonly string LineEnding; // contains the line break for this line (included in text)
 
+        private static readonly char[] NoOpenStringDelimiters = new[] { '"', '/' };
+        private static readonly char[] OpenInterpolatedArgumentDelimiters = new[] { '"', '}', '/' };
+        private static readonly char[] OpenInterpolatedStringDelimiters = new[] { '"', '{' };
+
         /// <summary>
         /// contains the text content of the line, without any end of line or doc comment and *without* the line break
         /// </summary>
@@ -282,9 +286,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             commentIndex = -1;
-            var noOpenStringDelimiters = new[] { '"', '/' };
-            var openInterpolatedArgumentDelimiters = new[] { '"', '}', '/' };
-            var openInterpolatedStringDelimiters = new[] { '"', '{' };
 
             bool IsLoneSlash(int index) => index >= 0 && text[index] == '/' && (index + 1 == text.Length || text[index + 1] != '/');
             bool IsEscaped(int index) => index > 0 && text[index - 1] == '\\';
@@ -297,28 +298,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     case StringContext.NoOpenString:
                         // Find the next " or comment
-                        indexOfDelim = text.IndexOfAny(noOpenStringDelimiters, pos);
+                        indexOfDelim = text.IndexOfAny(CodeLine.NoOpenStringDelimiters, pos);
                         // Don't stop if index is a lone /
                         while (IsLoneSlash(indexOfDelim))
                         {
-                            indexOfDelim = text.IndexOfAny(noOpenStringDelimiters, indexOfDelim + 1);
+                            indexOfDelim = text.IndexOfAny(CodeLine.NoOpenStringDelimiters, indexOfDelim + 1);
                         }
                         break;
                     case StringContext.OpenInterpolatedArgument:
                         // Find the next " or } or comment
-                        indexOfDelim = text.IndexOfAny(openInterpolatedArgumentDelimiters, pos);
+                        indexOfDelim = text.IndexOfAny(CodeLine.OpenInterpolatedArgumentDelimiters, pos);
                         // Don't stop if index is a lone /
                         while (IsLoneSlash(indexOfDelim))
                         {
-                            indexOfDelim = text.IndexOfAny(openInterpolatedArgumentDelimiters, indexOfDelim + 1);
+                            indexOfDelim = text.IndexOfAny(CodeLine.OpenInterpolatedArgumentDelimiters, indexOfDelim + 1);
                         }
                         break;
                     case StringContext.OpenInterpolatedString:
                         // Find the next " or {, neither or which being preceded by \
-                        indexOfDelim = text.IndexOfAny(openInterpolatedStringDelimiters, pos);
+                        indexOfDelim = text.IndexOfAny(CodeLine.OpenInterpolatedStringDelimiters, pos);
                         while (IsEscaped(indexOfDelim))
                         {
-                            indexOfDelim = text.IndexOfAny(openInterpolatedStringDelimiters, indexOfDelim + 1);
+                            indexOfDelim = text.IndexOfAny(CodeLine.OpenInterpolatedStringDelimiters, indexOfDelim + 1);
                         }
                         break;
                     case StringContext.OpenString:
