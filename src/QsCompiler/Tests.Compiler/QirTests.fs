@@ -60,7 +60,10 @@ let ``QIR using`` () =
 let ``QIR inlined call`` () = qirTest true "TestInline"
 
 [<Fact>]
-let ``QIR access counts`` () = qirTest false "TestAccessCounts"
+let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
+
+[<Fact>]
+let ``QIR reference counts`` () = qirTest false "TestReferenceCounts"
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"

@@ -61,7 +61,6 @@ namespace Microsoft.Quantum.QIR
         // array functions
         public const string ArrayCreate = "array_create";
         public const string ArrayGetElementPtr = "array_get_element_ptr";
-        // TODO: figure out how to call a varargs function and get rid of these two functions
         public const string ArrayCreate1d = "array_create_1d";
         public const string ArrayGetElementPtr1d = "array_get_element_ptr_1d";
         public const string ArrayUpdateAliasCount = "array_update_alias_count";

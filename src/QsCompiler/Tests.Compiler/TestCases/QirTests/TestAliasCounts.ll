@@ -1,4 +1,4 @@
-define void @Microsoft__Quantum__Testing__QIR__TestAccessCounts__ctl(%Array* %__controlQubits__, { %Array*, { %Array* }* }* %0) {
+define void @Microsoft__Quantum__Testing__QIR__TestAliasCounts__ctl(%Array* %__controlQubits__, { %Array*, { %Array* }* }* %0) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 1)
   %1 = getelementptr { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i64 0, i32 0
