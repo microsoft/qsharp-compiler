@@ -226,11 +226,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
                 var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                 var forceCopy = sharedState.Context.CreateConstant(false);
-                var evaluated = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
-                var copyReturn = sharedState.Values.FromTuple(evaluated, ImmutableArray.Create(ResolvedType.New(ResolvedTypeKind.Bool), originalArray.QSharpType));
-                var returnedItems = copyReturn.GetTupleElements();
-                var wasCopied = returnedItems[0].Value;
-                var array = (ArrayValue)returnedItems[1];
+                var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
+                var array = sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
+                var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, originalArray.OpaquePointer, array.OpaquePointer);
                 sharedState.ScopeMgr.RegisterValue(array);
 
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
@@ -295,15 +293,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
                     var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
                     var forceCopy = sharedState.Context.CreateConstant(false);
-                    var evaluated = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                    var returnedTupleType = Quantum.QIR.Types.StructFromPointer(evaluated.NativeType);
-                    var boolPtr = sharedState.CurrentBuilder.GetStructElementPointer(returnedTupleType, evaluated, 0);
-                    var opaqueTuplePtr = sharedState.CurrentBuilder.GetStructElementPointer(returnedTupleType, evaluated, 1);
-                    var opaqueTuple = sharedState.CurrentBuilder.Load(sharedState.Types.Tuple, opaqueTuplePtr);
-                    var wasCopied = sharedState.CurrentBuilder.Load(sharedState.Types.Bool, boolPtr);
+                    var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
                     var tuple = original.TypeName == null
-                        ? sharedState.Values.FromTuple(opaqueTuple, original.ElementTypes)
-                        : sharedState.Values.FromCustomType(opaqueTuple, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
+                        ? sharedState.Values.FromTuple(copy, original.ElementTypes)
+                        : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
+                    var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, original.OpaquePointer, tuple.OpaquePointer);
                     return (wasCopied, tuple);
                 }
 
@@ -567,9 +561,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
-                var evaluated = this.SharedState.CurrentBuilder.Call(makeCopy, callable.Value, forceCopy);
-                var copyReturn = this.SharedState.Values.FromTuple(evaluated, ImmutableArray.Create(ResolvedType.New(ResolvedTypeKind.Bool), callable.QSharpType));
-                callable = (CallableValue)copyReturn.GetTupleElement(1);
+                var modified = this.SharedState.CurrentBuilder.Call(makeCopy, callable.Value, forceCopy);
+                callable = this.SharedState.Values.FromCallable(modified, callable.QSharpType);
                 this.SharedState.ScopeMgr.ReferenceCaptureTuple(callable);
                 this.SharedState.ScopeMgr.RegisterValue(callable);
             }
