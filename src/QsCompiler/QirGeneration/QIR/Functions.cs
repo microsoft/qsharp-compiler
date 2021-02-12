@@ -47,12 +47,13 @@ namespace Microsoft.Quantum.QIR
             var dict = ImmutableDictionary.CreateBuilder<QsQualifiedName, Func<TypedExpression, IValue>>();
             dict.Add(QsCompiler.BuiltIn.Length.FullName, this.Length);
             dict.Add(QsCompiler.BuiltIn.IntAsDouble.FullName, this.IntAsDouble);
+            dict.Add(QsCompiler.BuiltIn.DoubleAsInt.FullName, this.DoubleAsInt);
             dict.Add(QsCompiler.BuiltIn.IntAsBigInt.FullName, this.IntAsBigInt);
             dict.Add(QsCompiler.BuiltIn.RangeStart.FullName, this.RangeStart);
             dict.Add(QsCompiler.BuiltIn.RangeStep.FullName, this.RangeStep);
             dict.Add(QsCompiler.BuiltIn.RangeEnd.FullName, this.RangeEnd);
             dict.Add(QsCompiler.BuiltIn.RangeReverse.FullName, this.RangeReverse);
-            dict.Add(QsCompiler.BuiltIn.Truncate.FullName, this.Truncate);
+            dict.Add(QsCompiler.BuiltIn.Truncate.FullName, this.DoubleAsInt); // This redundancy needs to be eliminated in the Q# libraries.
 
             this.sharedState = sharedState;
             this.BuiltIn = dict.ToImmutable();
@@ -151,6 +152,13 @@ namespace Microsoft.Quantum.QIR
             return this.sharedState.Values.FromSimpleValue(cast, Double);
         }
 
+        private IValue DoubleAsInt(TypedExpression arg)
+        {
+            var value = this.sharedState.EvaluateSubexpression(arg);
+            var cast = this.sharedState.CurrentBuilder.FPToSICast(value.Value, this.sharedState.Types.Int);
+            return this.sharedState.Values.FromSimpleValue(cast, Int);
+        }
+
         private IValue IntAsBigInt(TypedExpression arg)
         {
             // The runtime function BigIntCreateI64 creates a value with reference count 1.
@@ -201,13 +209,6 @@ namespace Microsoft.Quantum.QIR
             reversed = this.sharedState.CurrentBuilder.InsertValue(reversed, this.sharedState.CurrentBuilder.Neg(step), 1u);
             reversed = this.sharedState.CurrentBuilder.InsertValue(reversed, start, 2u);
             return this.sharedState.Values.From(reversed, Range);
-        }
-
-        private IValue Truncate(TypedExpression arg)
-        {
-            var value = this.sharedState.EvaluateSubexpression(arg);
-            var truncated = this.sharedState.CurrentBuilder.FPTrunc(value.Value, this.sharedState.Types.Int);
-            return this.sharedState.Values.FromSimpleValue(truncated, Int);
         }
     }
 }

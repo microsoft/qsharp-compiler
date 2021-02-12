@@ -93,9 +93,6 @@
     <Content Include="TestCases\QirTests\TestControlled2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestControlled3.ll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="TestCases\QirTests\TestControlled.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

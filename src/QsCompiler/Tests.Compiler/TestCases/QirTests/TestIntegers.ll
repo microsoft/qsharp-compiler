@@ -6,10 +6,12 @@ entry:
   %2 = udiv i64 %b, 7
   %d = sub i64 %1, %2
   %e = ashr i64 %d, 3
-  %3 = trunc i64 %b to i32
-  %f = call i64 @__quantum__rt__int_power(i64 %d, i32 %3)
-  %4 = and i64 %e, %f
-  %g = or i64 %4, 65535
-  %5 = xor i64 %g, -1
-  ret i64 %5
+  %3 = sitofp i64 %d to fp128
+  %4 = trunc i64 %b to i32
+  %5 = call fp128 @llvm.powi.f128(fp128 %3, i32 %4)
+  %f = fptosi fp128 %5 to i64
+  %6 = and i64 %e, %f
+  %g = or i64 %6, 65535
+  %7 = xor i64 %g, -1
+  ret i64 %7
 }

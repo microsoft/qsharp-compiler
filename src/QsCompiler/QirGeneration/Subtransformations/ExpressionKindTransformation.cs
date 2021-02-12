@@ -1018,10 +1018,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                // The exponent must be an integer that can fit into an i32.
-                var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.IntPower);
+                var baseValue = this.SharedState.CurrentBuilder.SIToFPCast(lhs.Value, this.SharedState.Context.Float128Type);
+                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.Float128Type);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
-                var res = this.SharedState.CurrentBuilder.Call(powFunc, lhs.Value, exponent);
+                var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
+                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
@@ -1592,6 +1593,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.CloseScope(value);
                 array.GetArrayElementPointer(index).StoreValue(value);
             }
+
             this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
             return ResolvedExpressionKind.InvalidExpr;
         }

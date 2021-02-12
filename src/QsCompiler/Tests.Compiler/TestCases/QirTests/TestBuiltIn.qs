@@ -6,6 +6,10 @@ namespace Microsoft.Quantum.Convert {
     function IntAsDouble(a : Int) : Double {
         body intrinsic;
     }
+
+    function DoubleAsInt(a : Double) : Int {
+        body intrinsic;
+    }
     
     function IntAsBigInt(a : Int) : BigInt {
         body intrinsic;
@@ -23,10 +27,11 @@ namespace Microsoft.Quantum.Testing.QIR {
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Math;
 
-    function TestBuiltIn (arg : Int) : (Double, BigInt, Int) {
+    function TestBuiltIn (arg : Int) : (Double, Int, BigInt, Int) {
         let d = IntAsDouble(arg);
+        let i = DoubleAsInt(d);
         let bi = IntAsBigInt(arg);
-        let i = Truncate(d);
-        return (d, bi, i);
+        let t = Truncate(d);
+        return (d, i, bi, t);
     }
 }

@@ -5,6 +5,7 @@ using System;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
@@ -85,7 +86,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsCallable OnCallableDeclaration(QsCallable c)
         {
-            if (this.SharedState.Functions.BuiltIn.ContainsKey(c.FullName))
+            var unmangledName = NameDecorator.OriginalNameFromMonomorphized(c.FullName);
+            if (this.SharedState.Functions.BuiltIn.ContainsKey(unmangledName))
             {
                 return c;
             }
