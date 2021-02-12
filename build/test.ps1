@@ -39,7 +39,7 @@ function Test-One {
 }
 
 Test-One '../QsCompiler.sln'
-Test-One '../Formatter.sln'
+Test-One '../QsFmt.sln'
 
 if (-not $all_ok) {
     throw "Running tests failed. Check the logs."

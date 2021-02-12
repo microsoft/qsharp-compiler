@@ -115,7 +115,7 @@ $all_ok = $True
 
 Build-One '../QsCompiler.sln'
 Build-One '../src/QuantumSdk/Tools/Tools.sln'
-Build-One '../Formatter.sln'
+Build-One '../QsFmt.sln'
 
 if ($Env:ENABLE_VSIX -ne "false") {
     Build-VSCode
