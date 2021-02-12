@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-type internal Update =
+type Update =
     {
         Record: Expression
         With: Terminal
@@ -12,7 +12,7 @@ type internal Update =
         Value: Expression
     }
 
-and internal Expression =
+and Expression =
     | Missing of Terminal
     | Literal of Terminal
     | Tuple of Expression Tuple
