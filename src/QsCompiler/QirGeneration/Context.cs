@@ -603,9 +603,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             void PopulateItem(Value index)
                             {
                                 // We need to make sure that the reference count for the built item is increased by 1.
-                                //this.ScopeMgr.OpenScope();
-                                //var value = DefaultValue(elementType);
-                                //this.ScopeMgr.CloseScope(value);
                                 var arrayElementType = this.LlvmTypeFromQsharpType(mapping.ArrayElementType);
                                 var offset = this.CurrentBuilder.Mul(index, givenArrElementSize);
                                 var elementPointer = this.CurrentBuilder.Add(givenArrayPtr, offset);
