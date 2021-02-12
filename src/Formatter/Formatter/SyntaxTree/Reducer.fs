@@ -5,145 +5,19 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 open Microsoft.Quantum.QsFmt.Formatter.Utils
 
-/// <summary>
-/// Reduces a syntax tree to a single value.
-/// </summary>
-/// <typeparam name="result">The type of the reduced result.</typeparam>
 [<AbstractClass>]
 type internal 'result Reducer() as reducer =
     /// Reduces a list of results into a single result.
     let reduce = curry reducer.Combine |> List.reduce
 
-    /// Combines two results into a single result.
     abstract Combine: 'result * 'result -> 'result
 
-    /// <summary>
-    /// Reduces a <see cref="Document"/> node.
-    /// </summary>
-    abstract Document: Document -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Namespace"/> node.
-    /// </summary>
-    abstract Namespace: Namespace -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="NamespaceItem"/> node.
-    /// </summary>
-    abstract NamespaceItem: NamespaceItem -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="CallableDeclaration"/> node.
-    /// </summary>
-    abstract CallableDeclaration: CallableDeclaration -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Type"/> node.
-    /// </summary>
-    abstract Type: Type -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="TypeAnnotation"/> node.
-    /// </summary>
-    abstract TypeAnnotation: TypeAnnotation -> 'result
-
-    /// <summary>
-    /// Reduces an <see cref="ArrayType"/> node.
-    /// </summary>
-    abstract ArrayType: ArrayType -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="CallableType"/> node.
-    /// </summary>
-    abstract CallableType: CallableType -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="CharacteristicSection"/> node.
-    /// </summary>
-    abstract CharacteristicSection: CharacteristicSection -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="CharacteristicGroup"/> node.
-    /// </summary>
-    abstract CharacteristicGroup: CharacteristicGroup -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Characteristic"/> node.
-    /// </summary>
-    abstract Characteristic: Characteristic -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Statement"/> node.
-    /// </summary>
-    abstract Statement: Statement -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Let"/> statement node.
-    /// </summary>
-    abstract Let: Let -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Return"/> statement node.
-    /// </summary>
-    abstract Return: Return -> 'result
-
-    /// <summary>
-    /// Reduces an <see cref="If"/> statement node.
-    /// </summary>
-    abstract If: If -> 'result
-
-    /// <summary>
-    /// Reduces an <see cref="Else"/> statement node.
-    /// </summary>
-    abstract Else: Else -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="SymbolBinding"/> node.
-    /// </summary>
-    abstract SymbolBinding: SymbolBinding -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="SymbolDeclaration"/> node.
-    /// </summary>
-    abstract SymbolDeclaration: SymbolDeclaration -> 'result
-
-    /// <summary>
-    /// Reduces an <see cref="Expression"/> node.
-    /// </summary>
-    abstract Expression: Expression -> 'result
-
-    /// <summary>
-    /// Reduces an <see cref="Update"/> expression node.
-    /// </summary>
-    abstract Update: Update -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Block{a}"/> node, given a rewriter for the block contents.
-    /// </summary>
-    abstract Block: ('a -> 'result) * 'a Block -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Tuple{a}"/> node, given a rewriter for the tuple contents.
-    /// </summary>
-    abstract Tuple: ('a -> 'result) * 'a Tuple -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="SequenceItem{a}"/> node, given a rewriter for the sequence items.
-    /// </summary>
-    abstract SequenceItem: ('a -> 'result) * 'a SequenceItem -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="BinaryOperator{a}"/> node, given a rewriter for the operands.
-    /// </summary>
-    abstract BinaryOperator: ('a -> 'result) * 'a BinaryOperator -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="Terminal"/> node.
-    /// </summary>
-    abstract Terminal: Terminal -> 'result
+    abstract Document: document:Document -> 'result
 
     default _.Document document =
         (document.Namespaces |> List.map reducer.Namespace) @ [ reducer.Terminal document.Eof ] |> reduce
+
+    abstract Namespace: ns:Namespace -> 'result
 
     default _.Namespace ns =
         [
@@ -153,10 +27,14 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract NamespaceItem: item:NamespaceItem -> 'result
+
     default _.NamespaceItem item =
         match item with
         | CallableDeclaration callable -> reducer.CallableDeclaration callable
         | Unknown terminal -> reducer.Terminal terminal
+
+    abstract CallableDeclaration: callable:CallableDeclaration -> 'result
 
     default _.CallableDeclaration callable =
         [
@@ -167,6 +45,8 @@ type internal 'result Reducer() as reducer =
             reducer.Block(reducer.Statement, callable.Block)
         ]
         |> reduce
+
+    abstract Type: typ:Type -> 'result
 
     default _.Type typ =
         match typ with
@@ -179,8 +59,12 @@ type internal 'result Reducer() as reducer =
         | Callable callable -> reducer.CallableType callable
         | Type.Unknown terminal -> reducer.Terminal terminal
 
+    abstract TypeAnnotation: annotation:TypeAnnotation -> 'result
+
     default _.TypeAnnotation annotation =
         [ reducer.Terminal annotation.Colon; reducer.Type annotation.Type ] |> reduce
+
+    abstract ArrayType: array:ArrayType -> 'result
 
     default _.ArrayType array =
         [
@@ -189,6 +73,8 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal array.CloseBracket
         ]
         |> reduce
+
+    abstract CallableType: callable:CallableType -> 'result
 
     default _.CallableType callable =
         [
@@ -199,12 +85,16 @@ type internal 'result Reducer() as reducer =
         @ (callable.Characteristics |> Option.map reducer.CharacteristicSection |> Option.toList)
         |> reduce
 
+    abstract CharacteristicSection: section:CharacteristicSection -> 'result
+
     default _.CharacteristicSection section =
         [
             reducer.Terminal section.IsKeyword
             reducer.Characteristic section.Characteristic
         ]
         |> reduce
+
+    abstract CharacteristicGroup: group:CharacteristicGroup -> 'result
 
     default _.CharacteristicGroup group =
         [
@@ -214,12 +104,16 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract Characteristic: characteristic:Characteristic -> 'result
+
     default _.Characteristic characteristic =
         match characteristic with
         | Adjoint adjoint -> reducer.Terminal adjoint
         | Controlled controlled -> reducer.Terminal controlled
         | Group group -> reducer.CharacteristicGroup group
         | Characteristic.BinaryOperator operator -> reducer.BinaryOperator(reducer.Characteristic, operator)
+
+    abstract Statement: statement:Statement -> 'result
 
     default _.Statement statement =
         match statement with
@@ -228,6 +122,8 @@ type internal 'result Reducer() as reducer =
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
         | Statement.Unknown terminal -> reducer.Terminal terminal
+
+    abstract Let: lets:Let -> 'result
 
     default _.Let lets =
         [
@@ -239,6 +135,8 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract Return: returns:Return -> 'result
+
     default _.Return returns =
         [
             reducer.Terminal returns.ReturnKeyword
@@ -246,6 +144,8 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal returns.Semicolon
         ]
         |> reduce
+
+    abstract If: ifs:If -> 'result
 
     default _.If ifs =
         [
@@ -255,6 +155,8 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract Else: elses:Else -> 'result
+
     default _.Else elses =
         [
             reducer.Terminal elses.ElseKeyword
@@ -262,15 +164,21 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract SymbolBinding: binding:SymbolBinding -> 'result
+
     default _.SymbolBinding binding =
         match binding with
         | SymbolDeclaration declaration -> reducer.SymbolDeclaration declaration
         | SymbolTuple tuple -> reducer.Tuple(reducer.SymbolBinding, tuple)
 
+    abstract SymbolDeclaration: declaration:SymbolDeclaration -> 'result
+
     default _.SymbolDeclaration declaration =
         reducer.Terminal declaration.Name
         :: (declaration.Type |> Option.map reducer.TypeAnnotation |> Option.toList)
         |> reduce
+
+    abstract Expression: expression:Expression -> 'result
 
     default _.Expression expression =
         match expression with
@@ -280,6 +188,8 @@ type internal 'result Reducer() as reducer =
         | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
         | Update update -> reducer.Update update
         | Expression.Unknown terminal -> reducer.Terminal terminal
+
+    abstract Update: update:Update -> 'result
 
     default _.Update update =
         [
@@ -291,20 +201,28 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract Block: mapper:('a -> 'result) * block:'a Block -> 'result
+
     default _.Block(mapper, block) =
         reducer.Terminal block.OpenBrace :: (block.Items |> List.map mapper)
         @ [ reducer.Terminal block.CloseBrace ]
         |> reduce
+
+    abstract Tuple: mapper:('a -> 'result) * tuple:'a Tuple -> 'result
 
     default _.Tuple(mapper, tuple) =
         reducer.Terminal tuple.OpenParen :: (tuple.Items |> List.map (curry reducer.SequenceItem mapper))
         @ [ reducer.Terminal tuple.CloseParen ]
         |> reduce
 
+    abstract SequenceItem: mapper:('a -> 'result) * item:'a SequenceItem -> 'result
+
     default _.SequenceItem(mapper, item) =
         (item.Item |> Option.map mapper |> Option.toList)
         @ (item.Comma |> Option.map reducer.Terminal |> Option.toList)
         |> reduce
+
+    abstract BinaryOperator: mapper:('a -> 'result) * operator:'a BinaryOperator -> 'result
 
     default _.BinaryOperator(mapper, operator) =
         [
@@ -313,3 +231,5 @@ type internal 'result Reducer() as reducer =
             mapper operator.Right
         ]
         |> reduce
+
+    abstract Terminal: terminal:Terminal -> 'result

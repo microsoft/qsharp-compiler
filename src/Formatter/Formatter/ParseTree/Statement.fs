@@ -9,7 +9,7 @@ open Microsoft.Quantum.QsFmt.Parser
 /// <summary>
 /// Creates syntax tree <see cref="SymbolBinding"/> nodes from a parse tree and the list of tokens.
 /// </summary>
-type private SymbolBindingVisitor(tokens) =
+type SymbolBindingVisitor(tokens) =
     inherit QSharpParserBaseVisitor<SymbolBinding>()
 
     override _.DefaultResult = failwith "Unknown symbol binding."
@@ -28,10 +28,7 @@ type private SymbolBindingVisitor(tokens) =
         }
         |> SymbolTuple
 
-/// <summary>
-/// Creates syntax tree <see cref="Statement"/> nodes from a parse tree and the list of tokens.
-/// </summary>
-type internal StatementVisitor(tokens) =
+type StatementVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Statement>()
 
     let expressionVisitor = ExpressionVisitor tokens

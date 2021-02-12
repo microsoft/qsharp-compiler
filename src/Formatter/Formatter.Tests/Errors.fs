@@ -1,4 +1,8 @@
-﻿module Microsoft.Quantum.QsFmt.Formatter.Tests.Errors
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+/// Tests for error handling.
+module Microsoft.Quantum.QsFmt.Formatter.Tests.Errors
 
 open Microsoft.Quantum.QsFmt.Formatter
 open Xunit

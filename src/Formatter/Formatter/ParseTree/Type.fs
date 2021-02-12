@@ -6,10 +6,7 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
-/// <summary>
-/// Creates syntax tree <see cref="Type"/> nodes from a parse tree and the list of tokens.
-/// </summary>
-type internal TypeVisitor(tokens) =
+type TypeVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Type>()
 
     override _.DefaultResult = failwith "Unknown type."

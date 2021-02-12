@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 /// Tests for the command-line interface.
 module Microsoft.Quantum.QsFmt.App.Tests
 

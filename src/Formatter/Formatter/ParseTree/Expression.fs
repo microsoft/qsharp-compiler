@@ -6,10 +6,7 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
-/// <summary>
-/// Creates syntax tree <see cref="Expression"/> nodes from a parse tree and the list of tokens.
-/// </summary>
-type internal ExpressionVisitor(tokens) =
+type ExpressionVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Expression>()
 
     override _.DefaultResult = failwith "Unknown expression."

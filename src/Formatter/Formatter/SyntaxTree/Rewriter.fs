@@ -5,141 +5,16 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 open Microsoft.Quantum.QsFmt.Formatter.Utils
 
-/// <summary>
-/// Rewrites a syntax tree.
-/// </summary>
-/// <typeparam name="context">The type of the context to use during recursive descent into the syntax tree.</typeparam>
-type internal 'context Rewriter() =
-    /// <summary>
-    /// Rewrites a <see cref="Document"/> node.
-    /// </summary>
-    abstract Document: 'context * Document -> Document
-
-    /// <summary>
-    /// Rewrites a <see cref="Namespace"/> node.
-    /// </summary>
-    abstract Namespace: 'context * Namespace -> Namespace
-
-    /// <summary>
-    /// Rewrites a <see cref="NamespaceItem"/> node.
-    /// </summary>
-    abstract NamespaceItem: 'context * NamespaceItem -> NamespaceItem
-
-    /// <summary>
-    /// Rewrites a <see cref="CallableDeclaration"/> node.
-    /// </summary>
-    abstract CallableDeclaration: 'context * CallableDeclaration -> CallableDeclaration
-
-    /// <summary>
-    /// Rewrites a <see cref="Type"/> node.
-    /// </summary>
-    abstract Type: 'context * Type -> Type
-
-    /// <summary>
-    /// Rewrites a <see cref="TypeAnnotation"/> node.
-    /// </summary>
-    abstract TypeAnnotation: 'context * TypeAnnotation -> TypeAnnotation
-
-    /// <summary>
-    /// Rewrites an <see cref="ArrayType"/> node.
-    /// </summary>
-    abstract ArrayType: 'context * ArrayType -> ArrayType
-
-    /// <summary>
-    /// Rewrites a <see cref="CallableType"/> node.
-    /// </summary>
-    abstract CallableType: 'context * CallableType -> CallableType
-
-    /// <summary>
-    /// Rewrites a <see cref="CharacteristicSection"/> node.
-    /// </summary>
-    abstract CharacteristicSection: 'context * CharacteristicSection -> CharacteristicSection
-
-    /// <summary>
-    /// Rewrites a <see cref="CharacteristicGroup"/> node.
-    /// </summary>
-    abstract CharacteristicGroup: 'context * CharacteristicGroup -> CharacteristicGroup
-
-    /// <summary>
-    /// Rewrites a <see cref="Characteristic"/> node.
-    /// </summary>
-    abstract Characteristic: 'context * Characteristic -> Characteristic
-
-    /// <summary>
-    /// Rewrites a <see cref="Statement"/> node.
-    /// </summary>
-    abstract Statement: 'context * Statement -> Statement
-
-    /// <summary>
-    /// Rewrites a <see cref="Let"/> statement node.
-    /// </summary>
-    abstract Let: 'context * Let -> Let
-
-    /// <summary>
-    /// Rewrites a <see cref="Return"/> statement node.
-    /// </summary>
-    abstract Return: 'context * Return -> Return
-
-    /// <summary>
-    /// Rewrites an <see cref="If"/> statement node.
-    /// </summary>
-    abstract If: 'context * If -> If
-
-    /// <summary>
-    /// Rewrites an <see cref="Else"/> statement node.
-    /// </summary>
-    abstract Else: 'context * Else -> Else
-
-    /// <summary>
-    /// Rewrites a <see cref="SymbolBinding"/> node.
-    /// </summary>
-    abstract SymbolBinding: 'context * SymbolBinding -> SymbolBinding
-
-    /// <summary>
-    /// Rewrites a <see cref="SymbolDeclaration"/> node.
-    /// </summary>
-    abstract SymbolDeclaration: 'context * SymbolDeclaration -> SymbolDeclaration
-
-    /// <summary>
-    /// Rewrites an <see cref="Expression"/> node.
-    /// </summary>
-    abstract Expression: 'context * Expression -> Expression
-
-    /// <summary>
-    /// Rewrites an <see cref="Update"/> expression node.
-    /// </summary>
-    abstract Update: 'context * Update -> Update
-
-    /// <summary>
-    /// Rewrites a <see cref="Block{a}"/> node, given a rewriter for the block contents.
-    /// </summary>
-    abstract Block: 'context * ('context * 'a -> 'a) * 'a Block -> 'a Block
-
-    /// <summary>
-    /// Rewrites a <see cref="Tuple{a}"/> node, given a rewriter for the tuple contents.
-    /// </summary>
-    abstract Tuple: 'context * ('context * 'a -> 'a) * 'a Tuple -> 'a Tuple
-
-    /// <summary>
-    /// Rewrites a <see cref="SequenceItem{a}"/> node, given a rewriter for the sequence items.
-    /// </summary>
-    abstract SequenceItem: 'context * ('context * 'a -> 'a) * 'a SequenceItem -> 'a SequenceItem
-
-    /// <summary>
-    /// Rewrites a <see cref="BinaryOperator{a}"/> node, given a rewriter for the operands.
-    /// </summary>
-    abstract BinaryOperator: 'context * ('context * 'a -> 'a) * 'a BinaryOperator -> 'a BinaryOperator
-
-    /// <summary>
-    /// Rewrites a <see cref="Terminal"/> node.
-    /// </summary>
-    abstract Terminal: 'context * Terminal -> Terminal
+type 'context Rewriter() =
+    abstract Document: context:'context * document:Document -> Document
 
     default rewriter.Document(context, document) =
         {
             Namespaces = document.Namespaces |> List.map (curry rewriter.Namespace context)
             Eof = rewriter.Terminal(context, document.Eof)
         }
+
+    abstract Namespace: context:'context * ns:Namespace -> Namespace
 
     default rewriter.Namespace(context, ns) =
         {
@@ -148,10 +23,14 @@ type internal 'context Rewriter() =
             Block = rewriter.Block(context, rewriter.NamespaceItem, ns.Block)
         }
 
+    abstract NamespaceItem: context:'context * item:NamespaceItem -> NamespaceItem
+
     default rewriter.NamespaceItem(context, item) =
         match item with
         | CallableDeclaration callable -> rewriter.CallableDeclaration(context, callable) |> CallableDeclaration
         | Unknown terminal -> rewriter.Terminal(context, terminal) |> Unknown
+
+    abstract CallableDeclaration: context:'context * callable:CallableDeclaration -> CallableDeclaration
 
     default rewriter.CallableDeclaration(context, callable) =
         {
@@ -161,6 +40,8 @@ type internal 'context Rewriter() =
             ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
             Block = rewriter.Block(context, rewriter.Statement, callable.Block)
         }
+
+    abstract Type: context:'context * typ:Type -> Type
 
     default rewriter.Type(context, typ) =
         match typ with
@@ -173,8 +54,12 @@ type internal 'context Rewriter() =
         | Type.Callable callable -> rewriter.CallableType(context, callable) |> Type.Callable
         | Type.Unknown terminal -> rewriter.Terminal(context, terminal) |> Type.Unknown
 
+    abstract TypeAnnotation: context:'context * annotation:TypeAnnotation -> TypeAnnotation
+
     default rewriter.TypeAnnotation(context, annotation) =
         { Colon = rewriter.Terminal(context, annotation.Colon); Type = rewriter.Type(context, annotation.Type) }
+
+    abstract ArrayType: context:'context * array:ArrayType -> ArrayType
 
     default rewriter.ArrayType(context, array) =
         {
@@ -182,6 +67,8 @@ type internal 'context Rewriter() =
             OpenBracket = rewriter.Terminal(context, array.OpenBracket)
             CloseBracket = rewriter.Terminal(context, array.CloseBracket)
         }
+
+    abstract CallableType: context:'context * callable:CallableType -> CallableType
 
     default rewriter.CallableType(context, callable) =
         {
@@ -191,11 +78,15 @@ type internal 'context Rewriter() =
             Characteristics = callable.Characteristics |> Option.map (curry rewriter.CharacteristicSection context)
         }
 
+    abstract CharacteristicSection: context:'context * section:CharacteristicSection -> CharacteristicSection
+
     default rewriter.CharacteristicSection(context, section) =
         {
             IsKeyword = rewriter.Terminal(context, section.IsKeyword)
             Characteristic = rewriter.Characteristic(context, section.Characteristic)
         }
+
+    abstract CharacteristicGroup: context:'context * group:CharacteristicGroup -> CharacteristicGroup
 
     default rewriter.CharacteristicGroup(context, group) =
         {
@@ -203,6 +94,8 @@ type internal 'context Rewriter() =
             Characteristic = rewriter.Characteristic(context, group.Characteristic)
             CloseParen = rewriter.Terminal(context, group.CloseParen)
         }
+
+    abstract Characteristic: context:'context * characteristic:Characteristic -> Characteristic
 
     default rewriter.Characteristic(context, characteristic) =
         match characteristic with
@@ -212,6 +105,8 @@ type internal 'context Rewriter() =
         | Characteristic.BinaryOperator operator ->
             rewriter.BinaryOperator(context, rewriter.Characteristic, operator) |> Characteristic.BinaryOperator
 
+    abstract Statement: context:'context * statement:Statement -> Statement
+
     default rewriter.Statement(context, statement) =
         match statement with
         | Let lets -> rewriter.Let(context, lets) |> Let
@@ -219,6 +114,8 @@ type internal 'context Rewriter() =
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
+
+    abstract Let: context:'context * lets:Let -> Let
 
     default rewriter.Let(context, lets) =
         {
@@ -229,12 +126,16 @@ type internal 'context Rewriter() =
             Semicolon = rewriter.Terminal(context, lets.Semicolon)
         }
 
+    abstract Return: context:'context * returns:Return -> Return
+
     default rewriter.Return(context, returns) =
         {
             ReturnKeyword = rewriter.Terminal(context, returns.ReturnKeyword)
             Expression = rewriter.Expression(context, returns.Expression)
             Semicolon = rewriter.Terminal(context, returns.Semicolon)
         }
+
+    abstract If: context:'context * ifs:If -> If
 
     default rewriter.If(context, ifs) =
         {
@@ -243,22 +144,30 @@ type internal 'context Rewriter() =
             Block = rewriter.Block(context, rewriter.Statement, ifs.Block)
         }
 
+    abstract Else: context:'context * elses:Else -> Else
+
     default rewriter.Else(context, elses) =
         {
             ElseKeyword = rewriter.Terminal(context, elses.ElseKeyword)
             Block = rewriter.Block(context, rewriter.Statement, elses.Block)
         }
 
+    abstract SymbolBinding: context:'context * binding:SymbolBinding -> SymbolBinding
+
     default rewriter.SymbolBinding(context, binding) =
         match binding with
         | SymbolDeclaration declaration -> rewriter.SymbolDeclaration(context, declaration) |> SymbolDeclaration
         | SymbolTuple tuple -> rewriter.Tuple(context, rewriter.SymbolBinding, tuple) |> SymbolTuple
+
+    abstract SymbolDeclaration: context:'context * declaration:SymbolDeclaration -> SymbolDeclaration
 
     default rewriter.SymbolDeclaration(context, declaration) =
         {
             Name = rewriter.Terminal(context, declaration.Name)
             Type = declaration.Type |> Option.map (curry rewriter.TypeAnnotation context)
         }
+
+    abstract Expression: context:'context * expression:Expression -> Expression
 
     default rewriter.Expression(context, expression) =
         match expression with
@@ -269,6 +178,8 @@ type internal 'context Rewriter() =
         | Update update -> rewriter.Update(context, update) |> Update
         | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
 
+    abstract Update: context:'context * update:Update -> Update
+
     default rewriter.Update(context, update) =
         {
             Record = rewriter.Expression(context, update.Record)
@@ -278,12 +189,16 @@ type internal 'context Rewriter() =
             Value = rewriter.Expression(context, update.Value)
         }
 
+    abstract Block: context:'context * mapper:('context * 'a -> 'a) * block:'a Block -> 'a Block
+
     default rewriter.Block(context, mapper, block) =
         {
             OpenBrace = rewriter.Terminal(context, block.OpenBrace)
             Items = block.Items |> List.map (curry mapper context)
             CloseBrace = rewriter.Terminal(context, block.CloseBrace)
         }
+
+    abstract Tuple: context:'context * mapper:('context * 'a -> 'a) * tuple:'a Tuple -> 'a Tuple
 
     default rewriter.Tuple(context, mapper, tuple) =
         {
@@ -292,11 +207,18 @@ type internal 'context Rewriter() =
             CloseParen = rewriter.Terminal(context, tuple.CloseParen)
         }
 
+    abstract SequenceItem: context:'context * mapper:('context * 'a -> 'a) * item:'a SequenceItem -> 'a SequenceItem
+
     default rewriter.SequenceItem(context, mapper, item) =
         {
             Item = item.Item |> Option.map (curry mapper context)
             Comma = item.Comma |> Option.map (curry rewriter.Terminal context)
         }
+
+    abstract BinaryOperator: context:'context
+                             * mapper:('context * 'a -> 'a)
+                             * operator:'a BinaryOperator
+                             -> 'a BinaryOperator
 
     default rewriter.BinaryOperator(context, mapper, operator) =
         {
@@ -305,4 +227,5 @@ type internal 'context Rewriter() =
             Right = mapper (context, operator.Right)
         }
 
+    abstract Terminal: context:'context * terminal:Terminal -> Terminal
     default _.Terminal(_, terminal) = terminal

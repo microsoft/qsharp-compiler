@@ -10,12 +10,12 @@ open System.IO
 
 /// A command-line argument.
 [<HelpDescription "Display this list of options.">]
-type private Argument =
+type Argument =
     /// The path to the input file.
     | [<MainCommand; Unique>] Input of string
 
     interface IArgParserTemplate with
-        override arg.Usage =
+        member arg.Usage =
             match arg with
             | Input _ -> "File to format or \"-\" to read from standard input."
 

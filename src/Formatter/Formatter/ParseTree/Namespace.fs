@@ -10,7 +10,7 @@ open Microsoft.Quantum.QsFmt.Parser
 /// Creates syntax tree <see cref="SymbolBinding"/> nodes for callable parameters from a parse tree and the list of
 /// tokens.
 /// </summary>
-type private ParameterVisitor(tokens) =
+type ParameterVisitor(tokens) =
     inherit QSharpParserBaseVisitor<SymbolBinding>()
 
     let typeVisitor = TypeVisitor tokens
@@ -43,7 +43,7 @@ type private ParameterVisitor(tokens) =
 /// <summary>
 /// Creates syntax tree <see cref="NamespaceItem"/> nodes from a parse tree and the list of tokens.
 /// </summary>
-type private NamespaceItemVisitor(tokens) =
+type NamespaceItemVisitor(tokens) =
     inherit QSharpParserBaseVisitor<NamespaceItem>()
 
     let parameterVisitor = ParameterVisitor tokens
@@ -79,15 +79,12 @@ type private NamespaceItemVisitor(tokens) =
         }
         |> CallableDeclaration
 
-/// <summary>
-/// Constructors for syntax tree <see cref="Namespace"/> and <see cref="Document"/> nodes.
-/// </summary>
-module internal Namespace =
+module Namespace =
     /// <summary>
     /// Creates a syntax tree <see cref="Namespace"/> node from the parse tree
     /// <see cref="QSharpParser.NamespaceContext"/> node and the list of tokens.
     /// </summary>
-    let private toNamespace tokens (context: QSharpParser.NamespaceContext) =
+    let toNamespace tokens (context: QSharpParser.NamespaceContext) =
         let visitor = NamespaceItemVisitor tokens
 
         {
@@ -101,10 +98,6 @@ module internal Namespace =
                 }
         }
 
-    /// <summary>
-    /// Creates a syntax tree <see cref="Document"/> node from the parse tree <see cref="QSharpParser.DocumentContext"/>
-    /// node and the list of tokens.
-    /// </summary>
     let toDocument tokens (context: QSharpParser.DocumentContext) =
         let namespaces = context.``namespace`` () |> Array.toList |> List.map (toNamespace tokens)
         let eof = { (context.eof |> Node.toTerminal tokens) with Text = "" }

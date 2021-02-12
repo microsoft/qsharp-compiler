@@ -15,7 +15,7 @@ open System.Collections.Immutable
 /// <summary>
 /// Parses the Q# source code into a <see cref="QsFmt.Formatter.SyntaxTree.Document"/>.
 /// </summary>
-let private parse (source: string) =
+let parse (source: string) =
     let tokenStream = source |> AntlrInputStream |> QSharpLexer |> CommonTokenStream
 
     let parser = QSharpParser tokenStream

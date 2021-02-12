@@ -1,8 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-/// Syntax tree rewriters for formatting rules.
-module internal Microsoft.Quantum.QsFmt.Formatter.Rules
+module Microsoft.Quantum.QsFmt.Formatter.Rules
 
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree.Trivia
@@ -11,7 +10,7 @@ open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree.Trivia
 /// Maps a <see cref="Trivia"/> list by applying the mapping function with the <see cref="Trivia"/> nodes before and
 /// after the current node, then flattening the result.
 /// </summary>
-let private collectWithAdjacent =
+let collectWithAdjacent =
     let rec withBefore before mapping =
         function
         | [] -> []
@@ -23,20 +22,18 @@ let private collectWithAdjacent =
 /// <summary>
 /// Collapses adjacent whitespace characters in <paramref name="trivia"/> into a single space character.
 /// </summary>
-let private collapseTriviaSpaces previous trivia _ =
+let collapseTriviaSpaces previous trivia _ =
     match previous, trivia with
     | Some NewLine, Whitespace _ -> [ trivia ]
     | _, Whitespace _ -> [ collapseSpaces trivia ]
     | _ -> [ trivia ]
 
-/// Collapses adjacent whitespace characters into a single space character.
 let collapsedSpaces =
     { new Rewriter<_>() with
         override _.Terminal((), terminal) =
             terminal |> Terminal.mapPrefix (collectWithAdjacent collapseTriviaSpaces)
     }
 
-/// Ensures that operators are spaced correctly relative to their operands.
 let operatorSpacing =
     { new Rewriter<_>() with
         override _.Let((), lets) =
@@ -47,7 +44,7 @@ let operatorSpacing =
 /// <summary>
 /// Indents the <see cref="Trivia"/> list to the given indentation <paramref name="level"/>.
 /// </summary>
-let private indentPrefix level =
+let indentPrefix level =
     let indentTrivia previous trivia after =
         match previous, trivia, after with
         | Some NewLine, Whitespace _, _ -> [ spaces (4 * level) ]
@@ -60,9 +57,8 @@ let private indentPrefix level =
 /// <summary>
 /// Indents the <see cref="Terminal"/> token to the given indentation <paramref name="level"/>.
 /// </summary>
-let private indentTerminal level = indentPrefix level |> Terminal.mapPrefix
+let indentTerminal level = indentPrefix level |> Terminal.mapPrefix
 
-/// Applies correct indentation.
 let indentation =
     { new Rewriter<_>() with
         override _.Namespace(level, ns) =
@@ -81,12 +77,9 @@ let indentation =
 /// <summary>
 /// Prepends the <paramref name="prefix"/> with a new line <see cref="Trivia"/> node if it does not already contain one.
 /// </summary>
-let private ensureNewLine prefix =
+let ensureNewLine prefix =
     if List.contains newLine prefix then prefix else newLine :: prefix
 
-/// <summary>
-/// Ensures that new lines are used where needed.
-/// </summary>
 let newLines =
     { new Rewriter<_>() with
         override _.NamespaceItem((), item) =
