@@ -1,7 +1,7 @@
 ﻿define i64 @Microsoft__Quantum__Testing__QIR__ReturnInt__body({ %Array* }* %arg) {
 entry:
   %0 = getelementptr inbounds { %Array* }, { %Array* }* %arg, i32 0, i32 0
-  %arg__1 = load %Array*, %Array** %0
+  %arg__1 = load %Array*, %Array** %0, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %arg__1, i64 1)
   %1 = bitcast { %Array* }* %arg to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %1, i64 1)
