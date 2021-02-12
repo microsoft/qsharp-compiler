@@ -430,6 +430,10 @@ let (|Missing|_|) arg =
 // extensions for typed expressions and resolved types
 
 [<Extension>]
+let Exists (this: TypedExpression) (condition : Func<TypedExpression, bool>) =
+    this.Exists condition.Invoke
+
+[<Extension>]
 let TryGetArgumentType (this: ResolvedType) =
     match this.Resolution with
     | QsTypeKind.Function (argType, _)

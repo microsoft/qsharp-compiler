@@ -1757,6 +1757,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.SharedState.GeneratePartialApplication(name, kind, BuildPartialApplicationBody);
             }
 
+            var isTrivial = !arg.Exists(ex => !(ex.Expression.IsMissingExpr || ex.Expression.IsValueTuple));
+            if (isTrivial)
+            {
+                // a partial application where all arguments are partially applied
+                // is the same as just the method.
+                return this.Expressions.OnTypedExpression(method).Expression;
+            }
+
             var liftedName = this.SharedState.GlobalName("PartialApplication");
             ResolvedType CallableArgumentType(ResolvedType t) => t.Resolution switch
             {
