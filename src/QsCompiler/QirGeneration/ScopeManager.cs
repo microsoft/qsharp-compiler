@@ -580,8 +580,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Adds a call to a runtime library function to change the reference count for the given value.
         /// The count is changed recursively for subitems unless shallow is set to true.
         /// </summary>
-        /// <param name="value">The value for which to change the reference count</param>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
+        /// <param name="value">The value for which to change the reference count</param>
         internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false)
         {
             this.scopes.Peek().ApplyPendingReferences();
@@ -625,8 +625,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The alias count is changed recursively for subitems unless shallow is set to true.
         /// Modifies *only* the alias count and not the reference count.
         /// </summary>
-        /// <param name="value">The value for which to change the alias count</param>
         /// <param name="change">The amount by which to change the alias count given as i64</param>
+        /// <param name="value">The value for which to change the alias count</param>
         internal void UpdateAliasCount(IValue change, IValue value, bool shallow = false) =>
             this.ModifyCounts(this.AliasCountUpdateFunctionForType, change, value, !shallow);
 
