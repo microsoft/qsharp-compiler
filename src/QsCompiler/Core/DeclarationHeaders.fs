@@ -151,6 +151,11 @@ type TypeDeclarationHeader =
         Documentation: ImmutableArray<string>
     }
 
+    // TODO: RELEASE 2021-08: Remove TypeDeclarationHeader.Modifiers.
+    [<JsonIgnore>]
+    [<Obsolete "Replaced by Access.">]
+    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
+
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation(this.Position, this.SymbolRange)
 
@@ -269,11 +274,17 @@ type CallableDeclarationHeader =
         Documentation: ImmutableArray<string>
     }
 
+    // TODO: RELEASE 2021-08: Remove CallableDeclarationHeader.Modifiers.
+    [<JsonIgnore>]
+    [<Obsolete "Replaced by Access.">]
+    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
+
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation(this.Position, this.SymbolRange)
 
     // TODO: RELEASE 2021-07: Remove CallableDeclarationHeader.SourceFile.
-    [<JsonIgnore; Obsolete "Replaced by Source.">]
+    [<JsonIgnore>]
+    [<Obsolete "Replaced by Source.">]
     member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.FromSource source = { this with Source = source }
