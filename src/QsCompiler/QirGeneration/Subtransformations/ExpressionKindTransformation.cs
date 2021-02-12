@@ -203,10 +203,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var falseBlock = sharedState.AddBlockAfterCurrent("condFalse");
 
                     sharedState.CurrentBuilder.Branch(wasCopied, contBlock, falseBlock);
-                    sharedState.ScopeMgr.OpenScope(); // FIXME: ACTUALLY WE ONLY NEED TO ENSURE THAT THE REF COUNT CHANGES ARE PROCESSED HERE...
+                    sharedState.ScopeMgr.OpenScope();
                     sharedState.SetCurrentBlock(falseBlock);
 
-                    // FIXME: IS SHALLOW CORRECT??
                     sharedState.ScopeMgr.IncreaseReferenceCount(value, shallow);
                     sharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow);
 
