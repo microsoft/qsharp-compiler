@@ -76,8 +76,8 @@ header__2:                                        ; preds = %exiting__2, %condCo
 body__2:                                          ; preds = %header__2
   %22 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
   %23 = bitcast %Tuple* %22 to { i64, i64 }*
-  %24 = getelementptr { i64, i64 }, { i64, i64 }* %23, i64 0, i32 0
-  %25 = getelementptr { i64, i64 }, { i64, i64 }* %23, i64 0, i32 1
+  %24 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 0
+  %25 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 1
   store i64 0, i64* %24
   store i64 0, i64* %25
   %26 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %19, i64 %20)
@@ -148,8 +148,8 @@ body__5:                                          ; preds = %header__5
   %46 = icmp ne %Array* %44, %45
   %47 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
   %48 = bitcast %Tuple* %47 to { i64, i64 }*
-  %49 = getelementptr { i64, i64 }, { i64, i64 }* %48, i64 0, i32 0
-  %50 = getelementptr { i64, i64 }, { i64, i64 }* %48, i64 0, i32 1
+  %49 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %48, i32 0, i32 0
+  %50 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %48, i32 0, i32 1
   %51 = add i64 %i, 1
   store i64 %i, i64* %49
   store i64 %51, i64* %50

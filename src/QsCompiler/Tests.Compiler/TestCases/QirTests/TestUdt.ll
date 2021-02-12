@@ -2,8 +2,8 @@ define { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__bo
 entry:
   %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ { i2, i64 }*, double }* getelementptr ({ { i2, i64 }*, double }, { { i2, i64 }*, double }* null, i32 1) to i64))
   %2 = bitcast %Tuple* %1 to { { i2, i64 }*, double }*
-  %3 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %2, i64 0, i32 0
-  %4 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %2, i64 0, i32 1
+  %3 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %2, i32 0, i32 0
+  %4 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %2, i32 0, i32 1
   store { i2, i64 }* %0, { i2, i64 }** %3
   store double %D, double* %4
   %5 = bitcast { i2, i64 }* %0 to %Tuple*

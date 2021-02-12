@@ -65,8 +65,8 @@ exiting__2:                                       ; preds = %body__2
 exit__2:                                          ; preds = %header__2
   %20 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
   %21 = bitcast %Tuple* %20 to { %Callable*, i64 }*
-  %22 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %21, i64 0, i32 0
-  %23 = getelementptr { %Callable*, i64 }, { %Callable*, i64 }* %21, i64 0, i32 1
+  %22 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %21, i32 0, i32 0
+  %23 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %21, i32 0, i32 1
   %24 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Foo, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
   store %Callable* %24, %Callable** %22
   store i64 1, i64* %23

@@ -326,16 +326,16 @@ namespace Microsoft.Quantum.QIR.Emission
         private IValue.Cached<Value> CreateTypedPointerCache(Value? pointer = null) =>
             new IValue.Cached<Value>(pointer, this.sharedState, this.GetTypedPointer);
 
-        private Value GetElementPointer(int index) =>
-            this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
+        private Value GetElementPointer(uint index) =>
+            this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, index);
 
-        private IValue.Cached<PointerValue> CreateCachedPointer(ResolvedType type, int index) =>
+        private IValue.Cached<PointerValue> CreateCachedPointer(ResolvedType type, uint index) =>
             new IValue.Cached<PointerValue>(
                 this.sharedState,
                 () => new PointerValue(this.GetElementPointer(index), type, this.sharedState));
 
         private IValue.Cached<PointerValue>[] CreateTupleElementPointersCaches() =>
-            this.ElementTypes.Select(this.CreateCachedPointer).ToArray();
+            this.ElementTypes.Select((t, i) => this.CreateCachedPointer(t, (uint)i)).ToArray();
 
         private Value AllocateTuple(bool registerWithScopeManager)
         {
@@ -351,15 +351,6 @@ namespace Microsoft.Quantum.QIR.Emission
         }
 
         // methods for item access
-
-        /// <summary>
-        /// Creates a suitable array of values to access the item at a given index for a pointer to a struct.
-        /// </summary>
-        private Value[] PointerIndex(int index) => new[]
-        {
-            this.sharedState.Context.CreateConstant(0L),
-            this.sharedState.Context.CreateConstant(index)
-        };
 
         /// <summary>
         /// Returns a pointer to the tuple element at the given index.

@@ -16,7 +16,7 @@ repeat__1:                                        ; preds = %condContinue__2, %e
   store { double, %String* }* %1, { double, %String* }** %res
   %2 = bitcast { double, %String* }* %1 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i64 1)
-  %3 = getelementptr { double, %String* }, { double, %String* }* %1, i64 0, i32 1
+  %3 = getelementptr inbounds { double, %String* }, { double, %String* }* %1, i32 0, i32 1
   %4 = load %String*, %String** %3
   call void @__quantum__rt__string_update_reference_count(%String* %4, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 1)
@@ -24,7 +24,7 @@ repeat__1:                                        ; preds = %condContinue__2, %e
   %5 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %2, i1 false)
   %6 = icmp ne %Tuple* %2, %5
   %7 = bitcast %Tuple* %5 to { double, %String* }*
-  %8 = getelementptr { double, %String* }, { double, %String* }* %7, i64 0, i32 1
+  %8 = getelementptr inbounds { double, %String* }, { double, %String* }* %7, i32 0, i32 1
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 1)
   %9 = load %String*, %String** %8
   br i1 %6, label %condContinue__1, label %condFalse__1
@@ -73,7 +73,7 @@ then0__1:                                         ; preds = %fixup__1
   call void @__quantum__rt__string_update_reference_count(%String* %9, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %12, i64 -1)
-  %21 = getelementptr { double, %String* }, { double, %String* }* %19, i64 0, i32 1
+  %21 = getelementptr inbounds { double, %String* }, { double, %String* }* %19, i32 0, i32 1
   %22 = load %String*, %String** %21
   call void @__quantum__rt__string_update_reference_count(%String* %22, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %20, i64 -1)
@@ -87,7 +87,7 @@ continue__1:                                      ; preds = %fixup__1
   %25 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %24, i1 false)
   %26 = icmp ne %Tuple* %24, %25
   %27 = bitcast %Tuple* %25 to { double, %String* }*
-  %28 = getelementptr { double, %String* }, { double, %String* }* %27, i64 0, i32 1
+  %28 = getelementptr inbounds { double, %String* }, { double, %String* }* %27, i32 0, i32 1
   %29 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   call void @__quantum__rt__string_update_reference_count(%String* %29, i64 1)
   %30 = load %String*, %String** %28
