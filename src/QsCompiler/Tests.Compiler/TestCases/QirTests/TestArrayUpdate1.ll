@@ -12,7 +12,7 @@ body__1:                                          ; preds = %header__1
   %3 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %1)
   %5 = bitcast i8* %4 to %String**
-  store %String* %3, %String** %5
+  store %String* %3, %String** %5, align 8
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
@@ -20,8 +20,8 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  %arr = alloca %Array*
-  store %Array* %0, %Array** %arr
+  %arr = alloca %Array*, align 8
+  store %Array* %0, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %0, i64 1)
   br label %header__2
 
@@ -33,7 +33,7 @@ header__2:                                        ; preds = %exiting__2, %exit__
 body__2:                                          ; preds = %header__2
   %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %7)
   %10 = bitcast i8* %9 to %String**
-  %11 = load %String*, %String** %10
+  %11 = load %String*, %String** %10, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %11, i64 1)
   br label %exiting__2
 
@@ -65,17 +65,17 @@ condFalse__1:                                     ; preds = %body__3
 
 condContinue__1:                                  ; preds = %condFalse__1, %condTrue__1
   %str = phi %String* [ %16, %condTrue__1 ], [ %even, %condFalse__1 ]
-  %17 = load %Array*, %Array** %arr
+  %17 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %17, i64 -1)
   %18 = call %Array* @__quantum__rt__array_copy(%Array* %17, i1 false)
   %19 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %18, i64 %i)
   %20 = bitcast i8* %19 to %String**
   call void @__quantum__rt__string_update_reference_count(%String* %str, i64 1)
-  %21 = load %String*, %String** %20
-  store %String* %str, %String** %20
+  %21 = load %String*, %String** %20, align 8
+  store %String* %str, %String** %20, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %18, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %18, i64 1)
-  store %Array* %18, %Array** %arr
+  store %Array* %18, %Array** %arr, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %str, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %17, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %21, i64 -1)
@@ -87,7 +87,7 @@ exiting__3:                                       ; preds = %condContinue__1
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
-  %23 = load %Array*, %Array** %arr
+  %23 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %23, i64 -1)
   br label %header__4
 
@@ -99,7 +99,7 @@ header__4:                                        ; preds = %exiting__4, %exit__
 body__4:                                          ; preds = %header__4
   %26 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %24)
   %27 = bitcast i8* %26 to %String**
-  %28 = load %String*, %String** %27
+  %28 = load %String*, %String** %27, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %28, i64 -1)
   br label %exiting__4
 

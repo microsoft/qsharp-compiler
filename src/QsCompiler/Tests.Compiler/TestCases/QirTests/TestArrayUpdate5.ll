@@ -12,7 +12,7 @@ header__1:                                        ; preds = %exiting__1, %entry
 body__1:                                          ; preds = %header__1
   %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %array, i64 %2)
   %5 = bitcast i8* %4 to { double, double }**
-  %6 = load { double, double }*, { double, double }** %5
+  %6 = load { double, double }*, { double, double }** %5, align 8
   %7 = bitcast { double, double }* %6 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %7, i64 1)
   br label %exiting__1
@@ -26,8 +26,8 @@ exit__1:                                          ; preds = %header__1
   %item = call { double, double }* @Microsoft__Quantum__Testing__QIR__Complex__body(double 0.000000e+00, double 0.000000e+00)
   %9 = bitcast { double, double }* %item to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i64 1)
-  %arr = alloca %Array*
-  store %Array* %array, %Array** %arr
+  %arr = alloca %Array*, align 8
+  store %Array* %array, %Array** %arr, align 8
   %10 = sub i64 %0, 1
   br label %header__2
 
@@ -39,7 +39,7 @@ header__2:                                        ; preds = %exiting__2, %exit__
 body__2:                                          ; preds = %header__2
   %13 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %array, i64 %11)
   %14 = bitcast i8* %13 to { double, double }**
-  %15 = load { double, double }*, { double, double }** %14
+  %15 = load { double, double }*, { double, double }** %14, align 8
   %16 = bitcast { double, double }* %15 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %16, i64 1)
   br label %exiting__2
@@ -61,7 +61,7 @@ header__3:                                        ; preds = %exiting__3, %exit__
 body__3:                                          ; preds = %header__3
   %21 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %array, i64 %19)
   %22 = bitcast i8* %21 to { double, double }**
-  %23 = load { double, double }*, { double, double }** %22
+  %23 = load { double, double }*, { double, double }** %22, align 8
   %24 = bitcast { double, double }* %23 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %24, i64 1)
   br label %exiting__3
@@ -86,29 +86,29 @@ header__4:                                        ; preds = %exiting__4, %prehea
   br i1 %29, label %body__4, label %exit__4
 
 body__4:                                          ; preds = %header__4
-  %30 = load %Array*, %Array** %arr
+  %30 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %30, i64 -1)
   %31 = call %Array* @__quantum__rt__array_copy(%Array* %30, i1 false)
   %32 = srem i64 %i, 2
   %33 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %30, i64 %32)
   %34 = bitcast i8* %33 to { double, double }**
-  %35 = load { double, double }*, { double, double }** %34
+  %35 = load { double, double }*, { double, double }** %34, align 8
   %36 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %31, i64 %i)
   %37 = bitcast i8* %36 to { double, double }**
   %38 = bitcast { double, double }* %35 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %38, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %38, i64 1)
-  %39 = load { double, double }*, { double, double }** %37
+  %39 = load { double, double }*, { double, double }** %37, align 8
   %40 = bitcast { double, double }* %39 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %40, i64 -1)
-  store { double, double }* %35, { double, double }** %37
+  store { double, double }* %35, { double, double }** %37, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %31, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %31, i64 1)
-  store %Array* %31, %Array** %arr
+  store %Array* %31, %Array** %arr, align 8
   br i1 %cond, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %body__4
-  %41 = load %Array*, %Array** %arr
+  %41 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %41, i64 -1)
   %42 = call %Array* @__quantum__rt__array_copy(%Array* %41, i1 false)
   %43 = srem i64 %i, 2
@@ -116,13 +116,13 @@ then0__1:                                         ; preds = %body__4
   %45 = bitcast i8* %44 to { double, double }**
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i64 1)
-  %46 = load { double, double }*, { double, double }** %45
+  %46 = load { double, double }*, { double, double }** %45, align 8
   %47 = bitcast { double, double }* %46 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %47, i64 -1)
-  store { double, double }* %item, { double, double }** %45
+  store { double, double }* %item, { double, double }** %45, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %42, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %42, i64 1)
-  store %Array* %42, %Array** %arr
+  store %Array* %42, %Array** %arr, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %41, i64 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %47, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %42, i64 -1)
@@ -139,7 +139,7 @@ exiting__4:                                       ; preds = %continue__1
   br label %header__4
 
 exit__4:                                          ; preds = %header__4
-  %49 = load %Array*, %Array** %arr
+  %49 = load %Array*, %Array** %arr, align 8
   %50 = sub i64 %0, 1
   br label %header__5
 
@@ -151,7 +151,7 @@ header__5:                                        ; preds = %exiting__5, %exit__
 body__5:                                          ; preds = %header__5
   %53 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %array, i64 %51)
   %54 = bitcast i8* %53 to { double, double }**
-  %55 = load { double, double }*, { double, double }** %54
+  %55 = load { double, double }*, { double, double }** %54, align 8
   %56 = bitcast { double, double }* %55 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %56, i64 -1)
   br label %exiting__5
@@ -175,7 +175,7 @@ header__6:                                        ; preds = %exiting__6, %exit__
 body__6:                                          ; preds = %header__6
   %62 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %49, i64 %60)
   %63 = bitcast i8* %62 to { double, double }**
-  %64 = load { double, double }*, { double, double }** %63
+  %64 = load { double, double }*, { double, double }** %63, align 8
   %65 = bitcast { double, double }* %64 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %65, i64 -1)
   br label %exiting__6

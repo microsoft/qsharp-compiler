@@ -8,8 +8,8 @@ entry:
   %2 = getelementptr { double, %BigInt*, i64 }, { double, %BigInt*, i64 }* %1, i64 0, i32 0
   %3 = getelementptr { double, %BigInt*, i64 }, { double, %BigInt*, i64 }* %1, i64 0, i32 1
   %4 = getelementptr { double, %BigInt*, i64 }, { double, %BigInt*, i64 }* %1, i64 0, i32 2
-  store double %d, double* %2
-  store %BigInt* %bi, %BigInt** %3
-  store i64 %i, i64* %4
+  store double %d, double* %2, align 8
+  store %BigInt* %bi, %BigInt** %3, align 8
+  store i64 %i, i64* %4, align 4
   ret { double, %BigInt*, i64 }* %1
 }

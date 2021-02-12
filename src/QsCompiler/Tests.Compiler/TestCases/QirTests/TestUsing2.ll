@@ -8,9 +8,9 @@ entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %d, i64 1)
   %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %b, i64 1)
   %1 = bitcast i8* %0 to %Qubit**
-  %x = load %Qubit*, %Qubit** %1
+  %x = load %Qubit*, %Qubit** %1, align 8
   %z = call %Qubit* @__quantum__rt__qubit_allocate()
-  %2 = load %Range, %Range* @EmptyRange
+  %2 = load %Range, %Range* @EmptyRange, align 4
   %3 = insertvalue %Range %2, i64 0, 0
   %4 = insertvalue %Range %3, i64 2, 1
   %5 = insertvalue %Range %4, i64 %max, 2
