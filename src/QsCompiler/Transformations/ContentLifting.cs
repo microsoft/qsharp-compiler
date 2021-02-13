@@ -214,7 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     QsCallableKind.Operation,
                     newName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
-                    new Modifiers(AccessModifier.Internal),
+                    Access.Internal,
                     callable.Callable.Source,
                     QsNullable<QsLocation>.Null,
                     signature,

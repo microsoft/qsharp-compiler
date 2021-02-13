@@ -25,8 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
         [Fact]
         public void ExcludeInaccessible()
         {
-            var elements =
-                new[] { AccessModifier.DefaultAccess, AccessModifier.Internal }
+            var elements = new[] { Access.Public, Access.Internal }
                 .SelectMany(access =>
                 {
                     var source = new Source("Tests.qs", QsNullable<string>.Null);
@@ -42,7 +41,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                         kind: QsCallableKind.Operation,
                         fullName: MakeFullName(access + "Operation"),
                         attributes: ImmutableArray<QsDeclarationAttribute>.Empty,
-                        modifiers: new Modifiers(access),
+                        access,
                         source: source,
                         location: ZeroLocation,
                         signature: signature,
@@ -56,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                     var type = new QsCustomType(
                         fullName: MakeFullName(access + "Type"),
                         attributes: ImmutableArray<QsDeclarationAttribute>.Empty,
-                        modifiers: new Modifiers(access),
+                        access,
                         source: source,
                         location: ZeroLocation,
                         type: unit,
@@ -85,10 +84,10 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
 uid: microsoft.quantum.canon
 name: Microsoft.Quantum.Canon
 operations:
-- uid: microsoft.quantum.canon.defaultaccessoperation
+- uid: microsoft.quantum.canon.publicoperation
   summary: ''
 newtypes:
-- uid: microsoft.quantum.canon.defaultaccesstype
+- uid: microsoft.quantum.canon.publictype
   summary: ''
 ...
 ";

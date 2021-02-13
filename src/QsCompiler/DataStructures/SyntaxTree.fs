@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxTree
 
+#nowarn "44" // AccessModifier and Modifiers are deprecated.
+
 open System
 open System.Collections.Immutable
 open System.Linq
@@ -719,7 +721,7 @@ type Source with
                        [<Optional; DefaultParameterValue null>] ?assemblyFile) =
         { source with
             CodeFile = codeFile |> Option.defaultValue source.CodeFile
-            AssemblyFile = assemblyFile |> QsNullable<_>.FromOption |> QsNullable.orElse source.AssemblyFile
+            AssemblyFile = assemblyFile |> QsNullable.ofOption |> QsNullable.orElse source.AssemblyFile
         }
 
 
@@ -830,8 +832,8 @@ type QsCallable =
         FullName: QsQualifiedName
         /// contains all attributes associated with the callable
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        /// Represents the Q# keywords attached to the declaration that modify its behavior.
-        Modifiers: Modifiers
+        /// The accessibility of the callable.
+        Access: Access
         /// The source where the callable is declared in.
         Source: Source
         /// Contains the location information for the declared callable.
@@ -855,6 +857,15 @@ type QsCallable =
         /// contains comments in the code associated with this declarations
         Comments: QsComments
     }
+
+    // TODO: RELEASE 2021-08: Remove QsCallable.Modifiers.
+    [<Obsolete "Replaced by Access.">]
+    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
+
+    // TODO: RELEASE 2021-07: Remove QsCallable.SourceFile.
+    [<Obsolete "Replaced by Source.">]
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
+
     member this.AddAttribute att =
         { this with Attributes = this.Attributes.Add att }
 
@@ -868,10 +879,6 @@ type QsCallable =
         { this with FullName = getName.Invoke(this.FullName) }
 
     member this.WithSource source = { this with Source = source }
-
-    // TODO: RELEASE 2021-07: Remove QsCallable.SourceFile.
-    [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
 
 /// used to represent the named and anonymous items in a user defined type
@@ -889,8 +896,8 @@ type QsCustomType =
         FullName: QsQualifiedName
         /// contains all attributes associated with the type
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        /// Represents the Q# keywords attached to the declaration that modify its behavior.
-        Modifiers: Modifiers
+        /// The accessibility of the type.
+        Access: Access
         /// The source where the type is declared in.
         Source: Source
         /// Contains the location information for the declared type.
@@ -910,6 +917,15 @@ type QsCustomType =
         /// contains comments in the code associated with this declarations
         Comments: QsComments
     }
+
+    // TODO: RELEASE 2021-08: Remove QsCallable.Modifiers.
+    [<Obsolete "Replaced by Access.">]
+    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
+
+    // TODO: RELEASE 2021-07: Remove QsCustomType.SourceFile.
+    [<Obsolete "Replaced by Source.">]
+    member this.SourceFile = Source.assemblyOrCodeFile this.Source
+
     member this.AddAttribute att =
         { this with Attributes = this.Attributes.Add att }
 
@@ -920,10 +936,6 @@ type QsCustomType =
         { this with FullName = getName.Invoke(this.FullName) }
 
     member this.WithSource source = { this with Source = source }
-
-    // TODO: RELEASE 2021-07: Remove QsCustomType.SourceFile.
-    [<Obsolete "Replaced by Source.">]
-    member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
 
 /// Describes a valid Q# namespace element.
