@@ -26,11 +26,11 @@ condFalse__1:                                     ; preds = %entry
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %entry
-  store %String* %name, %String** %8
+  store %String* %name, %String** %8, align 8
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 1)
   store { double, %String* }* %7, { double, %String* }** %res, align 8
-  %energy = alloca double
+  %energy = alloca double, align 8
   store double 0.000000e+00, double* %energy, align 8
   br label %header__1
 

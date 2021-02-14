@@ -23,10 +23,10 @@ body__1:                                          ; preds = %header__1
   %7 = mul i64 %5, 8
   %8 = add i64 %2, %7
   %9 = inttoptr i64 %8 to double*
-  %10 = load double, double* %9
+  %10 = load double, double* %9, align 8
   %11 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %5)
   %12 = bitcast i8* %11 to double*
-  store double %10, double* %12
+  store double %10, double* %12, align 8
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1

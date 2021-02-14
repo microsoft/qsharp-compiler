@@ -142,7 +142,7 @@ header__5:                                        ; preds = %exiting__5, %exit__
   br i1 %43, label %body__5, label %exit__5
 
 body__5:                                          ; preds = %header__5
-  %44 = load %Array*, %Array** %arr
+  %44 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %44, i64 -1)
   %45 = call %Array* @__quantum__rt__array_copy(%Array* %44, i1 false)
   %46 = icmp ne %Array* %44, %45
@@ -168,7 +168,7 @@ condFalse__3:                                     ; preds = %body__5
   br label %condContinue__3
 
 condContinue__3:                                  ; preds = %condFalse__3, %body__5
-  store { i64, i64 }* %48, { i64, i64 }** %53
+  store { i64, i64 }* %48, { i64, i64 }** %53, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %45, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %45, i64 1)
   store %Array* %45, %Array** %arr, align 8

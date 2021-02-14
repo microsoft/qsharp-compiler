@@ -58,7 +58,7 @@ exit__1:                                          ; preds = %header__1
   %26 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %27 = bitcast %Tuple* %26 to { %String* }*
   %28 = getelementptr inbounds { %String* }, { %String* }* %27, i32 0, i32 0
-  store %String* %25, %String** %28
+  store %String* %25, %String** %28, align 8
   %29 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   call void @__quantum__rt__callable_invoke(%Callable* %fct, %Tuple* %26, %Tuple* %29)
   %30 = bitcast %Tuple* %29 to { %String*, { i64, double }* }*

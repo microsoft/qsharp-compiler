@@ -130,7 +130,7 @@ continue__1:                                      ; preds = %condContinue__3, %e
   %41 = bitcast { double, double }* %40 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %41, i64 -1)
   %42 = getelementptr inbounds { %String*, { double, double }*, { double, double }* }, { %String*, { double, double }*, { double, double }* }* %38, i32 0, i32 2
-  %43 = load { double, double }*, { double, double }** %42
+  %43 = load { double, double }*, { double, double }** %42, align 8
   %44 = bitcast { double, double }* %43 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %44, i64 -1)
   %45 = bitcast { %String*, { double, double }*, { double, double }* }* %38 to %Tuple*

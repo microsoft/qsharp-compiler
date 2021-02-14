@@ -137,7 +137,7 @@ condFalse__2:                                     ; preds = %then0__1
   br label %condContinue__2
 
 condContinue__2:                                  ; preds = %condFalse__2, %then0__1
-  store { double, double }* %item, { double, double }** %47
+  store { double, double }* %item, { double, double }** %47, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %43, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %43, i64 1)
   store %Array* %43, %Array** %arr, align 8

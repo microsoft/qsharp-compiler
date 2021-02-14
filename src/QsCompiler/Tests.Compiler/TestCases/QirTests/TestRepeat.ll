@@ -90,7 +90,7 @@ continue__1:                                      ; preds = %fixup__1
   %28 = getelementptr inbounds { double, %String* }, { double, %String* }* %27, i32 0, i32 1
   %29 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   call void @__quantum__rt__string_update_reference_count(%String* %29, i64 1)
-  %30 = load %String*, %String** %28
+  %30 = load %String*, %String** %28, align 8
   br i1 %26, label %condContinue__2, label %condFalse__2
 
 condFalse__2:                                     ; preds = %continue__1
@@ -99,12 +99,12 @@ condFalse__2:                                     ; preds = %continue__1
   br label %condContinue__2
 
 condContinue__2:                                  ; preds = %condFalse__2, %continue__1
-  store %String* %29, %String** %28
+  store %String* %29, %String** %28, align 8
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %25, i64 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %25, i64 1)
-  store { double, %String* }* %27, { double, %String* }** %res
-  %31 = load %String*, %String** %3
-  %32 = load %String*, %String** %8
+  store { double, %String* }* %27, { double, %String* }** %res, align 8
+  %31 = load %String*, %String** %3, align 8
+  %32 = load %String*, %String** %8, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %25, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i64 -1)

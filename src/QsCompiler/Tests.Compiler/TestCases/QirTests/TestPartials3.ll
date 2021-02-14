@@ -9,7 +9,7 @@ entry:
   %6 = getelementptr inbounds { { i64, double }*, { %String*, %Qubit* }* }, { { i64, double }*, { %String*, %Qubit* }* }* %4, i32 0, i32 1
   store { i64, double }* %2, { i64, double }** %5, align 8
   %7 = bitcast %Tuple* %arg-tuple to { %String*, %Qubit* }*
-  store { %String*, %Qubit* }* %7, { %String*, %Qubit* }** %6
+  store { %String*, %Qubit* }* %7, { %String*, %Qubit* }** %6, align 8
   %8 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 0
   %9 = load %Callable*, %Callable** %8, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %9, %Tuple* %3, %Tuple* %result-tuple)
