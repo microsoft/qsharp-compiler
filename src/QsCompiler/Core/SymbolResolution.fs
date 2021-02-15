@@ -354,7 +354,7 @@ module SymbolResolution =
 
         StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
-        |> QsNullable<_>.FromOption
+        |> QsNullable.ofOption
 
 
     // routines for resolving types and signatures
