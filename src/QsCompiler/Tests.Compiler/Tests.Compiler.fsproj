@@ -388,6 +388,12 @@
     <None Include="TestCases\ExecutionTests\LoggingBasedTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\StringParsingTests\StringParsing.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\StringParsingTests\StringInterpolation.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\AttributeGeneration.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

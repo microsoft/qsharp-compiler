@@ -42,7 +42,7 @@ type internal Resolution<'T, 'R> =
             Resolved: QsNullable<'R>
             DefinedAttributes: ImmutableArray<AttributeAnnotation>
             ResolvedAttributes: ImmutableArray<QsDeclarationAttribute>
-            Modifiers: Modifiers
+            Access: Access
             Documentation: ImmutableArray<string>
         }
 
@@ -249,7 +249,7 @@ module SymbolResolution =
 
         StringArgument (getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
-        |> QsNullable<_>.FromOption
+        |> QsNullable.ofOption
 
     /// Checks whether the given attributes indicate that the corresponding declaration has been deprecated.
     /// Returns a string containing the name of the type or callable to use instead as Value if this is the case, or Null otherwise.
@@ -261,7 +261,7 @@ module SymbolResolution =
 
         StringArgument (getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
-        |> QsNullable<_>.FromOption
+        |> QsNullable.ofOption
 
     /// Converts the given string to a QsQualifiedName.
     /// Returs the qualified name as some if the conversion succeeds, and None otherwise.
@@ -286,7 +286,7 @@ module SymbolResolution =
         StringArgument (getTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> Option.bind TryAsQualifiedName
-        |> QsNullable<_>.FromOption
+        |> QsNullable.ofOption
 
     /// Checks whether the given attributes indicate that the type or callable has been loaded via an alternative name for testing purposes.
     /// Returns the original qualified name as Value if this is the case, and Null otherwise.
@@ -300,7 +300,7 @@ module SymbolResolution =
         StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> Option.bind TryAsQualifiedName
-        |> QsNullable<_>.FromOption
+        |> QsNullable.ofOption
 
     /// Checks whether the given attributes indicate that the corresponding declaration contains a unit test.
     /// Returns a sequence of strings defining all execution targets on which the test should be run. Invalid execution targets are set to null.
