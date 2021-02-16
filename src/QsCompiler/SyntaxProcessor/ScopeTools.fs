@@ -16,6 +16,7 @@ open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Utils
 
 /// Used to represent all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
 /// Specifically, the tracked properties are pushed and popped for each scope.
@@ -396,6 +397,65 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                     addError (ErrorCode.UnknownItemName, [ udt.Name; name ])
                     InvalidType |> ResolvedType.New
 
+type InferenceContext(origin) =
+    let mutable next = 0
+
+    let bindings = Dictionary()
+
+    let bind param typeKind =
+        if bindings.ContainsKey param then
+            [ sprintf "Type parameter already bound: %A" param ]
+        else
+            bindings.Add(param, typeKind)
+            []
+
+    member context.Fresh() =
+        let name = sprintf "__t%d__" next
+        next <- next + 1
+
+        {
+            Origin = origin
+            TypeName = name
+            Range = Null
+        }
+        |> TypeParameter
+        |> ResolvedType.New
+
+    member context.Unify(left: ResolvedType, right: ResolvedType) =
+        match left.Resolution, right.Resolution with
+        | TypeParameter paramLeft, TypeParameter paramRight ->
+            bind paramLeft right.Resolution @ bind paramRight left.Resolution
+        | TypeParameter param, resolution
+        | resolution, TypeParameter param -> bind param resolution
+        | ArrayType itemLeft, ArrayType itemRight -> context.Unify(itemLeft, itemRight)
+        | TupleType itemsLeft, TupleType itemsRight ->
+            Seq.zip itemsLeft itemsRight |> Seq.collect context.Unify |> Seq.toList
+        | QsTypeKind.Operation ((inLeft, outLeft), _), QsTypeKind.Operation ((inRight, outRight), _)
+        | QsTypeKind.Function (inLeft, outLeft), QsTypeKind.Function (inRight, outRight) ->
+            // TODO: Characteristics.
+            [ inLeft, inRight; outLeft, outRight ] |> List.collect context.Unify
+        | _ when left.Resolution = right.Resolution -> []
+        | _ -> [ sprintf "Types not equal: %A\n%A" left.Resolution right.Resolution ]
+
+    member context.Resolve typeKind =
+        match typeKind with
+        | TypeParameter param -> bindings.TryGetValue param |> tryOption |> Option.defaultValue typeKind
+        | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
+        | TupleType tuple ->
+            tuple
+            |> Seq.map (fun item -> context.Resolve item.Resolution |> ResolvedType.New)
+            |> ImmutableArray.CreateRange
+            |> TupleType
+        | QsTypeKind.Operation ((inType, outType), characteristics) ->
+            let inType = context.Resolve inType.Resolution |> ResolvedType.New
+            let outType = context.Resolve outType.Resolution |> ResolvedType.New
+            QsTypeKind.Operation((inType, outType), characteristics)
+        | QsTypeKind.Function (inType, outType) ->
+            let inType = context.Resolve inType.Resolution |> ResolvedType.New
+            let outType = context.Resolve outType.Resolution |> ResolvedType.New
+            QsTypeKind.Function(inType, outType)
+        | _ -> typeKind
+
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =
     // TODO: RELEASE 2021-04: Remove IsInIfCondition and WithinIfCondition.
@@ -405,6 +465,8 @@ type ScopeContext =
 
         /// The symbol tracker for the parent callable.
         Symbols: SymbolTracker
+
+        Inference: InferenceContext
 
         /// True if the parent callable for the current scope is an operation.
         IsInOperation: bool
@@ -444,6 +506,7 @@ type ScopeContext =
             {
                 Globals = nsManager
                 Symbols = SymbolTracker(nsManager, Source.assemblyOrCodeFile spec.Source, spec.Parent)
+                Inference = InferenceContext spec.Parent
                 IsInOperation = declaration.Kind = Operation
                 IsInIfCondition = false
                 ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType

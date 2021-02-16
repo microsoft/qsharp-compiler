@@ -7,10 +7,10 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
+
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
@@ -350,7 +350,7 @@ let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsTy
 /// and adds a MultipleTypesInArray error for the entire array if this fails.
 /// Returns the inferred type of the array.
 /// Returns an array with missing base type if the given list of item types is empty.
-let private VerifyValueArray parent addError (content, range) =
+let private VerifyValueArray parent (inference: InferenceContext) addError (content, range) =
     content
     |> List.iter (fun (t: ResolvedType, r) ->
         if t.isMissing
@@ -371,7 +371,7 @@ let private VerifyValueArray parent addError (content, range) =
             findCommonBaseType errs common tail
 
     match content |> List.unzip |> fst |> List.filter (not << invalidOrMissing) |> List.distinct with
-    | [] when content.Length = 0 -> MissingType |> ResolvedType.New |> arrayType
+    | [] when content.Length = 0 -> inference.Fresh()
     | [] -> InvalidType |> ResolvedType.New |> arrayType
     | first :: itemTs ->
         let commonBaseTerrs = new List<ErrorCode * string list>()
@@ -979,7 +979,7 @@ type QsExpression with
             let resolvedType =
                 positioned
                 |> List.map snd
-                |> fun vals -> VerifyValueArray symbols.Parent addError (vals, this.RangeOrDefault)
+                |> fun vals -> VerifyValueArray symbols.Parent context.Inference addError (vals, this.RangeOrDefault)
 
             let resolvedValues = (positioned |> List.map fst).ToImmutableArray()
 

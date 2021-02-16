@@ -333,6 +333,16 @@ let internal warnOnComma =
     >>= pushDiagnostic
     |> opt
 
+// TODO: Refactor this with commaSep1.
+let internal commaSep validItem errCode missingCode fallback delimiter =
+    let delimiter = (delimiter >>% ()) <|> (comma >>% ())
+    let item = expected validItem errCode missingCode fallback delimiter
+    let invalidLast = checkForInvalid delimiter errCode >>% fallback
+    let piece = (item .>>? followedBy comma) <|> attempt validItem <|> invalidLast
+
+    sepBy (piece |> withExcessContinuation delimiter) (comma .>>? followedBy piece) .>> warnOnComma
+    |>> fun x -> x.ToImmutableArray()
+
 /// Parses a comma separated sequence of items, expecting at least one item, and returns the parsed items as a list.
 /// Generates an error with the given missingCode if nothing (but whitespace) precedes the next comma,
 /// inserting the given fallback at that position in the list.
