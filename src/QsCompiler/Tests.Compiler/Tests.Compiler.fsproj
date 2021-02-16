@@ -482,9 +482,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
-    <!-- <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
+    <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
-    </ProjectReference> Temporarily removing to get a good e2e build -->
+    </ProjectReference>
   </ItemGroup>
 
   <ItemGroup>
