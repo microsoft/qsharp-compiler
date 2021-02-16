@@ -672,7 +672,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
+
+                // Since we are effectively creating a new array and populating it with the times from ...
             }
             else
             {
