@@ -158,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// and makes sure the release function is invoked before unreferending the value.
             /// If the given value to register is a pointer, recursively loads its content and registers the loaded value.
             /// </summary>
-            public void RegisterValue(IValue value, string? releaseFunction = null)
+            public void RegisterValue(IValue value, string? releaseFunction = null, bool shallow = false)
             {
                 if (releaseFunction != null)
                 {
@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 if (this.parent.RequiresReferenceCount(value.LlvmType))
                 {
-                    this.requiredUnreferences.Add((LoadValue(value), true));
+                    this.requiredUnreferences.Add((LoadValue(value), !shallow));
                 }
             }
 
@@ -635,8 +635,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// that unreferences the value is executed when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
-        public void RegisterValue(IValue value) =>
-            this.scopes.Peek().RegisterValue(value);
+        public void RegisterValue(IValue value, bool shallow = false) =>
+            this.scopes.Peek().RegisterValue(value, shallow: shallow);
 
         /// <summary>
         /// Adds a value constructed as part of a qubit allocation to the current topmost scope.

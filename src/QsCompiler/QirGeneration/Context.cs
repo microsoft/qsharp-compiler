@@ -1249,11 +1249,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             TupleValue GetArgumentTuple(ResolvedType type, Value argTuple)
             {
-                var itemTypes =
-                    type.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
-                    type.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
-                    ImmutableArray.Create(type);
-                return this.Values.FromTuple(argTuple, itemTypes);
+                if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
+                {
+                    return this.Values.FromCustomType(argTuple, udt.Item);
+                }
+                else
+                {
+                    var itemTypes =
+                        type.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
+                        type.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
+                        ImmutableArray.Create(type);
+                    return this.Values.FromTuple(argTuple, itemTypes);
+                }
             }
 
             // result value contains the return value, and output tuple is the tuple where that value should be stored
@@ -1282,19 +1289,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, List<Value> args)
+            Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
             {
                 if (TryGetTargetInstructionName(callable, out var name))
                 {
                     var func = this.GetOrCreateTargetInstruction(name);
                     return specKind == QsSpecializationKind.QsBody
-                        ? this.CurrentBuilder.Call(func, args.ToArray())
+                        ? this.CurrentBuilder.Call(func, args)
                         : throw new ArgumentException($"non-body specialization for target instruction");
                 }
                 else
                 {
                     return this.TryGetFunction(callable.FullName, specKind, out IrFunction? func)
-                        ? this.CurrentBuilder.Call(func, args.ToArray())
+                        ? this.CurrentBuilder.Call(func, args)
                         : throw new InvalidOperationException($"No function defined for {callable.FullName} {specKind}");
                 }
             }
@@ -1326,8 +1333,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, parameters =>
                         {
                             var argTuple = GetArgumentTuple(spec.Signature.ArgumentType, parameters[1]);
-                            var argList = new List<Value>(argTuple.GetTupleElements().Select(qirValue => qirValue.Value));
-                            var result = GenerateBaseMethodCall(callable, spec.Kind, argList);
+                            var args = spec.Signature.ArgumentType.Resolution.IsUserDefinedType
+                                ? new[] { argTuple.TypedPointer }
+                                : argTuple.GetTupleElements().Select(qirValue => qirValue.Value).ToArray();
+                            var result = GenerateBaseMethodCall(callable, spec.Kind, args);
                             PopulateResultTuple(callable.Signature.ReturnType, result, parameters[2]);
                         });
                     }
