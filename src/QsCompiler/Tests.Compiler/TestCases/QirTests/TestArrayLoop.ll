@@ -41,9 +41,9 @@ body__2:                                          ; preds = %header__2
   %z = load { i64, i64 }*, { i64, i64 }** %13
   %14 = bitcast { i64, i64 }* %z to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 1)
-  %15 = getelementptr { i64, i64 }, { i64, i64 }* %z, i64 0, i32 0
+  %15 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %z, i32 0, i32 0
   %j = load i64, i64* %15
-  %16 = getelementptr { i64, i64 }, { i64, i64 }* %z, i64 0, i32 1
+  %16 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %z, i32 0, i32 1
   %k = load i64, i64* %16
   %17 = load i64, i64* %x
   %18 = add i64 %17, %j
@@ -61,8 +61,8 @@ exiting__2:                                       ; preds = %body__2
 exit__2:                                          ; preds = %header__2
   %22 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
   %23 = bitcast %Tuple* %22 to { i64, i64 }*
-  %24 = getelementptr { i64, i64 }, { i64, i64 }* %23, i64 0, i32 0
-  %25 = getelementptr { i64, i64 }, { i64, i64 }* %23, i64 0, i32 1
+  %24 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 0
+  %25 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 1
   %26 = load i64, i64* %x
   %27 = load i64, i64* %y
   store i64 %26, i64* %24

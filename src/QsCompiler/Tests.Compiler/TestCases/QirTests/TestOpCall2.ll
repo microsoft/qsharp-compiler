@@ -1,9 +1,9 @@
 define void @Microsoft__Quantum__Testing__QIR__CNOT__ctl(%Array* %__controlQubits__, { %Qubit*, %Qubit* }* %0) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 1)
-  %1 = getelementptr { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %0, i64 0, i32 0
+  %1 = getelementptr inbounds { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %0, i32 0, i32 0
   %control = load %Qubit*, %Qubit** %1
-  %2 = getelementptr { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %0, i64 0, i32 1
+  %2 = getelementptr inbounds { %Qubit*, %Qubit* }, { %Qubit*, %Qubit* }* %0, i32 0, i32 1
   %target = load %Qubit*, %Qubit** %2
   %3 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
   %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %3, i64 0)

@@ -41,8 +41,8 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__callable_make_controlled(%Callable* %16)
   %17 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %18 = bitcast %Tuple* %17 to { %Array*, %Tuple* }*
-  %19 = getelementptr { %Array*, %Tuple* }, { %Array*, %Tuple* }* %18, i64 0, i32 0
-  %20 = getelementptr { %Array*, %Tuple* }, { %Array*, %Tuple* }* %18, i64 0, i32 1
+  %19 = getelementptr inbounds { %Array*, %Tuple* }, { %Array*, %Tuple* }* %18, i32 0, i32 0
+  %20 = getelementptr inbounds { %Array*, %Tuple* }, { %Array*, %Tuple* }* %18, i32 0, i32 1
   %21 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
   store %Array* %21, %Array** %19
   store %Tuple* null, %Tuple** %20
@@ -57,21 +57,21 @@ exit__1:                                          ; preds = %header__1
   %25 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   %26 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %27 = bitcast %Tuple* %26 to { %String* }*
-  %28 = getelementptr { %String* }, { %String* }* %27, i64 0, i32 0
+  %28 = getelementptr inbounds { %String* }, { %String* }* %27, i32 0, i32 0
   store %String* %25, %String** %28
   %29 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   call void @__quantum__rt__callable_invoke(%Callable* %fct, %Tuple* %26, %Tuple* %29)
   %30 = bitcast %Tuple* %29 to { %String*, { i64, double }* }*
-  %31 = getelementptr { %String*, { i64, double }* }, { %String*, { i64, double }* }* %30, i64 0, i32 0
+  %31 = getelementptr inbounds { %String*, { i64, double }* }, { %String*, { i64, double }* }* %30, i32 0, i32 0
   %str = load %String*, %String** %31
-  %32 = getelementptr { %String*, { i64, double }* }, { %String*, { i64, double }* }* %30, i64 0, i32 1
+  %32 = getelementptr inbounds { %String*, { i64, double }* }, { %String*, { i64, double }* }* %30, i32 0, i32 1
   %33 = load { i64, double }*, { i64, double }** %32
-  %34 = getelementptr { i64, double }, { i64, double }* %33, i64 0, i32 1
+  %34 = getelementptr inbounds { i64, double }, { i64, double }* %33, i32 0, i32 1
   %val = load double, double* %34
   %35 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %String*, double }* getelementptr ({ %String*, double }, { %String*, double }* null, i32 1) to i64))
   %36 = bitcast %Tuple* %35 to { %String*, double }*
-  %37 = getelementptr { %String*, double }, { %String*, double }* %36, i64 0, i32 0
-  %38 = getelementptr { %String*, double }, { %String*, double }* %36, i64 0, i32 1
+  %37 = getelementptr inbounds { %String*, double }, { %String*, double }* %36, i32 0, i32 0
+  %38 = getelementptr inbounds { %String*, double }, { %String*, double }* %36, i32 0, i32 1
   store %String* %str, %String** %37
   store double %val, double* %38
   br label %header__2

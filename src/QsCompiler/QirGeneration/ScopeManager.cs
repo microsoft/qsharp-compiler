@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.requiredReleases.Add((LoadValue(value), releaseFunction));
                 }
-                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
+                if (this.parent.RequiresReferenceCount(value.LlvmType))
                 {
                     this.requiredUnreferences.Add((LoadValue(value), true));
                 }
@@ -176,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// </summary>
             internal void ReferenceValue(IValue value, bool recurIntoInnerItems)
             {
-                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
+                if (this.parent.RequiresReferenceCount(value.LlvmType))
                 {
                     this.pendingReferences.Add((LoadValue(value), recurIntoInnerItems));
                 }
@@ -224,7 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// </summary>
             internal void UnreferenceValue(IValue value, bool recurIntoInnerItems)
             {
-                if (this.parent.ReferenceCountUpdateFunctionForType(value.LlvmType) != null)
+                if (this.parent.RequiresReferenceCount(value.LlvmType))
                 {
                     this.requiredUnreferences.Add((LoadValue(value), recurIntoInnerItems));
                 }
@@ -555,6 +555,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 scope.ExecutePendingCalls();
             }
         }
+
+        /// <returns>True if reference counts are tracked for values of the given type.</returns>
+        internal bool RequiresReferenceCount(ITypeRef type) =>
+            this.ReferenceCountUpdateFunctionForType(type) != null;
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the reference count for the given value if necessary.

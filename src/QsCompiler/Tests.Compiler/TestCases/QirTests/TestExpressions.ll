@@ -48,15 +48,15 @@ entry:
   %45 = call i1 @Microsoft__Quantum__Testing__QIR__ReturnNot__body()
   %46 = call i64 @Microsoft__Quantum__Testing__QIR__ReturnBNot__body()
   %47 = call double @Microsoft__Quantum__Testing__QIR__ReturnNegative__body(double 3.000000e+00)
-  %48 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %5, i64 0, i32 0
+  %48 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %5, i32 0, i32 0
   %49 = load { i2, i64 }*, { i2, i64 }** %48
-  %50 = getelementptr { i64, { %Callable*, %String* }* }, { i64, { %Callable*, %String* }* }* %8, i64 0, i32 1
+  %50 = getelementptr inbounds { i64, { %Callable*, %String* }* }, { i64, { %Callable*, %String* }* }* %8, i32 0, i32 1
   %51 = load { %Callable*, %String* }*, { %Callable*, %String* }** %50
-  %52 = getelementptr { %Callable*, %String* }, { %Callable*, %String* }* %51, i64 0, i32 0
+  %52 = getelementptr inbounds { %Callable*, %String* }, { %Callable*, %String* }* %51, i32 0, i32 0
   %53 = load %Callable*, %Callable** %52
-  %54 = getelementptr { %Callable*, %String* }, { %Callable*, %String* }* %51, i64 0, i32 1
+  %54 = getelementptr inbounds { %Callable*, %String* }, { %Callable*, %String* }* %51, i32 0, i32 1
   %55 = load %String*, %String** %54
-  %56 = getelementptr { { i2, i64 }*, double }, { { i2, i64 }*, double }* %16, i64 0, i32 0
+  %56 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %16, i32 0, i32 0
   %57 = load { i2, i64 }*, { i2, i64 }** %56
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %0, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %0, i64 -1)
