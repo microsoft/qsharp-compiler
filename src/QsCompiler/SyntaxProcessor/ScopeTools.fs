@@ -423,20 +423,18 @@ type InferenceContext(origin) =
         |> ResolvedType.New
 
     member context.Unify(left: ResolvedType, right: ResolvedType) =
+        // TODO: Make sure type parameters are actually placeholders created by this context and not foralls.
         match left.Resolution, right.Resolution with
-        | TypeParameter paramLeft, TypeParameter paramRight ->
-            bind paramLeft right.Resolution @ bind paramRight left.Resolution
+        | TypeParameter param1, TypeParameter param2 -> bind param1 right.Resolution @ bind param2 left.Resolution
         | TypeParameter param, resolution
         | resolution, TypeParameter param -> bind param resolution
-        | ArrayType itemLeft, ArrayType itemRight -> context.Unify(itemLeft, itemRight)
-        | TupleType itemsLeft, TupleType itemsRight ->
-            Seq.zip itemsLeft itemsRight |> Seq.collect context.Unify |> Seq.toList
-        | QsTypeKind.Operation ((inLeft, outLeft), _), QsTypeKind.Operation ((inRight, outRight), _)
-        | QsTypeKind.Function (inLeft, outLeft), QsTypeKind.Function (inRight, outRight) ->
-            // TODO: Characteristics.
-            [ inLeft, inRight; outLeft, outRight ] |> List.collect context.Unify
+        | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2)
+        | TupleType items1, TupleType items2 -> Seq.zip items1 items2 |> Seq.collect context.Unify |> Seq.toList
+        | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Operation ((in2, out2), _)
+        | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
+            [ in1, in2; out1, out2 ] |> List.collect context.Unify
         | _ ->
-            // TODO: Error if types are not compatible.
+            // TODO: Error if types are not compatible. Check if left and right have a common base type.
             List.empty
 
     member context.Resolve typeKind =
@@ -448,10 +446,10 @@ type InferenceContext(origin) =
             |> Seq.map (fun item -> context.Resolve item.Resolution |> ResolvedType.New)
             |> ImmutableArray.CreateRange
             |> TupleType
-        | QsTypeKind.Operation ((inType, outType), characteristics) ->
+        | QsTypeKind.Operation ((inType, outType), chars) ->
             let inType = context.Resolve inType.Resolution |> ResolvedType.New
             let outType = context.Resolve outType.Resolution |> ResolvedType.New
-            QsTypeKind.Operation((inType, outType), characteristics)
+            QsTypeKind.Operation((inType, outType), chars)
         | QsTypeKind.Function (inType, outType) ->
             let inType = context.Resolve inType.Resolution |> ResolvedType.New
             let outType = context.Resolve outType.Resolution |> ResolvedType.New
