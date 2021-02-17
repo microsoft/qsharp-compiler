@@ -16,6 +16,7 @@ open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 
 /// Used to represent all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
@@ -400,13 +401,13 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
 type InferenceContext(origin) =
     let mutable next = 0
 
-    let bindings = Dictionary()
+    let substitutions = Dictionary()
 
     let bind param typeKind =
-        if bindings.ContainsKey param then
+        if substitutions.ContainsKey param then
             [ sprintf "Type parameter already bound: %A" param ]
         else
-            bindings.Add(param, typeKind)
+            substitutions.Add(param, typeKind)
             []
 
     member context.Fresh() =
@@ -434,12 +435,13 @@ type InferenceContext(origin) =
         | QsTypeKind.Function (inLeft, outLeft), QsTypeKind.Function (inRight, outRight) ->
             // TODO: Characteristics.
             [ inLeft, inRight; outLeft, outRight ] |> List.collect context.Unify
-        | _ when left.Resolution = right.Resolution -> []
-        | _ -> [ sprintf "Types not equal: %A\n%A" left.Resolution right.Resolution ]
+        | _ ->
+            // TODO: Error if types are not compatible.
+            List.empty
 
     member context.Resolve typeKind =
         match typeKind with
-        | TypeParameter param -> bindings.TryGetValue param |> tryOption |> Option.defaultValue typeKind
+        | TypeParameter param -> substitutions.TryGetValue param |> tryOption |> Option.defaultValue typeKind
         | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
         | TupleType tuple ->
             tuple
@@ -455,6 +457,16 @@ type InferenceContext(origin) =
             let outType = context.Resolve outType.Resolution |> ResolvedType.New
             QsTypeKind.Function(inType, outType)
         | _ -> typeKind
+
+module InferenceContext =
+    [<CompiledName "Resolver">]
+    let resolver (context: InferenceContext) =
+        let types =
+            { new TypeTransformation() with
+                member this.OnTypeParameter param = TypeParameter param |> context.Resolve
+            }
+
+        SyntaxTreeTransformation(Types = types)
 
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =

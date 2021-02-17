@@ -1456,10 +1456,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var specPos = root.Fragment.Range.Start;
                     var (arg, messages) = buildArg(userDefined.Item);
-                    foreach (var msg in messages)
-                    {
-                        diagnostics.Add(Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, msg, specPos));
-                    }
+                    diagnostics.AddRange(messages.Select(message =>
+                        Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, message, specPos)));
 
                     QsGeneratorDirective? GetDirective(QsSpecializationKind k) => definedSpecs.TryGetValue(k, out defined) && defined.Item1.IsValue ? defined.Item1.Item : null;
                     var requiredFunctorSupport = RequiredFunctorSupport(kind, GetDirective).ToImmutableHashSet();
@@ -1471,7 +1469,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     implementation = BuildUserDefinedImplementation(
                         root, spec.Source.AssemblyOrCodeFile, arg, requiredFunctorSupport, context, diagnostics);
                     QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
+
+                    var resolver = InferenceContextModule.Resolver(context.Inference);
+                    implementation = resolver.Namespaces.OnSpecializationImplementation(implementation);
                 }
+
                 implementation = implementation ?? SpecializationImplementation.Intrinsic;
                 return GetSpecialization(spec, signature, implementation, comments);
             }

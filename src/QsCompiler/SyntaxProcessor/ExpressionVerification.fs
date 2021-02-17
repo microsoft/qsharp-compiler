@@ -316,7 +316,19 @@ let internal VerifyIsIterable addError (exType, range) =
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
 /// Returns the type of the concatenation expression (i.e. the found base type).
-let private VerifyConcatenation parent addError (lhsType: ResolvedType, lhsRange) (rhsType: ResolvedType, rhsRange) =
+let private VerifyConcatenation parent
+                                (inference: InferenceContext)
+                                addError
+                                (lhsType: ResolvedType, lhsRange)
+                                (rhsType: ResolvedType, rhsRange)
+                                =
+    // TODO: Clean up.
+    let errors = inference.Unify(lhsType, rhsType)
+    if List.isEmpty errors |> not then failwithf "%A" errors
+
+    let lhsType = inference.Resolve lhsType.Resolution |> ResolvedType.New
+    let rhsType = inference.Resolve rhsType.Resolution |> ResolvedType.New
+
     let exType =
         CommonBaseType
             addError
@@ -1181,6 +1193,7 @@ type QsExpression with
                 if resolvedLhs.ResolvedType.supportsConcatenation.IsSome then
                     VerifyConcatenation
                         symbols.Parent
+                        context.Inference
                         addError
                         (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                         (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
