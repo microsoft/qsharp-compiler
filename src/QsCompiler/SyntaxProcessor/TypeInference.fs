@@ -13,12 +13,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Utils
 
-/// used for type matching arguments in call-like expressions
-type internal Variance =
-    | Covariant
-    | Contravariant
-    | Invariant
-
 let private isSubsetOf info1 info2 =
     info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
 
@@ -115,8 +109,6 @@ type InferenceContext(origin) =
 module InferenceContext =
     [<CompiledName "Resolver">]
     let resolver (context: InferenceContext) =
-        printfn "%A" context.Substitutions
-
         let types =
             { new TypeTransformation() with
                 member this.OnTypeParameter param = TypeParameter param |> context.Resolve
