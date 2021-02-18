@@ -334,7 +334,7 @@ type BlockStatement<'T> = delegate of QsScope -> 'T
 /// as well as a delegate that given a Q# scope returns the built for-statement with the given scope as the body.
 /// NOTE: the declared loop variables are *not* visible after the statements ends, hence they are *not* attaches as local declarations to the statement!
 let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qsExpr: QsExpression) =
-    let iterExpr, itemT, iterErrs = VerifyWith VerifyIsIterable context qsExpr
+    let iterExpr, itemT, iterErrs = VerifyWith (VerifyIsIterable context.Inference) context qsExpr
 
     let symTuple, _, varErrs =
         let localQdep = iterExpr.InferredInformation.HasLocalQuantumDependency

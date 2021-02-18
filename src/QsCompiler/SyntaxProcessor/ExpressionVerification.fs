@@ -306,9 +306,13 @@ let private VerifyArithmeticOp parent addError (lhsType: ResolvedType, lhsRange)
 /// adding an ExpectingIterableExpr error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 /// NOTE: returns the type of the iteration *item*.
-let internal VerifyIsIterable addError (exType, range) =
-    let expected (t: ResolvedType) = t.supportsIteration
-    VerifyIsOneOf expected (ErrorCode.ExpectingIterableExpr, [ exType |> toString ]) addError (exType, range)
+let internal VerifyIsIterable (inference: InferenceContext) addError (exType, range) =
+    // let expected (t: ResolvedType) = t.supportsIteration
+    // VerifyIsOneOf expected (ErrorCode.ExpectingIterableExpr, [ exType |> toString ]) addError (exType, range)
+
+    let item = inference.Fresh()
+    inference.Constrain(item, Iterates exType)
+    item
 
 /// Verifies that given resolved types can be used within a concatenation operator.
 /// First tries to find a common base type for the two types,

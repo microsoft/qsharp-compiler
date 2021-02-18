@@ -19,7 +19,9 @@ let private isSubsetOf info1 info2 =
 // TODO
 let private greatestSubtype = List.head
 
-type Constraint = | Concatenates
+type Constraint =
+    | Concatenates
+    | Iterates of ResolvedType
 
 type InferenceContext(origin) =
     let mutable count = 0
@@ -73,6 +75,10 @@ type InferenceContext(origin) =
             | Concatenates ->
                 if resolvedType.supportsConcatenation |> Option.isSome |> not
                 then failwithf "%A cannot concatenate" resolvedType.Resolution
+            | Iterates iter ->
+                match resolvedType.supportsIteration with
+                | Some t when iter = t -> () // TODO: Is subtype of.
+                | _ -> failwithf "%A cannot iterate %A" resolvedType.Resolution iter
 
     member context.Resolve typeKind =
         match typeKind with
@@ -85,11 +91,14 @@ type InferenceContext(origin) =
 
             match constraints.TryGetValue param |> tryOption with
             | Some Concatenates ->
-                if (ResolvedType.New t).supportsConcatenation |> Option.isSome |> not
-                then failwithf "%A cannot concatenate" t
-            | None -> ()
-
-            t
+                if (ResolvedType.New t).supportsConcatenation |> Option.isSome
+                then t
+                else failwithf "%A cannot concatenate" t
+            | Some (Iterates t2) ->
+                match (context.Resolve t2.Resolution |> ResolvedType.New).supportsIteration with
+                | Some item -> context.Resolve item.Resolution
+                | None -> failwithf "%A cannot iterate %A" t t2
+            | None -> t
         | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
         | TupleType tuple ->
             tuple
