@@ -341,6 +341,17 @@ module SyntaxGenerator =
 
     let QubitArrayType = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
 
+    /// Recursively extracts and returns all tuple items in the given tuple.
+    let ExtractInnerItems (this: ITuple) =
+        let rec extractAll =
+            function
+            | Tuple items -> items |> Seq.collect extractAll
+            | Item item -> seq { yield item }
+            | Missing -> ArgumentException "missing item in tuple" |> raise
+            | _ -> ArgumentException "invalid item in tuple" |> raise
+
+        this |> extractAll
+
     /// Given a QsTuple, recursively extracts and returns all of its items.
     let ExtractItems (this: QsTuple<_>) = this.Items.ToImmutableArray()
 

@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 [TypeNames.Result] = "class.RESULT",
                 [TypeNames.Array] = "struct.quantum::Array",
                 [TypeNames.Callable] = "struct.quantum::Callable",
-                [TypeNames.Tuple] = "struct.quantum::TupleHeader",
+                [TypeNames.Tuple] = "struct.quantum::Tuple",
                 [TypeNames.Qubit] = "class.QUBIT"
             });
 

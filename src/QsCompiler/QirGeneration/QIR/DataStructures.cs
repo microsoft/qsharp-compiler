@@ -327,7 +327,7 @@ namespace Microsoft.Quantum.QIR.Emission
             new IValue.Cached<Value>(pointer, this.sharedState, this.GetTypedPointer);
 
         private Value GetElementPointer(int index) =>
-            this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, this.PointerIndex(index));
+            this.sharedState.CurrentBuilder.GetElementPtr(this.StructType, this.TypedPointer, PointerIndex(this.sharedState, index));
 
         private IValue.Cached<PointerValue> CreateCachedPointer(ResolvedType type, int index) =>
             new IValue.Cached<PointerValue>(
@@ -355,10 +355,10 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <summary>
         /// Creates a suitable array of values to access the item at a given index for a pointer to a struct.
         /// </summary>
-        private Value[] PointerIndex(int index) => new[]
+        internal static Value[] PointerIndex(GenerationContext sharedState, int index) => new[]
         {
-            this.sharedState.Context.CreateConstant(0L),
-            this.sharedState.Context.CreateConstant(index)
+            sharedState.Context.CreateConstant(0L),
+            sharedState.Context.CreateConstant(index)
         };
 
         /// <summary>
