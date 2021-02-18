@@ -20,15 +20,15 @@ let private isSubsetOf info1 info2 =
 let private greatestSubtype = List.head
 
 type Constraint =
-    | Concatenates
-    | Iterates of ResolvedType
+    | Concatenable
+    | Iterable of item: ResolvedType
 
 type InferenceContext(origin) =
     let mutable count = 0
 
     let substitutions = Dictionary()
 
-    let constraints = Dictionary()
+    let mutable constraints = []
 
     let fresh () =
         let name = sprintf "__t%d__" count
@@ -69,36 +69,37 @@ type InferenceContext(origin) =
 
     member context.Constrain(resolvedType: ResolvedType, ``constraint``) =
         match resolvedType.Resolution with
-        | TypeParameter param -> constraints.Add(param, ``constraint``)
+        | TypeParameter param -> constraints <- (param, ``constraint``) :: constraints
         | _ ->
             match ``constraint`` with
-            | Concatenates ->
+            | Concatenable ->
                 if resolvedType.supportsConcatenation |> Option.isSome |> not
                 then failwithf "%A cannot concatenate" resolvedType.Resolution
-            | Iterates iter ->
+            | Iterable item ->
                 match resolvedType.supportsIteration with
-                | Some t when iter = t -> () // TODO: Is subtype of.
-                | _ -> failwithf "%A cannot iterate %A" resolvedType.Resolution iter
+                | Some t when item = t -> () // TODO: Is subtype of.
+                | _ -> failwithf "%A cannot iterate %A" resolvedType.Resolution item
+
+    member context.Satisfy() =
+        for param, ``constraint`` in constraints do
+            let t = TypeParameter param |> context.Resolve |> ResolvedType.New
+
+            match ``constraint`` with
+            | Concatenable ->
+                if t.supportsConcatenation |> Option.isSome |> not
+                then failwithf "%A cannot concatenate" t.Resolution
+            | Iterable expectedItem ->
+                match t.supportsIteration with
+                | Some actualItem -> context.Unify(actualItem, expectedItem)
+                | None -> failwithf "%A cannot iterate" t.Resolution
 
     member context.Resolve typeKind =
         match typeKind with
         | TypeParameter param ->
-            let t =
-                substitutions.TryGetValue param
-                |> tryOption
-                |> Option.map (List.map context.Resolve >> greatestSubtype)
-                |> Option.defaultValue typeKind
-
-            match constraints.TryGetValue param |> tryOption with
-            | Some Concatenates ->
-                if (ResolvedType.New t).supportsConcatenation |> Option.isSome
-                then t
-                else failwithf "%A cannot concatenate" t
-            | Some (Iterates t2) ->
-                match (context.Resolve t2.Resolution |> ResolvedType.New).supportsIteration with
-                | Some item -> context.Resolve item.Resolution
-                | None -> failwithf "%A cannot iterate %A" t t2
-            | None -> t
+            substitutions.TryGetValue param
+            |> tryOption
+            |> Option.map (List.map context.Resolve >> greatestSubtype)
+            |> Option.defaultValue typeKind
         | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
         | TupleType tuple ->
             tuple

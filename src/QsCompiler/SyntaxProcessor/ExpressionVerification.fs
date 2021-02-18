@@ -311,7 +311,7 @@ let internal VerifyIsIterable (inference: InferenceContext) addError (exType, ra
     // VerifyIsOneOf expected (ErrorCode.ExpectingIterableExpr, [ exType |> toString ]) addError (exType, range)
 
     let item = inference.Fresh()
-    inference.Constrain(item, Iterates exType)
+    inference.Constrain(exType, Iterable item)
     item
 
 /// Verifies that given resolved types can be used within a concatenation operator.
@@ -341,7 +341,7 @@ let private VerifyConcatenation parent
     let exType = inference.Fresh()
     inference.Unify(lhsType, exType)
     inference.Unify(rhsType, exType)
-    inference.Constrain(exType, Concatenates)
+    inference.Constrain(exType, Concatenable)
 
     // let expected (t: ResolvedType) = t.supportsConcatenation
     // VerifyIsOneOf expected (ErrorCode.InvalidTypeForConcatenation, [ exType |> toString ]) addError (exType, rhsRange)
