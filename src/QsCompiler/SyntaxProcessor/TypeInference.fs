@@ -30,7 +30,12 @@ type InferenceContext(origin) =
 
     let mutable constraints = []
 
-    let fresh () =
+    let bind param typeKind =
+        match substitutions.TryGetValue param |> tryOption with
+        | Some v -> substitutions.[param] <- typeKind :: v
+        | None -> substitutions.[param] <- [ typeKind ]
+
+    member context.Fresh() =
         let name = sprintf "__t%d__" count
         count <- count + 1
 
@@ -39,23 +44,15 @@ type InferenceContext(origin) =
             TypeName = name
             Range = Null
         }
-
-    let bind param typeKind =
-        match substitutions.TryGetValue param |> tryOption with
-        | Some v -> substitutions.[param] <- typeKind :: v
-        | None -> substitutions.[param] <- [ typeKind ]
-
-    member internal context.Substitutions = substitutions |> Seq.map (fun item -> item.Key, item.Value) |> Map.ofSeq
-
-    member context.Fresh() =
-        fresh () |> TypeParameter |> ResolvedType.New
+        |> TypeParameter
+        |> ResolvedType.New
 
     member context.Unify(left: ResolvedType, right: ResolvedType) =
         // TODO: Make sure type parameters are actually placeholders created by this context and not foralls.
         match left.Resolution, right.Resolution with
         | TypeParameter param, resolution
         | resolution, TypeParameter param -> bind param resolution
-        | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2)
+        | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2) // TODO: Invariant.
         | TupleType items1, TupleType items2 -> Seq.zip items1 items2 |> Seq.iter context.Unify
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) when isSubsetOf
                                                                                                         info1
