@@ -13,6 +13,7 @@
       <Link>DelaySign.fs</Link>
     </Compile>
     <Compile Include="VerificationTools.fs" />
+    <Compile Include="TypeInference.fs" />
     <Compile Include="ScopeTools.fs" />
     <Compile Include="CapabilityInference.fs" />
     <Compile Include="ContextVerification.fs" />

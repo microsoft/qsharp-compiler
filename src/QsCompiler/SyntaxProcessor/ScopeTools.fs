@@ -13,11 +13,10 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SymbolManagement
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
-open Microsoft.Quantum.QsCompiler.Utils
 
 /// Used to represent all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
 /// Specifically, the tracked properties are pushed and popped for each scope.
@@ -397,74 +396,6 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 | _ ->
                     addError (ErrorCode.UnknownItemName, [ udt.Name; name ])
                     InvalidType |> ResolvedType.New
-
-type InferenceContext(origin) =
-    let mutable next = 0
-
-    let substitutions = Dictionary()
-
-    let bind param typeKind =
-        if substitutions.ContainsKey param then
-            [ sprintf "Type parameter already bound: %A" param ]
-        else
-            substitutions.Add(param, typeKind)
-            []
-
-    member context.Fresh() =
-        let name = sprintf "__t%d__" next
-        next <- next + 1
-
-        {
-            Origin = origin
-            TypeName = name
-            Range = Null
-        }
-        |> TypeParameter
-        |> ResolvedType.New
-
-    member context.Unify(left: ResolvedType, right: ResolvedType) =
-        // TODO: Make sure type parameters are actually placeholders created by this context and not foralls.
-        match left.Resolution, right.Resolution with
-        | TypeParameter param1, TypeParameter param2 -> bind param1 right.Resolution @ bind param2 left.Resolution
-        | TypeParameter param, resolution
-        | resolution, TypeParameter param -> bind param resolution
-        | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2)
-        | TupleType items1, TupleType items2 -> Seq.zip items1 items2 |> Seq.collect context.Unify |> Seq.toList
-        | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Operation ((in2, out2), _)
-        | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            [ in1, in2; out1, out2 ] |> List.collect context.Unify
-        | _ ->
-            // TODO: Error if types are not compatible. Check if left and right have a common base type.
-            List.empty
-
-    member context.Resolve typeKind =
-        match typeKind with
-        | TypeParameter param -> substitutions.TryGetValue param |> tryOption |> Option.defaultValue typeKind
-        | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
-        | TupleType tuple ->
-            tuple
-            |> Seq.map (fun item -> context.Resolve item.Resolution |> ResolvedType.New)
-            |> ImmutableArray.CreateRange
-            |> TupleType
-        | QsTypeKind.Operation ((inType, outType), chars) ->
-            let inType = context.Resolve inType.Resolution |> ResolvedType.New
-            let outType = context.Resolve outType.Resolution |> ResolvedType.New
-            QsTypeKind.Operation((inType, outType), chars)
-        | QsTypeKind.Function (inType, outType) ->
-            let inType = context.Resolve inType.Resolution |> ResolvedType.New
-            let outType = context.Resolve outType.Resolution |> ResolvedType.New
-            QsTypeKind.Function(inType, outType)
-        | _ -> typeKind
-
-module InferenceContext =
-    [<CompiledName "Resolver">]
-    let resolver (context: InferenceContext) =
-        let types =
-            { new TypeTransformation() with
-                member this.OnTypeParameter param = TypeParameter param |> context.Resolve
-            }
-
-        SyntaxTreeTransformation(Types = types)
 
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =

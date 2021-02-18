@@ -13,6 +13,7 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -323,22 +324,24 @@ let private VerifyConcatenation parent
                                 (rhsType: ResolvedType, rhsRange)
                                 =
     // TODO: Clean up.
-    let errors = inference.Unify(lhsType, rhsType)
-    if List.isEmpty errors |> not then failwithf "%A" errors
+    inference.Unify(lhsType, rhsType)
 
-    let lhsType = inference.Resolve lhsType.Resolution |> ResolvedType.New
-    let rhsType = inference.Resolve rhsType.Resolution |> ResolvedType.New
+    // let exType =
+    //     CommonBaseType
+    //         addError
+    //         (ErrorCode.ArgumentMismatchInBinaryOp, [ lhsType |> toString; rhsType |> toString ])
+    //         parent
+    //         (lhsType, lhsRange)
+    //         (rhsType, rhsRange)
 
-    let exType =
-        CommonBaseType
-            addError
-            (ErrorCode.ArgumentMismatchInBinaryOp, [ lhsType |> toString; rhsType |> toString ])
-            parent
-            (lhsType, lhsRange)
-            (rhsType, rhsRange)
+    let exType = inference.Fresh()
+    inference.Unify(lhsType, exType)
+    inference.Unify(rhsType, exType)
+    inference.Constrain(exType, Concatenates)
 
-    let expected (t: ResolvedType) = t.supportsConcatenation
-    VerifyIsOneOf expected (ErrorCode.InvalidTypeForConcatenation, [ exType |> toString ]) addError (exType, rhsRange)
+    // let expected (t: ResolvedType) = t.supportsConcatenation
+    // VerifyIsOneOf expected (ErrorCode.InvalidTypeForConcatenation, [ exType |> toString ]) addError (exType, rhsRange)
+    exType
 
 /// Verifies that given resolved types can be used within an equality comparison expression.
 /// First tries to find a common base type for the two types,
