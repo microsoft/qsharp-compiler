@@ -438,21 +438,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Writes the current content to the output file.
         /// </summary>
-        public void Emit(string fileName, bool overwrite = true, bool generateInteropWrappers = false)
+        public void Emit(string fileName, bool overwrite = true)
         {
-            var bridgeFile = Path.Combine(
-                Path.GetDirectoryName(fileName),
-                Path.GetFileNameWithoutExtension(fileName) + "_bridge.ll");
-            var existing = new[]
+            if (!overwrite && File.Exists(fileName))
             {
-                File.Exists(fileName) ? fileName : null,
-                generateInteropWrappers && File.Exists(bridgeFile) ? bridgeFile : null,
-            };
-
-            if (!overwrite && existing.Any(s => s != null))
-            {
-                var argStr = string.Join(", ", existing.Where(s => s == null));
-                throw new ArgumentException($"The following file(s) already exist(s): {argStr}");
+                throw new ArgumentException($"The file \"{fileName}\" already exist(s).");
             }
 
             this.GenerateRequiredFunctions();
@@ -465,33 +455,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (!this.Module.WriteToTextFile(fileName, out string errorMessage))
             {
                 throw new IOException(errorMessage);
-            }
-
-            // Generate the wrappers for the runtime library that were used, if requested
-            if (generateInteropWrappers)
-            {
-                foreach (var kvp in this.runtimeLibrary)
-                {
-                    this.GenerateInterop(kvp.Value, kvp.Key);
-                }
-
-                foreach (var c in this.globalCallables.Values)
-                {
-                    if (TryGetTargetInstructionName(c, out var name))
-                    {
-                        var func = this.quantumInstructionSet.GetOrCreateFunction(name);
-                        this.GenerateInterop(func, name);
-                    }
-                }
-
-                if (!this.InteropModule.Verify(out string bridgeValidationErrors))
-                {
-                    File.WriteAllText(bridgeFile, $"LLVM errors:{Environment.NewLine}{bridgeValidationErrors}");
-                }
-                else if (!this.InteropModule.WriteToTextFile(bridgeFile, out string bridgeError))
-                {
-                    throw new IOException(bridgeError);
-                }
             }
         }
 
@@ -529,6 +492,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsArrayType)
                 {
                     var lengthT = this.MapToInteropType(this.Types.Int);
+                    // FIXME: BETTER TO STICK WITH THE SECOND ITEM BEING AN ARRAY ITEM POINTER TO THE FIRST ELEMENT
+                    // -> WE REQUIRE THAT THE PASSED ARRAY IS ONE BLOCK IN MEMORY IN ANY CASE
                     var arrT = this.MapToInteropType(this.Types.Array);
                     var tupleType = this.Types.TypedTuple(lengthT, arrT).CreatePointerType();
                     return this.MapToInteropType(tupleType);
@@ -694,53 +659,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else
             {
                 throw new ArgumentException("no function with that name exists");
-            }
-        }
-
-        /// <summary>
-        /// Generates a stub implementation for a runtime function or quantum instruction using the specified type
-        /// mappings for interoperability. Note that the create functions go into a separate module from the other QIR code.
-        /// </summary>
-        /// <param name="func">The function to generate a stub for</param>
-        /// <param name="baseName">The function that the stub should call</param>
-        private void GenerateInterop(IrFunction func, string baseName)
-        {
-            // TODO: why do we need both GenerateEntryPoint and GenerateInterop?
-
-            func = this.InteropModule.CreateFunction(func.Name, func.Signature);
-
-            var mappedResultType = this.MapToInteropType(func.ReturnType);
-            var argTypes = func.Parameters.Select(p => p.NativeType).ToArray();
-            var mappedArgTypes = argTypes.Select(this.MapToInteropType).ToArray();
-
-            var interopFunction = this.InteropModule.CreateFunction(
-                baseName,
-                this.Context.GetFunctionType(mappedResultType, mappedArgTypes));
-
-            for (var i = 0; i < func.Parameters.Count; i++)
-            {
-                func.Parameters[i].Name = $"arg{i + 1}";
-            }
-
-            var builder = new InstructionBuilder(func.AppendBasicBlock("entry"));
-            var implArgs = Enumerable.Range(0, argTypes.Length)
-                .Select(index => argTypes[index] == mappedArgTypes[index]
-                    ? func.Parameters[index]
-                    : builder.BitCast(func.Parameters[index], mappedArgTypes[index]))
-                .ToArray();
-            var interopReturnValue = builder.Call(interopFunction, implArgs);
-            if (func.ReturnType == this.Context.VoidType)
-            {
-                builder.Return();
-            }
-            else if (func.ReturnType == mappedResultType)
-            {
-                builder.Return(interopReturnValue);
-            }
-            else
-            {
-                var returnValue = builder.BitCast(interopReturnValue, func.ReturnType);
-                builder.Return(returnValue);
             }
         }
 
