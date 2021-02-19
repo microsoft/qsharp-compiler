@@ -155,8 +155,8 @@ let private isSubsetOf info1 info2 =
 // TODO
 let private greatestSubtype = List.head
 
-type Constraint =
-    | Concatenable
+type internal Constraint =
+    | Semigroup
     | Iterable of item: ResolvedType
 
 type InferenceContext(origin) =
@@ -171,7 +171,7 @@ type InferenceContext(origin) =
         | Some v -> substitutions.[param] <- substitution :: v
         | None -> substitutions.[param] <- [ substitution ]
 
-    member context.Fresh() =
+    member internal context.Fresh() =
         let name = sprintf "__t%d__" count
         count <- count + 1
 
@@ -183,7 +183,7 @@ type InferenceContext(origin) =
         |> TypeParameter
         |> ResolvedType.New
 
-    member context.Unify(left: ResolvedType, right: ResolvedType) =
+    member internal context.Unify(left: ResolvedType, right: ResolvedType) =
         // TODO: Make sure type parameters are actually placeholders created by this context and not foralls.
         match left.Resolution, right.Resolution with
         | TypeParameter param, _ -> bind param { Variance = Contravariant; Type = right }
@@ -202,14 +202,15 @@ type InferenceContext(origin) =
             if left <> right
             then failwithf "Cannot unify %A <: %A" left.Resolution right.Resolution
 
-    member context.Constrain(resolvedType: ResolvedType, ``constraint``) =
+    member internal context.Constrain(resolvedType: ResolvedType, ``constraint``) =
         match resolvedType.Resolution with
         | TypeParameter param -> constraints <- (param, ``constraint``) :: constraints
         | _ ->
             match ``constraint`` with
-            | Concatenable ->
-                if resolvedType.supportsConcatenation |> Option.isSome |> not
-                then failwithf "%A cannot concatenate" resolvedType.Resolution
+            | Semigroup ->
+                if resolvedType.supportsConcatenation |> Option.isNone
+                   && resolvedType.supportsArithmetic |> Option.isNone then
+                    failwithf "%A is not a semigroup" resolvedType.Resolution
             | Iterable item ->
                 match resolvedType.supportsIteration with
                 | Some t when item = t -> () // TODO: Is subtype of.
@@ -220,15 +221,15 @@ type InferenceContext(origin) =
             let t = TypeParameter param |> context.Resolve |> ResolvedType.New
 
             match ``constraint`` with
-            | Concatenable ->
-                if t.supportsConcatenation |> Option.isSome |> not
-                then failwithf "%A cannot concatenate" t.Resolution
+            | Semigroup ->
+                if t.supportsConcatenation |> Option.isNone && t.supportsArithmetic |> Option.isNone
+                then failwithf "%A is not a semigroup" t.Resolution
             | Iterable expectedItem ->
                 match t.supportsIteration with
                 | Some actualItem -> context.Unify(actualItem, expectedItem)
                 | None -> failwithf "%A cannot iterate" t.Resolution
 
-    member context.Resolve typeKind =
+    member internal context.Resolve typeKind =
         match typeKind with
         | TypeParameter param ->
             substitutions.TryGetValue param

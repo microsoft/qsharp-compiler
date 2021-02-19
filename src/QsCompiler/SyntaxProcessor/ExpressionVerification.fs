@@ -236,7 +236,7 @@ let private VerifyConcatenation parent
     let exType = inference.Fresh()
     inference.Unify(lhsType, exType)
     inference.Unify(rhsType, exType)
-    inference.Constrain(exType, Concatenable)
+    inference.Constrain(exType, Semigroup)
 
     // let expected (t: ResolvedType) = t.supportsConcatenation
     // VerifyIsOneOf expected (ErrorCode.InvalidTypeForConcatenation, [ exType |> toString ]) addError (exType, rhsRange)
@@ -1092,19 +1092,19 @@ type QsExpression with
             let resolvedType =
                 // Note: this relies on the lhs supporting concatenation if and only if all of its base types do,
                 // and there being no type that supports both arithmetic and concatenation
-                if resolvedLhs.ResolvedType.supportsConcatenation.IsSome then
+                // if resolvedLhs.ResolvedType.supportsConcatenation.IsSome then
                     VerifyConcatenation
                         symbols.Parent
                         context.Inference
                         addError
                         (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                         (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
-                else
-                    VerifyArithmeticOp
-                        symbols.Parent
-                        addError
-                        (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
-                        (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
+                // else
+                //    VerifyArithmeticOp
+                //        symbols.Parent
+                //        addError
+                //        (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
+                //        (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
 
             let localQdependency =
                 resolvedLhs.InferredInformation.HasLocalQuantumDependency
