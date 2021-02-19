@@ -157,6 +157,8 @@ let private greatestSubtype = List.head
 
 type internal Constraint =
     | Semigroup
+    | Equatable
+    | Numeric
     | Iterable of item: ResolvedType
 
 type InferenceContext(origin) =
@@ -211,6 +213,12 @@ type InferenceContext(origin) =
                 if resolvedType.supportsConcatenation |> Option.isNone
                    && resolvedType.supportsArithmetic |> Option.isNone then
                     failwithf "%A is not a semigroup" resolvedType.Resolution
+            | Equatable ->
+                if resolvedType.supportsEqualityComparison |> Option.isNone
+                then failwithf "%A does not support equality" resolvedType
+            | Numeric ->
+                if resolvedType.supportsArithmetic |> Option.isNone
+                then failwithf "%A is not numeric" resolvedType
             | Iterable item ->
                 match resolvedType.supportsIteration with
                 | Some t when item = t -> () // TODO: Is subtype of.
@@ -223,11 +231,15 @@ type InferenceContext(origin) =
             match ``constraint`` with
             | Semigroup ->
                 if t.supportsConcatenation |> Option.isNone && t.supportsArithmetic |> Option.isNone
-                then failwithf "%A is not a semigroup" t.Resolution
+                then failwithf "%A is not a semigroup" t
+            | Equatable ->
+                if t.supportsEqualityComparison |> Option.isNone
+                then failwithf "%A does not support equality" t
+            | Numeric -> if t.supportsArithmetic |> Option.isNone then failwithf "%A is not numeric" t
             | Iterable expectedItem ->
                 match t.supportsIteration with
                 | Some actualItem -> context.Unify(actualItem, expectedItem)
-                | None -> failwithf "%A cannot iterate" t.Resolution
+                | None -> failwithf "%A cannot iterate" t
 
     member internal context.Resolve typeKind =
         match typeKind with
