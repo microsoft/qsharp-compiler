@@ -587,10 +587,14 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function SizedArray2() : String[] {
+        return ["foo", size = 0];
+    }
+
+    function SizedArray3() : String[] {
         return ["foo", size = -1];
     }
 
-    function SizedArray3<'a>(value : 'a) : 'a[] {
+    function SizedArray4<'a>(value : 'a) : 'a[] {
         return [value, size = 5];
     }
 

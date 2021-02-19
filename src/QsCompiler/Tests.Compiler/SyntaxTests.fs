@@ -414,6 +414,8 @@ let ``Complex literal tests`` () =
                   toInt 3 ],
         []
 
+        "[1, size = -1]", true, SizedArray(toInt 1, toInt 1 |> NEG |> toExpr) |> toExpr, []
+        "[1, size = 0]", true, SizedArray(toInt 1, toInt 0) |> toExpr, []
         "[1, size = 3]", true, SizedArray(toInt 1, toInt 3) |> toExpr, []
         "[1, size = n]", true, SizedArray(toInt 1, toIdentifier "n") |> toExpr, []
         "[x, size = n]", true, SizedArray(toIdentifier "x", toIdentifier "n") |> toExpr, []

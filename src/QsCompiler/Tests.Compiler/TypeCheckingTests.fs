@@ -26,10 +26,13 @@ module TypeCheckingTests =
     let ``Integer size in array constructor`` () = expect "SizedArray1" []
 
     [<Fact>]
-    let ``Negative integer size in array constructor`` () = expect "SizedArray2" []
+    let ``Zero size in array constructor`` () = expect "SizedArray2" []
 
     [<Fact>]
-    let ``Type variable in array constructor`` () = expect "SizedArray3" []
+    let ``Negative integer size in array constructor`` () = expect "SizedArray3" []
+
+    [<Fact>]
+    let ``Type variable in array constructor`` () = expect "SizedArray4" []
 
     [<Fact>]
     let ``Double size in array constructor`` () =
