@@ -62,7 +62,9 @@ type InferenceContext(origin) =
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
             // TODO: Variance.
             [ in1, in2; out1, out2 ] |> List.iter context.Unify
-        | _ -> failwithf "Cannot unify %A <: %A" left.Resolution right.Resolution
+        | _ ->
+            if left <> right
+            then failwithf "Cannot unify %A <: %A" left.Resolution right.Resolution
 
     member context.Constrain(resolvedType: ResolvedType, ``constraint``) =
         match resolvedType.Resolution with
