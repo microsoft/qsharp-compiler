@@ -581,10 +581,13 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.TextDocumentCodeActionName)]
         public object OnCodeAction(JToken arg)
         {
-            Command BuildCommand(string title, WorkspaceEdit edit)
+            CodeAction CreateAction(string title, WorkspaceEdit edit)
             {
-                var commandArgs = new ApplyWorkspaceEditParams { Label = $"code action \"{title}\"", Edit = edit };
-                return new Command { Title = title, CommandIdentifier = CommandIds.ApplyEdit, Arguments = new object[] { commandArgs } };
+                return new CodeAction
+                {
+                    Title = title,
+                    Edit = edit
+                };
             }
 
             if (this.waitForInit != null)
@@ -597,14 +600,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return
                     QsCompilerError.RaiseOnFailure(
                         () => this.editorState.CodeActions(param)
-                            ?.SelectMany(vs => vs.Select(v => BuildCommand(vs.Key, v)))
-                            ?? Enumerable.Empty<Command>(),
+                            ?.SelectMany(vs => vs.Select(v => CreateAction(vs.Key, v)))
+                            ?? Enumerable.Empty<CodeAction>(),
                         "CodeAction threw an exception")
                     .ToArray();
             }
             catch
             {
-                return Array.Empty<Command>();
+                return Array.Empty<CodeAction>();
             }
         }
 
