@@ -6,18 +6,18 @@ module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Statements
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
+
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
-
 
 // some utils for type checking statements
 
@@ -101,6 +101,7 @@ let NewExpressionStatement comments location symbols expr =
 let NewFailStatement comments location context expr =
     let verifiedExpr, _, diagnostics = VerifyWith VerifyIsString context expr
     let autoGenErrs = (verifiedExpr, expr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
+
     verifiedExpr |> QsFailStatement |> asStatement comments location LocalDeclarations.Empty,
     Array.concat [ diagnostics
                    autoGenErrs ]
@@ -198,7 +199,8 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)
                     else
                         [|
                             sym.RangeOrDefault
-                            |> QsCompilerDiagnostic.Error(ErrorCode.SymbolTupleShapeMismatch, [ exType |> toString ])
+                            |> QsCompilerDiagnostic.Error
+                                (ErrorCode.SymbolTupleShapeMismatch, [ SyntaxTreeToQsharp.Default.ToCode exType ])
                         |]
                         :: errs
 
@@ -229,6 +231,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
             match ex.Expression with
             | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
             | _ -> ()
+
             [||]
         | Item (ex: TypedExpression) ->
             let range = ex.Range.ValueOr Range.Zero

@@ -33,6 +33,9 @@ type private StripInferredInfoFromType() =
 
     override this.OnRangeInformation _ = Null
 
+/// Return the string representation for a ResolveType. User defined types are represented by their full name.
+let private toString (t: ResolvedType) = SyntaxTreeToQsharp.Default.ToCode t
+
 let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
 
 let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) =
@@ -71,13 +74,13 @@ let private VerifyConditionalExecution addWarning (ex: TypedExpression, range) =
 let private VerifyIsOneOf asExpected errCode addError (exType: ResolvedType, range) =
     match asExpected exType with
     | Some exT -> exT
-    | None when exType.isInvalid -> invalid
+    | None when exType.isInvalid -> ResolvedType.New InvalidType
     | None when exType.isMissing ->
         range |> addError (ErrorCode.ExpressionOfUnknownType, [])
-        invalid
+        ResolvedType.New InvalidType
     | None ->
         range |> addError errCode
-        invalid
+        ResolvedType.New InvalidType
 
 /// Verifies that the given resolved type is indeed of kind Unit,
 /// adding an ExpectingUnitExpr error with the given range using addError otherwise.
@@ -295,7 +298,7 @@ let private VerifyValueArray parent (inference: InferenceContext) addError (cont
             common |> arrayType
         else
             range |> addError (ErrorCode.MultipleTypesInArray, [])
-            invalid |> arrayType
+            ResolvedType.New InvalidType |> arrayType
 
 /// Verifies that the given resolved type supports numbered item access,
 /// adding an ItemAccessForNonArray error with the given range using addError otherwise.
@@ -325,9 +328,9 @@ let private VerifyArrayItem addError (arrType: ResolvedType, arrRange) (indexTyp
     match ressArrType.Resolution with
     | ArrayType baseType when indexIsInt -> baseType
     | ArrayType baseType when indexIsRange -> baseType |> ArrayType |> ResolvedType.New
-    | ArrayType _ -> invalid
-    | _ when indexIsRange -> invalid |> ArrayType |> ResolvedType.New
-    | _ -> invalid
+    | ArrayType _ -> ResolvedType.New InvalidType
+    | _ when indexIsRange -> ResolvedType.New InvalidType |> ArrayType |> ResolvedType.New
+    | _ -> ResolvedType.New InvalidType
 
 /// Verifies that the given functor can be applied to an expression of the given type,
 /// adding an error with the given error code and range using addError otherwise.
@@ -395,7 +398,8 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
     // resolve type parameters (if any) with the given type arguments
     // Note: type parameterized objects are never mutable - remember they are not the same as an identifier containing a template...!
     let invalidWithoutTargs mut =
-        (identifier, invalid, info.HasLocalQuantumDependency, sym.Range) |> ExprWithoutTypeArgs mut
+        (identifier, ResolvedType.New InvalidType, info.HasLocalQuantumDependency, sym.Range)
+        |> ExprWithoutTypeArgs mut
 
     match resId.VariableName, resolvedTargs with
     | InvalidIdentifier, Null -> invalidWithoutTargs true
@@ -536,8 +540,6 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
 /// incompatible with the targetType, or that the targetType itself is invalid,
 /// and no conclusion can be reached on the type for the unresolved part of the argument.
 let private IsValidArgument addError targetType (arg, resolveInner) =
-    let invalid = invalid |> Some
-
     let buildType (tItems: ResolvedType option list) =
         let remaining = tItems |> List.choose id
         let containsInvalid = remaining |> List.exists (fun x -> x.isInvalid)
@@ -545,7 +547,7 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
         QsCompilerError.Verify(not containsMissing, "missing type in remaining input type")
 
         if containsInvalid then
-            invalid
+            ResolvedType.New InvalidType |> Some
         else
             match remaining with
             | [] -> None
@@ -563,7 +565,7 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
         QsCompilerError.Verify(not targetT.isMissing, "target type is missing")
 
         match targetT, argEx with
-        | _, _ when targetT.isInvalid || targetT.isMissing -> invalid
+        | _, _ when targetT.isInvalid || targetT.isMissing -> ResolvedType.New InvalidType |> Some
         | _, Missing -> targetT |> Some
         | Tuple ts, Tuple exs when ts.Length <> exs.Length ->
             [|
@@ -571,11 +573,11 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
             |]
             |> pushErrs
 
-            invalid
+            ResolvedType.New InvalidType |> Some
         | Tuple ts, Tuple exs when ts.Length = exs.Length -> List.zip ts exs |> List.map recur |> buildType
         | Item t, Tuple _ when not (t: ResolvedType).isTypeParameter ->
             [| (ErrorCode.UnexpectedTupleArgument, [ targetT |> toString ]) |] |> pushErrs
-            invalid
+            ResolvedType.New InvalidType |> Some
         | _, _ ->
             TypeMatchArgument (addTpResolution argEx.RangeOrDefault) targetT (resolveInner argEx) |> pushErrs
             None
@@ -621,7 +623,7 @@ let private VerifyCallExpr buildCallableType
             let uniqueResolution (res, r) =
                 if res |> containsMissing then
                     r |> addError (ErrorCode.PartialApplicationOfTypeParameter, [])
-                    invalid
+                    ResolvedType.New InvalidType
                 elif fst entry.Key = parent then // resolution of an internal type parameter
                     // Internal type parameters may occur on the lhs
                     // 1.) due to explicitly provided type arguments to the called expression
@@ -651,7 +653,7 @@ let private VerifyCallExpr buildCallableType
                             match res.Resolution with
                             | TypeParameter tp when tp.Origin <> parent ->
                                 r |> addError (ErrorCode.AmbiguousTypeParameterResolution, [])
-                                invalid // todo: it would be nice to eventually lift this restriction
+                                ResolvedType.New InvalidType // todo: it would be nice to eventually lift this restriction
                             | _ -> res |> StripPositionInfo.Apply
                     | _ ->
                         r |> addError (ErrorCode.ConstrainsTypeParameter, [ typeParam |> toString ])
@@ -669,7 +671,7 @@ let private VerifyCallExpr buildCallableType
                         for (_, r) in entry do
                             r |> addError (ErrorCode.AmbiguousTypeParameterResolution, [])
 
-                        invalid
+                        ResolvedType.New InvalidType
                     else // explicitly specified by type argument
                         let typeParam =
                             QsTypeParameter.New(fst entry.Key, snd entry.Key, Null) |> TypeParameter |> ResolvedType.New
@@ -690,7 +692,7 @@ let private VerifyCallExpr buildCallableType
     getTypeParameterResolutions lookUp,
     match remaining with
     | None -> expectedResultType
-    | Some remainingArgT when remainingArgT.isInvalid -> invalid
+    | Some remainingArgT when remainingArgT.isInvalid -> ResolvedType.New InvalidType
     | Some remainingArgT -> buildCallableType (remainingArgT, expectedResultType) |> ResolvedType.New
 
 /// Returns true if the given expression is Some and contains an identifier
@@ -787,7 +789,10 @@ type QsExpression with
         /// NOTE: Does *not* generated any diagnostics related to the given type for the array to slice.
         let resolveSlicing (resolvedArr: TypedExpression) (idx: QsExpression) =
             let invalidRangeDelimiter =
-                (InvalidExpr, invalid, resolvedArr.InferredInformation.HasLocalQuantumDependency, Null)
+                (InvalidExpr,
+                 ResolvedType.New InvalidType,
+                 resolvedArr.InferredInformation.HasLocalQuantumDependency,
+                 Null)
                 |> ExprWithoutTypeArgs false
 
             let validSlicing (step: TypedExpression option) =
@@ -1093,18 +1098,18 @@ type QsExpression with
                 // Note: this relies on the lhs supporting concatenation if and only if all of its base types do,
                 // and there being no type that supports both arithmetic and concatenation
                 // if resolvedLhs.ResolvedType.supportsConcatenation.IsSome then
-                    VerifyConcatenation
-                        symbols.Parent
-                        context.Inference
-                        addError
-                        (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
-                        (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
-                // else
-                //    VerifyArithmeticOp
-                //        symbols.Parent
-                //        addError
-                //        (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
-                //        (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
+                VerifyConcatenation
+                    symbols.Parent
+                    context.Inference
+                    addError
+                    (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
+                    (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
+            // else
+            //    VerifyArithmeticOp
+            //        symbols.Parent
+            //        addError
+            //        (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
+            //        (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
 
             let localQdependency =
                 resolvedLhs.InferredInformation.HasLocalQuantumDependency
@@ -1241,7 +1246,9 @@ type QsExpression with
                 || resolvedArg.InferredInformation.HasLocalQuantumDependency
 
             let originalExKind = CallLikeExpression(resolvedMethod, resolvedArg)
-            let invalidEx = (originalExKind, invalid, false, this.Range) |> ExprWithoutTypeArgs false
+
+            let invalidEx =
+                (originalExKind, ResolvedType.New InvalidType, false, this.Range) |> ExprWithoutTypeArgs false
 
             let isDirectRecursion, tArgs =
                 match resolvedMethod.Expression with
