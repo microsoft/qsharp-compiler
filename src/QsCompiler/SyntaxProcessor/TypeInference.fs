@@ -170,7 +170,7 @@ type InferenceContext(origin) =
         | None -> substitutions.[param] <- [ substitution ]
 
     member internal context.Fresh() =
-        let name = sprintf "__t%d__" count
+        let name = sprintf "__a%d__" count
         count <- count + 1
 
         {
@@ -198,44 +198,34 @@ type InferenceContext(origin) =
             [ in1, in2; out1, out2 ] |> List.iter context.Unify
         | _ ->
             if left <> right
-            then failwithf "Cannot unify %A <: %A" left.Resolution right.Resolution
+            then failwithf "Cannot unify %A with subtype of %A." left right
 
-    member internal context.Constrain(resolvedType: ResolvedType, ``constraint``) =
+    member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
+        match typeConstraint with
+        | Semigroup ->
+            if resolvedType.supportsConcatenation |> Option.isNone
+               && resolvedType.supportsArithmetic |> Option.isNone then
+                failwithf "Semigroup constraint not satisfied for %A." resolvedType
+        | Equatable ->
+            if resolvedType.supportsEqualityComparison |> Option.isNone
+            then failwithf "Equatable constraint not satisfied for %A." resolvedType
+        | Numeric ->
+            if resolvedType.supportsArithmetic |> Option.isNone
+            then failwithf "Numeric constraint not satisfied for %A." resolvedType
+        | Iterable item ->
+            match resolvedType.supportsIteration with
+            | Some actualItem -> context.Unify(actualItem, item)
+            | None -> failwithf "Iterable %A constraint not satisfied for %A." item resolvedType
+
+    member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
         match resolvedType.Resolution with
-        | TypeParameter param -> constraints <- (param, ``constraint``) :: constraints
-        | _ ->
-            match ``constraint`` with
-            | Semigroup ->
-                if resolvedType.supportsConcatenation |> Option.isNone
-                   && resolvedType.supportsArithmetic |> Option.isNone then
-                    failwithf "%A is not a semigroup" resolvedType.Resolution
-            | Equatable ->
-                if resolvedType.supportsEqualityComparison |> Option.isNone
-                then failwithf "%A does not support equality" resolvedType
-            | Numeric ->
-                if resolvedType.supportsArithmetic |> Option.isNone
-                then failwithf "%A is not numeric" resolvedType
-            | Iterable item ->
-                match resolvedType.supportsIteration with
-                | Some t when item = t -> () // TODO: Is subtype of.
-                | _ -> failwithf "%A cannot iterate %A" resolvedType.Resolution item
+        | TypeParameter param -> constraints <- (param, typeConstraint) :: constraints
+        | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 
     member context.Satisfy() =
-        for param, ``constraint`` in constraints do
-            let t = TypeParameter param |> context.Resolve |> ResolvedType.New
-
-            match ``constraint`` with
-            | Semigroup ->
-                if t.supportsConcatenation |> Option.isNone && t.supportsArithmetic |> Option.isNone
-                then failwithf "%A is not a semigroup" t
-            | Equatable ->
-                if t.supportsEqualityComparison |> Option.isNone
-                then failwithf "%A does not support equality" t
-            | Numeric -> if t.supportsArithmetic |> Option.isNone then failwithf "%A is not numeric" t
-            | Iterable expectedItem ->
-                match t.supportsIteration with
-                | Some actualItem -> context.Unify(actualItem, expectedItem)
-                | None -> failwithf "%A cannot iterate" t
+        for param, typeConstraint in constraints do
+            let resolvedType = TypeParameter param |> context.Resolve |> ResolvedType.New
+            context.CheckConstraint(typeConstraint, resolvedType)
 
     member internal context.Resolve typeKind =
         match typeKind with
