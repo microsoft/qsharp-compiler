@@ -888,6 +888,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
                 var ifTrue = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
+                BasicBlock afterTrue = this.SharedState.CurrentBlock!;
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.ScopeMgr.OpenScope();
@@ -895,12 +896,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
                 var ifFalse = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifFalse, false); // force that the ref count is increased within the branch
+                BasicBlock afterFalse = this.SharedState.CurrentBlock!;
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(contBlock);
                 var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
-                phi.AddIncoming(ifTrue.Value, trueBlock);
-                phi.AddIncoming(ifFalse.Value, falseBlock);
+                phi.AddIncoming(ifTrue.Value, afterTrue);
+                phi.AddIncoming(ifFalse.Value, afterFalse);
                 value = this.SharedState.Values.From(phi, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
