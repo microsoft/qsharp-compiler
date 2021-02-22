@@ -162,6 +162,8 @@ module internal TypeInference =
         if resolvedType.Exists((=) (TypeParameter param))
         then failwithf "Occurs check: cannot construct the infinite type %A ~ %A." param resolvedType
 
+    let printType: ResolvedType -> string = SyntaxTreeToQsharp.Default.ToCode
+
 open TypeInference
 
 type InferenceContext(origin) =
@@ -193,21 +195,28 @@ type InferenceContext(origin) =
     member internal context.Unify(left: ResolvedType, right: ResolvedType) =
         // TODO: Make sure type parameters are actually placeholders created by this context and not foralls.
         match left.Resolution, right.Resolution with
-        | TypeParameter param, _ -> bind param { Variance = Contravariant; Type = right }
-        | _, TypeParameter param -> bind param { Variance = Covariant; Type = left }
+        | TypeParameter param, _ ->
+            bind param { Variance = Contravariant; Type = right }
+            []
+        | _, TypeParameter param ->
+            bind param { Variance = Covariant; Type = left }
+            []
         | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2) // TODO: Invariant.
-        | TupleType items1, TupleType items2 -> Seq.zip items1 items2 |> Seq.iter context.Unify
+        | TupleType items1, TupleType items2 -> Seq.zip items1 items2 |> Seq.collect context.Unify |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) when isSubsetOf
                                                                                                         info1
                                                                                                         info2 ->
             // TODO: Variance.
-            [ in1, in2; out1, out2 ] |> List.iter context.Unify
+            [ in1, in2; out1, out2 ] |> List.collect context.Unify
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
             // TODO: Variance.
-            [ in1, in2; out1, out2 ] |> List.iter context.Unify
+            [ in1, in2; out1, out2 ] |> List.collect context.Unify
         | _ ->
-            if left <> right
-            then failwithf "Cannot unify %A with subtype of %A." left right
+            [
+                if left <> right then
+                    let error = ErrorCode.TypeUnificationFailed, [ printType left; printType right ]
+                    yield QsCompilerDiagnostic.Error error Range.Zero
+            ]
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
@@ -215,12 +224,16 @@ type InferenceContext(origin) =
             if resolvedType.supportsConcatenation |> Option.isNone
                && resolvedType.supportsArithmetic |> Option.isNone then
                 failwithf "Semigroup constraint not satisfied for %A." resolvedType
+            else
+                []
         | Equatable ->
             if resolvedType.supportsEqualityComparison |> Option.isNone
             then failwithf "Equatable constraint not satisfied for %A." resolvedType
+            else []
         | Numeric ->
             if resolvedType.supportsArithmetic |> Option.isNone
             then failwithf "Numeric constraint not satisfied for %A." resolvedType
+            else []
         | Iterable item ->
             match resolvedType.supportsIteration with
             | Some actualItem -> context.Unify(actualItem, item)
@@ -228,13 +241,17 @@ type InferenceContext(origin) =
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
         match resolvedType.Resolution with
-        | TypeParameter param -> constraints <- (param, typeConstraint) :: constraints
+        | TypeParameter param ->
+            constraints <- (param, typeConstraint) :: constraints
+            []
         | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 
     member context.Satisfy() =
-        for param, typeConstraint in constraints do
-            let resolvedType = TypeParameter param |> context.Resolve |> ResolvedType.New
-            context.CheckConstraint(typeConstraint, resolvedType)
+        [
+            for param, typeConstraint in constraints do
+                let resolvedType = TypeParameter param |> context.Resolve |> ResolvedType.New
+                yield! context.CheckConstraint(typeConstraint, resolvedType)
+        ]
 
     member internal context.Resolve typeKind =
         match typeKind with

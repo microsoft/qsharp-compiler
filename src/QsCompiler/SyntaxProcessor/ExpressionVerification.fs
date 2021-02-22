@@ -22,7 +22,6 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
 
-
 // utils for verifying types in expressions
 
 type private StripInferredInfoFromType() =
@@ -205,12 +204,12 @@ let private VerifyArithmeticOp parent addError (lhsType: ResolvedType, lhsRange)
 /// adding an ExpectingIterableExpr error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 /// NOTE: returns the type of the iteration *item*.
-let internal VerifyIsIterable (inference: InferenceContext) addError (exType, range) =
+let internal VerifyIsIterable (inference: InferenceContext) diagnose (exType, range) =
     // let expected (t: ResolvedType) = t.supportsIteration
     // VerifyIsOneOf expected (ErrorCode.ExpectingIterableExpr, [ exType |> toString ]) addError (exType, range)
 
     let item = inference.Fresh()
-    inference.Constrain(exType, Iterable item)
+    inference.Constrain(exType, Iterable item) |> List.iter diagnose
     item
 
 /// Verifies that given resolved types can be used within a concatenation operator.
@@ -222,12 +221,12 @@ let internal VerifyIsIterable (inference: InferenceContext) addError (exType, ra
 /// Returns the type of the concatenation expression (i.e. the found base type).
 let private VerifyConcatenation parent
                                 (inference: InferenceContext)
-                                addError
+                                diagnose
                                 (lhsType: ResolvedType, lhsRange)
                                 (rhsType: ResolvedType, rhsRange)
                                 =
     // TODO: Clean up.
-    inference.Unify(lhsType, rhsType)
+    inference.Unify(lhsType, rhsType) |> List.iter diagnose
 
     // let exType =
     //     CommonBaseType
@@ -238,9 +237,9 @@ let private VerifyConcatenation parent
     //         (rhsType, rhsRange)
 
     let exType = inference.Fresh()
-    inference.Unify(lhsType, exType)
-    inference.Unify(rhsType, exType)
-    inference.Constrain(exType, Semigroup)
+    inference.Unify(lhsType, exType) |> List.iter diagnose
+    inference.Unify(rhsType, exType) |> List.iter diagnose
+    inference.Constrain(exType, Semigroup) |> List.iter diagnose
 
     // let expected (t: ResolvedType) = t.supportsConcatenation
     // VerifyIsOneOf expected (ErrorCode.InvalidTypeForConcatenation, [ exType |> toString ]) addError (exType, rhsRange)
@@ -1102,7 +1101,7 @@ type QsExpression with
                 VerifyConcatenation
                     symbols.Parent
                     context.Inference
-                    addError
+                    addDiagnostic
                     (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                     (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
             // else
@@ -1277,7 +1276,7 @@ type QsExpression with
                 | QsTypeKind.Operation ((input, output), _) -> input, output
                 | _ -> ResolvedType.New InvalidType, ResolvedType.New InvalidType
 
-            context.Inference.Unify(input, arg.ResolvedType)
+            context.Inference.Unify(input, arg.ResolvedType) |> List.iter addDiagnostic
 
             TypedExpression.New
                 (CallLikeExpression(callable, arg), resolutions, output, callable.InferredInformation, this.Range)
