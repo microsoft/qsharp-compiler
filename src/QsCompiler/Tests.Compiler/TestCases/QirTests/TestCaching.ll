@@ -31,7 +31,7 @@ condFalse__1:                                     ; preds = %continue__1
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %exit__1
-  %pad = phi %Array* [ %6, %condTrue__1 ], [ %arr, %condFalse__1 ]
+  %pad = phi %Array* [ %6, %exit__1 ], [ %arr, %condFalse__1 ]
   call void @__quantum__rt__array_update_alias_count(%Array* %pad, i64 1)
   %7 = call i64 @__quantum__rt__array_get_size_1d(%Array* %pad)
   call void @__quantum__rt__array_update_alias_count(%Array* %arr, i64 -1)

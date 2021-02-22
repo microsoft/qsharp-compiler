@@ -18,8 +18,15 @@ namespace Microsoft.Quantum.Testing.QIR{
         }    
     }
 
+    function Hello(withPunctuation : Bool) : String[] {
+       let arr = ["Hello","World", ""];
+       return withPunctuation ?
+           arr | (arr w/ 2 <- "!");
+    }
+
     @EntryPoint()
     operation TestConditional (arg : Double[]) : Int {
+        let _ = Hello(true);
         let result = ReturnInt(CustomTuple([3.]));
         return result;
     }
