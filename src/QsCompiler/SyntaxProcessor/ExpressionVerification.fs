@@ -1275,7 +1275,7 @@ type QsExpression with
                 match resolvedType.Resolution with
                 | QsTypeKind.Function (input, output) -> input, output
                 | QsTypeKind.Operation ((input, output), _) -> input, output
-                | _ -> failwith "Not a callable type."
+                | _ -> ResolvedType.New InvalidType, ResolvedType.New InvalidType
 
             context.Inference.Unify(input, arg.ResolvedType)
 
