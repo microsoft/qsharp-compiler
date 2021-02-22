@@ -130,8 +130,11 @@ module internal TypeInference =
 
     let merge substitutions =
         let common variance left right =
-            commonType variance (fun _ _ -> ()) (ErrorCode.InvalidType, []) { Name = ""; Namespace = "" }
-                (left, Range.Zero) (right, Range.Zero)
+            commonType variance (fun error _ -> failwithf "%A" error)
+                (ErrorCode.InvalidType,
+                 [
+                     sprintf "A %A intersection between %A and %A does not exist." variance left right
+                 ]) { Name = ""; Namespace = "" } (left, Range.Zero) (right, Range.Zero)
 
         let substitute variance typ =
             Option.map (common variance typ) >> Option.defaultValue typ >> Some
