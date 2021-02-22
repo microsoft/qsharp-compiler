@@ -58,6 +58,7 @@ namespace Microsoft.Quantum.Testing.QIR {
         let _ = ReturnNot();
         let _ = ReturnBNot();
         let _ = ReturnNegative(3.);
+        let _ = ReturnFromIfElse(true);
     }
 
     function ReturnGlobalId() : (Unit => Unit) {
@@ -273,6 +274,11 @@ namespace Microsoft.Quantum.Testing.QIR {
 
     operation ReturnUnit() : Unit {
         return ();
+    }
+
+    operation ReturnFromIfElse(branch : Bool) : Int {
+        if branch { return 1; }
+        else { return 0; }
     }
 
     operation Unitary() : Unit is Adj + Ctl {
