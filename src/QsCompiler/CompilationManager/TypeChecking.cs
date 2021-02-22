@@ -1471,8 +1471,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
 
                     context.Inference.Satisfy();
-                    var resolver = InferenceContextModule.Resolver(context.Inference);
+                    var (resolver, resolvedDiagnostics) = InferenceContextModule.Resolver(context.Inference);
                     implementation = resolver.Namespaces.OnSpecializationImplementation(implementation);
+                    diagnostics.AddRange(resolvedDiagnostics.Select(diagnostic =>
+                        Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, diagnostic, specPos)));
                 }
 
                 implementation = implementation ?? SpecializationImplementation.Intrinsic;
