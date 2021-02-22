@@ -195,6 +195,7 @@ type InferenceContext(origin) =
     member internal context.Unify(left: ResolvedType, right: ResolvedType) =
         // TODO: Make sure type parameters are actually placeholders created by this context and not foralls.
         match left.Resolution, right.Resolution with
+        | TypeParameter param1, TypeParameter param2 when param1 = param2 -> []
         | TypeParameter param, _ ->
             bind param { Variance = Contravariant; Type = right }
             []
