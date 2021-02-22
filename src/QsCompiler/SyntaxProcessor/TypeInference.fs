@@ -211,12 +211,12 @@ type InferenceContext(origin) =
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
             // TODO: Variance.
             [ in1, in2; out1, out2 ] |> List.collect context.Unify
+        | InvalidType, _
+        | _, InvalidType
+        | _ when left = right -> []
         | _ ->
-            [
-                if left <> right then
-                    let error = ErrorCode.TypeUnificationFailed, [ printType left; printType right ]
-                    yield QsCompilerDiagnostic.Error error Range.Zero
-            ]
+            let error = ErrorCode.TypeUnificationFailed, [ printType left; printType right ]
+            [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
