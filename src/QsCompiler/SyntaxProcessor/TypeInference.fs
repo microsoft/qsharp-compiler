@@ -213,7 +213,7 @@ type InferenceContext(origin) =
             // TODO: Variance.
             [ in1, in2; out1, out2 ] |> List.collect context.Unify
         | InvalidType, _
-        | _, InvalidType
+        | _, InvalidType -> []
         | _ when left = right -> []
         | _ ->
             let error = ErrorCode.TypeUnificationFailed, [ printType left; printType right ]
