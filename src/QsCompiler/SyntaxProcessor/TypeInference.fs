@@ -158,6 +158,10 @@ module internal TypeInference =
     let isSubsetOf info1 info2 =
         info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
 
+    let occursCheck param (resolvedType: ResolvedType) =
+        if resolvedType.Exists((=) (TypeParameter param))
+        then failwithf "Occurs check: cannot construct the infinite type %A ~ %A." param resolvedType
+
 open TypeInference
 
 type InferenceContext(origin) =
@@ -168,6 +172,8 @@ type InferenceContext(origin) =
     let mutable constraints = []
 
     let bind param substitution =
+        occursCheck param substitution.Type
+
         match substitutions.TryGetValue param |> tryOption with
         | Some v -> substitutions.[param] <- substitution :: v
         | None -> substitutions.[param] <- [ substitution ]
