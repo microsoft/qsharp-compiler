@@ -85,9 +85,6 @@ let private onAutoInvertGenerateError (errCode, range) (symbols: SymbolTracker) 
 let private asStatement comments location vars kind =
     QsStatement.New comments (Value location) (kind, vars)
 
-let private errorToDiagnostic f diagnose =
-    f (fun (error, args) range -> QsCompilerDiagnostic.Error (error, args) range |> diagnose)
-
 /// Resolves and verifies the given Q# expression given a symbol tracker containing all currently declared symbols,
 /// verifies that the resolved expression is indeed of type Unit, and builds a Q# expression-statement at the given location from it.
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.

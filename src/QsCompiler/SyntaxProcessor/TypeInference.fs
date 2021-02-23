@@ -163,6 +163,10 @@ module internal TypeInference =
         if resolvedType.Exists((=) (TypeParameter param))
         then failwithf "Occurs check: cannot construct the infinite type %A ~ %A." param resolvedType
 
+    // TODO
+    let isFresh (param: QsTypeParameter) =
+        param.TypeName.StartsWith "__a" && param.TypeName.EndsWith "__"
+
 open TypeInference
 
 type InferenceContext(origin) =
@@ -197,11 +201,13 @@ type InferenceContext(origin) =
         |> ResolvedType.New
 
     member internal context.Unify(left: ResolvedType, right: ResolvedType) =
-        // TODO: Make sure type parameters are actually placeholders created by this context and not foralls.
+        let left = context.Resolve left.Resolution |> ResolvedType.New
+        let right = context.Resolve right.Resolution |> ResolvedType.New
+
         match left.Resolution, right.Resolution with
-        | TypeParameter param1, TypeParameter param2 when param1 = param2 -> []
-        | TypeParameter param, _ -> bind param { Variance = Contravariant; Type = right }
-        | _, TypeParameter param -> bind param { Variance = Covariant; Type = left }
+        | _ when left = right -> []
+        | TypeParameter param, _ when isFresh param -> bind param { Variance = Contravariant; Type = right }
+        | _, TypeParameter param when isFresh param -> bind param { Variance = Covariant; Type = left }
         | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2) // TODO: Invariant.
         | TupleType items1, TupleType items2 -> Seq.zip items1 items2 |> Seq.collect context.Unify |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) when isSubsetOf
@@ -216,7 +222,6 @@ type InferenceContext(origin) =
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
-        | _ when left = right -> []
         | _ ->
             let error = ErrorCode.TypeUnificationFailed, [ printType left; "any subtype of " + printType right ]
             [ QsCompilerDiagnostic.Error error Range.Zero ]

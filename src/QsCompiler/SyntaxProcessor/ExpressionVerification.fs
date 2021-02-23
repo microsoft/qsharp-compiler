@@ -54,6 +54,9 @@ let private missingFunctors (target: ImmutableHashSet<_>, given) =
     | Some fList -> target.Except(fList) |> mapFunctors
     | None -> if target.Any() then target |> mapFunctors else [ "(None)" ]
 
+let errorToDiagnostic f diagnose =
+    f (fun (error, args) range -> QsCompilerDiagnostic.Error (error, args) range |> diagnose)
+
 let private diagnoseWithRange range diagnose =
     List.iter (fun d -> diagnose { d with QsCompilerDiagnostic.Range = range })
 
@@ -192,16 +195,19 @@ let private VerifySupportsArithmetic addError (exType, range) =
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
 /// Returns the type of the arithmetic expression (i.e. the found base type).
-let private VerifyArithmeticOp parent addError (lhsType: ResolvedType, lhsRange) (rhsType: ResolvedType, rhsRange) =
-    let exType =
-        CommonBaseType
-            addError
-            (ErrorCode.ArgumentMismatchInBinaryOp, [ lhsType |> toString; rhsType |> toString ])
-            parent
-            (lhsType, lhsRange)
-            (rhsType, rhsRange)
+let private VerifyArithmeticOp parent
+                               (inference: InferenceContext)
+                               diagnose
+                               (lhsType: ResolvedType, lhsRange)
+                               (rhsType: ResolvedType, rhsRange)
+                               =
+    let exType = inference.Fresh()
+    inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
+    inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
+    inference.Constrain(exType, Numeric) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
-    VerifySupportsArithmetic addError (exType, rhsRange)
+    // VerifySupportsArithmetic addError (exType, rhsRange)
+    exType
 
 /// Verifies that the given resolved type indeed supports iteration,
 /// adding an ExpectingIterableExpr error with the given range using addError otherwise.
@@ -1080,7 +1086,8 @@ type QsExpression with
             let resolvedType =
                 VerifyArithmeticOp
                     symbols.Parent
-                    addError
+                    context.Inference
+                    addDiagnostic
                     (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                     (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
 
@@ -1137,7 +1144,8 @@ type QsExpression with
                 else
                     VerifyArithmeticOp
                         symbols.Parent
-                        addError
+                        context.Inference
+                        addDiagnostic
                         (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                         (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
 
@@ -1190,7 +1198,7 @@ type QsExpression with
             then VerifyConditionalExecution addWarning (resolvedRhs, rhs.RangeOrDefault)
 
             verify
-                addError
+                addDiagnostic
                 (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                 (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
 
@@ -1281,7 +1289,8 @@ type QsExpression with
                 | QsTypeKind.Operation ((input, output), _) -> input, output
                 | _ -> ResolvedType.New InvalidType, ResolvedType.New InvalidType
 
-            context.Inference.Unify(input, arg.ResolvedType) |> diagnoseWithRange (arg.Range.ValueOr Range.Zero) addDiagnostic
+            context.Inference.Unify(input, arg.ResolvedType)
+            |> diagnoseWithRange (arg.Range.ValueOr Range.Zero) addDiagnostic
 
             TypedExpression.New
                 (CallLikeExpression(callable, arg), resolutions, output, callable.InferredInformation, this.Range)
@@ -1437,13 +1446,17 @@ type QsExpression with
         | MUL (lhs, rhs) -> buildArithmeticOp MUL (lhs, rhs)
         | DIV (lhs, rhs) -> buildArithmeticOp DIV (lhs, rhs)
         | LT (lhs, rhs) ->
-            buildBooleanOpWith (fun log l r -> VerifyArithmeticOp symbols.Parent log l r |> ignore) false LT (lhs, rhs)
+            buildBooleanOpWith (fun log l r -> VerifyArithmeticOp symbols.Parent context.Inference log l r |> ignore)
+                false LT (lhs, rhs)
         | LTE (lhs, rhs) ->
-            buildBooleanOpWith (fun log l r -> VerifyArithmeticOp symbols.Parent log l r |> ignore) false LTE (lhs, rhs)
+            buildBooleanOpWith (fun log l r -> VerifyArithmeticOp symbols.Parent context.Inference log l r |> ignore)
+                false LTE (lhs, rhs)
         | GT (lhs, rhs) ->
-            buildBooleanOpWith (fun log l r -> VerifyArithmeticOp symbols.Parent log l r |> ignore) false GT (lhs, rhs)
+            buildBooleanOpWith (fun log l r -> VerifyArithmeticOp symbols.Parent context.Inference log l r |> ignore)
+                false GT (lhs, rhs)
         | GTE (lhs, rhs) ->
-            buildBooleanOpWith (fun log l r -> VerifyArithmeticOp symbols.Parent log l r |> ignore) false GTE (lhs, rhs)
+            buildBooleanOpWith (fun log l r -> VerifyArithmeticOp symbols.Parent context.Inference log l r |> ignore)
+                false GTE (lhs, rhs)
         | POW (lhs, rhs) -> buildPower (lhs, rhs) // power takes a special role because you can raise integers and doubles to integer and double powers, but bigint only to integer powers
         | MOD (lhs, rhs) -> buildIntegralOp MOD (lhs, rhs)
         | LSHIFT (lhs, rhs) -> buildShiftOp LSHIFT (lhs, rhs)
@@ -1451,10 +1464,12 @@ type QsExpression with
         | BOR (lhs, rhs) -> buildIntegralOp BOR (lhs, rhs)
         | BAND (lhs, rhs) -> buildIntegralOp BAND (lhs, rhs)
         | BXOR (lhs, rhs) -> buildIntegralOp BXOR (lhs, rhs)
-        | AND (lhs, rhs) -> buildBooleanOpWith VerifyAreBooleans true AND (lhs, rhs)
-        | OR (lhs, rhs) -> buildBooleanOpWith VerifyAreBooleans true OR (lhs, rhs)
-        | EQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison context) false EQ (lhs, rhs)
-        | NEQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison context) false NEQ (lhs, rhs)
+        | AND (lhs, rhs) -> buildBooleanOpWith (errorToDiagnostic VerifyAreBooleans) true AND (lhs, rhs)
+        | OR (lhs, rhs) -> buildBooleanOpWith (errorToDiagnostic VerifyAreBooleans) true OR (lhs, rhs)
+        | EQ (lhs, rhs) ->
+            buildBooleanOpWith (VerifyEqualityComparison context |> errorToDiagnostic) false EQ (lhs, rhs)
+        | NEQ (lhs, rhs) ->
+            buildBooleanOpWith (VerifyEqualityComparison context |> errorToDiagnostic) false NEQ (lhs, rhs)
         | NEG ex -> verifyAndBuildWith NEG VerifySupportsArithmetic ex
         | BNOT ex -> verifyAndBuildWith BNOT VerifyIsIntegral ex
         | NOT ex ->
