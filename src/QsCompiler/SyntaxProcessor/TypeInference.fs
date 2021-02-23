@@ -130,43 +130,31 @@ module internal TypeInference =
 
     let printType: ResolvedType -> string = SyntaxTreeToQsharp.Default.ToCode
 
-    let merge substitutions =
-        let mutable diagnostics = []
+    let intersect left right =
+        let varianceName =
+            match left.Variance, right.Variance with
+            | Covariant, Covariant -> "subtype"
+            | Contravariant, Contravariant -> "supertype"
+            | _ -> "type"
 
-        let common variance left right =
-            let varianceName =
-                match variance with
-                | Covariant -> "subtype"
-                | Contravariant -> "supertype"
-                | Invariant -> "type"
+        let error = ErrorCode.NoIntersectingType, [ varianceName; printType left.Type; printType right.Type ]
 
-            commonType variance (fun error range ->
-                diagnostics <- QsCompilerDiagnostic.Error error range :: diagnostics)
-                (ErrorCode.NoIntersectingType, [ varianceName; printType left; printType right ])
-                { Name = ""; Namespace = "" } (left, Range.Zero) (right, Range.Zero)
+        if left.Variance <> Invariant && left.Variance = right.Variance then
+            let mutable diagnostics = []
 
-        let substitute variance typ =
-            Option.map (common variance typ) >> Option.defaultValue typ >> Some
+            let newType =
+                commonType left.Variance (fun error range ->
+                    diagnostics <- QsCompilerDiagnostic.Error error range :: diagnostics) error
+                    { Name = ""; Namespace = "" } (left.Type, Range.Zero) (right.Type, Range.Zero)
 
-        let folder (lower, upper) substitution =
-            match substitution.Variance with
-            | Covariant -> lower, upper |> substitute Covariant substitution.Type
-            | Contravariant -> lower |> substitute Contravariant substitution.Type, upper
-            | Invariant ->
-                lower |> substitute Invariant substitution.Type, upper |> substitute Invariant substitution.Type
-
-        match substitutions |> List.fold folder (None, None) with
-        | Some lower, Some upper ->
-            if lower.Resolution = InvalidType || upper.Resolution = InvalidType then
-                ResolvedType.New InvalidType, diagnostics
-            elif lower = upper then
-                lower, diagnostics
-            else
-                let error = ErrorCode.NoIntersectingType, [ "type"; printType lower; printType upper ]
-                ResolvedType.New InvalidType, [ QsCompilerDiagnostic.Error error Range.Zero ]
-        | Some t, None
-        | None, Some t -> t, diagnostics
-        | None, None -> failwith "Merge failed: empty substitution."
+            { Variance = left.Variance; Type = newType }, diagnostics
+        elif left.Type = right.Type then
+            { left with Variance = Invariant }, []
+        elif left.Type.Resolution = InvalidType || right.Type.Resolution = InvalidType then
+            { Variance = Invariant; Type = ResolvedType.New InvalidType }, []
+        else
+            { Variance = Invariant; Type = ResolvedType.New InvalidType },
+            [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     let isSubsetOf info1 info2 =
         info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
@@ -188,8 +176,13 @@ type InferenceContext(origin) =
         occursCheck param substitution.Type
 
         match substitutions.TryGetValue param |> tryOption with
-        | Some v -> substitutions.[param] <- substitution :: v
-        | None -> substitutions.[param] <- [ substitution ]
+        | Some v ->
+            let sub, diagnostics = intersect substitution v
+            substitutions.[param] <- sub
+            diagnostics
+        | None ->
+            substitutions.[param] <- substitution
+            []
 
     member internal context.Fresh() =
         let name = sprintf "__a%d__" count
@@ -207,12 +200,8 @@ type InferenceContext(origin) =
         // TODO: Make sure type parameters are actually placeholders created by this context and not foralls.
         match left.Resolution, right.Resolution with
         | TypeParameter param1, TypeParameter param2 when param1 = param2 -> []
-        | TypeParameter param, _ ->
-            bind param { Variance = Contravariant; Type = right }
-            []
-        | _, TypeParameter param ->
-            bind param { Variance = Covariant; Type = left }
-            []
+        | TypeParameter param, _ -> bind param { Variance = Contravariant; Type = right }
+        | _, TypeParameter param -> bind param { Variance = Covariant; Type = left }
         | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2) // TODO: Invariant.
         | TupleType items1, TupleType items2 -> Seq.zip items1 items2 |> Seq.collect context.Unify |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) when isSubsetOf
@@ -262,58 +251,39 @@ type InferenceContext(origin) =
     member context.Satisfy() =
         [
             for param, typeConstraint in constraints do
-                let typeKind, diagnostics = TypeParameter param |> context.Resolve
-                yield! diagnostics
+                let typeKind = TypeParameter param |> context.Resolve
                 yield! context.CheckConstraint(typeConstraint, ResolvedType.New typeKind)
         ]
 
-    member internal context.Resolve typeKind: QsTypeKind<_, _, _, _> * QsCompilerDiagnostic list =
+    member internal context.Resolve typeKind =
         match typeKind with
         | TypeParameter param ->
             substitutions.TryGetValue param
             |> tryOption
-            |> Option.map (fun substitutions ->
-                let results = substitutions |> List.map (fun s -> s, context.Resolve s.Type.Resolution)
-                let resolvedDiagnostics = results |> List.collect (fun (_, (_, diagnostic)) -> diagnostic)
-
-                let merged, mergedDiagnostics =
-                    results
-                    |> List.map (fun (s, (resolvedType, _)) -> { s with Type = ResolvedType.New resolvedType })
-                    |> merge
-
-                merged.Resolution, resolvedDiagnostics @ mergedDiagnostics)
-            |> Option.defaultValue (typeKind, [])
-        | ArrayType array ->
-            let resolvedType, diagnostics = context.Resolve array.Resolution
-            ResolvedType.New resolvedType |> ArrayType, diagnostics
+            |> Option.map (fun substitution -> context.Resolve substitution.Type.Resolution)
+            |> Option.defaultValue typeKind
+        | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
         | TupleType tuple ->
-            let results = tuple |> Seq.map (fun item -> context.Resolve item.Resolution)
-            let types = results |> Seq.map (fst >> ResolvedType.New)
-            let diagnostics = results |> Seq.collect snd
-            ImmutableArray.CreateRange types |> TupleType, diagnostics |> Seq.toList
+            tuple
+            |> Seq.map (fun item -> context.Resolve item.Resolution |> ResolvedType.New)
+            |> ImmutableArray.CreateRange
+            |> TupleType
         | QsTypeKind.Operation ((inType, outType), info) ->
-            let inType, inDiagnostics = context.Resolve inType.Resolution
-            let outType, outDiagnostics = context.Resolve outType.Resolution
-
-            QsTypeKind.Operation((ResolvedType.New inType, ResolvedType.New outType), info),
-            inDiagnostics @ outDiagnostics
+            let inType = context.Resolve inType.Resolution |> ResolvedType.New
+            let outType = context.Resolve outType.Resolution |> ResolvedType.New
+            QsTypeKind.Operation((inType, outType), info)
         | QsTypeKind.Function (inType, outType) ->
-            let inType, inDiagnostics = context.Resolve inType.Resolution
-            let outType, outDiagnostics = context.Resolve outType.Resolution
-            QsTypeKind.Function(ResolvedType.New inType, ResolvedType.New outType), inDiagnostics @ outDiagnostics
-        | _ -> typeKind, []
+            let inType = context.Resolve inType.Resolution |> ResolvedType.New
+            let outType = context.Resolve outType.Resolution |> ResolvedType.New
+            QsTypeKind.Function(inType, outType)
+        | _ -> typeKind
 
 module InferenceContext =
     [<CompiledName "Resolver">]
     let resolver (context: InferenceContext) =
-        let diagnostics = ResizeArray()
-
         let types =
             { new TypeTransformation() with
-                member this.OnTypeParameter param =
-                    let typeKind, resolvedDiagnostics = TypeParameter param |> context.Resolve
-                    diagnostics.AddRange resolvedDiagnostics
-                    typeKind
+                member this.OnTypeParameter param = TypeParameter param |> context.Resolve
             }
 
-        SyntaxTreeTransformation(Types = types), diagnostics
+        SyntaxTreeTransformation(Types = types)

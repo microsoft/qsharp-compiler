@@ -1470,11 +1470,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         root, spec.Source.AssemblyOrCodeFile, arg, requiredFunctorSupport, context, diagnostics);
                     QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
 
-                    context.Inference.Satisfy();
-                    var (resolver, resolvedDiagnostics) = InferenceContextModule.Resolver(context.Inference);
-                    implementation = resolver.Namespaces.OnSpecializationImplementation(implementation);
-                    diagnostics.AddRange(resolvedDiagnostics.Select(diagnostic =>
+                    diagnostics.AddRange(context.Inference.Satisfy().Select(diagnostic =>
                         Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, diagnostic, specPos)));
+                    var resolver = InferenceContextModule.Resolver(context.Inference);
+                    implementation = resolver.Namespaces.OnSpecializationImplementation(implementation);
                 }
 
                 implementation = implementation ?? SpecializationImplementation.Intrinsic;
