@@ -231,28 +231,26 @@ type InferenceContext(origin) =
             [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
-        if resolvedType.Resolution = InvalidType then
-            []
-        else
-            match typeConstraint with
-            | Semigroup ->
-                if resolvedType.supportsConcatenation |> Option.isNone
-                   && resolvedType.supportsArithmetic |> Option.isNone then
-                    failwithf "Semigroup constraint not satisfied for %A." resolvedType
-                else
-                    []
-            | Equatable ->
-                if resolvedType.supportsEqualityComparison |> Option.isNone
-                then failwithf "Equatable constraint not satisfied for %A." resolvedType
-                else []
-            | Numeric ->
-                if resolvedType.supportsArithmetic |> Option.isNone
-                then failwithf "Numeric constraint not satisfied for %A." resolvedType
-                else []
-            | Iterable item ->
-                match resolvedType.supportsIteration with
-                | Some actualItem -> context.Unify(actualItem, item)
-                | None -> failwithf "Iterable %A constraint not satisfied for %A." item resolvedType
+        match typeConstraint with
+        | _ when resolvedType.Resolution = InvalidType -> []
+        | Semigroup ->
+            if resolvedType.supportsConcatenation |> Option.isNone
+               && resolvedType.supportsArithmetic |> Option.isNone then
+                failwithf "Semigroup constraint not satisfied for %A." resolvedType
+            else
+                []
+        | Equatable ->
+            if resolvedType.supportsEqualityComparison |> Option.isNone
+            then failwithf "Equatable constraint not satisfied for %A." resolvedType
+            else []
+        | Numeric ->
+            if resolvedType.supportsArithmetic |> Option.isNone
+            then failwithf "Numeric constraint not satisfied for %A." resolvedType
+            else []
+        | Iterable item ->
+            match resolvedType.supportsIteration with
+            | Some actualItem -> context.Unify(actualItem, item)
+            | None -> failwithf "Iterable %A constraint not satisfied for %A." item resolvedType
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
         match resolvedType.Resolution with
