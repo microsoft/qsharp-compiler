@@ -113,7 +113,7 @@ module internal TypeInference =
                 matchInAndOutputType variance (i1, o1) (i2, o2) |> QsTypeKind.Function |> ResolvedType.New
             | QsTypeKind.TypeParameter tp1, QsTypeKind.TypeParameter tp2 when tp1 = tp2 && tp1.Origin = parent -> t1
             | QsTypeKind.TypeParameter tp1, QsTypeKind.TypeParameter tp2 when tp1 = tp2 ->
-                raiseError (ErrorCode.InvalidUseOfTypeParameterizedObject, []) (true, true)
+                raiseError (ErrorCode.InvalidUseOfTypeParameterizedObject, []) (true, false) // (true, true)
             | QsTypeKind.TypeParameter tp, QsTypeKind.InvalidType when tp.Origin = parent -> t1
             | QsTypeKind.InvalidType, QsTypeKind.TypeParameter tp when tp.Origin = parent -> t2
             | QsTypeKind.TypeParameter _, _ ->
@@ -122,7 +122,7 @@ module internal TypeInference =
                 raiseError (ErrorCode.ConstrainsTypeParameter, [ SyntaxTreeToQsharp.Default.ToCode t2 ]) (false, true)
             | _ when t1.isInvalid || t2.isInvalid -> if t1.isInvalid then t2 else t1
             | _ when t1 = t2 -> t1
-            | _ -> raiseError mismatchErr (true, true)
+            | _ -> raiseError mismatchErr (true, false) // (true, true)
 
         matchTypes variance (lhsType, rhsType)
 
