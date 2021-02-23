@@ -445,92 +445,94 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
 /// For each type parameter in the target type, calls addTypeParameterResolution with a tuple of the type parameter and the type that is substituted for it.
 /// IMPORTANT: The consistent (i.e. non-ambiguous and non-constraining) resolution of type parameters is *not* verified by this routine
 /// and needs to be verified in a separate step!
-let internal TypeMatchArgument addTypeParameterResolution targetType argType =
-    let givenAndExpectedType = [ argType |> toString; targetType |> toString ]
+let internal TypeMatchArgument (inference: InferenceContext) addTypeParameterResolution targetType argType =
+    inference.Unify(argType, targetType)
 
-    let onErrorRaiseInstead errCode (diag: IEnumerable<_>) =
-        if diag.Any() then [| errCode |] else [||]
-
-    let rec compareTuple (variance: Variance) (ts1: IEnumerable<_>) (ts2: IEnumerable<_>) =
-        if ts1.Count() <> ts2.Count() then
-            [| (ErrorCode.ArgumentTupleShapeMismatch, givenAndExpectedType) |]
-        else
-            (ts1.Zip(ts2, (fun i1 i2 -> (i1, i2))))
-                .SelectMany(new Func<_, _>(matchTypes variance >> Array.toSeq))
-            |> onErrorRaiseInstead (ErrorCode.ArgumentTupleMismatch, givenAndExpectedType)
-
-    and compareSignature variance ((i1, o1), s1: ResolvedCharacteristics) ((i2, o2), s2: ResolvedCharacteristics) =
-        let l1, l2 =
-            let compilerError () =
-                QsCompilerError.Raise "supported functors could not be determined"
-                ImmutableHashSet.Empty
-
-            if s1.AreInvalid || s2.AreInvalid
-            then ImmutableHashSet.Empty, ImmutableHashSet.Empty
-            else s1.SupportedFunctors.ValueOrApply compilerError, s2.SupportedFunctors.ValueOrApply compilerError
-
-        let argVariance, ferrCode, expected =
-            match variance with
-            | Covariant -> Contravariant, ErrorCode.MissingFunctorSupport, missingFunctors (l1, Some l2)
-            | Contravariant -> Covariant, ErrorCode.ExcessFunctorSupport, missingFunctors (l2, Some l1)
-            | Invariant ->
-                Invariant,
-                ErrorCode.FunctorSupportMismatch,
-                (if (l1.SymmetricExcept l2).Any() then missingFunctors (l1, None) else [])
-
-        let fErrs =
-            if expected.Length = 0
-            then [||]
-            else [| (ferrCode, [ String.Join(", ", expected) ]) |]
-
-        (matchTypes argVariance (i1, i2)
-         |> onErrorRaiseInstead (ErrorCode.CallableTypeInputTypeMismatch, [ i2 |> toString; i1 |> toString ]))
-            .Concat((matchTypes  // variance changes for the argument type *only*
-                         variance
-                         (o1, o2)
-                     |> onErrorRaiseInstead
-                         (ErrorCode.CallableTypeOutputTypeMismatch, [ o2 |> toString; o1 |> toString ])).Concat fErrs)
-        |> Seq.toArray
-
-    and compareArrayBaseTypes (bt: ResolvedType) (ba: ResolvedType) =
-        if ba.isMissing then
-            // empty array on the right hand side is always ok, otherwise arrays are invariant
-            Array.empty
-        else
-            matchTypes Invariant (bt, ba)
-            |> onErrorRaiseInstead (ErrorCode.ArrayBaseTypeMismatch, [ ba |> toString; bt |> toString ])
-
-    and matchTypes variance (targetT: ResolvedType, exType: ResolvedType) =
-        QsCompilerError.Verify(not exType.isMissing, "expression type is missing")
-
-        match targetT.Resolution, exType.Resolution with
-        | QsTypeKind.MissingType, _ ->
-            // the lhs of a set-statement may contain underscores
-            Array.empty
-        | QsTypeKind.TypeParameter tp, _ ->
-            // lhs is a type parameter of the *called* callable!
-            addTypeParameterResolution ((tp.Origin, tp.TypeName), exType)
-            [||]
-        | QsTypeKind.ArrayType b1, QsTypeKind.ArrayType b2 -> compareArrayBaseTypes b1 b2
-        | QsTypeKind.TupleType ts1, QsTypeKind.TupleType ts2 -> compareTuple variance ts1 ts2
-        | QsTypeKind.UserDefinedType udt1, QsTypeKind.UserDefinedType udt2 when udt1 = udt2 -> [||]
-        | QsTypeKind.UserDefinedType _, QsTypeKind.UserDefinedType _ ->
-            [|
-                (ErrorCode.UserDefinedTypeMismatch, [ exType |> toString; targetT |> toString ])
-            |]
-        | QsTypeKind.Operation ((i1, o1), l1), QsTypeKind.Operation ((i2, o2), l2) ->
-            compareSignature variance ((i1, o1), l1.Characteristics) ((i2, o2), l2.Characteristics)
-        | QsTypeKind.Function (i1, o1), QsTypeKind.Function (i2, o2) ->
-            compareSignature
-                variance
-                ((i1, o1), ResolvedCharacteristics.Empty)
-                ((i2, o2), ResolvedCharacteristics.Empty)
-        | QsTypeKind.InvalidType, _
-        | _, QsTypeKind.InvalidType -> [||]
-        | resT, resA when resT = resA -> [||]
-        | _ -> [| (ErrorCode.ArgumentTypeMismatch, givenAndExpectedType) |]
-
-    matchTypes Covariant (targetType, argType)
+//    let givenAndExpectedType = [ argType |> toString; targetType |> toString ]
+//
+//    let onErrorRaiseInstead errCode (diag: IEnumerable<_>) =
+//        if diag.Any() then [| errCode |] else [||]
+//
+//    let rec compareTuple (variance: Variance) (ts1: IEnumerable<_>) (ts2: IEnumerable<_>) =
+//        if ts1.Count() <> ts2.Count() then
+//            [| (ErrorCode.ArgumentTupleShapeMismatch, givenAndExpectedType) |]
+//        else
+//            (ts1.Zip(ts2, (fun i1 i2 -> (i1, i2))))
+//                .SelectMany(new Func<_, _>(matchTypes variance >> Array.toSeq))
+//            |> onErrorRaiseInstead (ErrorCode.ArgumentTupleMismatch, givenAndExpectedType)
+//
+//    and compareSignature variance ((i1, o1), s1: ResolvedCharacteristics) ((i2, o2), s2: ResolvedCharacteristics) =
+//        let l1, l2 =
+//            let compilerError () =
+//                QsCompilerError.Raise "supported functors could not be determined"
+//                ImmutableHashSet.Empty
+//
+//            if s1.AreInvalid || s2.AreInvalid
+//            then ImmutableHashSet.Empty, ImmutableHashSet.Empty
+//            else s1.SupportedFunctors.ValueOrApply compilerError, s2.SupportedFunctors.ValueOrApply compilerError
+//
+//        let argVariance, ferrCode, expected =
+//            match variance with
+//            | Covariant -> Contravariant, ErrorCode.MissingFunctorSupport, missingFunctors (l1, Some l2)
+//            | Contravariant -> Covariant, ErrorCode.ExcessFunctorSupport, missingFunctors (l2, Some l1)
+//            | Invariant ->
+//                Invariant,
+//                ErrorCode.FunctorSupportMismatch,
+//                (if (l1.SymmetricExcept l2).Any() then missingFunctors (l1, None) else [])
+//
+//        let fErrs =
+//            if expected.Length = 0
+//            then [||]
+//            else [| (ferrCode, [ String.Join(", ", expected) ]) |]
+//
+//        (matchTypes argVariance (i1, i2)
+//         |> onErrorRaiseInstead (ErrorCode.CallableTypeInputTypeMismatch, [ i2 |> toString; i1 |> toString ]))
+//            .Concat((matchTypes  // variance changes for the argument type *only*
+//                         variance
+//                         (o1, o2)
+//                     |> onErrorRaiseInstead
+//                         (ErrorCode.CallableTypeOutputTypeMismatch, [ o2 |> toString; o1 |> toString ])).Concat fErrs)
+//        |> Seq.toArray
+//
+//    and compareArrayBaseTypes (bt: ResolvedType) (ba: ResolvedType) =
+//        if ba.isMissing then
+//            // empty array on the right hand side is always ok, otherwise arrays are invariant
+//            Array.empty
+//        else
+//            matchTypes Invariant (bt, ba)
+//            |> onErrorRaiseInstead (ErrorCode.ArrayBaseTypeMismatch, [ ba |> toString; bt |> toString ])
+//
+//    and matchTypes variance (targetT: ResolvedType, exType: ResolvedType) =
+//        QsCompilerError.Verify(not exType.isMissing, "expression type is missing")
+//
+//        match targetT.Resolution, exType.Resolution with
+//        | QsTypeKind.MissingType, _ ->
+//            // the lhs of a set-statement may contain underscores
+//            Array.empty
+//        | QsTypeKind.TypeParameter tp, _ ->
+//            // lhs is a type parameter of the *called* callable!
+//            addTypeParameterResolution ((tp.Origin, tp.TypeName), exType)
+//            [||]
+//        | QsTypeKind.ArrayType b1, QsTypeKind.ArrayType b2 -> compareArrayBaseTypes b1 b2
+//        | QsTypeKind.TupleType ts1, QsTypeKind.TupleType ts2 -> compareTuple variance ts1 ts2
+//        | QsTypeKind.UserDefinedType udt1, QsTypeKind.UserDefinedType udt2 when udt1 = udt2 -> [||]
+//        | QsTypeKind.UserDefinedType _, QsTypeKind.UserDefinedType _ ->
+//            [|
+//                (ErrorCode.UserDefinedTypeMismatch, [ exType |> toString; targetT |> toString ])
+//            |]
+//        | QsTypeKind.Operation ((i1, o1), l1), QsTypeKind.Operation ((i2, o2), l2) ->
+//            compareSignature variance ((i1, o1), l1.Characteristics) ((i2, o2), l2.Characteristics)
+//        | QsTypeKind.Function (i1, o1), QsTypeKind.Function (i2, o2) ->
+//            compareSignature
+//                variance
+//                ((i1, o1), ResolvedCharacteristics.Empty)
+//                ((i2, o2), ResolvedCharacteristics.Empty)
+//        | QsTypeKind.InvalidType, _
+//        | _, QsTypeKind.InvalidType -> [||]
+//        | resT, resA when resT = resA -> [||]
+//        | _ -> [| (ErrorCode.ArgumentTypeMismatch, givenAndExpectedType) |]
+//
+//    matchTypes Covariant (targetType, argType)
 
 /// Returns the type of the expression that completes the argument
 /// (i.e. the expected type for the expression that completes all missing pieces in the argument) as option,
@@ -539,7 +541,7 @@ let internal TypeMatchArgument addTypeParameterResolution targetType argType =
 /// Returning an invalid type as Some indicates that either the type of the given argument is
 /// incompatible with the targetType, or that the targetType itself is invalid,
 /// and no conclusion can be reached on the type for the unresolved part of the argument.
-let private IsValidArgument addError targetType (arg, resolveInner) =
+let private IsValidArgument (inference: InferenceContext) diagnose targetType (arg, resolveInner) =
     let buildType (tItems: ResolvedType option list) =
         let remaining = tItems |> List.choose id
         let containsInvalid = remaining |> List.exists (fun x -> x.isInvalid)
@@ -560,7 +562,7 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
     let rec recur (targetT: ResolvedType, argEx: QsExpression) =
         let pushErrs errCodes =
             for code in errCodes do
-                argEx.RangeOrDefault |> addError code
+                QsCompilerDiagnostic.Error code argEx.RangeOrDefault |> diagnose
 
         QsCompilerError.Verify(not targetT.isMissing, "target type is missing")
 
@@ -579,7 +581,9 @@ let private IsValidArgument addError targetType (arg, resolveInner) =
             [| (ErrorCode.UnexpectedTupleArgument, [ targetT |> toString ]) |] |> pushErrs
             ResolvedType.New InvalidType |> Some
         | _, _ ->
-            TypeMatchArgument (addTpResolution argEx.RangeOrDefault) targetT (resolveInner argEx) |> pushErrs
+            TypeMatchArgument inference (addTpResolution argEx.RangeOrDefault) targetT (resolveInner argEx)
+            |> List.iter diagnose
+
             None
 
     recur (targetType, arg), lookUp.ToLookup(fst, snd)
@@ -725,7 +729,13 @@ let internal IsTypeParamRecursion (parent, definedTypeParams: ImmutableArray<_>)
 /// that is not part of a call-like expression but does not specify all needed type arguments.
 /// Calls the given function addError on all generated errors.
 /// IMPORTANT: ignores any external type parameter occuring in expectedType without raising an error!
-let internal VerifyAssignment expectedType (parent, definedTypeParams) mismatchErr addError (rhsType, rhsEx, rhsRange) =
+let internal VerifyAssignment (inference: InferenceContext)
+                              expectedType
+                              (parent, definedTypeParams)
+                              mismatchErr
+                              addError
+                              (rhsType, rhsEx, rhsRange)
+                              =
     // we need to check if the right hand side contains a type parametrized version of the parent callable
     let directRecursion = IsTypeParamRecursion (parent, definedTypeParams) rhsEx
 
@@ -740,7 +750,7 @@ let internal VerifyAssignment expectedType (parent, definedTypeParams) mismatchE
         // and for a return statement the expected return type cannot contain external type parameters by construction
         if fst key = parent then tpResolutions.Add(key, exT)
 
-    let errCodes = TypeMatchArgument addTpResolution expectedType rhsType
+    let errCodes = TypeMatchArgument inference addTpResolution expectedType rhsType
 
     if errCodes.Length <> 0
     then rhsRange |> addError (mismatchErr, [ rhsType |> toString; expectedType |> toString ])
@@ -978,6 +988,7 @@ type QsExpression with
                     VerifyUdtWith (symbols.GetItemType itemName) addError (resLhs.ResolvedType, lhs.RangeOrDefault)
 
                 VerifyAssignment
+                    context.Inference
                     itemType
                     parent
                     ErrorCode.TypeMismatchInCopyAndUpdateExpr
@@ -998,6 +1009,7 @@ type QsExpression with
                     let expectedRhs = VerifyNumberedItemAccess addError (resLhs.ResolvedType, lhs.RangeOrDefault)
 
                     VerifyAssignment
+                        context.Inference
                         expectedRhs
                         parent
                         ErrorCode.TypeMismatchInCopyAndUpdateExpr
@@ -1013,6 +1025,7 @@ type QsExpression with
                             (resAccEx.ResolvedType, accEx.RangeOrDefault)
 
                     VerifyAssignment
+                        context.Inference
                         expectedRhs
                         parent
                         ErrorCode.TypeMismatchInCopyAndUpdateExpr

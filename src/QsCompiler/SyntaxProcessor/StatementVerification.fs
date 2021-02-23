@@ -51,7 +51,7 @@ let private AssignmentVerification expected (context: ScopeContext) errCode =
     let parent = context.Symbols.Parent, context.Symbols.DefinedTypeParameters
 
     let verification addErr (t, e, r) =
-        VerifyAssignment expected parent errCode addErr (t, Some e, r)
+        VerifyAssignment context.Inference expected parent errCode addErr (t, Some e, r)
 
     verification
 
