@@ -133,11 +133,11 @@ module internal TypeInference =
     let intersect left right =
         let varianceName =
             match left.Variance, right.Variance with
-            | Covariant, Covariant -> "subtype"
-            | Contravariant, Contravariant -> "supertype"
-            | _ -> "type"
+            | Covariant, Covariant -> "any subtype of "
+            | Contravariant, Contravariant -> "any supertype of "
+            | _ -> ""
 
-        let error = ErrorCode.NoIntersectingType, [ varianceName; printType left.Type; printType right.Type ]
+        let error = ErrorCode.TypeUnificationFailed, [ printType left.Type; varianceName + printType right.Type ]
 
         if left.Variance <> Invariant && left.Variance = right.Variance then
             let mutable diagnostics = []
@@ -216,7 +216,7 @@ type InferenceContext(origin) =
         | _, InvalidType -> []
         | _ when left = right -> []
         | _ ->
-            let error = ErrorCode.TypeUnificationFailed, [ printType left; printType right ]
+            let error = ErrorCode.TypeUnificationFailed, [ printType left; "any subtype of " + printType right ]
             [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =

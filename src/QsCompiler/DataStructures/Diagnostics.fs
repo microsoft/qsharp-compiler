@@ -203,7 +203,6 @@ type ErrorCode =
     | InaccessibleCallable = 6023
 
     | TypeUnificationFailed = 6024
-    | NoIntersectingType = 6025
 
     | ExpectingUnqualifiedSymbol = 6101
     | ExpectingItemName = 6102
@@ -698,8 +697,7 @@ type DiagnosticItem =
             | ErrorCode.InvalidNamespaceAliasName -> "A namespace or a namespace short name \"{0}\" already exists."
             | ErrorCode.ConflictInReferences -> "Could not resolve conflict between {0} declared in {1}."
 
-            | ErrorCode.TypeUnificationFailed -> "The type {0} cannot be unified with a subtype of {1}."
-            | ErrorCode.NoIntersectingType -> "There is no intersecting {0} between {1} and {2}."
+            | ErrorCode.TypeUnificationFailed -> "The type {0} cannot be unified with {1}. The types do not match."
 
             | ErrorCode.ExpectingUnqualifiedSymbol -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName -> "Expecting an item name, i.e. an unqualified symbol."
