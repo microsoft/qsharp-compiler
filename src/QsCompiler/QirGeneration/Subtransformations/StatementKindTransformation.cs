@@ -142,7 +142,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="scope">The Q# scope to generate QIR for</param>
         /// <param name="continuation">The block where execution should continue after this scope,
         /// assuming that the scope doesn't end with a return statement</param>
-        private void ProcessBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
+        /// <return>True if the <param name="continuation"> block is used, False otherwise.</return>
+        private bool ProcessBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
         {
             this.SharedState.ScopeMgr.OpenScope();
             this.SharedState.SetCurrentBlock(block);
@@ -152,7 +153,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (!isTerminated)
             {
                 this.SharedState.CurrentBuilder.Branch(continuation);
+                return true;
             }
+            return false;
         }
 
         // public overrides
@@ -239,6 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             var clauses = stm.ConditionalBlocks;
             var contBlock = this.SharedState.AddBlockAfterCurrent("continue");
+            var contBlockUsed = false;
 
             // if/then/elif...else
             // The first test goes in the current block. If it succeeds, we go to the "then0" block.
@@ -264,13 +268,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         ? contBlock
                         : this.SharedState.CurrentFunction.InsertBasicBlock(
                                 this.SharedState.BlockName($"else"), contBlock));
+                contBlockUsed = contBlockUsed || nextConditional == contBlock;
 
                 // Create the branch
                 this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
 
                 // Get a builder for the then block, make it current, and then process the block
                 this.SharedState.StartBranch();
-                this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock);
+                contBlockUsed = this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
 
                 this.SharedState.SetCurrentBlock(nextConditional);
@@ -280,12 +285,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (stm.Default.IsValue)
             {
                 this.SharedState.StartBranch();
-                this.ProcessBlock(this.SharedState.CurrentBlock, stm.Default.Item.Body, contBlock);
+                contBlockUsed = this.ProcessBlock(this.SharedState.CurrentBlock, stm.Default.Item.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
             }
 
-            // Finally, set the continuation block as current
-            this.SharedState.SetCurrentBlock(contBlock);
+            // Finally, set the continuation block as current or prune it if it is unused.
+            if (contBlockUsed)
+            {
+                this.SharedState.SetCurrentBlock(contBlock);
+            }
+            else
+            {
+                this.SharedState.CurrentFunction.BasicBlocks.Remove(contBlock);
+            }
             return QsStatementKind.EmptyStatement;
         }
 

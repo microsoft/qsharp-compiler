@@ -844,33 +844,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("the current function or the current block is null");
             }
 
-            bool HasAPredecessor(BasicBlock block)
-            {
-                foreach (var b in this.CurrentFunction.BasicBlocks)
-                {
-                    if ((b != block) && (b.Terminator != null))
-                    {
-                        var term = b.Terminator;
-                        if (term is Branch br)
-                        {
-                            if (br.Successors.Contains(block))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
-                return false;
-            }
-
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
 
-            if (!HasAPredecessor(this.CurrentBlock)
-                && this.CurrentFunction.BasicBlocks.Count > 1)
-            {
-                this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
-            }
-            else if (this.CurrentBlock.Terminator == null)
+            if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
             {
                 this.CurrentBuilder.Return();
             }
