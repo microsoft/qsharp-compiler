@@ -169,16 +169,17 @@ let internal VerifyIsIntegral addError (exType, range) =
 /// Verifies that both given resolved types are of kind Int or BigInt, and that both are the same,
 /// adding an ArgumentMismatchInBinaryOp or ExpectingIntegralExpr error with the corresponding range using addError otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
-let private VerifyIntegralOp parent addError ((lhsType: ResolvedType), lhsRange) (rhsType: ResolvedType, rhsRange) =
-    let exType =
-        CommonBaseType
-            addError
-            (ErrorCode.ArgumentMismatchInBinaryOp, [ lhsType |> toString; rhsType |> toString ])
-            parent
-            (lhsType, lhsRange)
-            (rhsType, rhsRange)
-
-    VerifyIsIntegral addError (exType, rhsRange)
+let private VerifyIntegralOp parent
+                             (inference: InferenceContext)
+                             diagnose
+                             ((lhsType: ResolvedType), lhsRange)
+                             (rhsType: ResolvedType, rhsRange)
+                             =
+    let exType = inference.Fresh()
+    inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
+    inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
+    inference.Constrain(exType, Integral) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
+    exType
 
 /// Verifies that the given resolved type indeed supports arithmetic operations,
 /// adding an InvalidTypeInArithmeticExpr error with the given range using addError otherwise.
@@ -205,8 +206,6 @@ let private VerifyArithmeticOp parent
     inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
     inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
     inference.Constrain(exType, Numeric) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
-
-    // VerifySupportsArithmetic addError (exType, rhsRange)
     exType
 
 /// Verifies that the given resolved type indeed supports iteration,
@@ -1164,7 +1163,8 @@ type QsExpression with
             let resolvedType =
                 VerifyIntegralOp
                     symbols.Parent
-                    addError
+                    context.Inference
+                    addDiagnostic
                     (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                     (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
 

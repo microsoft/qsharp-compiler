@@ -25,9 +25,10 @@ type internal Variance =
 type internal Substitution = private { Variance: Variance; Type: ResolvedType }
 
 type internal Constraint =
-    | Semigroup
     | Equatable
+    | Semigroup
     | Numeric
+    | Integral
     | Iterable of item: ResolvedType
 
 module internal TypeInference =
@@ -229,20 +230,24 @@ type InferenceContext(origin) =
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
         | _ when resolvedType.Resolution = InvalidType -> []
-        | Semigroup ->
-            if resolvedType.supportsConcatenation |> Option.isNone
-               && resolvedType.supportsArithmetic |> Option.isNone then
-                failwithf "Semigroup constraint not satisfied for %A." resolvedType
-            else
-                []
         | Equatable ->
-            if resolvedType.supportsEqualityComparison |> Option.isNone
-            then failwithf "Equatable constraint not satisfied for %A." resolvedType
-            else []
+            if resolvedType.supportsEqualityComparison |> Option.isSome
+            then []
+            else failwithf "Equatable constraint not satisfied for %A." resolvedType
+        | Semigroup ->
+            if resolvedType.supportsConcatenation |> Option.isSome
+               || resolvedType.supportsArithmetic |> Option.isSome then
+                []
+            else
+                failwithf "Semigroup constraint not satisfied for %A." resolvedType
         | Numeric ->
-            if resolvedType.supportsArithmetic |> Option.isNone
-            then failwithf "Numeric constraint not satisfied for %A." resolvedType
-            else []
+            if resolvedType.supportsArithmetic |> Option.isSome
+            then []
+            else failwithf "Numeric constraint not satisfied for %A." resolvedType
+        | Integral ->
+            if resolvedType.Resolution = Int || resolvedType.Resolution = BigInt
+            then []
+            else failwithf "Integral constraint not satisfied for %A." resolvedType
         | Iterable item ->
             match resolvedType.supportsIteration with
             | Some actualItem -> context.Unify(actualItem, item)
