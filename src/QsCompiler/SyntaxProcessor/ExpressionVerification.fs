@@ -54,6 +54,9 @@ let private missingFunctors (target: ImmutableHashSet<_>, given) =
     | Some fList -> target.Except(fList) |> mapFunctors
     | None -> if target.Any() then target |> mapFunctors else [ "(None)" ]
 
+let private diagnoseWithRange range diagnose =
+    List.iter (fun d -> diagnose { d with QsCompilerDiagnostic.Range = range })
+
 /// Calls the given addWarning function with a suitable warning code and the given range
 /// if the given expression contains an operation call.
 let private VerifyConditionalExecution addWarning (ex: TypedExpression, range) =
@@ -209,7 +212,7 @@ let internal VerifyIsIterable (inference: InferenceContext) diagnose (exType, ra
     // VerifyIsOneOf expected (ErrorCode.ExpectingIterableExpr, [ exType |> toString ]) addError (exType, range)
 
     let item = inference.Fresh()
-    inference.Constrain(exType, Iterable item) |> List.iter diagnose
+    inference.Constrain(exType, Iterable item) |> diagnoseWithRange range diagnose
     item
 
 /// Verifies that given resolved types can be used within a concatenation operator.
@@ -225,21 +228,10 @@ let private VerifyConcatenation parent
                                 (lhsType: ResolvedType, lhsRange)
                                 (rhsType: ResolvedType, rhsRange)
                                 =
-    // TODO: Clean up.
-    inference.Unify(lhsType, rhsType) |> List.iter diagnose
-
-    // let exType =
-    //     CommonBaseType
-    //         addError
-    //         (ErrorCode.ArgumentMismatchInBinaryOp, [ lhsType |> toString; rhsType |> toString ])
-    //         parent
-    //         (lhsType, lhsRange)
-    //         (rhsType, rhsRange)
-
     let exType = inference.Fresh()
-    inference.Unify(lhsType, exType) |> List.iter diagnose
-    inference.Unify(rhsType, exType) |> List.iter diagnose
-    inference.Constrain(exType, Semigroup) |> List.iter diagnose
+    inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
+    inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
+    inference.Constrain(exType, Semigroup) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
     // let expected (t: ResolvedType) = t.supportsConcatenation
     // VerifyIsOneOf expected (ErrorCode.InvalidTypeForConcatenation, [ exType |> toString ]) addError (exType, rhsRange)
@@ -582,7 +574,7 @@ let private IsValidArgument (inference: InferenceContext) diagnose targetType (a
             ResolvedType.New InvalidType |> Some
         | _, _ ->
             TypeMatchArgument inference (addTpResolution argEx.RangeOrDefault) targetT (resolveInner argEx)
-            |> List.iter diagnose
+            |> diagnoseWithRange argEx.RangeOrDefault diagnose
 
             None
 
@@ -1289,7 +1281,7 @@ type QsExpression with
                 | QsTypeKind.Operation ((input, output), _) -> input, output
                 | _ -> ResolvedType.New InvalidType, ResolvedType.New InvalidType
 
-            context.Inference.Unify(input, arg.ResolvedType) |> List.iter addDiagnostic
+            context.Inference.Unify(input, arg.ResolvedType) |> diagnoseWithRange (arg.Range.ValueOr Range.Zero) addDiagnostic
 
             TypedExpression.New
                 (CallLikeExpression(callable, arg), resolutions, output, callable.InferredInformation, this.Range)
