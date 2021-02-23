@@ -68,7 +68,7 @@
             "title": "Q# language server configuration",
             "properties": {
                 "quantumDevKit.languageServerPath": {
-                    "scope": "resource",
+                    "scope": "machine",
                     "type": [
                         "string",
                         "null"
