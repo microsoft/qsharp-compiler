@@ -30,6 +30,7 @@ type internal Constraint =
     | Numeric
     | Integral
     | Iterable of item: ResolvedType
+    | Wrapped of item: ResolvedType
 
 module internal TypeInference =
     /// Given two resolve types, determines and returns a common base type if such a type exists,
@@ -170,7 +171,7 @@ module internal TypeInference =
 
 open TypeInference
 
-type InferenceContext(origin) =
+type InferenceContext(symbolTracker: SymbolTracker) =
     let mutable count = 0
 
     let substitutions = Dictionary()
@@ -194,7 +195,7 @@ type InferenceContext(origin) =
         count <- count + 1
 
         {
-            Origin = origin
+            Origin = symbolTracker.Parent
             TypeName = name
             Range = Null
         }
@@ -252,6 +253,12 @@ type InferenceContext(origin) =
             match resolvedType.supportsIteration with
             | Some actualItem -> context.Unify(actualItem, item)
             | None -> failwithf "Iterable %A constraint not satisfied for %A." item resolvedType
+        | Wrapped item ->
+            match resolvedType.Resolution with
+            | UserDefinedType udt ->
+                let actualItem = symbolTracker.GetUnderlyingType (fun _ -> ()) udt
+                context.Unify(actualItem, item)
+            | _ -> failwithf "Wrapped %A constraint not satisfied for %A." item resolvedType
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
         match resolvedType.Resolution with

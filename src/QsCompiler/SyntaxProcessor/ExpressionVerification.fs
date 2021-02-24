@@ -248,15 +248,13 @@ let private VerifyConcatenation parent
 /// If a common base type exists, verifies that this base type supports equality comparison,
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
-let private VerifyEqualityComparison context addError (lhsType, lhsRange) (rhsType, rhsRange) =
-    // NOTE: this may not be the behavior that we want (right now it does not matter, since we don't support equality
-    // comparison for any derived type).
-    let argumentError = ErrorCode.ArgumentMismatchInBinaryOp, [ toString lhsType; toString rhsType ]
-    let baseType = CommonBaseType addError argumentError context.Symbols.Parent (lhsType, lhsRange) (rhsType, rhsRange)
-    let unsupportedError = ErrorCode.InvalidTypeInEqualityComparison, [ toString baseType ]
+let private VerifyEqualityComparison context diagnose (lhsType, lhsRange) (rhsType, rhsRange) =
+    let exType = context.Inference.Fresh()
+    context.Inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
+    context.Inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
 
-    VerifyIsOneOf (fun t -> t.supportsEqualityComparison) unsupportedError addError (baseType, rhsRange)
-    |> ignore
+    context.Inference.Constrain(exType, Equatable)
+    |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
 /// Given a list of all item types and there corresponding ranges, verifies that a value array literal can be built from them.
 /// Adds a MissingExprInArray error with the corresponding range using addError if one of the given types is missing.
@@ -1238,7 +1236,10 @@ type QsExpression with
         /// Determines the underlying type of the user defined type and returns the corresponding UNWRAP expression as typed expression of that type.
         let buildUnwrap (ex: QsExpression) =
             let resolvedEx = InnerExpression ex
-            let exType = VerifyUdtWith symbols.GetUnderlyingType addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
+            let exType = context.Inference.Fresh()
+
+            context.Inference.Constrain(resolvedEx.ResolvedType, Wrapped exType)
+            |> diagnoseWithRange ex.RangeOrDefault addDiagnostic
 
             (UnwrapApplication resolvedEx, exType, resolvedEx.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
@@ -1463,13 +1464,12 @@ type QsExpression with
         | BXOR (lhs, rhs) -> buildIntegralOp BXOR (lhs, rhs)
         | AND (lhs, rhs) -> buildBooleanOpWith (errorToDiagnostic VerifyAreBooleans) true AND (lhs, rhs)
         | OR (lhs, rhs) -> buildBooleanOpWith (errorToDiagnostic VerifyAreBooleans) true OR (lhs, rhs)
-        | EQ (lhs, rhs) ->
-            buildBooleanOpWith (VerifyEqualityComparison context |> errorToDiagnostic) false EQ (lhs, rhs)
-        | NEQ (lhs, rhs) ->
-            buildBooleanOpWith (VerifyEqualityComparison context |> errorToDiagnostic) false NEQ (lhs, rhs)
+        | EQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison context) false EQ (lhs, rhs)
+        | NEQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison context) false NEQ (lhs, rhs)
         | NEG ex -> verifyAndBuildWith NEG VerifySupportsArithmetic ex
         | BNOT ex -> verifyAndBuildWith BNOT VerifyIsIntegral ex
         | NOT ex ->
-            verifyAndBuildWith NOT (fun log arg ->
-                VerifyIsBoolean log arg
-                ResolvedType.New Bool) ex
+            ex
+            |> verifyAndBuildWith NOT (fun log arg ->
+                   VerifyIsBoolean log arg
+                   ResolvedType.New Bool)
