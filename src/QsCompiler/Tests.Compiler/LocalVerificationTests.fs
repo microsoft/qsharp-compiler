@@ -334,15 +334,15 @@ type LocalVerificationTests() =
         this.Expect "ValidArraySlice8" []
         this.Expect "ValidArraySlice9" []
 
-        this.Expect "InvalidArraySlice1" [ Error ErrorCode.ItemAccessForNonArray ]
-        this.Expect "InvalidArraySlice2" [ Error ErrorCode.ItemAccessForNonArray ]
-        this.Expect "InvalidArraySlice3" [ Error ErrorCode.ItemAccessForNonArray ]
-        this.Expect "InvalidArraySlice4" [ Error ErrorCode.ItemAccessForNonArray ]
-        this.Expect "InvalidArraySlice5" [ Error ErrorCode.ItemAccessForNonArray ]
-        this.Expect "InvalidArraySlice6" [ Error ErrorCode.ItemAccessForNonArray ]
-        this.Expect "InvalidArraySlice7" [ Error ErrorCode.ItemAccessForNonArray ]
-        this.Expect "InvalidArraySlice8" [ Error ErrorCode.ItemAccessForNonArray ]
-        this.Expect "InvalidArraySlice9" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice1" [ Error ErrorCode.ConstraintNotSatisfied ]
+        this.Expect "InvalidArraySlice2" [ Error ErrorCode.ConstraintNotSatisfied ]
+        this.Expect "InvalidArraySlice3" [ Error ErrorCode.ConstraintNotSatisfied ]
+        this.Expect "InvalidArraySlice4" [ Error ErrorCode.ConstraintNotSatisfied ]
+        this.Expect "InvalidArraySlice5" [ Error ErrorCode.ConstraintNotSatisfied ]
+        this.Expect "InvalidArraySlice6" [ Error ErrorCode.ItemAccessForNonArray ] // TODO: Error type.
+        this.Expect "InvalidArraySlice7" [ Error ErrorCode.ConstraintNotSatisfied ]
+        this.Expect "InvalidArraySlice8" [ Error ErrorCode.ConstraintNotSatisfied ]
+        this.Expect "InvalidArraySlice9" [ Error ErrorCode.ConstraintNotSatisfied ]
 
 
     [<Fact>]
