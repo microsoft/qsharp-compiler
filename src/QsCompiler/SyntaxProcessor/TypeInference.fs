@@ -212,8 +212,8 @@ type InferenceContext(origin) =
         | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2) // TODO: Invariant.
         | TupleType items1, TupleType items2 -> Seq.zip items1 items2 |> Seq.collect context.Unify |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) when isSubsetOf
-                                                                                                        info1
-                                                                                                        info2 ->
+                                                                                                        info2
+                                                                                                        info1 ->
             // TODO: Variance.
             [ in1, in2; out1, out2 ] |> List.collect context.Unify
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->

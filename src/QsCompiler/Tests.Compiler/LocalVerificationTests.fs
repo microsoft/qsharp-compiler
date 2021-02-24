@@ -176,7 +176,7 @@ type LocalVerificationTests() =
         this.Expect "CopyAndUpdateArray5" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "CopyAndUpdateArray6" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "CopyAndUpdateArray7" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "CopyAndUpdateArray8" [ Error ErrorCode.ConstrainsTypeParameter ]
+        this.Expect "CopyAndUpdateArray8" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "CopyAndUpdateArray9" []
         this.Expect "CopyAndUpdateArray10" []
         this.Expect "CopyAndUpdateArray11" []
@@ -184,7 +184,7 @@ type LocalVerificationTests() =
         this.Expect "CopyAndUpdateArray13" []
         this.Expect "CopyAndUpdateArray14" []
         this.Expect "CopyAndUpdateArray15" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "CopyAndUpdateArray16" [ Error ErrorCode.ConstrainsTypeParameter ]
+        this.Expect "CopyAndUpdateArray16" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
 
 
     [<Fact>]
