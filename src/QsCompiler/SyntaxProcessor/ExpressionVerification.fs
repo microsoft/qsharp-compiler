@@ -749,8 +749,9 @@ let internal VerifyAssignment (inference: InferenceContext)
 
     let errCodes = TypeMatchArgument inference addTpResolution expectedType rhsType
 
-    if errCodes.Length <> 0
-    then rhsRange |> addError (mismatchErr, [ rhsType |> toString; expectedType |> toString ])
+    if errCodes.Length <> 0 then
+        let resolvedRhs = inference.Resolve rhsType.Resolution |> ResolvedType.New
+        addError (mismatchErr, [ toString resolvedRhs; toString expectedType ]) rhsRange
 
     let containsNonTrivialResolution (tp: IGrouping<_, ResolvedType>) =
         let notResolvedToItself (x: ResolvedType) =

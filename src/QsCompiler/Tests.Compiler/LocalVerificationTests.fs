@@ -226,8 +226,10 @@ type LocalVerificationTests() =
         this.Expect
             "ItemAccess5"
             [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatchInReturn
             ]
 
         this.Expect "ItemAccess6" []
