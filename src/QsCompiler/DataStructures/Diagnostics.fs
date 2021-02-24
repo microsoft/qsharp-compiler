@@ -203,6 +203,7 @@ type ErrorCode =
     | InaccessibleCallable = 6023
 
     | TypeUnificationFailed = 6024
+    | ConstraintNotSatisfied = 6025
 
     | ExpectingUnqualifiedSymbol = 6101
     | ExpectingItemName = 6102
@@ -698,6 +699,7 @@ type DiagnosticItem =
             | ErrorCode.ConflictInReferences -> "Could not resolve conflict between {0} declared in {1}."
 
             | ErrorCode.TypeUnificationFailed -> "The type {0} cannot be unified with {1}. The types do not match."
+            | ErrorCode.ConstraintNotSatisfied -> "The type {0} does not satisfy the {1} constraint."
 
             | ErrorCode.ExpectingUnqualifiedSymbol -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName -> "Expecting an item name, i.e. an unqualified symbol."

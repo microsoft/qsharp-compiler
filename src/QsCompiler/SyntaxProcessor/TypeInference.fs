@@ -26,10 +26,11 @@ type internal Substitution = private { Variance: Variance; Type: ResolvedType }
 
 type internal Constraint =
     | Equatable
-    | Semigroup
-    | Numeric
+    | Indexed of index: ResolvedType * item: ResolvedType
     | Integral
     | Iterable of item: ResolvedType
+    | Numeric
+    | Semigroup
     | Wrapped of item: ResolvedType
 
 module internal TypeInference =
@@ -235,16 +236,13 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             if resolvedType.supportsEqualityComparison |> Option.isSome
             then []
             else failwithf "Equatable constraint not satisfied for %A." resolvedType
-        | Semigroup ->
-            if resolvedType.supportsConcatenation |> Option.isSome
-               || resolvedType.supportsArithmetic |> Option.isSome then
-                []
-            else
-                failwithf "Semigroup constraint not satisfied for %A." resolvedType
-        | Numeric ->
-            if resolvedType.supportsArithmetic |> Option.isSome
-            then []
-            else failwithf "Numeric constraint not satisfied for %A." resolvedType
+        | Indexed (index, item) ->
+            match resolvedType.Resolution, context.Resolve index.Resolution with
+            | ArrayType actualItem, Int -> context.Unify(actualItem, item)
+            | ArrayType _, Range -> context.Unify(resolvedType, item)
+            | _ ->
+                let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "Indexed" ]
+                [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Integral ->
             if resolvedType.Resolution = Int || resolvedType.Resolution = BigInt
             then []
@@ -253,6 +251,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match resolvedType.supportsIteration with
             | Some actualItem -> context.Unify(actualItem, item)
             | None -> failwithf "Iterable %A constraint not satisfied for %A." item resolvedType
+        | Numeric ->
+            if resolvedType.supportsArithmetic |> Option.isSome
+            then []
+            else failwithf "Numeric constraint not satisfied for %A." resolvedType
+        | Semigroup ->
+            if resolvedType.supportsConcatenation |> Option.isSome
+               || resolvedType.supportsArithmetic |> Option.isSome then
+                []
+            else
+                failwithf "Semigroup constraint not satisfied for %A." resolvedType
         | Wrapped item ->
             match resolvedType.Resolution with
             | UserDefinedType udt ->

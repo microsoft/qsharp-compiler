@@ -311,21 +311,14 @@ let internal VerifyNumberedItemAccess addError (exType, range) =
 /// Verifies that the given type of the expression within the item access is either of type Int or Range,
 /// adding an InvalidArrayItemIndex error with the corresponding range using addError otherwise.
 /// Returns the type of the array item expression.
-let private VerifyArrayItem addError (arrType: ResolvedType, arrRange) (indexType: ResolvedType, indexRange) =
-    let indexIsInt = indexType.Resolution = Int
-    let indexIsRange = indexType.Resolution = Range
-
-    if (not indexType.isInvalid) && (not indexIsInt) && (not indexIsRange)
-    then indexRange |> addError (ErrorCode.InvalidArrayItemIndex, [ indexType |> toString ])
-
-    let ressArrType = VerifyNumberedItemAccess addError (arrType, arrRange)
-
-    match ressArrType.Resolution with
-    | ArrayType baseType when indexIsInt -> baseType
-    | ArrayType baseType when indexIsRange -> baseType |> ArrayType |> ResolvedType.New
-    | ArrayType _ -> ResolvedType.New InvalidType
-    | _ when indexIsRange -> ResolvedType.New InvalidType |> ArrayType |> ResolvedType.New
-    | _ -> ResolvedType.New InvalidType
+let private VerifyArrayItem (inference: InferenceContext)
+                            diagnose
+                            (arrType: ResolvedType, arrRange)
+                            (indexType: ResolvedType, indexRange)
+                            =
+    let itemType = inference.Fresh()
+    inference.Constrain(arrType, Indexed(indexType, itemType)) |> diagnoseWithRange arrRange diagnose
+    itemType
 
 /// Verifies that the given functor can be applied to an expression of the given type,
 /// adding an error with the given error code and range using addError otherwise.
@@ -926,7 +919,8 @@ type QsExpression with
             | Some resolvedIdx ->
                 let resolvedType =
                     VerifyArrayItem
-                        addError
+                        context.Inference
+                        addDiagnostic
                         (resolvedArr.ResolvedType, arr.RangeOrDefault)
                         (resolvedIdx.ResolvedType, idx.RangeOrDefault)
 
@@ -1016,7 +1010,8 @@ type QsExpression with
                 | Some resAccEx -> // indicates either a index or index range to update
                     let expectedRhs =
                         VerifyArrayItem
-                            addError
+                            context.Inference
+                            addDiagnostic
                             (resLhs.ResolvedType, lhs.RangeOrDefault)
                             (resAccEx.ResolvedType, accEx.RangeOrDefault)
 
