@@ -1299,7 +1299,7 @@ type QsExpression with
                 | QsTypeKind.Operation ((input, output), _) -> input, output
                 | _ -> ResolvedType.New InvalidType, ResolvedType.New InvalidType
 
-            context.Inference.Unify(input, arg.ResolvedType)
+            context.Inference.Unify(arg.ResolvedType, input)
             |> diagnoseWithRange (arg.Range.ValueOr Range.Zero) addDiagnostic
 
             TypedExpression.New(callExpression, resolutions, output, callable.InferredInformation, this.Range)
