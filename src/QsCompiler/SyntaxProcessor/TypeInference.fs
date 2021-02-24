@@ -267,6 +267,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | _ -> failwithf "Wrapped %A constraint not satisfied for %A." item resolvedType
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
+        let resolvedType = context.Resolve resolvedType.Resolution |> ResolvedType.New
+
         match resolvedType.Resolution with
         | TypeParameter param ->
             constraints <- (param, typeConstraint) :: constraints
