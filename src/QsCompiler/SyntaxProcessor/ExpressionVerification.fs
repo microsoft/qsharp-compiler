@@ -1217,17 +1217,13 @@ type QsExpression with
             VerifyConditionalExecution addWarning (resIsFalse, ifFalse.RangeOrDefault)
             VerifyIsBoolean addError (resCond.ResolvedType, cond.RangeOrDefault)
 
-            let lhs, rhs =
-                (resIsTrue.ResolvedType, ifTrue.RangeOrDefault), (resIsFalse.ResolvedType, ifFalse.RangeOrDefault)
+            let exType = context.Inference.Fresh()
 
-            let exType =
-                CommonBaseType
-                    addError
-                    (ErrorCode.TypeMismatchInConditional,
-                     [ resIsTrue.ResolvedType |> toString; resIsFalse.ResolvedType |> toString ])
-                    symbols.Parent
-                    lhs
-                    rhs
+            context.Inference.Unify(resIsTrue.ResolvedType, exType)
+            |> diagnoseWithRange ifTrue.RangeOrDefault addDiagnostic
+
+            context.Inference.Unify(resIsFalse.ResolvedType, exType)
+            |> diagnoseWithRange ifFalse.RangeOrDefault addDiagnostic
 
             let localQdependency =
                 [ resCond; resIsTrue; resIsFalse ]
