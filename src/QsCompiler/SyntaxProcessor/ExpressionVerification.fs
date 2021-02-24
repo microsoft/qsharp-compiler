@@ -1254,6 +1254,7 @@ type QsExpression with
             // TODO: Partial application, inferred information.
             let callable = InnerExpression callable
             let arg = InnerExpression arg
+            let callExpression = CallLikeExpression(callable, arg)
 
             let typeParams, typeArgs =
                 match callable.Expression with
@@ -1276,6 +1277,22 @@ type QsExpression with
 
             let resolvedType = (replaceTypes resolutions).OnType callable.ResolvedType
 
+            match resolvedType.Resolution with
+            | QsTypeKind.Operation (_, info) ->
+                let isPartial = TypedExpression.IsPartialApplication callExpression
+                let range = callable.Range.ValueOr Range.Zero
+
+                if not context.IsInOperation && not isPartial
+                then QsCompilerDiagnostic.Error (ErrorCode.OperationCallOutsideOfOperation, []) range |> addDiagnostic
+
+                let functors = info.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
+                let missingFunctors = missingFunctors (symbols.RequiredFunctorSupport, Some functors)
+
+                if not isPartial && not info.Characteristics.AreInvalid && not (List.isEmpty missingFunctors) then
+                    let error = ErrorCode.MissingFunctorForAutoGeneration, [ String.Join(", ", missingFunctors) ]
+                    QsCompilerDiagnostic.Error error range |> addDiagnostic
+            | _ -> ()
+
             let input, output =
                 match resolvedType.Resolution with
                 | QsTypeKind.Function (input, output) -> input, output
@@ -1285,127 +1302,7 @@ type QsExpression with
             context.Inference.Unify(input, arg.ResolvedType)
             |> diagnoseWithRange (arg.Range.ValueOr Range.Zero) addDiagnostic
 
-            TypedExpression.New
-                (CallLikeExpression(callable, arg), resolutions, output, callable.InferredInformation, this.Range)
-
-        //            let getType (ex: QsExpression) =
-//                (ex.Resolve context (fun _ -> ())).ResolvedType
-//
-//            let (resolvedMethod, resolvedArg) = (InnerExpression method, InnerExpression arg)
-//
-//            let locQdepClassicalEx =
-//                resolvedMethod.InferredInformation.HasLocalQuantumDependency
-//                || resolvedArg.InferredInformation.HasLocalQuantumDependency
-//
-//            let originalExKind = CallLikeExpression(resolvedMethod, resolvedArg)
-//
-//            let invalidEx =
-//                (originalExKind, ResolvedType.New InvalidType, false, this.Range) |> ExprWithoutTypeArgs false
-//
-//            let isDirectRecursion, tArgs =
-//                match resolvedMethod.Expression with
-//                | Identifier (GlobalCallable id, tArgs) ->
-//                    id = symbols.Parent, tArgs |> QsNullable<_>.Fold (fun _ v -> Some v) None
-//                | _ -> false, None
-//
-//            let callTypeOrPartial build (expectedArgT, expectedResT) =
-//                let (typeParamResolutions, exType) =
-//                    VerifyCallExpr
-//                        build
-//                        addError
-//                        (symbols.Parent, isDirectRecursion, tArgs)
-//                        (expectedArgT, expectedResT)
-//                        (arg, getType)
-//
-//                let requiresTypeArgumentResolution = isDirectRecursion && symbols.DefinedTypeParameters.Length <> 0
-//
-//                if not requiresTypeArgumentResolution then
-//                    typeParamResolutions, exType, originalExKind
-//                else // we need to attach the resolved type arguments to the identifier
-//
-//                    // combine the explicitly given type arguments with the inferred ones to get all type arguments for the called method
-//                    let tArgs =
-//                        tArgs
-//                        |> Option.defaultValue
-//                            (symbols.DefinedTypeParameters
-//                             |> Seq.map (fun _ -> ResolvedType.New MissingType)
-//                             |> ImmutableArray.CreateRange)
-//
-//                    QsCompilerError.Verify
-//                        (tArgs.Length = symbols.DefinedTypeParameters.Length, "length mismatch for type arguments")
-//
-//                    let tArgs =
-//                        tArgs
-//                        |> Seq.zip symbols.DefinedTypeParameters
-//                        |> Seq.map (function
-//                            | tpName, tArg when tArg.isMissing ->
-//                                match typeParamResolutions.TryGetValue((symbols.Parent, tpName)) with
-//                                | true, res -> (symbols.Parent, tpName), res
-//                                | false, _ -> (symbols.Parent, tpName), ResolvedType.New MissingType // important: these need to be filtered out when building the resolutions dictionary
-//                            | tpName, tArg -> (symbols.Parent, tpName), tArg)
-//
-//                    if tArgs |> Seq.map snd |> Seq.contains (ResolvedType.New MissingType)
-//                    then method.RangeOrDefault |> addError (ErrorCode.UnresolvedTypeParameterForRecursiveCall, [])
-//
-//                    // attach the new fully populated type arguments to the identifier of the callable
-//                    let methodTypeParamResolutions =
-//                        tArgs
-//                        |> Seq.filter (snd >> (<>) (ResolvedType.New MissingType))
-//                        |> Seq.map KeyValuePair.Create
-//                        |> ImmutableDictionary.CreateRange
-//
-//                    let methodTypeArgs = tArgs |> Seq.map snd |> ImmutableArray.CreateRange |> Value
-//
-//                    let typeParamRes =
-//                        typeParamResolutions
-//                        |> Seq.filter (fun kv -> fst kv.Key <> symbols.Parent)
-//                        |> ImmutableDictionary.CreateRange
-//
-//                    let methodExprKind = Identifier(GlobalCallable symbols.Parent, methodTypeArgs)
-//
-//                    let methodExpr =
-//                        TypedExpression.New
-//                            (methodExprKind,
-//                             methodTypeParamResolutions,
-//                             resolvedMethod.ResolvedType,
-//                             resolvedMethod.InferredInformation,
-//                             resolvedMethod.Range)
-//
-//                    typeParamRes, exType, CallLikeExpression(methodExpr, resolvedArg)
-//
-//            match resolvedMethod.ResolvedType.Resolution with
-//            | QsTypeKind.InvalidType -> invalidEx
-//            | QsTypeKind.Function (argT, resT) ->
-//                let typeParamResolutions, exType, exprKind = (argT, resT) |> callTypeOrPartial QsTypeKind.Function
-//                let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = locQdepClassicalEx)
-//                TypedExpression.New(exprKind, typeParamResolutions, exType, exInfo, this.Range)
-//            | QsTypeKind.Operation ((argT, resT), characteristics) ->
-//                let typeParamResolutions, exType, exprKind =
-//                    (argT, resT) |> callTypeOrPartial (fun (i, o) -> QsTypeKind.Operation((i, o), characteristics))
-//
-//                let isPartialApplication = TypedExpression.IsPartialApplication exprKind
-//
-//                if not (isPartialApplication || characteristics.Characteristics.AreInvalid) then // check that the functors necessary for auto-generation are supported
-//                    let functors = characteristics.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
-//                    let missing = missingFunctors (symbols.RequiredFunctorSupport, Some functors)
-//
-//                    if missing.Length <> 0 then
-//                        method.RangeOrDefault
-//                        |> addError (ErrorCode.MissingFunctorForAutoGeneration, [ String.Join(", ", missing) ])
-//
-//                let localQDependency = if isPartialApplication then locQdepClassicalEx else true
-//                let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = localQDependency)
-//
-//                if not (context.IsInOperation || isPartialApplication) then
-//                    method.RangeOrDefault |> addError (ErrorCode.OperationCallOutsideOfOperation, [])
-//                    invalidEx
-//                else
-//                    TypedExpression.New(exprKind, typeParamResolutions, exType, exInfo, this.Range)
-//            | _ ->
-//                method.RangeOrDefault
-//                |> addError (ErrorCode.ExpectingCallableExpr, [ resolvedMethod.ResolvedType |> toString ])
-//
-//                invalidEx
+            TypedExpression.New(callExpression, resolutions, output, callable.InferredInformation, this.Range)
 
         match this.Expression with
         | InvalidExpr -> (InvalidExpr, InvalidType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs true // choosing the more permissive option here
