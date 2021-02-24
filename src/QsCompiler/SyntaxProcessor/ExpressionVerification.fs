@@ -947,10 +947,8 @@ type QsExpression with
         let buildNamedItem (ex, acc: QsSymbol) =
             let resolvedEx = InnerExpression ex
             let itemName = acc |> buildItemName
-
-            let exType =
-                VerifyUdtWith (symbols.GetItemType itemName) addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
-
+            let udtType = context.Inference.Resolve resolvedEx.ResolvedType.Resolution |> ResolvedType.New
+            let exType = VerifyUdtWith (symbols.GetItemType itemName) addError (udtType, ex.RangeOrDefault)
             let localQdependency = resolvedEx.InferredInformation.HasLocalQuantumDependency
             (NamedItem(resolvedEx, itemName), exType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
 
