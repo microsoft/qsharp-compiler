@@ -947,6 +947,7 @@ type QsExpression with
         let buildNamedItem (ex, acc: QsSymbol) =
             let resolvedEx = InnerExpression ex
             let itemName = acc |> buildItemName
+            // TODO: Eager resolution.
             let udtType = context.Inference.Resolve resolvedEx.ResolvedType.Resolution |> ResolvedType.New
             let exType = VerifyUdtWith (symbols.GetItemType itemName) addError (udtType, ex.RangeOrDefault)
             let localQdependency = resolvedEx.InferredInformation.HasLocalQuantumDependency
@@ -956,6 +957,9 @@ type QsExpression with
         /// and returns the corresponding copy-and-update expression as typed expression.
         let buildCopyAndUpdate (lhs: QsExpression, accEx: QsExpression, rhs: QsExpression) =
             let resLhs, resRhs = InnerExpression lhs, InnerExpression rhs
+            // TODO: Eager resolution.
+            let lhsType = context.Inference.Resolve resLhs.ResolvedType.Resolution |> ResolvedType.New
+            let resLhs = { resLhs with ResolvedType = lhsType }
 
             let resolvedCopyAndUpdateExpr resAccEx =
                 let localQdependency =
