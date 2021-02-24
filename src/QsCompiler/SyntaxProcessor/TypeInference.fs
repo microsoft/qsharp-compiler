@@ -216,11 +216,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) when isSubsetOf
                                                                                                         info2
                                                                                                         info1 ->
-            // TODO: Variance.
-            [ in1, in2; out1, out2 ] |> List.collect context.Unify
+            context.Unify(in2, in1) @ context.Unify(out1, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            // TODO: Variance.
-            [ in1, in2; out1, out2 ] |> List.collect context.Unify
+            context.Unify(in2, in1) @ context.Unify(out1, out2)
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
