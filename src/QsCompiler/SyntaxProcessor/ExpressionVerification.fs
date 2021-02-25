@@ -1289,7 +1289,11 @@ type QsExpression with
                     else KeyValuePair(param, context.Inference.Fresh()))
                 |> ImmutableDictionary.CreateRange
 
-            let resolvedType = (replaceTypes resolutions).OnType callable.ResolvedType
+            // TODO: Don't resolve inference yet, add a callable constraint.
+            let resolvedType =
+                ((replaceTypes resolutions).OnType callable.ResolvedType).Resolution
+                |> context.Inference.Resolve
+                |> ResolvedType.New
 
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, info) ->
