@@ -1250,10 +1250,22 @@ type QsExpression with
                     |> Option.defaultValue (TypeParameter param)
             }
 
+        let rec partialType (argType: ResolvedType) =
+            match argType.Resolution with
+            | MissingType ->
+                let param = context.Inference.Fresh()
+                param, [ param ]
+            | TupleType items ->
+                let items, typeParams =
+                    (items |> Seq.map partialType, ([], []))
+                    ||> Seq.foldBack (fun (item, params1) (items, params2) -> item :: items, params1 @ params2)
+
+                ImmutableArray.CreateRange items |> TupleType |> ResolvedType.New, typeParams
+            | _ -> argType, []
+
         /// Resolves and verifies the given left hand side and right hand side of a call expression,
         /// and returns the corresponding expression as typed expression.
         let buildCall (callable, arg) =
-            // TODO: Partial application, inferred information.
             let callable = InnerExpression callable
             let arg = InnerExpression arg
             let callExpression = CallLikeExpression(callable, arg)
@@ -1295,16 +1307,29 @@ type QsExpression with
                     QsCompilerDiagnostic.Error error range |> addDiagnostic
             | _ -> ()
 
+            // TODO: Diagnostic if "callable" is not a callable type.
             let input, output =
                 match resolvedType.Resolution with
-                | QsTypeKind.Function (input, output) -> input, output
+                | QsTypeKind.Function (input, output)
                 | QsTypeKind.Operation ((input, output), _) -> input, output
                 | _ -> ResolvedType.New InvalidType, ResolvedType.New InvalidType
 
-            context.Inference.Unify(arg.ResolvedType, input)
+            let argType, partialTypes = partialType arg.ResolvedType
+
+            let resultType =
+                if List.isEmpty partialTypes then
+                    output
+                else
+                    let input = ImmutableArray.CreateRange partialTypes |> TupleType |> ResolvedType.New
+
+                    match resolvedType.Resolution with
+                    | QsTypeKind.Operation (_, info) -> QsTypeKind.Operation((input, output), info) |> ResolvedType.New
+                    | _ -> QsTypeKind.Function(input, output) |> ResolvedType.New
+
+            context.Inference.Unify(argType, input)
             |> diagnoseWithRange (arg.Range.ValueOr Range.Zero) addDiagnostic
 
-            TypedExpression.New(callExpression, resolutions, output, callable.InferredInformation, this.Range)
+            TypedExpression.New(callExpression, resolutions, resultType, callable.InferredInformation, this.Range)
 
         match this.Expression with
         | InvalidExpr -> (InvalidExpr, InvalidType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs true // choosing the more permissive option here
