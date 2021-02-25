@@ -353,6 +353,15 @@ type LinkingTests(output: ITestOutputHelper) =
 
 
     [<Fact>]
+    [<Trait("Category", "Monomorphization")>]
+    member this.``Monomorphization Test Duplicate Intrinsic``() =
+        let source = (LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs").[13]
+        let compilation = this.CompileMonomorphization source
+
+        let callables = compilation.Namespaces |> Callables
+        Assert.Equal(callables |> Seq.distinct |> Seq.length, callables |> Seq.length)
+
+    [<Fact>]
     [<Trait("Category", "Intrinsic Resolution")>]
     member this.``Intrinsic Resolution Basic Implementation``() = this.RunIntrinsicResolutionTest 1
 
