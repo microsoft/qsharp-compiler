@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.QsFmt.Formatter.Tests</AssemblyName>
+    <RootNamespace>$(AssemblyName)</RootNamespace>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Content Include="$(SolutionDir)src\QsCompiler\Tests.Compiler\TestCases\**\*.qs">
+      <Link>TestCases\%(FileName)%(Extension)</Link>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Discoverer.fs" />
+    <Compile Include="Examples.fs" />
+    <Compile Include="FixedPoints.fs" />
+    <Compile Include="Errors.fs" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.0" />
+    <PackageReference Include="xunit" Version="2.4.1" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="2.4.3" />
+    <PackageReference Include="Xunit.SkippableFact" Version="1.4.13" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Formatter\Formatter.fsproj" />
+  </ItemGroup>
+</Project>

@@ -228,3 +228,18 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
         let idx = IndexRange(qs);
     }
 }
+
+// =================================
+
+namespace Microsoft.Quantum.Testing.Monomorphization {
+    open Microsoft.Quantum.Arrays;
+
+    operation CustomIntrinsic() : Unit {
+        body intrinsic;
+    }
+
+    @ EntryPoint()
+    operation TestDuplicateIntrinsic() : Unit {
+        CustomIntrinsic();
+    }
+}

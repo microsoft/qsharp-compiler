@@ -3,6 +3,9 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxTokens
 
+#nowarn "44" // AccessModifier is deprecated.
+
+open System
 open System.Collections.Immutable
 open System.Numerics
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -208,22 +211,123 @@ type CallableSignature =
     }
 
 /// Defines where a global declaration may be accessed.
+[<Obsolete "Use Access instead.">]
 [<Struct>]
 type AccessModifier =
     /// For callables and types, the default access modifier is public, which means the type or callable can be used
     /// from anywhere. For specializations, the default access modifier is the same as the parent callable.
     | DefaultAccess
+
     /// Internal access means that a type or callable may only be used from within the compilation unit in which it is
     /// declared.
     | Internal
 
 /// Used to represent Q# keywords that may be attached to a declaration to modify its visibility or behavior.
+[<Obsolete "Use Access instead.">]
 [<Struct>]
 type Modifiers =
     {
         /// Defines where a global declaration may be accessed.
         Access: AccessModifier
     }
+
+/// The accessibility of a symbol that limits where the symbol can be used from.
+type Access =
+    /// The symbol can be seen used within the compilation unit or assembly in which it is declared.
+    | Internal
+
+    /// The symbol can be used from anywhere.
+    | Public
+
+/// The relative proximity of one code location to another in terms that are relevant to symbol accessibility.
+type Proximity =
+    /// The code locations are in the same compilation unit or assembly.
+    | SameAssembly
+
+    /// The code locations are in different compilation units or assemblies.
+    | OtherAssembly
+
+module Access =
+    /// <summary>
+    /// Returns true if symbols with a given accessibility are accessible from <paramref name="proximity"/>.
+    /// </summary>
+    [<CompiledName "IsAccessibleFrom">]
+    let isAccessibleFrom proximity =
+        function
+        | Internal -> proximity = SameAssembly
+        | Public -> true
+
+type Access with
+    /// <summary>
+    /// Returns true if symbols with this accessibility are accessible from <paramref name="proximity"/>.
+    /// </summary>
+    member access.IsAccessibleFrom proximity =
+        access |> Access.isAccessibleFrom proximity
+
+module AccessModifier =
+    [<CompiledName "ToAccess">]
+    [<Obsolete "Use Access instead.">]
+    let toAccess defaultAccess =
+        function
+        | DefaultAccess -> defaultAccess
+        | AccessModifier.Internal -> Internal
+
+    [<CompiledName "FromAccess">]
+    [<Obsolete "Use Access instead.">]
+    let ofAccess =
+        function
+        | Public -> DefaultAccess
+        | Internal -> AccessModifier.Internal
+
+/// A callable declaration.
+type CallableDeclaration =
+    private
+        {
+            name: QsSymbol
+            access: Access QsNullable
+            signature: CallableSignature
+        }
+
+        static member Create(name, access, signature) =
+            {
+                name = name
+                access = access
+                signature = signature
+            }
+
+        /// The name of the callable.
+        member callable.Name = callable.name
+
+        /// The accessibility of the callable, or Null if the callable has the default accessibility.
+        member callable.Access = callable.access
+
+        /// The signature of the callable.
+        member callable.Signature = callable.signature
+
+/// A type definition.
+type TypeDefinition =
+    private
+        {
+            name: QsSymbol
+            access: Access QsNullable
+            underlyingType: (QsSymbol * QsType) QsTuple
+        }
+
+        static member Create(name, access, underlyingType) =
+            {
+                name = name
+                access = access
+                underlyingType = underlyingType
+            }
+
+        /// The name of the type.
+        member typeDef.Name = typeDef.name
+
+        /// The accessibility of the type, or Null if the type has the default accessibility.
+        member typeDef.Access = typeDef.access
+
+        /// The type's underlying type.
+        member typeDef.UnderlyingType = typeDef.underlyingType
 
 type QsFragmentKind =
     | ExpressionStatement of QsExpression
@@ -247,13 +351,14 @@ type QsFragmentKind =
     | AdjointDeclaration of QsSpecializationGenerator
     | ControlledDeclaration of QsSpecializationGenerator
     | ControlledAdjointDeclaration of QsSpecializationGenerator
-    | OperationDeclaration of Modifiers * QsSymbol * CallableSignature
-    | FunctionDeclaration of Modifiers * QsSymbol * CallableSignature
-    | TypeDefinition of Modifiers * QsSymbol * QsTuple<QsSymbol * QsType>
+    | OperationDeclaration of CallableDeclaration
+    | FunctionDeclaration of CallableDeclaration
+    | TypeDefinition of TypeDefinition
     | DeclarationAttribute of QsSymbol * QsExpression
     | OpenDirective of QsSymbol * QsNullable<QsSymbol>
     | NamespaceDeclaration of QsSymbol
     | InvalidFragment
+
     /// returns the error code for an invalid fragment of the given kind
     member this.ErrorCode =
         match this with
