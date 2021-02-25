@@ -466,6 +466,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new IOException(errorMessage);
             }
 
+            var bitcodeFileName = Path.ChangeExtension(fileName, "bc");
+            this.Module.WriteToFile(bitcodeFileName);
+
             // Generate the wrappers for the runtime library that were used, if requested
             if (generateInteropWrappers)
             {
@@ -491,6 +494,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     throw new IOException(bridgeError);
                 }
+
+                var bitcodeBridgeFile = Path.ChangeExtension(bridgeFile, "bc");
+                this.InteropModule.WriteToFile(bitcodeBridgeFile);
             }
         }
 
