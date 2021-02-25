@@ -248,6 +248,8 @@ type ErrorCode =
     | UserDefinedTypeInEntryPointSignature = 6233
     | InnerTupleInEntryPointArgument = 6234
     | ArrayOfArrayInEntryPointArgument = 6235
+    | [<Obsolete("This diagnostic is no longer in use. Multiple entry points are now allowed.")>] OtherEntryPointExists = 6236
+    | [<Obsolete("This diagnostic is no longer in use. Multiple entry points are now allowed.")>] MultipleEntryPoints = 6237
     | MissingEntryPoint = 6238
     | InvalidEntryPointSpecialization = 6239
     | DuplicateEntryPointArgumentName = 6240
@@ -765,6 +767,8 @@ type DiagnosticItem =
                 "Anonymous tuple items or arrays of tuples are not supported in entry point arguments. All items need to be named."
             | ErrorCode.ArrayOfArrayInEntryPointArgument ->
                 "Multi-dimensional arrays are not supported in entry point arguments."
+            | ErrorCode.OtherEntryPointExists -> "Invalid entry point. An entry point {0} already exists in {1}."
+            | ErrorCode.MultipleEntryPoints -> "The project contains more than one entry point."
             | ErrorCode.MissingEntryPoint ->
                 "Missing entry point. Execution on a quantum processor requires that a Q# entry point is defined using the @EntryPoint() attribute. Any C# driver code should be defined in a separate project."
             | ErrorCode.InvalidEntryPointSpecialization ->
