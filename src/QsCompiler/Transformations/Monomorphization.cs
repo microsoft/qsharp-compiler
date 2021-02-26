@@ -103,7 +103,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         {
             public static QsCompilation Apply(QsCompilation compilation, List<QsCallable> callables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet, bool keepAllIntrinsics)
             {
-                var filter = new ResolveGenerics(callables.ToLookup(res => res.FullName.Namespace), intrinsicCallableSet, keepAllIntrinsics);
+                var filter = new ResolveGenerics(
+                    callables
+                        .Where(call => !keepAllIntrinsics || !intrinsicCallableSet.Contains(call.FullName))
+                        .ToLookup(res => res.FullName.Namespace),
+                    intrinsicCallableSet,
+                    keepAllIntrinsics);
+
                 return filter.OnCompilation(compilation);
             }
 
