@@ -24,12 +24,12 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 EntryPoints = qsCompilation.EntryPoints.Select(e => e.ToBondSchema()).ToList()
             };
 
-        private static AccessModifier ToBondSchema(this SyntaxTokens.AccessModifier accessModifier) =>
-            accessModifier.Tag switch
+        private static AccessModifier ToBondSchema(this SyntaxTokens.Access access) =>
+            access.Tag switch
             {
-                SyntaxTokens.AccessModifier.Tags.DefaultAccess => AccessModifier.DefaultAccess,
-                SyntaxTokens.AccessModifier.Tags.Internal => AccessModifier.Internal,
-                _ => throw new ArgumentException($"Unsupported AccessModifier: {accessModifier}")
+                SyntaxTokens.Access.Tags.Public => AccessModifier.DefaultAccess,
+                SyntaxTokens.Access.Tags.Internal => AccessModifier.Internal,
+                _ => throw new ArgumentException($"Unsupported Access: {access}")
             };
 
         private static CallableInformation ToBondSchema(this SyntaxTree.CallableInformation callableInformation) =>
@@ -91,12 +91,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Variables = localDeclarations.Variables.Select(v => v.ToBondSchemaGeneric(typeTranslator: s => s)).ToList()
             };
 
-        private static Modifiers ToBondSchema(this SyntaxTokens.Modifiers modifiers) =>
-            new Modifiers
-            {
-                Access = modifiers.Access.ToBondSchema()
-            };
-
         private static OpProperty ToBondSchema(this SyntaxTokens.OpProperty opProperty) =>
             opProperty.Tag switch
             {
@@ -126,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 Kind = qsCallable.Kind.ToBondSchema(),
                 FullName = qsCallable.FullName.ToBondSchema(),
                 Attributes = qsCallable.Attributes.Select(a => a.ToBondSchema()).ToList(),
-                Modifiers = qsCallable.Modifiers.ToBondSchema(),
+                Modifiers = new Modifiers { Access = qsCallable.Access.ToBondSchema() },
                 SourceFile = qsCallable.Source.CodeFile,
                 Location = qsCallable.Location.IsNull ?
                     null :
@@ -175,7 +169,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 FullName = qsCustomType.FullName.ToBondSchema(),
                 Attributes = qsCustomType.Attributes.Select(a => a.ToBondSchema()).ToList(),
-                Modifiers = qsCustomType.Modifiers.ToBondSchema(),
+                Modifiers = new Modifiers { Access = qsCustomType.Access.ToBondSchema() },
                 SourceFile = qsCustomType.Source.CodeFile,
                 Location = qsCustomType.Location.IsNull ?
                     null :

@@ -144,9 +144,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and the second one listing all sources in which it occurs.
         /// Returns null if the given sequence of elements is null.
         /// </summary>
-        private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(IEnumerable<(QsQualifiedName Name, string Source, AccessModifier Access)> elements) =>
+        private static IEnumerable<(string, string)> GenerateDiagnosticsForConflicts(
+            IEnumerable<(QsQualifiedName Name, string Source, Access Access)> elements) =>
             elements
-                .Where(e => Namespace.IsDeclarationAccessible(false, e.Access))
+                .Where(e => e.Access.IsAccessibleFrom(Proximity.OtherAssembly))
                 .GroupBy(e => e.Name)
                 .Where(g => g.Count() != 1)
                 .Select(g => (g.Key, string.Join(", ", g.Select(e => e.Source))))
@@ -208,8 +209,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return;
             }
             var conflicting = new List<(string, string)>();
-            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.Source.AssemblyOrCodeFile, c.Modifiers.Access));
-            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.Source.AssemblyOrCodeFile, t.Modifiers.Access));
+            var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.Source.AssemblyOrCodeFile, c.Access));
+            var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.Source.AssemblyOrCodeFile, t.Access));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(callables));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(types));
 
@@ -254,8 +255,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 additionalAssemblies: additionalAssemblies);
 
             var conflicting = new List<(string, string)>();
-            var callableElems = callables.Select(c => (c.FullName, c.Source.AssemblyOrCodeFile, c.Modifiers.Access));
-            var typeElems = types.Select(t => (t.FullName, t.Source.AssemblyOrCodeFile, t.Modifiers.Access));
+            var callableElems = callables.Select(c => (c.FullName, c.Source.AssemblyOrCodeFile, c.Access));
+            var typeElems = types.Select(t => (t.FullName, t.Source.AssemblyOrCodeFile, t.Access));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(callableElems));
             conflicting.AddRange(GenerateDiagnosticsForConflicts(typeElems));
             foreach (var (name, conflicts) in conflicting.Distinct())
@@ -544,7 +545,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     var type = new QsCustomType(
                         compiled.FullName,
                         compiled.Attributes,
-                        compiled.Modifiers,
+                        compiled.Access,
                         compiled.Source,
                         header.Location,
                         compiled.Type,
@@ -614,7 +615,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             header.Kind,
                             header.QualifiedName,
                             header.Attributes,
-                            header.Modifiers,
+                            header.Access,
                             header.Source,
                             header.Location,
                             header.Signature,
@@ -663,7 +664,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         compiled.Kind,
                         compiled.FullName,
                         compiled.Attributes,
-                        compiled.Modifiers,
+                        compiled.Access,
                         compiled.Source,
                         header.Location,
                         compiled.Signature,
@@ -688,7 +689,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private QsCallable GetImportedCallable(CallableDeclarationHeader header)
         {
             // TODO: this needs to be adapted if we want to support external specializations
-            if (Namespace.IsDeclarationAccessible(false, header.Modifiers.Access))
+            if (header.Access.IsAccessibleFrom(Proximity.OtherAssembly))
             {
                 var definedSpecs = this.GlobalSymbols.DefinedSpecializations(header.QualifiedName);
                 QsCompilerError.Verify(
@@ -696,20 +697,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     "external specializations are currently not supported");
             }
 
-            var specializations =
-                this.GlobalSymbols
+            var specializations = this.GlobalSymbols
                 .ImportedSpecializations(header.QualifiedName)
                 .Where(specialization =>
                     // Either the callable is externally accessible, or all of its specializations must be defined in
                     // the same reference as the callable.
-                    Namespace.IsDeclarationAccessible(false, header.Modifiers.Access) ||
-                    specialization.Item1.Source.AssemblyFile.Equals(header.Source.AssemblyFile))
+                    header.Access.IsAccessibleFrom(Proximity.OtherAssembly)
+                    || specialization.Item1.Source.AssemblyFile.Equals(header.Source.AssemblyFile))
                 .Select(specialization =>
                 {
                     var (specHeader, implementation) = specialization;
                     var specSignature = specHeader.Kind.IsQsControlled || specHeader.Kind.IsQsControlledAdjoint
                         ? SyntaxGenerator.BuildControlled(header.Signature)
                         : header.Signature;
+
                     return new QsSpecialization(
                         specHeader.Kind,
                         header.QualifiedName,
@@ -723,11 +724,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         QsComments.Empty);
                 })
                 .ToImmutableArray();
+
             return new QsCallable(
                 header.Kind,
                 header.QualifiedName,
                 header.Attributes,
-                header.Modifiers,
+                header.Access,
                 header.Source,
                 header.Location,
                 header.Signature,
@@ -744,7 +746,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new QsCustomType(
                 header.QualifiedName,
                 header.Attributes,
-                header.Modifiers,
+                header.Access,
                 header.Source,
                 header.Location,
                 header.Type,
@@ -1002,22 +1004,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .ToImmutableDictionary(entry => entry.source, entry => entry.idx + additionalAssemblies);
 
             ImmutableDictionary<QsQualifiedName, QsQualifiedName> GetMappingForSourceGroup(
-                IGrouping<string, (QsQualifiedName Name, string Source, AccessModifier Access)> group) =>
+                IEnumerable<(QsQualifiedName Name, string Source, Access Access)> group) =>
                 group
-                .Where(item =>
-                    !Namespace.IsDeclarationAccessible(false, item.Access) &&
-                    (predicate?.Invoke(item.Source) ?? true))
-                .ToImmutableDictionary(
-                    item => item.Name,
-                    item => decorator.Decorate(item.Name, ids[item.Source]));
+                    .Where(item =>
+                        !item.Access.IsAccessibleFrom(Proximity.OtherAssembly)
+                        && (predicate?.Invoke(item.Source) ?? true))
+                    .ToImmutableDictionary(
+                        item => item.Name,
+                        item => decorator.Decorate(item.Name, ids[item.Source]));
 
             // rename all internal declarations and their usages
 
             var transformations = callables
                 .Select(callable =>
-                    (name: callable.FullName, source: callable.Source.AssemblyOrCodeFile, access: callable.Modifiers.Access))
+                    (name: callable.FullName, source: callable.Source.AssemblyOrCodeFile, access: callable.Access))
                 .Concat(types.Select(type =>
-                    (name: type.FullName, source: type.Source.AssemblyOrCodeFile, access: type.Modifiers.Access)))
+                    (name: type.FullName, source: type.Source.AssemblyOrCodeFile, access: type.Access)))
                 .GroupBy(item => item.source)
                 .ToImmutableDictionary(
                     group => group.Key,

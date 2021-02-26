@@ -263,6 +263,7 @@ type ErrorCode =
     | TypeParameterResConflictWithTypeArgument = 6248
     | FullNameConflictsWithNamespace = 6249
     | InvalidCyclicTypeParameterResolution = 6250
+    | InvalidCharacterInInterpolatedArgument = 6251
 
     | TypeMismatchInReturn = 6301
     | TypeMismatchInValueUpdate = 6302
@@ -792,6 +793,8 @@ type DiagnosticItem =
             | ErrorCode.FullNameConflictsWithNamespace -> "The name {0} conflicts with a namespace name."
             | ErrorCode.InvalidCyclicTypeParameterResolution ->
                 "The call cycle results in an ambiguous or conflicting type parameter resolution."
+            | ErrorCode.InvalidCharacterInInterpolatedArgument ->
+                "Interpolated string arguments cannot contain the '{0}' character."
 
             | ErrorCode.TypeMismatchInReturn ->
                 "The type {0} of the given expression is not compatible with the expected return type {1}."

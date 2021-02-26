@@ -222,5 +222,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
+
+        internal static Diagnostic InvalidCharacterInInterpolatedArgument(string filename, Position pos, char invalidCharacter)
+        {
+            return new Diagnostic
+            {
+                Severity = DiagnosticSeverity.Error,
+                Code = ErrorCode.InvalidCharacterInInterpolatedArgument.Code(),
+                Source = filename,
+                Message = DiagnosticItem.Message(ErrorCode.InvalidCharacterInInterpolatedArgument, new[] { invalidCharacter.ToString() }),
+                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
+            };
+        }
     }
 }
