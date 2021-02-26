@@ -33,42 +33,17 @@ type LocalVerificationTests() =
 
         this.Expect
             "TypeArgumentsInference3"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.MultipleTypesInArray
-            ]
+            [ Error ErrorCode.AmbiguousTypeVariable; Error ErrorCode.MultipleTypesInArray ]
 
         this.Expect
             "TypeArgumentsInference4"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.MultipleTypesInArray
-            ]
+            [ Error ErrorCode.AmbiguousTypeVariable; Error ErrorCode.MultipleTypesInArray ]
 
-        this.Expect
-            "TypeArgumentsInference5"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-            ]
-
-        this.Expect "TypeArgumentsInference6" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
-        this.Expect "TypeArgumentsInference7" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
-
-        this.Expect
-            "TypeArgumentsInference8"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-            ]
-
-        this.Expect
-            "TypeArgumentsInference9"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-            ]
-
+        this.Expect "TypeArgumentsInference5" [ Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect "TypeArgumentsInference6" []
+        this.Expect "TypeArgumentsInference7" []
+        this.Expect "TypeArgumentsInference8" []
+        this.Expect "TypeArgumentsInference9" []
         this.Expect "TypeArgumentsInference10" []
         this.Expect "TypeArgumentsInference11" []
         this.Expect "TypeArgumentsInference12" []

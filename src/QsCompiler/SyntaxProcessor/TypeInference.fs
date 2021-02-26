@@ -175,12 +175,15 @@ open TypeInference
 type InferenceContext(symbolTracker: SymbolTracker) =
     let mutable count = 0
 
+    let mutable unbound = Set.empty
+
     let substitutions = Dictionary()
 
     let mutable constraints = []
 
     let bind param substitution =
         occursCheck param substitution.Type
+        unbound <- Set.remove param unbound
 
         match substitutions.TryGetValue param |> tryOption with
         | Some v ->
@@ -195,13 +198,15 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let name = sprintf "__a%d__" count
         count <- count + 1
 
-        {
-            Origin = symbolTracker.Parent
-            TypeName = name
-            Range = Null
-        }
-        |> TypeParameter
-        |> ResolvedType.New
+        let param =
+            {
+                Origin = symbolTracker.Parent
+                TypeName = name
+                Range = Null
+            }
+
+        unbound <- Set.add param unbound
+        TypeParameter param |> ResolvedType.New
 
     member internal context.Unify(left: ResolvedType, right: ResolvedType) =
         let left = context.Resolve left.Resolution |> ResolvedType.New
@@ -280,6 +285,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             for param, typeConstraint in constraints do
                 let typeKind = TypeParameter param |> context.Resolve
                 yield! context.CheckConstraint(typeConstraint, ResolvedType.New typeKind)
+
+            for param in unbound ->
+                QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ param.TypeName ]) Range.Zero
         ]
 
     member internal context.Resolve typeKind =
@@ -310,7 +318,10 @@ module InferenceContext =
     let resolver (context: InferenceContext) =
         let types =
             { new TypeTransformation() with
-                member this.OnTypeParameter param = TypeParameter param |> context.Resolve
+                member this.OnTypeParameter param =
+                    match TypeParameter param |> context.Resolve with
+                    | TypeParameter param' when isFresh param' -> InvalidType
+                    | resolvedType -> resolvedType
             }
 
         SyntaxTreeTransformation(Types = types)
