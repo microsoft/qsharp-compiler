@@ -141,19 +141,15 @@ let private VerifyAreBooleans addError (lhsType, lhsRange) (rhsType, rhsRange) =
 /// Verifies that the given resolved type is indeed of kind Int,
 /// adding an ExpectingIntExpr error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
-let internal VerifyIsInteger addError (exType, range) =
-    let expectedInt (t: ResolvedType) =
-        if t.Resolution = Int then Some t else None
-
-    VerifyIsOneOf expectedInt (ErrorCode.ExpectingIntExpr, [ exType |> toString ]) addError (exType, range)
-    |> ignore
+let internal VerifyIsInteger (inference: InferenceContext) diagnose (exType, range) =
+    inference.Unify(exType, ResolvedType.New Int) |> diagnoseWithRange range diagnose
 
 /// Verifies that both given resolved types are of kind Int,
 /// adding an ExpectingIntExpr error with the corresponding range using addError otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
-let private VerifyAreIntegers addError (lhsType, lhsRange) (rhsType, rhsRange) =
-    VerifyIsInteger addError (lhsType, lhsRange)
-    VerifyIsInteger addError (rhsType, rhsRange)
+let private VerifyAreIntegers inference diagnose (lhsType, lhsRange) (rhsType, rhsRange) =
+    VerifyIsInteger inference diagnose (lhsType, lhsRange)
+    VerifyIsInteger inference diagnose (rhsType, rhsRange)
 
 /// Verifies that the given resolved type is indeed of kind Int or BigInt,
 /// adding an ExpectingIntegralExpr error with the given range using addError otherwise.
@@ -808,7 +804,7 @@ type QsExpression with
             let resolveSlicingRange (rstart, rstep, rend) =
                 let integerExpr ex =
                     let resolved = InnerExpression ex
-                    VerifyIsInteger addError (resolved.ResolvedType, ex.RangeOrDefault)
+                    VerifyIsInteger context.Inference addDiagnostic (resolved.ResolvedType, ex.RangeOrDefault)
                     resolved
 
                 let resolvedStep = rstep |> Option.map integerExpr
@@ -867,7 +863,7 @@ type QsExpression with
         /// and returns the corrsponding NewArray expression as typed expression
         let buildNewArray (bType, ex: QsExpression) =
             let resolvedEx = InnerExpression ex
-            VerifyIsInteger addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
+            VerifyIsInteger context.Inference addDiagnostic (resolvedEx.ResolvedType, ex.RangeOrDefault)
             let resolvedBase = symbols.ResolveType addDiagnostic bType
             let arrType = resolvedBase |> StripPositionInfo.Apply |> ArrayType |> ResolvedType.New
             let quantumDep = resolvedEx.InferredInformation.HasLocalQuantumDependency
@@ -1020,7 +1016,7 @@ type QsExpression with
         /// *under the assumption* that the range operator is left associative.
         let buildRange (lhs: QsExpression, rEnd: QsExpression) =
             let resRhs = InnerExpression rEnd
-            VerifyIsInteger addError (resRhs.ResolvedType, rEnd.RangeOrDefault)
+            VerifyIsInteger context.Inference addDiagnostic (resRhs.ResolvedType, rEnd.RangeOrDefault)
 
             let resLhs =
                 match lhs.Expression with
@@ -1028,7 +1024,8 @@ type QsExpression with
                     let (resStart, resStep) = (InnerExpression rStart, InnerExpression rStep)
 
                     VerifyAreIntegers
-                        addError
+                        context.Inference
+                        addDiagnostic
                         (resStart.ResolvedType, rStart.RangeOrDefault)
                         (resStep.ResolvedType, rStep.RangeOrDefault)
 
@@ -1041,7 +1038,7 @@ type QsExpression with
                 | _ ->
                     InnerExpression lhs
                     |> (fun resStart ->
-                        VerifyIsInteger addError (resStart.ResolvedType, lhs.RangeOrDefault)
+                        VerifyIsInteger context.Inference addDiagnostic (resStart.ResolvedType, lhs.RangeOrDefault)
                         resStart)
 
             let localQdependency =
@@ -1121,7 +1118,7 @@ type QsExpression with
 
             let resolvedType =
                 if resolvedLhs.ResolvedType.Resolution = BigInt then
-                    VerifyIsInteger addError (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
+                    VerifyIsInteger context.Inference addDiagnostic (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
                     resolvedLhs.ResolvedType
                 else
                     VerifyArithmeticOp
@@ -1163,7 +1160,7 @@ type QsExpression with
         let buildShiftOp buildExprKind (lhs, rhs) =
             let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
             let resolvedType = VerifyIsIntegral addError (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
-            VerifyIsInteger addError (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
+            VerifyIsInteger context.Inference addDiagnostic (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
 
             let localQdependency =
                 resolvedLhs.InferredInformation.HasLocalQuantumDependency

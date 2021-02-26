@@ -434,7 +434,7 @@ let private NewBindingScope kind comments (location: QsLocation) context (qsSym:
         match init.Initializer with
         | SingleQubitAllocation -> SingleQubitAllocation |> ResolvedInitializer.New, [||]
         | QubitRegisterAllocation nr ->
-            let verifiedNr, _, err = VerifyWith (errorToDiagnostic VerifyIsInteger) context nr
+            let verifiedNr, _, err = VerifyWith (VerifyIsInteger context.Inference) context nr
             let autoGenErrs = (verifiedNr, nr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
             QubitRegisterAllocation verifiedNr |> ResolvedInitializer.New, Array.concat [ err; autoGenErrs ]
         | QubitTupleAllocation is ->
