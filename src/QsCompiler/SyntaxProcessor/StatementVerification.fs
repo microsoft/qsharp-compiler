@@ -233,14 +233,14 @@ let private TryAddDeclaration isMutable
                               (rhsType: ResolvedType, rhsEx, rhsRange)
                               =
     let t, tpErr =
-        if rhsType.isTypeParametrized symbols.Parent
-           || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then
-            InvalidType |> ResolvedType.New,
-            [|
-                rhsRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidUseOfTypeParameterizedObject, [])
-            |]
-        else
-            rhsType, [||]
+//        if rhsType.isTypeParametrized symbols.Parent
+//           || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then
+//            InvalidType |> ResolvedType.New,
+//            [|
+//                rhsRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidUseOfTypeParameterizedObject, [])
+//            |]
+//        else
+        rhsType, [||]
 
     let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl

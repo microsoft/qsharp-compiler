@@ -707,10 +707,10 @@ let internal VerifyAssignment (inference: InferenceContext)
                               (rhsType, rhsEx, rhsRange)
                               =
     // we need to check if the right hand side contains a type parametrized version of the parent callable
-    let directRecursion = IsTypeParamRecursion (parent, definedTypeParams) rhsEx
+//    let directRecursion = IsTypeParamRecursion (parent, definedTypeParams) rhsEx
 
-    if directRecursion
-    then rhsRange |> addError (ErrorCode.InvalidUseOfTypeParameterizedObject, [])
+//    if directRecursion
+//    then rhsRange |> addError (ErrorCode.InvalidUseOfTypeParameterizedObject, [])
     // we need to check if all type parameters are consistently resolved
     let tpResolutions = new List<(QsQualifiedName * string) * ResolvedType>()
 

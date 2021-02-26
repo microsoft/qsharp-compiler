@@ -114,9 +114,7 @@ module internal TypeInference =
                 commonOpType variance ((i1, o1), l1) ((i2, o2), l2)
             | QsTypeKind.Function (i1, o1), QsTypeKind.Function (i2, o2) ->
                 matchInAndOutputType variance (i1, o1) (i2, o2) |> QsTypeKind.Function |> ResolvedType.New
-            | QsTypeKind.TypeParameter tp1, QsTypeKind.TypeParameter tp2 when tp1 = tp2 && tp1.Origin = parent -> t1
-            | QsTypeKind.TypeParameter tp1, QsTypeKind.TypeParameter tp2 when tp1 = tp2 ->
-                raiseError (ErrorCode.InvalidUseOfTypeParameterizedObject, []) (true, false) // (true, true)
+            | QsTypeKind.TypeParameter tp1, QsTypeKind.TypeParameter tp2 when tp1 = tp2 -> t1
             | QsTypeKind.TypeParameter tp, QsTypeKind.InvalidType when tp.Origin = parent -> t1
             | QsTypeKind.InvalidType, QsTypeKind.TypeParameter tp when tp.Origin = parent -> t2
             | QsTypeKind.TypeParameter _, _ ->
