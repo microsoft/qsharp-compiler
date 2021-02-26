@@ -96,8 +96,24 @@ type LocalVerificationTests() =
         this.Expect "VariableDeclaration6" []
         this.Expect "VariableDeclaration7" []
         this.Expect "VariableDeclaration8" []
-        this.Expect "VariableDeclaration9" [ Error ErrorCode.SymbolTupleShapeMismatch ]
-        this.Expect "VariableDeclaration10" [ Error ErrorCode.SymbolTupleShapeMismatch ]
+
+        this.Expect
+            "VariableDeclaration9"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+            ]
+
+        this.Expect
+            "VariableDeclaration10"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+            ]
+
         this.Expect "VariableDeclaration11" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration12" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration13" [ Error ErrorCode.ConstrainsTypeParameter ]

@@ -159,7 +159,7 @@ let rec private VerifyBinding (inference: InferenceContext)
         | None, diagnostics -> VariableName name, [||], diagnostics
     | SymbolTuple symbols ->
         let types = List.init symbols.Length (fun _ -> inference.Fresh())
-        let tupleType = types |> ImmutableArray.CreateRange |> TupleType |> ResolvedType.New
+        let tupleType = ImmutableArray.CreateRange types |> TupleType |> ResolvedType.New
         let unifyDiagnostics = inference.Unify(rhsType, tupleType)
 
         let verify symbol symbolType =
