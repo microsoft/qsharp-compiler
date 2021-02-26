@@ -262,38 +262,24 @@ let private VerifyEqualityComparison context diagnose (lhsType, lhsRange) (rhsTy
 /// and adds a MultipleTypesInArray error for the entire array if this fails.
 /// Returns the inferred type of the array.
 /// Returns an array with missing base type if the given list of item types is empty.
-let private VerifyValueArray parent (inference: InferenceContext) addError (content, range) =
+let private VerifyValueArray parent (inference: InferenceContext) diagnose (content, range) =
     content
     |> List.iter (fun (t: ResolvedType, r) ->
         if t.isMissing
-        then r |> addError (ErrorCode.MissingExprInArray, []))
+        then QsCompilerDiagnostic.Error (ErrorCode.MissingExprInArray, []) r |> diagnose)
 
-    let arrayType = ArrayType >> ResolvedType.New
     let invalidOrMissing (t: ResolvedType) = t.isInvalid || t.isMissing
 
-    let rec findCommonBaseType (errs: List<_>) current =
-        function
-        | [] -> current
-        | next :: tail ->
-            let accumulateErrs code _ = errs.Add code
+    match content |> List.map fst |> List.filter (invalidOrMissing >> not) |> List.distinct with
+    | [] when List.isEmpty content -> inference.Fresh()
+    | [] -> ResolvedType.New InvalidType |> ArrayType |> ResolvedType.New
+    | types ->
+        let commonType = inference.Fresh()
 
-            let common =
-                CommonBaseType accumulateErrs (ErrorCode.MultipleTypesInArray, []) parent (current, range) (next, range)
+        for itemType in types do
+            inference.Unify(itemType, commonType) |> List.iter diagnose
 
-            findCommonBaseType errs common tail
-
-    match content |> List.unzip |> fst |> List.filter (not << invalidOrMissing) |> List.distinct with
-    | [] when content.Length = 0 -> inference.Fresh()
-    | [] -> InvalidType |> ResolvedType.New |> arrayType
-    | first :: itemTs ->
-        let commonBaseTerrs = new List<ErrorCode * string list>()
-        let common = findCommonBaseType commonBaseTerrs first itemTs
-
-        if commonBaseTerrs.Count = 0 then
-            common |> arrayType
-        else
-            range |> addError (ErrorCode.MultipleTypesInArray, [])
-            ResolvedType.New InvalidType |> arrayType
+        ArrayType commonType |> ResolvedType.New
 
 /// Verifies that the given resolved type supports numbered item access,
 /// adding an ItemAccessForNonArray error with the given range using addError otherwise.
@@ -897,7 +883,8 @@ type QsExpression with
             let resolvedType =
                 positioned
                 |> List.map snd
-                |> fun vals -> VerifyValueArray symbols.Parent context.Inference addError (vals, this.RangeOrDefault)
+                |> fun vals ->
+                    VerifyValueArray symbols.Parent context.Inference addDiagnostic (vals, this.RangeOrDefault)
 
             let resolvedValues = (positioned |> List.map fst).ToImmutableArray()
 

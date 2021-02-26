@@ -28,17 +28,11 @@ type LocalVerificationTests() =
 
     [<Fact>]
     member this.``Type argument inference``() =
+        // TODO: Re-add the more specific "constrains type parameter" error?
         this.Expect "TypeArgumentsInference1" []
         this.Expect "TypeArgumentsInference2" []
-
-        this.Expect
-            "TypeArgumentsInference3"
-            [ Error ErrorCode.AmbiguousTypeVariable; Error ErrorCode.MultipleTypesInArray ]
-
-        this.Expect
-            "TypeArgumentsInference4"
-            [ Error ErrorCode.AmbiguousTypeVariable; Error ErrorCode.MultipleTypesInArray ]
-
+        this.Expect "TypeArgumentsInference3" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference4" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "TypeArgumentsInference5" [ Error ErrorCode.AmbiguousTypeVariable ]
         this.Expect "TypeArgumentsInference6" []
         this.Expect "TypeArgumentsInference7" []
@@ -55,41 +49,41 @@ type LocalVerificationTests() =
         this.Expect "TypeArgumentsInference18" []
         this.Expect "TypeArgumentsInference19" []
         this.Expect "TypeArgumentsInference20" []
-        this.Expect "TypeArgumentsInference21" [ Error ErrorCode.ConstrainsTypeParameter ]
-        this.Expect "TypeArgumentsInference22" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "TypeArgumentsInference21" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference22" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "TypeArgumentsInference23" []
         this.Expect "TypeArgumentsInference24" []
         this.Expect "TypeArgumentsInference25" []
         this.Expect "TypeArgumentsInference26" []
-        this.Expect "TypeArgumentsInference27" [ Error ErrorCode.ConstrainsTypeParameter ]
-        this.Expect "TypeArgumentsInference28" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "TypeArgumentsInference27" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference28" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "TypeArgumentsInference29" [ Error ErrorCode.InvalidCyclicTypeParameterResolution ]
 
         this.Expect
             "TypeArgumentsInference30"
             [
-                Error ErrorCode.TypeParameterResConflictWithTypeArgument
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
+                Error ErrorCode.TypeUnificationFailed
             ]
 
         this.Expect
             "TypeArgumentsInference31"
             [
-                Error ErrorCode.TypeParameterResConflictWithTypeArgument
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
+                Error ErrorCode.TypeUnificationFailed
             ]
 
-        this.Expect "TypeArgumentsInference32" [ Error ErrorCode.ConstrainsTypeParameter ]
-        this.Expect "TypeArgumentsInference33" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "TypeArgumentsInference32" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference33" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "TypeArgumentsInference34" []
         this.Expect "TypeArgumentsInference35" []
         this.Expect "TypeArgumentsInference36" []
         this.Expect "TypeArgumentsInference37" []
-        this.Expect "TypeArgumentsInference38" [ Error ErrorCode.ConstrainsTypeParameter ]
-        this.Expect "TypeArgumentsInference39" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "TypeArgumentsInference38" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference39" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "TypeArgumentsInference40" []
-        this.Expect "TypeArgumentsInference41" [ Error ErrorCode.TypeParameterResConflictWithTypeArgument ]
-        this.Expect "TypeArgumentsInference42" [ Error ErrorCode.TypeParameterResConflictWithTypeArgument ]
+        this.Expect "TypeArgumentsInference41" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference42" [ Error ErrorCode.TypeUnificationFailed ]
 
 
     [<Fact>]
