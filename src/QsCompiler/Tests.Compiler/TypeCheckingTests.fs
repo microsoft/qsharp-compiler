@@ -3,20 +3,52 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Generic
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Xunit
 
+/// Tests for type checking of Q# programs.
+module TypeCheckingTests =
+    /// The compiled type-checking tests.
+    let private tests =
+        CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ]) |> CompilerTests
+
+    /// <summary>
+    /// Asserts that the declaration with the given <paramref name="name"/> has the given
+    /// <paramref name="diagnostics"/>.
+    /// </summary>
+    let internal expect name diagnostics =
+        let ns = "Microsoft.Quantum.Testing.TypeChecking"
+        tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
+
+    [<Fact>]
+    let ``Integer size in array constructor`` () = expect "SizedArray1" []
+
+    [<Fact>]
+    let ``Zero size in array constructor`` () = expect "SizedArray2" []
+
+    [<Fact>]
+    let ``Negative integer size in array constructor`` () = expect "SizedArray3" []
+
+    [<Fact>]
+    let ``Type variable in array constructor`` () = expect "SizedArray4" []
+
+    [<Fact>]
+    let ``Double size in array constructor`` () =
+        expect "SizedArrayInvalid1" [ Error ErrorCode.ExpectingIntExpr ]
+
+    [<Fact>]
+    let ``String size in array constructor`` () =
+        expect "SizedArrayInvalid2" [ Error ErrorCode.ExpectingIntExpr ]
+
+    [<Fact>]
+    let ``Tuple size in array constructor`` () =
+        expect "SizedArrayInvalid3" [ Error ErrorCode.ExpectingIntExpr ]
 
 type TypeCheckingTests() =
-    inherit CompilerTests(CompilerTests.Compile("TestCases", [ "General.qs"; "TypeChecking.qs"; "Types.qs" ]))
-
-    member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
-        let ns = "Microsoft.Quantum.Testing.TypeChecking"
-        this.VerifyDiagnostics(QsQualifiedName.New(ns, name), diag)
+    member private this.Expect name diagnostics =
+        TypeCheckingTests.expect name diagnostics
 
 
     [<Fact>]

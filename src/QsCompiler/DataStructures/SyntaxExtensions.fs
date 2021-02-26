@@ -187,21 +187,6 @@ type TypedExpression with
 
     // utils for walking the data structure
 
-    /// Returns true if the expression kind does not contain any inner expressions.
-    static member private IsAtomic(kind: QsExpressionKind<'E, _, _>) =
-        match kind with
-        | UnitValue
-        | Identifier _
-        | IntLiteral _
-        | BigIntLiteral _
-        | DoubleLiteral _
-        | BoolLiteral _
-        | ResultLiteral _
-        | PauliLiteral _
-        | MissingExpr
-        | InvalidExpr -> true
-        | _ -> false
-
     /// Recursively traverses an expression by first applying the given mapper to the expression,
     /// then finding all sub-expressions recurring on each one, and finally calling the given folder
     /// with the original expression as well as the returned results.
@@ -217,7 +202,7 @@ type TypedExpression with
         | ControlledApplication ex
         | UnwrapApplication ex
         | NamedItem (ex, _)
-        | NewArray (_, ex) -> [ ex ] :> seq<_>
+        | NewArray (_, ex) -> seq [ ex ]
         | ADD (lhs, rhs)
         | SUB (lhs, rhs)
         | MUL (lhs, rhs)
@@ -239,14 +224,23 @@ type TypedExpression with
         | NEQ (lhs, rhs)
         | RangeLiteral (lhs, rhs)
         | ArrayItem (lhs, rhs)
-        | CallLikeExpression (lhs, rhs) -> upcast [ lhs; rhs ]
+        | CallLikeExpression (lhs, rhs) -> seq [ lhs; rhs ]
         | CopyAndUpdate (ex1, ex2, ex3)
-        | CONDITIONAL (ex1, ex2, ex3) -> upcast [ ex1; ex2; ex3 ]
+        | CONDITIONAL (ex1, ex2, ex3) -> seq [ ex1; ex2; ex3 ]
         | StringLiteral (_, items)
         | ValueTuple items
-        | ValueArray items -> upcast items
-        | kind when TypedExpression.IsAtomic kind -> Seq.empty
-        | _ -> NotImplementedException "missing implementation for the given expression kind" |> raise
+        | ValueArray items -> seq items
+        | SizedArray (value, size) -> seq [ value; size ]
+        | UnitValue
+        | Identifier _
+        | IntLiteral _
+        | BigIntLiteral _
+        | DoubleLiteral _
+        | BoolLiteral _
+        | ResultLiteral _
+        | PauliLiteral _
+        | MissingExpr
+        | InvalidExpr -> Seq.empty
         |> Seq.map recur
         |> folder expr
 

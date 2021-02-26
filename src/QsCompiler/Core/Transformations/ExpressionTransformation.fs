@@ -138,6 +138,13 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let bt, idx = this.Types.OnType bt, this.Expressions.OnTypedExpression idx
         NewArray |> Node.BuildOr InvalidExpr (bt, idx)
 
+    abstract OnSizedArray: TypedExpression * TypedExpression -> ExpressionKind
+
+    default this.OnSizedArray(value, size) =
+        let value = this.Expressions.OnTypedExpression value
+        let size = this.Expressions.OnTypedExpression size
+        SizedArray |> Node.BuildOr InvalidExpr (value, size)
+
     abstract OnStringLiteral: string * ImmutableArray<TypedExpression> -> ExpressionKind
 
     default this.OnStringLiteral(s, exs) =
@@ -356,6 +363,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
                 | NamedItem (ex, acc) -> this.OnNamedItem(ex, acc)
                 | ValueArray vs -> this.OnValueArray vs
                 | NewArray (bt, idx) -> this.OnNewArray(bt, idx)
+                | SizedArray (value, size) -> this.OnSizedArray(value, size)
                 | IntLiteral i -> this.OnIntLiteral i
                 | BigIntLiteral b -> this.OnBigIntLiteral b
                 | DoubleLiteral d -> this.OnDoubleLiteral d

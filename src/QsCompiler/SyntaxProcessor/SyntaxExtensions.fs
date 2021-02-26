@@ -81,6 +81,7 @@ and private SymbolsFromExpr item: QsSymbol list * QsType list * QsExpression lis
     | QsExpressionKind.RangeLiteral (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.NewArray (t, idx) -> ([ idx ], [ t ]) |> collectWith SymbolsFromExpr
     | QsExpressionKind.ValueArray values -> (values, []) |> collectWith SymbolsFromExpr
+    | QsExpressionKind.SizedArray (value, size) -> ([ value; size ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.ArrayItem (arr, ex) -> ([ arr; ex ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.NamedItem (ex, acc) -> ([ ex ], []) |> collectWith SymbolsFromExpr // TODO: process accessor
     | QsExpressionKind.NEG ex -> ([ ex ], []) |> collectWith SymbolsFromExpr
