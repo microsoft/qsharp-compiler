@@ -341,6 +341,15 @@ let private VerifyControlledApplication addError (ex: ResolvedType, range) =
 
 // utils for verifying identifiers, call expressions, and resolving type parameters
 
+let private replaceTypes (resolutions: ImmutableDictionary<_, ResolvedType>) =
+        { new TypeTransformation() with
+            member this.OnTypeParameter param =
+                resolutions.TryGetValue((param.Origin, param.TypeName))
+                |> tryOption
+                |> Option.map (fun resolvedType -> resolvedType.Resolution)
+                |> Option.defaultValue (TypeParameter param)
+        }
+
 /// Given a Q# symbol and  optionally its type arguments, builds the corresponding Identifier and its type arguments,
 /// calling ResolveIdentifer and ResolveType on the given SymbolTracker respectively.
 /// Upon construction of the typed expression, all type parameters in the identifier type are resolved to the non-missing type arguments,
@@ -351,18 +360,18 @@ let private VerifyControlledApplication addError (ex: ResolvedType, range) =
 /// If the Identifier could potentially be type parameterized (even if the number of type parameters is null),
 /// but the number of type arguments does not match the number of type parameters, adds a WrongNumberOfTypeArguments error via addDiagnostic.
 /// Returns the resolved Identifer after type parameter resolution as typed expression.
-let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs) =
+let private VerifyIdentifier (inference: InferenceContext) diagnose (symbols: SymbolTracker) (sym, typeArgs) =
     let resolvedTargs =
-        tArgs
+        typeArgs
         |> QsNullable<_>
             .Map(fun (args: ImmutableArray<QsType>) ->
                 args.Select(fun tArg ->
                     match tArg.Type with
                     | MissingType -> ResolvedType.New MissingType
-                    | _ -> symbols.ResolveType addDiagnostic tArg))
+                    | _ -> symbols.ResolveType diagnose tArg))
         |> QsNullable<_>.Map(fun args -> args.ToImmutableArray())
 
-    let resId, typeParams = symbols.ResolveIdentifier addDiagnostic sym
+    let resId, typeParams = symbols.ResolveIdentifier diagnose sym
     let identifier, info = Identifier(resId.VariableName, resolvedTargs), resId.InferredInformation
 
     // resolve type parameters (if any) with the given type arguments
@@ -380,32 +389,34 @@ let private VerifyIdentifier addDiagnostic (symbols: SymbolTracker) (sym, tArgs)
     | LocalVariable _, Value _ ->
         sym.RangeOrDefault
         |> QsCompilerDiagnostic.Error(ErrorCode.IdentifierCannotHaveTypeArguments, [])
-        |> addDiagnostic
+        |> diagnose
 
         invalidWithoutTargs false
-    | GlobalCallable _, Null ->
-        (identifier, resId.Type, info.HasLocalQuantumDependency, sym.Range) |> ExprWithoutTypeArgs false
     | GlobalCallable _, Value res when res.Length <> typeParams.Length ->
         sym.RangeOrDefault
         |> QsCompilerDiagnostic.Error(ErrorCode.WrongNumberOfTypeArguments, [ typeParams.Length.ToString() ])
-        |> addDiagnostic
+        |> diagnose
 
         invalidWithoutTargs false
-    | GlobalCallable id, Value res ->
-        let resolutions =
-            [
-                for (tp, ta) in res |> Seq.zip typeParams do
-                    if not ta.isMissing
-                    then yield (tp, ta |> StripPositionInfo.Apply)
-            ]
-            |> List.choose (fun (tp, ta) ->
-                match tp with
-                | InvalidName -> None // invalid type parameters cannot possibly turn up in the identifier type ... (they don't parse)
-                | ValidName tpName -> Some((QsQualifiedName.New(id.Namespace, id.Name), tpName), ta))
+    | GlobalCallable name, _ ->
+        let typeParams = typeParams |> Seq.map (fun (ValidName param) -> name, param)
+        let typeArgs = resolvedTargs |> QsNullable.defaultValue ImmutableArray.Empty
 
-        let typeParamLookUp = resolutions.ToImmutableDictionary(fst, snd)
+        let resolutions =
+            typeParams
+            |> Seq.mapi (fun i param ->
+                if i < typeArgs.Length
+                then KeyValuePair(param, typeArgs.[i])
+                else KeyValuePair(param, inference.Fresh()))
+            |> ImmutableDictionary.CreateRange
+
+        let resolvedType =
+            ((replaceTypes resolutions).OnType resId.Type).Resolution
+            |> inference.Resolve
+            |> ResolvedType.New
+
         let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
-        TypedExpression.New(identifier, typeParamLookUp, resId.Type, exInfo, sym.Range)
+        TypedExpression.New(identifier, resolutions, resolvedType, exInfo, sym.Range)
 
 /// Verifies whether an expression of the given argument type can be used as argument to a method (function, operation, or setter)
 /// that expects an argument of the given target type. The given target type may contain a missing type (valid for a setter).
@@ -1225,15 +1236,6 @@ type QsExpression with
             (UnwrapApplication resolvedEx, exType, resolvedEx.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
 
-        let replaceTypes (resolutions: ImmutableDictionary<_, ResolvedType>) =
-            { new TypeTransformation() with
-                member this.OnTypeParameter param =
-                    resolutions.TryGetValue((param.Origin, param.TypeName))
-                    |> tryOption
-                    |> Option.map (fun resolvedType -> resolvedType.Resolution)
-                    |> Option.defaultValue (TypeParameter param)
-            }
-
         let rec partialType (argType: ResolvedType) =
             match argType.Resolution with
             | MissingType ->
@@ -1254,30 +1256,8 @@ type QsExpression with
             let arg = InnerExpression arg
             let callExpression = CallLikeExpression(callable, arg)
 
-            let typeParams, typeArgs =
-                match callable.Expression with
-                | Identifier (GlobalCallable name, typeArgs) ->
-                    let _, typeParams =
-                        { Symbol = QualifiedSymbol(name.Namespace, name.Name); Range = Value Range.Zero }
-                        |> symbols.ResolveIdentifier(fun _ -> ())
-
-                    typeParams |> Seq.map (fun (ValidName param) -> name, param),
-                    typeArgs |> QsNullable.defaultValue ImmutableArray.Empty
-                | _ -> Seq.empty, ImmutableArray.Empty
-
-            let resolutions =
-                typeParams
-                |> Seq.mapi (fun i param ->
-                    if i < typeArgs.Length
-                    then KeyValuePair(param, typeArgs.[i])
-                    else KeyValuePair(param, context.Inference.Fresh()))
-                |> ImmutableDictionary.CreateRange
-
             // TODO: Don't resolve inference yet, add a callable constraint.
-            let resolvedType =
-                ((replaceTypes resolutions).OnType callable.ResolvedType).Resolution
-                |> context.Inference.Resolve
-                |> ResolvedType.New
+            let resolvedType = context.Inference.Resolve callable.ResolvedType.Resolution |> ResolvedType.New
 
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, info) ->
@@ -1317,13 +1297,13 @@ type QsExpression with
             context.Inference.Unify(argType, input)
             |> diagnoseWithRange (arg.Range.ValueOr Range.Zero) addDiagnostic
 
-            TypedExpression.New(callExpression, resolutions, resultType, callable.InferredInformation, this.Range)
+            TypedExpression.New(callExpression, ImmutableDictionary.Empty, resultType, callable.InferredInformation, this.Range)
 
         match this.Expression with
         | InvalidExpr -> (InvalidExpr, InvalidType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs true // choosing the more permissive option here
         | MissingExpr -> (MissingExpr, MissingType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs false
         | UnitValue -> (UnitValue, UnitType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs false
-        | Identifier (sym, tArgs) -> VerifyIdentifier addDiagnostic symbols (sym, tArgs)
+        | Identifier (sym, tArgs) -> VerifyIdentifier context.Inference addDiagnostic symbols (sym, tArgs)
         | CallLikeExpression (method, arg) -> buildCall (method, arg)
         | AdjointApplication ex -> verifyAndBuildWith AdjointApplication VerifyAdjointApplication ex
         | ControlledApplication ex -> verifyAndBuildWith ControlledApplication VerifyControlledApplication ex

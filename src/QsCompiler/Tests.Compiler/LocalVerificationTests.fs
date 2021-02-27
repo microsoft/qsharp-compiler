@@ -114,7 +114,7 @@ type LocalVerificationTests() =
                 Error ErrorCode.AmbiguousTypeVariable
             ]
 
-        this.Expect "VariableDeclaration11" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
+        this.Expect "VariableDeclaration11" []
         this.Expect "VariableDeclaration12" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
         this.Expect "VariableDeclaration13" [ Error ErrorCode.ConstrainsTypeParameter ]
 
