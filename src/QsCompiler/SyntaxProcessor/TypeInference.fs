@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
+open System
 open System.Collections.Generic
 open System.Collections.Immutable
 
@@ -12,6 +13,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
@@ -25,6 +27,9 @@ type internal Variance =
 type internal Substitution = private { Variance: Variance; Type: ResolvedType }
 
 type internal Constraint =
+    | AppliesPartial of missing: ResolvedType * result: ResolvedType
+    | Callable of input: ResolvedType * output: ResolvedType
+    | CanGenerateFunctors of QsFunctor Set
     | Equatable
     | Indexed of index: ResolvedType * item: ResolvedType
     | Integral
@@ -168,6 +173,17 @@ module internal TypeInference =
     let isFresh (param: QsTypeParameter) =
         param.TypeName.StartsWith "__a" && param.TypeName.EndsWith "__"
 
+    let missingFunctors target given =
+        let mapFunctors =
+            Seq.map (function
+                | Adjoint -> Keywords.qsAdjointFunctor.id
+                | Controlled -> Keywords.qsControlledFunctor.id)
+            >> Seq.toList
+
+        match given with
+        | Some fs -> Set.difference target fs |> mapFunctors
+        | None -> if Set.isEmpty target then [ "(None)" ] else mapFunctors target
+
 open TypeInference
 
 type InferenceContext(symbolTracker: SymbolTracker) =
@@ -234,6 +250,37 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
         | _ when resolvedType.Resolution = InvalidType -> []
+        | AppliesPartial (missing, result) ->
+            match resolvedType.Resolution with
+            | QsTypeKind.Function (_, output) ->
+                context.Unify(QsTypeKind.Function(missing, output) |> ResolvedType.New, result)
+            | QsTypeKind.Operation ((_, output), info) ->
+                context.Unify(QsTypeKind.Operation((missing, output), info) |> ResolvedType.New, result)
+            | _ ->
+                let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "AppliesPartial" ]
+                [ QsCompilerDiagnostic.Error error Range.Zero ]
+        | Callable (input, output) ->
+            match resolvedType.Resolution with
+            | QsTypeKind.Operation _ ->
+                let operationType = QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
+                context.Unify(resolvedType, ResolvedType.New operationType)
+            | QsTypeKind.Function _ ->
+                context.Unify(resolvedType, QsTypeKind.Function(input, output) |> ResolvedType.New)
+            | _ ->
+                let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "Callable" ]
+                [ QsCompilerDiagnostic.Error error Range.Zero ]
+        | CanGenerateFunctors functors ->
+            match resolvedType.Resolution with
+            | QsTypeKind.Operation (_, info) ->
+                let supported = info.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
+
+                match Set.ofSeq supported |> Some |> missingFunctors functors with
+                | _ when info.Characteristics.AreInvalid -> []
+                | [] -> []
+                | missing ->
+                    let error = ErrorCode.MissingFunctorForAutoGeneration, [ String.Join(", ", missing) ]
+                    [ QsCompilerDiagnostic.Error error Range.Zero ]
+            | _ -> []
         | Equatable ->
             if resolvedType.supportsEqualityComparison |> Option.isSome
             then []

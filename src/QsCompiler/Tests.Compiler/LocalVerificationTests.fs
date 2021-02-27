@@ -115,29 +115,22 @@ type LocalVerificationTests() =
             ]
 
         this.Expect "VariableDeclaration11" []
-        this.Expect "VariableDeclaration12" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration13" [ Error ErrorCode.ConstrainsTypeParameter ]
 
         this.Expect
-            "VariableDeclaration14"
+            "VariableDeclaration12"
             [
-                Error ErrorCode.InvalidUseOfTypeParameterizedObject
-                Error ErrorCode.InvalidUseOfTypeParameterizedObject
+                Error ErrorCode.ConstraintNotSatisfied
+                Error ErrorCode.AmbiguousTypeVariable
             ]
 
-        this.Expect "VariableDeclaration15" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration16" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration17" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-
-        this.Expect
-            "VariableDeclaration18"
-            [
-                Error ErrorCode.InvalidUseOfTypeParameterizedObject
-                Error ErrorCode.MultipleTypesInArray
-            ]
-
-        this.Expect "VariableDeclaration19" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration20" [ Error ErrorCode.ConstrainsTypeParameter ]
+        this.Expect "VariableDeclaration13" []
+        this.Expect "VariableDeclaration14" [ Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect "VariableDeclaration15" []
+        this.Expect "VariableDeclaration16" []
+        this.Expect "VariableDeclaration17" []
+        this.Expect "VariableDeclaration18" []
+        this.Expect "VariableDeclaration19" []
+        this.Expect "VariableDeclaration20" []
         this.Expect "VariableDeclaration21" []
         this.Expect "VariableDeclaration22" []
         this.Expect "VariableDeclaration23" []
@@ -224,12 +217,7 @@ type LocalVerificationTests() =
         this.Expect "ItemAccess10" []
         this.Expect "ItemAccess11" []
 
-        this.Expect
-            "ItemAccess12"
-            [
-                Error ErrorCode.OperationCallOutsideOfOperation
-                Error ErrorCode.OperationCallOutsideOfOperation
-            ]
+        this.Expect "ItemAccess12" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeUnificationFailed ]
 
         this.Expect
             "ItemAccess13"

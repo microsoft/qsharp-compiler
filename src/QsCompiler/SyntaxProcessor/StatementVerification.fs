@@ -87,8 +87,8 @@ let private asStatement comments location vars kind =
 /// Resolves and verifies the given Q# expression given a symbol tracker containing all currently declared symbols,
 /// verifies that the resolved expression is indeed of type Unit, and builds a Q# expression-statement at the given location from it.
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
-let NewExpressionStatement comments location symbols expr =
-    let verifiedExpr, _, diagnostics = VerifyWith (errorToDiagnostic VerifyIsUnit) symbols expr
+let NewExpressionStatement comments location context expr =
+    let verifiedExpr, _, diagnostics = VerifyWith (VerifyIsUnit context.Inference) context expr
     verifiedExpr |> QsExpressionStatement |> asStatement comments location LocalDeclarations.Empty, diagnostics
 
 /// Resolves and verifies the given Q# expression given the resolution context, verifies that the resolved expression is

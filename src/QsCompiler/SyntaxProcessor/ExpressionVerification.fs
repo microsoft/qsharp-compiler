@@ -13,11 +13,9 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
@@ -41,18 +39,6 @@ let private StripInferredInfoFromType = (new StripInferredInfoFromType()).OnType
 let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) =
     let inferred = InferredExpressionInformation.New(isMutable = isMutable, quantumDep = dep)
     TypedExpression.New(ex, ImmutableDictionary.Empty, t, inferred, range)
-
-let private missingFunctors (target: ImmutableHashSet<_>, given) =
-    let mapFunctors fs =
-        fs
-        |> Seq.map (function
-            | Adjoint -> qsAdjointFunctor.id
-            | Controlled -> qsControlledFunctor.id)
-        |> Seq.toList
-
-    match given with
-    | Some fList -> target.Except(fList) |> mapFunctors
-    | None -> if target.Any() then target |> mapFunctors else [ "(None)" ]
 
 let errorToDiagnostic f diagnose =
     f (fun (error, args) range -> QsCompilerDiagnostic.Error (error, args) range |> diagnose)
@@ -91,11 +77,8 @@ let private VerifyIsOneOf asExpected errCode addError (exType: ResolvedType, ran
 /// Verifies that the given resolved type is indeed of kind Unit,
 /// adding an ExpectingUnitExpr error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
-let internal VerifyIsUnit addError (exType, range) =
-    let expectedUnit (t: ResolvedType) =
-        if t.Resolution = UnitType then Some t else None
-
-    VerifyIsOneOf expectedUnit (ErrorCode.ExpectingUnitExpr, []) addError (exType, range) |> ignore
+let internal VerifyIsUnit (inference: InferenceContext) diagnose (exType, range) =
+    inference.Unify(exType, ResolvedType.New UnitType) |> diagnoseWithRange range diagnose
 
 /// Verifies that the given resolved type is indeed of kind String,
 /// adding an ExpectingStringExpr error with the given range using addError otherwise.
@@ -342,13 +325,13 @@ let private VerifyControlledApplication addError (ex: ResolvedType, range) =
 // utils for verifying identifiers, call expressions, and resolving type parameters
 
 let private replaceTypes (resolutions: ImmutableDictionary<_, ResolvedType>) =
-        { new TypeTransformation() with
-            member this.OnTypeParameter param =
-                resolutions.TryGetValue((param.Origin, param.TypeName))
-                |> tryOption
-                |> Option.map (fun resolvedType -> resolvedType.Resolution)
-                |> Option.defaultValue (TypeParameter param)
-        }
+    { new TypeTransformation() with
+        member this.OnTypeParameter param =
+            resolutions.TryGetValue((param.Origin, param.TypeName))
+            |> tryOption
+            |> Option.map (fun resolvedType -> resolvedType.Resolution)
+            |> Option.defaultValue (TypeParameter param)
+    }
 
 /// Given a Q# symbol and  optionally its type arguments, builds the corresponding Identifier and its type arguments,
 /// calling ResolveIdentifer and ResolveType on the given SymbolTracker respectively.
@@ -405,15 +388,14 @@ let private VerifyIdentifier (inference: InferenceContext) diagnose (symbols: Sy
         let resolutions =
             typeParams
             |> Seq.mapi (fun i param ->
-                if i < typeArgs.Length
-                then KeyValuePair(param, typeArgs.[i])
-                else KeyValuePair(param, inference.Fresh()))
+                if i < typeArgs.Length then
+                    KeyValuePair(param, typeArgs.[i])
+                else
+                    KeyValuePair(param, inference.Fresh()))
             |> ImmutableDictionary.CreateRange
 
         let resolvedType =
-            ((replaceTypes resolutions).OnType resId.Type).Resolution
-            |> inference.Resolve
-            |> ResolvedType.New
+            ((replaceTypes resolutions).OnType resId.Type).Resolution |> inference.Resolve |> ResolvedType.New
 
         let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
         TypedExpression.New(identifier, resolutions, resolvedType, exInfo, sym.Range)
@@ -720,7 +702,7 @@ let internal VerifyAssignment (inference: InferenceContext)
     // we need to check if the right hand side contains a type parametrized version of the parent callable
 //    let directRecursion = IsTypeParamRecursion (parent, definedTypeParams) rhsEx
 
-//    if directRecursion
+    //    if directRecursion
 //    then rhsRange |> addError (ErrorCode.InvalidUseOfTypeParameterizedObject, [])
     // we need to check if all type parameters are consistently resolved
     let tpResolutions = new List<(QsQualifiedName * string) * ResolvedType>()
@@ -1251,53 +1233,43 @@ type QsExpression with
 
         /// Resolves and verifies the given left hand side and right hand side of a call expression,
         /// and returns the corresponding expression as typed expression.
-        let buildCall (callable, arg) =
-            let callable = InnerExpression callable
-            let arg = InnerExpression arg
-            let callExpression = CallLikeExpression(callable, arg)
+        let buildCall (callable: QsExpression, arg: QsExpression) =
+            let resolvedCallable = InnerExpression callable
+            let resolvedArg = InnerExpression arg
+            let callExpression = CallLikeExpression(resolvedCallable, resolvedArg)
+            let isPartial = TypedExpression.IsPartialApplication callExpression
 
-            // TODO: Don't resolve inference yet, add a callable constraint.
-            let resolvedType = context.Inference.Resolve callable.ResolvedType.Resolution |> ResolvedType.New
+            if not isPartial then
+                context.Inference.Constrain
+                    (resolvedCallable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport |> CanGenerateFunctors)
+                |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
 
-            match resolvedType.Resolution with
-            | QsTypeKind.Operation (_, info) ->
-                let isPartial = TypedExpression.IsPartialApplication callExpression
-                let range = callable.Range.ValueOr Range.Zero
+            let argType, partialTypes = partialType resolvedArg.ResolvedType
+            let output = context.Inference.Fresh()
 
-                if not context.IsInOperation && not isPartial
-                then QsCompilerDiagnostic.Error (ErrorCode.OperationCallOutsideOfOperation, []) range |> addDiagnostic
+            context.Inference.Constrain(resolvedCallable.ResolvedType, Callable(argType, output))
+            |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
 
-                let functors = info.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
-                let missingFunctors = missingFunctors (symbols.RequiredFunctorSupport, Some functors)
-
-                if not isPartial && not info.Characteristics.AreInvalid && not (List.isEmpty missingFunctors) then
-                    let error = ErrorCode.MissingFunctorForAutoGeneration, [ String.Join(", ", missingFunctors) ]
-                    QsCompilerDiagnostic.Error error range |> addDiagnostic
-            | _ -> ()
-
-            // TODO: Diagnostic if "callable" is not a callable type.
-            let input, output =
-                match resolvedType.Resolution with
-                | QsTypeKind.Function (input, output)
-                | QsTypeKind.Operation ((input, output), _) -> input, output
-                | _ -> ResolvedType.New InvalidType, ResolvedType.New InvalidType
-
-            let argType, partialTypes = partialType arg.ResolvedType
+            if not isPartial && not context.IsInOperation then
+                // TODO: Better error message.
+                context.Inference.Unify
+                    (resolvedCallable.ResolvedType, QsTypeKind.Function(argType, output) |> ResolvedType.New)
+                |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
 
             let resultType =
-                if List.isEmpty partialTypes then
-                    output
+                if isPartial then
+                    let missing = ImmutableArray.CreateRange partialTypes |> TupleType |> ResolvedType.New
+                    let result = context.Inference.Fresh()
+
+                    context.Inference.Constrain(resolvedCallable.ResolvedType, AppliesPartial(missing, result))
+                    |> diagnoseWithRange arg.RangeOrDefault addDiagnostic
+
+                    result
                 else
-                    let input = ImmutableArray.CreateRange partialTypes |> TupleType |> ResolvedType.New
+                    output
 
-                    match resolvedType.Resolution with
-                    | QsTypeKind.Operation (_, info) -> QsTypeKind.Operation((input, output), info) |> ResolvedType.New
-                    | _ -> QsTypeKind.Function(input, output) |> ResolvedType.New
-
-            context.Inference.Unify(argType, input)
-            |> diagnoseWithRange (arg.Range.ValueOr Range.Zero) addDiagnostic
-
-            TypedExpression.New(callExpression, ImmutableDictionary.Empty, resultType, callable.InferredInformation, this.Range)
+            TypedExpression.New
+                (callExpression, ImmutableDictionary.Empty, resultType, resolvedCallable.InferredInformation, this.Range)
 
         match this.Expression with
         | InvalidExpr -> (InvalidExpr, InvalidType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs true // choosing the more permissive option here
