@@ -290,9 +290,11 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     [ QsCompilerDiagnostic.Error error Range.Zero ]
             | _ -> []
         | Equatable ->
-            if resolvedType.supportsEqualityComparison |> Option.isSome
-            then []
-            else failwithf "Equatable constraint not satisfied for %A." resolvedType
+            if Option.isSome resolvedType.supportsEqualityComparison then
+                []
+            else
+                let error = ErrorCode.InvalidTypeInEqualityComparison, [ printType resolvedType ]
+                [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Indexed (index, item) ->
             match resolvedType.Resolution, context.Resolve index.Resolution with
             | ArrayType actualItem, Int -> context.Unify(actualItem, item)
