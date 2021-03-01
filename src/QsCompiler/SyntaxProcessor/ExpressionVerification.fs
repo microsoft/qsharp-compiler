@@ -1272,8 +1272,22 @@ type QsExpression with
                 else
                     output
 
-            TypedExpression.New
-                (callExpression, ImmutableDictionary.Empty, resultType, resolvedCallable.InferredInformation, this.Range)
+            // Be pessimistic: if we don't know that the callable is a function at this point, assume it's an
+            // operation.
+            let isFunction =
+                match context.Inference.Resolve resolvedCallable.ResolvedType.Resolution with
+                | QsTypeKind.Function _ -> true
+                | _ -> false
+
+            let hasQuantumDependency =
+                if isPartial || isFunction then
+                    resolvedCallable.InferredInformation.HasLocalQuantumDependency
+                    || resolvedArg.InferredInformation.HasLocalQuantumDependency
+                else
+                    true
+
+            let info = InferredExpressionInformation.New(isMutable = false, quantumDep = hasQuantumDependency)
+            TypedExpression.New(callExpression, resolvedCallable.TypeParameterResolutions, resultType, info, this.Range)
 
         match this.Expression with
         | InvalidExpr -> (InvalidExpr, InvalidType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs true // choosing the more permissive option here
