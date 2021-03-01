@@ -388,14 +388,18 @@ let private VerifyIdentifier (inference: InferenceContext) diagnose (symbols: Sy
         let resolutions =
             typeParams
             |> Seq.mapi (fun i param ->
-                if i < typeArgs.Length then
-                    KeyValuePair(param, typeArgs.[i])
-                else
-                    KeyValuePair(param, inference.Fresh()))
+                if i < typeArgs.Length && typeArgs.[i].Resolution <> MissingType
+                then KeyValuePair(param, typeArgs.[i])
+                else KeyValuePair(param, inference.Fresh()))
             |> ImmutableDictionary.CreateRange
 
         let resolvedType =
             ((replaceTypes resolutions).OnType resId.Type).Resolution |> inference.Resolve |> ResolvedType.New
+
+        let identifier =
+            if QsNullable.isValue resolvedTargs
+            then Identifier(GlobalCallable name, ImmutableArray.CreateRange resolutions.Values |> Value)
+            else identifier
 
         let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
         TypedExpression.New(identifier, resolutions, resolvedType, exInfo, sym.Range)
