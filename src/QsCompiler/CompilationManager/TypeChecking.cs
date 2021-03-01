@@ -1311,6 +1311,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var implementation = BuildScope(root.Children.GetEnumerator(), context, diagnostics);
             context.Symbols.EndScope();
 
+            // Finalize types.
+            diagnostics.AddRange(context.Inference
+                .Satisfy()
+                .Select(diagnostic => Diagnostics.Generate(sourceFile, diagnostic, specPos)));
+            var resolver = InferenceContextModule.Resolver(context.Inference);
+            implementation = resolver.Statements.OnScope(implementation);
+
             // Verify that all paths return a value if needed (or fail), and that the specialization's required runtime
             // capabilities are supported by the execution target.
             var (allPathsReturn, returnDiagnostics) = SyntaxProcessing.SyntaxTree.AllPathsReturnValueOrFail(implementation);
@@ -1469,14 +1476,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     implementation = BuildUserDefinedImplementation(
                         root, spec.Source.AssemblyOrCodeFile, arg, requiredFunctorSupport, context, diagnostics);
                     QsCompilerError.Verify(context.Symbols.AllScopesClosed, "all scopes should be closed");
-
-                    diagnostics.AddRange(context.Inference.Satisfy().Select(diagnostic =>
-                        Diagnostics.Generate(spec.Source.AssemblyOrCodeFile, diagnostic, specPos)));
-                    var resolver = InferenceContextModule.Resolver(context.Inference);
-                    implementation = resolver.Namespaces.OnSpecializationImplementation(implementation);
                 }
 
-                implementation = implementation ?? SpecializationImplementation.Intrinsic;
+                implementation ??= SpecializationImplementation.Intrinsic;
                 return GetSpecialization(spec, signature, implementation, comments);
             }
 
