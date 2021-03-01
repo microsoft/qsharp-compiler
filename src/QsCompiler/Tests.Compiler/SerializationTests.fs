@@ -175,7 +175,7 @@ module SerializationTests =
             Kind = QsCallableKind.TypeConstructor
             QualifiedName = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes = ImmutableArray.Empty
-            Modifiers = { Access = DefaultAccess }
+            Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
             SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
@@ -195,7 +195,7 @@ module SerializationTests =
             Kind = QsCallableKind.Function
             QualifiedName = qualifiedName "Microsoft.Quantum" "emptyFunction"
             Attributes = ImmutableArray.Empty
-            Modifiers = { Access = DefaultAccess }
+            Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 4 4 |> DeclarationHeader.Offset.Defined
             SymbolRange = Range.Create (Position.Create 0 9) (Position.Create 0 22) |> DeclarationHeader.Range.Defined
@@ -209,7 +209,7 @@ module SerializationTests =
             Kind = QsCallableKind.Operation
             QualifiedName = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes = ImmutableArray.Empty
-            Modifiers = { Access = DefaultAccess }
+            Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
             SymbolRange = Range.Create (Position.Create 0 10) (Position.Create 0 24) |> DeclarationHeader.Range.Defined
@@ -223,7 +223,7 @@ module SerializationTests =
             Kind = QsCallableKind.TypeConstructor
             QualifiedName = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes = ImmutableArray.Empty
-            Modifiers = { Access = DefaultAccess }
+            Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
             SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
@@ -251,7 +251,7 @@ module SerializationTests =
         {
             QualifiedName = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes = ImmutableArray.Empty
-            Modifiers = { Access = DefaultAccess }
+            Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
             SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
@@ -264,7 +264,7 @@ module SerializationTests =
         {
             QualifiedName = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes = ImmutableArray.Empty
-            Modifiers = { Access = DefaultAccess }
+            Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
             SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined

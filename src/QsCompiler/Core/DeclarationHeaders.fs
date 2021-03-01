@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
+#nowarn "44" // AccessModifier and Modifiers are deprecated.
+
 open System
 open System.Collections.Immutable
 open System.IO
@@ -140,7 +142,7 @@ type TypeDeclarationHeader =
     {
         QualifiedName: QsQualifiedName
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        Modifiers: Modifiers
+        Access: Access
         Source: Source
         Position: DeclarationHeader.Offset
         SymbolRange: DeclarationHeader.Range
@@ -148,6 +150,11 @@ type TypeDeclarationHeader =
         TypeItems: QsTuple<QsTypeItem>
         Documentation: ImmutableArray<string>
     }
+
+    // TODO: RELEASE 2021-08: Remove TypeDeclarationHeader.Modifiers.
+    [<JsonIgnore>]
+    [<Obsolete "Replaced by Access.">]
+    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
 
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation(this.Position, this.SymbolRange)
@@ -165,7 +172,7 @@ type TypeDeclarationHeader =
         {
             QualifiedName = customType.FullName
             Attributes = customType.Attributes
-            Modifiers = customType.Modifiers
+            Access = customType.Access
             Source = customType.Source
             Position = customType.Location |> DeclarationHeader.CreateOffset
             SymbolRange = customType.Location |> DeclarationHeader.CreateRange
@@ -181,7 +188,7 @@ type TypeDeclarationHeader =
         {
             QualifiedName = header.QualifiedName
             Attributes = header.Attributes
-            Modifiers = header.Modifiers
+            Access = header.Modifiers.Access |> AccessModifier.toAccess Public
             Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             SymbolRange = header.SymbolRange
@@ -212,7 +219,7 @@ type TypeDeclarationHeader =
         {
             QualifiedName = this.QualifiedName
             Attributes = this.Attributes
-            Modifiers = this.Modifiers
+            Modifiers = { Access = AccessModifier.ofAccess this.Access }
             SourceFile = this.Source.CodeFile
             Position = this.Position
             SymbolRange = this.SymbolRange
@@ -258,7 +265,7 @@ type CallableDeclarationHeader =
         Kind: QsCallableKind
         QualifiedName: QsQualifiedName
         Attributes: ImmutableArray<QsDeclarationAttribute>
-        Modifiers: Modifiers
+        Access: Access
         Source: Source
         Position: DeclarationHeader.Offset
         SymbolRange: DeclarationHeader.Range
@@ -267,11 +274,17 @@ type CallableDeclarationHeader =
         Documentation: ImmutableArray<string>
     }
 
+    // TODO: RELEASE 2021-08: Remove CallableDeclarationHeader.Modifiers.
+    [<JsonIgnore>]
+    [<Obsolete "Replaced by Access.">]
+    member this.Modifiers = { Access = AccessModifier.ofAccess this.Access }
+
     [<JsonIgnore>]
     member this.Location = DeclarationHeader.CreateLocation(this.Position, this.SymbolRange)
 
     // TODO: RELEASE 2021-07: Remove CallableDeclarationHeader.SourceFile.
-    [<JsonIgnore; Obsolete "Replaced by Source.">]
+    [<JsonIgnore>]
+    [<Obsolete "Replaced by Source.">]
     member this.SourceFile = Source.assemblyOrCodeFile this.Source
 
     member this.FromSource source = { this with Source = source }
@@ -284,7 +297,7 @@ type CallableDeclarationHeader =
             Kind = callable.Kind
             QualifiedName = callable.FullName
             Attributes = callable.Attributes
-            Modifiers = callable.Modifiers
+            Access = callable.Access
             Source = callable.Source
             Position = callable.Location |> DeclarationHeader.CreateOffset
             SymbolRange = callable.Location |> DeclarationHeader.CreateRange
@@ -301,7 +314,7 @@ type CallableDeclarationHeader =
             Kind = header.Kind
             QualifiedName = header.QualifiedName
             Attributes = header.Attributes
-            Modifiers = header.Modifiers
+            Access = header.Modifiers.Access |> AccessModifier.toAccess Public
             Source = { CodeFile = header.SourceFile; AssemblyFile = Null }
             Position = header.Position
             SymbolRange = header.SymbolRange
@@ -344,7 +357,7 @@ type CallableDeclarationHeader =
             Kind = this.Kind
             QualifiedName = this.QualifiedName
             Attributes = this.Attributes
-            Modifiers = this.Modifiers
+            Modifiers = { Access = AccessModifier.ofAccess this.Access }
             SourceFile = this.Source.CodeFile
             Position = this.Position
             SymbolRange = this.SymbolRange

@@ -3,6 +3,7 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -66,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Computes the updated code line based on the given previous line predecessing it,
+        /// Computes the updated code line based on the given previous line preceding it,
         /// and compares its indentation with the current line at <paramref name="continueAt"/> in the given file.
         /// Returns the difference of the new indentation and the current one.
         /// </summary>
@@ -103,58 +104,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
             var delimiters = line.StringDelimiters;
             return delimiters.Count() != 0 && delimiters.Last() == line.Text.Length;
-        }
-
-        /// <summary>
-        /// Computes the location of the string delimiters within a given text.
-        /// </summary>
-        private static IEnumerable<int> ComputeStringDelimiters(string text, bool isContinuation)
-        {
-            var nrDelimiters = 0;
-            if (isContinuation)
-            {
-                ++nrDelimiters;
-                yield return -1;
-            }
-            var stringLength = text.Length;
-            while (text != string.Empty)
-            {
-                var commentIndex = (nrDelimiters & 1) == 0 ? text.IndexOf("//") : -1; // only if we are currently not inside a string do we need to check for a potential comment start
-                if (commentIndex < 0)
-                {
-                    commentIndex = text.Length;
-                }
-
-                var index = text.IndexOf('"');
-                if ((nrDelimiters & 1) != 0)
-                {
-                    // if we are currently within a string, we need to ignore string delimiters of the form \"
-                    while (index > 0 && text[index - 1] == '\\')
-                    {
-                        var next = text.Substring(index + 1).IndexOf('"');
-                        index = next < 0 ? next : index + 1 + next;
-                    }
-                }
-
-                if (commentIndex < index)
-                {
-                    break; // fine also if index = -1
-                }
-                if (index < 0)
-                {
-                    text = string.Empty;
-                }
-                else
-                {
-                    ++nrDelimiters;
-                    yield return index + stringLength - text.Length;
-                    text = text.Substring(index + 1);
-                }
-            }
-            if ((nrDelimiters & 1) != 0)
-            {
-                yield return stringLength;
-            }
         }
 
         // utils related to filtering irrelevant text for scope and error processing, and parsing
@@ -367,21 +316,42 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> do not define a valid range in the text of the given <paramref name="line"/>.</exception>
         internal static int FindInCode(this CodeLine line, Func<string, int> findIndex, int start, int count, bool ignoreExcessBrackets = true)
         {
-            var truncatedDelims = TruncateStringDelimiters(line.StringDelimiters, start, count);
-            var truncatedText = line.Text.Substring(start, count); // will throw if start and count are out of range
-            var truncatedExcessClosings =
-                line.ExcessBracketPositions
-                .Where(pos => start <= pos && pos < start + count)
-                .Select(pos => pos - start);
+            CodeLine GetCodeLine(int start, int count, CodeLine.StringContext beginningStringContext)
+            {
+                var prefixDelims = TruncateStringDelimiters(line.StringDelimiters, start, count);
+                if (start < line.WithoutEnding.Length && start + count > line.WithoutEnding.Length)
+                {
+                    count = line.WithoutEnding.Length - start;
+                }
+                var prefixText = line.WithoutEnding.Substring(start, count);
+                var prefixExcessClosings = line.ExcessBracketPositions
+                    .Where(pos => start <= pos && pos < start + count)
+                    .Select(pos => pos - start);
+                // line indentation and comment position are irrelevant here
+                return new CodeLine(
+                    prefixText,
+                    beginningStringContext,
+                    prefixDelims,
+                    -1, // The comment will have been removed by this point
+                    0,
+                    prefixExcessClosings);
+            }
 
-            var shiftedCommentIndex = line.WithoutEnding.Length - start;
-            var truncatedLine = new CodeLine(truncatedText, truncatedDelims, shiftedCommentIndex < count ? shiftedCommentIndex : count, 0, truncatedExcessClosings); // line indentation is irrelevant here
-            var foundIndex = FindInCode(truncatedLine, findIndex, ignoreExcessBrackets);
+            var beginningStringContext = line.BeginningStringContext;
+            if (start > 0)
+            {
+                // Get the beginning string context for the truncated line by calculating the
+                // ending context of the original line up to the start of the truncated line.
+                beginningStringContext = GetCodeLine(0, start, beginningStringContext).EndingStringContext;
+            }
+
+            var truncatedLine = GetCodeLine(start, count, beginningStringContext);
+            var foundIndex = truncatedLine.FindInCode(findIndex, ignoreExcessBrackets);
             return foundIndex < 0 ? foundIndex : start + foundIndex;
         }
 
         /// <summary>
-        /// Givent a position, verifies that the position is within the given file, and
+        /// Given a position, verifies that the position is within the given file, and
         /// returns the effective indentation (i.e. the indentation when ignoring excess brackets throughout the file)
         /// at that position (i.e. not including the char at the given position).
         /// </summary>
@@ -485,16 +455,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static IEnumerable<CodeLine> InitializeCodeLines(IEnumerable<string> texts, CodeLine? previousLine = null)
         {
-            var continueString = ContinueString(previousLine);
+            var previousLineStringContext = previousLine?.EndingStringContext ?? CodeLine.StringContext.NoOpenString;
             foreach (string text in texts)
             {
-                // computing suitable string delimiters
-                var delimiters = ComputeStringDelimiters(text, continueString);
-                var commentStart = IndexIncludingStrings(RemoveStrings(text, delimiters).IndexOf("//"), delimiters.ToArray());
-
-                // initializes the code line with a default indentation of zero, that will be set to a suitable value during the computation of the excess brackets
-                var line = new CodeLine(text, delimiters, commentStart < 0 ? text.Length : commentStart);
-                continueString = ContinueString(line);
+                var line = new CodeLine(text, previousLineStringContext);
+                previousLineStringContext = line.EndingStringContext;
                 yield return line;
             }
         }
@@ -628,6 +593,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 foreach (var pos in line.ExcessBracketPositions)
                 {
                     yield return Errors.ExcessBracketError(file.FileName, Position.Create(start, pos));
+                }
+                foreach (var pos in line.ErrorDelimiterPositions)
+                {
+                    yield return Errors.InvalidCharacterInInterpolatedArgument(file.FileName, Position.Create(start, pos), file.GetLine(start).Text[pos]);
                 }
                 ++start;
             }
