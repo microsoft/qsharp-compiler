@@ -239,6 +239,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             context.Unify(in2, in1) @ context.Unify(out1, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
             context.Unify(in2, in1) @ context.Unify(out1, out2)
+        | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
+        | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
+            // Function and operation types aren't compatible, but we can still try to unify their input and output
+            // types for more accurate error messages.
+            let error = ErrorCode.TypeUnificationFailed, [ printType left; "any subtype of " + printType right ]
+
+            [ QsCompilerDiagnostic.Error error Range.Zero ]
+            @ context.Unify(in2, in1) @ context.Unify(out1, out2)
         | InvalidType, _
         | MissingType, _
         | _, InvalidType

@@ -1247,10 +1247,10 @@ type QsExpression with
             let argType, partialTypes = partialType resolvedArg.ResolvedType
             let output = context.Inference.Fresh()
 
-            context.Inference.Constrain(resolvedCallable.ResolvedType, Callable(argType, output))
-            |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
-
-            if not isPartial && not context.IsInOperation then
+            if isPartial || context.IsInOperation then
+                context.Inference.Constrain(resolvedCallable.ResolvedType, Callable(argType, output))
+                |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
+            else
                 // TODO: Better error message.
                 context.Inference.Unify
                     (resolvedCallable.ResolvedType, QsTypeKind.Function(argType, output) |> ResolvedType.New)
