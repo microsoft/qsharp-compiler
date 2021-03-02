@@ -403,8 +403,8 @@ let ``Identifier tests`` () =
 [<Fact>]
 let ``Complex literal tests`` () =
     [
-        "[]", true, toExpr InvalidExpr, [ Error ErrorCode.EmptyValueArray ]
-        "[ ]", true, toExpr InvalidExpr, [ Error ErrorCode.EmptyValueArray ]
+        "[]", true, toArray [], []
+        "[ ]", true, toArray [], []
         "[1,2,3]", true, toArray [ toInt 1; toInt 2; toInt 3 ], []
 
         "[1,x,3]",

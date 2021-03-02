@@ -36,15 +36,15 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Double size in array constructor`` () =
-        expect "SizedArrayInvalid1" [ Error ErrorCode.ExpectingIntExpr ]
+        expect "SizedArrayInvalid1" [ Error ErrorCode.TypeUnificationFailed ]
 
     [<Fact>]
     let ``String size in array constructor`` () =
-        expect "SizedArrayInvalid2" [ Error ErrorCode.ExpectingIntExpr ]
+        expect "SizedArrayInvalid2" [ Error ErrorCode.TypeUnificationFailed ]
 
     [<Fact>]
     let ``Tuple size in array constructor`` () =
-        expect "SizedArrayInvalid3" [ Error ErrorCode.ExpectingIntExpr ]
+        expect "SizedArrayInvalid3" [ Error ErrorCode.TypeUnificationFailed ]
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =

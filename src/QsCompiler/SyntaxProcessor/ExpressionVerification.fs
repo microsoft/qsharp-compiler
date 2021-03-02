@@ -689,7 +689,7 @@ type QsExpression with
 
             let sizeRange = size.RangeOrDefault
             let size = InnerExpression size
-            VerifyIsInteger addError (size.ResolvedType, sizeRange)
+            VerifyIsInteger context.Inference addDiagnostic (size.ResolvedType, sizeRange)
 
             let quantumDependency =
                 value.InferredInformation.HasLocalQuantumDependency
