@@ -168,15 +168,11 @@ type TypeCheckingTests() =
         this.Expect "MatchArgument6" []
         this.Expect "MatchArgument7" []
         this.Expect "MatchArgument8" []
-        this.Expect "MatchArgument9" [ Error ErrorCode.ArgumentTypeMismatch ]
 
-        this.Expect
-            "MatchArgument10"
-            [
-                Error ErrorCode.AmbiguousTypeParameterResolution
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
+        // TODO: AmbiguousTypeVariable error is confusing.
+        this.Expect "MatchArgument9" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
 
+        this.Expect "MatchArgument10" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "MatchArgument11" []
         this.Expect "MatchArgument12" []
         this.Expect "MatchArgument13" []
@@ -185,7 +181,15 @@ type TypeCheckingTests() =
         this.Expect "MatchArgument16" []
         this.Expect "MatchArgument17" []
         this.Expect "MatchArgument18" []
-        this.Expect "MatchArgument19" [ Error ErrorCode.ArgumentTupleShapeMismatch ]
+
+        // TODO: AmbiguousTypeVariable errors are confusing.
+        this.Expect
+            "MatchArgument19"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+            ]
 
 
     [<Fact>]
