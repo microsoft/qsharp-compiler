@@ -27,14 +27,42 @@ type TypeCheckingTests() =
         this.Expect "Variance4" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "Variance5" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "Variance6" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "Variance7" []
-        this.Expect "Variance8" []
-        this.Expect "Variance9" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance10" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance11" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance12" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance13" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance14" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
+
+        this.Expect
+            "Variance7"
+            [
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+            ]
+
+        this.Expect
+            "Variance8"
+            [
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeVariable
+            ]
+
+        this.Expect "Variance9" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect "Variance10" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect "Variance11" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect "Variance12" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect "Variance13" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect "Variance14" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
 
 
     [<Fact>]
