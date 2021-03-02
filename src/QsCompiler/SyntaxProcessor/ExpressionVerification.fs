@@ -375,7 +375,12 @@ let private VerifyIdentifier (inference: InferenceContext) diagnose (symbols: Sy
 
         invalidWithoutTargs false
     | GlobalCallable name, _ ->
-        let typeParams = typeParams |> Seq.map (fun (ValidName param) -> name, param)
+        let typeParams =
+            typeParams
+            |> Seq.choose (function
+                | ValidName param -> Some(name, param)
+                | InvalidName -> None)
+
         let typeArgs = resolvedTargs |> QsNullable.defaultValue ImmutableArray.Empty
 
         let resolutions =
