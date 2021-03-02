@@ -22,11 +22,11 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.Variance() =
         this.Expect "Variance1" []
-        this.Expect "Variance2" [ Error ErrorCode.ArgumentTypeMismatch ]
-        this.Expect "Variance3" [ Error ErrorCode.ArgumentTypeMismatch ]
-        this.Expect "Variance4" [ Error ErrorCode.ArrayBaseTypeMismatch ]
-        this.Expect "Variance5" [ Error ErrorCode.ArrayBaseTypeMismatch ]
-        this.Expect "Variance6" [ Error ErrorCode.ArrayBaseTypeMismatch ]
+        this.Expect "Variance2" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "Variance3" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect "Variance4" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "Variance5" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "Variance6" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "Variance7" []
         this.Expect "Variance8" []
         this.Expect "Variance9" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
@@ -167,13 +167,17 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.``Partial application``() =
         this.Expect "PartialApplication1" []
-        this.Expect "PartialApplication2" [ Error ErrorCode.ArgumentTupleShapeMismatch ]
-        this.Expect "PartialApplication3" [ Error ErrorCode.ArgumentTypeMismatch ]
-        this.Expect "PartialApplication4" [ Error ErrorCode.ArgumentTypeMismatch ]
-        this.Expect "PartialApplication5" [ Error ErrorCode.ArgumentTypeMismatch ]
+
+        this.Expect
+            "PartialApplication2"
+            [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+
+        this.Expect "PartialApplication3" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "PartialApplication4" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "PartialApplication5" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "PartialApplication6" []
-        this.Expect "PartialApplication7" [ Error ErrorCode.ArgumentTupleShapeMismatch ]
-        this.Expect "PartialApplication8" [ Error ErrorCode.ArgumentTupleShapeMismatch ]
+        this.Expect "PartialApplication7" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "PartialApplication8" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "PartialApplication9" []
         this.Expect "PartialApplication10" []
         this.Expect "PartialApplication11" []
