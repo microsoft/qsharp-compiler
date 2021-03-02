@@ -222,38 +222,52 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         unbound <- Set.add param unbound
         TypeParameter param |> ResolvedType.New
 
-    member internal context.Unify(left: ResolvedType, right: ResolvedType) =
+    member internal context.Unify(left: ResolvedType, right: ResolvedType, ?invariant) =
         let left = context.Resolve left.Resolution |> ResolvedType.New
         let right = context.Resolve right.Resolution |> ResolvedType.New
+        let invariant = defaultArg invariant false
+
+        let unificationError =
+            lazy
+                (QsCompilerDiagnostic.Error
+                    (ErrorCode.TypeUnificationFailed,
+                     [
+                         printType left
+                         if invariant then printType right else "any subtype of " + printType right
+                     ])
+                     Range.Zero)
 
         match left.Resolution, right.Resolution with
         | _ when left = right -> []
         | TypeParameter param, _ when isFresh param -> bind param { Variance = Contravariant; Type = right }
         | _, TypeParameter param when isFresh param -> bind param { Variance = Covariant; Type = left }
-        | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2) // TODO: Invariant.
+        | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2, invariant = true)
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
-            Seq.zip items1 items2 |> Seq.collect context.Unify |> Seq.toList
-        | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) when isSubsetOf
-                                                                                                        info2
-                                                                                                        info1 ->
-            context.Unify(in2, in1) @ context.Unify(out1, out2)
+            Seq.zip items1 items2
+            |> Seq.collect (fun (item1, item2) -> context.Unify(item1, item2, invariant))
+            |> Seq.toList
+        | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
+            let sameChars = info1.Characteristics.GetProperties().SetEquals(info2.Characteristics.GetProperties())
+
+            let errors =
+                [
+                    if invariant && not sameChars || not invariant && not (isSubsetOf info2 info1)
+                    then unificationError.Value
+                ]
+
+            errors @ context.Unify(in2, in1, invariant) @ context.Unify(out1, out2, invariant)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            context.Unify(in2, in1) @ context.Unify(out1, out2)
+            context.Unify(in2, in1, invariant) @ context.Unify(out1, out2, invariant)
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
             // Function and operation types aren't compatible, but we can still try to unify their input and output
             // types for more accurate error messages.
-            let error = ErrorCode.TypeUnificationFailed, [ printType left; "any subtype of " + printType right ]
-
-            [ QsCompilerDiagnostic.Error error Range.Zero ]
-            @ context.Unify(in2, in1) @ context.Unify(out1, out2)
+            unificationError.Value :: context.Unify(in2, in1, invariant) @ context.Unify(out1, out2, invariant)
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
-        | _ ->
-            let error = ErrorCode.TypeUnificationFailed, [ printType left; "any subtype of " + printType right ]
-            [ QsCompilerDiagnostic.Error error Range.Zero ]
+        | _ -> [ unificationError.Value ]
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
