@@ -299,22 +299,21 @@ let private VerifyFunctorApplication functor errCode addError (ex: ResolvedType,
 /// adding an InvalidAdjointApplication error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 /// Returns the type of the functor application expression.
-let private VerifyAdjointApplication = VerifyFunctorApplication Adjoint (ErrorCode.InvalidAdjointApplication, [])
+let private VerifyAdjointApplication (inference: InferenceContext) diagnose (resolvedType, range) =
+    inference.Constrain(resolvedType, Constraint.Adjointable) |> diagnoseWithRange range diagnose
+    resolvedType
 
 /// Verifies that the Controlled functor can be applied to an expression of the given type,
 /// adding an InvalidControlledApplication error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 /// Returns the type of the functor application expression.
-let private VerifyControlledApplication addError (ex: ResolvedType, range) =
-    let origType =
-        VerifyFunctorApplication Controlled (ErrorCode.InvalidControlledApplication, []) addError (ex, range)
+let private VerifyControlledApplication (inference: InferenceContext) diagnose (resolvedType, range) =
+    let controlled = inference.Fresh()
 
-    match origType.Resolution with
-    | QsTypeKind.Operation ((arg, res), characteristics) ->
-        QsTypeKind.Operation((arg |> SyntaxGenerator.AddControlQubits, res), characteristics)
-        |> ResolvedType.New
-    | _ -> origType // is invalid type
+    inference.Constrain(resolvedType, Constraint.Controllable controlled)
+    |> diagnoseWithRange range diagnose
 
+    controlled
 
 // utils for verifying identifiers, call expressions, and resolving type parameters
 
@@ -1250,6 +1249,7 @@ type QsExpression with
                 |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
 
             let output = context.Inference.Fresh()
+
             if isPartial || context.IsInOperation then
                 context.Inference.Constrain(resolvedCallable.ResolvedType, Callable(argType, output))
                 |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
@@ -1293,9 +1293,9 @@ type QsExpression with
         | UnitValue -> (UnitValue, UnitType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs false
         | Identifier (sym, tArgs) -> VerifyIdentifier context.Inference addDiagnostic symbols (sym, tArgs)
         | CallLikeExpression (method, arg) -> buildCall (method, arg)
-        | AdjointApplication ex -> verifyAndBuildWith AdjointApplication (errorToDiagnostic VerifyAdjointApplication) ex
+        | AdjointApplication ex -> verifyAndBuildWith AdjointApplication (VerifyAdjointApplication context.Inference) ex
         | ControlledApplication ex ->
-            verifyAndBuildWith ControlledApplication (errorToDiagnostic VerifyControlledApplication) ex
+            verifyAndBuildWith ControlledApplication (VerifyControlledApplication context.Inference) ex
         | UnwrapApplication ex -> buildUnwrap ex
         | ValueTuple items -> buildTuple items
         | ArrayItem (arr, idx) -> buildArrayItem (arr, idx)

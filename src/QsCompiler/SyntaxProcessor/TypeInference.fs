@@ -7,6 +7,7 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 
+open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
@@ -27,9 +28,11 @@ type internal Variance =
 type internal Substitution = private { Variance: Variance; Type: ResolvedType }
 
 type internal Constraint =
+    | Adjointable
     | AppliesPartial of missing: ResolvedType * result: ResolvedType
     | Callable of input: ResolvedType * output: ResolvedType
     | CanGenerateFunctors of QsFunctor Set
+    | Controllable of controlled: ResolvedType
     | Equatable
     | Indexed of index: ResolvedType * item: ResolvedType
     | Integral
@@ -165,6 +168,11 @@ module internal TypeInference =
     let isSubsetOf info1 info2 =
         info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
 
+    let hasFunctor functor info =
+        info.Characteristics.SupportedFunctors
+        |> QsNullable.defaultValue ImmutableHashSet.Empty
+        |> fun functors -> functors.Contains functor
+
     let occursCheck param (resolvedType: ResolvedType) =
         if resolvedType.Exists((=) (TypeParameter param))
         then failwithf "Occurs check: cannot construct the infinite type %A ~ %A." param resolvedType
@@ -281,6 +289,13 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
         | _ when resolvedType.Resolution = InvalidType -> []
+        | Adjointable ->
+            match resolvedType.Resolution with
+            | QsTypeKind.Operation (_, info) when hasFunctor Adjoint info -> []
+            | _ ->
+                [
+                    QsCompilerDiagnostic.Error (ErrorCode.InvalidAdjointApplication, []) Range.Zero
+                ]
         | AppliesPartial (missing, result) ->
             match resolvedType.Resolution with
             | QsTypeKind.Function (_, output) ->
@@ -312,6 +327,25 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     let error = ErrorCode.MissingFunctorForAutoGeneration, [ String.Join(", ", missing) ]
                     [ QsCompilerDiagnostic.Error error Range.Zero ]
             | _ -> []
+        | Controllable controlled ->
+            let error = QsCompilerDiagnostic.Error (ErrorCode.InvalidControlledApplication, []) Range.Zero
+
+            match resolvedType.Resolution with
+            | QsTypeKind.Operation ((input, output), info) ->
+                let actualControlled =
+                    QsTypeKind.Operation((SyntaxGenerator.AddControlQubits input, output), info) |> ResolvedType.New
+
+                [
+                    if info |> hasFunctor Controlled |> not then error
+                    yield! context.Unify(actualControlled, controlled)
+                ]
+            | QsTypeKind.Function (input, output) ->
+                let actualControlled =
+                    QsTypeKind.Operation((SyntaxGenerator.AddControlQubits input, output), CallableInformation.Invalid)
+                    |> ResolvedType.New
+
+                error :: context.Unify(actualControlled, controlled)
+            | _ -> [ error ]
         | Equatable ->
             if Option.isSome resolvedType.supportsEqualityComparison then
                 []

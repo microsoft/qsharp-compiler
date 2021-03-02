@@ -225,10 +225,35 @@ type TypeCheckingTests() =
         this.Expect "PartialApplication21" []
         this.Expect "PartialApplication22" [ Error ErrorCode.MissingFunctorForAutoGeneration ]
         this.Expect "PartialApplication23" []
-        this.Expect "PartialApplication24" [ Error ErrorCode.InvalidControlledApplication ]
-        this.Expect "PartialApplication25" [ Error ErrorCode.InvalidControlledApplication ]
-        this.Expect "PartialApplication26" [ Error ErrorCode.InvalidAdjointApplication ]
-        this.Expect "PartialApplication27" [ Error ErrorCode.InvalidAdjointApplication ]
+
+        this.Expect
+            "PartialApplication24"
+            [
+                Error ErrorCode.InvalidControlledApplication
+                Error ErrorCode.TypeUnificationFailed
+            ]
+
+        this.Expect
+            "PartialApplication25"
+            [
+                Error ErrorCode.InvalidControlledApplication
+                Error ErrorCode.TypeUnificationFailed
+            ]
+
+        this.Expect
+            "PartialApplication26"
+            [
+                Error ErrorCode.InvalidAdjointApplication
+                Error ErrorCode.TypeUnificationFailed
+            ]
+
+        this.Expect
+            "PartialApplication27"
+            [
+                Error ErrorCode.InvalidAdjointApplication
+                Error ErrorCode.TypeUnificationFailed
+            ]
+
         this.Expect "PartialApplication28" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "PartialApplication29" []
         this.Expect "PartialApplication30" []
