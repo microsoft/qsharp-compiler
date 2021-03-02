@@ -579,5 +579,34 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let fct = PartialApplication29();
         fct(1);
     }
-}
 
+    // Sized array constructors
+
+    function SizedArray1(n : Int) : Int[] {
+        return [10, size = n];
+    }
+
+    function SizedArray2() : String[] {
+        return ["foo", size = 0];
+    }
+
+    function SizedArray3() : String[] {
+        return ["foo", size = -1];
+    }
+
+    function SizedArray4<'a>(value : 'a) : 'a[] {
+        return [value, size = 5];
+    }
+
+    function SizedArrayInvalid1(n : Double) : Int[] {
+        return [10, size = n];
+    }
+
+    function SizedArrayInvalid2(n : String) : Int[] {
+        return [10, size = n];
+    }
+
+    function SizedArrayInvalid3() : Int[] {
+        return [5, size = (1, 2)];
+    }
+}

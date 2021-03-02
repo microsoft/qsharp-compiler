@@ -19,6 +19,8 @@ type LocalVerificationTests() =
                                    "LocalVerification.qs"
                                    "Types.qs"
                                    Path.Combine("LinkingTests", "Core.qs")
+                                   Path.Combine("StringParsingTests", "StringParsing.qs")
+                                   Path.Combine("StringParsingTests", "StringInterpolation.qs")
                                ]))
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
@@ -187,6 +189,7 @@ type LocalVerificationTests() =
         this.Expect "ApplyAndReassign4" []
         this.Expect "ApplyAndReassign5" []
         this.Expect "ApplyAndReassign6" [ Error ErrorCode.TypeUnificationFailed ]
+
         this.Expect "ApplyAndReassign7" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
         this.Expect "ApplyAndReassign8" [ Error ErrorCode.UpdateOfImmutableIdentifier ]
         this.Expect "ApplyAndReassign9" [ Error ErrorCode.UpdateOfArrayItemExpr ]
@@ -200,6 +203,7 @@ type LocalVerificationTests() =
         this.Expect "ItemAccess2" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess3" []
         this.Expect "ItemAccess4" []
+
         this.Expect "ItemAccess5" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
         this.Expect "ItemAccess6" []
         this.Expect "ItemAccess7" []
@@ -499,6 +503,73 @@ type LocalVerificationTests() =
         this.Expect "ParensBorrow" [ Warning WarningCode.DeprecatedTupleBrackets ]
         this.Expect "NoParensBorrow" []
 
+    [<Fact>]
+    member this.``String Parsing``() =
+        this.Expect "StringParsingTest1" []
+        this.Expect "StringParsingTest2" []
+        this.Expect "StringParsingTest3" []
+        this.Expect "StringParsingTest4" []
+        this.Expect "StringParsingTest5" []
+        this.Expect "StringParsingTest6" []
+        this.Expect "StringParsingTest7" []
+
+        this.Expect "MultiLineStringTest1" []
+        this.Expect "MultiLineStringTest2" []
+        this.Expect "MultiLineStringTest3" []
+        this.Expect "MultiLineStringTest4" []
+        this.Expect "MultiLineStringTest5" []
+        this.Expect "MultiLineStringTest6" []
+        this.Expect "MultiLineStringTest7" []
+        this.Expect "MultiLineStringTest8" []
+        this.Expect "MultiLineStringTest9" [ Error ErrorCode.ExcessContinuation ]
+
+        this.Expect "StringInterpolationTest1" []
+        this.Expect "StringInterpolationTest2" []
+
+        this.Expect "StringInterpolationSimpleStringTest1" []
+        this.Expect "StringInterpolationSimpleStringTest2" []
+        this.Expect "StringInterpolationSimpleStringTest3" []
+        this.Expect "StringInterpolationSimpleStringTest4" []
+
+        this.Expect "StringInterpolationQuoteTest1" []
+        this.Expect "StringInterpolationQuoteTest2" []
+        this.Expect "StringInterpolationQuoteTest3" []
+        this.Expect "StringInterpolationQuoteTest4" []
+
+        this.Expect "StringInterpolationSemicolonTest1" []
+        this.Expect "StringInterpolationSemicolonTest2" []
+        this.Expect "StringInterpolationSemicolonTest3" []
+        this.Expect "StringInterpolationSemicolonTest4" []
+
+        this.Expect "StringInterpolationDollarSignTest1" []
+        this.Expect "StringInterpolationDollarSignTest2" []
+        this.Expect "StringInterpolationDollarSignTest3" []
+        this.Expect "StringInterpolationDollarSignTest4" []
+        this.Expect "StringInterpolationDollarSignTest5" []
+        this.Expect "StringInterpolationDollarSignTest6" []
+
+        this.Expect "StringInterpolationOpenBraceTest1" []
+        this.Expect "StringInterpolationOpenBraceTest2" []
+        this.Expect "StringInterpolationOpenBraceTest3" []
+        this.Expect "StringInterpolationOpenBraceTest4" []
+        this.Expect "StringInterpolationOpenBraceTest5" []
+        this.Expect "StringInterpolationOpenBraceTest6" []
+
+        this.Expect "StringInterpolationWithCommentTest1" []
+        this.Expect "StringInterpolationWithCommentTest2" []
+        this.Expect "StringInterpolationWithCommentTest3" []
+        this.Expect "StringInterpolationWithCommentTest4" []
+        this.Expect "StringInterpolationWithCommentTest5" []
+        this.Expect "StringInterpolationWithCommentTest6" []
+        this.Expect "StringInterpolationWithCommentTest7" []
+        this.Expect "StringInterpolationWithCommentTest8" []
+
+
+    [<Fact>]
+    member this.``Nested Interpolation Strings``() =
+        this.Expect "StringNestedInterpolationTest1" [ Error ErrorCode.InvalidCharacterInInterpolatedArgument ]
+        this.Expect "StringNestedInterpolationTest2" [ Error ErrorCode.InvalidCharacterInInterpolatedArgument ]
+        this.Expect "StringNestedInterpolationTest3" [ Error ErrorCode.InvalidCharacterInInterpolatedArgument ]
 
     [<Fact>]
     member this.``Deprecated qubit allocation keywords``() =
