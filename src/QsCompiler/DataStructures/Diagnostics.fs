@@ -702,7 +702,8 @@ type DiagnosticItem =
 
             | ErrorCode.TypeUnificationFailed -> "The type {0} cannot be unified with {1}. The types do not match."
             | ErrorCode.ConstraintNotSatisfied -> "The type {0} does not satisfy the {1} constraint."
-            | ErrorCode.AmbiguousTypeVariable -> "The type variable {0} is ambiguous. Further type annotations may be needed."
+            | ErrorCode.AmbiguousTypeVariable ->
+                "The type variable {0} is ambiguous. Further type annotations may be needed."
 
             | ErrorCode.ExpectingUnqualifiedSymbol -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName -> "Expecting an item name, i.e. an unqualified symbol."
