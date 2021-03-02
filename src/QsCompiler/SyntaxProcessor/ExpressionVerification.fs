@@ -1216,18 +1216,24 @@ type QsExpression with
             (UnwrapApplication resolvedEx, exType, resolvedEx.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
 
-        let rec partialType (argType: ResolvedType) =
+        let rec partialArgType (argType: ResolvedType) =
             match argType.Resolution with
             | MissingType ->
                 let param = context.Inference.Fresh()
-                param, [ param ]
+                param, Some param
             | TupleType items ->
-                let items, typeParams =
-                    (items |> Seq.map partialType, ([], []))
-                    ||> Seq.foldBack (fun (item, params1) (items, params2) -> item :: items, params1 @ params2)
+                let items, missing =
+                    (items |> Seq.map partialArgType, ([], []))
+                    ||> Seq.foldBack (fun (item, params1) (items, params2) ->
+                            item :: items, Option.toList params1 @ params2)
 
-                ImmutableArray.CreateRange items |> TupleType |> ResolvedType.New, typeParams
-            | _ -> argType, []
+                let missing =
+                    if List.isEmpty missing
+                    then None
+                    else ImmutableArray.CreateRange missing |> TupleType |> ResolvedType.New |> Some
+
+                ImmutableArray.CreateRange items |> TupleType |> ResolvedType.New, missing
+            | _ -> argType, None
 
         /// Resolves and verifies the given left hand side and right hand side of a call expression,
         /// and returns the corresponding expression as typed expression.
@@ -1235,16 +1241,15 @@ type QsExpression with
             let resolvedCallable = InnerExpression callable
             let resolvedArg = InnerExpression arg
             let callExpression = CallLikeExpression(resolvedCallable, resolvedArg)
-            let isPartial = TypedExpression.IsPartialApplication callExpression
+            let argType, partialType = partialArgType resolvedArg.ResolvedType
+            let isPartial = Option.isSome partialType
 
             if not isPartial then
                 context.Inference.Constrain
                     (resolvedCallable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport |> CanGenerateFunctors)
                 |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
 
-            let argType, partialTypes = partialType resolvedArg.ResolvedType
             let output = context.Inference.Fresh()
-
             if isPartial || context.IsInOperation then
                 context.Inference.Constrain(resolvedCallable.ResolvedType, Callable(argType, output))
                 |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
@@ -1255,16 +1260,15 @@ type QsExpression with
                 |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
 
             let resultType =
-                if isPartial then
-                    let missing = ImmutableArray.CreateRange partialTypes |> TupleType |> ResolvedType.New
+                match partialType with
+                | Some partial ->
                     let result = context.Inference.Fresh()
 
-                    context.Inference.Constrain(resolvedCallable.ResolvedType, AppliesPartial(missing, result))
+                    context.Inference.Constrain(resolvedCallable.ResolvedType, AppliesPartial(partial, result))
                     |> diagnoseWithRange arg.RangeOrDefault addDiagnostic
 
                     result
-                else
-                    output
+                | None -> output
 
             // Be pessimistic: if we don't know that the callable is a function at this point, assume it's an
             // operation.

@@ -215,11 +215,11 @@ type TypeCheckingTests() =
 
         this.Expect
             "PartialApplication15"
-            [ Error ErrorCode.ArgumentTypeMismatch; Error ErrorCode.ArgumentTypeMismatch ]
+            [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeUnificationFailed ]
 
-        this.Expect "PartialApplication16" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "PartialApplication16" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "PartialApplication17" []
-        this.Expect "PartialApplication18" [ Error ErrorCode.OperationCallOutsideOfOperation ]
+        this.Expect "PartialApplication18" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "PartialApplication19" []
         this.Expect "PartialApplication20" []
         this.Expect "PartialApplication21" []
