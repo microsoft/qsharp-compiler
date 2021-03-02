@@ -186,7 +186,7 @@ type LocalVerificationTests() =
         this.Expect "ApplyAndReassign3" []
         this.Expect "ApplyAndReassign4" []
         this.Expect "ApplyAndReassign5" []
-        this.Expect "ApplyAndReassign6" [ Error ErrorCode.ExpectingBoolExpr ]
+        this.Expect "ApplyAndReassign6" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "ApplyAndReassign7" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "ApplyAndReassign8" [ Error ErrorCode.UpdateOfImmutableIdentifier ]
         this.Expect "ApplyAndReassign9" [ Error ErrorCode.UpdateOfArrayItemExpr ]
