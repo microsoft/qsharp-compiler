@@ -329,7 +329,7 @@ let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qs
 /// Verifies the expression is indeed of type Bool, and returns an array with all generated diagnostics,
 /// as well as a delegate that given a Q# scope returns the built while-statement with the given scope as the body.
 let NewWhileStatement comments (location: QsLocation) context (qsExpr: QsExpression) =
-    let cond, _, errs = VerifyWith (errorToDiagnostic VerifyIsBoolean) context qsExpr
+    let cond, _, errs = VerifyWith (VerifyIsBoolean context.Inference) context qsExpr
 
     let whileLoop body =
         QsWhileStatement.New(cond, body) |> QsWhileStatement
@@ -341,7 +341,7 @@ let NewWhileStatement comments (location: QsLocation) context (qsExpr: QsExpress
 /// Returns an array of all diagnostics generated during resolution and verification,
 /// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block.
 let NewConditionalBlock comments location context (qsExpr: QsExpression) =
-    let condition, _, errs = VerifyWith (errorToDiagnostic VerifyIsBoolean) context qsExpr
+    let condition, _, errs = VerifyWith (VerifyIsBoolean context.Inference) context qsExpr
     let autoGenErrs = (condition, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
 
     let block body =

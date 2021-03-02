@@ -107,19 +107,15 @@ let internal VerifyUdtWith processUdt addError (exType, range) =
 /// Verifies that the given resolved type is indeed of kind Bool,
 /// adding an ExpectingBoolExpr error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
-let internal VerifyIsBoolean addError (exType, range) =
-    let expectedBool (t: ResolvedType) =
-        if t.Resolution = Bool then Some t else None
-
-    VerifyIsOneOf expectedBool (ErrorCode.ExpectingBoolExpr, [ exType |> toString ]) addError (exType, range)
-    |> ignore
+let internal VerifyIsBoolean (inference: InferenceContext) diagnose (exType, range) =
+    inference.Unify(exType, ResolvedType.New Bool) |> diagnoseWithRange range diagnose
 
 /// Verifies that both given resolved types are of kind Bool,
 /// adding an ExpectingBoolExpr error with the corresponding range using addError otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
-let private VerifyAreBooleans addError (lhsType, lhsRange) (rhsType, rhsRange) =
-    VerifyIsBoolean addError (lhsType, lhsRange)
-    VerifyIsBoolean addError (rhsType, rhsRange)
+let private VerifyAreBooleans inference diagnose (lhsType, lhsRange) (rhsType, rhsRange) =
+    VerifyIsBoolean inference diagnose (lhsType, lhsRange)
+    VerifyIsBoolean inference diagnose (rhsType, rhsRange)
 
 /// Verifies that the given resolved type is indeed of kind Int,
 /// adding an ExpectingIntExpr error with the given range using addError otherwise.
@@ -1049,7 +1045,7 @@ type QsExpression with
         /// and returns the corresponding expression built with buildExprKind as typed expression.
         let verifyAndBuildWith buildExprKind verify (ex: QsExpression) =
             let resolvedEx = InnerExpression ex
-            let exType = verify addError (resolvedEx.ResolvedType, ex.RangeOrDefault)
+            let exType = verify addDiagnostic (resolvedEx.ResolvedType, ex.RangeOrDefault)
 
             (buildExprKind resolvedEx, exType, resolvedEx.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
@@ -1192,7 +1188,7 @@ type QsExpression with
             let resCond, resIsTrue, resIsFalse = InnerExpression cond, InnerExpression ifTrue, InnerExpression ifFalse
             VerifyConditionalExecution addWarning (resIsTrue, ifTrue.RangeOrDefault)
             VerifyConditionalExecution addWarning (resIsFalse, ifFalse.RangeOrDefault)
-            VerifyIsBoolean addError (resCond.ResolvedType, cond.RangeOrDefault)
+            VerifyIsBoolean context.Inference addDiagnostic (resCond.ResolvedType, cond.RangeOrDefault)
 
             let exType = context.Inference.Fresh()
 
@@ -1295,8 +1291,8 @@ type QsExpression with
         | UnitValue -> (UnitValue, UnitType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs false
         | Identifier (sym, tArgs) -> VerifyIdentifier context.Inference addDiagnostic symbols (sym, tArgs)
         | CallLikeExpression (method, arg) -> buildCall (method, arg)
-        | AdjointApplication ex -> verifyAndBuildWith AdjointApplication VerifyAdjointApplication ex
-        | ControlledApplication ex -> verifyAndBuildWith ControlledApplication VerifyControlledApplication ex
+        | AdjointApplication ex -> verifyAndBuildWith AdjointApplication (errorToDiagnostic VerifyAdjointApplication) ex
+        | ControlledApplication ex -> verifyAndBuildWith ControlledApplication (errorToDiagnostic VerifyControlledApplication) ex
         | UnwrapApplication ex -> buildUnwrap ex
         | ValueTuple items -> buildTuple items
         | ArrayItem (arr, idx) -> buildArrayItem (arr, idx)
@@ -1339,14 +1335,14 @@ type QsExpression with
         | BOR (lhs, rhs) -> buildIntegralOp BOR (lhs, rhs)
         | BAND (lhs, rhs) -> buildIntegralOp BAND (lhs, rhs)
         | BXOR (lhs, rhs) -> buildIntegralOp BXOR (lhs, rhs)
-        | AND (lhs, rhs) -> buildBooleanOpWith (errorToDiagnostic VerifyAreBooleans) true AND (lhs, rhs)
-        | OR (lhs, rhs) -> buildBooleanOpWith (errorToDiagnostic VerifyAreBooleans) true OR (lhs, rhs)
+        | AND (lhs, rhs) -> buildBooleanOpWith (VerifyAreBooleans context.Inference) true AND (lhs, rhs)
+        | OR (lhs, rhs) -> buildBooleanOpWith (VerifyAreBooleans context.Inference) true OR (lhs, rhs)
         | EQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison context) false EQ (lhs, rhs)
         | NEQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison context) false NEQ (lhs, rhs)
-        | NEG ex -> verifyAndBuildWith NEG VerifySupportsArithmetic ex
-        | BNOT ex -> verifyAndBuildWith BNOT VerifyIsIntegral ex
+        | NEG ex -> verifyAndBuildWith NEG (errorToDiagnostic VerifySupportsArithmetic) ex
+        | BNOT ex -> verifyAndBuildWith BNOT (errorToDiagnostic VerifyIsIntegral) ex
         | NOT ex ->
             ex
             |> verifyAndBuildWith NOT (fun log arg ->
-                   VerifyIsBoolean log arg
+                   VerifyIsBoolean context.Inference log arg
                    ResolvedType.New Bool)
