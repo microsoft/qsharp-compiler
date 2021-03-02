@@ -165,10 +165,10 @@ let rec private VerifyBinding (inference: InferenceContext)
         let verify symbol symbolType =
             VerifyBinding inference tryBuildDeclaration (symbol, (symbolType, rhsEx, rhsRange)) warnOnDiscard
 
-        let combine (items, declarations1, diagnostics1) (item, declarations2, diagnostics2) =
-            item :: items, Array.append declarations2 declarations1, Array.append diagnostics2 diagnostics1
+        let combine (item, declarations1, diagnostics1) (items, declarations2, diagnostics2) =
+            item :: items, Array.append declarations1 declarations2, Array.append diagnostics1 diagnostics2
 
-        let items, declarations, diagnostics = Seq.map2 verify symbols types |> Seq.fold combine ([], [||], [||])
+        let items, declarations, diagnostics = Seq.foldBack combine (Seq.map2 verify symbols types) ([], [||], [||])
         symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
 
 /// Resolves and verifies the given Q# expressions using the resolution context.
@@ -194,6 +194,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
             match ex.Expression with
             | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
             | _ -> ()
+
             [||]
         | Item (ex: TypedExpression) ->
             let range = ex.Range.ValueOr Range.Zero
@@ -233,7 +234,7 @@ let private TryAddDeclaration isMutable
                               (rhsType: ResolvedType, rhsEx, rhsRange)
                               =
     let t, tpErr =
-//        if rhsType.isTypeParametrized symbols.Parent
+        //        if rhsType.isTypeParametrized symbols.Parent
 //           || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then
 //            InvalidType |> ResolvedType.New,
 //            [|
