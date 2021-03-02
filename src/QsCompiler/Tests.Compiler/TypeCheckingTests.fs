@@ -40,21 +40,8 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.``Common base type``() =
         this.Expect "CommonBaseType1" []
-
-        this.Expect
-            "CommonBaseType2"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
-        this.Expect
-            "CommonBaseType3"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
+        this.Expect "CommonBaseType2" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "CommonBaseType3" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "CommonBaseType4" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "CommonBaseType5" []
         this.Expect "CommonBaseType6" []
