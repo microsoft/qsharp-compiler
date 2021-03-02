@@ -559,11 +559,9 @@ type TypeParameterTests() =
     [<Trait("Category", "Parsing Expressions")>]
     member this.``Sub-call Resolution``() =
         let expression = CompileTypeParameterTest 5 |> GetMainExpression
-
         let combination = TypeResolutionCombination(expression)
         let given = combination.CombinedResolutionDictionary
-        let expected = ResolutionFromParam []
-
+        let expected = [ FooA, Int; FooB, Int; FooC, Int ] |> ResolutionFromParam
         AssertExpectedResolution expected given
 
     [<Fact>]
