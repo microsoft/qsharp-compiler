@@ -200,23 +200,13 @@ type LocalVerificationTests() =
         this.Expect "ItemAccess2" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess3" []
         this.Expect "ItemAccess4" []
-
-        this.Expect
-            "ItemAccess5"
-            [
-                Error ErrorCode.TypeUnificationFailed
-                Error ErrorCode.TypeUnificationFailed
-                Error ErrorCode.TypeUnificationFailed
-                Error ErrorCode.TypeMismatchInReturn
-            ]
-
+        this.Expect "ItemAccess5" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
         this.Expect "ItemAccess6" []
         this.Expect "ItemAccess7" []
         this.Expect "ItemAccess8" []
         this.Expect "ItemAccess9" []
         this.Expect "ItemAccess10" []
         this.Expect "ItemAccess11" []
-
         this.Expect "ItemAccess12" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeUnificationFailed ]
 
         this.Expect

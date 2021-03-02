@@ -150,9 +150,8 @@ let private VerifyIntegralOp parent
                              ((lhsType: ResolvedType), lhsRange)
                              (rhsType: ResolvedType, rhsRange)
                              =
-    let exType = inference.Fresh()
-    inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
-    inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Covariant)
+    diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Integral) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     exType
 
@@ -177,9 +176,8 @@ let private VerifyArithmeticOp parent
                                (lhsType: ResolvedType, lhsRange)
                                (rhsType: ResolvedType, rhsRange)
                                =
-    let exType = inference.Fresh()
-    inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
-    inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Covariant)
+    diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Numeric) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     exType
 
@@ -208,9 +206,8 @@ let private VerifyConcatenation parent
                                 (lhsType: ResolvedType, lhsRange)
                                 (rhsType: ResolvedType, rhsRange)
                                 =
-    let exType = inference.Fresh()
-    inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
-    inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Covariant)
+    diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Semigroup) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
     // let expected (t: ResolvedType) = t.supportsConcatenation
@@ -224,9 +221,8 @@ let private VerifyConcatenation parent
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
 let private VerifyEqualityComparison context diagnose (lhsType, lhsRange) (rhsType, rhsRange) =
-    let exType = context.Inference.Fresh()
-    context.Inference.Unify(lhsType, exType) |> diagnoseWithRange lhsRange diagnose
-    context.Inference.Unify(rhsType, exType) |> diagnoseWithRange rhsRange diagnose
+    let exType, diagnostics = context.Inference.Intersect(lhsType, rhsType, Covariant)
+    diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
     context.Inference.Constrain(exType, Equatable)
     |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
@@ -249,10 +245,12 @@ let private VerifyValueArray parent (inference: InferenceContext) diagnose (cont
     | [] when List.isEmpty content -> inference.Fresh()
     | [] -> ResolvedType.New InvalidType |> ArrayType |> ResolvedType.New
     | types ->
-        let commonType = inference.Fresh()
-
-        for itemType in types do
-            inference.Unify(itemType, commonType) |> List.iter diagnose
+        let commonType =
+            types
+            |> List.reduce (fun left right ->
+                let t, ds = inference.Intersect(left, right, Covariant)
+                ds |> List.iter diagnose
+                t)
 
         ArrayType commonType |> ResolvedType.New
 
@@ -1292,7 +1290,8 @@ type QsExpression with
         | Identifier (sym, tArgs) -> VerifyIdentifier context.Inference addDiagnostic symbols (sym, tArgs)
         | CallLikeExpression (method, arg) -> buildCall (method, arg)
         | AdjointApplication ex -> verifyAndBuildWith AdjointApplication (errorToDiagnostic VerifyAdjointApplication) ex
-        | ControlledApplication ex -> verifyAndBuildWith ControlledApplication (errorToDiagnostic VerifyControlledApplication) ex
+        | ControlledApplication ex ->
+            verifyAndBuildWith ControlledApplication (errorToDiagnostic VerifyControlledApplication) ex
         | UnwrapApplication ex -> buildUnwrap ex
         | ValueTuple items -> buildTuple items
         | ArrayItem (arr, idx) -> buildArrayItem (arr, idx)

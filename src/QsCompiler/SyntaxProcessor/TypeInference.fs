@@ -95,7 +95,7 @@ module internal TypeInference =
 
                     CallableInformation.New(characteristics, inferred)
                 | Invariant ->
-                    raiseError mismatchErr (true, true) |> ignore
+                    raiseError mismatchErr (true, false) |> ignore
 
                     CallableInformation.New
                         (ResolvedCharacteristics.New InvalidSetExpr, InferredCallableInformation.NoInformation)
@@ -143,7 +143,7 @@ module internal TypeInference =
             | Contravariant, Contravariant -> "any supertype of "
             | _ -> ""
 
-        let error = ErrorCode.TypeUnificationFailed, [ printType left.Type; varianceName + printType right.Type ]
+        let error = ErrorCode.ArgumentMismatchInBinaryOp, [ printType left.Type; printType right.Type ]
 
         if left.Variance <> Invariant && left.Variance = right.Variance then
             let mutable diagnostics = []
@@ -200,10 +200,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         unbound <- Set.remove param unbound
 
         match substitutions.TryGetValue param |> tryOption with
-        | Some v ->
-            let sub, diagnostics = intersect substitution v
-            substitutions.[param] <- sub
-            diagnostics
+        | Some _ -> failwith "already bound - shouldn't happen"
         | None ->
             substitutions.[param] <- substitution
             []
@@ -239,15 +236,20 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         match left.Resolution, right.Resolution with
         | _ when left = right -> []
-        | TypeParameter param, _ when isFresh param -> bind param { Variance = Contravariant; Type = right }
-        | _, TypeParameter param when isFresh param -> bind param { Variance = Covariant; Type = left }
+        | TypeParameter param, _ when isFresh param ->
+            bind param { Variance = (if invariant then Invariant else Contravariant); Type = right }
+        | _, TypeParameter param when isFresh param ->
+            bind param { Variance = (if invariant then Invariant else Covariant); Type = left }
         | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2, invariant = true)
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
             Seq.zip items1 items2
             |> Seq.collect (fun (item1, item2) -> context.Unify(item1, item2, invariant))
             |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
-            let sameChars = info1.Characteristics.GetProperties().SetEquals(info2.Characteristics.GetProperties())
+            let sameChars =
+                info1.Characteristics.AreInvalid
+                || info2.Characteristics.AreInvalid
+                || info1.Characteristics.GetProperties().SetEquals(info2.Characteristics.GetProperties())
 
             let errors =
                 [
@@ -268,6 +270,13 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _, InvalidType
         | _, MissingType -> []
         | _ -> [ unificationError.Value ]
+
+    member internal context.Intersect(left, right, variance) =
+        context.Unify(left, right, invariant = true) |> ignore
+        let left = context.Resolve left.Resolution |> ResolvedType.New
+        let right = context.Resolve right.Resolution |> ResolvedType.New
+        let s, ds = intersect { Variance = variance; Type = left } { Variance = variance; Type = right }
+        s.Type, ds
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with

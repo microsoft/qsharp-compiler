@@ -40,8 +40,8 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.``Common base type``() =
         this.Expect "CommonBaseType1" []
-        this.Expect "CommonBaseType2" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeMismatchInReturn ]
-        this.Expect "CommonBaseType3" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "CommonBaseType2" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "CommonBaseType3" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
         this.Expect "CommonBaseType4" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "CommonBaseType5" []
         this.Expect "CommonBaseType6" []
@@ -50,18 +50,14 @@ type TypeCheckingTests() =
         this.Expect "CommonBaseType9" []
         this.Expect "CommonBaseType10" []
         this.Expect "CommonBaseType11" [ Error ErrorCode.TypeMismatchInReturn ]
-
-        this.Expect
-            "CommonBaseType12"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
+        this.Expect "CommonBaseType12" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
         this.Expect "CommonBaseType13" []
         this.Expect "CommonBaseType14" []
         this.Expect "CommonBaseType15" [ Error ErrorCode.TypeMismatchInReturn ]
-        this.Expect "CommonBaseType16" [ Error ErrorCode.MultipleTypesInArray ]
+
+        // TODO: Should be MultipleTypesInArray.
+        this.Expect "CommonBaseType16" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" []
 
@@ -73,12 +69,12 @@ type TypeCheckingTests() =
                 Warning WarningCode.ReturnTypeNotResolvedByArgument
             ]
 
-        this.Expect "CommonBaseType20" [ Error ErrorCode.MultipleTypesInArray ]
+        this.Expect "CommonBaseType20" [ Error ErrorCode.ConstrainsTypeParameter ]
         this.Expect "CommonBaseType21" []
         this.Expect "CommonBaseType22" []
         this.Expect "CommonBaseType23" []
         this.Expect "CommonBaseType24" []
-        this.Expect "CommonBaseType25" [ Error ErrorCode.MultipleTypesInArray ]
+        this.Expect "CommonBaseType25" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
 
 
     [<Fact>]
@@ -130,19 +126,8 @@ type TypeCheckingTests() =
                 Error ErrorCode.InvalidUseOfUnderscorePattern
             ]
 
-        this.Expect
-            "NoCommonBaseEquality"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
-        this.Expect
-            "NoCommonBaseInequality"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
+        this.Expect "NoCommonBaseEquality" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "NoCommonBaseInequality" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
 
 
     [<Fact>]
