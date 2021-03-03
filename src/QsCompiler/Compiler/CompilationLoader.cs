@@ -76,6 +76,11 @@ namespace Microsoft.Quantum.QsCompiler
             public bool SkipSyntaxTreeTrimming;
 
             /// <summary>
+            /// Unless this is set to true, all unused callables are removed from the syntax tree.
+            /// </summary>
+            public bool SkipSyntaxTreeTrimming2;
+
+            /// <summary>
             /// If set to true, the compiler attempts to pre-evaluate the built compilation as much as possible.
             /// This is an experimental feature that will change over time.
             /// </summary>
@@ -237,6 +242,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status FunctorSupport = Status.NotRun;
             internal Status PreEvaluation = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
+            internal Status TreeTrimming2 = Status.NotRun;
             internal Status ConvertClassicalControl = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
             internal Status Documentation = Status.NotRun;
@@ -532,6 +538,13 @@ namespace Microsoft.Quantum.QsCompiler
 
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
+
+            if (!this.config.SkipSyntaxTreeTrimming2)
+            {
+                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(), typeof(IRewriteStep), thisDllUri);
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming2)));
+            }
+
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
