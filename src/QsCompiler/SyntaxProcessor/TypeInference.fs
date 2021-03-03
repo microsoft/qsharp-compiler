@@ -19,20 +19,20 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
 
-type internal TypeOrdering =
+type internal Ordering =
     | Subtype
     | Equal
     | Supertype
 
-type internal TypeRelation =
+type internal Relation =
     private
         {
             Lhs: ResolvedType
-            Compares: TypeOrdering
+            Compares: Ordering
             Rhs: ResolvedType
         }
 
-module internal TypeRelation =
+module internal Relation =
     let relate lhs compares rhs =
         {
             Lhs = lhs
@@ -61,7 +61,7 @@ type internal Constraint =
     | Semigroup
     | Wrapped of item: ResolvedType
 
-module internal TypeInference =
+module private Inference =
     /// Given two resolve types, determines and returns a common base type if such a type exists,
     /// or pushes adds a suitable error using addError and returns invalid type if a common base type does not exist.
     /// Adds an ExpressionOfUnknownType error if either of the types contains a missing type.
@@ -187,7 +187,7 @@ module internal TypeInference =
         |> fun functors -> functors.Contains functor
 
     let occursCheck param (resolvedType: ResolvedType) =
-        if resolvedType.Exists((=) (TypeParameter param))
+        if TypeParameter param |> (=) |> resolvedType.Exists
         then failwithf "Occurs check: cannot construct the infinite type %A ~ %A." param resolvedType
 
     // TODO
@@ -205,8 +205,8 @@ module internal TypeInference =
         | Some fs -> Set.difference target fs |> mapFunctors
         | None -> if Set.isEmpty target then [ "(None)" ] else mapFunctors target
 
-open TypeInference
-open TypeRelation
+open Inference
+open Relation
 
 type InferenceContext(symbolTracker: SymbolTracker) =
     let mutable count = 0
@@ -294,7 +294,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> [ unificationError.Value ]
 
     member internal context.Intersect(left: ResolvedType, right, variance) =
-        context.Unify(left.Is right) |> ignore
+        left.Is right |> context.Unify |> ignore
         let left = context.Resolve left.Resolution |> ResolvedType.New
         let right = context.Resolve right.Resolution |> ResolvedType.New
         relate left variance right |> intersect
