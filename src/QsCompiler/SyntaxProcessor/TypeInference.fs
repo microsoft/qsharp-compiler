@@ -381,15 +381,13 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | Some actualItem -> context.Unify(actualItem.IsSubtypeOf item)
             | None -> failwithf "Iterable %A constraint not satisfied for %A." item resolvedType
         | Numeric ->
-            if resolvedType.supportsArithmetic |> Option.isSome
+            if Option.isSome resolvedType.supportsArithmetic
             then []
             else failwithf "Numeric constraint not satisfied for %A." resolvedType
         | Semigroup ->
-            if resolvedType.supportsConcatenation |> Option.isSome
-               || resolvedType.supportsArithmetic |> Option.isSome then
-                []
-            else
-                failwithf "Semigroup constraint not satisfied for %A." resolvedType
+            if Option.isSome resolvedType.supportsConcatenation || Option.isSome resolvedType.supportsArithmetic
+            then []
+            else failwithf "Semigroup constraint not satisfied for %A." resolvedType
         | Wrapped item ->
             match resolvedType.Resolution with
             | UserDefinedType udt ->
@@ -405,7 +403,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match constraints.TryGetValue param |> tryOption with
             | Some xs -> constraints.[param] <- typeConstraint :: xs
             | None -> constraints.Add(param, [ typeConstraint ])
-
             []
         | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 
