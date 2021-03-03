@@ -3,10 +3,6 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
-open System
-open System.Collections.Generic
-open System.Collections.Immutable
-
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -18,6 +14,8 @@ open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
+open System.Collections.Generic
+open System.Collections.Immutable
 
 type private Ordering =
     | Subtype
@@ -133,7 +131,9 @@ module private Inference =
             | QsTypeKind.ArrayType b1, QsTypeKind.ArrayType b2 ->
                 matchTypes Equal (b1, b2) |> ArrayType |> ResolvedType.New
             | QsTypeKind.TupleType ts1, QsTypeKind.TupleType ts2 when ts1.Length = ts2.Length ->
-                (Seq.zip ts1 ts2 |> Seq.map (matchTypes variance)).ToImmutableArray()
+                Seq.zip ts1 ts2
+                |> Seq.map (matchTypes variance)
+                |> ImmutableArray.CreateRange
                 |> TupleType
                 |> ResolvedType.New
             | QsTypeKind.UserDefinedType udt1, QsTypeKind.UserDefinedType udt2 when udt1 = udt2 -> t1
@@ -341,7 +341,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 | _ when info.Characteristics.AreInvalid -> []
                 | [] -> []
                 | missing ->
-                    let error = ErrorCode.MissingFunctorForAutoGeneration, [ String.Join(", ", missing) ]
+                    let error = ErrorCode.MissingFunctorForAutoGeneration, [ String.concat "," missing ]
                     [ QsCompilerDiagnostic.Error error Range.Zero ]
             | _ -> []
         | Controllable controlled ->
@@ -407,6 +407,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match constraints.TryGetValue param |> tryOption with
             | Some xs -> constraints.[param] <- typeConstraint :: xs
             | None -> constraints.Add(param, [ typeConstraint ])
+
             []
         | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 
