@@ -1085,10 +1085,10 @@ type QsExpression with
 
             let resultType =
                 match partialType with
-                | Some partial ->
+                | Some missing ->
                     let result = context.Inference.Fresh()
 
-                    context.Inference.Constrain(resolvedCallable.ResolvedType, AppliesPartial(partial, result))
+                    context.Inference.Constrain(resolvedCallable.ResolvedType, HasPartialApplication(missing, result))
                     |> diagnoseWithRange arg.RangeOrDefault addDiagnostic
 
                     result

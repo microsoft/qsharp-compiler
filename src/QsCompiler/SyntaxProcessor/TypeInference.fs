@@ -24,11 +24,11 @@ type private Ordering =
 
 type internal Constraint =
     | Adjointable
-    | AppliesPartial of missing: ResolvedType * result: ResolvedType
     | Callable of input: ResolvedType * output: ResolvedType
     | CanGenerateFunctors of functors: QsFunctor Set
     | Controllable of controlled: ResolvedType
     | Equatable
+    | HasPartialApplication of missing: ResolvedType * result: ResolvedType
     | Indexed of index: ResolvedType * item: ResolvedType
     | Integral
     | Iterable of item: ResolvedType
@@ -278,15 +278,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 [
                     QsCompilerDiagnostic.Error (ErrorCode.InvalidAdjointApplication, []) Range.Zero
                 ]
-        | AppliesPartial (missing, result) ->
-            match resolvedType.Resolution with
-            | QsTypeKind.Function (_, output) ->
-                context.Unify(result, QsTypeKind.Function(missing, output) |> ResolvedType.New)
-            | QsTypeKind.Operation ((_, output), info) ->
-                context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
-            | _ ->
-                let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "AppliesPartial" ]
-                [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Callable (input, output) ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation _ ->
@@ -333,6 +324,15 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 []
             else
                 let error = ErrorCode.InvalidTypeInEqualityComparison, [ printType resolvedType ]
+                [ QsCompilerDiagnostic.Error error Range.Zero ]
+        | HasPartialApplication (missing, result) ->
+            match resolvedType.Resolution with
+            | QsTypeKind.Function (_, output) ->
+                context.Unify(result, QsTypeKind.Function(missing, output) |> ResolvedType.New)
+            | QsTypeKind.Operation ((_, output), info) ->
+                context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
+            | _ ->
+                let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "HasPartialApplication" ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Indexed (index, item) ->
             match resolvedType.Resolution, context.Resolve index.Resolution with
