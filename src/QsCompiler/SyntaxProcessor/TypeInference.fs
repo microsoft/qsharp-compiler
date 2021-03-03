@@ -419,7 +419,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         constraints.Remove param |> ignore
         diagnostics
 
-    member internal context.Ambiguous() =
+    member internal context.Ambiguous =
         [
             for param in unbound ->
                 QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ param.TypeName ]) Range.Zero
@@ -459,4 +459,4 @@ module InferenceContext =
                     | resolvedType -> resolvedType
             }
 
-        SyntaxTreeTransformation(Types = types), context.Ambiguous()
+        SyntaxTreeTransformation(Types = types), context.Ambiguous
