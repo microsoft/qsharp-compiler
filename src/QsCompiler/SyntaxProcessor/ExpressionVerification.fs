@@ -13,7 +13,6 @@ open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxGenerator
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Relation
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -79,7 +78,7 @@ let private VerifyIsOneOf asExpected errCode addError (exType: ResolvedType, ran
 /// adding an ExpectingUnitExpr error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 let internal VerifyIsUnit (inference: InferenceContext) diagnose (exType: ResolvedType, range) =
-    exType.IsSubtypeOf(ResolvedType.New UnitType) |> inference.Unify |> diagnoseWithRange range diagnose
+    inference.Unify(ResolvedType.New UnitType, exType) |> diagnoseWithRange range diagnose
 
 /// Verifies that the given resolved type is indeed of kind String,
 /// adding an ExpectingStringExpr error with the given range using addError otherwise.
@@ -109,7 +108,7 @@ let internal VerifyUdtWith processUdt addError (exType, range) =
 /// adding an ExpectingBoolExpr error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 let internal VerifyIsBoolean (inference: InferenceContext) diagnose (exType: ResolvedType, range) =
-    exType.IsSubtypeOf(ResolvedType.New Bool) |> inference.Unify |> diagnoseWithRange range diagnose
+    inference.Unify(ResolvedType.New Bool, exType) |> diagnoseWithRange range diagnose
 
 /// Verifies that both given resolved types are of kind Bool,
 /// adding an ExpectingBoolExpr error with the corresponding range using addError otherwise.
@@ -122,7 +121,7 @@ let private VerifyAreBooleans inference diagnose (lhsType, lhsRange) (rhsType, r
 /// adding an ExpectingIntExpr error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 let internal VerifyIsInteger (inference: InferenceContext) diagnose (exType: ResolvedType, range) =
-    exType.IsSubtypeOf(ResolvedType.New Int) |> inference.Unify |> diagnoseWithRange range diagnose
+    inference.Unify(ResolvedType.New Int, exType) |> diagnoseWithRange range diagnose
 
 /// Verifies that both given resolved types are of kind Int,
 /// adding an ExpectingIntExpr error with the corresponding range using addError otherwise.
@@ -151,7 +150,7 @@ let private VerifyIntegralOp parent
                              ((lhsType: ResolvedType), lhsRange)
                              (rhsType: ResolvedType, rhsRange)
                              =
-    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Supertype)
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType)
     diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Integral) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     exType
@@ -177,7 +176,7 @@ let private VerifyArithmeticOp parent
                                (lhsType: ResolvedType, lhsRange)
                                (rhsType: ResolvedType, rhsRange)
                                =
-    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Supertype)
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType)
     diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Numeric) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     exType
@@ -207,7 +206,7 @@ let private VerifyConcatenation parent
                                 (lhsType: ResolvedType, lhsRange)
                                 (rhsType: ResolvedType, rhsRange)
                                 =
-    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Supertype)
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType)
     diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Semigroup) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
@@ -222,7 +221,7 @@ let private VerifyConcatenation parent
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
 let private VerifyEqualityComparison context diagnose (lhsType, lhsRange) (rhsType, rhsRange) =
-    let exType, diagnostics = context.Inference.Intersect(lhsType, rhsType, Supertype)
+    let exType, diagnostics = context.Inference.Intersect(lhsType, rhsType)
     diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
     context.Inference.Constrain(exType, Equatable)
@@ -249,7 +248,7 @@ let private VerifyValueArray parent (inference: InferenceContext) diagnose (cont
         let commonType =
             types
             |> List.reduce (fun left right ->
-                let t, ds = inference.Intersect(left, right, Supertype)
+                let t, ds = inference.Intersect(left, right)
                 ds |> List.iter diagnose
                 t)
 
@@ -416,7 +415,7 @@ let internal TypeMatchArgument (inference: InferenceContext)
                                targetType
                                (argType: ResolvedType)
                                =
-    argType.IsSubtypeOf targetType |> inference.Unify
+    inference.Unify(targetType, argType)
 
 /// Returns the type of the expression that completes the argument
 /// (i.e. the expected type for the expression that completes all missing pieces in the argument) as option,
@@ -1015,15 +1014,10 @@ type QsExpression with
             VerifyConditionalExecution addWarning (resIsFalse, ifFalse.RangeOrDefault)
             VerifyIsBoolean context.Inference addDiagnostic (resCond.ResolvedType, cond.RangeOrDefault)
 
-            let exType = context.Inference.Fresh()
+            let exType, diagnostics = context.Inference.Intersect(resIsTrue.ResolvedType, resIsFalse.ResolvedType)
 
-            resIsTrue.ResolvedType.IsSubtypeOf exType
-            |> context.Inference.Unify
-            |> diagnoseWithRange ifTrue.RangeOrDefault addDiagnostic
-
-            resIsFalse.ResolvedType.IsSubtypeOf exType
-            |> context.Inference.Unify
-            |> diagnoseWithRange ifFalse.RangeOrDefault addDiagnostic
+            diagnostics
+            |> diagnoseWithRange (Range.Span ifTrue.RangeOrDefault ifFalse.RangeOrDefault) addDiagnostic
 
             let localQdependency =
                 [ resCond; resIsTrue; resIsFalse ]
@@ -1085,8 +1079,8 @@ type QsExpression with
                 |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
             else
                 // TODO: Better error message.
-                resolvedCallable.ResolvedType.IsSubtypeOf(QsTypeKind.Function(argType, output) |> ResolvedType.New)
-                |> context.Inference.Unify
+                context.Inference.Unify
+                    (QsTypeKind.Function(argType, output) |> ResolvedType.New, resolvedCallable.ResolvedType)
                 |> diagnoseWithRange callable.RangeOrDefault addDiagnostic
 
             let resultType =

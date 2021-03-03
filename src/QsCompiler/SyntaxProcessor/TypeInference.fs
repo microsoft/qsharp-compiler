@@ -19,20 +19,19 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
 
-type internal Ordering =
+type private Ordering =
     | Subtype
     | Equal
     | Supertype
 
-type internal Relation =
-    private
-        {
-            Lhs: ResolvedType
-            Compares: Ordering
-            Rhs: ResolvedType
-        }
+type private Relation =
+    {
+        Lhs: ResolvedType
+        Compares: Ordering
+        Rhs: ResolvedType
+    }
 
-module internal Relation =
+module private Relation =
     let relate lhs compares rhs =
         {
             Lhs = lhs
@@ -236,7 +235,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         unbound <- Set.add param unbound
         TypeParameter param |> ResolvedType.New
 
-    member internal context.Unify relation =
+    member internal context.Unify(expected: ResolvedType, actual) =
+        expected.IsSupertypeOf actual |> context.UnifyRelation
+
+    member private context.UnifyRelation relation =
         let expected = context.Resolve relation.Lhs.Resolution |> ResolvedType.New
         let actual = context.Resolve relation.Rhs.Resolution |> ResolvedType.New
 
@@ -251,7 +253,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                      Range.Zero)
 
         match expected.Resolution, actual.Resolution with
-        | _ when relation.Compares = Supertype -> context.Unify(relation.Rhs.IsSubtypeOf relation.Lhs)
+        | _ when relation.Compares = Supertype -> context.UnifyRelation(relation.Rhs.IsSubtypeOf relation.Lhs)
         | _ when expected = actual -> []
         | TypeParameter param, _ when isFresh param ->
             bind param actual
@@ -259,10 +261,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _, TypeParameter param when isFresh param ->
             bind param expected
             context.PopConstraints(param, expected)
-        | ArrayType item1, ArrayType item2 -> context.Unify(item1.Is item2)
+        | ArrayType item1, ArrayType item2 -> context.UnifyRelation(item1.Is item2)
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
             Seq.zip items1 items2
-            |> Seq.collect (fun (item1, item2) -> context.Unify(relate item1 relation.Compares item2))
+            |> Seq.collect (fun (item1, item2) -> context.UnifyRelation(relate item1 relation.Compares item2))
             |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let sameChars =
@@ -278,26 +280,28 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 ]
 
             errors
-            @ context.Unify(relate in2 relation.Compares in1) @ context.Unify(relate out1 relation.Compares out2)
+            @ context.UnifyRelation(relate in2 relation.Compares in1)
+              @ context.UnifyRelation(relate out1 relation.Compares out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            context.Unify(relate in2 relation.Compares in1) @ context.Unify(relate out1 relation.Compares out2)
+            context.UnifyRelation(relate in2 relation.Compares in1)
+            @ context.UnifyRelation(relate out1 relation.Compares out2)
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
             // Function and operation types aren't compatible, but we can still try to unify their input and output
             // types for more accurate error messages.
-            unificationError.Value :: context.Unify(relate in2 relation.Compares in1)
-            @ context.Unify(relate out1 relation.Compares out2)
+            unificationError.Value :: context.UnifyRelation(relate in2 relation.Compares in1)
+            @ context.UnifyRelation(relate out1 relation.Compares out2)
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
         | _ -> [ unificationError.Value ]
 
-    member internal context.Intersect(left: ResolvedType, right, variance) =
-        left.Is right |> context.Unify |> ignore
+    member internal context.Intersect(left: ResolvedType, right) =
+        left.Is right |> context.UnifyRelation |> ignore
         let left = context.Resolve left.Resolution |> ResolvedType.New
         let right = context.Resolve right.Resolution |> ResolvedType.New
-        relate left variance right |> intersect
+        relate left Supertype right |> intersect
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
@@ -312,9 +316,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | AppliesPartial (missing, result) ->
             match resolvedType.Resolution with
             | QsTypeKind.Function (_, output) ->
-                context.Unify((QsTypeKind.Function(missing, output) |> ResolvedType.New).IsSubtypeOf result)
+                context.Unify(result, QsTypeKind.Function(missing, output) |> ResolvedType.New)
             | QsTypeKind.Operation ((_, output), info) ->
-                context.Unify((QsTypeKind.Operation((missing, output), info) |> ResolvedType.New).IsSubtypeOf result)
+                context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
             | _ ->
                 let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "AppliesPartial" ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
@@ -322,9 +326,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match resolvedType.Resolution with
             | QsTypeKind.Operation _ ->
                 let operationType = QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
-                context.Unify(resolvedType.IsSubtypeOf(ResolvedType.New operationType))
+                context.Unify(ResolvedType.New operationType, resolvedType)
             | QsTypeKind.Function _ ->
-                context.Unify(resolvedType.IsSubtypeOf(QsTypeKind.Function(input, output) |> ResolvedType.New))
+                context.Unify(QsTypeKind.Function(input, output) |> ResolvedType.New, resolvedType)
             | _ ->
                 let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "Callable" ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
@@ -350,14 +354,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
                 [
                     if info |> hasFunctor Controlled |> not then error
-                    yield! context.Unify(actualControlled.IsSubtypeOf controlled)
+                    yield! context.Unify(controlled, actualControlled)
                 ]
             | QsTypeKind.Function (input, output) ->
                 let actualControlled =
                     QsTypeKind.Operation((SyntaxGenerator.AddControlQubits input, output), CallableInformation.Invalid)
                     |> ResolvedType.New
 
-                error :: context.Unify(actualControlled.IsSubtypeOf controlled)
+                error :: context.Unify(controlled, actualControlled)
             | _ -> [ error ]
         | Equatable ->
             if Option.isSome resolvedType.supportsEqualityComparison then
@@ -367,8 +371,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Indexed (index, item) ->
             match resolvedType.Resolution, context.Resolve index.Resolution with
-            | ArrayType actualItem, Int -> context.Unify(actualItem.IsSubtypeOf item)
-            | ArrayType _, Range -> context.Unify(resolvedType.IsSubtypeOf item)
+            | ArrayType actualItem, Int -> context.Unify(item, actualItem)
+            | ArrayType _, Range -> context.Unify(item, resolvedType)
             | _ ->
                 let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "Indexed" ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
@@ -378,7 +382,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             else failwithf "Integral constraint not satisfied for %A." resolvedType
         | Iterable item ->
             match resolvedType.supportsIteration with
-            | Some actualItem -> context.Unify(actualItem.IsSubtypeOf item)
+            | Some actualItem -> context.Unify(item, actualItem)
             | None -> failwithf "Iterable %A constraint not satisfied for %A." item resolvedType
         | Numeric ->
             if Option.isSome resolvedType.supportsArithmetic
@@ -392,7 +396,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match resolvedType.Resolution with
             | UserDefinedType udt ->
                 let actualItem = symbolTracker.GetUnderlyingType (fun _ -> ()) udt
-                context.Unify(actualItem.IsSubtypeOf item)
+                context.Unify(item, actualItem)
             | _ -> failwithf "Wrapped %A constraint not satisfied for %A." item resolvedType
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =

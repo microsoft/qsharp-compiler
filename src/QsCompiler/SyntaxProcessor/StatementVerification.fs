@@ -12,7 +12,6 @@ open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
-open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Relation
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -161,7 +160,7 @@ let rec private VerifyBinding (inference: InferenceContext)
     | SymbolTuple symbols ->
         let types = List.init symbols.Length (fun _ -> inference.Fresh())
         let tupleType = ImmutableArray.CreateRange types |> TupleType |> ResolvedType.New
-        let unifyDiagnostics = rhsType.IsSubtypeOf tupleType |> inference.Unify
+        let unifyDiagnostics = inference.Unify(tupleType, rhsType)
 
         let verify symbol symbolType =
             VerifyBinding inference tryBuildDeclaration (symbol, (symbolType, rhsEx, rhsRange)) warnOnDiscard
