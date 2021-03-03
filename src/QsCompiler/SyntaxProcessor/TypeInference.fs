@@ -47,8 +47,6 @@ module internal TypeRelation =
 
         member lhs.IsSupertypeOf rhs = relate lhs Supertype rhs
 
-type internal TypeBound = private { Limit: TypeOrdering; Type: ResolvedType }
-
 type internal Constraint =
     | Adjointable
     | AppliesPartial of missing: ResolvedType * result: ResolvedType
@@ -161,24 +159,24 @@ module internal TypeInference =
 
     let printType: ResolvedType -> string = SyntaxTreeToQsharp.Default.ToCode
 
-    let intersect (left: TypeBound) (right: TypeBound) =
-        let error = ErrorCode.ArgumentMismatchInBinaryOp, [ printType left.Type; printType right.Type ]
+    let intersect relation =
+        let error = ErrorCode.ArgumentMismatchInBinaryOp, [ printType relation.Lhs; printType relation.Rhs ]
 
-        if left.Limit <> Equal && left.Limit = right.Limit then
+        if relation.Compares <> Equal then
             let mutable diagnostics = []
 
             let newType =
-                commonType left.Limit (fun error range ->
+                commonType relation.Compares (fun error range ->
                     diagnostics <- QsCompilerDiagnostic.Error error range :: diagnostics) error
-                    { Name = ""; Namespace = "" } (left.Type, Range.Zero) (right.Type, Range.Zero)
+                    { Name = ""; Namespace = "" } (relation.Lhs, Range.Zero) (relation.Rhs, Range.Zero)
 
-            { Limit = left.Limit; Type = newType }, diagnostics
-        elif left.Type = right.Type then
-            { left with Limit = Equal }, []
-        elif left.Type.Resolution = InvalidType || right.Type.Resolution = InvalidType then
-            { Limit = Equal; Type = ResolvedType.New InvalidType }, []
+            newType, diagnostics
+        elif relation.Lhs = relation.Rhs then
+            relation.Lhs, []
+        elif relation.Lhs.Resolution = InvalidType || relation.Rhs.Resolution = InvalidType then
+            ResolvedType.New InvalidType, []
         else
-            { Limit = Equal; Type = ResolvedType.New InvalidType }, [ QsCompilerDiagnostic.Error error Range.Zero ]
+            ResolvedType.New InvalidType, [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     let isSubsetOf info1 info2 =
         info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
@@ -299,8 +297,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         context.Unify(left.Is right) |> ignore
         let left = context.Resolve left.Resolution |> ResolvedType.New
         let right = context.Resolve right.Resolution |> ResolvedType.New
-        let s, ds = intersect { Limit = variance; Type = left } { Limit = variance; Type = right }
-        s.Type, ds
+        relate left variance right |> intersect
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
