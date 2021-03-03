@@ -19,13 +19,12 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
 
-/// Describes the direction of the subtyping relationship between components of compound types.
-type internal Variance =
-    | Covariant
-    | Contravariant
-    | Invariant
+type internal TypeOrdering =
+    | Subtype
+    | Equal
+    | Supertype
 
-type internal Substitution = private { Variance: Variance; Type: ResolvedType }
+type internal Substitution = private { Comparison: TypeOrdering; Type: ResolvedType }
 
 type internal Constraint =
     | Adjointable
@@ -68,9 +67,9 @@ module internal TypeInference =
         let rec matchInAndOutputType variance (i1, o1) (i2, o2) =
             let inputVariance =
                 match variance with
-                | Covariant -> Contravariant
-                | Contravariant -> Covariant
-                | Invariant -> Invariant
+                | Subtype -> Supertype
+                | Supertype -> Subtype
+                | Equal -> Equal
 
             let argType = matchTypes inputVariance (i1, i2) // variance changes for the argument type *only*
             let resType = matchTypes variance (o1, o2)
@@ -81,12 +80,12 @@ module internal TypeInference =
 
             let characteristics =
                 match variance with
-                | Covariant -> CallableInformation.Common [ s1; s2 ]
-                | Contravariant -> // no information can ever be inferred in this case, since contravariance only occurs within the type signatures of passed callables
+                | Supertype -> CallableInformation.Common [ s1; s2 ]
+                | Subtype -> // no information can ever be inferred in this case, since contravariance only occurs within the type signatures of passed callables
                     CallableInformation.New
                         (Union(s1.Characteristics, s2.Characteristics) |> ResolvedCharacteristics.New,
                          InferredCallableInformation.NoInformation)
-                | Invariant when s1.Characteristics.AreInvalid
+                | Equal when s1.Characteristics.AreInvalid
                                  || s2.Characteristics.AreInvalid
                                  || s1.Characteristics.GetProperties().SetEquals(s2.Characteristics.GetProperties()) ->
                     let characteristics =
@@ -97,7 +96,7 @@ module internal TypeInference =
                                                              s2.InferredInformation ]
 
                     CallableInformation.New(characteristics, inferred)
-                | Invariant ->
+                | Equal ->
                     raiseError mismatchErr (true, false) |> ignore
 
                     CallableInformation.New
@@ -112,7 +111,7 @@ module internal TypeInference =
             | QsTypeKind.ArrayType b1, QsTypeKind.ArrayType b2 when b1.isMissing || b2.isMissing ->
                 if b1.isMissing then t2 else t1
             | QsTypeKind.ArrayType b1, QsTypeKind.ArrayType b2 ->
-                matchTypes Invariant (b1, b2) |> ArrayType |> ResolvedType.New
+                matchTypes Equal (b1, b2) |> ArrayType |> ResolvedType.New
             | QsTypeKind.TupleType ts1, QsTypeKind.TupleType ts2 when ts1.Length = ts2.Length ->
                 (Seq.zip ts1 ts2 |> Seq.map (matchTypes variance)).ToImmutableArray()
                 |> TupleType
@@ -135,34 +134,34 @@ module internal TypeInference =
 
         matchTypes variance (lhsType, rhsType)
 
-    let CommonBaseType addError = commonType Covariant addError
+    let CommonBaseType addError = commonType Supertype addError
 
     let printType: ResolvedType -> string = SyntaxTreeToQsharp.Default.ToCode
 
     let intersect left right =
         let varianceName =
-            match left.Variance, right.Variance with
-            | Covariant, Covariant -> "any subtype of "
-            | Contravariant, Contravariant -> "any supertype of "
+            match left.Comparison, right.Comparison with
+            | Subtype, Subtype -> "any subtype of "
+            | Supertype, Supertype -> "any supertype of "
             | _ -> ""
 
         let error = ErrorCode.ArgumentMismatchInBinaryOp, [ printType left.Type; printType right.Type ]
 
-        if left.Variance <> Invariant && left.Variance = right.Variance then
+        if left.Comparison <> Equal && left.Comparison = right.Comparison then
             let mutable diagnostics = []
 
             let newType =
-                commonType left.Variance (fun error range ->
+                commonType left.Comparison (fun error range ->
                     diagnostics <- QsCompilerDiagnostic.Error error range :: diagnostics) error
                     { Name = ""; Namespace = "" } (left.Type, Range.Zero) (right.Type, Range.Zero)
 
-            { Variance = left.Variance; Type = newType }, diagnostics
+            { Comparison = left.Comparison; Type = newType }, diagnostics
         elif left.Type = right.Type then
-            { left with Variance = Invariant }, []
+            { left with Comparison = Equal }, []
         elif left.Type.Resolution = InvalidType || right.Type.Resolution = InvalidType then
-            { Variance = Invariant; Type = ResolvedType.New InvalidType }, []
+            { Comparison = Equal; Type = ResolvedType.New InvalidType }, []
         else
-            { Variance = Invariant; Type = ResolvedType.New InvalidType },
+            { Comparison = Equal; Type = ResolvedType.New InvalidType },
             [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     let isSubsetOf info1 info2 =
@@ -245,9 +244,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         match left.Resolution, right.Resolution with
         | _ when left = right -> []
         | TypeParameter param, _ when isFresh param ->
-            bind param { Variance = (if invariant then Invariant else Contravariant); Type = right }
+            bind param { Comparison = (if invariant then Equal else Supertype); Type = right }
         | _, TypeParameter param when isFresh param ->
-            bind param { Variance = (if invariant then Invariant else Covariant); Type = left }
+            bind param { Comparison = (if invariant then Equal else Subtype); Type = left }
         | ArrayType item1, ArrayType item2 -> context.Unify(item1, item2, invariant = true)
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
             Seq.zip items1 items2
@@ -283,7 +282,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         context.Unify(left, right, invariant = true) |> ignore
         let left = context.Resolve left.Resolution |> ResolvedType.New
         let right = context.Resolve right.Resolution |> ResolvedType.New
-        let s, ds = intersect { Variance = variance; Type = left } { Variance = variance; Type = right }
+        let s, ds = intersect { Comparison = variance; Type = left } { Comparison = variance; Type = right }
         s.Type, ds
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =

@@ -150,7 +150,7 @@ let private VerifyIntegralOp parent
                              ((lhsType: ResolvedType), lhsRange)
                              (rhsType: ResolvedType, rhsRange)
                              =
-    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Covariant)
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Supertype)
     diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Integral) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     exType
@@ -176,7 +176,7 @@ let private VerifyArithmeticOp parent
                                (lhsType: ResolvedType, lhsRange)
                                (rhsType: ResolvedType, rhsRange)
                                =
-    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Covariant)
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Supertype)
     diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Numeric) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     exType
@@ -206,7 +206,7 @@ let private VerifyConcatenation parent
                                 (lhsType: ResolvedType, lhsRange)
                                 (rhsType: ResolvedType, rhsRange)
                                 =
-    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Covariant)
+    let exType, diagnostics = inference.Intersect(lhsType, rhsType, Supertype)
     diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
     inference.Constrain(exType, Semigroup) |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
@@ -221,7 +221,7 @@ let private VerifyConcatenation parent
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
 let private VerifyEqualityComparison context diagnose (lhsType, lhsRange) (rhsType, rhsRange) =
-    let exType, diagnostics = context.Inference.Intersect(lhsType, rhsType, Covariant)
+    let exType, diagnostics = context.Inference.Intersect(lhsType, rhsType, Supertype)
     diagnostics |> diagnoseWithRange (Range.Span lhsRange rhsRange) diagnose
 
     context.Inference.Constrain(exType, Equatable)
@@ -248,7 +248,7 @@ let private VerifyValueArray parent (inference: InferenceContext) diagnose (cont
         let commonType =
             types
             |> List.reduce (fun left right ->
-                let t, ds = inference.Intersect(left, right, Covariant)
+                let t, ds = inference.Intersect(left, right, Supertype)
                 ds |> List.iter diagnose
                 t)
 
