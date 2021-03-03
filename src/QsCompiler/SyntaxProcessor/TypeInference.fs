@@ -215,7 +215,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     let substitutions = Dictionary()
 
-    let mutable constraints = []
+    let constraints = Dictionary()
 
     let bind param substitution =
         occursCheck param substitution
@@ -255,10 +255,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ when expected = actual -> []
         | TypeParameter param, _ when isFresh param ->
             bind param actual
-            []
+            context.PopConstraints(param, actual)
         | _, TypeParameter param when isFresh param ->
             bind param expected
-            []
+            context.PopConstraints(param, expected)
         | ArrayType item1, ArrayType item2 -> context.Unify(item1.Is item2)
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
             Seq.zip items1 items2
@@ -401,17 +401,26 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let resolvedType = context.Resolve resolvedType.Resolution |> ResolvedType.New
 
         match resolvedType.Resolution with
-        | TypeParameter param ->
-            constraints <- (param, typeConstraint) :: constraints
+        | TypeParameter param when isFresh param ->
+            match constraints.TryGetValue param |> tryOption with
+            | Some xs -> constraints.[param] <- typeConstraint :: xs
+            | None -> constraints.Add(param, [ typeConstraint ])
+
             []
         | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 
-    member context.Satisfy() =
-        [
-            for param, typeConstraint in constraints do
-                let typeKind = TypeParameter param |> context.Resolve
-                yield! context.CheckConstraint(typeConstraint, ResolvedType.New typeKind)
+    member private context.PopConstraints(param, resolvedType) =
+        let diagnostics =
+            constraints.TryGetValue param
+            |> tryOption
+            |> Option.defaultValue []
+            |> List.collect (fun typeConstraint -> context.CheckConstraint(typeConstraint, resolvedType))
 
+        constraints.Remove param |> ignore
+        diagnostics
+
+    member internal context.Ambiguous() =
+        [
             for param in unbound ->
                 QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ param.TypeName ]) Range.Zero
         ]
@@ -450,4 +459,4 @@ module InferenceContext =
                     | resolvedType -> resolvedType
             }
 
-        SyntaxTreeTransformation(Types = types)
+        SyntaxTreeTransformation(Types = types), context.Ambiguous()
