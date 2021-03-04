@@ -597,6 +597,12 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg).ToCodeActionParams();
+            if (param == null)
+            {
+                this.LogToWindow("No code action parameters found; skipping code actions.", MessageType.Warning);
+                return Array.Empty<CodeAction>();
+            }
+
             try
             {
                 return
