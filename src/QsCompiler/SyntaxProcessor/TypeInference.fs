@@ -44,7 +44,12 @@ type internal Constraint =
     | Wrapped of item: ResolvedType
 
 module private Inference =
-    let printType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
+    let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
+
+    let showFunctor =
+        function
+        | Adjoint -> Keywords.qsAdjointFunctor.id
+        | Controlled -> Keywords.qsControlledFunctor.id
 
     let private combineCallableInfo ordering info1 info2 =
         let isInvalid info = info.Characteristics.AreInvalid
@@ -92,10 +97,10 @@ module private Inference =
         | _, InvalidType -> ResolvedType.New InvalidType, []
         | _ when lhs = rhs -> lhs, []
         | _ ->
-            let error = ErrorCode.ArgumentMismatchInBinaryOp, [ printType lhs; printType rhs ]
+            let error = ErrorCode.ArgumentMismatchInBinaryOp, [ showType lhs; showType rhs ]
             ResolvedType.New InvalidType, [ QsCompilerDiagnostic.Error error Range.Zero ]
 
-    let isSubsetOf info1 info2 =
+    let isSubset info1 info2 =
         info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
 
     let hasFunctor functor info =
@@ -104,23 +109,13 @@ module private Inference =
         |> fun functors -> functors.Contains functor
 
     let occursCheck param (resolvedType: ResolvedType) =
-        if TypeParameter param |> (=) |> resolvedType.Exists
-        then failwithf "Occurs check: cannot construct the infinite type %A ~ %A." param resolvedType
+        let param = TypeParameter param
 
-    // TODO
-    let isFresh (param: QsTypeParameter) =
-        param.TypeName.StartsWith "__a" && param.TypeName.EndsWith "__"
-
-    let missingFunctors target given =
-        let mapFunctors =
-            Seq.map (function
-                | Adjoint -> Keywords.qsAdjointFunctor.id
-                | Controlled -> Keywords.qsControlledFunctor.id)
-            >> Seq.toList
-
-        match given with
-        | Some fs -> Set.difference target fs |> mapFunctors
-        | None -> if Set.isEmpty target then [ "(None)" ] else mapFunctors target
+        if param <> resolvedType.Resolution && resolvedType.Exists((=) param)
+        then failwithf
+                 "Occurs check failed on types %s and %s."
+                 (ResolvedType.New param |> showType)
+                 (showType resolvedType)
 
 open Inference
 
@@ -152,6 +147,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         unbound.Add param |> ignore
         TypeParameter param |> ResolvedType.New
 
+    member internal context.IsFresh(param: QsTypeParameter) =
+        // TODO
+        param.TypeName.StartsWith "__a" && param.TypeName.EndsWith "__"
+
     member internal context.Unify(expected: ResolvedType, actual) =
         context.UnifyRelation(expected, Supertype, actual)
 
@@ -164,18 +163,18 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 (QsCompilerDiagnostic.Error
                     (ErrorCode.TypeUnificationFailed,
                      [
-                         printType expected
-                         if compares = Equal then printType actual else "any subtype of " + printType actual
+                         showType expected
+                         if compares = Equal then showType actual else "any subtype of " + showType actual
                      ])
                      Range.Zero)
 
         match expected.Resolution, actual.Resolution with
         | _ when compares = Supertype -> context.UnifyRelation(rhs, Subtype, lhs)
         | _ when expected = actual -> []
-        | TypeParameter param, _ when isFresh param ->
+        | TypeParameter param, _ when context.IsFresh param ->
             bind param actual
             context.PopConstraints(param, actual)
-        | _, TypeParameter param when isFresh param ->
+        | _, TypeParameter param when context.IsFresh param ->
             bind param expected
             context.PopConstraints(param, expected)
         | ArrayType item1, ArrayType item2 -> context.UnifyRelation(item1, Equal, item2)
@@ -191,7 +190,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
             let errors =
                 [
-                    if compares = Equal && not sameChars || compares <> Equal && not (isSubsetOf info2 info1)
+                    if compares = Equal && not sameChars || compares <> Equal && not (isSubset info2 info1)
                     then unificationError.Value
                 ]
 
@@ -234,18 +233,21 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | QsTypeKind.Function _ ->
                 context.Unify(QsTypeKind.Function(input, output) |> ResolvedType.New, resolvedType)
             | _ ->
-                let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "Callable" ]
+                let error = ErrorCode.ConstraintNotSatisfied, [ showType resolvedType; "Callable" ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | CanGenerateFunctors functors ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, info) ->
                 let supported = info.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
+                let missing = Set.difference functors (Set.ofSeq supported)
 
-                match Set.ofSeq supported |> Some |> missingFunctors functors with
-                | _ when info.Characteristics.AreInvalid -> []
-                | [] -> []
-                | missing ->
-                    let error = ErrorCode.MissingFunctorForAutoGeneration, [ String.concat "," missing ]
+                if info.Characteristics.AreInvalid || Set.isEmpty missing then
+                    []
+                else
+                    let error =
+                        ErrorCode.MissingFunctorForAutoGeneration,
+                        [ missing |> Seq.map showFunctor |> String.concat "," ]
+
                     [ QsCompilerDiagnostic.Error error Range.Zero ]
             | _ -> []
         | Controllable controlled ->
@@ -271,7 +273,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             if Option.isSome resolvedType.supportsEqualityComparison then
                 []
             else
-                let error = ErrorCode.InvalidTypeInEqualityComparison, [ printType resolvedType ]
+                let error = ErrorCode.InvalidTypeInEqualityComparison, [ showType resolvedType ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | HasPartialApplication (missing, result) ->
             match resolvedType.Resolution with
@@ -280,14 +282,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | QsTypeKind.Operation ((_, output), info) ->
                 context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
             | _ ->
-                let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "HasPartialApplication" ]
+                let error = ErrorCode.ConstraintNotSatisfied, [ showType resolvedType; "HasPartialApplication" ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Indexed (index, item) ->
             match resolvedType.Resolution, context.Resolve index.Resolution with
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
             | _ ->
-                let error = ErrorCode.ConstraintNotSatisfied, [ printType resolvedType; "Indexed" ]
+                let error = ErrorCode.ConstraintNotSatisfied, [ showType resolvedType; "Indexed" ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Integral ->
             if resolvedType.Resolution = Int || resolvedType.Resolution = BigInt
@@ -316,11 +318,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let resolvedType = context.Resolve resolvedType.Resolution |> ResolvedType.New
 
         match resolvedType.Resolution with
-        | TypeParameter param when isFresh param ->
+        | TypeParameter param when context.IsFresh param ->
             match constraints.TryGetValue param |> tryOption with
             | Some xs -> constraints.[param] <- typeConstraint :: xs
             | None -> constraints.Add(param, [ typeConstraint ])
-
             []
         | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 
@@ -370,7 +371,7 @@ module InferenceContext =
             { new TypeTransformation() with
                 member this.OnTypeParameter param =
                     match TypeParameter param |> context.Resolve with
-                    | TypeParameter param' when isFresh param' -> InvalidType
+                    | TypeParameter param' when context.IsFresh param' -> InvalidType
                     | resolvedType -> resolvedType
             }
 
