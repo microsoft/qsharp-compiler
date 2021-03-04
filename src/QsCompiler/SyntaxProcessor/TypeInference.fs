@@ -159,11 +159,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     member internal context.IsFresh(param: QsTypeParameter) = variables.ContainsKey param
 
-    member internal context.Unify(expected, actual) =
+    member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =
+        let expected = context.Resolve expected.Resolution |> ResolvedType.New
+        let actual = context.Resolve actual.Resolution |> ResolvedType.New
         context.UnifyByOrdering(expected, Supertype, actual)
 
-    member internal context.Intersect(left, right) =
+    member internal context.Intersect(left: ResolvedType, right: ResolvedType) =
+        let left = context.Resolve left.Resolution |> ResolvedType.New
+        let right = context.Resolve right.Resolution |> ResolvedType.New
         context.UnifyByOrdering(left, Equal, right) |> ignore
+
         let left = context.Resolve left.Resolution |> ResolvedType.New
         let right = context.Resolve right.Resolution |> ResolvedType.New
         combine Supertype left right
@@ -204,10 +209,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             QsTypeKind.Function(inType, outType)
         | _ -> typeKind
 
-    member private context.UnifyByOrdering(lhs: ResolvedType, ordering, rhs: ResolvedType) =
-        let expected = context.Resolve lhs.Resolution |> ResolvedType.New
-        let actual = context.Resolve rhs.Resolution |> ResolvedType.New
-
+    member private context.UnifyByOrdering(expected: ResolvedType, ordering, actual: ResolvedType) =
         let unificationError =
             lazy
                 (QsCompilerDiagnostic.Error
@@ -219,7 +221,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                      Range.Zero)
 
         match expected.Resolution, actual.Resolution with
-        | _ when ordering = Supertype -> context.UnifyByOrdering(rhs, Subtype, lhs)
+        | _ when ordering = Subtype -> context.UnifyByOrdering(expected, Supertype, actual)
         | _ when expected = actual -> []
         | TypeParameter param, _ when context.IsFresh param ->
             bind param actual
@@ -240,7 +242,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
             let errors =
                 [
-                    if ordering = Equal && not sameChars || ordering <> Equal && not (isSubset info2 info1)
+                    if ordering = Equal && not sameChars || ordering <> Equal && not (isSubset info1 info2)
                     then unificationError.Value
                 ]
 
