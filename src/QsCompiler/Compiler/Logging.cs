@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = null, // do not show a code for infos
                 Source = source,
                 Message = $"{DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>())}{Environment.NewLine}{string.Join(Environment.NewLine, messageParam)}",
-                Range = range
+                Range = range ?? new LSP.Range()
             });
 
         /// <summary>
@@ -157,6 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         public void Log(Diagnostic m)
         {
             if (m.Severity == DiagnosticSeverity.Warning &&
+                m.Code != null &&
                 CompilationBuilder.Diagnostics.TryGetCode(m.Code, out int code)
                 && this.noWarn.Contains(code))
             {

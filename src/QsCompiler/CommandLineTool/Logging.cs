@@ -41,12 +41,14 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Prints the given message to the Console.
         /// Errors and Warnings are printed to the error stream.
         /// </summary>
-        private static void PrintToConsole(DiagnosticSeverity severity, string message)
+        private static void PrintToConsole(DiagnosticSeverity? severity, string message)
         {
-            var (stream, color) =
-                severity == DiagnosticSeverity.Error ? (Console.Error, ConsoleColor.Red) :
-                severity == DiagnosticSeverity.Warning ? (Console.Error, ConsoleColor.Yellow) :
-                (Console.Out, Console.ForegroundColor);
+            var (stream, color) = severity switch
+            {
+                DiagnosticSeverity.Error => (Console.Error, ConsoleColor.Red),
+                DiagnosticSeverity.Warning => (Console.Error, ConsoleColor.Yellow),
+                _ => (Console.Out, Console.ForegroundColor)
+            };
 
             var consoleColor = Console.ForegroundColor;
             Console.ForegroundColor = color;
