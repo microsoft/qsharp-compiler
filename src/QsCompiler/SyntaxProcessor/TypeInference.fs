@@ -179,7 +179,7 @@ open Inference
 type InferenceContext(symbolTracker: SymbolTracker) =
     let mutable count = 0
 
-    let mutable unbound = Set.empty
+    let unbound = HashSet()
 
     let substitutions = Dictionary()
 
@@ -187,7 +187,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     let bind param substitution =
         occursCheck param substitution
-        unbound <- Set.remove param unbound
+        unbound.Remove param |> ignore
         substitutions.Add(param, substitution)
 
     member internal context.Fresh() =
@@ -201,7 +201,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 Range = Null
             }
 
-        unbound <- Set.add param unbound
+        unbound.Add param |> ignore
         TypeParameter param |> ResolvedType.New
 
     member internal context.Unify(expected: ResolvedType, actual) =
