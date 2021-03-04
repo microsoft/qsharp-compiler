@@ -108,7 +108,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     intrinsicCallableSet,
                     keepAllIntrinsics);
 
-                return filter.OnCompilation(compilation);
+                var transformed = filter.OnCompilation(compilation);
+                return new QsCompilation(transformed.Namespaces.Where(ns => ns.Elements.Any()).ToImmutableArray(), transformed.EntryPoints);
             }
 
             public class TransformationState
