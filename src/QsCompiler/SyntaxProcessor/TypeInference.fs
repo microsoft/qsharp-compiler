@@ -29,6 +29,10 @@ module private Ordering =
         | Equal -> Equal
         | Supertype -> Subtype
 
+type private VariableState =
+    | Free
+    | Bound
+
 type internal Constraint =
     | Adjointable
     | Callable of input: ResolvedType * output: ResolvedType
@@ -120,9 +124,7 @@ module private Inference =
 open Inference
 
 type InferenceContext(symbolTracker: SymbolTracker) =
-    let mutable count = 0
-
-    let unbound = HashSet()
+    let variables = Dictionary()
 
     let substitutions = Dictionary()
 
@@ -130,12 +132,11 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     let bind param substitution =
         occursCheck param substitution
-        unbound.Remove param |> ignore
+        variables.[param] <- Bound
         substitutions.Add(param, substitution)
 
     member internal context.Fresh() =
-        let name = sprintf "__a%d__" count
-        count <- count + 1
+        let name = sprintf "__a%d__" variables.Count
 
         let param =
             {
@@ -144,12 +145,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 Range = Null
             }
 
-        unbound.Add param |> ignore
+        variables.Add(param, Free)
         TypeParameter param |> ResolvedType.New
 
-    member internal context.IsFresh(param: QsTypeParameter) =
-        // TODO
-        param.TypeName.StartsWith "__a" && param.TypeName.EndsWith "__"
+    member internal context.IsFresh(param: QsTypeParameter) = variables.ContainsKey param
 
     member internal context.Unify(expected: ResolvedType, actual) =
         context.UnifyRelation(expected, Supertype, actual)
@@ -322,6 +321,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match constraints.TryGetValue param |> tryOption with
             | Some xs -> constraints.[param] <- typeConstraint :: xs
             | None -> constraints.Add(param, [ typeConstraint ])
+
             []
         | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 
@@ -337,8 +337,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     member internal context.Ambiguous =
         [
-            for param in unbound ->
-                QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ param.TypeName ]) Range.Zero
+            for variable in variables do
+                if variable.Value = Free
+                then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ variable.Key.TypeName ]) Range.Zero
         ]
 
     member internal context.Resolve typeKind =
