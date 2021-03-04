@@ -22,6 +22,13 @@ type private Ordering =
     | Equal
     | Supertype
 
+module private Ordering =
+    let not =
+        function
+        | Subtype -> Supertype
+        | Equal -> Equal
+        | Supertype -> Subtype
+
 type internal Constraint =
     | Adjointable
     | Callable of input: ResolvedType * output: ResolvedType
@@ -37,115 +44,56 @@ type internal Constraint =
     | Wrapped of item: ResolvedType
 
 module private Inference =
-    /// Given two resolve types, determines and returns a common base type if such a type exists,
-    /// or pushes adds a suitable error using addError and returns invalid type if a common base type does not exist.
-    /// Adds an ExpressionOfUnknownType error if either of the types contains a missing type.
-    /// Adds an InvalidUseOfTypeParameterizedObject error if the types contain external type parameters,
-    /// i.e. type parameters that do not belong to the given parent (callable specialization).
-    /// Adds a ConstrainsTypeParameter error if an internal type parameter (i.e. one that belongs to the given parent) in one type
-    /// does not correspond to the same type parameter in the other type (or an invalid type).
-    /// Note: the only subtyping that occurs is due to operation supporting only a proper subset of the functors supported by their derived type.
-    /// This subtyping carries over to tuple types containing operations, and callable types containing operations as within their in- and/or output type.
-    /// However, arrays in particular are treated as invariant;
-    /// i.e. an array of operations of type t1 are *not* a subtype of arrays of operations of type t2 even if t1 is a subtype of t2.
-    let private commonType variance
-                           addError
-                           mismatchErr
-                           parent
-                           (lhsType: ResolvedType, lhsRange)
-                           (rhsType: ResolvedType, rhsRange)
-                           =
-        let raiseError errCode (lhsCond, rhsCond) =
-            if lhsCond then lhsRange |> addError errCode
-            if rhsCond then rhsRange |> addError errCode
-            ResolvedType.New InvalidType
+    let printType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
-        let rec matchInAndOutputType variance (i1, o1) (i2, o2) =
-            let inputVariance =
-                match variance with
-                | Subtype -> Supertype
-                | Supertype -> Subtype
-                | Equal -> Equal
+    let private combineCallableInfo ordering info1 info2 =
+        let isInvalid info = info.Characteristics.AreInvalid
+        let inferredNone = InferredCallableInformation.NoInformation
+        let inferredCommon = InferredCallableInformation.Common
+        let properties1 = lazy (info1.Characteristics.GetProperties())
+        let properties2 = lazy (info2.Characteristics.GetProperties())
 
-            let argType = matchTypes inputVariance (i1, i2) // variance changes for the argument type *only*
-            let resType = matchTypes variance (o1, o2)
-            argType, resType
+        match ordering with
+        | Subtype ->
+            let union = Union(info1.Characteristics, info2.Characteristics)
+            CallableInformation.New(ResolvedCharacteristics.New union, inferredNone), []
+        | Equal ->
+            if isInvalid info1 || isInvalid info2 || properties1.Value.SetEquals properties2.Value then
+                let characteristics = if isInvalid info1 then info2.Characteristics else info1.Characteristics
+                let inferred = [ info1.InferredInformation; info2.InferredInformation ] |> inferredCommon
+                CallableInformation.New(characteristics, inferred), []
+            else
+                let error = ErrorCode.ArgumentMismatchInBinaryOp, [ sprintf "%A" info1; sprintf "%A" info2 ]
 
-        and commonOpType variance ((i1, o1), s1: CallableInformation) ((i2, o2), s2: CallableInformation) =
-            let argType, resType = matchInAndOutputType variance (i1, o1) (i2, o2)
+                CallableInformation.New(ResolvedCharacteristics.New InvalidSetExpr, inferredNone),
+                [ QsCompilerDiagnostic.Error error Range.Zero ]
+        | Supertype -> [ info1; info2 ] |> CallableInformation.Common, []
 
-            let characteristics =
-                match variance with
-                | Supertype -> CallableInformation.Common [ s1; s2 ]
-                | Subtype -> // no information can ever be inferred in this case, since contravariance only occurs within the type signatures of passed callables
-                    CallableInformation.New
-                        (Union(s1.Characteristics, s2.Characteristics) |> ResolvedCharacteristics.New,
-                         InferredCallableInformation.NoInformation)
-                | Equal when s1.Characteristics.AreInvalid
-                             || s2.Characteristics.AreInvalid
-                             || s1.Characteristics.GetProperties().SetEquals(s2.Characteristics.GetProperties()) ->
-                    let characteristics =
-                        if s1.Characteristics.AreInvalid then s2.Characteristics else s1.Characteristics
+    let rec combine ordering (lhs: ResolvedType) (rhs: ResolvedType) =
+        match lhs.Resolution, rhs.Resolution with
+        | ArrayType item1, ArrayType item2 ->
+            let combinedType, diagnostics = combine Equal item1 item2
+            ArrayType combinedType |> ResolvedType.New, diagnostics
+        | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
+            let combinedTypes, diagnostics = Seq.map2 (combine ordering) items1 items2 |> Seq.toList |> List.unzip
+            ImmutableArray.CreateRange combinedTypes |> TupleType |> ResolvedType.New, List.concat diagnostics
+        | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
+            let input, inDiagnostics = combine (Ordering.not ordering) in1 in2
+            let output, outDiagnostics = combine ordering out1 out2
+            let info, infoDiagnostics = combineCallableInfo ordering info1 info2
 
-                    let inferred =
-                        InferredCallableInformation.Common [ s1.InferredInformation
-                                                             s2.InferredInformation ]
-
-                    CallableInformation.New(characteristics, inferred)
-                | Equal ->
-                    raiseError mismatchErr (true, false) |> ignore
-
-                    CallableInformation.New
-                        (ResolvedCharacteristics.New InvalidSetExpr, InferredCallableInformation.NoInformation)
-
-            QsTypeKind.Operation((argType, resType), characteristics) |> ResolvedType.New
-
-        and matchTypes variance (t1: ResolvedType, t2: ResolvedType) =
-            match t1.Resolution, t2.Resolution with
-            | _ when t1.isMissing || t2.isMissing ->
-                raiseError (ErrorCode.ExpressionOfUnknownType, []) (t1.isMissing, t2.isMissing)
-            | QsTypeKind.ArrayType b1, QsTypeKind.ArrayType b2 when b1.isMissing || b2.isMissing ->
-                if b1.isMissing then t2 else t1
-            | QsTypeKind.ArrayType b1, QsTypeKind.ArrayType b2 ->
-                matchTypes Equal (b1, b2) |> ArrayType |> ResolvedType.New
-            | QsTypeKind.TupleType ts1, QsTypeKind.TupleType ts2 when ts1.Length = ts2.Length ->
-                Seq.zip ts1 ts2
-                |> Seq.map (matchTypes variance)
-                |> ImmutableArray.CreateRange
-                |> TupleType
-                |> ResolvedType.New
-            | QsTypeKind.UserDefinedType udt1, QsTypeKind.UserDefinedType udt2 when udt1 = udt2 -> t1
-            | QsTypeKind.Operation ((i1, o1), l1), QsTypeKind.Operation ((i2, o2), l2) ->
-                commonOpType variance ((i1, o1), l1) ((i2, o2), l2)
-            | QsTypeKind.Function (i1, o1), QsTypeKind.Function (i2, o2) ->
-                matchInAndOutputType variance (i1, o1) (i2, o2) |> QsTypeKind.Function |> ResolvedType.New
-            | QsTypeKind.TypeParameter tp1, QsTypeKind.TypeParameter tp2 when tp1 = tp2 -> t1
-            | QsTypeKind.TypeParameter tp, QsTypeKind.InvalidType when tp.Origin = parent -> t1
-            | QsTypeKind.InvalidType, QsTypeKind.TypeParameter tp when tp.Origin = parent -> t2
-            | QsTypeKind.TypeParameter _, _ ->
-                raiseError (ErrorCode.ConstrainsTypeParameter, [ SyntaxTreeToQsharp.Default.ToCode t1 ]) (true, false)
-            | _, QsTypeKind.TypeParameter _ ->
-                raiseError (ErrorCode.ConstrainsTypeParameter, [ SyntaxTreeToQsharp.Default.ToCode t2 ]) (false, true)
-            | _ when t1.isInvalid || t2.isInvalid -> if t1.isInvalid then t2 else t1
-            | _ when t1 = t2 -> t1
-            | _ -> raiseError mismatchErr (true, false) // (true, true)
-
-        matchTypes variance (lhsType, rhsType)
-
-    let CommonBaseType addError = commonType Supertype addError
-
-    let printType: ResolvedType -> string = SyntaxTreeToQsharp.Default.ToCode
-
-    let intersect lhs rhs =
-        let error = ErrorCode.ArgumentMismatchInBinaryOp, [ printType lhs; printType rhs ]
-        let mutable diagnostics = []
-
-        let newType =
-            commonType Supertype (fun error range ->
-                diagnostics <- QsCompilerDiagnostic.Error error range :: diagnostics) error
-                { Name = ""; Namespace = "" } (lhs, Range.Zero) (rhs, Range.Zero)
-
-        newType, diagnostics
+            QsTypeKind.Operation((input, output), info) |> ResolvedType.New,
+            inDiagnostics @ outDiagnostics @ infoDiagnostics
+        | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
+            let input, inDiagnostics = combine (Ordering.not ordering) in1 in2
+            let output, outDiagnostics = combine ordering out1 out2
+            QsTypeKind.Function(input, output) |> ResolvedType.New, inDiagnostics @ outDiagnostics
+        | InvalidType, _
+        | _, InvalidType -> ResolvedType.New InvalidType, []
+        | _ when lhs = rhs -> lhs, []
+        | _ ->
+            let error = ErrorCode.ArgumentMismatchInBinaryOp, [ printType lhs; printType rhs ]
+            ResolvedType.New InvalidType, [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     let isSubsetOf info1 info2 =
         info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
@@ -266,7 +214,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         context.UnifyRelation(left, Equal, right) |> ignore
         let left = context.Resolve left.Resolution |> ResolvedType.New
         let right = context.Resolve right.Resolution |> ResolvedType.New
-        intersect left right
+        combine Supertype left right
 
     member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
@@ -372,6 +320,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match constraints.TryGetValue param |> tryOption with
             | Some xs -> constraints.[param] <- typeConstraint :: xs
             | None -> constraints.Add(param, [ typeConstraint ])
+
             []
         | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 

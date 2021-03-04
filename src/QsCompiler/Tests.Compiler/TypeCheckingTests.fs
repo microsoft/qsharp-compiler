@@ -129,7 +129,7 @@ type TypeCheckingTests() =
                 Warning WarningCode.ReturnTypeNotResolvedByArgument
             ]
 
-        this.Expect "CommonBaseType20" [ Error ErrorCode.ConstrainsTypeParameter ]
+        this.Expect "CommonBaseType20" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
         this.Expect "CommonBaseType21" []
         this.Expect "CommonBaseType22" []
         this.Expect "CommonBaseType23" []
