@@ -17,22 +17,6 @@ open Microsoft.Quantum.QsCompiler.Utils
 open System.Collections.Generic
 open System.Collections.Immutable
 
-type private Ordering =
-    | Subtype
-    | Equal
-    | Supertype
-
-module private Ordering =
-    let not =
-        function
-        | Subtype -> Supertype
-        | Equal -> Equal
-        | Supertype -> Subtype
-
-type private VariableState =
-    | Free
-    | Bound
-
 type internal Constraint =
     | Adjointable
     | Callable of input: ResolvedType * output: ResolvedType
@@ -46,6 +30,29 @@ type internal Constraint =
     | Numeric
     | Semigroup
     | Wrapped of item: ResolvedType
+
+type private Variable = { Substitution: ResolvedType option; Constraints: Constraint list }
+
+module private Variable =
+    let substitute resolvedType variable =
+        match variable.Substitution with
+        | Some substitution when substitution <> resolvedType -> None
+        | _ -> Some { variable with Substitution = Some resolvedType }
+
+    let constrain typeConstraint variable =
+        { variable with Constraints = typeConstraint :: variable.Constraints }
+
+type private Ordering =
+    | Subtype
+    | Equal
+    | Supertype
+
+module private Ordering =
+    let not =
+        function
+        | Subtype -> Supertype
+        | Equal -> Equal
+        | Supertype -> Subtype
 
 module private Inference =
     let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
@@ -126,14 +133,9 @@ open Inference
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
 
-    let substitutions = Dictionary()
-
-    let constraints = Dictionary()
-
     let bind param substitution =
         occursCheck param substitution
-        variables.[param] <- Bound
-        substitutions.Add(param, substitution)
+        variables.[param] <- variables.[param] |> Variable.substitute substitution |> Option.get
 
     member internal context.Fresh() =
         let name = sprintf "__a%d__" variables.Count
@@ -145,12 +147,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 Range = Null
             }
 
-        variables.Add(param, Free)
+        variables.Add(param, { Substitution = None; Constraints = [] })
         TypeParameter param |> ResolvedType.New
 
     member internal context.IsFresh(param: QsTypeParameter) = variables.ContainsKey param
 
-    member internal context.Unify(expected: ResolvedType, actual) =
+    member internal context.Unify(expected, actual) =
         context.UnifyRelation(expected, Supertype, actual)
 
     member private context.UnifyRelation(lhs: ResolvedType, compares, rhs: ResolvedType) =
@@ -208,7 +210,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _, MissingType -> []
         | _ -> [ unificationError.Value ]
 
-    member internal context.Intersect(left: ResolvedType, right) =
+    member internal context.Intersect(left, right) =
         context.UnifyRelation(left, Equal, right) |> ignore
         let left = context.Resolve left.Resolution |> ResolvedType.New
         let right = context.Resolve right.Resolution |> ResolvedType.New
@@ -317,36 +319,38 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let resolvedType = context.Resolve resolvedType.Resolution |> ResolvedType.New
 
         match resolvedType.Resolution with
-        | TypeParameter param when context.IsFresh param ->
-            match constraints.TryGetValue param |> tryOption with
-            | Some xs -> constraints.[param] <- typeConstraint :: xs
-            | None -> constraints.Add(param, [ typeConstraint ])
-
-            []
+        | TypeParameter param ->
+            match variables.TryGetValue param |> tryOption with
+            | Some variable ->
+                variables.[param] <- variable |> Variable.constrain typeConstraint
+                []
+            | None -> context.CheckConstraint(typeConstraint, resolvedType)
         | _ -> context.CheckConstraint(typeConstraint, resolvedType)
 
     member private context.PopConstraints(param, resolvedType) =
-        let diagnostics =
-            constraints.TryGetValue param
-            |> tryOption
-            |> Option.defaultValue []
-            |> List.collect (fun typeConstraint -> context.CheckConstraint(typeConstraint, resolvedType))
+        match variables.TryGetValue param |> tryOption with
+        | Some variable ->
+            let diagnostics =
+                variable.Constraints
+                |> List.collect (fun typeConstraint -> context.CheckConstraint(typeConstraint, resolvedType))
 
-        constraints.Remove param |> ignore
-        diagnostics
+            variables.[param] <- { variable with Constraints = [] }
+            diagnostics
+        | None -> []
 
     member internal context.Ambiguous =
         [
             for variable in variables do
-                if variable.Value = Free
+                if Option.isNone variable.Value.Substitution
                 then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ variable.Key.TypeName ]) Range.Zero
         ]
 
     member internal context.Resolve typeKind =
         match typeKind with
         | TypeParameter param ->
-            substitutions.TryGetValue param
+            variables.TryGetValue param
             |> tryOption
+            |> Option.bind (fun variable -> variable.Substitution)
             |> Option.map (fun substitution -> context.Resolve substitution.Resolution)
             |> Option.defaultValue typeKind
         | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
