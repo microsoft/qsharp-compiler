@@ -69,6 +69,13 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Message = $"{Environment.NewLine}{ex}{Environment.NewLine}"
             });
 
+        // NB: Calling the LSP.Range constructor results in an object with
+        //     non-nullable fields set to null values, confusing other places
+        //     where we use nullable reference type metadata. To address this,
+        //     we explicitly construct an empty range that runs from 0:0 to 0:0
+        //     that we can use when there is no reasonable range to provide.
+        private static readonly LSP.Range EmptyRange = new LSP.Range { Start = new Position(0, 0), End = new Position(0, 0) };
+
         // routines for convenience
 
         /// <summary>
@@ -82,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = Errors.Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = range ?? new LSP.Range()
+                Range = range ?? EmptyRange
             });
 
         /// <summary>
@@ -96,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = Warnings.Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = range ?? new LSP.Range()
+                Range = range ?? EmptyRange
             });
 
         /// <summary>
@@ -111,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = null, // do not show a code for infos
                 Source = source,
                 Message = $"{DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>())}{Environment.NewLine}{string.Join(Environment.NewLine, messageParam)}",
-                Range = range ?? new LSP.Range()
+                Range = range ?? EmptyRange
             });
 
         /// <summary>
