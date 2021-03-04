@@ -68,8 +68,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 new VisualStudio.LanguageServer.Protocol.CodeActionParams
                 {
                     TextDocument = this.TextDocument,
-                    Range = this.Range,
-                    Context = this.Context?.ToCodeActionContext()
+                    Range = this.Range ?? new Range(),
+                    Context = this.Context?.ToCodeActionContext() ??
+                        // Make a blank context if we're missing a code action
+                        // context.
+                        new VisualStudio.LanguageServer.Protocol.CodeActionContext
+                        {
+                            Diagnostics = new Diagnostic[] { }
+                        }
                 };
         }
 
@@ -87,7 +93,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             public VisualStudio.LanguageServer.Protocol.CodeActionContext ToCodeActionContext() =>
                 new VisualStudio.LanguageServer.Protocol.CodeActionContext
                 {
-                    Diagnostics = this.Diagnostics,
+                    Diagnostics = this.Diagnostics ?? new Diagnostic[] { },
                     Only = null
                 };
         }

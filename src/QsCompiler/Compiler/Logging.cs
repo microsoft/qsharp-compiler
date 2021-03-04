@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = Errors.Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = range
+                Range = range ?? new LSP.Range()
             });
 
         /// <summary>
@@ -96,7 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = Warnings.Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = range
+                Range = range ?? new LSP.Range()
             });
 
         /// <summary>

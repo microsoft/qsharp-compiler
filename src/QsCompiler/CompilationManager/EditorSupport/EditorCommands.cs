@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Hover? GetHover(string? info) => info == null ? null : new Hover
             {
                 Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new Lsp.Range { Start = position?.ToLsp(), End = position?.ToLsp() }
+                Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() }
             };
 
             var markdown = format == MarkupKind.Markdown;
@@ -393,7 +393,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             MarkupContent AsMarkupContent(string str) => new MarkupContent { Kind = format, Value = str };
             ParameterInformation AsParameterInfo(string? paramName) => new ParameterInformation
             {
-                Label = paramName,
+                Label = paramName ?? "<unknown parameter>",
                 Documentation = AsMarkupContent(documentation.ParameterDescription(paramName))
             };
 

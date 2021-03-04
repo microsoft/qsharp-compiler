@@ -398,10 +398,8 @@ namespace Microsoft.Quantum.QsLanguageServer
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             var defaultLocation = new Location
             {
-                Uri = param?.TextDocument?.Uri,
-                Range = param?.Position != null
-                    ? new VisualStudio.LanguageServer.Protocol.Range { Start = param.Position, End = param.Position }
-                    : null
+                Uri = param.TextDocument.Uri,
+                Range = new VisualStudio.LanguageServer.Protocol.Range { Start = param.Position, End = param.Position }
             };
             try
             {

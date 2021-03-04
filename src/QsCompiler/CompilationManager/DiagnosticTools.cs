@@ -37,17 +37,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         [return: NotNullIfNotNull("message")]
         public static Diagnostic? Copy(this Diagnostic message)
         {
-            Lsp.Position? CopyPosition(Lsp.Position? position) =>
-                position is null ? null : new Lsp.Position(position.Line, position.Character);
+            Lsp.Position CopyPosition(Lsp.Position position) =>
+                new Lsp.Position(position.Line, position.Character);
 
-            Lsp.Range? CopyRange(Lsp.Range? range) =>
-                range is null
-                    ? null
-                    : new Lsp.Range
-                    {
-                        Start = CopyPosition(range.Start),
-                        End = CopyPosition(range.End)
-                    };
+            Lsp.Range CopyRange(Lsp.Range range) =>
+                new Lsp.Range
+                {
+                    Start = CopyPosition(range.Start),
+                    End = CopyPosition(range.End)
+                };
 
             return message is null
                 ? null
