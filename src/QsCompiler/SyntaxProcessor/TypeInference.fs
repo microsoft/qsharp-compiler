@@ -137,6 +137,13 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         occursCheck param substitution
         variables.[param] <- variables.[param] |> Variable.substitute substitution |> Option.get
 
+    member context.AmbiguousDiagnostics =
+        [
+            for variable in variables do
+                if Option.isNone variable.Value.Substitution
+                then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ variable.Key.TypeName ]) Range.Zero
+        ]
+
     member internal context.Fresh() =
         let name = sprintf "__a%d__" variables.Count
 
@@ -153,9 +160,51 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member internal context.IsFresh(param: QsTypeParameter) = variables.ContainsKey param
 
     member internal context.Unify(expected, actual) =
-        context.UnifyRelation(expected, Supertype, actual)
+        context.UnifyByOrdering(expected, Supertype, actual)
 
-    member private context.UnifyRelation(lhs: ResolvedType, compares, rhs: ResolvedType) =
+    member internal context.Intersect(left, right) =
+        context.UnifyByOrdering(left, Equal, right) |> ignore
+        let left = context.Resolve left.Resolution |> ResolvedType.New
+        let right = context.Resolve right.Resolution |> ResolvedType.New
+        combine Supertype left right
+
+    member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
+        let resolvedType = context.Resolve resolvedType.Resolution |> ResolvedType.New
+
+        match resolvedType.Resolution with
+        | TypeParameter param ->
+            match variables.TryGetValue param |> tryOption with
+            | Some variable ->
+                variables.[param] <- variable |> Variable.constrain typeConstraint
+                []
+            | None -> context.ApplyConstraint(typeConstraint, resolvedType)
+        | _ -> context.ApplyConstraint(typeConstraint, resolvedType)
+
+    member internal context.Resolve typeKind =
+        match typeKind with
+        | TypeParameter param ->
+            variables.TryGetValue param
+            |> tryOption
+            |> Option.bind (fun variable -> variable.Substitution)
+            |> Option.map (fun substitution -> context.Resolve substitution.Resolution)
+            |> Option.defaultValue typeKind
+        | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
+        | TupleType tuple ->
+            tuple
+            |> Seq.map (fun item -> context.Resolve item.Resolution |> ResolvedType.New)
+            |> ImmutableArray.CreateRange
+            |> TupleType
+        | QsTypeKind.Operation ((inType, outType), info) ->
+            let inType = context.Resolve inType.Resolution |> ResolvedType.New
+            let outType = context.Resolve outType.Resolution |> ResolvedType.New
+            QsTypeKind.Operation((inType, outType), info)
+        | QsTypeKind.Function (inType, outType) ->
+            let inType = context.Resolve inType.Resolution |> ResolvedType.New
+            let outType = context.Resolve outType.Resolution |> ResolvedType.New
+            QsTypeKind.Function(inType, outType)
+        | _ -> typeKind
+
+    member private context.UnifyByOrdering(lhs: ResolvedType, ordering, rhs: ResolvedType) =
         let expected = context.Resolve lhs.Resolution |> ResolvedType.New
         let actual = context.Resolve rhs.Resolution |> ResolvedType.New
 
@@ -165,23 +214,23 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     (ErrorCode.TypeUnificationFailed,
                      [
                          showType expected
-                         if compares = Equal then showType actual else "any subtype of " + showType actual
+                         if ordering = Equal then showType actual else "any subtype of " + showType actual
                      ])
                      Range.Zero)
 
         match expected.Resolution, actual.Resolution with
-        | _ when compares = Supertype -> context.UnifyRelation(rhs, Subtype, lhs)
+        | _ when ordering = Supertype -> context.UnifyByOrdering(rhs, Subtype, lhs)
         | _ when expected = actual -> []
         | TypeParameter param, _ when context.IsFresh param ->
             bind param actual
-            context.PopConstraints(param, actual)
+            context.ApplyConstraints(param, actual)
         | _, TypeParameter param when context.IsFresh param ->
             bind param expected
-            context.PopConstraints(param, expected)
-        | ArrayType item1, ArrayType item2 -> context.UnifyRelation(item1, Equal, item2)
+            context.ApplyConstraints(param, expected)
+        | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(item1, Equal, item2)
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
             Seq.zip items1 items2
-            |> Seq.collect (fun (item1, item2) -> context.UnifyRelation(item1, compares, item2))
+            |> Seq.collect (fun (item1, item2) -> context.UnifyByOrdering(item1, ordering, item2))
             |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let sameChars =
@@ -191,32 +240,26 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
             let errors =
                 [
-                    if compares = Equal && not sameChars || compares <> Equal && not (isSubset info2 info1)
+                    if ordering = Equal && not sameChars || ordering <> Equal && not (isSubset info2 info1)
                     then unificationError.Value
                 ]
 
-            errors @ context.UnifyRelation(in2, compares, in1) @ context.UnifyRelation(out1, compares, out2)
+            errors @ context.UnifyByOrdering(in2, ordering, in1) @ context.UnifyByOrdering(out1, ordering, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            context.UnifyRelation(in2, compares, in1) @ context.UnifyRelation(out1, compares, out2)
+            context.UnifyByOrdering(in2, ordering, in1) @ context.UnifyByOrdering(out1, ordering, out2)
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
             // Function and operation types aren't compatible, but we can still try to unify their input and output
             // types for more accurate error messages.
-            unificationError.Value :: context.UnifyRelation(in2, compares, in1)
-            @ context.UnifyRelation(out1, compares, out2)
+            unificationError.Value :: context.UnifyByOrdering(in2, ordering, in1)
+            @ context.UnifyByOrdering(out1, ordering, out2)
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
         | _ -> [ unificationError.Value ]
 
-    member internal context.Intersect(left, right) =
-        context.UnifyRelation(left, Equal, right) |> ignore
-        let left = context.Resolve left.Resolution |> ResolvedType.New
-        let right = context.Resolve right.Resolution |> ResolvedType.New
-        combine Supertype left right
-
-    member private context.CheckConstraint(typeConstraint, resolvedType: ResolvedType) =
+    member private context.ApplyConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
         | _ when resolvedType.Resolution = InvalidType -> []
         | Adjointable ->
@@ -315,59 +358,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 context.Unify(item, actualItem)
             | _ -> failwithf "Wrapped %A constraint not satisfied for %A." item resolvedType
 
-    member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
-        let resolvedType = context.Resolve resolvedType.Resolution |> ResolvedType.New
-
-        match resolvedType.Resolution with
-        | TypeParameter param ->
-            match variables.TryGetValue param |> tryOption with
-            | Some variable ->
-                variables.[param] <- variable |> Variable.constrain typeConstraint
-                []
-            | None -> context.CheckConstraint(typeConstraint, resolvedType)
-        | _ -> context.CheckConstraint(typeConstraint, resolvedType)
-
-    member private context.PopConstraints(param, resolvedType) =
+    member private context.ApplyConstraints(param, resolvedType) =
         match variables.TryGetValue param |> tryOption with
         | Some variable ->
             let diagnostics =
                 variable.Constraints
-                |> List.collect (fun typeConstraint -> context.CheckConstraint(typeConstraint, resolvedType))
+                |> List.collect (fun typeConstraint -> context.ApplyConstraint(typeConstraint, resolvedType))
 
             variables.[param] <- { variable with Constraints = [] }
             diagnostics
         | None -> []
-
-    member internal context.Ambiguous =
-        [
-            for variable in variables do
-                if Option.isNone variable.Value.Substitution
-                then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ variable.Key.TypeName ]) Range.Zero
-        ]
-
-    member internal context.Resolve typeKind =
-        match typeKind with
-        | TypeParameter param ->
-            variables.TryGetValue param
-            |> tryOption
-            |> Option.bind (fun variable -> variable.Substitution)
-            |> Option.map (fun substitution -> context.Resolve substitution.Resolution)
-            |> Option.defaultValue typeKind
-        | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
-        | TupleType tuple ->
-            tuple
-            |> Seq.map (fun item -> context.Resolve item.Resolution |> ResolvedType.New)
-            |> ImmutableArray.CreateRange
-            |> TupleType
-        | QsTypeKind.Operation ((inType, outType), info) ->
-            let inType = context.Resolve inType.Resolution |> ResolvedType.New
-            let outType = context.Resolve outType.Resolution |> ResolvedType.New
-            QsTypeKind.Operation((inType, outType), info)
-        | QsTypeKind.Function (inType, outType) ->
-            let inType = context.Resolve inType.Resolution |> ResolvedType.New
-            let outType = context.Resolve outType.Resolution |> ResolvedType.New
-            QsTypeKind.Function(inType, outType)
-        | _ -> typeKind
 
 module InferenceContext =
     [<CompiledName "Resolver">]
@@ -380,4 +380,4 @@ module InferenceContext =
                     | resolvedType -> resolvedType
             }
 
-        SyntaxTreeTransformation(Types = types), context.Ambiguous
+        SyntaxTreeTransformation(Types = types)

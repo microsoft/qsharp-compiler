@@ -1330,9 +1330,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             context.Symbols.EndScope();
 
             // Finalize types.
-            var (resolver, inferenceDiagnostics) = InferenceContextModule.Resolver(context.Inference);
-            diagnostics.AddRange(inferenceDiagnostics
+            diagnostics.AddRange(context.Inference.AmbiguousDiagnostics
                 .Select(diagnostic => Diagnostics.Generate(sourceFile, diagnostic, specPos)));
+            var resolver = InferenceContextModule.Resolver(context.Inference);
             implementation = resolver.Statements.OnScope(implementation);
 
             // Verify that all paths return a value if needed (or fail), and that the specialization's required runtime
