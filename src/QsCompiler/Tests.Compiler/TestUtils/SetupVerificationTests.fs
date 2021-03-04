@@ -90,15 +90,15 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
     member this.Verify(name, expected: IEnumerable<ErrorCode>) =
         let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Error name expected
+        VerifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Error) name expected
 
     member this.Verify(name, expected: IEnumerable<WarningCode>) =
         let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Warning name expected
+        VerifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Warning) name expected
 
     member this.Verify(name, expected: IEnumerable<InformationCode>) =
         let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity DiagnosticSeverity.Information name expected
+        VerifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Information) name expected
 
     member this.VerifyDiagnostics(name, expected: IEnumerable<DiagnosticItem>) =
         let errs =
