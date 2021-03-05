@@ -212,15 +212,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> resolvedType
 
     member private context.UnifyByOrdering(expected: ResolvedType, ordering, actual: ResolvedType) =
-        let unificationError =
-            lazy
-                (QsCompilerDiagnostic.Error
-                    (ErrorCode.TypeUnificationFailed,
-                     [
-                         showType expected
-                         if ordering = Equal then showType actual else "any subtype of " + showType actual
-                     ])
-                     Range.Zero)
+        let error =
+            QsCompilerDiagnostic.Error
+                (ErrorCode.TypeUnificationFailed, [ showType expected; showType actual ])
+                Range.Zero
 
         match expected.Resolution, actual.Resolution with
         | _ when ordering = Subtype -> context.UnifyByOrdering(expected, Supertype, actual)
@@ -238,16 +233,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 context.UnifyByOrdering(context.Resolve item1, ordering, context.Resolve item2))
             |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
-            let sameChars =
-                info1.Characteristics.AreInvalid
-                || info2.Characteristics.AreInvalid
-                || info1.Characteristics.GetProperties().SetEquals(info2.Characteristics.GetProperties())
-
             let errors =
-                [
-                    if ordering = Equal && not sameChars || ordering <> Equal && not (isSubset info1 info2)
-                    then unificationError.Value
-                ]
+                if ordering = Equal && not (characteristicsEqual info1 info2) || not (isSubset info1 info2)
+                then [ error ]
+                else []
 
             errors
             @ context.UnifyByOrdering(in2, ordering, in1)
@@ -257,13 +246,13 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             @ context.UnifyByOrdering(context.Resolve out1, ordering, context.Resolve out2)
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            unificationError.Value :: context.UnifyByOrdering(in2, ordering, in1)
+            error :: context.UnifyByOrdering(in2, ordering, in1)
             @ context.UnifyByOrdering(context.Resolve out1, ordering, context.Resolve out2)
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
-        | _ -> [ unificationError.Value ]
+        | _ -> [ error ]
 
     member private context.ApplyConstraint(typeConstraint, resolvedType: ResolvedType) =
         match typeConstraint with
