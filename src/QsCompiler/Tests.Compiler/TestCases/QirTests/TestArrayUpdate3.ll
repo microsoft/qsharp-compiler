@@ -38,7 +38,7 @@ exit__1:                                          ; preds = %header__1
   store %Array* %8, %Array** %x
   call void @__quantum__rt__array_update_alias_count(%Array* %8, i64 -1)
   %12 = call %Array* @__quantum__rt__array_copy(%Array* %8, i1 false)
-  %13 = call %String* @__quantum__rt__string_create(i32 5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i32 0, i32 0))
+  %13 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i32 0, i32 0))
   %14 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %12, i64 1)
   %15 = bitcast i8* %14 to %String**
   call void @__quantum__rt__string_update_reference_count(%String* %13, i64 1)

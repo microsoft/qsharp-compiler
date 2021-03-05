@@ -33,7 +33,7 @@ entry:
   %17 = bitcast %Tuple* %16 to { double, %String* }*
   store { double, %String* }* %17, { double, %String* }** %13
   %18 = getelementptr { double, %String* }, { double, %String* }* %17, i64 0, i32 1
-  %19 = call %String* @__quantum__rt__string_create(i32 5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
+  %19 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__string_update_reference_count(%String* %19, i64 1)
   %20 = load %String*, %String** %18
   store %String* %19, %String** %18

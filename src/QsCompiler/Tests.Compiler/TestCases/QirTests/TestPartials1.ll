@@ -52,7 +52,7 @@ then0__1:                                         ; preds = %body__1
   %tuple2 = bitcast %Tuple* %19 to { %String*, %Qubit* }*
   %20 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %tuple2, i64 0, i32 0
   %21 = getelementptr { %String*, %Qubit* }, { %String*, %Qubit* }* %tuple2, i64 0, i32 1
-  %22 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
+  %22 = call %String* @__quantum__rt__string_create(i8* null)
   store %String* %22, %String** %20
   store %Qubit* %qb, %Qubit** %21
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %19, i64 1)
@@ -94,7 +94,7 @@ then0__1:                                         ; preds = %body__1
   %41 = getelementptr { %Callable*, %String*, %Qubit* }, { %Callable*, %String*, %Qubit* }* %39, i64 0, i32 1
   %42 = getelementptr { %Callable*, %String*, %Qubit* }, { %Callable*, %String*, %Qubit* }* %39, i64 0, i32 2
   %43 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TakesNestedTuple, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
-  %44 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
+  %44 = call %String* @__quantum__rt__string_create(i8* null)
   store %Callable* %43, %Callable** %40
   store %String* %44, %String** %41
   store %Qubit* %qb, %Qubit** %42

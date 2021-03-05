@@ -1,7 +1,7 @@
 define %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate4__body(%Array* %array) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %array, i64 1)
-  %item = call %String* @__quantum__rt__string_create(i32 5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @3, i32 0, i32 0))
+  %item = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @3, i32 0, i32 0))
   %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
   %arr = alloca %Array*
   store %Array* %0, %Array** %arr

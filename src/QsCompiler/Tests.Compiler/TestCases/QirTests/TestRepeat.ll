@@ -9,8 +9,8 @@ repeat__1:                                        ; preds = %continue__1, %entry
   call void @__quantum__qis__x__body(%Qubit* %q)
   call void @__quantum__qis__t__adj(%Qubit* %q)
   call void @__quantum__qis__h__body(%Qubit* %q)
-  %name = call %String* @__quantum__rt__string_create(i32 6, i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0))
-  %0 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
+  %name = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* null)
   %1 = call { double, %String* }* @Microsoft__Quantum__Testing__QIR__Energy__body(double 0.000000e+00, %String* %0)
   %res = alloca { double, %String* }*
   store { double, %String* }* %1, { double, %String* }** %res
@@ -48,7 +48,7 @@ fixup__1:                                         ; preds = %until__1
   br i1 %14, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %fixup__1
-  %15 = call %String* @__quantum__rt__string_create(i32 19, i8* getelementptr inbounds ([20 x i8], [20 x i8]* @1, i32 0, i32 0))
+  %15 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([20 x i8], [20 x i8]* @1, i32 0, i32 0))
   %16 = load %String*, %String** %3
   %17 = load %String*, %String** %7
   %18 = load { double, %String* }*, { double, %String* }** %res
@@ -78,7 +78,7 @@ continue__1:                                      ; preds = %fixup__1
   %24 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %23, i1 false)
   %25 = bitcast %Tuple* %24 to { double, %String* }*
   %26 = getelementptr { double, %String* }, { double, %String* }* %25, i64 0, i32 1
-  %27 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
+  %27 = call %String* @__quantum__rt__string_create(i8* null)
   call void @__quantum__rt__string_update_reference_count(%String* %27, i64 1)
   %28 = load %String*, %String** %26
   store %String* %27, %String** %26

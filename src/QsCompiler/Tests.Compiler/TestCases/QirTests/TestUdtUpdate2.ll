@@ -21,7 +21,7 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i64 1)
-  %9 = call %String* @__quantum__rt__string_create(i32 4, i8* getelementptr inbounds ([5 x i8], [5 x i8]* @1, i32 0, i32 0))
+  %9 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @1, i32 0, i32 0))
   %10 = call i1 @__quantum__rt__string_equal(%String* %8, %String* %9)
   br i1 %10, label %then0__1, label %continue__1
 

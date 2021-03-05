@@ -8,9 +8,6 @@ namespace Microsoft.Quantum.QIR
     /// </summary>
     public static class RuntimeLibrary
     {
-        // int functions
-        public const string IntPower = "int_power";
-
         // result functions
         public const string ResultUpdateReferenceCount = "result_update_reference_count";
         public const string ResultEqual = "result_equal";
@@ -59,16 +56,12 @@ namespace Microsoft.Quantum.QIR
         public const string TupleCopy = "tuple_copy";
 
         // array functions
-        public const string ArrayCreate = "array_create";
-        public const string ArrayGetElementPtr = "array_get_element_ptr";
-        // TODO: figure out how to call a varargs function and get rid of these two functions
         public const string ArrayCreate1d = "array_create_1d";
         public const string ArrayGetElementPtr1d = "array_get_element_ptr_1d";
         public const string ArrayUpdateAliasCount = "array_update_alias_count";
         public const string ArrayUpdateReferenceCount = "array_update_reference_count";
         public const string ArrayCopy = "array_copy";
         public const string ArrayConcatenate = "array_concatenate";
-        public const string ArraySlice = "array_slice";
         public const string ArraySlice1d = "array_slice_1d";
         public const string ArrayGetSize1d = "array_get_size_1d";
 
