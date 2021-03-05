@@ -156,7 +156,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = new Lsp.Range()
+                Range = new Lsp.Range { Start = new Lsp.Position(0, 0), End = new Lsp.Position(0, 0) }
             };
 
         // errors 20**

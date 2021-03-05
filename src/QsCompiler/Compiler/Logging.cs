@@ -180,7 +180,9 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 ++this.NrWarningsLogged;
             }
 
-            var msg = m.Range == null ? m : m.WithLineNumOffset(this.lineNrOffset);
+            // We only want to print line number offsets if at least one of the
+            // start and end ranges are not both empty.
+            var msg = m.Range == EmptyRange ? m : m.WithLineNumOffset(this.lineNrOffset);
             this.Output(msg);
         }
 
