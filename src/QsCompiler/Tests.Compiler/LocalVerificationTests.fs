@@ -35,7 +35,14 @@ type LocalVerificationTests() =
         this.Expect "TypeArgumentsInference2" []
         this.Expect "TypeArgumentsInference3" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "TypeArgumentsInference4" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "TypeArgumentsInference5" [ Error ErrorCode.AmbiguousTypeVariable ]
+
+        this.Expect
+            "TypeArgumentsInference5"
+            [
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.InvalidCyclicTypeParameterResolution
+            ]
+
         this.Expect "TypeArgumentsInference6" []
         this.Expect "TypeArgumentsInference7" []
         this.Expect "TypeArgumentsInference8" []
@@ -123,10 +130,18 @@ type LocalVerificationTests() =
             [
                 Error ErrorCode.ConstraintNotSatisfied
                 Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
 
         this.Expect "VariableDeclaration13" []
-        this.Expect "VariableDeclaration14" [ Error ErrorCode.AmbiguousTypeVariable ]
+
+        this.Expect
+            "VariableDeclaration14"
+            [
+                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.InvalidCyclicTypeParameterResolution
+            ]
+
         this.Expect "VariableDeclaration15" []
         this.Expect "VariableDeclaration16" []
         this.Expect "VariableDeclaration17" []
