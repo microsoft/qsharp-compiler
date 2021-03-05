@@ -77,12 +77,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Diagnostic WithLineNumOffset(this Diagnostic diagnostic, int offset)
         {
             var copy = diagnostic.Copy();
-            copy.Range.Start.Line += offset;
-            copy.Range.End.Line += offset;
-            if (copy.Range.Start.Line < 0 || copy.Range.End.Line < 0)
+            // NB: Despite the nullability metadata, Range may be null here.
+            //     We thus need to guard accordingly.
+            if (copy.Range != null)
             {
-                throw new ArgumentOutOfRangeException(
-                    nameof(offset), "Translated diagnostic has negative line numbers.");
+                copy.Range.Start.Line += offset;
+                copy.Range.End.Line += offset;
+                if (copy.Range.Start.Line < 0 || copy.Range.End.Line < 0)
+                {
+                    throw new ArgumentOutOfRangeException(
+                        nameof(offset), "Translated diagnostic has negative line numbers.");
+                }
             }
             return copy;
         }
