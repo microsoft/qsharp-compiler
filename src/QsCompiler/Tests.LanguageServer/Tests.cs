@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
     {
         internal static void AssertCapability<TOptions>(this SumType<bool, TOptions>? capability, bool shouldHave = true, Func<TOptions, bool>? condition = null)
         {
-            Assert.IsTrue(capability.HasValue, "Expected capability to have value, but was null.");
+            Assert.IsTrue(shouldHave && capability.HasValue, "Expected capability to have value, but was null.");
             capability!.Value.Match(
                 flag =>
                 {
