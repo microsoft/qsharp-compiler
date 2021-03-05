@@ -1,64 +1,82 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
 using System.Text;
+using Microsoft.CodeAnalysis.Diagnostics;
+using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 {
     public static class SyntaxTreeTrimming
     {
-        public static QsCompilation Apply(QsCompilation compilation)
+        public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
         {
-            return compilation;
+            return TrimTree.Apply(compilation, keepAllIntrinsics);
         }
 
-        private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
+        private class TrimTree : SyntaxTreeTransformation<TrimTree.TransformationState>
         {
-            public static QsCompilation Apply(QsCompilation compilation, List<QsCallable> callables, bool keepAllIntrinsics)
+            public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
             {
-                var intrinsicCallableSet = compilation.Namespaces.GlobalCallableResolutions()
-                    .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
-                    .Select(kvp => kvp.Key)
-                    .ToImmutableHashSet();
+                var nodes = new CallGraph(compilation, true).Nodes.Select(node => node.CallableName).ToImmutableHashSet();
 
-                var filter = new ResolveGenerics(
-                    callables
-                        .Where(call => !keepAllIntrinsics || !intrinsicCallableSet.Contains(call.FullName))
-                        .ToLookup(res => res.FullName.Namespace),
-                    intrinsicCallableSet,
-                    keepAllIntrinsics);
+                // ToDo: convert to using ternary operator, when target-type
+                // conditional expressions are supported in C#
+                Func<QsNamespaceElement, bool> filter = elem => Filter(elem, nodes);
+                if (keepAllIntrinsics)
+                {
+                    filter = elem => FilterWithIntrinsics(elem, nodes);
+                }
 
-                var transformed = filter.OnCompilation(compilation);
+                var transformed = new TrimTree(filter).OnCompilation(compilation);
                 return new QsCompilation(transformed.Namespaces.Where(ns => ns.Elements.Any()).ToImmutableArray(), transformed.EntryPoints);
+            }
+
+            private static bool FilterWithIntrinsics(QsNamespaceElement elem, ImmutableHashSet<QsQualifiedName> graphNodes)
+            {
+                if (elem is QsNamespaceElement.QsCallable call)
+                {
+                    return call.Item.Specializations.Any(spec => spec.Implementation.IsIntrinsic)
+                        || BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName)
+                        || graphNodes.Contains(call.Item.FullName);
+                }
+                else
+                {
+                    return true;
+                }
+            }
+
+            private static bool Filter(QsNamespaceElement elem, ImmutableHashSet<QsQualifiedName> graphNodes)
+            {
+                if (elem is QsNamespaceElement.QsCallable call)
+                {
+                    return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName)
+                        || graphNodes.Contains(call.Item.FullName);
+                }
+                else
+                {
+                    return true;
+                }
             }
 
             public class TransformationState
             {
-                public readonly ILookup<string, QsCallable> NamespaceCallables;
-                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
-                public readonly bool KeepAllIntrinsics;
+                public readonly Func<QsNamespaceElement, bool> NamespaceElementFilter;
 
-                public TransformationState(ILookup<string, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet, bool keepAllIntrinsics)
+                public TransformationState(Func<QsNamespaceElement, bool> namespaceElementFilter)
                 {
-                    this.NamespaceCallables = namespaceCallables;
-                    this.IntrinsicCallableSet = intrinsicCallableSet;
-                    this.KeepAllIntrinsics = keepAllIntrinsics;
+                    this.NamespaceElementFilter = namespaceElementFilter;
                 }
             }
 
-            /// <summary>
-            /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
-            /// </summary>
-            /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ILookup<string, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet, bool keepAllIntrinsics)
-                : base(new TransformationState(namespaceCallables, intrinsicCallableSet, keepAllIntrinsics))
+            private TrimTree(Func<QsNamespaceElement, bool> namespaceElementFilter)
+                : base(new TransformationState(namespaceElementFilter))
             {
                 this.Namespaces = new NamespaceTransformation(this);
                 this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
@@ -73,103 +91,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
                 {
                 }
 
-                private bool NamespaceElementFilter(QsNamespaceElement elem)
-                {
-                    if (elem is QsNamespaceElement.QsCallable call)
-                    {
-                        return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) ||
-                            (this.SharedState.KeepAllIntrinsics && this.SharedState.IntrinsicCallableSet.Contains(call.Item.FullName));
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-
                 public override QsNamespace OnNamespace(QsNamespace ns)
                 {
-                    // Removes unused or generic callables from the namespace
-                    // Adds in the used concrete callables
-                    return ns.WithElements(elems => elems
-                        .Where(this.NamespaceElementFilter)
-                        .Concat(this.SharedState.NamespaceCallables[ns.Name].Select(QsNamespaceElement.NewQsCallable))
+                    return ns.WithElements(elements => elements
+                        .Where(this.SharedState.NamespaceElementFilter)
                         .ToImmutableArray());
-                }
-            }
-        }
-
-        private class TrimTree : SyntaxTreeTransformation<double>
-        {
-            public static QsCompilation Apply(QsCompilation compilation, List<QsCallable> callables, bool keepAllIntrinsics)
-            {
-                var intrinsicCallableSet = compilation.Namespaces.GlobalCallableResolutions()
-                    .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
-                    .Select(kvp => kvp.Key)
-                    .ToImmutableHashSet();
-
-                var filter = new ResolveGenerics(
-                    callables
-                        .Where(call => !keepAllIntrinsics || !intrinsicCallableSet.Contains(call.FullName))
-                        .ToLookup(res => res.FullName.Namespace),
-                    intrinsicCallableSet,
-                    keepAllIntrinsics);
-
-                var transformed = filter.OnCompilation(compilation);
-                return new QsCompilation(transformed.Namespaces.Where(ns => ns.Elements.Any()).ToImmutableArray(), transformed.EntryPoints);
-            }
-
-            public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
-            {
-                var nodes = new CallGraph(compilation, true).Nodes;
-
-                var intrinsicCallableSet = compilation.Namespaces.GlobalCallableResolutions()
-                    .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
-                    .Select(kvp => kvp.Key)
-                    .ToImmutableHashSet();
-
-                var nameSpaces = compilation.Namespaces
-                    .Select(ns => ns.WithElements(elems => elems
-                        .Where(elem => this.NamespaceElementFilter(elem))));
-
-                return new TrimTree(graph).OnCompilation(compilation);
-            }
-
-            private bool NamespaceElementFilter(QsNamespaceElement elem)
-            {
-                if (elem is QsNamespaceElement.QsCallable call)
-                {
-                    return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) ||
-                        (this.SharedState.KeepAllIntrinsics && this.SharedState.IntrinsicCallableSet.Contains(call.Item.FullName));
-                }
-                else
-                {
-                    return true;
-                }
-            }
-
-            public class TransformationState
-            {
-
-            }
-
-            private CallGraph graph;
-
-            private TrimTree(CallGraph graph)
-                : base(0.0)
-            {
-                this.graph = graph;
-
-                this.Namespaces = new NamespaceTransformation(this);
-                this.Statements = new StatementTransformation<double>(this, TransformationOptions.Disabled);
-                this.Expressions = new ExpressionTransformation<double>(this, TransformationOptions.Disabled);
-                this.Types = new TypeTransformation<double>(this, TransformationOptions.Disabled);
-            }
-
-            private class NamespaceTransformation : NamespaceTransformation<double>
-            {
-                public NamespaceTransformation(SyntaxTreeTransformation<double> parent)
-                    : base(parent)
-                {
                 }
             }
         }
