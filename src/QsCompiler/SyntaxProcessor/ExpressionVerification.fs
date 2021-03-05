@@ -391,8 +391,7 @@ let private VerifyIdentifier (inference: InferenceContext) diagnose (symbols: Sy
                 else KeyValuePair(param, inference.Fresh()))
             |> ImmutableDictionary.CreateRange
 
-        let resolvedType =
-            ((replaceTypes resolutions).OnType resId.Type).Resolution |> inference.Resolve |> ResolvedType.New
+        let resolvedType = (replaceTypes resolutions).OnType resId.Type |> inference.Resolve
 
         let identifier =
             if QsNullable.isValue resolvedTargs
@@ -524,9 +523,8 @@ let internal VerifyAssignment (inference: InferenceContext)
 
     let errCodes = TypeMatchArgument inference addTpResolution expectedType rhsType
 
-    if errCodes.Length <> 0 then
-        let resolvedRhs = inference.Resolve rhsType.Resolution |> ResolvedType.New
-        addError (mismatchErr, [ toString resolvedRhs; toString expectedType ]) rhsRange
+    if List.isEmpty errCodes |> not
+    then addError (mismatchErr, [ inference.Resolve rhsType |> toString; toString expectedType ]) rhsRange
 
     let containsNonTrivialResolution (tp: IGrouping<_, ResolvedType>) =
         let notResolvedToItself (x: ResolvedType) =
@@ -748,7 +746,7 @@ type QsExpression with
             let resolvedEx = InnerExpression ex
             let itemName = acc |> buildItemName
             // TODO: Eager resolution.
-            let udtType = context.Inference.Resolve resolvedEx.ResolvedType.Resolution |> ResolvedType.New
+            let udtType = context.Inference.Resolve resolvedEx.ResolvedType
             let exType = VerifyUdtWith (symbols.GetItemType itemName) addError (udtType, ex.RangeOrDefault)
             let localQdependency = resolvedEx.InferredInformation.HasLocalQuantumDependency
             (NamedItem(resolvedEx, itemName), exType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
@@ -758,8 +756,7 @@ type QsExpression with
         let buildCopyAndUpdate (lhs: QsExpression, accEx: QsExpression, rhs: QsExpression) =
             let resLhs, resRhs = InnerExpression lhs, InnerExpression rhs
             // TODO: Eager resolution.
-            let lhsType = context.Inference.Resolve resLhs.ResolvedType.Resolution |> ResolvedType.New
-            let resLhs = { resLhs with ResolvedType = lhsType }
+            let resLhs = { resLhs with ResolvedType = context.Inference.Resolve resLhs.ResolvedType }
 
             let resolvedCopyAndUpdateExpr resAccEx =
                 let localQdependency =
@@ -1097,7 +1094,7 @@ type QsExpression with
             // Be pessimistic: if we don't know that the callable is a function at this point, assume it's an
             // operation.
             let isFunction =
-                match context.Inference.Resolve resolvedCallable.ResolvedType.Resolution with
+                match (context.Inference.Resolve resolvedCallable.ResolvedType).Resolution with
                 | QsTypeKind.Function _ -> true
                 | _ -> false
 

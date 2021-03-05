@@ -34,11 +34,6 @@ type internal Constraint =
 type private Variable = { Substitution: ResolvedType option; Constraints: Constraint list }
 
 module private Variable =
-    let substitute resolvedType variable =
-        match variable.Substitution with
-        | Some substitution when substitution <> resolvedType -> None
-        | _ -> Some { variable with Substitution = Some resolvedType }
-
     let constrain typeConstraint variable =
         { variable with Constraints = typeConstraint :: variable.Constraints }
 
@@ -55,6 +50,31 @@ module private Ordering =
         | Supertype -> Subtype
 
 module private Inference =
+    let characteristicsEqual info1 info2 =
+        let chars1 = info1.Characteristics
+        let chars2 = info2.Characteristics
+        chars1.AreInvalid || chars2.AreInvalid || chars1.GetProperties().SetEquals(chars2.GetProperties())
+
+    let isSubset info1 info2 =
+        info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
+
+    let hasFunctor functor info =
+        info.Characteristics.SupportedFunctors
+        |> QsNullable.defaultValue ImmutableHashSet.Empty
+        |> fun functors -> functors.Contains functor
+
+    let rec (=~) (lhs: ResolvedType) (rhs: ResolvedType) =
+        match lhs.Resolution, rhs.Resolution with
+        | UserDefinedType udt1, UserDefinedType udt2 -> udt1.Namespace = udt2.Namespace && udt1.Name = udt2.Name
+        | TypeParameter param1, TypeParameter param2 ->
+            param1.Origin = param2.Origin && param1.TypeName = param2.TypeName
+        | ArrayType item1, ArrayType item2 -> item1 =~ item2
+        | TupleType items1, TupleType items2 -> items1.Length = items2.Length && Seq.forall2 (=~) items1 items2
+        | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
+            in1 =~ in2 && out1 =~ out2 && characteristicsEqual info1 info2
+        | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) -> in1 =~ in2 && out1 =~ out2
+        | _ -> lhs = rhs
+
     let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
     let showFunctor =
@@ -63,25 +83,24 @@ module private Inference =
         | Controlled -> Keywords.qsControlledFunctor.id
 
     let private combineCallableInfo ordering info1 info2 =
-        let isInvalid info = info.Characteristics.AreInvalid
-        let inferredNone = InferredCallableInformation.NoInformation
-        let inferredCommon = InferredCallableInformation.Common
-        let properties1 = lazy (info1.Characteristics.GetProperties())
-        let properties2 = lazy (info2.Characteristics.GetProperties())
-
         match ordering with
         | Subtype ->
             let union = Union(info1.Characteristics, info2.Characteristics)
-            CallableInformation.New(ResolvedCharacteristics.New union, inferredNone), []
+            CallableInformation.New(ResolvedCharacteristics.New union, InferredCallableInformation.NoInformation), []
         | Equal ->
-            if isInvalid info1 || isInvalid info2 || properties1.Value.SetEquals properties2.Value then
-                let characteristics = if isInvalid info1 then info2.Characteristics else info1.Characteristics
-                let inferred = [ info1.InferredInformation; info2.InferredInformation ] |> inferredCommon
+            if characteristicsEqual info1 info2 then
+                let characteristics =
+                    if info1.Characteristics.AreInvalid then info2.Characteristics else info1.Characteristics
+
+                let inferred =
+                    [ info1.InferredInformation; info2.InferredInformation ] |> InferredCallableInformation.Common
+
                 CallableInformation.New(characteristics, inferred), []
             else
                 let error = ErrorCode.ArgumentMismatchInBinaryOp, [ sprintf "%A" info1; sprintf "%A" info2 ]
 
-                CallableInformation.New(ResolvedCharacteristics.New InvalidSetExpr, inferredNone),
+                CallableInformation.New
+                    (ResolvedCharacteristics.New InvalidSetExpr, InferredCallableInformation.NoInformation),
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Supertype -> [ info1; info2 ] |> CallableInformation.Common, []
 
@@ -106,18 +125,10 @@ module private Inference =
             QsTypeKind.Function(input, output) |> ResolvedType.New, inDiagnostics @ outDiagnostics
         | InvalidType, _
         | _, InvalidType -> ResolvedType.New InvalidType, []
-        | _ when lhs = rhs -> lhs, []
+        | _ when lhs =~ rhs -> lhs, []
         | _ ->
             let error = ErrorCode.ArgumentMismatchInBinaryOp, [ showType lhs; showType rhs ]
             ResolvedType.New InvalidType, [ QsCompilerDiagnostic.Error error Range.Zero ]
-
-    let isSubset info1 info2 =
-        info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
-
-    let hasFunctor functor info =
-        info.Characteristics.SupportedFunctors
-        |> QsNullable.defaultValue ImmutableHashSet.Empty
-        |> fun functors -> functors.Contains functor
 
     let occursCheck param (resolvedType: ResolvedType) =
         let param = TypeParameter param
@@ -135,7 +146,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     let bind param substitution =
         occursCheck param substitution
-        variables.[param] <- variables.[param] |> Variable.substitute substitution |> Option.get
+        let variable = variables.[param]
+
+        match variable.Substitution with
+        | Some substitution' when substitution <> substitution' ->
+            failwith "The type parameter is already bound to a different type."
+        | _ -> variables.[param] <- { variable with Substitution = Some substitution }
 
     member context.AmbiguousDiagnostics =
         [
@@ -160,21 +176,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member internal context.IsFresh(param: QsTypeParameter) = variables.ContainsKey param
 
     member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =
-        let expected = context.Resolve expected.Resolution |> ResolvedType.New
-        let actual = context.Resolve actual.Resolution |> ResolvedType.New
-        context.UnifyByOrdering(expected, Supertype, actual)
+        context.UnifyByOrdering(context.Resolve expected, Supertype, context.Resolve actual)
 
     member internal context.Intersect(left: ResolvedType, right: ResolvedType) =
-        let left = context.Resolve left.Resolution |> ResolvedType.New
-        let right = context.Resolve right.Resolution |> ResolvedType.New
-        context.UnifyByOrdering(left, Equal, right) |> ignore
-
-        let left = context.Resolve left.Resolution |> ResolvedType.New
-        let right = context.Resolve right.Resolution |> ResolvedType.New
-        combine Supertype left right
+        context.UnifyByOrdering(context.Resolve left, Equal, context.Resolve right) |> ignore
+        combine Supertype (context.Resolve left) (context.Resolve right)
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
-        let resolvedType = context.Resolve resolvedType.Resolution |> ResolvedType.New
+        let resolvedType = context.Resolve resolvedType
 
         match resolvedType.Resolution with
         | TypeParameter param ->
@@ -185,29 +194,22 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | None -> context.ApplyConstraint(typeConstraint, resolvedType)
         | _ -> context.ApplyConstraint(typeConstraint, resolvedType)
 
-    member internal context.Resolve typeKind =
-        match typeKind with
+    member internal context.Resolve(resolvedType: ResolvedType) =
+        match resolvedType.Resolution with
         | TypeParameter param ->
             variables.TryGetValue param
             |> tryOption
             |> Option.bind (fun variable -> variable.Substitution)
-            |> Option.map (fun substitution -> context.Resolve substitution.Resolution)
-            |> Option.defaultValue typeKind
-        | ArrayType array -> context.Resolve array.Resolution |> ResolvedType.New |> ArrayType
+            |> Option.map context.Resolve
+            |> Option.defaultValue resolvedType
+        | ArrayType array -> context.Resolve array |> ArrayType |> ResolvedType.New
         | TupleType tuple ->
-            tuple
-            |> Seq.map (fun item -> context.Resolve item.Resolution |> ResolvedType.New)
-            |> ImmutableArray.CreateRange
-            |> TupleType
+            tuple |> Seq.map context.Resolve |> ImmutableArray.CreateRange |> TupleType |> ResolvedType.New
         | QsTypeKind.Operation ((inType, outType), info) ->
-            let inType = context.Resolve inType.Resolution |> ResolvedType.New
-            let outType = context.Resolve outType.Resolution |> ResolvedType.New
-            QsTypeKind.Operation((inType, outType), info)
+            QsTypeKind.Operation((context.Resolve inType, context.Resolve outType), info) |> ResolvedType.New
         | QsTypeKind.Function (inType, outType) ->
-            let inType = context.Resolve inType.Resolution |> ResolvedType.New
-            let outType = context.Resolve outType.Resolution |> ResolvedType.New
-            QsTypeKind.Function(inType, outType)
-        | _ -> typeKind
+            QsTypeKind.Function(context.Resolve inType, context.Resolve outType) |> ResolvedType.New
+        | _ -> resolvedType
 
     member private context.UnifyByOrdering(expected: ResolvedType, ordering, actual: ResolvedType) =
         let unificationError =
@@ -222,7 +224,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         match expected.Resolution, actual.Resolution with
         | _ when ordering = Subtype -> context.UnifyByOrdering(expected, Supertype, actual)
-        | _ when expected = actual -> []
+        | _ when expected =~ actual -> []
         | TypeParameter param, _ when context.IsFresh param ->
             bind param actual
             context.ApplyConstraints(param, actual)
@@ -232,7 +234,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(item1, Equal, item2)
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
             Seq.zip items1 items2
-            |> Seq.collect (fun (item1, item2) -> context.UnifyByOrdering(item1, ordering, item2))
+            |> Seq.collect (fun (item1, item2) ->
+                context.UnifyByOrdering(context.Resolve item1, ordering, context.Resolve item2))
             |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let sameChars =
@@ -246,15 +249,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     then unificationError.Value
                 ]
 
-            errors @ context.UnifyByOrdering(in2, ordering, in1) @ context.UnifyByOrdering(out1, ordering, out2)
+            errors
+            @ context.UnifyByOrdering(in2, ordering, in1)
+              @ context.UnifyByOrdering(context.Resolve out1, ordering, context.Resolve out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            context.UnifyByOrdering(in2, ordering, in1) @ context.UnifyByOrdering(out1, ordering, out2)
+            context.UnifyByOrdering(in2, ordering, in1)
+            @ context.UnifyByOrdering(context.Resolve out1, ordering, context.Resolve out2)
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            // Function and operation types aren't compatible, but we can still try to unify their input and output
-            // types for more accurate error messages.
             unificationError.Value :: context.UnifyByOrdering(in2, ordering, in1)
-            @ context.UnifyByOrdering(out1, ordering, out2)
+            @ context.UnifyByOrdering(context.Resolve out1, ordering, context.Resolve out2)
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
@@ -331,7 +335,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 let error = ErrorCode.ConstraintNotSatisfied, [ showType resolvedType; "HasPartialApplication" ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Indexed (index, item) ->
-            match resolvedType.Resolution, context.Resolve index.Resolution with
+            match resolvedType.Resolution, (context.Resolve index).Resolution with
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
             | _ ->
@@ -377,9 +381,9 @@ module InferenceContext =
         let types =
             { new TypeTransformation() with
                 member this.OnTypeParameter param =
-                    match TypeParameter param |> context.Resolve with
+                    match (TypeParameter param |> ResolvedType.New |> context.Resolve).Resolution with
                     | TypeParameter param' when context.IsFresh param' -> InvalidType
-                    | resolvedType -> resolvedType
+                    | resolution -> resolution
             }
 
         SyntaxTreeTransformation(Types = types)
