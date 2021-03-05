@@ -41,36 +41,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             LibContext.RegisterTarget(CodeGenTarget.Native);
         }
 
-        /// <summary>
-        /// This type is used to map Q# types to interop-friendly types.
-        /// </summary>
-        private class ArgMapping
-        {
-            internal readonly string BaseName;
-
-            /// <summary>
-            /// The first item contains the array element type, and the second item contains the array count name.
-            /// If <see cref="arrayInfo"/> is not null, then <see cref="structInfo"/> is null.
-            /// </summary>
-            private readonly (ResolvedType, string)? arrayInfo;
-
-            internal bool IsArray => this.arrayInfo != null;
-            internal ResolvedType ArrayElementType => this.arrayInfo?.Item1 ?? throw new InvalidOperationException("not an array");
-            internal string ArrayCountName => this.arrayInfo?.Item2 ?? throw new InvalidOperationException("not an array");
-
-            private ArgMapping(string baseName, (ResolvedType, string)? arrayInfo = null)
-            {
-                this.BaseName = baseName;
-                this.arrayInfo = arrayInfo;
-            }
-
-            internal static ArgMapping Create(string baseName) =>
-                new ArgMapping(baseName);
-
-            internal ArgMapping WithArrayInfo(ResolvedType arrayType, string arrayCountName) =>
-                new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
-        }
-
         #region Member variables
 
         /// <summary>
@@ -187,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// 2.) the runtime library needs to be initialized by calling <see cref="InitializeRuntimeLibrary"/>, and
         /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructionSet"/>.
         /// </summary>
-        /// <param name="compilation">The compilation unit for which QIR is generated.</param>
+        /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="config">The configuration for QIR generation.</param>
         internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, Configuration config)
         {
