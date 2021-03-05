@@ -139,6 +139,15 @@ module private Inference =
                  (ResolvedType.New param |> showType)
                  (showType resolvedType)
 
+    let letters =
+        Seq.initInfinite (fun i -> i + 1)
+        |> Seq.collect (fun length ->
+            seq { 'a' .. 'z' }
+            |> Seq.map string
+            |> Seq.replicate length
+            |> Seq.reduce (fun xs ys -> Seq.allPairs xs ys |> Seq.map (fun (x, y) -> x + y)))
+        |> Seq.cache
+
 open Inference
 
 type InferenceContext(symbolTracker: SymbolTracker) =
@@ -156,19 +165,21 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member context.AmbiguousDiagnostics =
         [
             for variable in variables do
-                if Option.isNone variable.Value.Substitution
-                then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeVariable, [ variable.Key.TypeName ]) Range.Zero
+                if Option.isNone variable.Value.Substitution then
+                    QsCompilerDiagnostic.Error
+                        (ErrorCode.AmbiguousTypeVariable, [ TypeParameter variable.Key |> ResolvedType.New |> showType ])
+                        Range.Zero
         ]
 
     member internal context.Fresh() =
-        let name = sprintf "__a%d__" variables.Count
+        let name = letters |> Seq.item variables.Count
 
         let param =
-            {
-                Origin = symbolTracker.Parent
-                TypeName = name
-                Range = Null
-            }
+            Seq.initInfinite (fun i -> if i = 0 then name else name + string (i - 1))
+            |> Seq.map (fun name -> QsTypeParameter.New(symbolTracker.Parent, name, Null))
+            |> Seq.skipWhile (fun param ->
+                variables.ContainsKey param || symbolTracker.DefinedTypeParameters.Contains param.TypeName)
+            |> Seq.head
 
         variables.Add(param, { Substitution = None; Constraints = [] })
         TypeParameter param |> ResolvedType.New
@@ -370,9 +381,7 @@ module InferenceContext =
         let types =
             { new TypeTransformation() with
                 member this.OnTypeParameter param =
-                    match (TypeParameter param |> ResolvedType.New |> context.Resolve).Resolution with
-                    | TypeParameter param' when context.IsFresh param' -> InvalidType
-                    | resolution -> resolution
+                    (TypeParameter param |> ResolvedType.New |> context.Resolve).Resolution
             }
 
         SyntaxTreeTransformation(Types = types)
