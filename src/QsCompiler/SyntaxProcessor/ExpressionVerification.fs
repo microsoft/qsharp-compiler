@@ -335,7 +335,11 @@ type QsExpression with
     /// Returns the computed typed expression.
     member this.Resolve ({ Symbols = symbols; Inference = inference } as context) diagnose =
         let InnerExpression (item: QsExpression) = item.Resolve context diagnose
-        let diagnoseWithRange range = withRange range >> List.iter diagnose
+        let diagnoseRange range = withRange range >> List.iter diagnose
+
+        let takeDiagnostics (value, diagnostics) =
+            List.iter diagnose diagnostics
+            value
 
         /// Given and expression used for array slicing, as well as the type of the sliced expression,
         /// generates suitable boundaries for open ended ranges and returns the resolved slicing expression as Some.
@@ -377,7 +381,7 @@ type QsExpression with
             let resolveSlicingRange (rstart, rstep, rend) =
                 let integerExpr ex =
                     let resolved = InnerExpression ex
-                    inference.Unify(ResolvedType.New Int, resolved.ResolvedType) |> diagnoseWithRange ex.RangeOrDefault
+                    inference.Unify(ResolvedType.New Int, resolved.ResolvedType) |> diagnoseRange ex.RangeOrDefault
                     resolved
 
                 let resolvedStep = rstep |> Option.map integerExpr
@@ -436,9 +440,7 @@ type QsExpression with
         /// and returns the corrsponding NewArray expression as typed expression
         let buildNewArray (bType, ex: QsExpression) =
             let resolvedEx = InnerExpression ex
-
-            inference.Unify(ResolvedType.New Int, resolvedEx.ResolvedType)
-            |> diagnoseWithRange ex.RangeOrDefault
+            inference.Unify(ResolvedType.New Int, resolvedEx.ResolvedType) |> diagnoseRange ex.RangeOrDefault
 
             let resolvedBase = symbols.ResolveType diagnose bType
             let arrType = resolvedBase |> StripPositionInfo.Apply |> ArrayType |> ResolvedType.New
@@ -452,8 +454,7 @@ type QsExpression with
                 |> Seq.toList
                 |> List.map (fun (ex, r) -> ex, (ex.ResolvedType, r))
 
-            let resolvedType, diagnostics = positioned |> List.map snd |> VerifyValueArray inference
-            List.iter diagnose diagnostics
+            let resolvedType = positioned |> List.map snd |> VerifyValueArray inference |> takeDiagnostics
             let resolvedValues = (positioned |> List.map fst).ToImmutableArray()
 
             let localQdependency =
@@ -468,7 +469,7 @@ type QsExpression with
 
             let sizeRange = size.RangeOrDefault
             let size = InnerExpression size
-            inference.Unify(ResolvedType.New Int, size.ResolvedType) |> diagnoseWithRange sizeRange
+            inference.Unify(ResolvedType.New Int, size.ResolvedType) |> diagnoseRange sizeRange
 
             let quantumDependency =
                 value.InferredInformation.HasLocalQuantumDependency
@@ -483,16 +484,15 @@ type QsExpression with
 
             match resolveSlicing resolvedArr idx with
             | None ->
-                let arrType, diagnostics =
-                    VerifyNumberedItemAccess inference (resolvedArr.ResolvedType, arr.RangeOrDefault)
-
-                List.iter diagnose diagnostics
-                { resolvedArr with ResolvedType = arrType }
+                { resolvedArr with
+                    ResolvedType =
+                        VerifyNumberedItemAccess inference (resolvedArr.ResolvedType, arr.RangeOrDefault)
+                        |> takeDiagnostics
+                }
             | Some resolvedIdx ->
-                let resolvedType, diagnostics =
+                let resolvedType =
                     VerifyArrayItem inference (resolvedArr.ResolvedType, arr.RangeOrDefault) resolvedIdx.ResolvedType
-
-                List.iter diagnose diagnostics
+                    |> takeDiagnostics
 
                 let localQdependency =
                     resolvedArr.InferredInformation.HasLocalQuantumDependency
@@ -519,8 +519,7 @@ type QsExpression with
             let itemName = acc |> buildItemName
             // TODO: Eager resolution.
             let udtType = inference.Resolve resolvedEx.ResolvedType
-            let exType, diagnostics = VerifyUdtWith (symbols.GetItemType itemName) (udtType, ex.RangeOrDefault)
-            List.iter diagnose diagnostics
+            let exType = VerifyUdtWith (symbols.GetItemType itemName) (udtType, ex.RangeOrDefault) |> takeDiagnostics
             let localQdependency = resolvedEx.InferredInformation.HasLocalQuantumDependency
             (NamedItem(resolvedEx, itemName), exType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
 
@@ -544,10 +543,9 @@ type QsExpression with
             | UserDefinedType _, Identifier (sym, Null) ->
                 let itemName = buildItemName sym
 
-                let itemType, diagnostics =
+                let itemType =
                     VerifyUdtWith (symbols.GetItemType itemName) (resLhs.ResolvedType, lhs.RangeOrDefault)
-
-                List.iter diagnose diagnostics
+                    |> takeDiagnostics
 
                 VerifyAssignment
                     inference
@@ -567,10 +565,8 @@ type QsExpression with
             | _ -> // by default, assume that the update expression is supposed to be for an array
                 match resolveSlicing resLhs accEx with
                 | None -> // indicates a trivial slicing of the form "..." resulting in a complete replacement
-                    let expectedRhs, diagnostics =
-                        VerifyNumberedItemAccess inference (resLhs.ResolvedType, lhs.RangeOrDefault)
-
-                    List.iter diagnose diagnostics
+                    let expectedRhs =
+                        VerifyNumberedItemAccess inference (resLhs.ResolvedType, lhs.RangeOrDefault) |> takeDiagnostics
 
                     VerifyAssignment
                         inference
@@ -581,10 +577,9 @@ type QsExpression with
 
                     { resRhs with ResolvedType = expectedRhs }
                 | Some resAccEx -> // indicates either a index or index range to update
-                    let expectedRhs, diagnostics =
+                    let expectedRhs =
                         VerifyArrayItem inference (resLhs.ResolvedType, lhs.RangeOrDefault) resAccEx.ResolvedType
-
-                    List.iter diagnose diagnostics
+                        |> takeDiagnostics
 
                     VerifyAssignment
                         inference
@@ -601,7 +596,7 @@ type QsExpression with
         /// *under the assumption* that the range operator is left associative.
         let buildRange (lhs: QsExpression, rEnd: QsExpression) =
             let resRhs = InnerExpression rEnd
-            inference.Unify(ResolvedType.New Int, resRhs.ResolvedType) |> diagnoseWithRange rEnd.RangeOrDefault
+            inference.Unify(ResolvedType.New Int, resRhs.ResolvedType) |> diagnoseRange rEnd.RangeOrDefault
 
             let resLhs =
                 match lhs.Expression with
@@ -623,9 +618,7 @@ type QsExpression with
                 | _ ->
                     InnerExpression lhs
                     |> (fun resStart ->
-                        inference.Unify(ResolvedType.New Int, resStart.ResolvedType)
-                        |> diagnoseWithRange lhs.RangeOrDefault
-
+                        inference.Unify(ResolvedType.New Int, resStart.ResolvedType) |> diagnoseRange lhs.RangeOrDefault
                         resStart)
 
             let localQdependency =
@@ -639,8 +632,7 @@ type QsExpression with
         /// and returns the corresponding expression built with buildExprKind as typed expression.
         let verifyAndBuildWith buildExprKind verify (ex: QsExpression) =
             let resolvedEx = InnerExpression ex
-            let exType, diagnostics = verify (resolvedEx.ResolvedType, ex.RangeOrDefault)
-            List.iter diagnose diagnostics
+            let exType = verify (resolvedEx.ResolvedType, ex.RangeOrDefault) |> takeDiagnostics
 
             (buildExprKind resolvedEx, exType, resolvedEx.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
@@ -650,13 +642,12 @@ type QsExpression with
         let buildArithmeticOp buildExprKind (lhs, rhs) =
             let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
-            let resolvedType, diagnostics =
+            let resolvedType =
                 VerifyArithmeticOp
                     inference
                     (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                     (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
-
-            List.iter diagnose diagnostics
+                |> takeDiagnostics
 
             let localQdependency =
                 resolvedLhs.InferredInformation.HasLocalQuantumDependency
@@ -673,13 +664,12 @@ type QsExpression with
         let buildAddition (lhs, rhs) =
             let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
-            let resolvedType, diagnostics =
+            let resolvedType =
                 VerifyConcatenation
                     inference
                     (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                     (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
-
-            List.iter diagnose diagnostics
+                |> takeDiagnostics
 
             let localQdependency =
                 resolvedLhs.InferredInformation.HasLocalQuantumDependency
@@ -693,19 +683,19 @@ type QsExpression with
         /// Note: POW can take two integers or two doubles, in which case the result is a double, or it can take a big
         /// integer and an integer, in which case the result is a big integer.
         let buildPower (lhs, rhs) =
-            let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
+            let resolvedLhs = InnerExpression lhs
+            let resolvedRhs = InnerExpression rhs
 
-            let resolvedType, diagnostics =
+            let resolvedType =
                 if resolvedLhs.ResolvedType.Resolution = BigInt then
-                    resolvedLhs.ResolvedType,
-                    inference.Unify(ResolvedType.New Int, resolvedRhs.ResolvedType) |> withRange rhs.RangeOrDefault
+                    inference.Unify(ResolvedType.New Int, resolvedRhs.ResolvedType) |> diagnoseRange rhs.RangeOrDefault
+                    resolvedLhs.ResolvedType
                 else
                     VerifyArithmeticOp
                         inference
                         (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                         (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
-
-            List.iter diagnose diagnostics
+                    |> takeDiagnostics
 
             let localQdependency =
                 resolvedLhs.InferredInformation.HasLocalQuantumDependency
@@ -719,13 +709,12 @@ type QsExpression with
         let buildIntegralOp buildExprKind (lhs, rhs) =
             let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
-            let resolvedType, diagnostics =
+            let resolvedType =
                 VerifyIntegralOp
                     inference
                     (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
                     (resolvedRhs.ResolvedType, rhs.RangeOrDefault)
-
-            List.iter diagnose diagnostics
+                |> takeDiagnostics
 
             let localQdependency =
                 resolvedLhs.InferredInformation.HasLocalQuantumDependency
@@ -739,12 +728,10 @@ type QsExpression with
         let buildShiftOp buildExprKind (lhs, rhs) =
             let (resolvedLhs, resolvedRhs) = (InnerExpression lhs, InnerExpression rhs)
 
-            let resolvedType, diagnostics = VerifyIsIntegral inference (resolvedLhs.ResolvedType, lhs.RangeOrDefault)
+            let resolvedType =
+                VerifyIsIntegral inference (resolvedLhs.ResolvedType, lhs.RangeOrDefault) |> takeDiagnostics
 
-            List.iter diagnose diagnostics
-
-            inference.Unify(ResolvedType.New Int, resolvedRhs.ResolvedType)
-            |> diagnoseWithRange rhs.RangeOrDefault
+            inference.Unify(ResolvedType.New Int, resolvedRhs.ResolvedType) |> diagnoseRange rhs.RangeOrDefault
 
             let localQdependency =
                 resolvedLhs.InferredInformation.HasLocalQuantumDependency
@@ -775,15 +762,12 @@ type QsExpression with
         /// and returns the corresponding conditional expression as typed expression.
         let buildConditional (cond: QsExpression, ifTrue: QsExpression, ifFalse: QsExpression) =
             let resCond, resIsTrue, resIsFalse = InnerExpression cond, InnerExpression ifTrue, InnerExpression ifFalse
-
-            inference.Unify(ResolvedType.New Bool, resCond.ResolvedType)
-            |> diagnoseWithRange cond.RangeOrDefault
-
+            inference.Unify(ResolvedType.New Bool, resCond.ResolvedType) |> diagnoseRange cond.RangeOrDefault
             VerifyConditionalExecution(resIsTrue, ifTrue.RangeOrDefault) |> List.iter diagnose
             VerifyConditionalExecution(resIsFalse, ifFalse.RangeOrDefault) |> List.iter diagnose
 
             let exType, diagnostics = inference.Intersect(resIsTrue.ResolvedType, resIsFalse.ResolvedType)
-            diagnoseWithRange (Range.Span ifTrue.RangeOrDefault ifFalse.RangeOrDefault) diagnostics
+            diagnoseRange (Range.Span ifTrue.RangeOrDefault ifFalse.RangeOrDefault) diagnostics
 
             let localQdependency =
                 [ resCond; resIsTrue; resIsFalse ]
@@ -798,7 +782,7 @@ type QsExpression with
         let buildUnwrap (ex: QsExpression) =
             let resolvedEx = InnerExpression ex
             let exType = inference.Fresh()
-            inference.Constrain(resolvedEx.ResolvedType, Wrapped exType) |> diagnoseWithRange ex.RangeOrDefault
+            inference.Constrain(resolvedEx.ResolvedType, Wrapped exType) |> diagnoseRange ex.RangeOrDefault
 
             (UnwrapApplication resolvedEx, exType, resolvedEx.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
@@ -834,17 +818,17 @@ type QsExpression with
             if not isPartial then
                 inference.Constrain
                     (resolvedCallable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport |> CanGenerateFunctors)
-                |> diagnoseWithRange callable.RangeOrDefault
+                |> diagnoseRange callable.RangeOrDefault
 
             let output = inference.Fresh()
 
             if isPartial || context.IsInOperation then
                 inference.Constrain(resolvedCallable.ResolvedType, Callable(argType, output))
-                |> diagnoseWithRange callable.RangeOrDefault
+                |> diagnoseRange callable.RangeOrDefault
             else
                 // TODO: Better error message.
                 inference.Unify(QsTypeKind.Function(argType, output) |> ResolvedType.New, resolvedCallable.ResolvedType)
-                |> diagnoseWithRange callable.RangeOrDefault
+                |> diagnoseRange callable.RangeOrDefault
 
             let resultType =
                 match partialType with
@@ -852,7 +836,7 @@ type QsExpression with
                     let result = inference.Fresh()
 
                     inference.Constrain(resolvedCallable.ResolvedType, HasPartialApplication(missing, result))
-                    |> diagnoseWithRange arg.RangeOrDefault
+                    |> diagnoseRange arg.RangeOrDefault
 
                     result
                 | None -> output
@@ -878,10 +862,7 @@ type QsExpression with
         | InvalidExpr -> (InvalidExpr, InvalidType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs true // choosing the more permissive option here
         | MissingExpr -> (MissingExpr, MissingType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs false
         | UnitValue -> (UnitValue, UnitType |> ResolvedType.New, false, this.Range) |> ExprWithoutTypeArgs false
-        | Identifier (sym, tArgs) ->
-            let expr, diagnostics = VerifyIdentifier inference symbols (sym, tArgs)
-            List.iter diagnose diagnostics
-            expr
+        | Identifier (sym, tArgs) -> VerifyIdentifier inference symbols (sym, tArgs) |> takeDiagnostics
         | CallLikeExpression (method, arg) -> buildCall (method, arg)
         | AdjointApplication ex -> verifyAndBuildWith AdjointApplication (VerifyAdjointApplication inference) ex
         | ControlledApplication ex ->
