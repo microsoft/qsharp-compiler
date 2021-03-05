@@ -3,11 +3,6 @@
 
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
 
-open System
-open System.Collections.Generic
-open System.Collections.Immutable
-open System.Linq
-
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -19,6 +14,8 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
+open System.Collections.Generic
+open System.Collections.Immutable
 
 // utils for verifying types in expressions
 
@@ -230,7 +227,8 @@ let private VerifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
         typeArgs
         |> QsNullable<_>
             .Map(fun (args: ImmutableArray<QsType>) ->
-                args.Select(fun tArg ->
+                args
+                |> Seq.map (fun tArg ->
                     match tArg.Type with
                     | MissingType -> ResolvedType.New MissingType
                     | _ -> symbols.ResolveType diagnostics.Add tArg))
@@ -296,33 +294,10 @@ let private VerifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
 /// Calls the given function addError on all generated errors.
 /// IMPORTANT: ignores any external type parameter occuring in expectedType without raising an error!
 let internal VerifyAssignment (inference: InferenceContext) expectedType mismatchErr (rhsType, rhsRange) =
-    // we need to check if all type parameters are consistently resolved
-    let tpResolutions = ResizeArray()
-    let errCodes = inference.Unify(expectedType, rhsType)
-
-    let containsNonTrivialResolution (tp: IGrouping<_, ResolvedType>) =
-        let notResolvedToItself (x: ResolvedType) =
-            match x.Resolution with
-            | TypeParameter p -> p.Origin <> fst tp.Key || p.TypeName <> snd tp.Key
-            | _ -> not x.isInvalid
-
-        tp |> Seq.exists notResolvedToItself
-
-    let nonTrivialResolutions =
-        tpResolutions.ToLookup(fst, snd).Where containsNonTrivialResolution
-        |> Seq.map (fun g ->
-            QsTypeParameter.New(fst g.Key, snd g.Key, Null) |> TypeParameter |> ResolvedType.New |> showType)
-        |> Seq.toList
-
     [
-        if List.isEmpty errCodes |> not then
+        if inference.Unify(expectedType, rhsType) |> List.isEmpty |> not then
             QsCompilerDiagnostic.Error
                 (mismatchErr, [ inference.Resolve rhsType |> showType; showType expectedType ])
-                rhsRange
-
-        if nonTrivialResolutions.Any() then
-            QsCompilerDiagnostic.Error
-                (ErrorCode.ConstrainsTypeParameter, [ String.Join(", ", nonTrivialResolutions) ])
                 rhsRange
     ]
 
@@ -409,8 +384,8 @@ type QsExpression with
 
 
         /// Resolves and verifies the interpolated expressions, and returns the StringLiteral as typed expression.
-        let buildStringLiteral (literal, interpolated: IEnumerable<_>) =
-            let resInterpol = (interpolated.Select InnerExpression).ToImmutableArray()
+        let buildStringLiteral (literal, interpolated) =
+            let resInterpol = (interpolated |> Seq.map InnerExpression).ToImmutableArray()
             let localQdependency = resInterpol |> Seq.exists (fun r -> r.InferredInformation.HasLocalQuantumDependency)
 
             (StringLiteral(literal, resInterpol), String |> ResolvedType.New, localQdependency, this.Range)
@@ -421,15 +396,15 @@ type QsExpression with
         /// If the ValueTuple contains only one item, the item is returned instead (i.e. arity-1 tuple expressions are stripped).
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="items"/> is empty.</exception>
-        let buildTuple (items: ImmutableArray<_>) =
-            let resolvedItems = (items.Select InnerExpression).ToImmutableArray()
+        let buildTuple items =
+            let resolvedItems = (items |> Seq.map InnerExpression).ToImmutableArray()
             let resolvedTypes = (resolvedItems |> Seq.map (fun x -> x.ResolvedType)).ToImmutableArray()
 
             let localQdependency =
                 resolvedItems |> Seq.exists (fun item -> item.InferredInformation.HasLocalQuantumDependency)
 
             if resolvedItems.Length = 0 then
-                ArgumentException "tuple expression requires at least one tuple item" |> raise
+                failwith "tuple expression requires at least one tuple item"
             elif resolvedItems.Length = 1 then
                 resolvedItems.[0]
             else
@@ -450,7 +425,8 @@ type QsExpression with
         /// Resolves and verifies all given items of a value array literal, and returns the corresponding ValueArray as typed expression.
         let buildValueArray (values: ImmutableArray<_>) =
             let positioned =
-                values.Select(fun ex -> InnerExpression ex, ex.RangeOrDefault)
+                values
+                |> Seq.map (fun ex -> InnerExpression ex, ex.RangeOrDefault)
                 |> Seq.toList
                 |> List.map (fun (ex, r) -> ex, (ex.ResolvedType, r))
 
