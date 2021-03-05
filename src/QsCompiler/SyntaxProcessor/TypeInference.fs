@@ -184,8 +184,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         variables.Add(param, { Substitution = None; Constraints = [] })
         TypeParameter param |> ResolvedType.New
 
-    member internal context.IsFresh(param: QsTypeParameter) = variables.ContainsKey param
-
     member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =
         context.UnifyByOrdering(context.Resolve expected, Supertype, context.Resolve actual)
 
@@ -231,10 +229,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         match expected.Resolution, actual.Resolution with
         | _ when ordering = Subtype -> context.UnifyByOrdering(expected, Supertype, actual)
         | _ when expected =~ actual -> []
-        | TypeParameter param, _ when context.IsFresh param ->
+        | TypeParameter param, _ when variables.ContainsKey param ->
             bind param actual
             context.ApplyConstraints(param, actual)
-        | _, TypeParameter param when context.IsFresh param ->
+        | _, TypeParameter param when variables.ContainsKey param ->
             bind param expected
             context.ApplyConstraints(param, expected)
         | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(item1, Equal, item2)
