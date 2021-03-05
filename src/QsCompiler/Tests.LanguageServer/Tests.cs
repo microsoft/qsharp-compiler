@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             capability!.Value.Match(
                 flag =>
                 {
-                    Assert.Equals(flag, shouldHave);
+                    Assert.AreEqual(flag, shouldHave);
                     return true;
                 },
                 options =>
