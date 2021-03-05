@@ -273,6 +273,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 CompletionProvider = supportsCompletion ? new CompletionOptions() : null,
                 SignatureHelpProvider = new SignatureHelpOptions(),
                 ExecuteCommandProvider = new ExecuteCommandOptions(),
+                DocumentRangeFormattingProvider = false
             };
             capabilities.TextDocumentSync.Change = TextDocumentSyncKind.Incremental;
             capabilities.TextDocumentSync.OpenClose = true;
