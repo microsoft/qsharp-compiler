@@ -49,8 +49,8 @@ let private Verify context =
 let private AssignmentVerification expected (context: ScopeContext) errCode =
     let parent = context.Symbols.Parent, context.Symbols.DefinedTypeParameters
 
-    let verification addErr (t, e, r) =
-        VerifyAssignment context.Inference expected parent errCode addErr (t, Some e, r)
+    let verification diagnose (t, e, r) =
+        VerifyAssignment context.Inference expected parent errCode diagnose (t, Some e, r)
 
     verification
 
@@ -96,7 +96,7 @@ let NewExpressionStatement comments location context expr =
 ///
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewFailStatement comments location context expr =
-    let verifiedExpr, _, diagnostics = VerifyWith (errorToDiagnostic VerifyIsString) context expr
+    let verifiedExpr, _, diagnostics = VerifyWith (VerifyIsString context.Inference) context expr
     let autoGenErrs = (verifiedExpr, expr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
 
     verifiedExpr |> QsFailStatement |> asStatement comments location LocalDeclarations.Empty,
@@ -112,7 +112,7 @@ let NewFailStatement comments location context expr =
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics.
 let NewReturnStatement comments (location: QsLocation) (context: ScopeContext) expr =
     let verifyIsReturnType = AssignmentVerification context.ReturnType context ErrorCode.TypeMismatchInReturn
-    let verifiedExpr, _, diagnostics = ExpressionVerifyWith (errorToDiagnostic verifyIsReturnType) context expr
+    let verifiedExpr, _, diagnostics = ExpressionVerifyWith (verifyIsReturnType) context expr
 
     let autoGenErrs =
         context.Symbols
@@ -184,7 +184,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
     let VerifyIsCorrectType =
         AssignmentVerification verifiedLhs.ResolvedType context ErrorCode.TypeMismatchInValueUpdate
 
-    let verifiedRhs, _, rhsErrs = ExpressionVerifyWith (errorToDiagnostic VerifyIsCorrectType) context rhs
+    let verifiedRhs, _, rhsErrs = ExpressionVerifyWith (VerifyIsCorrectType) context rhs
     let localQdep = verifiedRhs.InferredInformation.HasLocalQuantumDependency
 
     let rec VerifyMutability =

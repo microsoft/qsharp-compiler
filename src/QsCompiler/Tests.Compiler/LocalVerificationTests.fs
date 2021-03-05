@@ -321,7 +321,7 @@ type LocalVerificationTests() =
         this.Expect "InvalidArraySlice3" [ Error ErrorCode.ConstraintNotSatisfied ]
         this.Expect "InvalidArraySlice4" [ Error ErrorCode.ConstraintNotSatisfied ]
         this.Expect "InvalidArraySlice5" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice6" [ Error ErrorCode.ItemAccessForNonArray ] // TODO: Error type.
+        this.Expect "InvalidArraySlice6" [ Error ErrorCode.ConstraintNotSatisfied ]
         this.Expect "InvalidArraySlice7" [ Error ErrorCode.ConstraintNotSatisfied ]
         this.Expect "InvalidArraySlice8" [ Error ErrorCode.ConstraintNotSatisfied ]
         this.Expect "InvalidArraySlice9" [ Error ErrorCode.ConstraintNotSatisfied ]
