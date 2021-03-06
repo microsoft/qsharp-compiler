@@ -4,6 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
@@ -12,6 +13,8 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     /// </summary>
     internal class SyntaxTreeTrimming : IRewriteStep
     {
+        private readonly bool keepAllIntrinsics;
+
         public string Name => "Syntax Tree Trimming";
 
         public int Priority => RewriteStepPriorities.SyntaxTreeTrimming;
@@ -26,6 +29,15 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool ImplementsPostconditionVerification => false;
 
+        /// <summary>
+        /// Constructor for the SyntaxTreeTrimming Rewrite Step.
+        /// </summary>
+        /// <param name="keepAllIntrinsics">When true, intrinsics will not be removed as part of the rewrite step.</param>
+        public SyntaxTreeTrimming(bool keepAllIntrinsics = true)
+        {
+            this.keepAllIntrinsics = keepAllIntrinsics;
+        }
+
         public bool PreconditionVerification(QsCompilation compilation)
         {
             throw new System.NotImplementedException();
@@ -33,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = compilation;
+            transformed = TrimSyntaxTree.Apply(compilation, this.keepAllIntrinsics);
             return true;
         }
 

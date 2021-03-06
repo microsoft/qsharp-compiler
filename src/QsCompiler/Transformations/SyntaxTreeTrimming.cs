@@ -13,7 +13,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 {
-    public static class SyntaxTreeTrimming
+    public static class TrimSyntaxTree
     {
         public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
         {
