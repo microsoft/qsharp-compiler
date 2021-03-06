@@ -23,54 +23,40 @@ open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 /// first resolves the given expression, and then verifies its resolved type with the verification function.
 /// Returns the typed expression built upon resolution, the return value of the verification function,
 /// and an array with the diagnostics generated during resolution and verification.
-let private ExpressionVerifyWith verification context (expr: QsExpression) =
+let private verifyExprWith verification context (expr: QsExpression) =
     let resolveDiagnostics = ResizeArray()
     let typedExpr = expr.Resolve context resolveDiagnostics.Add
-    let result, verifyDiagnostics = verification (typedExpr.ResolvedType, typedExpr.Expression, expr.RangeOrDefault)
+    let result, verifyDiagnostics = verification typedExpr
     typedExpr, result, Array.append (Seq.toArray resolveDiagnostics) (List.toArray verifyDiagnostics)
-
-/// Given a verification function that takes an error logging function as well as an expression type and its range,
-/// first resolves the given expression, and then verifies its resolved type with the verification function.
-/// Returns the typed expression built upon resolution, the return value of the verification function,
-/// and an array with the diagnostics generated during resolution and verification.
-let private VerifyWith verification =
-    ExpressionVerifyWith(fun (exT, _, exRange) -> verification (exT, exRange))
 
 /// Resolves the given expression, and returns the typed expression built upon resolution,
 /// as well as an array with the diagnostics generated during resolution.
-let private Verify context =
-    VerifyWith (fun _ -> (), []) context >> fun (ex, _, err) -> ex, err
+let private verifyExpr context =
+    verifyExprWith (fun _ -> (), []) context >> fun (ex, _, err) -> ex, err
 
 /// Helper method that returns a suitable verification method based on VerifyAssignment
 /// that can be passed to ExpressionVerifyWith.
-let private AssignmentVerification expected (context: ScopeContext) errCode =
-    let verification (t, _, r) =
-        (), VerifyAssignment context.Inference expected errCode (t, r)
-
-    verification
+let private AssignmentVerification expected (context: ScopeContext) errCode expr =
+    (), VerifyAssignment context.Inference expected errCode expr
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested,
 /// checks if the given typed expression has any local quantum dependencies.
 /// If it does, returns an array with suitable diagnostics. Returns an empty array otherwise.
 /// Remark: inversions can only be auto-generated if the only quantum dependencies occur within expresssion statements.
 let private onAutoInvertCheckQuantumDependency (symbols: SymbolTracker) (ex: TypedExpression, range) =
-    if not
-        (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint
-         && ex.InferredInformation.HasLocalQuantumDependency) then
-        [||]
-    else
-        [|
-            range |> QsCompilerDiagnostic.Error(ErrorCode.QuantumDependencyOutsideExprStatement, [])
-        |]
+    [|
+        if symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint
+           && ex.InferredInformation.HasLocalQuantumDependency then
+            QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) range
+    |]
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested,
 /// returns an array with containing a diagnostic for the given range with the given error code.
 /// Returns an empty array otherwise.
 let private onAutoInvertGenerateError (errCode, range) (symbols: SymbolTracker) =
-    if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint)
-    then [||]
-    else [| range |> QsCompilerDiagnostic.Error errCode |]
-
+    if symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint
+    then [| range |> QsCompilerDiagnostic.Error errCode |]
+    else [||]
 
 // utils for building QsStatements from QsFragmentKinds
 
@@ -84,8 +70,10 @@ let private asStatement comments location vars kind =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewExpressionStatement comments location context expr =
     let verifiedExpr, (), diagnostics =
-        VerifyWith (fun (exType, range) ->
-            (), context.Inference.Unify(ResolvedType.New UnitType, exType) |> withRange range) context expr
+        verifyExprWith (fun expr ->
+            (),
+            context.Inference.Unify(ResolvedType.New UnitType, expr.ResolvedType)
+            |> withRange (rangeOrDefault expr)) context expr
 
     verifiedExpr |> QsExpressionStatement |> asStatement comments location LocalDeclarations.Empty, diagnostics
 
@@ -95,8 +83,10 @@ let NewExpressionStatement comments location context expr =
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewFailStatement comments location context expr =
     let verifiedExpr, (), diagnostics =
-        VerifyWith (fun (exType, range) ->
-            (), context.Inference.Unify(ResolvedType.New String, exType) |> withRange range) context expr
+        verifyExprWith (fun expr ->
+            (),
+            context.Inference.Unify(ResolvedType.New String, expr.ResolvedType)
+            |> withRange (rangeOrDefault expr)) context expr
 
     let autoGenErrs = (verifiedExpr, expr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
 
@@ -112,7 +102,7 @@ let NewFailStatement comments location context expr =
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics.
 let NewReturnStatement comments (location: QsLocation) (context: ScopeContext) expr =
     let verifyIsReturnType = AssignmentVerification context.ReturnType context ErrorCode.TypeMismatchInReturn
-    let verifiedExpr, _, diagnostics = ExpressionVerifyWith (verifyIsReturnType) context expr
+    let verifiedExpr, _, diagnostics = verifyExprWith (verifyIsReturnType) context expr
 
     let autoGenErrs =
         context.Symbols
@@ -179,12 +169,12 @@ let rec private VerifyBinding (inference: InferenceContext)
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics.
 let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, rhs: QsExpression) =
-    let verifiedLhs, lhsErrs = Verify context lhs
+    let verifiedLhs, lhsErrs = verifyExpr context lhs
 
     let VerifyIsCorrectType =
         AssignmentVerification verifiedLhs.ResolvedType context ErrorCode.TypeMismatchInValueUpdate
 
-    let verifiedRhs, _, rhsErrs = ExpressionVerifyWith (VerifyIsCorrectType) context rhs
+    let verifiedRhs, _, rhsErrs = verifyExprWith (VerifyIsCorrectType) context rhs
     let localQdep = verifiedRhs.InferredInformation.HasLocalQuantumDependency
 
     let rec VerifyMutability =
@@ -194,6 +184,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
             match ex.Expression with
             | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
             | _ -> ()
+
             [||]
         | Item (ex: TypedExpression) ->
             let range = ex.Range.ValueOr Range.Zero
@@ -244,7 +235,7 @@ let private TryAddDeclaration isMutable
 /// Builds the corresponding Q# let- or mutable-statement (depending on the given kind) at the given location,
 /// and returns it along with an array of all generated diagnostics.
 let private NewBinding kind comments (location: QsLocation) context (qsSym: QsSymbol, qsExpr: QsExpression) =
-    let rhs, rhsErrs = Verify context qsExpr
+    let rhs, rhsErrs = verifyExpr context qsExpr
 
     let symTuple, varDeclarations, errs =
         let isMutable =
@@ -294,7 +285,7 @@ type BlockStatement<'T> = delegate of QsScope -> 'T
 /// as well as a delegate that given a Q# scope returns the built for-statement with the given scope as the body.
 /// NOTE: the declared loop variables are *not* visible after the statements ends, hence they are *not* attaches as local declarations to the statement!
 let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qsExpr: QsExpression) =
-    let iterExpr, itemT, iterErrs = VerifyWith (VerifyIsIterable context.Inference) context qsExpr
+    let iterExpr, itemT, iterErrs = verifyExprWith (VerifyIsIterable context.Inference) context qsExpr
 
     let symTuple, _, varErrs =
         let localQdep = iterExpr.InferredInformation.HasLocalQuantumDependency
@@ -318,8 +309,9 @@ let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qs
 /// as well as a delegate that given a Q# scope returns the built while-statement with the given scope as the body.
 let NewWhileStatement comments (location: QsLocation) context (qsExpr: QsExpression) =
     let cond, (), errs =
-        VerifyWith (fun (exType, range) ->
-            (), context.Inference.Unify(ResolvedType.New Bool, exType) |> withRange range) context qsExpr
+        verifyExprWith (fun expr ->
+            (), context.Inference.Unify(ResolvedType.New Bool, expr.ResolvedType) |> withRange (rangeOrDefault expr))
+            context qsExpr
 
     let whileLoop body =
         QsWhileStatement.New(cond, body) |> QsWhileStatement
@@ -332,8 +324,9 @@ let NewWhileStatement comments (location: QsLocation) context (qsExpr: QsExpress
 /// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block.
 let NewConditionalBlock comments location context (qsExpr: QsExpression) =
     let condition, (), errs =
-        VerifyWith (fun (exType, range) ->
-            (), context.Inference.Unify(ResolvedType.New Bool, exType) |> withRange range) context qsExpr
+        verifyExprWith (fun expr ->
+            (), context.Inference.Unify(ResolvedType.New Bool, expr.ResolvedType) |> withRange (rangeOrDefault expr))
+            context qsExpr
 
     let autoGenErrs = (condition, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
 
@@ -428,8 +421,10 @@ let private NewBindingScope kind comments (location: QsLocation) context (qsSym:
         | SingleQubitAllocation -> SingleQubitAllocation |> ResolvedInitializer.New, [||]
         | QubitRegisterAllocation nr ->
             let verifiedNr, (), err =
-                VerifyWith (fun (exType, range) ->
-                    (), context.Inference.Unify(ResolvedType.New Int, exType) |> withRange range) context nr
+                verifyExprWith (fun expr ->
+                    (),
+                    context.Inference.Unify(ResolvedType.New Int, expr.ResolvedType) |> withRange (rangeOrDefault expr))
+                    context nr
 
             let autoGenErrs = (verifiedNr, nr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
             QubitRegisterAllocation verifiedNr |> ResolvedInitializer.New, Array.concat [ err; autoGenErrs ]
