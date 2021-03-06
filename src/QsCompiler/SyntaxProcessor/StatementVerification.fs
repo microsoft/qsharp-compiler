@@ -122,11 +122,7 @@ let NewReturnStatement comments (location: QsLocation) (context: ScopeContext) e
 /// If warnOnDiscard is set to true, generates a DiscardingItemInAssignment warning if a symbol on the left hand side is missing.
 /// Returns the resolved SymbolTuple, as well as an array with all local variable declarations returned by tryBuildDeclaration,
 /// along with an array containing all generated diagnostics.
-let rec private VerifyBinding (inference: InferenceContext)
-                              tryBuildDeclaration
-                              (symbol, (rhsType: ResolvedType, rhsEx, rhsRange))
-                              warnOnDiscard
-                              =
+let rec private VerifyBinding (inference: InferenceContext) tryBuildDeclaration (symbol, rhsType) warnOnDiscard =
     let symbolTuple =
         function
         | [] -> failwith "Symbol tuple is empty."
@@ -144,7 +140,7 @@ let rec private VerifyBinding (inference: InferenceContext)
         let error = QsCompilerDiagnostic.Error (ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
         InvalidItem, [||], [| error |]
     | Symbol name ->
-        match tryBuildDeclaration (name, symbol.RangeOrDefault) (rhsType, rhsEx, rhsRange) with
+        match tryBuildDeclaration (name, symbol.RangeOrDefault) (rhsType) with
         | Some declaration, diagnostics -> VariableName name, [| declaration |], diagnostics
         | None, diagnostics -> VariableName name, [||], diagnostics
     | SymbolTuple symbols ->
@@ -153,7 +149,7 @@ let rec private VerifyBinding (inference: InferenceContext)
         let unifyDiagnostics = inference.Unify(tupleType, rhsType)
 
         let verify symbol symbolType =
-            VerifyBinding inference tryBuildDeclaration (symbol, (symbolType, rhsEx, rhsRange)) warnOnDiscard
+            VerifyBinding inference tryBuildDeclaration (symbol, symbolType) warnOnDiscard
 
         let combine (item, declarations1, diagnostics1) (items, declarations2, diagnostics2) =
             item :: items, Array.append declarations1 declarations2, Array.append diagnostics1 diagnostics2
@@ -174,7 +170,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
     let VerifyIsCorrectType =
         AssignmentVerification verifiedLhs.ResolvedType context ErrorCode.TypeMismatchInValueUpdate
 
-    let verifiedRhs, _, rhsErrs = verifyExprWith (VerifyIsCorrectType) context rhs
+    let verifiedRhs, _, rhsErrs = verifyExprWith VerifyIsCorrectType context rhs
     let localQdep = verifiedRhs.InferredInformation.HasLocalQuantumDependency
 
     let rec VerifyMutability =
@@ -187,10 +183,8 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
 
             [||]
         | Item (ex: TypedExpression) ->
-            let range = ex.Range.ValueOr Range.Zero
-
             [|
-                range |> QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, [])
+                QsCompilerDiagnostic.Error (ErrorCode.UpdateOfImmutableIdentifier, []) (ex.Range.ValueOr Range.Zero)
             |]
         | _ ->
             // both missing and invalid expressions on the lhs are fine
@@ -207,26 +201,18 @@ let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, r
         |> QsValueUpdate
         |> asStatement comments location LocalDeclarations.Empty
 
-    statement,
-    Array.concat [ lhsErrs
-                   refErrs
-                   rhsErrs
-                   autoGenErrs ]
+    statement, [ lhsErrs; refErrs; rhsErrs; autoGenErrs ] |> Array.concat
 
 /// Adds a variable declaration with the given name, quantum dependency, and type at the given location to the given symbol tracker.
 /// Generates the corresponding error(s) if a symbol with the same name is already visible on that scope and/or the given name is not a valid variable name.
 /// Generates an InvalidUseOfTypeParameterizedObject error if the given variable type contains external type parameters
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise.
-let private TryAddDeclaration isMutable
-                              (symbols: SymbolTracker)
-                              (name: string, location, localQdep)
-                              (rhsType: ResolvedType, rhsEx, rhsRange)
-                              =
+let private TryAddDeclaration isMutable (symbols: SymbolTracker) (name: string, location, localQdep) rhsType =
     let t, tpErr = rhsType, [||]
     let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
-    (if added then Some decl else None), errs |> Array.append tpErr
+    (if added then Some decl else None), Array.append tpErr errs
 
 /// Given a Q# symbol, as well as the expression on the right hand side that is assigned to it,
 /// resolves and verifies the assignment using VerifyBinding and the resolution context.
@@ -248,19 +234,13 @@ let private NewBinding kind comments (location: QsLocation) context (qsSym: QsSy
         let addDeclaration (name, range) =
             TryAddDeclaration isMutable context.Symbols (name, (Value location.Offset, range), localQdep)
 
-        VerifyBinding
-            context.Inference
-            addDeclaration
-            (qsSym, (rhs.ResolvedType, Some rhs.Expression, qsExpr.RangeOrDefault))
-            false
+        VerifyBinding context.Inference addDeclaration (qsSym, rhs.ResolvedType) false
 
     let autoGenErrs = (rhs, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
     let binding = QsBinding<TypedExpression>.New kind (symTuple, rhs) |> QsVariableDeclaration
 
     binding |> asStatement comments location (LocalDeclarations.New varDeclarations),
-    Array.concat [ rhsErrs
-                   errs
-                   autoGenErrs ]
+    [ rhsErrs; errs; autoGenErrs ] |> Array.concat
 
 /// Resolves, verifies and builds the Q# let-statement at the given location binding the given expression to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker.
@@ -293,7 +273,7 @@ let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qs
         let addDeclaration (name, range) =
             TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), localQdep)
 
-        VerifyBinding context.Inference addDeclaration (qsSym, (itemT, None, qsExpr.RangeOrDefault)) false
+        VerifyBinding context.Inference addDeclaration (qsSym, itemT) false
 
     let autoGenErrs = (iterExpr, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
 
@@ -385,14 +365,14 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
         | Value loc -> loc
 
     let usedInOuter =
-        let accumulate = new AccumulateIdentifiers()
-        accumulate.Statements.OnScope outer.Body |> ignore
-        accumulate.SharedState.UsedLocalVariables
+        let identifiers = AccumulateIdentifiers()
+        identifiers.Statements.OnScope outer.Body |> ignore
+        identifiers.SharedState.UsedLocalVariables
 
     let updatedInInner =
-        let accumulate = new AccumulateIdentifiers()
-        accumulate.Statements.OnScope inner.Body |> ignore
-        accumulate.SharedState.ReassignedVariables
+        let identifiers = AccumulateIdentifiers()
+        identifiers.Statements.OnScope inner.Body |> ignore
+        identifiers.SharedState.ReassignedVariables
 
     let updateErrs =
         updatedInInner
@@ -436,17 +416,15 @@ let private NewBindingScope kind comments (location: QsLocation) context (qsSym:
     let initializer, initErrs = VerifyInitializer qsInit
 
     let symTuple, _, varErrs =
-        let rhsRange = qsInit.Range.ValueOr Range.Zero
-
         let addDeclaration (name, range) =
             TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), false)
 
-        VerifyBinding context.Inference addDeclaration (qsSym, (initializer.Type, None, rhsRange)) true
+        VerifyBinding context.Inference addDeclaration (qsSym, initializer.Type) true
 
     let bindingScope body =
         QsQubitScope.New kind ((symTuple, initializer), body) |> QsQubitScope
 
-    let statement = BlockStatement<_>(bindingScope >> asStatement comments location LocalDeclarations.Empty)
+    let statement = BlockStatement(bindingScope >> asStatement comments location LocalDeclarations.Empty)
     statement, Array.append initErrs varErrs
 
 /// Resolves, verifies and builds the Q# using-statement at the given location binding the given initializer to the given symbol.
