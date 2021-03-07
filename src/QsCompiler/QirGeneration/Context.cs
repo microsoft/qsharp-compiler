@@ -121,7 +121,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Dictionary<string, int> uniqueLocalNames = new Dictionary<string, int>();
         private readonly Dictionary<string, int> uniqueGlobalNames = new Dictionary<string, int>();
 
-        private readonly Dictionary<string, ITypeRef> interopType = new Dictionary<string, ITypeRef>();
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
         private readonly Dictionary<ResolvedType, GlobalVariable> memoryManagementTables = new Dictionary<ResolvedType, GlobalVariable>();
@@ -163,6 +162,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             this.Config = config;
             this.Context = new Context();
+            this.Config.SetContext(this.Context);
             this.Module = this.Context.CreateBitcodeModule();
             this.InteropModule = this.Context.CreateBitcodeModule("bridge");
 
@@ -429,89 +429,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             ? value
             : this.CurrentBuilder.BitCast(value, expectedType);
 
-        /// <summary>
-        /// Maps a QIR type to a more interop-friendly type using the specified type mapping for interoperability.
-        /// </summary>
-        /// <param name="t">The type to map</param>
-        /// <returns>The mapped type</returns>
-        private ITypeRef MapToInteropType(ITypeRef t)
-        {
-            string typeName = "";
-            if (t == this.Types.Result)
-            {
-                typeName = TypeNames.Result;
-            }
-            else if (t == this.Types.Array)
-            {
-                typeName = TypeNames.Array;
-            }
-            else if (t == this.Types.Pauli)
-            {
-                typeName = TypeNames.Pauli;
-            }
-            // we use 32 bit ints in some cases, e.g. for exponents
-            else if (t == this.Types.Int || t == this.Context.Int32Type)
-            {
-                typeName = TypeNames.Int;
-            }
-            else if (t == this.Types.Double)
-            {
-                typeName = TypeNames.Double;
-            }
-            else if (t == this.Types.Bool)
-            {
-                typeName = TypeNames.Bool;
-            }
-            else if (t == this.Types.BigInt)
-            {
-                typeName = TypeNames.BigInt;
-            }
-            else if (t == this.Types.String)
-            {
-                typeName = TypeNames.String;
-            }
-            else if (t == this.Types.Qubit)
-            {
-                typeName = TypeNames.Qubit;
-            }
-            else if (t == this.Types.Callable)
-            {
-                typeName = TypeNames.Callable;
-            }
-            else if (t == this.Types.Range)
-            {
-                typeName = TypeNames.Range;
-            }
-            else if (Types.IsTuple(t) || Types.IsTypedTuple(t))
-            {
-                typeName = TypeNames.Tuple;
-            }
-            // todo: Currently, e.g. void (this.Context.VoidType) is not covered,
-            // and for some reason we end up with i8* here as well. It would be good to cover everything and throw if something is not covered.
-
-            if (typeName != string.Empty && this.Config.InteropTypeMapping.TryGetValue(typeName, out string replacementName))
-            {
-                if (this.interopType.TryGetValue(typeName, out ITypeRef interopType))
-                {
-                    return interopType;
-                }
-                else
-                {
-                    var newType = this.Context.CreateStructType(replacementName).CreatePointerType();
-                    this.interopType[typeName] = newType;
-                    return newType;
-                }
-            }
-            else
-            {
-                return t;
-            }
-        }
-
         // Returns null (only) when the given type is Unit.
         // Ignores items of type Unit inside tuples.
         private ITypeRef? MapToEntryPointType(ResolvedType type)
         {
+            ITypeRef MapToInteropType(ITypeRef t) =>
+                this.Config.MapToInteropType(t); // FIXME: WE NEED TO BE MORE CAREFUL...
+
             if (type.Resolution.IsBigInt || // TODO: not yet supported
                 type.Resolution.IsBool ||
                 type.Resolution.IsDouble ||
@@ -522,16 +446,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 type.Resolution.IsString) // TODO: not yet supported
             {
                 var llvmType = this.LlvmTypeFromQsharpType(type);
-                return this.MapToInteropType(llvmType);
+                return MapToInteropType(llvmType);
             }
             else if (type.Resolution.IsArrayType)
             {
-                var lengthT = this.MapToInteropType(this.Types.Int);
+                var lengthT = MapToInteropType(this.Types.Int);
                 // FIXME: BETTER TO STICK WITH THE SECOND ITEM BEING AN ARRAY ITEM POINTER TO THE FIRST ELEMENT
                 // -> WE REQUIRE THAT THE PASSED ARRAY IS ONE BLOCK IN MEMORY IN ANY CASE
-                var arrT = this.MapToInteropType(this.Types.Array);
+                var arrT = MapToInteropType(this.Types.Array);
                 var tupleType = this.Types.TypedTuple(lengthT, arrT).CreatePointerType();
-                return this.MapToInteropType(tupleType);
+                return MapToInteropType(tupleType);
             }
             else if (type.Resolution is ResolvedTypeKind.TupleType ts)
             {
@@ -539,7 +463,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     .Select(this.MapToEntryPointType)
                     .Where(t => t != null).Select(t => t!);
                 var tupleType = this.Types.TypedTuple(tupleItems).CreatePointerType();
-                return this.MapToInteropType(tupleType);
+                return MapToInteropType(tupleType);
             }
             else if (type.Resolution.IsUnitType)
             {
@@ -578,7 +502,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // argValue is a tuple containing an int for the length and the array pointer
                     var argValue = this.CastToType(
                         itemValue,
-                        this.Types.TypedTuple(this.MapToInteropType(this.Types.Int), this.MapToInteropType(this.Types.Array)).CreatePointerType());
+                        this.Types.TypedTuple(
+                            this.Config.MapToInteropType(this.Types.Int),
+                            this.Config.MapToInteropType(this.Types.Array))
+                        .CreatePointerType());
                     var lengthPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(argValue), argValue, TupleValue.PointerIndex(this, 0));
                     var arrPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(argValue), argValue, TupleValue.PointerIndex(this, 1));
                     var lengthArg = this.CurrentBuilder.Load(Types.PointerElementType(lengthPtr), lengthPtr);
@@ -598,7 +525,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.SetCurrentBlock(copyBlock);
                     var givenArrayPtr = this.CurrentBuilder.PointerToInt(givenArray, this.Context.Int64Type);
                     var expectedArrElementType = this.LlvmTypeFromQsharpType(arrItemType.Item);
-                    var givenArrElementType = this.MapToInteropType(expectedArrElementType);
+                    var givenArrElementType = this.Config.MapToInteropType(expectedArrElementType); // FIXME: DON'T CAST BLINDLY
                     var givenArrElementSize = this.ComputeSizeForType(givenArrElementType);
 
                     var end = this.CurrentBuilder.Sub(array.Length, this.Context.CreateConstant(1L));
@@ -655,7 +582,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (res is ArrayValue array)
             {
                 var dataArrElementType = this.MapToEntryPointType(array.QSharpElementType) ?? this.Values.Unit.LlvmType; // fixme: deal better with unit
-                var mappedLength = this.CastToType(array.Length, this.MapToInteropType(this.Types.Int));
+                var mappedLength = this.CastToType(array.Length, this.Config.MapToInteropType(this.Types.Int));
                 var constructor = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
                 var elementSize = this.ComputeSizeForType(dataArrElementType, this.Context.Int32Type);
                 var returnArray = this.CurrentBuilder.Call(constructor, elementSize, array.Length);
@@ -694,6 +621,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else
             {
                 // FIXME: MAKE SURE MEMORY E.G. FOR STRING ISN'T FREED
+                // FIXME: GET A CLEAN VALUE FOR THINGS THAT ARE CAST TO "LARGER" TYPES?
                 var expectedType = this.MapToEntryPointType(res.QSharpType);
                 return expectedType == null ? null : this.CastToType(res.Value, expectedType);
             }
