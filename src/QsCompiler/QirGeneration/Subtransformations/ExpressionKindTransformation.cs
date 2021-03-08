@@ -4,7 +4,6 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Quantum.QIR;
@@ -191,12 +190,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             bool unreferenceOriginal = false)
         {
             var (originalValue, accEx, updated) = copyAndUpdate;
-            void StoreElement(PointerValue pointer, IValue value, bool shallow = false)
+            void StoreElement(PointerValue pointer, IValue value, Value wasCopied, bool shallow = false)
             {
                 if (updateItemAliasCount)
                 {
                     sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
                     sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
+                }
+                if (sharedState.ScopeMgr.RequiresReferenceCount(value.LlvmType) && !unreferenceOriginal)
+                {
+                    var contBlock = sharedState.AddBlockAfterCurrent("condContinue");
+                    var falseBlock = sharedState.AddBlockAfterCurrent("condFalse");
+
+                    sharedState.CurrentBuilder.Branch(wasCopied, contBlock, falseBlock);
+                    sharedState.ScopeMgr.OpenScope();
+                    sharedState.SetCurrentBlock(falseBlock);
+
+                    sharedState.ScopeMgr.IncreaseReferenceCount(value, shallow);
+                    sharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow);
+
+                    sharedState.ScopeMgr.CloseScope(false);
+                    sharedState.CurrentBuilder.Branch(contBlock);
+                    sharedState.SetCurrentBlock(contBlock);
                 }
                 pointer.StoreValue(value);
             }
@@ -208,8 +223,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
                 var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                 var forceCopy = sharedState.Context.CreateConstant(false);
-                var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.Value, forceCopy);
+                var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
                 var array = sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
+                var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, originalArray.OpaquePointer, array.OpaquePointer);
                 sharedState.ScopeMgr.RegisterValue(array);
 
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
@@ -221,7 +237,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var newElement = getNewItemForIndex(index);
-                    StoreElement(elementPtr, newElement);
+                    StoreElement(elementPtr, newElement, wasCopied);
                 }
 
                 if (accEx.ResolvedType.Resolution.IsInt)
@@ -267,7 +283,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateUdt(TupleValue originalValue)
             {
-                TupleValue GetTupleCopy(TupleValue original)
+                (Value, TupleValue) GetTupleCopy(TupleValue original)
                 {
                     // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
                     // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
@@ -275,12 +291,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
                     var forceCopy = sharedState.Context.CreateConstant(false);
                     var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
-                    return original.TypeName == null
+                    var tuple = original.TypeName == null
                         ? sharedState.Values.FromTuple(copy, original.ElementTypes)
                         : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
+                    var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, original.OpaquePointer, tuple.OpaquePointer);
+                    return (wasCopied, tuple);
                 }
 
-                var value = GetTupleCopy(originalValue);
+                var (wasCopied, value) = GetTupleCopy(originalValue);
                 sharedState.ScopeMgr.RegisterValue(value);
 
                 var udtName = originalValue.TypeName;
@@ -301,7 +319,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         if (depth == location.Count - 1)
                         {
                             var newItemValue = sharedState.EvaluateSubexpression(updated);
-                            StoreElement(itemPointer, newItemValue);
+                            StoreElement(itemPointer, newItemValue, wasCopied);
                         }
                         else
                         {
@@ -309,8 +327,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             // and replace it with a copy of it (if a copy is needed),
                             // such that we can then proceed to modify that copy (the next inner tuple).
                             var originalItem = (TupleValue)itemPointer.LoadValue();
-                            copies.Push(GetTupleCopy(originalItem));
-                            StoreElement(itemPointer, copies.Peek(), shallow: true);
+                            var copyReturn = GetTupleCopy(originalItem);
+                            copies.Push(copyReturn.Item2);
+                            StoreElement(itemPointer, copies.Peek(), copyReturn.Item1, shallow: true);
                         }
                     }
 

@@ -16,7 +16,7 @@ entry:
   store %Qubit* %aux, %Qubit** %5
   %6 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %7 = bitcast %Tuple* %6 to { %Array* }*
-  %8 = getelementptr { %Array* }, { %Array* }* %7, i64 0, i32 0
+  %8 = getelementptr inbounds { %Array* }, { %Array* }* %7, i32 0, i32 0
   store %Array* %3, %Array** %8
   call void @__quantum__rt__callable_invoke(%Callable* %doNothing, %Tuple* %6, %Tuple* null)
   %9 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)

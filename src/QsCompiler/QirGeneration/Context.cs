@@ -420,6 +420,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #region Interop utils
 
+        /// <summary>
+        /// Creates a suitable array of values to access the item at a given index for a pointer to a struct.
+        /// </summary>
+        private Value[] PointerIndex(int index) => new[]
+        {
+            this.Context.CreateConstant(0L),
+            this.Context.CreateConstant(index)
+        };
+
         private static TOut[] WithoutNullValues<TIn, TOut>(Func<TIn, TOut?> map, IEnumerable<TIn> items)
             where TOut : class =>
             items.Select(map).Where(i => i != null).Select(i => i!).ToArray();
@@ -498,8 +507,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             (Value Length, Value DataArray) LoadSizedArray(Value value)
             {
-                var lengthPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, TupleValue.PointerIndex(this, 0));
-                var dataArrPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, TupleValue.PointerIndex(this, 1));
+                var lengthPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(0));
+                var dataArrPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(1));
                 var length = this.CurrentBuilder.Load(this.Types.Int, lengthPtr);
                 var dataArr = this.CurrentBuilder.Load(this.Types.DataArrayPointer, dataArrPtr);
                 return (length, dataArr);
@@ -545,7 +554,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var tupleItemIndex = 0;
                     Value NextTupleItem()
                     {
-                        var itemPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(givenValue), givenValue, TupleValue.PointerIndex(this, tupleItemIndex));
+                        var itemPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(givenValue), givenValue, this.PointerIndex(tupleItemIndex));
                         return this.CurrentBuilder.Load(Types.PointerElementType(itemPtr), itemPtr);
                     }
                     var tupleItems = items.Item.Select(arg => ProcessGivenValue(arg, NextTupleItem)).ToArray();
@@ -626,7 +635,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 for (var itemIdx = 0; itemIdx < mappedStructType.Members.Count; ++itemIdx)
                 {
-                    var itemPtr = this.CurrentBuilder.GetElementPtr(mappedStructType, mappedTuple, TupleValue.PointerIndex(this, itemIdx));
+                    var itemPtr = this.CurrentBuilder.GetElementPtr(mappedStructType, mappedTuple, this.PointerIndex(itemIdx));
                     var tupleItem = this.CastToType(tupleItems[itemIdx], mappedStructType.Members[itemIdx]);
                     this.CurrentBuilder.Store(tupleItem, itemPtr);
                 }

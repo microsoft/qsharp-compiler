@@ -1,7 +1,7 @@
-define void @Microsoft__Quantum__Testing__QIR__TestAccessCounts__ctl(%Array* %__controlQubits__, { %Array*, { %Array* }* }* %0) {
+define void @Microsoft__Quantum__Testing__QIR__TestAliasCounts__ctl(%Array* %__controlQubits__, { %Array*, { %Array* }* }* %0) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 1)
-  %1 = getelementptr { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i64 0, i32 0
+  %1 = getelementptr inbounds { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i32 0, i32 0
   %coefficients = load %Array*, %Array** %1
   %2 = call i64 @__quantum__rt__array_get_size_1d(%Array* %coefficients)
   %3 = sub i64 %2, 1
@@ -26,18 +26,18 @@ exiting__1:                                       ; preds = %body__1
 
 exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__array_update_alias_count(%Array* %coefficients, i64 1)
-  %11 = getelementptr { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i64 0, i32 1
+  %11 = getelementptr inbounds { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i32 0, i32 1
   %qubits = load { %Array* }*, { %Array* }** %11
-  %12 = getelementptr { %Array* }, { %Array* }* %qubits, i64 0, i32 0
+  %12 = getelementptr inbounds { %Array* }, { %Array* }* %qubits, i32 0, i32 0
   %13 = load %Array*, %Array** %12
   call void @__quantum__rt__array_update_alias_count(%Array* %13, i64 1)
   %14 = bitcast { %Array* }* %qubits to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 1)
   %15 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, %Array*, { %Array* }* }* getelementptr ({ double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* null, i32 1) to i64))
   %16 = bitcast %Tuple* %15 to { double, %Array*, { %Array* }* }*
-  %17 = getelementptr { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i64 0, i32 0
-  %18 = getelementptr { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i64 0, i32 1
-  %19 = getelementptr { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i64 0, i32 2
+  %17 = getelementptr inbounds { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i32 0, i32 0
+  %18 = getelementptr inbounds { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i32 0, i32 1
+  %19 = getelementptr inbounds { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i32 0, i32 2
   store double 0.000000e+00, double* %17
   store %Array* %coefficients, %Array** %18
   store { %Array* }* %qubits, { %Array* }** %19
