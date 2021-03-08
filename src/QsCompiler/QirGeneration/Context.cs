@@ -433,37 +433,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // Ignores items of type Unit inside tuples.
         private ITypeRef? MapToEntryPointType(ResolvedType type)
         {
-            ITypeRef MapToInteropType(ITypeRef t) =>
-                this.Config.MapToInteropType(t); // FIXME: WE NEED TO BE MORE CAREFUL...
-
             if (type.Resolution.IsBigInt || // TODO: not yet supported
                 type.Resolution.IsBool ||
                 type.Resolution.IsDouble ||
                 type.Resolution.IsInt ||
                 type.Resolution.IsPauli ||
                 type.Resolution.IsRange || // TODO: not yet supported
-                type.Resolution.IsResult || // TODO: not yet supported
+                type.Resolution.IsResult ||
                 type.Resolution.IsString) // TODO: not yet supported
             {
                 var llvmType = this.LlvmTypeFromQsharpType(type);
-                return MapToInteropType(llvmType);
+                return this.Config.MapToInteropType(llvmType);
             }
             else if (type.Resolution.IsArrayType)
             {
-                var lengthT = MapToInteropType(this.Types.Int);
                 // FIXME: BETTER TO STICK WITH THE SECOND ITEM BEING AN ARRAY ITEM POINTER TO THE FIRST ELEMENT
                 // -> WE REQUIRE THAT THE PASSED ARRAY IS ONE BLOCK IN MEMORY IN ANY CASE
-                var arrT = MapToInteropType(this.Types.Array);
-                var tupleType = this.Types.TypedTuple(lengthT, arrT).CreatePointerType();
-                return MapToInteropType(tupleType);
+                var tupleType = this.Types.TypedTuple(this.Types.Int, this.Types.Array).CreatePointerType();
+                return this.Config.MapToInteropType(tupleType);
             }
             else if (type.Resolution is ResolvedTypeKind.TupleType ts)
             {
+                // we need to make sure that arrays within inner tuples are properly expanded
                 IEnumerable<ITypeRef> tupleItems = ts.Item
                     .Select(this.MapToEntryPointType)
                     .Where(t => t != null).Select(t => t!);
-                var tupleType = this.Types.TypedTuple(tupleItems).CreatePointerType();
-                return MapToInteropType(tupleType);
+                return tupleItems.Any()
+                    ? this.Config.MapToInteropType(this.Types.TypedTuple(tupleItems).CreatePointerType())
+                    : null;
             }
             else if (type.Resolution.IsUnitType)
             {
@@ -560,7 +557,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        private Value? ProcesseEntryPointReturnValue(IValue res)
+        // Ensures that the memory used in the returned value is not freed
+        private Value? ProcessEntryPointReturnValue(IValue res)
         {
             if (this.CurrentFunction == null)
             {
@@ -570,7 +568,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (res is TupleValue tuple)
             {
                 var tupleItems = tuple.GetTupleElements()
-                    .Select(v => this.ProcesseEntryPointReturnValue(v))
+                    .Select(v => this.ProcessEntryPointReturnValue(v))
                     .Where(v => v != null)
                     .ToArray();
                 var constructor = this.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
@@ -636,15 +634,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (this.TryGetFunction(qualifiedName, QsSpecializationKind.QsBody, out IrFunction? func)
                 && this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable))
             {
-                var argItems = SyntaxGenerator.ExtractItems(callable.ArgumentTuple);
-                ITypeRef[] entryPointArgType = argItems
-                    .Select(sym => this.MapToEntryPointType(sym.Type))
-                    .Where(t => t != null).Select(t => t!)
+                var argItems = SyntaxGenerator.ExtractItems(callable.ArgumentTuple)
+                    .Where(sym => !sym.Type.Resolution.IsUnitType)
+                    .ToArray();
+
+                ITypeRef[] entryPointArgsTypes = argItems
+                    .Select(sym => this.MapToEntryPointType(sym.Type)!)
                     .ToArray();
                 var entryPointReturnType = this.MapToEntryPointType(callable.Signature.ReturnType);
                 var entryPointType = this.Context.GetFunctionType(
                     entryPointReturnType ?? this.Context.VoidType,
-                    entryPointArgType);
+                    entryPointArgsTypes);
 
                 var entryPointName = EntryPointName(qualifiedName);
                 var entryPointAttribute = this.Context.CreateAttribute(AttributeNames.EntryPoint);
@@ -658,16 +658,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.StartFunction();
                     this.CurrentFunction = this.Module.CreateFunction(entryPointName, entryPointType);
-                    for (var (argIdx, epIdx) = (0, 0); argIdx < argItems.Length; argIdx++, epIdx++)
+                    for (var idx = 0; idx < argItems.Length; idx++)
                     {
-                        if (argItems[argIdx].Type.Resolution.IsUnitType)
+                        if (argItems[idx].VariableName is QsLocalSymbol.ValidName argName)
                         {
-                            argIdx++;
-                            continue;
-                        }
-                        if (argItems[argIdx].VariableName is QsLocalSymbol.ValidName argName)
-                        {
-                            this.CurrentFunction.Parameters[epIdx].Name = argName.Item;
+                            this.CurrentFunction.Parameters[idx].Name = argName.Item;
                         }
                     }
 
@@ -676,25 +671,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     var currentFunctionArgIndex = 0;
                     Value NextArgument() => this.CurrentFunction.Parameters[currentFunctionArgIndex++];
-
                     var argValueList = callable.ArgumentTuple is ArgumentTuple.QsTuple argTuple
                         ? argTuple.Item.Select(item => this.ProcessEntryPointArgument(item, NextArgument).Value).ToArray()
                         : new[] { this.ProcessEntryPointArgument(callable.ArgumentTuple, NextArgument).Value };
+
                     var result = this.Values.From(this.CurrentBuilder.Call(func, argValueList), callable.Signature.ReturnType);
                     this.ScopeMgr.RegisterValue(result);
 
-                    if (entryPointType.ReturnType.Equals(result.LlvmType))
-                    {
-                        this.AddReturn(result, entryPointType.ReturnType.IsVoid);
-                    }
-                    else if (entryPointType.ReturnType.Equals(this.Context.VoidType))
+                    if (entryPointType.ReturnType.IsVoid)
                     {
                         this.AddReturn(this.Values.Unit, true);
                     }
+                    else if (entryPointType.ReturnType.Equals(result.LlvmType))
+                    {
+                        this.AddReturn(result, false);
+                    }
                     else
                     {
-                        var returnValue = this.ProcesseEntryPointReturnValue(result)!;
-                        this.ScopeMgr.ExitFunction(this.Values.Unit); // ProcessReturnValue makes sure the memory for the returned value isn't freed
+                        // ProcessReturnValue makes sure the memory for the returned value isn't freed
+                        var returnValue = this.ProcessEntryPointReturnValue(result)!;
+                        this.ScopeMgr.ExitFunction(this.Values.Unit);
                         this.CurrentBuilder.Return(returnValue);
                     }
 

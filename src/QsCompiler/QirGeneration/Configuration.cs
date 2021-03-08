@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Linq;
 using Microsoft.Quantum.QIR;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Types;
@@ -26,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             });
 
         private readonly ImmutableDictionary<string, string> interopTypeMapping;
-        private ImmutableDictionary<string, IStructType>? mappedToStructs;
+        private ImmutableDictionary<string, IStructType>? opaqueStructs;
         private Context? context;
 
         /// <summary>
@@ -60,7 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void SetContext(Context context)
         {
             this.context = context;
-            this.mappedToStructs = this.interopTypeMapping.ToImmutableDictionary(
+            this.opaqueStructs = this.interopTypeMapping.ToImmutableDictionary(
                 kv => kv.Key,
                 kv => context.CreateStructType(kv.Value));
         }
@@ -72,7 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">No context has been set by calling <see cref="SetContext(Context)"/>.</exception>
         internal ITypeRef MapToInteropType(ITypeRef t)
         {
-            if (this.context == null || this.mappedToStructs == null)
+            if (this.context == null || this.opaqueStructs == null)
             {
                 throw new InvalidOperationException("no context specified");
             }
@@ -82,12 +83,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             t = t.IsPointer ? Types.StructFromPointer(t) : t;
             var typeName = (t as IStructType)?.Name;
 
-            if (typeName != null && this.mappedToStructs.TryGetValue(typeName, out IStructType replacement))
+            if (typeName != null && this.opaqueStructs.TryGetValue(typeName, out IStructType replacement))
             {
                 // covers all structs or struct pointers for which a type name has been defined in the interop mapping
                 return replacement.CreatePointerType();
             }
-            else if (Types.IsString(t) || Types.IsBigInt(t))
+            else if (typeName == TypeNames.String || typeName == TypeNames.BigInt)
             {
                 // pass strings and big ints as data arrays, unless a type name is specified for them
                 return this.context.Int8Type.CreatePointerType();
@@ -96,7 +97,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // pass all structs or struct pointers for which no type name has been defined in the interop mapping
                 // as pointers to the corresponding LLVM struct type - this in particular applies to typed tuples
-                return st.CreatePointerType();
+                var itemTypes = st.Members.Select(this.MapToInteropType).ToArray();
+                return this.context.CreateStructType(packed: false, itemTypes).CreatePointerType();
             }
             if (t.IsInteger)
             {
