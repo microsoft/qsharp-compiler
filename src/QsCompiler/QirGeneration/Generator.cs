@@ -12,11 +12,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     public class Generator : SyntaxTreeTransformation<GenerationContext>
     {
         /// <summary>
-        /// The configuration used for QIR emission.
-        /// </summary>
-        public readonly Configuration Config;
-
-        /// <summary>
         /// The compilation unit for which QIR is generated.
         /// </summary>
         public readonly QsCompilation Compilation;
@@ -40,10 +35,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
         /// <param name="config">The configuration for the QIR generation</param>
-        public Generator(QsCompilation compilation, Configuration config)
-        : base(new GenerationContext(compilation.Namespaces, config), TransformationOptions.NoRebuild)
+        public Generator(QsCompilation compilation)
+        : base(new GenerationContext(compilation.Namespaces), TransformationOptions.NoRebuild)
         {
-            this.Config = config;
             this.Compilation = compilation;
 
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);

@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QIR
         /// The mangled names are a double underscore, "quantum", and another double underscore, followed by
         /// "rt" or "qis", another double underscore, and then the base name.
         /// </summary>
-        /// <param name="kind">The component that is expected to provide the function</param>
+        /// <param name="component">The component that is expected to provide the function</param>
         /// <param name="name">The name of the function without the component prefix</param>
         /// <returns>The mangled function name</returns>
         /// <exception cref="ArgumentException">No naming convention is defined for the given component.</exception>
@@ -80,7 +80,6 @@ namespace Microsoft.Quantum.QIR
 
         // public and internal methods
 
-        /// <param name="sharedState">The generation context in which to emit the instructions</param>
         /// <param name="rangeEx">The range expression for which to create the access functions</param>
         /// <returns>
         /// Three functions to access the start, step, and end of a range.

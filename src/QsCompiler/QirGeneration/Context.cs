@@ -44,11 +44,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #region Member variables
 
         /// <summary>
-        /// The configuration for QIR generation.
-        /// </summary>
-        public readonly Configuration Config;
-
-        /// <summary>
         /// The context used for QIR generation.
         /// </summary>
         /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
@@ -157,12 +152,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructionSet"/>.
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
-        /// <param name="config">The configuration for QIR generation.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, Configuration config)
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree)
         {
-            this.Config = config;
             this.Context = new Context();
-            this.Config.SetContext(this.Context);
             this.Module = this.Context.CreateBitcodeModule();
             this.InteropModule = this.Context.CreateBitcodeModule("bridge");
 
@@ -293,6 +285,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void InitializeRuntimeLibrary()
         {
+            // Q# specific helpers
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.MemoryAllocate, this.Context.Int8Type.CreatePointerType(), this.Context.Int64Type);
+
             // result library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultUpdateReferenceCount, this.Context.VoidType, this.Types.Result, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultEqual, this.Context.BoolType, this.Types.Result, this.Types.Result);
@@ -424,6 +419,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #endregion
 
         #region Interop utils
+
+        private static TOut[] WithoutNullValues<TIn, TOut>(Func<TIn, TOut?> map, IEnumerable<TIn> items)
+            where TOut : class =>
+            items.Select(map).Where(i => i != null).Select(i => i!).ToArray();
+
         private Value CastToType(Value value, ITypeRef expectedType) =>
             value.NativeType.Equals(expectedType)
             ? value
@@ -431,130 +431,182 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // Returns null (only) when the given type is Unit.
         // Ignores items of type Unit inside tuples.
-        private ITypeRef? MapToEntryPointType(ResolvedType type)
+        private ITypeRef? MapToEntryPointType(ResolvedType type) =>
+            this.MapToInteropType(this.LlvmTypeFromQsharpType(type));
+
+        /// <summary>
+        /// Maps a QIR type to a more interop-friendly type using the specified type mapping for interoperability.
+        /// </summary>
+        /// <exception cref="ArgumentException">
+        /// The given type is a pointer to a non-struct type,
+        /// or the given type is not specified in the QIR format.
+        /// </exception>
+        private ITypeRef? MapToInteropType(ITypeRef t)
         {
-            if (type.Resolution.IsBigInt || // TODO: not yet supported
-                type.Resolution.IsBool ||
-                type.Resolution.IsDouble ||
-                type.Resolution.IsInt ||
-                type.Resolution.IsPauli ||
-                type.Resolution.IsRange || // TODO: not yet supported
-                type.Resolution.IsResult ||
-                type.Resolution.IsString) // TODO: not yet supported
+            // Range, Tuple (typed and untyped), Array, Result, String, BigInt, Callable, and Qubit
+            // are all structs or struct pointers.
+            t = t.IsPointer ? Types.StructFromPointer(t) : t;
+            var typeName = (t as IStructType)?.Name;
+
+            var bytePtrType = this.Context.Int8Type.CreatePointerType();
+
+            if (typeName == TypeNames.Array || typeName == TypeNames.BigInt)
             {
-                var llvmType = this.LlvmTypeFromQsharpType(type);
-                return this.Config.MapToInteropType(llvmType);
+                return this.Context.CreateStructType(packed: false, this.Context.Int64Type, this.Types.DataArrayPointer).CreatePointerType();
             }
-            else if (type.Resolution.IsArrayType)
+            else if (typeName == TypeNames.String)
             {
-                // FIXME: BETTER TO STICK WITH THE SECOND ITEM BEING AN ARRAY ITEM POINTER TO THE FIRST ELEMENT
-                // -> WE REQUIRE THAT THE PASSED ARRAY IS ONE BLOCK IN MEMORY IN ANY CASE
-                var tupleType = this.Types.TypedTuple(this.Types.Int, this.Types.Array).CreatePointerType();
-                return this.Config.MapToInteropType(tupleType);
+                return this.Types.DataArrayPointer;
             }
-            else if (type.Resolution is ResolvedTypeKind.TupleType ts)
+            else if (typeName == TypeNames.Callable || typeName == TypeNames.Qubit)
             {
-                // we need to make sure that arrays within inner tuples are properly expanded
-                IEnumerable<ITypeRef> tupleItems = ts.Item
-                    .Select(this.MapToEntryPointType)
-                    .Where(t => t != null).Select(t => t!);
-                return tupleItems.Any()
-                    ? this.Config.MapToInteropType(this.Types.TypedTuple(tupleItems).CreatePointerType())
+                return bytePtrType;
+            }
+            else if (typeName == TypeNames.Result)
+            {
+                return this.Context.Int8Type;
+            }
+            else if (t is IStructType st)
+            {
+                var itemTypes = WithoutNullValues(this.MapToInteropType, st.Members);
+                return itemTypes.Length > 0
+                    ? this.Context.CreateStructType(packed: false, itemTypes).CreatePointerType()
                     : null;
             }
-            else if (type.Resolution.IsUnitType)
+            if (t.IsInteger)
             {
-                return null;
+                // covers Int, Bool, Pauli
+                var nrBytes = 1 + ((t.IntegerBitWidth - 1) / 8);
+                return this.Context.GetIntType(8 * nrBytes);
+            }
+            else if (t.IsFloatingPoint)
+            {
+                return this.Context.DoubleType;
             }
             else
             {
-                throw new NotSupportedException("unsupported type in entry point signature");
+                throw new ArgumentException("Unrecognized type");
             }
         }
 
-        private IValue ProcessEntryPointArgument(ArgumentTuple item, Func<Value> nextArgument)
+        private Value[] ProcessEntryPointArguments(ArgumentTuple arg)
         {
             if (this.CurrentFunction == null)
             {
                 throw new InvalidOperationException("the current function is null");
             }
 
-            if (item is ArgumentTuple.QsTuple innerTuple)
+            (Value Length, Value DataArray) LoadSizedArray(Value value)
             {
-                var tupleItems = innerTuple.Item
-                    .Select(arg => this.ProcessEntryPointArgument(arg, nextArgument))
-                    .ToArray();
-                return this.Values.CreateTuple(tupleItems);
+                var lengthPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, TupleValue.PointerIndex(this, 0));
+                var dataArrPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, TupleValue.PointerIndex(this, 1));
+                var length = this.CurrentBuilder.Load(this.Types.Int, lengthPtr);
+                var dataArr = this.CurrentBuilder.Load(this.Types.DataArrayPointer, dataArrPtr);
+                return (length, dataArr);
             }
-            else if (item is ArgumentTuple.QsTupleItem innerItem)
+
+            IValue ProcessGivenValue(ResolvedType type, Func<Value> next)
             {
-                if (innerItem.Item.Type.Resolution.IsUnitType)
+                if (type.Resolution.IsUnitType)
                 {
                     return this.Values.Unit;
                 }
 
-                var itemValue = nextArgument();
-                if (innerItem.Item.Type.Resolution is ResolvedTypeKind.ArrayType arrItemType)
+                var givenValue = next();
+                if (type.Resolution is ResolvedTypeKind.ArrayType arrItemType)
                 {
-                    // argValue is a tuple containing an int for the length and the array pointer
-                    var argValue = this.CastToType(
-                        itemValue,
-                        this.Types.TypedTuple(
-                            this.Config.MapToInteropType(this.Types.Int),
-                            this.Config.MapToInteropType(this.Types.Array))
-                        .CreatePointerType());
-                    var lengthPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(argValue), argValue, TupleValue.PointerIndex(this, 0));
-                    var arrPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(argValue), argValue, TupleValue.PointerIndex(this, 1));
-                    var lengthArg = this.CurrentBuilder.Load(Types.PointerElementType(lengthPtr), lengthPtr);
-                    var arrArg = this.CurrentBuilder.Load(Types.PointerElementType(arrPtr), arrPtr);
-
-                    var length = this.CastToType(lengthArg, this.Types.Int);
-                    var givenArray = this.CastToType(arrArg, this.Types.Array);
+                    var (length, dataArr) = LoadSizedArray(givenValue);
                     ArrayValue array = this.Values.CreateArray(length, arrItemType.Item);
 
-                    // Fill in the array if the length is > 0.
-                    var copyBlock = this.CurrentFunction.AppendBasicBlock(this.BlockName("copy"));
-                    var nextBlock = this.CurrentFunction.AppendBasicBlock(this.BlockName("next"));
-                    var start = this.Context.CreateConstant(0L);
-                    var cond = this.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, length, start);
-                    this.CurrentBuilder.Branch(cond, copyBlock, nextBlock);
-
-                    this.SetCurrentBlock(copyBlock);
-                    var givenArrayPtr = this.CurrentBuilder.PointerToInt(givenArray, this.Context.Int64Type);
-                    var expectedArrElementType = this.LlvmTypeFromQsharpType(arrItemType.Item);
-                    var givenArrElementType = this.Config.MapToInteropType(expectedArrElementType); // FIXME: DON'T CAST BLINDLY
+                    var dataArrStart = this.CurrentBuilder.PointerToInt(dataArr, this.Context.Int64Type);
+                    var givenArrElementType = this.MapToInteropType(array.LlvmElementType) ?? this.Values.Unit.LlvmType;
                     var givenArrElementSize = this.ComputeSizeForType(givenArrElementType);
 
-                    var end = this.CurrentBuilder.Sub(array.Length, this.Context.CreateConstant(1L));
                     void PopulateItem(Value index)
                     {
-                        var offset = this.CurrentBuilder.Mul(index, givenArrElementSize);
-                        var elementPointer = this.CurrentBuilder.IntToPointer(
-                            this.CurrentBuilder.Add(givenArrayPtr, offset),
-                            givenArrElementType.CreatePointerType());
-
-                        var loaded = this.CurrentBuilder.Load(givenArrElementType, elementPointer);
-                        var element = this.CastToType(loaded, expectedArrElementType); // FIXME: WHAT IF WE HAD AN ARRAY OF TUPLES?? -> THROW?
-                        array.GetArrayElementPointer(index).StoreValue(this.Values.From(loaded, arrItemType.Item));
+                        var element = ProcessGivenValue(array.QSharpElementType, () =>
+                        {
+                            var offset = this.CurrentBuilder.Mul(index, givenArrElementSize);
+                            var elementPointer = this.CurrentBuilder.IntToPointer(
+                                this.CurrentBuilder.Add(dataArrStart, offset),
+                                givenArrElementType.CreatePointerType());
+                            return this.CurrentBuilder.Load(givenArrElementType, elementPointer);
+                        });
+                        array.GetArrayElementPointer(index).StoreValue(element);
                     }
-                    this.IterateThroughRange(start, null, end, PopulateItem);
 
-                    this.CurrentBuilder.Branch(nextBlock);
-                    this.SetCurrentBlock(nextBlock);
+                    var start = this.Context.CreateConstant(0L);
+                    var end = this.CurrentBuilder.Sub(array.Length, this.Context.CreateConstant(1L));
+                    this.IterateThroughRange(start, null, end, PopulateItem);
                     return array;
                 }
-                else // FIXME: THROW ON INNER TUPLES?
+                else if (type.Resolution is ResolvedTypeKind.TupleType items)
+                {
+                    var tupleItemIndex = 0;
+                    Value NextTupleItem()
+                    {
+                        var itemPtr = this.CurrentBuilder.GetElementPtr(Types.PointerElementType(givenValue), givenValue, TupleValue.PointerIndex(this, tupleItemIndex));
+                        return this.CurrentBuilder.Load(Types.PointerElementType(itemPtr), itemPtr);
+                    }
+                    var tupleItems = items.Item.Select(arg => ProcessGivenValue(arg, NextTupleItem)).ToArray();
+                    return this.Values.CreateTuple(tupleItems);
+                }
+                else if (type.Resolution.IsBigInt)
+                {
+                    var createBigInt = this.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
+                    var (length, dataArr) = LoadSizedArray(givenValue);
+                    var argValue = this.CurrentBuilder.Call(createBigInt, length, dataArr);
+                    var value = this.Values.From(argValue, type);
+                    this.ScopeMgr.RegisterValue(value);
+                    return value;
+                }
+                else if (type.Resolution.IsString)
+                {
+                    var createString = this.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
+                    var argValue = this.CurrentBuilder.Call(createString, givenValue);
+                    var value = this.Values.From(argValue, type);
+                    this.ScopeMgr.RegisterValue(value);
+                    return value;
+                }
+                else if (type.Resolution.IsResult)
+                {
+                    var zero = this.CurrentBuilder.Load(this.Types.Result, this.Constants.ResultZero);
+                    var one = this.CurrentBuilder.Load(this.Types.Result, this.Constants.ResultOne);
+                    var cond = this.CurrentBuilder.Compare(
+                        IntPredicate.Equal,
+                        givenValue,
+                        this.Context.CreateConstant(givenValue.NativeType, 0u, false));
+                    var argValue = this.CurrentBuilder.Select(cond, zero, one);
+                    return this.Values.From(argValue, type);
+                }
+                else
                 {
                     // bitcast to the correct type and return
-                    var expectedArgType = this.LlvmTypeFromQsharpType(innerItem.Item.Type);
-                    var argValue = this.CastToType(itemValue, expectedArgType);
-                    return this.Values.From(argValue, innerItem.Item.Type);
+                    var expectedArgType = this.LlvmTypeFromQsharpType(type);
+                    var argValue = this.CastToType(givenValue, expectedArgType);
+                    return this.Values.From(argValue, type);
                 }
             }
-            else
+
+            IValue ProcessArgumentTupleItem(ArgumentTuple item, Func<Value> nextArgument)
             {
-                throw new NotSupportedException("unknown item in argument tuple");
+                if (item is ArgumentTuple.QsTuple innerTuple)
+                {
+                    var tupleItems = innerTuple.Item.Select(arg => ProcessArgumentTupleItem(arg, nextArgument)).ToArray();
+                    return this.Values.CreateTuple(tupleItems);
+                }
+                else
+                {
+                    return item is ArgumentTuple.QsTupleItem innerItem
+                        ? ProcessGivenValue(innerItem.Item.Type, nextArgument)
+                        : throw new NotSupportedException("unknown item in argument tuple");
+                }
             }
+
+            var currentFunctionArgIndex = 0;
+            Value NextArgument() => this.CurrentFunction.Parameters[currentFunctionArgIndex++];
+            var args = arg is ArgumentTuple.QsTuple argTuple ? argTuple.Item : ImmutableArray.Create(arg);
+            return args.Select(item => ProcessArgumentTupleItem(item, NextArgument).Value).ToArray();
         }
 
         // Ensures that the memory used in the returned value is not freed
@@ -565,63 +617,89 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("the current function is null");
             }
 
-            if (res is TupleValue tuple)
+            Value PopulateTuple(ITypeRef mappedType, Value[] tupleItems)
             {
-                var tupleItems = tuple.GetTupleElements()
-                    .Select(v => this.ProcessEntryPointReturnValue(v))
-                    .Where(v => v != null)
-                    .ToArray();
-                var constructor = this.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
-                var mappedTupleType = this.MapToEntryPointType(tuple.QSharpType)!;
-                var size = this.ComputeSizeForType(mappedTupleType);
-                var mappedTuple = this.CurrentBuilder.Call(constructor, size);
-                return this.CastToType(mappedTuple, mappedTupleType);
+                var malloc = this.GetOrCreateRuntimeFunction(RuntimeLibrary.MemoryAllocate);
+                var mappedStructType = Types.StructFromPointer(mappedType);
+                var allocated = this.CurrentBuilder.Call(malloc, this.ComputeSizeForType(mappedStructType));
+                var mappedTuple = this.CurrentBuilder.BitCast(allocated, mappedType);
+
+                for (var itemIdx = 0; itemIdx < mappedStructType.Members.Count; ++itemIdx)
+                {
+                    var itemPtr = this.CurrentBuilder.GetElementPtr(mappedStructType, mappedTuple, TupleValue.PointerIndex(this, itemIdx));
+                    var tupleItem = this.CastToType(tupleItems[itemIdx], mappedStructType.Members[itemIdx]);
+                    this.CurrentBuilder.Store(tupleItem, itemPtr);
+                }
+                return mappedTuple;
             }
-            else if (res is ArrayValue array)
+
+            if (res.QSharpType.Resolution.IsUnitType)
             {
-                var dataArrElementType = this.MapToEntryPointType(array.QSharpElementType) ?? this.Values.Unit.LlvmType; // fixme: deal better with unit
-                var mappedLength = this.CastToType(array.Length, this.Config.MapToInteropType(this.Types.Int));
-                var constructor = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
-                var elementSize = this.ComputeSizeForType(dataArrElementType, this.Context.Int32Type);
-                var returnArray = this.CurrentBuilder.Call(constructor, elementSize, array.Length);
+                return null;
+            }
 
-                //// Fill in the array if the length is > 0.
+            if (res is ArrayValue array)
+            {
+                var malloc = this.GetOrCreateRuntimeFunction(RuntimeLibrary.MemoryAllocate);
+                var dataArrElementType = this.MapToEntryPointType(array.QSharpElementType) ?? this.Values.Unit.LlvmType;
+                var sizePerElement = this.ComputeSizeForType(dataArrElementType);
+                var dataArr = this.CurrentBuilder.Call(malloc, this.CurrentBuilder.Mul(array.Length, sizePerElement));
 
-                var copyBlock = this.CurrentFunction.AppendBasicBlock(this.BlockName("copy"));
-                var nextBlock = this.CurrentFunction.AppendBasicBlock(this.BlockName("next"));
-                var start = this.Context.CreateConstant(0L);
-                var cond = this.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, array.Length, start);
-                this.CurrentBuilder.Branch(cond, copyBlock, nextBlock);
-
-                this.SetCurrentBlock(copyBlock);
-                var computedArrayPtr = this.CurrentBuilder.PointerToInt(array.OpaquePointer, this.Context.Int64Type);
-
-                var end = this.CurrentBuilder.Sub(array.Length, this.Context.CreateConstant(1L));
+                var dataArrStart = this.CurrentBuilder.PointerToInt(dataArr, this.Context.Int64Type);
                 void PopulateItem(Value index)
                 {
-                    var offset = this.CurrentBuilder.Mul(index, elementSize);
+                    var offset = this.CurrentBuilder.Mul(index, sizePerElement);
                     var elementPointer = this.CurrentBuilder.IntToPointer(
-                        this.CurrentBuilder.Add(returnArray, offset),
+                        this.CurrentBuilder.Add(dataArrStart, offset),
                         dataArrElementType.CreatePointerType());
-
-                    var loaded = array.GetArrayElement(index).Value;
-                    var element = this.CastToType(loaded, dataArrElementType); // FIXME: WHAT IF WE HAD AN ARRAY OF TUPLES?? -> THROW?
+                    var element = this.ProcessEntryPointReturnValue(array.GetArrayElement(index)) ?? this.Values.Unit.Value;
                     this.CurrentBuilder.Store(element, elementPointer);
                 }
+
+                var start = this.Context.CreateConstant(0L);
+                var end = this.CurrentBuilder.Sub(array.Length, this.Context.CreateConstant(1L));
                 this.IterateThroughRange(start, null, end, PopulateItem);
 
-                this.CurrentBuilder.Branch(nextBlock);
-                this.SetCurrentBlock(nextBlock);
-                return returnArray;
+                var tupleItems = new[] { array.Length, dataArr }; // FIXME: CAST DATA ARR TO THE RIGHT TYPE IF NEEDED
+                var mappedType = this.MapToEntryPointType(array.QSharpType)!;
+                return PopulateTuple(mappedType, tupleItems);
+            }
+            else if (res is TupleValue tuple)
+            {
+                var mappedType = this.MapToEntryPointType(tuple.QSharpType);
+                var mappedTuple = tuple.LlvmType.Equals(mappedType) ? tuple.TypedPointer : null;
+                if (mappedTuple != null || mappedType == null)
+                {
+                    this.ScopeMgr.IncreaseReferenceCount(tuple); // make this nicer (n/a for null)
+                    return mappedTuple;
+                }
 
-                //var returnTuple = ... // FIXME: HAVE IN AND OUTPUT TYPES MATCH
+                var tupleItems = WithoutNullValues(this.ProcessEntryPointReturnValue, tuple.GetTupleElements());
+                return PopulateTuple(mappedType, tupleItems);
+            }
+            else if (res.QSharpType.Resolution.IsBigInt)
+            {
+                // TODO: We can't know the length of the big int without runtime support.
+                // We may also need functions to access the data array for both string and big int.
+                throw new NotImplementedException("returning values of type BigInt is not yet supported");
+            }
+            else if (res.QSharpType.Resolution.IsResult)
+            {
+                var zero = this.CurrentBuilder.Load(this.Types.Result, this.Constants.ResultZero);
+                var resType = this.MapToInteropType(this.Types.Result)!;
+                var zeroValue = this.Context.CreateConstant(resType, 0u, false);
+                var oneValue = this.Context.CreateConstant(resType, ~0u, false);
+
+                var equals = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual);
+                var cond = this.CurrentBuilder.Call(equals, res.Value, zero);
+                return this.CurrentBuilder.Select(cond, zeroValue, oneValue);
             }
             else
             {
-                // FIXME: MAKE SURE MEMORY E.G. FOR STRING ISN'T FREED
-                // FIXME: GET A CLEAN VALUE FOR THINGS THAT ARE CAST TO "LARGER" TYPES?
-                var expectedType = this.MapToEntryPointType(res.QSharpType);
-                return expectedType == null ? null : this.CastToType(res.Value, expectedType);
+                // string, integer-like, floating point, callables and qubits
+                var expectedType = this.MapToInteropType(res.LlvmType)!;
+                this.ScopeMgr.IncreaseReferenceCount(res);
+                return this.CastToType(res.Value, expectedType);
             }
         }
 
@@ -668,13 +746,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     var entryBlock = this.CurrentFunction.AppendBasicBlock("entry");
                     this.SetCurrentBlock(entryBlock);
-
-                    var currentFunctionArgIndex = 0;
-                    Value NextArgument() => this.CurrentFunction.Parameters[currentFunctionArgIndex++];
-                    var argValueList = callable.ArgumentTuple is ArgumentTuple.QsTuple argTuple
-                        ? argTuple.Item.Select(item => this.ProcessEntryPointArgument(item, NextArgument).Value).ToArray()
-                        : new[] { this.ProcessEntryPointArgument(callable.ArgumentTuple, NextArgument).Value };
-
+                    var argValueList = this.ProcessEntryPointArguments(callable.ArgumentTuple);
                     var result = this.Values.From(this.CurrentBuilder.Call(func, argValueList), callable.Signature.ReturnType);
                     this.ScopeMgr.RegisterValue(result);
 
