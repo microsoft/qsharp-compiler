@@ -429,22 +429,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context.CreateConstant(index)
         };
 
+        /// <summary>
+        /// Applies the map function to the given items, filters all items that are null,
+        /// and returns the mapped non-null values as array.
+        /// </summary>
+        /// <typeparam name="TIn">The type of the items in the given sequence.</typeparam>
+        /// <typeparam name="TOut">The type of the items in the returned array.</typeparam>
+        /// <param name="map">The function to apply to each item in the sequence.</param>
+        /// <param name="items">The sequence of items to map.</param>
         private static TOut[] WithoutNullValues<TIn, TOut>(Func<TIn, TOut?> map, IEnumerable<TIn> items)
             where TOut : class =>
             items.Select(map).Where(i => i != null).Select(i => i!).ToArray();
 
+        /// <summary>
+        /// Bitcasts the given value to the expected type if needed.
+        /// Does nothing if the native type of the value already matches the expected type.
+        /// </summary>
         private Value CastToType(Value value, ITypeRef expectedType) =>
             value.NativeType.Equals(expectedType)
             ? value
             : this.CurrentBuilder.BitCast(value, expectedType);
 
-        // Returns null (only) when the given type is Unit.
-        // Ignores items of type Unit inside tuples.
-        private ITypeRef? MapToEntryPointType(ResolvedType type) =>
+        /// <inheritdoc cref="MapToInteropType(ITypeRef)"/>
+        private ITypeRef? MapToInteropType(ResolvedType type) =>
             this.MapToInteropType(this.LlvmTypeFromQsharpType(type));
 
         /// <summary>
-        /// Maps a QIR type to a more interop-friendly type using the specified type mapping for interoperability.
+        /// Maps the given Q#/QIR type to a more interop-friendly type.
+        /// Returns null only if the given type is Unit. Strips items of type Unit inside tuples.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// The given type is a pointer to a non-struct type,
@@ -498,6 +510,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+        /// <summary>
+        /// Assuming the parameters of the current function are defined by
+        /// flattening the given argument tuple and stripping all values of type Unit,
+        /// constructs the argument(s) to the QIR function that matches the argument tuple.
+        /// The arguments of the current function are assumed be given as interop friendly types
+        /// defined by <see cref="MapToInteropType"/>.
+        /// This method generates suitable calls to the QIR runtime functions and other necessary
+        /// conversions and casts to construct the arguments for the QIR function;
+        /// i.e. this method implements the mapping "interop-friendly function arguments -> QIR function arguments".
+        /// </summary>
+        /// <returns>The array of arguments with which to invoke the QIR function with the given argument tuple.</returns>
+        /// <exception cref="InvalidOperationException">The current function is null.</exception>
         private Value[] ProcessEntryPointArguments(ArgumentTuple arg)
         {
             if (this.CurrentFunction == null)
@@ -618,7 +642,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return args.Select(item => ProcessArgumentTupleItem(item, NextArgument).Value).ToArray();
         }
 
-        // Ensures that the memory used in the returned value is not freed
+        /// <summary>
+        /// This method generates suitable calls, conversions and casts to map the given return value
+        /// of a QIR function to an interop-friendly value; i.e. this method implements the mapping
+        /// "QIR value -> interop friendly value". It strips all inner tuple items of type Unit,
+        /// and returns null only if the given value represents a value of type Unit.
+        /// <br/><br/>
+        /// The memory for the returned value is allocated on the heap using the corresponding runtime
+        /// function <see cref="RuntimeLibrary.MemoryAllocate"/> and will not be freed by the QIR runtime.
+        /// It is the responsibility of the code calling into the QIR entry point wrapper to free that memory.
+        /// </summary>
+        /// <returns>The interop-friendly value for the given value obtained by invoking a QIR function.</returns>
+        /// <exception cref="InvalidOperationException">The current function is null.</exception>
         private Value? ProcessEntryPointReturnValue(IValue res)
         {
             if (this.CurrentFunction == null)
@@ -650,7 +685,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (res is ArrayValue array)
             {
                 var malloc = this.GetOrCreateRuntimeFunction(RuntimeLibrary.MemoryAllocate);
-                var dataArrElementType = this.MapToEntryPointType(array.QSharpElementType) ?? this.Values.Unit.LlvmType;
+                var dataArrElementType = this.MapToInteropType(array.QSharpElementType) ?? this.Values.Unit.LlvmType;
                 var sizePerElement = this.ComputeSizeForType(dataArrElementType);
                 var dataArr = this.CurrentBuilder.Call(malloc, this.CurrentBuilder.Mul(array.Length, sizePerElement));
 
@@ -670,12 +705,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.IterateThroughRange(start, null, end, PopulateItem);
 
                 var tupleItems = new[] { array.Length, dataArr }; // FIXME: CAST DATA ARR TO THE RIGHT TYPE IF NEEDED
-                var mappedType = this.MapToEntryPointType(array.QSharpType)!;
+                var mappedType = this.MapToInteropType(array.QSharpType)!;
                 return PopulateTuple(mappedType, tupleItems);
             }
             else if (res is TupleValue tuple)
             {
-                var mappedType = this.MapToEntryPointType(tuple.QSharpType);
+                var mappedType = this.MapToInteropType(tuple.QSharpType);
                 var mappedTuple = tuple.LlvmType.Equals(mappedType) ? tuple.TypedPointer : null;
                 if (mappedTuple != null || mappedType == null)
                 {
@@ -713,7 +748,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Generates an interop-friendly wrapper around the Q# entry point using the configured type mapping.
+        /// Generates an interop-friendly wrapper around the Q# entry point that can be invoked from within
+        /// native code without relying on the QIR runtime or adhering to the QIR specification.
+        /// See <seealso cref="ProcessEntryPointArguments"/> and <seealso cref="ProcessEntryPointReturnValue"/>
+        /// for more detail.
         /// </summary>
         /// <param name="qualifiedName">The namespace-qualified name of the Q# entry point</param>
         public void GenerateEntryPoint(QsQualifiedName qualifiedName)
@@ -726,9 +764,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     .ToArray();
 
                 ITypeRef[] entryPointArgsTypes = argItems
-                    .Select(sym => this.MapToEntryPointType(sym.Type)!)
+                    .Select(sym => this.MapToInteropType(sym.Type)!)
                     .ToArray();
-                var entryPointReturnType = this.MapToEntryPointType(callable.Signature.ReturnType);
+                var entryPointReturnType = this.MapToInteropType(callable.Signature.ReturnType);
                 var entryPointType = this.Context.GetFunctionType(
                     entryPointReturnType ?? this.Context.VoidType,
                     entryPointArgsTypes);
