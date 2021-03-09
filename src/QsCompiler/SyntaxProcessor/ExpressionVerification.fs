@@ -767,7 +767,7 @@ type QsExpression with
                     let result = inference.Fresh this.RangeOrDefault
 
                     inference.Constrain(callable.ResolvedType, HasPartialApplication(missing, result))
-                    |> diagnoseRange (rangeOrDefault arg)
+                    |> diagnoseRange (rangeOrDefault callable)
 
                     result
                 | None -> output

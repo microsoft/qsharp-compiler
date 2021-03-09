@@ -7,6 +7,9 @@ open System
 open System.Collections.Generic
 
 type ErrorCode =
+    | TypeMismatch = 1
+    | NoCommonBaseType = 2
+
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
     | MissingStringDelimiterError = 1003
@@ -201,8 +204,6 @@ type ErrorCode =
     | ConflictInReferences = 6021
     | InaccessibleType = 6022
     | InaccessibleCallable = 6023
-
-    | TypeUnificationFailed = 6024
 
     | ExpectingUnqualifiedSymbol = 6101
     | ExpectingItemName = 6102
@@ -427,6 +428,11 @@ type DiagnosticItem =
         let ApplyArguments =
             DiagnosticItem.ApplyArguments args
             << function
+            | ErrorCode.TypeMismatch ->
+                "The type {0} does not match the type {1}.\nExpected type: {2}\n  Actual type: {3}"
+            | ErrorCode.NoCommonBaseType ->
+                "The type {0} does not share a base type with {1}.\n First type: {2}\nSecond type: {3}"
+
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
             | ErrorCode.MissingStringDelimiterError -> "File ends with an unclosed string."
@@ -697,8 +703,6 @@ type DiagnosticItem =
                 "Namespace is already open. Cannot open namespace under a different name."
             | ErrorCode.InvalidNamespaceAliasName -> "A namespace or a namespace short name \"{0}\" already exists."
             | ErrorCode.ConflictInReferences -> "Could not resolve conflict between {0} declared in {1}."
-
-            | ErrorCode.TypeUnificationFailed -> "The type {0} cannot be unified with {1}. The types do not match."
 
             | ErrorCode.ExpectingUnqualifiedSymbol -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName -> "Expecting an item name, i.e. an unqualified symbol."

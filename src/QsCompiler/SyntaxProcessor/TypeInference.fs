@@ -80,12 +80,27 @@ module private Inference =
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) -> in1 =~ in2 && out1 =~ out2
         | _ -> lhs = rhs
 
+    let (!=~) lhs rhs = not (lhs =~ rhs)
+
     let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
     let showFunctor =
         function
         | Adjoint -> Keywords.qsAdjointFunctor.id
         | Controlled -> Keywords.qsControlledFunctor.id
+
+    let withOuterTypes expected actual diagnostic =
+        match diagnostic.Diagnostic with
+        | Error ErrorCode.TypeMismatch
+        | Error ErrorCode.NoCommonBaseType when Seq.length diagnostic.Arguments = 2 ->
+            let types =
+                seq {
+                    showType expected
+                    showType actual
+                }
+
+            { diagnostic with Arguments = Seq.append diagnostic.Arguments types }
+        | _ -> diagnostic
 
     let private combineCallableInfo ordering info1 info2 =
         match ordering with
@@ -102,7 +117,7 @@ module private Inference =
 
                 CallableInformation.New(characteristics, inferred), []
             else
-                let error = ErrorCode.ArgumentMismatchInBinaryOp, [ sprintf "%A" info1; sprintf "%A" info2 ]
+                let error = ErrorCode.NoCommonBaseType, [ sprintf "%A" info1; sprintf "%A" info2 ]
 
                 CallableInformation.New
                     (ResolvedCharacteristics.New InvalidSetExpr, InferredCallableInformation.NoInformation),
@@ -132,7 +147,7 @@ module private Inference =
         | _, InvalidType -> ResolvedType.New InvalidType, []
         | _ when lhs =~ rhs -> lhs, []
         | _ ->
-            let error = ErrorCode.ArgumentMismatchInBinaryOp, [ showType lhs; showType rhs ]
+            let error = ErrorCode.NoCommonBaseType, [ showType lhs; showType rhs ]
             ResolvedType.New InvalidType, [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     let occursCheck param (resolvedType: ResolvedType) =
@@ -200,10 +215,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =
         context.UnifyByOrdering(context.Resolve expected, Supertype, context.Resolve actual)
+        |> List.map (withOuterTypes (context.Resolve expected) (context.Resolve actual))
 
     member internal context.Intersect(left: ResolvedType, right: ResolvedType) =
         context.UnifyByOrdering(context.Resolve left, Equal, context.Resolve right) |> ignore
-        combine Supertype (context.Resolve left) (context.Resolve right)
+        let intersection, diagnostics = combine Supertype (context.Resolve left) (context.Resolve right)
+        intersection, diagnostics |> List.map (withOuterTypes (context.Resolve left) (context.Resolve right))
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
         let resolvedType = context.Resolve resolvedType
@@ -236,9 +253,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     member private context.UnifyByOrdering(expected: ResolvedType, ordering, actual: ResolvedType) =
         let error =
-            QsCompilerDiagnostic.Error
-                (ErrorCode.TypeUnificationFailed, [ showType expected; showType actual ])
-                Range.Zero
+            QsCompilerDiagnostic.Error (ErrorCode.TypeMismatch, [ showType actual; showType expected ]) Range.Zero
 
         match expected.Resolution, actual.Resolution with
         | _ when ordering = Subtype -> context.UnifyByOrdering(expected, Supertype, actual)
@@ -382,7 +397,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let diagnostics =
                 variable.Constraints
                 |> List.collect (fun typeConstraint -> context.ApplyConstraint(typeConstraint, resolvedType))
-
             variables.[param] <- { variable with Constraints = [] }
             diagnostics
         | None -> []
