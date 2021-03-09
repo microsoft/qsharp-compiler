@@ -1143,5 +1143,26 @@ namespace Microsoft.Quantum.QsCompiler
             File.WriteAllText(targetFile, content);
             return targetFile;
         }
+
+        /// <summary>
+        /// Writes the given contents to the given a file name at the given output folder.
+        /// Throws the corresponding exception if any of the path operations fails or if the writing fails.
+        /// </summary>
+        public static void WriteFile(string fileName, string outputFolder, string content)
+        {
+            string FullDirectoryName(string dir) =>
+                Path.GetFullPath(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar);
+
+            outputFolder = string.IsNullOrWhiteSpace(outputFolder) ? "." : outputFolder;
+            var outputUri = new Uri(FullDirectoryName(outputFolder));
+            var fileDir = Path.GetDirectoryName(outputUri.LocalPath);
+            var targetFile = Path.GetFullPath(Path.Combine(fileDir, fileName));
+
+            if (!Directory.Exists(fileDir))
+            {
+                Directory.CreateDirectory(fileDir);
+            }
+            File.WriteAllText(targetFile, content);
+        }
     }
 }
