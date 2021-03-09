@@ -30,10 +30,13 @@ type AccessModifierTests() =
         this.Expect "TypeUseOK" []
         this.Expect "TypeReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleType ]
 
-        // TODO: AmbiguousTypeVariable error is confusing here.
+        // TODO: Ambiguous type error is confusing here.
         this.Expect
             "TypeConstructorReferenceInternalInaccessible"
-            [ Error ErrorCode.InaccessibleCallable; Error ErrorCode.AmbiguousTypeVariable ]
+            [
+                Error ErrorCode.InaccessibleCallable
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
 
     [<Fact>]
     member this.``Callable signatures``() =

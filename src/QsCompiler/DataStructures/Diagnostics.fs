@@ -203,8 +203,6 @@ type ErrorCode =
     | InaccessibleCallable = 6023
 
     | TypeUnificationFailed = 6024
-    | ConstraintNotSatisfied = 6025
-    | AmbiguousTypeVariable = 6026
 
     | ExpectingUnqualifiedSymbol = 6101
     | ExpectingItemName = 6102
@@ -701,9 +699,6 @@ type DiagnosticItem =
             | ErrorCode.ConflictInReferences -> "Could not resolve conflict between {0} declared in {1}."
 
             | ErrorCode.TypeUnificationFailed -> "The type {0} cannot be unified with {1}. The types do not match."
-            | ErrorCode.ConstraintNotSatisfied -> "The type {0} does not satisfy the {1} constraint."
-            | ErrorCode.AmbiguousTypeVariable ->
-                "The type variable {0} is ambiguous. Further type annotations may be needed."
 
             | ErrorCode.ExpectingUnqualifiedSymbol -> "Expecting an unqualified symbol name."
             | ErrorCode.ExpectingItemName -> "Expecting an item name, i.e. an unqualified symbol."
@@ -739,7 +734,7 @@ type DiagnosticItem =
                 "The type of the given argument does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.UnexpectedTupleArgument -> "Unexpected argument tuple. Expecting an argument of type {0}."
             | ErrorCode.AmbiguousTypeParameterResolution ->
-                "The type parameter resolution for the call is ambiguous. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
+                "The type parameter resolution for the expression is ambiguous. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
             | ErrorCode.ConstrainsTypeParameter -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.DirectRecursionWithinTemplate ->
                 "Direct recursive calls within templates require explicit type arguments. Please provide type arguments, e.g. Op<Int, Double>(arg)."

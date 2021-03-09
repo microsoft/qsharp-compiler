@@ -55,7 +55,14 @@ type TypeCheckingTests() =
     member this.Variance() =
         this.Expect "Variance1" []
         this.Expect "Variance2" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "Variance3" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+
+        this.Expect
+            "Variance3"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
+
         this.Expect "Variance4" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "Variance5" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "Variance6" [ Error ErrorCode.TypeUnificationFailed ]
@@ -63,38 +70,73 @@ type TypeCheckingTests() =
         this.Expect
             "Variance7"
             [
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
         this.Expect
             "Variance8"
             [
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
-        this.Expect "Variance9" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
-        this.Expect "Variance10" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
-        this.Expect "Variance11" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
-        this.Expect "Variance12" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
-        this.Expect "Variance13" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
-        this.Expect "Variance14" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+        this.Expect
+            "Variance9"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
+
+        this.Expect
+            "Variance10"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
+
+        this.Expect
+            "Variance11"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
+
+        this.Expect
+            "Variance12"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
+
+        this.Expect
+            "Variance13"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
+
+        this.Expect
+            "Variance14"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
 
 
     [<Fact>]
@@ -201,8 +243,13 @@ type TypeCheckingTests() =
         this.Expect "MatchArgument7" []
         this.Expect "MatchArgument8" []
 
-        // TODO: AmbiguousTypeVariable error is confusing.
-        this.Expect "MatchArgument9" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+        // TODO: Ambiguous type error is confusing.
+        this.Expect
+            "MatchArgument9"
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
 
         this.Expect "MatchArgument10" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "MatchArgument11" []
@@ -219,8 +266,8 @@ type TypeCheckingTests() =
             "MatchArgument19"
             [
                 Error ErrorCode.TypeUnificationFailed
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
 
@@ -230,7 +277,10 @@ type TypeCheckingTests() =
 
         this.Expect
             "PartialApplication2"
-            [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.AmbiguousTypeVariable ]
+            [
+                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
 
         this.Expect "PartialApplication3" [ Error ErrorCode.TypeUnificationFailed ]
         this.Expect "PartialApplication4" [ Error ErrorCode.TypeUnificationFailed ]

@@ -39,7 +39,7 @@ type LocalVerificationTests() =
         this.Expect
             "TypeArgumentsInference5"
             [
-                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
 
@@ -110,17 +110,17 @@ type LocalVerificationTests() =
             "VariableDeclaration9"
             [
                 Error ErrorCode.TypeUnificationFailed
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
         this.Expect
             "VariableDeclaration10"
             [
                 Error ErrorCode.TypeUnificationFailed
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
-                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
         this.Expect "VariableDeclaration11" []
@@ -128,8 +128,8 @@ type LocalVerificationTests() =
         this.Expect
             "VariableDeclaration12"
             [
-                Error ErrorCode.ConstraintNotSatisfied
-                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.ExpectingCallableExpr
+                Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
 
@@ -138,7 +138,7 @@ type LocalVerificationTests() =
         this.Expect
             "VariableDeclaration14"
             [
-                Error ErrorCode.AmbiguousTypeVariable
+                Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
 
@@ -316,15 +316,15 @@ type LocalVerificationTests() =
         this.Expect "ValidArraySlice8" []
         this.Expect "ValidArraySlice9" []
 
-        this.Expect "InvalidArraySlice1" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice2" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice3" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice4" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice5" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice6" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice7" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice8" [ Error ErrorCode.ConstraintNotSatisfied ]
-        this.Expect "InvalidArraySlice9" [ Error ErrorCode.ConstraintNotSatisfied ]
+        this.Expect "InvalidArraySlice1" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice2" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice3" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice4" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice5" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice6" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice7" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice8" [ Error ErrorCode.ItemAccessForNonArray ]
+        this.Expect "InvalidArraySlice9" [ Error ErrorCode.ItemAccessForNonArray ]
 
 
     [<Fact>]

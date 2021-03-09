@@ -172,10 +172,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member context.AmbiguousDiagnostics =
         [
             for variable in variables do
-                if Option.isNone variable.Value.Substitution then
-                    QsCompilerDiagnostic.Error
-                        (ErrorCode.AmbiguousTypeVariable, [ TypeParameter variable.Key |> ResolvedType.New |> showType ])
-                        variable.Value.Source
+                if Option.isNone variable.Value.Substitution
+                then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, []) variable.Value.Source
         ]
 
     member context.SetStatementPosition position = statementPosition <- position
@@ -297,7 +295,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | QsTypeKind.Function _ ->
                 context.Unify(QsTypeKind.Function(input, output) |> ResolvedType.New, resolvedType)
             | _ ->
-                let error = ErrorCode.ConstraintNotSatisfied, [ showType resolvedType; "Callable" ]
+                let error = ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | CanGenerateFunctors functors ->
             match resolvedType.Resolution with
@@ -346,14 +344,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | QsTypeKind.Operation ((_, output), info) ->
                 context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
             | _ ->
-                let error = ErrorCode.ConstraintNotSatisfied, [ showType resolvedType; "HasPartialApplication" ]
+                let error = ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Indexed (index, item) ->
             match resolvedType.Resolution, (context.Resolve index).Resolution with
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
             | _ ->
-                let error = ErrorCode.ConstraintNotSatisfied, [ showType resolvedType; "Indexed" ]
+                let error = ErrorCode.ItemAccessForNonArray, [ showType resolvedType ]
                 [ QsCompilerDiagnostic.Error error Range.Zero ]
         | Integral ->
             if resolvedType.Resolution = Int || resolvedType.Resolution = BigInt
