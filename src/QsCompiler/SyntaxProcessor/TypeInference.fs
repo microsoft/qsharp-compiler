@@ -31,7 +31,12 @@ type internal Constraint =
     | Semigroup
     | Wrapped of item: ResolvedType
 
-type private Variable = { Substitution: ResolvedType option; Constraints: Constraint list }
+type private Variable =
+    {
+        Substitution: ResolvedType option
+        Constraints: Constraint list
+        Source: Range
+    }
 
 module private Variable =
     let constrain typeConstraint variable =
@@ -153,6 +158,8 @@ open Inference
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
 
+    let mutable statementPosition = Position.Zero
+
     let bind param substitution =
         occursCheck param substitution
         let variable = variables.[param]
@@ -168,10 +175,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 if Option.isNone variable.Value.Substitution then
                     QsCompilerDiagnostic.Error
                         (ErrorCode.AmbiguousTypeVariable, [ TypeParameter variable.Key |> ResolvedType.New |> showType ])
-                        Range.Zero
+                        variable.Value.Source
         ]
 
-    member internal context.Fresh() =
+    member context.SetStatementPosition position = statementPosition <- position
+
+    member internal context.Fresh(source: Range) =
         let name = letters |> Seq.item variables.Count
 
         let param =
@@ -181,7 +190,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 variables.ContainsKey param || symbolTracker.DefinedTypeParameters.Contains param.TypeName)
             |> Seq.head
 
-        variables.Add(param, { Substitution = None; Constraints = [] })
+        let variable =
+            {
+                Substitution = None
+                Constraints = []
+                Source = statementPosition + source
+            }
+
+        variables.Add(param, variable)
         TypeParameter param |> ResolvedType.New
 
     member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =

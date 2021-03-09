@@ -121,8 +121,9 @@ let private VerifyArithmeticOp (inference: InferenceContext) lhs rhs =
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 /// NOTE: returns the type of the iteration *item*.
 let internal VerifyIsIterable (inference: InferenceContext) expr =
-    let item = inference.Fresh()
-    item, inference.Constrain(expr.ResolvedType, Iterable item) |> withRange (rangeOrDefault expr)
+    let range = rangeOrDefault expr
+    let item = inference.Fresh range
+    item, inference.Constrain(expr.ResolvedType, Iterable item) |> withRange range
 
 /// Verifies that given resolved types can be used within a concatenation operator.
 /// First tries to find a common base type for the two types,
@@ -155,7 +156,7 @@ let private VerifyEqualityComparison (inference: InferenceContext) lhs rhs =
 /// and adds a MultipleTypesInArray error for the entire array if this fails.
 /// Returns the inferred type of the array.
 /// Returns an array with missing base type if the given list of item types is empty.
-let private VerifyValueArray (inference: InferenceContext) exprs =
+let private VerifyValueArray (inference: InferenceContext) range exprs =
     let diagnostics = ResizeArray()
 
     for expr in exprs do
@@ -171,7 +172,7 @@ let private VerifyValueArray (inference: InferenceContext) exprs =
 
     if Seq.isEmpty types then
         if Seq.isEmpty exprs
-        then inference.Fresh(), Seq.toList diagnostics
+        then inference.Fresh range, Seq.toList diagnostics
         else ResolvedType.New InvalidType |> ArrayType |> ResolvedType.New, Seq.toList diagnostics
     else
         types
@@ -187,11 +188,12 @@ let private VerifyValueArray (inference: InferenceContext) exprs =
 /// adding an ItemAccessForNonArray error with the given range using addError otherwise.
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 let internal VerifyNumberedItemAccess (inference: InferenceContext) expr =
-    let resultType = inference.Fresh()
+    let range = rangeOrDefault expr
+    let resultType = inference.Fresh range
 
     resultType,
     inference.Constrain(expr.ResolvedType, Indexed(ResolvedType.New Range, resultType))
-    |> withRange (rangeOrDefault expr)
+    |> withRange range
 
 /// Verifies that the given type of the left hand side of an array item expression is indeed an array type (or invalid),
 /// adding an ItemAccessForNonArray error with the corresponding range using addError otherwise.
@@ -199,11 +201,9 @@ let internal VerifyNumberedItemAccess (inference: InferenceContext) expr =
 /// adding an InvalidArrayItemIndex error with the corresponding range using addError otherwise.
 /// Returns the type of the array item expression.
 let private VerifyArrayItem (inference: InferenceContext) array index =
-    let itemType = inference.Fresh()
-
-    itemType,
-    inference.Constrain(array.ResolvedType, Indexed(index.ResolvedType, itemType))
-    |> withRange (rangeOrDefault array)
+    let range = rangeOrDefault array
+    let itemType = inference.Fresh range
+    itemType, inference.Constrain(array.ResolvedType, Indexed(index.ResolvedType, itemType)) |> withRange range
 
 /// Verifies that the Adjoint functor can be applied to an expression of the given type,
 /// adding an InvalidAdjointApplication error with the given range using addError otherwise.
@@ -217,11 +217,9 @@ let private VerifyAdjointApplication (inference: InferenceContext) expr =
 /// If the given type is a missing type, also adds the corresponding ExpressionOfUnknownType error.
 /// Returns the type of the functor application expression.
 let private VerifyControlledApplication (inference: InferenceContext) expr =
-    let controlled = inference.Fresh()
-
-    controlled,
-    inference.Constrain(expr.ResolvedType, Constraint.Controllable controlled)
-    |> withRange (rangeOrDefault expr)
+    let range = rangeOrDefault expr
+    let controlled = inference.Fresh range
+    controlled, inference.Constrain(expr.ResolvedType, Constraint.Controllable controlled) |> withRange range
 
 // utils for verifying identifiers, call expressions, and resolving type parameters
 
@@ -296,7 +294,7 @@ let private VerifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
             |> Seq.mapi (fun i param ->
                 if i < typeArgs.Length && typeArgs.[i].Resolution <> MissingType
                 then KeyValuePair(param, typeArgs.[i])
-                else KeyValuePair(param, inference.Fresh()))
+                else KeyValuePair(param, inference.Fresh sym.RangeOrDefault))
             |> ImmutableDictionary.CreateRange
 
         let identifier =
@@ -447,7 +445,7 @@ type QsExpression with
         /// Resolves and verifies all given items of a value array literal, and returns the corresponding ValueArray as typed expression.
         let buildValueArray values =
             let values = values |> Seq.map resolve |> ImmutableArray.CreateRange
-            let resolvedType = values |> VerifyValueArray inference |> takeDiagnostics
+            let resolvedType = values |> VerifyValueArray inference this.RangeOrDefault |> takeDiagnostics
             let localQdependency = values |> Seq.exists (fun item -> item.InferredInformation.HasLocalQuantumDependency)
             (ValueArray values, resolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
 
@@ -714,7 +712,7 @@ type QsExpression with
         /// Determines the underlying type of the user defined type and returns the corresponding UNWRAP expression as typed expression of that type.
         let buildUnwrap ex =
             let ex = resolve ex
-            let exType = inference.Fresh()
+            let exType = inference.Fresh this.RangeOrDefault
             inference.Constrain(ex.ResolvedType, Wrapped exType) |> diagnoseRange (rangeOrDefault ex)
 
             (UnwrapApplication ex, exType, ex.InferredInformation.HasLocalQuantumDependency, this.Range)
@@ -723,7 +721,7 @@ type QsExpression with
         let rec partialArgType (argType: ResolvedType) =
             match argType.Resolution with
             | MissingType ->
-                let param = inference.Fresh()
+                let param = inference.Fresh this.RangeOrDefault
                 param, Some param
             | TupleType items ->
                 let items, missing =
@@ -753,7 +751,7 @@ type QsExpression with
                     (callable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport |> CanGenerateFunctors)
                 |> diagnoseRange (rangeOrDefault callable)
 
-            let output = inference.Fresh()
+            let output = inference.Fresh this.RangeOrDefault
 
             if isPartial || context.IsInOperation then
                 inference.Constrain(callable.ResolvedType, Callable(argType, output))
@@ -766,7 +764,7 @@ type QsExpression with
             let resultType =
                 match partialType with
                 | Some missing ->
-                    let result = inference.Fresh()
+                    let result = inference.Fresh this.RangeOrDefault
 
                     inference.Constrain(callable.ResolvedType, HasPartialApplication(missing, result))
                     |> diagnoseRange (rangeOrDefault arg)

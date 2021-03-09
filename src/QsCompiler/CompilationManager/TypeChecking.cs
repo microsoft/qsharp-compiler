@@ -591,10 +591,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             ScopeContext context,
             List<Diagnostic> diagnostics)
         {
-            var statementPos = node.Fragment.Range.Start;
+            var statementPosition = node.Fragment.Range.Start;
+            context.Inference.SetStatementPosition(statementPosition);
+
             var location = new QsLocation(node.RelativePosition, node.Fragment.HeaderRange);
-            var (statement, messages) = build(location, context);
-            diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(context.Symbols.SourceFile, msg, statementPos)));
+            var (statement, buildDiagnostics) = build(location, context);
+            diagnostics.AddRange(buildDiagnostics
+                .Select(diagnostic => Diagnostics.Generate(context.Symbols.SourceFile, diagnostic, statementPosition)));
+
             return statement;
         }
 
@@ -1331,7 +1335,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // Finalize types.
             diagnostics.AddRange(context.Inference.AmbiguousDiagnostics
-                .Select(diagnostic => Diagnostics.Generate(sourceFile, diagnostic, specPos)));
+                .Select(diagnostic => Diagnostics.Generate(sourceFile, diagnostic)));
             var resolver = InferenceContextModule.Resolver(context.Inference);
             implementation = resolver.Statements.OnScope(implementation);
 
