@@ -1145,7 +1145,7 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Writes the given contents to the given a file name at the given output folder.
+        /// Writes the given contents to the given file name at the given output folder.
         /// Throws the corresponding exception if any of the path operations fails or if the writing fails.
         /// </summary>
         public static void WriteFile(string fileName, string outputFolder, string content)
