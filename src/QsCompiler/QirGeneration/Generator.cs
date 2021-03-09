@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -34,7 +35,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Instantiates a transformation capable of emitting QIR for the given compilation.
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
-        /// <param name="config">The configuration for the QIR generation</param>
         public Generator(QsCompilation compilation)
         : base(new GenerationContext(compilation.Namespaces), TransformationOptions.NoRebuild)
         {
@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Constructs the QIR for the compilation.
+        /// Constructs the QIR for the compilation, including interop-friendly functions for entry points.
         /// Does not emit anything; use <see cref="Emit"/> to output the constructed QIR.
         /// </summary>
         public void Apply()
@@ -65,7 +65,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             foreach (var epName in this.Compilation.EntryPoints)
             {
-                this.SharedState.GenerateEntryPoint(epName);
+                var wrapperName = GenerationContext.EntryPointName(epName);
+                this.SharedState.CreateInteropWrapper(wrapperName, epName, AttributeNames.EntryPoint);
             }
         }
 
