@@ -40,16 +40,16 @@ type FunctorAutoGenTests() =
             "OperationCharacteristics3"
             [
                 Error ErrorCode.InvalidControlledApplication
-                Error ErrorCode.TypeUnificationFailed
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
             ]
 
         this.Expect
             "OperationCharacteristics4"
             [
                 Error ErrorCode.InvalidControlledApplication
-                Error ErrorCode.TypeUnificationFailed
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
             ]
 
         this.Expect "OperationCharacteristics5" [ Error ErrorCode.InvalidAdjointApplication ]

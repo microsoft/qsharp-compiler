@@ -33,8 +33,8 @@ type LocalVerificationTests() =
         // TODO: Re-add the more specific "constrains type parameter" error?
         this.Expect "TypeArgumentsInference1" []
         this.Expect "TypeArgumentsInference2" []
-        this.Expect "TypeArgumentsInference3" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "TypeArgumentsInference4" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference3" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference4" [ Error ErrorCode.TypeMismatch ]
 
         this.Expect
             "TypeArgumentsInference5"
@@ -58,41 +58,41 @@ type LocalVerificationTests() =
         this.Expect "TypeArgumentsInference18" []
         this.Expect "TypeArgumentsInference19" []
         this.Expect "TypeArgumentsInference20" []
-        this.Expect "TypeArgumentsInference21" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "TypeArgumentsInference22" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference21" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference22" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference23" []
         this.Expect "TypeArgumentsInference24" []
         this.Expect "TypeArgumentsInference25" []
         this.Expect "TypeArgumentsInference26" []
-        this.Expect "TypeArgumentsInference27" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "TypeArgumentsInference28" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference27" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference28" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference29" [ Error ErrorCode.InvalidCyclicTypeParameterResolution ]
 
         this.Expect
             "TypeArgumentsInference30"
             [
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
             ]
 
         this.Expect
             "TypeArgumentsInference31"
             [
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
             ]
 
-        this.Expect "TypeArgumentsInference32" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "TypeArgumentsInference33" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference32" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference33" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference34" []
         this.Expect "TypeArgumentsInference35" []
         this.Expect "TypeArgumentsInference36" []
         this.Expect "TypeArgumentsInference37" []
-        this.Expect "TypeArgumentsInference38" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "TypeArgumentsInference39" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference38" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference39" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference40" []
-        this.Expect "TypeArgumentsInference41" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "TypeArgumentsInference42" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "TypeArgumentsInference41" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference42" [ Error ErrorCode.TypeMismatch ]
 
 
     [<Fact>]
@@ -109,7 +109,7 @@ type LocalVerificationTests() =
         this.Expect
             "VariableDeclaration9"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
@@ -117,7 +117,7 @@ type LocalVerificationTests() =
         this.Expect
             "VariableDeclaration10"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.AmbiguousTypeParameterResolution
@@ -203,9 +203,8 @@ type LocalVerificationTests() =
         this.Expect "ApplyAndReassign3" []
         this.Expect "ApplyAndReassign4" []
         this.Expect "ApplyAndReassign5" []
-        this.Expect "ApplyAndReassign6" [ Error ErrorCode.TypeUnificationFailed ]
-
-        this.Expect "ApplyAndReassign7" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "ApplyAndReassign6" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "ApplyAndReassign7" [ Error ErrorCode.NoCommonBaseType ]
         this.Expect "ApplyAndReassign8" [ Error ErrorCode.UpdateOfImmutableIdentifier ]
         this.Expect "ApplyAndReassign9" [ Error ErrorCode.UpdateOfArrayItemExpr ]
         this.Expect "ApplyAndReassign10" [ Error ErrorCode.UpdateOfArrayItemExpr ]
@@ -218,15 +217,14 @@ type LocalVerificationTests() =
         this.Expect "ItemAccess2" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess3" []
         this.Expect "ItemAccess4" []
-
-        this.Expect "ItemAccess5" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "ItemAccess5" [ Error ErrorCode.NoCommonBaseType ]
         this.Expect "ItemAccess6" []
         this.Expect "ItemAccess7" []
         this.Expect "ItemAccess8" []
         this.Expect "ItemAccess9" []
         this.Expect "ItemAccess10" []
         this.Expect "ItemAccess11" []
-        this.Expect "ItemAccess12" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "ItemAccess12" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
 
         this.Expect
             "ItemAccess13"

@@ -36,15 +36,15 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Double size in array constructor`` () =
-        expect "SizedArrayInvalid1" [ Error ErrorCode.TypeUnificationFailed ]
+        expect "SizedArrayInvalid1" [ Error ErrorCode.TypeMismatch ]
 
     [<Fact>]
     let ``String size in array constructor`` () =
-        expect "SizedArrayInvalid2" [ Error ErrorCode.TypeUnificationFailed ]
+        expect "SizedArrayInvalid2" [ Error ErrorCode.TypeMismatch ]
 
     [<Fact>]
     let ``Tuple size in array constructor`` () =
-        expect "SizedArrayInvalid3" [ Error ErrorCode.TypeUnificationFailed ]
+        expect "SizedArrayInvalid3" [ Error ErrorCode.TypeMismatch ]
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =
@@ -54,18 +54,18 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.Variance() =
         this.Expect "Variance1" []
-        this.Expect "Variance2" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "Variance2" [ Error ErrorCode.TypeMismatch ]
 
         this.Expect
             "Variance3"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
-        this.Expect "Variance4" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "Variance5" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "Variance6" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "Variance4" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance5" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance6" [ Error ErrorCode.TypeMismatch ]
 
         this.Expect
             "Variance7"
@@ -99,42 +99,42 @@ type TypeCheckingTests() =
         this.Expect
             "Variance9"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
         this.Expect
             "Variance10"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
         this.Expect
             "Variance11"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
         this.Expect
             "Variance12"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
         this.Expect
             "Variance13"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
         this.Expect
             "Variance14"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
@@ -142,8 +142,8 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.``Common base type``() =
         this.Expect "CommonBaseType1" []
-        this.Expect "CommonBaseType2" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
-        this.Expect "CommonBaseType3" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "CommonBaseType2" [ Error ErrorCode.NoCommonBaseType ]
+        this.Expect "CommonBaseType3" [ Error ErrorCode.NoCommonBaseType ]
         this.Expect "CommonBaseType4" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "CommonBaseType5" []
         this.Expect "CommonBaseType6" []
@@ -152,14 +152,11 @@ type TypeCheckingTests() =
         this.Expect "CommonBaseType9" []
         this.Expect "CommonBaseType10" []
         this.Expect "CommonBaseType11" [ Error ErrorCode.TypeMismatchInReturn ]
-        this.Expect "CommonBaseType12" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "CommonBaseType12" [ Error ErrorCode.NoCommonBaseType ]
         this.Expect "CommonBaseType13" []
         this.Expect "CommonBaseType14" []
         this.Expect "CommonBaseType15" [ Error ErrorCode.TypeMismatchInReturn ]
-
-        // TODO: Should be MultipleTypesInArray.
-        this.Expect "CommonBaseType16" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
-
+        this.Expect "CommonBaseType16" [ Error ErrorCode.NoCommonBaseType ]
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" []
 
@@ -171,12 +168,12 @@ type TypeCheckingTests() =
                 Warning WarningCode.ReturnTypeNotResolvedByArgument
             ]
 
-        this.Expect "CommonBaseType20" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "CommonBaseType20" [ Error ErrorCode.NoCommonBaseType ]
         this.Expect "CommonBaseType21" []
         this.Expect "CommonBaseType22" []
         this.Expect "CommonBaseType23" []
         this.Expect "CommonBaseType24" []
-        this.Expect "CommonBaseType25" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "CommonBaseType25" [ Error ErrorCode.NoCommonBaseType ]
 
 
     [<Fact>]
@@ -228,8 +225,8 @@ type TypeCheckingTests() =
                 Error ErrorCode.InvalidUseOfUnderscorePattern
             ]
 
-        this.Expect "NoCommonBaseEquality" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
-        this.Expect "NoCommonBaseInequality" [ Error ErrorCode.ArgumentMismatchInBinaryOp ]
+        this.Expect "NoCommonBaseEquality" [ Error ErrorCode.NoCommonBaseType ]
+        this.Expect "NoCommonBaseInequality" [ Error ErrorCode.NoCommonBaseType ]
 
 
     [<Fact>]
@@ -247,11 +244,11 @@ type TypeCheckingTests() =
         this.Expect
             "MatchArgument9"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
-        this.Expect "MatchArgument10" [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "MatchArgument10" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "MatchArgument11" []
         this.Expect "MatchArgument12" []
         this.Expect "MatchArgument13" []
@@ -265,7 +262,7 @@ type TypeCheckingTests() =
         this.Expect
             "MatchArgument19"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
@@ -278,30 +275,26 @@ type TypeCheckingTests() =
         this.Expect
             "PartialApplication2"
             [
-                Error ErrorCode.TypeUnificationFailed
+                Error ErrorCode.TypeMismatch
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
-        this.Expect "PartialApplication3" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "PartialApplication4" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "PartialApplication5" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "PartialApplication3" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication4" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication5" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication6" []
-        this.Expect "PartialApplication7" [ Error ErrorCode.TypeUnificationFailed ]
-        this.Expect "PartialApplication8" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "PartialApplication7" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication8" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication9" []
         this.Expect "PartialApplication10" []
         this.Expect "PartialApplication11" []
         this.Expect "PartialApplication12" []
         this.Expect "PartialApplication13" []
         this.Expect "PartialApplication14" []
-
-        this.Expect
-            "PartialApplication15"
-            [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeUnificationFailed ]
-
-        this.Expect "PartialApplication16" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "PartialApplication15" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication16" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication17" []
-        this.Expect "PartialApplication18" [ Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "PartialApplication18" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication19" []
         this.Expect "PartialApplication20" []
         this.Expect "PartialApplication21" []
@@ -310,32 +303,14 @@ type TypeCheckingTests() =
 
         this.Expect
             "PartialApplication24"
-            [
-                Error ErrorCode.InvalidControlledApplication
-                Error ErrorCode.TypeUnificationFailed
-            ]
+            [ Error ErrorCode.InvalidControlledApplication; Error ErrorCode.TypeMismatch ]
 
         this.Expect
             "PartialApplication25"
-            [
-                Error ErrorCode.InvalidControlledApplication
-                Error ErrorCode.TypeUnificationFailed
-            ]
+            [ Error ErrorCode.InvalidControlledApplication; Error ErrorCode.TypeMismatch ]
 
-        this.Expect
-            "PartialApplication26"
-            [
-                Error ErrorCode.InvalidAdjointApplication
-                Error ErrorCode.TypeUnificationFailed
-            ]
-
-        this.Expect
-            "PartialApplication27"
-            [
-                Error ErrorCode.InvalidAdjointApplication
-                Error ErrorCode.TypeUnificationFailed
-            ]
-
+        this.Expect "PartialApplication26" [ Error ErrorCode.InvalidAdjointApplication; Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication27" [ Error ErrorCode.InvalidAdjointApplication; Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication28" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "PartialApplication29" []
         this.Expect "PartialApplication30" []

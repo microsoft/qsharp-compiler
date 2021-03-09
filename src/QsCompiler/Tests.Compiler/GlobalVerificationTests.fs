@@ -42,9 +42,7 @@ type GlobalVerificationTests() =
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
-        this.Expect
-            "LocalNamespaceShortNames6"
-            [ Error ErrorCode.TypeUnificationFailed; Error ErrorCode.TypeUnificationFailed ]
+        this.Expect "LocalNamespaceShortNames6" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
 
         // TODO: AmbiguousTypeVariable error is confusing.
         this.Expect
