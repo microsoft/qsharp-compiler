@@ -1,0 +1,135 @@
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
+
+enum ArgumentType
+{
+    ArrayType,
+    BoolType,
+    IntegerType,
+    DoubleType,
+    PauliType,
+    RangeType,
+    ResultType,
+    StringType
+}
+
+struct Argument
+{
+    5: ArgumentType Type = StringType;
+
+    10: string Name;
+
+    15: int32 Position;
+}
+
+struct Bool : Argument
+{
+    5: nullable<bool> Value;
+}
+
+struct Integer : Argument
+{
+    5: nullable<int64> Value;
+}
+
+struct Double : Argument
+{
+    5: nullable<double> Value;
+}
+
+enum PauliValue
+{
+    PauliI,
+    PauliX,
+    PauliY,
+    PauliZ
+}
+
+struct Pauli : Argument
+{
+    5: nullable<PauliValue> Value;
+}
+
+struct RangeValue
+{
+    5: int64 Start;
+
+    10: int64 Step;
+
+    15: int64 End;
+}
+
+struct Range : Argument
+{
+    5: nullable<RangeValue> Value;
+}
+
+enum ResultValue
+{
+    Zero,
+    One
+}
+
+struct Result : Argument
+{
+    5: nullable<ResultValue> Value;
+}
+
+struct String : Argument
+{
+    5: nullable<string> Value;
+}
+
+enum ArrayType
+{
+    BoolType,
+    IntegerType,
+    DoubleType,
+    PauliType,
+    RangeType,
+    ResultType
+}
+
+struct Array : Argument
+{
+    5: ArrayType Type = ResultType;
+}
+
+struct BoolArray : Array
+{
+    5: nullable<vector<bool>> Value;
+}
+
+struct IntegerArray : Array
+{
+    5: nullable<vector<int64>> Value;
+}
+
+struct DoubleArray : Array
+{
+    5: nullable<vector<double>> Value;
+}
+
+struct PauliArray : Array
+{
+    5: nullable<vector<PauliValue>> Value;
+}
+
+struct RangeArray : Array
+{
+    5: nullable<vector<RangeValue>> Value;
+}
+
+struct ResultArray : Array
+{
+    5: nullable<vector<ResultValue>> Value;
+}
+
+struct Operation
+{
+    5: string Name;
+
+    10: vector<bonded<Argument>> Arguments;
+}
