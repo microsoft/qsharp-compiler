@@ -3,6 +3,10 @@
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
+open System
+open System.Collections.Generic
+open System.Collections.Immutable
+
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
@@ -14,8 +18,6 @@ open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
-open System.Collections.Generic
-open System.Collections.Immutable
 
 type internal Constraint =
     | Adjointable
@@ -163,13 +165,12 @@ module private Inference =
                  (showType resolvedType)
 
     let letters =
-        Seq.initInfinite (fun i -> i + 1)
+        Seq.initInfinite ((+) 1)
         |> Seq.collect (fun length ->
             seq { 'a' .. 'z' }
             |> Seq.map string
             |> Seq.replicate length
-            |> Seq.reduce (fun xs ys -> Seq.allPairs xs ys |> Seq.map (fun (x, y) -> x + y)))
-        |> Seq.cache
+            |> Seq.reduce (fun strings -> Seq.allPairs strings >> Seq.map String.Concat))
 
     let typeParameters resolvedType =
         let mutable parameters = Set.empty
@@ -202,9 +203,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     let rememberErrors types diagnostics =
         if types |> Seq.contains (ResolvedType.create Null InvalidType) || List.isEmpty diagnostics |> not then
             for param in types |> Seq.fold (fun params' -> typeParameters >> Set.union params') Set.empty do
-                variables.TryGetValue param
-                |> tryOption
-                |> Option.iter (fun variable -> variables.[param] <- { variable with HasError = true })
+                match variables.TryGetValue param |> tryOption with
+                | Some variable -> variables.[param] <- { variable with HasError = true }
+                | None -> ()
 
         diagnostics
 
