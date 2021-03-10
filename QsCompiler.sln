@@ -53,7 +53,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentationGenerator", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QirGeneration", "src\QsCompiler\QirGeneration\QirGeneration.csproj", "{7FF41827-C922-448A-A241-D3C28ADD14E1}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Llvm.NET", "src\QsCompiler\Llvm.NET\Llvm.NET.csproj", "{36FB68CC-533A-40D4-A2E9-597A35C6912C}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LlvmBindings", "src\QsCompiler\LlvmBindings\LlvmBindings.csproj", "{36FB68CC-533A-40D4-A2E9-597A35C6912C}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

@@ -9,7 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="System.Memory" Version="4.5.4" />
-    <ProjectReference Include="..\Llvm.NET\Llvm.NET.csproj" />
+    <ProjectReference Include="..\LlvmBindings\LlvmBindings.csproj" />
   </ItemGroup>
 
   <ItemGroup>
