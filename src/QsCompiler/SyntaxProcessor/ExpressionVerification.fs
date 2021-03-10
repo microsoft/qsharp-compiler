@@ -164,7 +164,7 @@ let private VerifyValueArray (inference: InferenceContext) range exprs =
         |> Seq.distinct
 
     if Seq.isEmpty types && Seq.isEmpty exprs then
-        inference.Fresh range, Seq.toList diagnostics
+        inference.Fresh range |> ArrayType |> ResolvedType.create (Value range), Seq.toList diagnostics
     elif Seq.isEmpty types then
         ResolvedType.create Null InvalidType |> ArrayType |> ResolvedType.create (Value range), Seq.toList diagnostics
     else
