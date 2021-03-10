@@ -673,7 +673,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
                 this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
-
             }
             else
             {
