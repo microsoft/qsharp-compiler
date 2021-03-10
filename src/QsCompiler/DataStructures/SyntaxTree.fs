@@ -343,61 +343,88 @@ type CallableInformation =
 /// A Q# resolved type by construction never contains any arity-0 or arity-1 tuple types.
 /// User defined types are represented as UserDefinedTypes.
 /// Type parameters are represented as QsTypeParameters containing their origin and name.
+[<CustomEquality>]
+[<NoComparison>]
 type ResolvedType =
     private
         {
             // the private constructor enforces that the guarantees given for any instance of ResolvedType
             // -> the static member New replaces the record constructor
-            _TypeKind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+            kind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+
+            range: Range QsNullable
         }
+
         interface ITuple
 
         /// Contains the fully resolved Q# type,
         /// where type parameters are represented as QsTypeParameters containing their origin (the namespace and the callable they belong to) and their name,
         /// and user defined types are resolved to their fully qualified name.
         /// By construction never contains any arity-0 or arity-1 tuple types.
-        member this.Resolution = this._TypeKind
+        member this.Resolution = this.kind
 
-        /// <summary>
-        /// Builds a ResolvedType based on a compatible Q# type kind, and replaces the (inaccessible) record constructor.
-        /// Replaces an arity-1 tuple by its item type.
-        /// </summary>
-        /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
-        static member New kind = ResolvedType.New(false, kind)
+        member this.Range = this.range
 
-        static member internal New(keepRangeInfo,
-                                   kind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>) =
-            match kind with
-            | QsTypeKind.TupleType ts when ts.Length = 0 ->
-                ArgumentException "tuple type requires at least one item" |> raise
-            | QsTypeKind.TupleType ts when ts.Length = 1 -> ts.[0]
-            | QsTypeKind.UserDefinedType udt when not keepRangeInfo ->
-                { _TypeKind = UserDefinedType { udt with Range = Null } }
-            | QsTypeKind.TypeParameter tp when not keepRangeInfo ->
-                { _TypeKind = TypeParameter { tp with Range = Null } }
-            | _ -> { _TypeKind = kind }
+        override this.Equals that =
+            match that with
+            | :? ResolvedType as that ->
+                match this.kind, that.kind with
+                | UserDefinedType udt1, UserDefinedType udt2 -> udt1.Namespace = udt2.Namespace && udt1.Name = udt2.Name
+                | TypeParameter param1, TypeParameter param2 ->
+                    param1.Origin = param2.Origin && param1.TypeName = param2.TypeName
+                | _ -> this.kind = that.kind
+            | _ -> false
 
-        /// Given a map that for a type parameter returns the corresponding resolved type it is supposed to be replaced with,
-        /// replaces the type parameters in the given type with their resolutions.
-        static member ResolveTypeParameters (resolutions: ImmutableDictionary<_, _>) (t: ResolvedType) =
-            let inner = ResolvedType.ResolveTypeParameters resolutions
+        override this.GetHashCode() = hash this.kind
 
-            if resolutions.IsEmpty then
-                t
-            else
-                match t.Resolution with
-                | QsTypeKind.TypeParameter tp ->
-                    match resolutions.TryGetValue((tp.Origin, tp.TypeName)) with
-                    | true, res -> res
-                    | false, _ -> t
-                | QsTypeKind.TupleType ts ->
-                    ts |> Seq.map inner |> fun x -> x.ToImmutableArray() |> TupleType |> ResolvedType.New
-                | QsTypeKind.ArrayType b -> inner b |> ArrayType |> ResolvedType.New
-                | QsTypeKind.Function (it, ot) -> (inner it, inner ot) |> QsTypeKind.Function |> ResolvedType.New
-                | QsTypeKind.Operation ((it, ot), fList) ->
-                    ((inner it, inner ot), fList) |> QsTypeKind.Operation |> ResolvedType.New
-                | _ -> t
+module ResolvedType =
+    let private normalizeTuple =
+        function
+        | TupleType items when items.IsEmpty -> ArgumentException "Tuple is empty." |> raise
+        | TupleType items when items.Length = 1 -> (items.[0]: ResolvedType).Resolution
+        | tuple -> tuple
 
+    let create range kind =
+        { kind = normalizeTuple kind; range = range }
+
+    let withKind kind resolvedType =
+        { resolvedType with kind = normalizeTuple kind }
+
+    let withRange range resolvedType = { resolvedType with range = range }
+
+type ResolvedType with
+    static member internal New(keepRangeInfo, kind: QsTypeKind<_, UserDefinedType, QsTypeParameter, CallableInformation>) =
+        match kind with
+        | QsTypeKind.UserDefinedType udt when not keepRangeInfo -> UserDefinedType { udt with Range = Null }
+        | QsTypeKind.TypeParameter param when not keepRangeInfo -> TypeParameter { param with Range = Null }
+        | _ -> kind
+        |> ResolvedType.create Null
+
+    /// <summary>
+    /// Builds a ResolvedType based on a compatible Q# type kind, and replaces the (inaccessible) record constructor.
+    /// Replaces an arity-1 tuple by its item type.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
+    static member New kind = ResolvedType.New(false, kind)
+
+    /// Given a map that for a type parameter returns the corresponding resolved type it is supposed to be replaced with,
+    /// replaces the type parameters in the given type with their resolutions.
+    static member ResolveTypeParameters (resolutions: ImmutableDictionary<_, _>) (t: ResolvedType) =
+        let inner = ResolvedType.ResolveTypeParameters resolutions
+
+        match t.Resolution with
+        | _ when resolutions.IsEmpty -> t
+        | QsTypeKind.TypeParameter tp ->
+            match resolutions.TryGetValue((tp.Origin, tp.TypeName)) with
+            | true, res -> res
+            | false, _ -> t
+        | QsTypeKind.TupleType ts ->
+            t |> ResolvedType.withKind (ts |> Seq.map inner |> ImmutableArray.CreateRange |> TupleType)
+        | QsTypeKind.ArrayType b -> t |> ResolvedType.withKind (inner b |> ArrayType)
+        | QsTypeKind.Function (it, ot) -> t |> ResolvedType.withKind (QsTypeKind.Function(inner it, inner ot))
+        | QsTypeKind.Operation ((it, ot), fList) ->
+            t |> ResolvedType.withKind (QsTypeKind.Operation((inner it, inner ot), fList))
+        | _ -> t
 
 /// used to represent information on typed expressions generated and/or tracked during compilation
 type InferredExpressionInformation =
@@ -482,10 +509,13 @@ type ResolvedInitializer =
         /// </summary>
         /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
         static member New(kind: QsInitializerKind<ResolvedInitializer, TypedExpression>) =
-            let qArrayT = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
+            let qArrayT = Qubit |> ResolvedType.create Null |> ArrayType |> ResolvedType.create Null
 
-            let buildTupleType is =
-                TupleType((is |> Seq.map (fun x -> x._ResolvedType)).ToImmutableArray()) |> ResolvedType.New
+            let buildTupleType =
+                Seq.map (fun x -> x._ResolvedType)
+                >> ImmutableArray.CreateRange
+                >> TupleType
+                >> ResolvedType.create Null
 
             match kind with
             | QsInitializerKind.QubitTupleAllocation is when is.Length = 0 ->
@@ -495,9 +525,9 @@ type ResolvedInitializer =
                 { _InitializerKind = kind; _ResolvedType = buildTupleType is }
             | QsInitializerKind.QubitRegisterAllocation _ -> { _InitializerKind = kind; _ResolvedType = qArrayT }
             | QsInitializerKind.SingleQubitAllocation ->
-                { _InitializerKind = kind; _ResolvedType = Qubit |> ResolvedType.New }
+                { _InitializerKind = kind; _ResolvedType = ResolvedType.create Null Qubit }
             | QsInitializerKind.InvalidInitializer ->
-                { _InitializerKind = kind; _ResolvedType = InvalidType |> ResolvedType.New }
+                { _InitializerKind = kind; _ResolvedType = ResolvedType.create Null InvalidType }
 
 
 type LocalVariableDeclaration<'Name> =

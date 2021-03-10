@@ -68,20 +68,6 @@ module private Inference =
         |> QsNullable.defaultValue ImmutableHashSet.Empty
         |> fun functors -> functors.Contains functor
 
-    let rec (=~) (lhs: ResolvedType) (rhs: ResolvedType) =
-        match lhs.Resolution, rhs.Resolution with
-        | UserDefinedType udt1, UserDefinedType udt2 -> udt1.Namespace = udt2.Namespace && udt1.Name = udt2.Name
-        | TypeParameter param1, TypeParameter param2 ->
-            param1.Origin = param2.Origin && param1.TypeName = param2.TypeName
-        | ArrayType item1, ArrayType item2 -> item1 =~ item2
-        | TupleType items1, TupleType items2 -> items1.Length = items2.Length && Seq.forall2 (=~) items1 items2
-        | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
-            in1 =~ in2 && out1 =~ out2 && characteristicsEqual info1 info2
-        | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) -> in1 =~ in2 && out1 =~ out2
-        | _ -> lhs = rhs
-
-    let (!=~) lhs rhs = not (lhs =~ rhs)
-
     let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
     let showFunctor =
@@ -145,7 +131,7 @@ module private Inference =
             QsTypeKind.Function(input, output) |> ResolvedType.New, inDiagnostics @ outDiagnostics
         | InvalidType, _
         | _, InvalidType -> ResolvedType.New InvalidType, []
-        | _ when lhs =~ rhs -> lhs, []
+        | _ when lhs = rhs -> lhs, []
         | _ ->
             let error = ErrorCode.NoCommonBaseType, [ showType lhs; showType rhs ]
             ResolvedType.New InvalidType, [ QsCompilerDiagnostic.Error error Range.Zero ]
@@ -211,7 +197,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             }
 
         variables.Add(param, variable)
-        TypeParameter param |> ResolvedType.New
+        TypeParameter param |> ResolvedType.create (Value source)
 
     member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =
         context.UnifyByOrdering(context.Resolve expected, Supertype, context.Resolve actual)
@@ -240,24 +226,28 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             variables.TryGetValue param
             |> tryOption
             |> Option.bind (fun variable -> variable.Substitution)
-            |> Option.map context.Resolve
+            |> Option.map (context.Resolve >> ResolvedType.withRange resolvedType.Range)
             |> Option.defaultValue resolvedType
-        | ArrayType array -> context.Resolve array |> ArrayType |> ResolvedType.New
+        | ArrayType array -> resolvedType |> ResolvedType.withKind (context.Resolve array |> ArrayType)
         | TupleType tuple ->
-            tuple |> Seq.map context.Resolve |> ImmutableArray.CreateRange |> TupleType |> ResolvedType.New
+            resolvedType
+            |> ResolvedType.withKind (tuple |> Seq.map context.Resolve |> ImmutableArray.CreateRange |> TupleType)
         | QsTypeKind.Operation ((inType, outType), info) ->
-            QsTypeKind.Operation((context.Resolve inType, context.Resolve outType), info) |> ResolvedType.New
+            resolvedType
+            |> ResolvedType.withKind (QsTypeKind.Operation((context.Resolve inType, context.Resolve outType), info))
         | QsTypeKind.Function (inType, outType) ->
-            QsTypeKind.Function(context.Resolve inType, context.Resolve outType) |> ResolvedType.New
+            resolvedType
+            |> ResolvedType.withKind (QsTypeKind.Function(context.Resolve inType, context.Resolve outType))
         | _ -> resolvedType
 
     member private context.UnifyByOrdering(expected: ResolvedType, ordering, actual: ResolvedType) =
         let error =
-            QsCompilerDiagnostic.Error (ErrorCode.TypeMismatch, [ showType actual; showType expected ]) Range.Zero
+            QsCompilerDiagnostic.Error
+                (ErrorCode.TypeMismatch, [ showType actual; showType expected ])
+                (actual.Range |> QsNullable.defaultValue Range.Zero)
 
         match expected.Resolution, actual.Resolution with
-        | _ when ordering = Subtype -> context.UnifyByOrdering(expected, Supertype, actual)
-        | _ when expected =~ actual -> []
+        | _ when expected = actual -> []
         | TypeParameter param, _ when variables.ContainsKey param ->
             bind param actual
             context.ApplyConstraints(param, actual)
@@ -272,9 +262,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             |> Seq.toList
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let errors =
-                if ordering = Equal && not (characteristicsEqual info1 info2) || not (isSubset info1 info2)
-                then [ error ]
-                else []
+                if ordering = Equal && not (characteristicsEqual info1 info2)
+                   || ordering = Supertype && not (isSubset info1 info2)
+                   || ordering = Subtype && not (isSubset info2 info1) then
+                    [ error ]
+                else
+                    []
 
             errors
             @ context.UnifyByOrdering(in2, ordering, in1)
@@ -293,15 +286,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> [ error ]
 
     member private context.ApplyConstraint(typeConstraint, resolvedType: ResolvedType) =
+        let range = resolvedType.Range |> QsNullable.defaultValue Range.Zero
+
         match typeConstraint with
         | _ when resolvedType.Resolution = InvalidType -> []
         | Adjointable ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, info) when hasFunctor Adjoint info -> []
-            | _ ->
-                [
-                    QsCompilerDiagnostic.Error (ErrorCode.InvalidAdjointApplication, []) Range.Zero
-                ]
+            | _ -> [ QsCompilerDiagnostic.Error (ErrorCode.InvalidAdjointApplication, []) range ]
         | Callable (input, output) ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation _ ->
@@ -311,7 +303,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 context.Unify(QsTypeKind.Function(input, output) |> ResolvedType.New, resolvedType)
             | _ ->
                 let error = ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]
-                [ QsCompilerDiagnostic.Error error Range.Zero ]
+                [ QsCompilerDiagnostic.Error error range ]
         | CanGenerateFunctors functors ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, info) ->
@@ -325,7 +317,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                         ErrorCode.MissingFunctorForAutoGeneration,
                         [ missing |> Seq.map showFunctor |> String.concat "," ]
 
-                    [ QsCompilerDiagnostic.Error error Range.Zero ]
+                    [ QsCompilerDiagnostic.Error error range ]
             | _ -> []
         | Controllable controlled ->
             let error = QsCompilerDiagnostic.Error (ErrorCode.InvalidControlledApplication, []) Range.Zero
@@ -360,14 +352,14 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
             | _ ->
                 let error = ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]
-                [ QsCompilerDiagnostic.Error error Range.Zero ]
+                [ QsCompilerDiagnostic.Error error range ]
         | Indexed (index, item) ->
             match resolvedType.Resolution, (context.Resolve index).Resolution with
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
             | _ ->
                 let error = ErrorCode.ItemAccessForNonArray, [ showType resolvedType ]
-                [ QsCompilerDiagnostic.Error error Range.Zero ]
+                [ QsCompilerDiagnostic.Error error range ]
         | Integral ->
             if resolvedType.Resolution = Int || resolvedType.Resolution = BigInt
             then []
@@ -397,6 +389,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let diagnostics =
                 variable.Constraints
                 |> List.collect (fun typeConstraint -> context.ApplyConstraint(typeConstraint, resolvedType))
+
             variables.[param] <- { variable with Constraints = [] }
             diagnostics
         | None -> []
