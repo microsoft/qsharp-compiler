@@ -105,31 +105,14 @@ type LocalVerificationTests() =
         this.Expect "VariableDeclaration6" []
         this.Expect "VariableDeclaration7" []
         this.Expect "VariableDeclaration8" []
-
-        this.Expect
-            "VariableDeclaration9"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
-        this.Expect
-            "VariableDeclaration10"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-                Error ErrorCode.AmbiguousTypeParameterResolution
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
+        this.Expect "VariableDeclaration9" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "VariableDeclaration10" [ Error ErrorCode.TypeMismatch ]
         this.Expect "VariableDeclaration11" []
 
         this.Expect
             "VariableDeclaration12"
             [
                 Error ErrorCode.ExpectingCallableExpr
-                Error ErrorCode.AmbiguousTypeParameterResolution
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
 

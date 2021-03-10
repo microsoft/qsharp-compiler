@@ -55,14 +55,7 @@ type TypeCheckingTests() =
     member this.Variance() =
         this.Expect "Variance1" []
         this.Expect "Variance2" [ Error ErrorCode.TypeMismatch ]
-
-        this.Expect
-            "Variance3"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
+        this.Expect "Variance3" [ Error ErrorCode.TypeMismatch ]
         this.Expect "Variance4" [ Error ErrorCode.TypeMismatch ]
         this.Expect "Variance5" [ Error ErrorCode.TypeMismatch ]
         this.Expect "Variance6" [ Error ErrorCode.TypeMismatch ]
@@ -96,47 +89,12 @@ type TypeCheckingTests() =
                 Error ErrorCode.AmbiguousTypeParameterResolution
             ]
 
-        this.Expect
-            "Variance9"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
-        this.Expect
-            "Variance10"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
-        this.Expect
-            "Variance11"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
-        this.Expect
-            "Variance12"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
-        this.Expect
-            "Variance13"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
-        this.Expect
-            "Variance14"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
+        this.Expect "Variance9" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance10" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance11" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance12" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance13" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance14" [ Error ErrorCode.TypeMismatch ]
 
 
     [<Fact>]
@@ -239,15 +197,7 @@ type TypeCheckingTests() =
         this.Expect "MatchArgument6" []
         this.Expect "MatchArgument7" []
         this.Expect "MatchArgument8" []
-
-        // TODO: Ambiguous type error is confusing.
-        this.Expect
-            "MatchArgument9"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
+        this.Expect "MatchArgument9" [ Error ErrorCode.TypeMismatch ]
         this.Expect "MatchArgument10" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "MatchArgument11" []
         this.Expect "MatchArgument12" []
@@ -257,28 +207,13 @@ type TypeCheckingTests() =
         this.Expect "MatchArgument16" []
         this.Expect "MatchArgument17" []
         this.Expect "MatchArgument18" []
-
-        // TODO: AmbiguousTypeVariable errors are confusing.
-        this.Expect
-            "MatchArgument19"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
+        this.Expect "MatchArgument19" [ Error ErrorCode.TypeMismatch ]
 
 
     [<Fact>]
     member this.``Partial application``() =
         this.Expect "PartialApplication1" []
-
-        this.Expect
-            "PartialApplication2"
-            [
-                Error ErrorCode.TypeMismatch
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
+        this.Expect "PartialApplication2" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication3" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication4" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication5" [ Error ErrorCode.TypeMismatch ]

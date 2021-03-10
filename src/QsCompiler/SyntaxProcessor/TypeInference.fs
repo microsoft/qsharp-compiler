@@ -31,10 +31,27 @@ type internal Constraint =
     | Semigroup
     | Wrapped of item: ResolvedType
 
+module internal Constraint =
+    let types =
+        function
+        | Adjointable -> []
+        | Callable (input, output) -> [ input; output ]
+        | CanGenerateFunctors _ -> []
+        | Controllable controlled -> [ controlled ]
+        | Equatable -> []
+        | HasPartialApplication (missing, result) -> [ missing; result ]
+        | Indexed (index, item) -> [ index; item ]
+        | Integral -> []
+        | Iterable item -> [ item ]
+        | Numeric -> []
+        | Semigroup -> []
+        | Wrapped item -> [ item ]
+
 type private Variable =
     {
         Substitution: ResolvedType option
         Constraints: Constraint list
+        HasError: bool
         Source: Range
     }
 
@@ -154,6 +171,18 @@ module private Inference =
             |> Seq.reduce (fun xs ys -> Seq.allPairs xs ys |> Seq.map (fun (x, y) -> x + y)))
         |> Seq.cache
 
+    let typeParameters resolvedType =
+        let mutable parameters = Set.empty
+
+        { new TypeTransformation() with
+            member this.OnTypeParameter param =
+                parameters <- parameters |> Set.add param
+                TypeParameter param
+        }.OnType resolvedType
+        |> ignore
+
+        parameters
+
 open Inference
 
 type InferenceContext(symbolTracker: SymbolTracker) =
@@ -170,10 +199,19 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             failwith "The type parameter is already bound to a different type."
         | _ -> variables.[param] <- { variable with Substitution = Some substitution }
 
+    let rememberErrors types diagnostics =
+        if List.isEmpty diagnostics |> not then
+            for param in types |> Seq.fold (fun params' -> typeParameters >> Set.union params') Set.empty do
+                variables.TryGetValue param
+                |> tryOption
+                |> Option.iter (fun variable -> variables.[param] <- { variable with HasError = true })
+
+        diagnostics
+
     member context.AmbiguousDiagnostics =
         [
             for variable in variables do
-                if Option.isNone variable.Value.Substitution
+                if not variable.Value.HasError && Option.isNone variable.Value.Substitution
                 then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, []) variable.Value.Source
         ]
 
@@ -193,6 +231,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             {
                 Substitution = None
                 Constraints = []
+                HasError = false
                 Source = statementPosition + source
             }
 
@@ -202,11 +241,15 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =
         context.UnifyByOrdering(context.Resolve expected, Supertype, context.Resolve actual)
         |> List.map (withOuterTypes (context.Resolve expected) (context.Resolve actual))
+        |> rememberErrors [ expected; actual ]
 
     member internal context.Intersect(left: ResolvedType, right: ResolvedType) =
         context.UnifyByOrdering(context.Resolve left, Equal, context.Resolve right) |> ignore
-        let intersection, diagnostics = combine Supertype (context.Resolve left) (context.Resolve right)
-        intersection, diagnostics |> List.map (withOuterTypes (context.Resolve left) (context.Resolve right))
+
+        let left = context.Resolve left
+        let right = context.Resolve right
+        let intersection, diagnostics = combine Supertype left right
+        intersection, diagnostics |> List.map (withOuterTypes left right) |> rememberErrors [ left; right ]
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
         let resolvedType = context.Resolve resolvedType
@@ -219,6 +262,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 []
             | None -> context.ApplyConstraint(typeConstraint, resolvedType)
         | _ -> context.ApplyConstraint(typeConstraint, resolvedType)
+        |> rememberErrors (resolvedType :: Constraint.types typeConstraint)
 
     member internal context.Resolve(resolvedType: ResolvedType) =
         match resolvedType.Resolution with
