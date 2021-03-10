@@ -674,7 +674,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 value = this.SharedState.Values.FromArray(slice, elementType);
                 this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
 
-                // Since we are effectively creating a new array and populating it with the times from ...
             }
             else
             {
