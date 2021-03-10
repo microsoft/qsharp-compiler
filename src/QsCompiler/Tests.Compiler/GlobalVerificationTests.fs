@@ -33,25 +33,9 @@ type GlobalVerificationTests() =
         this.Expect "LocalNamespaceShortNames2" []
         this.Expect "LocalNamespaceShortNames3" [ Error ErrorCode.UnknownType ]
         this.Expect "LocalNamespaceShortNames4" [ Error ErrorCode.UnknownType ]
-
-        // TODO: AmbiguousTypeVariable error is confusing.
-        this.Expect
-            "LocalNamespaceShortNames5"
-            [
-                Error ErrorCode.UnknownIdentifier
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
+        this.Expect "LocalNamespaceShortNames5" [ Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames6" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
-
-        // TODO: AmbiguousTypeVariable error is confusing.
-        this.Expect
-            "LocalNamespaceShortNames7"
-            [
-                Error ErrorCode.UnknownIdentifier
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
+        this.Expect "LocalNamespaceShortNames7" [ Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames8" []
         this.Expect "LocalNamespaceShortNames9" []
         this.Expect "LocalNamespaceShortNames10" []

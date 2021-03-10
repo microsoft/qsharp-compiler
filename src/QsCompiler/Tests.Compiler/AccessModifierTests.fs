@@ -29,14 +29,7 @@ type AccessModifierTests() =
     member this.Types() =
         this.Expect "TypeUseOK" []
         this.Expect "TypeReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleType ]
-
-        // TODO: Ambiguous type error is confusing here.
-        this.Expect
-            "TypeConstructorReferenceInternalInaccessible"
-            [
-                Error ErrorCode.InaccessibleCallable
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
+        this.Expect "TypeConstructorReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleCallable ]
 
     [<Fact>]
     member this.``Callable signatures``() =

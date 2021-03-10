@@ -200,7 +200,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> variables.[param] <- { variable with Substitution = Some substitution }
 
     let rememberErrors types diagnostics =
-        if List.isEmpty diagnostics |> not then
+        if types |> Seq.contains (ResolvedType.create Null InvalidType) || List.isEmpty diagnostics |> not then
             for param in types |> Seq.fold (fun params' -> typeParameters >> Set.union params') Set.empty do
                 variables.TryGetValue param
                 |> tryOption
