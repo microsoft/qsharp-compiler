@@ -23,6 +23,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
+open Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 
 
 type LinkingTests(output: ITestOutputHelper) =
@@ -123,7 +124,8 @@ type LinkingTests(output: ITestOutputHelper) =
 
     member private this.CompileMonomorphization input =
         let compilationDataStructures = this.BuildContent(compilationManager, input)
-        let monomorphicCompilation = Monomorphize.Apply compilationDataStructures.BuiltCompilation
+        let trimmedCompilation = TrimSyntaxTree.Apply (compilationDataStructures.BuiltCompilation, true)
+        let monomorphicCompilation = Monomorphize.NewApply trimmedCompilation
 
         Assert.NotNull monomorphicCompilation
         ValidateMonomorphization.Apply monomorphicCompilation

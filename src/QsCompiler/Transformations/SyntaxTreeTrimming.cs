@@ -24,14 +24,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
         {
             public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
             {
-                var nodes = new CallGraph(compilation, true).Nodes.Select(node => node.CallableName).ToImmutableHashSet();
+                var callablesToKeep = new CallGraph(compilation, true).Nodes.Select(node => node.CallableName).ToImmutableHashSet();
 
                 // ToDo: convert to using ternary operator, when target-type
                 // conditional expressions are supported in C#
-                Func<QsNamespaceElement, bool> filter = elem => Filter(elem, nodes);
+                Func<QsNamespaceElement, bool> filter = elem => Filter(elem, callablesToKeep);
                 if (keepAllIntrinsics)
                 {
-                    filter = elem => FilterWithIntrinsics(elem, nodes);
+                    filter = elem => FilterWithIntrinsics(elem, callablesToKeep);
                 }
 
                 var transformed = new TrimTree(filter).OnCompilation(compilation);
