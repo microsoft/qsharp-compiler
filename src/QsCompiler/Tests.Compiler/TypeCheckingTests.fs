@@ -213,13 +213,21 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.``Partial application``() =
         this.Expect "PartialApplication1" []
-        this.Expect "PartialApplication2" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication2" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication3" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication4" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication5" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication6" []
-        this.Expect "PartialApplication7" [ Error ErrorCode.TypeMismatch ]
-        this.Expect "PartialApplication8" [ Error ErrorCode.TypeMismatch ]
+
+        this.Expect
+            "PartialApplication7"
+            [
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
+        this.Expect "PartialApplication8" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication9" []
         this.Expect "PartialApplication10" []
         this.Expect "PartialApplication11" []
@@ -238,14 +246,38 @@ type TypeCheckingTests() =
 
         this.Expect
             "PartialApplication24"
-            [ Error ErrorCode.InvalidControlledApplication; Error ErrorCode.TypeMismatch ]
+            [
+                Error ErrorCode.InvalidControlledApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
 
         this.Expect
             "PartialApplication25"
-            [ Error ErrorCode.InvalidControlledApplication; Error ErrorCode.TypeMismatch ]
+            [
+                Error ErrorCode.InvalidControlledApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
 
-        this.Expect "PartialApplication26" [ Error ErrorCode.InvalidAdjointApplication; Error ErrorCode.TypeMismatch ]
-        this.Expect "PartialApplication27" [ Error ErrorCode.InvalidAdjointApplication; Error ErrorCode.TypeMismatch ]
+        this.Expect
+            "PartialApplication26"
+            [
+                Error ErrorCode.InvalidAdjointApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
+        this.Expect
+            "PartialApplication27"
+            [
+                Error ErrorCode.InvalidAdjointApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
         this.Expect "PartialApplication28" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "PartialApplication29" []
         this.Expect "PartialApplication30" []
