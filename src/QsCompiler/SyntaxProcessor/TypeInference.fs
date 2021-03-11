@@ -351,8 +351,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | QsTypeKind.Function _ ->
                 context.Unify(QsTypeKind.Function(input, output) |> ResolvedType.New, resolvedType)
             | _ ->
-                let error = ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]
-                [ QsCompilerDiagnostic.Error error range ]
+                [
+                    QsCompilerDiagnostic.Error (ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
+                ]
         | CanGenerateFunctors functors ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, info) ->
@@ -400,15 +401,24 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | QsTypeKind.Operation ((_, output), info) ->
                 context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
             | _ ->
-                let error = ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]
-                [ QsCompilerDiagnostic.Error error range ]
+                [
+                    QsCompilerDiagnostic.Error (ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
+                ]
         | Indexed (index, item) ->
-            match resolvedType.Resolution, (context.Resolve index).Resolution with
+            let index = context.Resolve index
+
+            match resolvedType.Resolution, index.Resolution with
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
+            | ArrayType _, _ ->
+                let indexRange = index.Range |> QsNullable.defaultValue Range.Zero
+                [
+                    QsCompilerDiagnostic.Error (ErrorCode.InvalidArrayItemIndex, [ showType index ]) indexRange
+                ]
             | _ ->
-                let error = ErrorCode.ItemAccessForNonArray, [ showType resolvedType ]
-                [ QsCompilerDiagnostic.Error error range ]
+                [
+                    QsCompilerDiagnostic.Error (ErrorCode.ItemAccessForNonArray, [ showType resolvedType ]) range
+                ]
         | Integral ->
             if resolvedType.Resolution = Int || resolvedType.Resolution = BigInt
             then []
