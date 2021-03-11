@@ -119,6 +119,8 @@ type QsLocation =
 
 
 /// used to represent the use of a type parameter within a fully resolved Q# type
+[<CustomEquality>]
+[<CustomComparison>]
 type QsTypeParameter =
     // TODO: origin needs adapting if we ever allow to declare type parameters on specializations
     {
@@ -131,8 +133,22 @@ type QsTypeParameter =
         Range: QsNullable<Range>
     }
 
+    interface IComparable with
+        member param1.CompareTo param2 =
+            match param2 with
+            | :? QsTypeParameter as param2 -> compare (param1.Origin, param1.TypeName) (param2.Origin, param2.TypeName)
+            | _ -> ArgumentException "Types are different." |> raise
+
+    override param1.Equals param2 =
+        match param2 with
+        | :? QsTypeParameter as param2 -> param1.Origin = param2.Origin && param1.TypeName = param2.TypeName
+        | _ -> false
+
+    override param.GetHashCode() = hash (param.Origin, param.TypeName)
 
 /// used to represent the use of a user defined type within a fully resolved Q# type
+[<CustomEquality>]
+[<CustomComparison>]
 type UserDefinedType =
     {
         /// the name of the namespace in which the type is declared
@@ -144,6 +160,18 @@ type UserDefinedType =
         Range: QsNullable<Range>
     }
 
+    interface IComparable with
+        member udt1.CompareTo udt2 =
+            match udt2 with
+            | :? UserDefinedType as udt2 -> compare (udt1.Namespace, udt1.Name) (udt2.Namespace, udt2.Name)
+            | _ -> ArgumentException "Types are different." |> raise
+
+    override udt1.Equals udt2 =
+        match udt2 with
+        | :? UserDefinedType as udt2 -> udt1.Namespace = udt2.Namespace && udt1.Name = udt2.Name
+        | _ -> false
+
+    override udt.GetHashCode() = hash (udt.Namespace, udt.Name)
 
 /// Fully resolved operation characteristics used to describe the properties of a Q# callable.
 /// A resolved characteristic expression by construction never contains an empty or invalid set as inner expressions,
@@ -344,7 +372,7 @@ type CallableInformation =
 /// User defined types are represented as UserDefinedTypes.
 /// Type parameters are represented as QsTypeParameters containing their origin and name.
 [<CustomEquality>]
-[<NoComparison>]
+[<CustomComparison>]
 type ResolvedType =
     private
         {
@@ -357,6 +385,19 @@ type ResolvedType =
 
         interface ITuple
 
+        interface IComparable with
+            member this.CompareTo that =
+                match that with
+                | :? ResolvedType as that -> compare this.kind that.kind
+                | _ -> ArgumentException "Types are different." |> raise
+
+        override this.Equals that =
+            match that with
+            | :? ResolvedType as that -> this.kind = that.kind
+            | _ -> false
+
+        override this.GetHashCode() = hash this.kind
+
         /// Contains the fully resolved Q# type,
         /// where type parameters are represented as QsTypeParameters containing their origin (the namespace and the callable they belong to) and their name,
         /// and user defined types are resolved to their fully qualified name.
@@ -364,18 +405,6 @@ type ResolvedType =
         member this.Resolution = this.kind
 
         member this.Range = this.range
-
-        override this.Equals that =
-            match that with
-            | :? ResolvedType as that ->
-                match this.kind, that.kind with
-                | UserDefinedType udt1, UserDefinedType udt2 -> udt1.Namespace = udt2.Namespace && udt1.Name = udt2.Name
-                | TypeParameter param1, TypeParameter param2 ->
-                    param1.Origin = param2.Origin && param1.TypeName = param2.TypeName
-                | _ -> this.kind = that.kind
-            | _ -> false
-
-        override this.GetHashCode() = hash this.kind
 
 module ResolvedType =
     let private normalizeTuple =
