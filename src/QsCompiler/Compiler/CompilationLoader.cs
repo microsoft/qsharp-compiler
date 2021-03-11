@@ -539,7 +539,7 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
 
-            if (!this.config.SkipSyntaxTreeTrimming2)
+            if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming2)
             {
                 var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming2)));
