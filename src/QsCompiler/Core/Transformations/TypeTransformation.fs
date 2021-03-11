@@ -144,5 +144,5 @@ type TypeTransformationBase(options: TransformationOptions) =
                 | ExpressionType.Pauli -> this.OnPauli()
                 | ExpressionType.Range -> this.OnRange()
 
-            let ResolvedType t = ResolvedType.New(true, t)
-            ResolvedType |> Node.BuildOr t transformed
+            let range = this.OnRangeInformation t.Range
+            Node.BuildOr t transformed (ResolvedType.create range)

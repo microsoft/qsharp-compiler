@@ -12,6 +12,7 @@ open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 /// Used to represent all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
 /// Specifically, the tracked properties are pushed and popped for each scope.
@@ -47,6 +48,14 @@ type private TrackedScope =
 
             requiredSupport [] functors
 
+module private SymbolTracker =
+    let withRanges range =
+        { new TypeTransformation() with
+            override this.OnRangeInformation _ = range
+        }
+            .OnType
+
+open SymbolTracker
 
 /// <summary>
 /// The <see cref="SymbolTracker"/> class does *not* make a copy of the given <see cref="NamespaceManager"/>,
@@ -326,12 +335,12 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 let decl = dict.[sym]
 
                 let properties =
-                    (defaultLoc,
-                     LocalVariable sym,
-                     decl.Type |> ResolvedType.withRange qsSym.Range,
-                     decl.InferredInformation.HasLocalQuantumDependency)
+                    defaultLoc,
+                    LocalVariable sym,
+                    decl.Type |> withRanges qsSym.Range,
+                    decl.InferredInformation.HasLocalQuantumDependency
 
-                properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray<_>.Empty
+                properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray.Empty
             | Null -> globalCallableWithName (None, sym) |> resolveGlobal (None, sym)
 
         match qsSym.Symbol with
