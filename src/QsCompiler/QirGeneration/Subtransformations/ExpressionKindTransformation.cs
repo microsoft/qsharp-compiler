@@ -1874,15 +1874,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     break;
             }
             Value end = this.SharedState.EvaluateSubexpression(rhs).Value;
-
-            Value rangePtr = this.SharedState.Constants.EmptyRange;
-            Value constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Range, rangePtr);
-            constant = this.SharedState.CurrentBuilder.InsertValue(constant, start, 0);
-            constant = this.SharedState.CurrentBuilder.InsertValue(constant, step, 1);
-            constant = this.SharedState.CurrentBuilder.InsertValue(constant, end, 2);
-
-            var exType = this.SharedState.CurrentExpressionType();
-            var value = this.SharedState.Values.From(constant, exType);
+            var value = this.SharedState.CreateRange(start, step, end);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;

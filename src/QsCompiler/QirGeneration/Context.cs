@@ -1047,6 +1047,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #region Iteration
 
+        /// <returns>A range with the given start, step and end.</returns>
+        internal IValue CreateRange(Value start, Value step, Value end)
+        {
+            Value constant = this.CurrentBuilder.Load(this.Types.Range, this.Constants.EmptyRange);
+            constant = this.CurrentBuilder.InsertValue(constant, start, 0u);
+            constant = this.CurrentBuilder.InsertValue(constant, step, 1u);
+            constant = this.CurrentBuilder.InsertValue(constant, end, 2u);
+            return this.Values.From(constant, ResolvedType.New(ResolvedTypeKind.Range));
+        }
+
         /// <summary>
         /// Creates a for-loop that breaks based on a condition.
         /// </summary>

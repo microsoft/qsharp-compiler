@@ -111,9 +111,9 @@ namespace Microsoft.Quantum.QIR
             else
             {
                 var range = this.sharedState.EvaluateSubexpression(rangeEx).Value;
-                startValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 0);
-                stepValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 1);
-                endValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 2);
+                startValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 0u);
+                stepValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 1u);
+                endValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 2u);
             }
             return (startValue, stepValue, endValue);
         }
@@ -201,13 +201,7 @@ namespace Microsoft.Quantum.QIR
                     step,
                     this.sharedState.CurrentBuilder.SDiv(
                         this.sharedState.CurrentBuilder.Sub(end, start), step)));
-            Value reversed = this.sharedState.CurrentBuilder.Load(
-                this.sharedState.Types.Range,
-                this.sharedState.Constants.EmptyRange);
-            reversed = this.sharedState.CurrentBuilder.InsertValue(reversed, newStart, 0u);
-            reversed = this.sharedState.CurrentBuilder.InsertValue(reversed, this.sharedState.CurrentBuilder.Neg(step), 1u);
-            reversed = this.sharedState.CurrentBuilder.InsertValue(reversed, start, 2u);
-            return this.sharedState.Values.From(reversed, Range);
+            return this.sharedState.CreateRange(newStart, this.sharedState.CurrentBuilder.Neg(step), start);
         }
     }
 }
