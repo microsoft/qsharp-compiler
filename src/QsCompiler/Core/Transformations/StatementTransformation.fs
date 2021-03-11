@@ -71,7 +71,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
                 |> Node.BuildOr orig (is |> Seq.map this.OnQubitInitializer |> ImmutableArray.CreateRange)
             | InvalidInitializer -> InvalidInitializer
 
-        ResolvedInitializer.New |> Node.BuildOr init transformed
+        Node.BuildOr init transformed (ResolvedInitializer.create Null)
 
     abstract OnPositionedBlock: QsNullable<TypedExpression>
                                 * QsPositionedBlock

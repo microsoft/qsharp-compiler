@@ -266,12 +266,15 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> rememberErrors (resolvedType :: Constraint.types typeConstraint)
 
     member internal context.Resolve(resolvedType: ResolvedType) =
+        let resolveWithRange type' =
+            let type' = context.Resolve type'
+            type' |> ResolvedType.withRange (type'.Range |> QsNullable.orElse resolvedType.Range)
+
         match resolvedType.Resolution with
         | TypeParameter param ->
-            variables.TryGetValue param
-            |> tryOption
+            tryOption (variables.TryGetValue param)
             |> Option.bind (fun variable -> variable.Substitution)
-            |> Option.map (context.Resolve >> ResolvedType.withRange resolvedType.Range)
+            |> Option.map resolveWithRange
             |> Option.defaultValue resolvedType
         | ArrayType array -> resolvedType |> ResolvedType.withKind (context.Resolve array |> ArrayType)
         | TupleType tuple ->
@@ -300,11 +303,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             bind param expected
             context.ApplyConstraints(param, expected)
         | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(item1, Equal, item2)
-        | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
-            Seq.zip items1 items2
-            |> Seq.collect (fun (item1, item2) ->
-                context.UnifyByOrdering(context.Resolve item1, ordering, context.Resolve item2))
-            |> Seq.toList
+        | TupleType items1, TupleType items2 ->
+            [
+                if items1.Length <> items2.Length then error
+                for item1, item2 in Seq.zip items1 items2 do
+                    yield! context.UnifyByOrdering(context.Resolve item1, ordering, context.Resolve item2)
+            ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let errors =
                 if ordering = Equal && not (characteristicsEqual info1 info2)

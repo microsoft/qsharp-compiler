@@ -745,7 +745,8 @@ type QsExpression with
                 inference.Constrain(callable.ResolvedType, Callable(argType, output)) |> List.iter diagnose
             else
                 // TODO: Better error message.
-                inference.Unify(QsTypeKind.Function(argType, output) |> ResolvedType.create Null, callable.ResolvedType)
+                inference.Unify
+                    (QsTypeKind.Function(argType, output) |> ResolvedType.create callable.Range, callable.ResolvedType)
                 |> List.iter diagnose
 
             let resultType =
