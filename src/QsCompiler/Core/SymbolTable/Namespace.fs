@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.SymbolManagement
 
+#nowarn "44" // AccessModifier is deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -11,7 +13,6 @@ open System.Linq
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Utils
@@ -20,8 +21,8 @@ open Microsoft.Quantum.QsCompiler.Utils
 ///
 /// This class is *not* thread-safe.
 ///
-/// Access modifiers are taken into consideration when resolving symbols. Some methods bypass this (e.g., when returning
-/// a list of all declarations). Individual methods will mention if they adhere to symbol accessibility.
+/// Symbol accessibility is considered when resolving symbols. Some methods bypass this (e.g., when returning a list of
+/// all declarations). Individual methods will mention if they follow accessibility or not.
 type Namespace private (name,
                         parts: IEnumerable<KeyValuePair<string, PartialNamespace>>,
                         CallablesInReferences: ILookup<string, CallableDeclarationHeader>,
@@ -36,24 +37,26 @@ type Namespace private (name,
 
     /// Returns true if the name is available for use in a new declaration.
     let isNameAvailable name =
-        let isAvailableWith declarationsGetter accessibilityGetter sameAssembly =
-            declarationsGetter name
-            |> Seq.exists (fun name -> Namespace.IsDeclarationAccessible(sameAssembly, accessibilityGetter name))
+        let isAvailableWith getDeclaration getAccess proximity =
+            getDeclaration name
+            |> Seq.exists (fun name -> getAccess name |> Access.isAccessibleFrom proximity)
             |> not
 
-        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Modifiers.Access) false
-        && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Modifiers.Access) false
+        isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Access) OtherAssembly
+        && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Access) OtherAssembly
         && Parts.Values.All(fun partial ->
-            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Modifiers.Access)
-                true
-            && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Modifiers.Access) true)
+            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Access)
+                SameAssembly
+            && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Access) SameAssembly)
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
+    // TODO: RELEASE 2021-08: Remove IsDeclarationAccessible.
+    [<Obsolete "Use Access.isAccessibleFrom instead.">]
     static member IsDeclarationAccessible(sameAssembly, access) =
         match access with
         | DefaultAccess -> true
-        | Internal -> sameAssembly
+        | AccessModifier.Internal -> sameAssembly
 
     /// name of the namespace
     member this.Name = name
@@ -93,10 +96,10 @@ type Namespace private (name,
         let discardConflicts getAccess (_, nameGroup) =
             // Only one externally accessible declaration with the same name is allowed.
             let isAccessible header =
-                Namespace.IsDeclarationAccessible(false, getAccess header)
+                getAccess header |> Access.isAccessibleFrom OtherAssembly
 
             if nameGroup |> Seq.filter isAccessible |> Seq.length > 1
-            then nameGroup |> Seq.filter (not << isAccessible)
+            then nameGroup |> Seq.filter (isAccessible >> not)
             else nameGroup
 
         let createLookup getName getAccess headers =
@@ -106,8 +109,8 @@ type Namespace private (name,
             |> Seq.concat
             |> fun headers -> headers.ToLookup(Func<_, _> getName)
 
-        let types = typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Modifiers.Access)
-        let callables = callablesInRefs |> createLookup (fun c -> c.QualifiedName.Name) (fun c -> c.Modifiers.Access)
+        let types = typesInRefs |> createLookup (fun t -> t.QualifiedName.Name) (fun t -> t.Access)
+        let callables = callablesInRefs |> createLookup (fun c -> c.QualifiedName.Name) (fun c -> c.Access)
 
         let specializations =
             specializationsInRefs
@@ -297,7 +300,7 @@ type Namespace private (name,
 
     /// Returns a resolution result for the type with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, a string indicating the redirection if it has been deprecated, and
-    /// its access modifier. Resolution is based on accessibility to source files in this compilation unit.
+    /// its accessibility. Resolution is based on accessibility to source files in this compilation unit.
     ///
     /// Whether the type has been deprecated is determined by checking the associated attributes for an attribute with
     /// the corresponding name. Note that if the type is declared in a source files, the *unresolved* attributes will be
@@ -310,22 +313,18 @@ type Namespace private (name,
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceType (typeHeader: TypeDeclarationHeader) =
-            if Namespace.IsDeclarationAccessible(false, typeHeader.Modifiers.Access) then
-                Found
-                    (typeHeader.Source,
-                     SymbolResolution.TryFindRedirect typeHeader.Attributes,
-                     typeHeader.Modifiers.Access)
-            else
-                Inaccessible
+            if typeHeader.Access |> Access.isAccessibleFrom OtherAssembly
+            then Found(typeHeader.Source, SymbolResolution.TryFindRedirect typeHeader.Attributes, typeHeader.Access)
+            else Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetType tName with
             | true, qsType ->
-                if Namespace.IsDeclarationAccessible(true, qsType.Modifiers.Access) then
+                if qsType.Access |> Access.isAccessibleFrom SameAssembly then
                     Found
                         ({ CodeFile = partial.Source; AssemblyFile = Null },
                          SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
-                         qsType.Modifiers.Access)
+                         qsType.Access)
                 else
                     Inaccessible
             | false, _ -> NotFound
@@ -354,14 +353,14 @@ type Namespace private (name,
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceCallable (callable: CallableDeclarationHeader) =
-            if Namespace.IsDeclarationAccessible(false, callable.Modifiers.Access)
+            if callable.Access |> Access.isAccessibleFrom OtherAssembly
             then Found(callable.Source, SymbolResolution.TryFindRedirect callable.Attributes)
             else Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetCallable cName with
             | true, (_, callable) ->
-                if Namespace.IsDeclarationAccessible(true, callable.Modifiers.Access) then
+                if callable.Access |> Access.isAccessibleFrom SameAssembly then
                     Found
                         ({ CodeFile = partial.Source; AssemblyFile = Null },
                          SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
@@ -501,13 +500,13 @@ type Namespace private (name,
     /// If a type or callable with that name already exists, returns an array of suitable diagnostics.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, modifiers, documentation)
+    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, access, documentation)
                            : QsCompilerDiagnostic [] =
         match Parts.TryGetValue source with
         | true, partial when isNameAvailable tName ->
             TypesDefinedInAllSourcesCache <- null
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddType location (tName, typeTuple, attributes, modifiers, documentation)
+            partial.AddType location (tName, typeTuple, attributes, access, documentation)
             [||]
         | true, _ ->
             match this.TryFindType tName with
@@ -531,12 +530,12 @@ type Namespace private (name,
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
     member this.TryAddCallableDeclaration (source, location)
-                                          ((cName, cRange), (kind, signature), attributes, modifiers, documentation)
+                                          ((cName, cRange), (kind, signature), attributes, access, documentation)
                                           =
         match Parts.TryGetValue source with
         | true, partial when isNameAvailable cName ->
             CallablesDefinedInAllSourcesCache <- null
-            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation)
+            partial.AddCallableDeclaration location (cName, (kind, signature), attributes, access, documentation)
             [||]
         | true, _ ->
             match this.TryFindType cName with
@@ -589,21 +588,25 @@ type Namespace private (name,
                     |> Seq.exactlyOne
 
                 let unitReturn = cDecl.Signature.ReturnType |> unitOrInvalid (fun (t: ResolvedType) -> t.Resolution)
-                unitReturn, cDecl.Signature.TypeParameters.Length
+                unitReturn, cDecl.Signature.TypeParameters.Length, cDecl.Access
             else
                 let _, cDecl = Parts.[declSource.CodeFile].GetCallable cName
                 let unitReturn = cDecl.Defined.ReturnType |> unitOrInvalid (fun (t: QsType) -> t.Type)
-                unitReturn, cDecl.Defined.TypeParameters.Length
+                unitReturn, cDecl.Defined.TypeParameters.Length, cDecl.Access
 
         match Parts.TryGetValue source with
         | true, partial ->
             match this.TryFindCallable cName with
             | Found (declSource, _) ->
+                let qFunctorSupport, nrTypeParams, access = getRelevantDeclInfo declSource
+
                 let AddAndClearCache () =
                     CallablesDefinedInAllSourcesCache <- null
-                    partial.AddCallableSpecialization location kind (cName, generator, attributes, documentation)
-                // verify that the given specializations are indeed compatible with the defined type parameters
-                let qFunctorSupport, nrTypeParams = getRelevantDeclInfo declSource
+
+                    partial.AddCallableSpecialization
+                        location
+                        kind
+                        (cName, generator, attributes, access, documentation)
 
                 let givenNrTypeParams =
                     match generator.TypeArguments with
@@ -611,12 +614,13 @@ type Namespace private (name,
                     | Null -> None
 
                 if givenNrTypeParams.IsSome && givenNrTypeParams.Value <> nrTypeParams then
+                    // verify that the given specializations are indeed compatible with the defined type parameters
                     [|
                         location.Range
                         |> QsCompilerDiagnostic.Error(ErrorCode.TypeSpecializationMismatch, [ nrTypeParams.ToString() ])
                     |]
-                // verify if a unit return value is required for the given specialization kind
                 elif not qFunctorSupport then
+                    // verify if a unit return value is required for the given specialization kind
                     match kind with
                     | QsBody ->
                         AddAndClearCache()

@@ -21,11 +21,11 @@
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
-    <Content Include="..\..\..\examples\QIR\QirCore.qs" Link="TestCases\QirTests\QirCore.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Include="TestCases\QirTests\QirCore.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\..\examples\QIR\QirTarget.qs" Link="TestCases\QirTests\QirTarget.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Include="TestCases\QirTests\QirTarget.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestAliasCounts.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -81,7 +81,13 @@
     <Content Include="TestCases\QirTests\TestCaching.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestConditional.ll">
+    <Content Include="TestCases\QirTests\TestConditional1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestConditional2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestConditional3.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestConditional.qs">
@@ -91,9 +97,6 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestControlled2.ll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="TestCases\QirTests\TestControlled3.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestControlled.qs">
@@ -390,6 +393,12 @@
     <None Include="TestCases\ExecutionTests\Packaging.qs" />
     <None Include="TestCases\ExecutionTests\LoggingBasedTests.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\StringParsingTests\StringParsing.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\StringParsingTests\StringInterpolation.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\AttributeGeneration.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

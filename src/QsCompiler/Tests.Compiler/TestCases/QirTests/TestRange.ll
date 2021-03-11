@@ -1,6 +1,6 @@
 define %Range @Microsoft__Quantum__Testing__QIR__TestRange__body() {
 entry:
-  %0 = load %Range, %Range* @EmptyRange
+  %0 = load %Range, %Range* @EmptyRange, align 4
   %1 = insertvalue %Range %0, i64 0, 0
   %2 = insertvalue %Range %1, i64 2, 1
   %x = insertvalue %Range %2, i64 6, 2
@@ -23,19 +23,19 @@ entry:
   %18 = bitcast i8* %17 to i64*
   %19 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 8)
   %20 = bitcast i8* %19 to i64*
-  store i64 0, i64* %4
-  store i64 2, i64* %6
-  store i64 4, i64* %8
-  store i64 6, i64* %10
-  store i64 8, i64* %12
-  store i64 10, i64* %14
-  store i64 12, i64* %16
-  store i64 14, i64* %18
-  store i64 16, i64* %20
+  store i64 0, i64* %4, align 4
+  store i64 2, i64* %6, align 4
+  store i64 4, i64* %8, align 4
+  store i64 6, i64* %10, align 4
+  store i64 8, i64* %12, align 4
+  store i64 10, i64* %14, align 4
+  store i64 12, i64* %16, align 4
+  store i64 14, i64* %18, align 4
+  store i64 16, i64* %20, align 4
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i64 1)
   %b = call %Array* @__quantum__rt__array_slice_1d(%Array* %a, %Range %x, i1 false)
   call void @__quantum__rt__array_update_alias_count(%Array* %b, i64 1)
-  %21 = load %Range, %Range* @EmptyRange
+  %21 = load %Range, %Range* @EmptyRange, align 4
   %22 = insertvalue %Range %21, i64 0, 0
   %23 = insertvalue %Range %22, i64 1, 1
   %y = insertvalue %Range %23, i64 4, 2

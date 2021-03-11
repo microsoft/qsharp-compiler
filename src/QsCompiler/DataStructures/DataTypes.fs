@@ -57,7 +57,9 @@ type QsNullable<'T> =
              | Null -> None
              | Value v -> Some v)
 
-    /// Converts the given F# Option to a QsNullable.
+    /// Converts the given F# option to a QsNullable.
+    // TODO: RELEASE 2021-08: Remove QsNullable<T>.FromOption.
+    [<Obsolete "Use QsNullable.ofOption or QsNullable.FromOption instead.">]
     static member FromOption opt =
         match opt with
         | Some v -> Value v
@@ -65,6 +67,13 @@ type QsNullable<'T> =
 
 /// Operations for QsNullable<'T>.
 module QsNullable =
+    /// Converts the given F# option to a QsNullable.
+    [<CompiledName "FromOption">]
+    let ofOption =
+        function
+        | Some value -> Value value
+        | None -> Null
+
     /// Applies 'f' to both nullable arguments if both have a Value. Returns Null otherwise.
     let Map2 f a b =
         match a, b with

@@ -66,7 +66,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation TypeArgumentsInference10<'T>(cnt: Int, arg : 'T) : Unit {
         mutable arr = new (Int => Unit)[0];
-        set arr += [TypeArgumentsInference12(_, arg), TypeArgumentsInference12(_, "")]; 
+        set arr += [TypeArgumentsInference12(_, arg), TypeArgumentsInference12(_, "")];
         arr[0](cnt - 1);
     }
 
@@ -223,7 +223,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
 
-    // variable declarations 
+    // variable declarations
 
     operation VariableDeclaration1 () : Unit {
         use q = Qubit() {}
@@ -278,7 +278,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation VariableDeclaration13<'T>(cnt: Int, arg : 'T) : Unit {
         mutable arr = new ((Int, 'T) => Unit)[0];
-        set arr += [VariableDeclaration12]; 
+        set arr += [VariableDeclaration12];
         arr[0](cnt - 1, arg);
     }
 
@@ -324,13 +324,13 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation VariableDeclaration21(cnt: Int, arg : Double) : Unit {
-        let recur = VariableDeclaration21; 
+        let recur = VariableDeclaration21;
         let tuple = (1, (VariableDeclaration21, ""));
         let a1 = [VariableDeclaration21];
         mutable a2 = [VariableDeclaration21];
         mutable arr = new ((Int, Double) => Unit)[0];
-        set arr = [VariableDeclaration21]; 
-        set arr += [VariableDeclaration21]; 
+        set arr = [VariableDeclaration21];
+        set arr += [VariableDeclaration21];
         set arr w/= 0 <- VariableDeclaration21;
         set arr w/= 0 .. 1 <- [VariableDeclaration21, VariableDeclaration17<Double>];
         let foo = arr w/ 0 <- VariableDeclaration21;
@@ -443,7 +443,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function CopyAndUpdateArray9 (arr : Int[]) : Int[] {
-        return arr 
+        return arr
             w/ 0 <- 1
             w/ 1 <- 2;
     }
@@ -457,45 +457,45 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function CopyAndUpdateArray12<'T> (
-        arr : ('T => Unit)[], 
-        op1 : ('T => Unit), 
-        op2 : ('T => Unit)) 
+        arr : ('T => Unit)[],
+        op1 : ('T => Unit),
+        op2 : ('T => Unit))
     : ('T => Unit)[] {
-        return arr 
+        return arr
             w/ 0 <- op1
             w/ 1 <- op2;
     }
 
     function CopyAndUpdateArray13<'T> (
-        arr : ('T => Unit)[], 
-        op1 : ('T => Unit is Ctl), 
-        op2 : ('T => Unit is Adj)) 
+        arr : ('T => Unit)[],
+        op1 : ('T => Unit is Ctl),
+        op2 : ('T => Unit is Adj))
     : ('T => Unit)[] {
-        return arr 
+        return arr
             w/ 0 <- op1
             w/ 1 <- op2;
     }
 
     function CopyAndUpdateArray14<'T> (
-        arr : ('T => Unit is Adj)[], 
-        op1 : ('T => Unit is Ctl + Adj), 
-        op2 : ('T => Unit is Adj)) 
+        arr : ('T => Unit is Adj)[],
+        op1 : ('T => Unit is Ctl + Adj),
+        op2 : ('T => Unit is Adj))
     : ('T => Unit is Adj)[] {
-        return arr 
+        return arr
             w/ 0 <- op1
             w/ 1 <- op2;
     }
 
     function CopyAndUpdateArray15<'T> (
-        arr : ('T => Unit is Adj)[], 
-        op : ('T => Unit is Ctl)) 
+        arr : ('T => Unit is Adj)[],
+        op : ('T => Unit is Ctl))
     : ('T => Unit is Adj)[] {
         return arr w/ 0 <- op;
     }
 
     function CopyAndUpdateArray16<'T> (
-        arr : ('T => Unit is Adj)[], 
-        op : (Int => Unit is Adj)) 
+        arr : ('T => Unit is Adj)[],
+        op : (Int => Unit is Adj))
     : ('T => Unit is Adj)[] {
         return arr w/ 0 <- op;
     }
@@ -539,11 +539,11 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function UpdateAndReassign8<'T> (
-        op1 : ('T => Unit is Ctl), 
-        op2 : ('T => Unit is Adj)) 
+        op1 : ('T => Unit is Ctl),
+        op2 : ('T => Unit is Adj))
     : Unit {
         mutable arr = new ('T => Unit)[10];
-        set arr w/= 0 .. Length(arr) <- 
+        set arr w/= 0 .. Length(arr) <-
             arr w/ 0 <- op1 w/ 1 <- op2;
     }
 
@@ -561,8 +561,8 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     // apply-and-reassign statements
 
     function ApplyAndReassign1 () : Unit {
-        mutable i = 0; 
-        set i += 1; 
+        mutable i = 0;
+        set i += 1;
         set i -= 1;
         set i *= 10;
         set i /= 2;
@@ -571,13 +571,13 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function ApplyAndReassign2 () : Unit {
-        mutable i = true; 
+        mutable i = true;
         set i and= false;
         set i or= true;
     }
 
     function ApplyAndReassign3 () : Unit {
-        mutable i = 23; 
+        mutable i = 23;
         set i &&&= 2^10 - 1;
         set i |||= 1;
         set i ^^^= 2^10 - 1;
@@ -586,37 +586,37 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function ApplyAndReassign4 () : Unit {
-        mutable i = 1L; 
+        mutable i = 1L;
         set i ^= 2;
     }
 
     function ApplyAndReassign5 () : Unit {
-        mutable i = 1L; 
+        mutable i = 1L;
         set i += 2L ^ 2;
     }
 
     function ApplyAndReassign6 () : Unit {
-        mutable i = true; 
+        mutable i = true;
         set i and= 1;
     }
 
     function ApplyAndReassign7 () : Unit {
-        mutable i = 1; 
+        mutable i = 1;
         set i += 1.;
     }
 
     function ApplyAndReassign8 () : Unit {
-        let i = 1; 
+        let i = 1;
         set i += 1;
     }
 
     function ApplyAndReassign9 () : Unit {
-        mutable a = new Int[10]; 
+        mutable a = new Int[10];
         set a[0] = 1;
     }
 
     function ApplyAndReassign10 () : Unit {
-        mutable a = new Int[10]; 
+        mutable a = new Int[10];
         set a[0] += 1;
     }
 
@@ -712,7 +712,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         arg::Op1 ();
         arg :: Op2();
     }
-        
+
     operation ItemAccess14 (arg : AdjWithArg) : Unit
     is Adj {
         arg::A1 (arg::a2, arg::a1);
@@ -722,7 +722,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         return arg::A1;
     }
 
-    operation ItemAccess16 (arg : UnitaryWithArg) : Unit 
+    operation ItemAccess16 (arg : UnitaryWithArg) : Unit
     is Adj + Ctl {
         arg::U1 (arg::param);
     }
@@ -760,7 +760,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function ItemUpdate4 (arg : NamedItems6) : Unit {
-        mutable foo = arg 
+        mutable foo = arg
             w/ Phase <- 1
             w/ Const <- 1.;
         set foo w/= Const <- 10.;
@@ -771,13 +771,13 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     function ItemUpdate6 (arg : NamedItems6) : Unit {
-        mutable foo = arg 
+        mutable foo = arg
             w/ Phase <- 1.
             w/ Const <- 1.;
     }
 
     function ItemUpdate7 (arg : NamedItems6) : Unit {
-        mutable foo = arg 
+        mutable foo = arg
             w/ Phase <- 1
             w/ Const <- "";
     }
@@ -823,20 +823,20 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation ItemUpdate13 (
         op  : (Unit => Unit),
-        adj : (Unit => Unit is Adj), 
-        ctl : (Unit => Unit is Ctl)) 
+        adj : (Unit => Unit is Adj),
+        ctl : (Unit => Unit is Ctl))
     : Unit {
         mutable p1 = OpPair(adj, adj);
         set p1 w/= Op1 <- ctl;
         set p1 w/= Op1 <- op;
-        let p2 = OpPair(ctl, ctl) 
+        let p2 = OpPair(ctl, ctl)
             w/ Op1 <- op
             w/ Op2 <- adj;
     }
 
     operation ItemUpdate14 (
         unitary : (Int => Unit is Adj + Ctl),
-        ctl        : (Int => Unit is Ctl)) 
+        ctl        : (Int => Unit is Ctl))
     : Unit {
         mutable u1 = UnitaryWithArg(unitary, 0);
         set u1 w/= U1 <- ctl;
@@ -850,7 +850,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
             w/ U1 <- adj;
     }
 
-    operation ItemUpdate16 (unitary : (Unit => Unit is Adj + Ctl)) : Unit 
+    operation ItemUpdate16 (unitary : (Unit => Unit is Adj + Ctl)) : Unit
     is Adj + Ctl {
         let p = OpPair(unitary, unitary);
         p::Op1();
@@ -859,8 +859,8 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation ItemUpdate17 (
         op        : (Unit => Unit),
-        unitary : (Unit => Unit is Adj + Ctl)) 
-    : Unit 
+        unitary : (Unit => Unit is Adj + Ctl))
+    : Unit
     is Adj + Ctl {
         mutable p = OpPair(op, op);
         set p w/= Op1 <- unitary;
@@ -869,8 +869,8 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation ItemUpdate18 (
         op        : (Unit => Unit),
-        unitary : (Unit => Unit is Adj + Ctl)) 
-    : Unit 
+        unitary : (Unit => Unit is Adj + Ctl))
+    : Unit
     is Adj + Ctl {
         let p = OpPair(op, op) w/ Op1 <- unitary;
         p::Op1();
@@ -878,15 +878,15 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     operation ItemUpdate19 (
         op        : (Unit => Unit),
-        unitary : (Unit => Unit is Adj + Ctl)) 
-    : Unit 
+        unitary : (Unit => Unit is Adj + Ctl))
+    : Unit
     is Adj + Ctl {
         (OpPair(op, op) w/ Op1 <- unitary)::Op1();
     }
 
     operation ItemUpdate20 (
         op        : (Unit => Unit),
-        unitary : (Unit => Unit is Adj + Ctl)) 
+        unitary : (Unit => Unit is Adj + Ctl))
     : Unit {
         (OpPair(op, op) w/ Op1 <- unitary)::Op1();
     }
@@ -974,7 +974,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         within {
             if (cond) {
                 fail "{foo}";
-            } 
+            }
         }
         apply {
             if (not cond) {
@@ -988,7 +988,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         within {
             for i in 1 .. 10 {
                 GenericAdjointable(i, (i, foo));
-            } 
+            }
         }
         apply {
             repeat {}
@@ -1001,7 +1001,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation InvalidConjugation1 () : Unit {
         mutable foo = 1;
         within {
-            GenericAdjointable(foo); 
+            GenericAdjointable(foo);
         }
         apply {
             set foo = 10;
@@ -1011,7 +1011,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation InvalidConjugation2 () : Unit {
         mutable foo = 1;
         within {
-            GenericAdjointable($"{foo}"); 
+            GenericAdjointable($"{foo}");
         }
         apply {
             set foo = 10;
@@ -1021,7 +1021,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation InvalidConjugation3 () : Unit {
         mutable foo = 1;
         within {
-            let _ = foo; 
+            let _ = foo;
         }
         apply {
             set foo = 10;
@@ -1031,7 +1031,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation InvalidConjugation4 () : Unit {
         mutable foo = 1;
         within {
-            let _ = foo; 
+            let _ = foo;
         }
         apply {
             set (_, foo) = (1, 10);
@@ -1041,7 +1041,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation InvalidConjugation5 () : Unit {
         mutable foo = 1;
         within {
-            if (foo + 1 > 0) {} 
+            if (foo + 1 > 0) {}
         }
         apply {
             set (_, foo) = (1, 10);
@@ -1053,7 +1053,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         within {
             if (cond) {
                 fail $"{foo}";
-            } 
+            }
         }
         apply {
             set (_, (foo, _)) = (1, (10, ""));
@@ -1065,7 +1065,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         within {
             if (cond) {
                 fail $"{foo}";
-            } 
+            }
         }
         apply {
             if (not cond) {
@@ -1079,7 +1079,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         within {
             for i in 1 .. 10 {
                 GenericAdjointable(i, (i, foo));
-            } 
+            }
         }
         apply {
             repeat {}
@@ -1090,81 +1090,81 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         }
     }
 
-    
+
     // open-ended ranges in array slicing expressions
 
     function ValidArraySlice1 (arr : Int[]) : Int[] {
-        return arr[3...];            
-    } 
+        return arr[3...];
+    }
 
     function ValidArraySlice2 (arr : Int[]) : Int[] {
-        return arr [0 .. 2 ... ];    
-    } 
+        return arr [0 .. 2 ... ];
+    }
 
     function ValidArraySlice3 (arr : Int[]) : Int[] {
-        return arr[...2];            
-    } 
+        return arr[...2];
+    }
 
     function ValidArraySlice4 (arr : Int[]) : Int[] {
-        return arr[...2..3];        
-    } 
+        return arr[...2..3];
+    }
 
     function ValidArraySlice5 (arr : Int[]) : Int[] {
-        return arr[...2...];        
-    } 
+        return arr[...2...];
+    }
 
     function ValidArraySlice6 (arr : Int[]) : Int[] {
-        return arr[...];            
-    } 
+        return arr[...];
+    }
 
     function ValidArraySlice7 (arr : Int[]) : Int[] {
         return arr [4 .. -2 ... ];
-    } 
+    }
 
     function ValidArraySlice8 (arr : Int[]) : Int[] {
-        return arr[ ... -1 .. 3];    
-    } 
+        return arr[ ... -1 .. 3];
+    }
 
     function ValidArraySlice9 (arr : Int[]) : Int[] {
-        return arr[...-1...];        
-    } 
+        return arr[...-1...];
+    }
 
 
     function InvalidArraySlice1 (arr : BigEndian) : Int[] {
-        return arr[3...];            
-    } 
+        return arr[3...];
+    }
 
     function InvalidArraySlice2 (arr : BigEndian) : Int[] {
-        return arr [0 .. 2 ... ];    
-    } 
+        return arr [0 .. 2 ... ];
+    }
 
     function InvalidArraySlice3 (arr : BigEndian) : Int[] {
-        return arr[...2];            
-    } 
+        return arr[...2];
+    }
 
     function InvalidArraySlice4 (arr : BigEndian) : Int[] {
-        return arr[...2..3];        
-    } 
+        return arr[...2..3];
+    }
 
     function InvalidArraySlice5 (arr : BigEndian) : Int[] {
-        return arr[...2...];        
-    } 
+        return arr[...2...];
+    }
 
     function InvalidArraySlice6 (arr : BigEndian) : Int[] {
-        return arr[...];            
-    } 
+        return arr[...];
+    }
 
     function InvalidArraySlice7 (arr : BigEndian) : Int[] {
         return arr [4 .. -2 ... ];
-    } 
+    }
 
     function InvalidArraySlice8 (arr : BigEndian) : Int[] {
-        return arr[ ... -1 .. 3];    
-    } 
+        return arr[ ... -1 .. 3];
+    }
 
     function InvalidArraySlice9 (arr : BigEndian) : Int[] {
-        return arr[...-1...];        
-    } 
+        return arr[...-1...];
+    }
 
 
     // deprecation warnings
@@ -1194,7 +1194,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     function DuplicateDeprecateAttribute1() : Unit {}
 
     @ Deprecated("")
-    @ Deprecated("NewName") // will be ignored 
+    @ Deprecated("NewName") // will be ignored
     function DuplicateDeprecateAttribute2() : Unit {}
 
 
@@ -1327,15 +1327,15 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation ValidTestAttribute6 () : Unit {}
 
     @ Test("QuantumSimulator")
-    operation ValidTestAttribute7 () : Unit 
+    operation ValidTestAttribute7 () : Unit
     is Adj + Ctl{}
 
     @ Test("ResourcesEstimator")
-    operation ValidTestAttribute8 () : Unit 
+    operation ValidTestAttribute8 () : Unit
     is Adj {}
 
     @ Test("ToffoliSimulator")
-    operation ValidTestAttribute9 () : Unit 
+    operation ValidTestAttribute9 () : Unit
     is Ctl {}
 
     @ Test("QuantumSimulator")
@@ -1406,12 +1406,12 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     operation InvalidTestAttribute6<'T> () : Unit { }
 
     @ Test("ResourcesEstimator")
-    operation InvalidTestAttribute7 () : Int { 
+    operation InvalidTestAttribute7 () : Int {
         return 1;
     }
 
     @ Test("ToffoliSimulator")
-    function InvalidTestAttribute8 () : String { 
+    function InvalidTestAttribute8 () : String {
         return "";
     }
 
@@ -1444,7 +1444,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @ Test ()
     operation InvalidTestAttribute17 () : Unit { }
 
-    @ Test 
+    @ Test
     operation InvalidTestAttribute18 () : Unit { }
 
     @ Test("SomeNamespace.")

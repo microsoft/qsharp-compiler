@@ -2,8 +2,8 @@ define double @Microsoft__Quantum__Testing__QIR__TestEntryPoint({ i64, i8* }* %a
 entry:
   %0 = getelementptr { i64, i8* }, { i64, i8* }* %a, i64 0, i32 0
   %1 = getelementptr { i64, i8* }, { i64, i8* }* %a, i64 0, i32 1
-  %2 = load i64, i64* %0
-  %3 = load i8*, i8** %1
+  %2 = load i64, i64* %0, align 4
+  %3 = load i8*, i8** %1, align 8
   %4 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 %2)
   %5 = ptrtoint i8* %3 to i64
   %6 = sub i64 %2, 1
@@ -18,10 +18,10 @@ body__1:                                          ; preds = %header__1
   %9 = mul i64 %7, 8
   %10 = add i64 %5, %9
   %11 = inttoptr i64 %10 to double*
-  %12 = load double, double* %11
+  %12 = load double, double* %11, align 8
   %13 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %4, i64 %7)
   %14 = bitcast i8* %13 to double*
-  store double %12, double* %14
+  store double %12, double* %14, align 8
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1

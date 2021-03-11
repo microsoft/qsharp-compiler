@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.QIR
         public static bool IsTypedTuple(ITypeRef t) =>
             t is IPointerType pt
             && pt.ElementType is IStructType st
-            && st.Name == null
+            && string.IsNullOrEmpty(st.Name)
             && st.Members.Count > 0;
 
         /// <summary>

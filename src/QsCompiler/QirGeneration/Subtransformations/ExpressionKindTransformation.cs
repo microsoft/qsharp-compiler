@@ -672,7 +672,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
             }
             else
             {
@@ -886,6 +886,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
                 var ifTrue = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
+                BasicBlock afterTrue = this.SharedState.CurrentBlock!;
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.ScopeMgr.OpenScope();
@@ -893,12 +894,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
                 var ifFalse = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifFalse, false); // force that the ref count is increased within the branch
+                BasicBlock afterFalse = this.SharedState.CurrentBlock!;
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(contBlock);
                 var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
-                phi.AddIncoming(ifTrue.Value, trueBlock);
-                phi.AddIncoming(ifFalse.Value, falseBlock);
+                phi.AddIncoming(ifTrue.Value, afterTrue);
+                phi.AddIncoming(ifFalse.Value, afterFalse);
                 value = this.SharedState.Values.From(phi, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1018,8 +1020,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var baseValue = this.SharedState.CurrentBuilder.SIToFPCast(lhs.Value, this.SharedState.Context.Float128Type);
-                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.Float128Type);
+                var baseValue = this.SharedState.CurrentBuilder.SIToFPCast(lhs.Value, this.SharedState.Context.DoubleType);
+                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.DoubleType);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
                 var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
                 var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);
@@ -1547,7 +1549,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsString)
                 {
                     var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue());
+                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Context.CreateConstant(0), this.SharedState.Types.DataArrayPointer.GetNullValue());
                     var built = this.SharedState.Values.From(value, type);
                     this.SharedState.ScopeMgr.RegisterValue(built);
                     return built;
@@ -1755,6 +1757,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 return this.SharedState.GeneratePartialApplication(name, kind, BuildPartialApplicationBody);
+            }
+
+            var isTrivial = !arg.Exists(ex => !(ex.Expression.IsMissingExpr || ex.Expression.IsValueTuple));
+            if (isTrivial)
+            {
+                // a partial application where all arguments are partially applied
+                // is the same as just the method.
+                return this.Expressions.OnTypedExpression(method).Expression;
             }
 
             var liftedName = this.SharedState.GlobalName("PartialApplication");
@@ -1969,7 +1979,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         this.SharedState.Types.DataArrayPointer);
 
                 var createString = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                return this.SharedState.CurrentBuilder.Call(createString, zeroLengthString);
+                return this.SharedState.CurrentBuilder.Call(createString, this.SharedState.Context.CreateConstant(0), zeroLengthString);
             }
 
             // Creates a string value that needs to be queued for unreferencing.

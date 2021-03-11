@@ -57,7 +57,7 @@ Here, the `<DISABLED>` value for hashes instructs the Visual Studio Code extensi
 If no released version of the Q# language server has been published matching the version number injected by `bootstrap.ps1`, then downloading the language server will fail when running the extension.
 
 For local development of the extension, however, it is typically more convenient to suppress downloading the Q# language server at all, and to use a local development version of the server instead.
-If the `quantumDevKit.languageServerPath` preference is set either in your Visual Studio Code user preferences or in your folder or workspace settings, then the executable at that path will be used in preference to downloading a copy of the Q# language server, and no attempt will be made to ensure that the executable at that path matches the extension version.
+If the `quantumDevKit.languageServerPath` preference is set in the `package.json` of your Quantum Development kit extension, or overridden in your user settings, then the executable at that path will be used instead of downloading a copy of the Q# language server and no attempt will be made to ensure that the executable at that path matches the extension version. Please notice that setting this variable in your workspace settings instead will not have any effect.
 
 You can build a self-contained version of the language server for use in local development using the `dotnet publish` command (replace your `--runtime` argument as needed):
 
