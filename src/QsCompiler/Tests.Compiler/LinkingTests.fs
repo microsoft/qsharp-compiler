@@ -124,7 +124,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
     member private this.CompileMonomorphization input =
         let compilationDataStructures = this.BuildContent(compilationManager, input)
-        let trimmedCompilation = TrimSyntaxTree.Apply (compilationDataStructures.BuiltCompilation, true)
+        let trimmedCompilation = TrimSyntaxTree.Apply(compilationDataStructures.BuiltCompilation, true)
         let monomorphicCompilation = Monomorphize.NewApply trimmedCompilation
 
         Assert.NotNull monomorphicCompilation
