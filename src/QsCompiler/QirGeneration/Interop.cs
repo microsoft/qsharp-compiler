@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return this.sharedState.Values.Unit;
                 }
 
-                var givenValue = next();
+                Value givenValue = next();
                 if (type.Resolution is ResolvedTypeKind.ArrayType arrItemType)
                 {
                     var (length, dataArr) = LoadSizedArray(givenValue);
@@ -268,7 +268,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// and returns null only if the given value represents a value of type Unit.
         /// <br/><br/>
         /// The memory for the returned value is allocated on the heap using the corresponding runtime
-        /// function <see cref="RuntimeLibrary.MemoryAllocate"/> and will not be freed by the QIR runtime.
+        /// function <see cref="RuntimeLibrary.HeapAllocate"/> and will not be freed by the QIR runtime.
         /// It is the responsibility of the code calling into the QIR entry point wrapper to free that memory.
         /// </summary>
         /// <returns>The interop-friendly value for the given value obtained by invoking a QIR function.</returns>
@@ -280,12 +280,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("the current function is null");
             }
 
-            Value PopulateTuple(ITypeRef mappedType, Value[] tupleItems)
+            Value CopyToMemory(IPointerType targetType, Value size, Value? sourcePtr = null)
             {
-                var malloc = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.MemoryAllocate);
+                var malloc = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.HeapAllocate);
+                var allocated = this.sharedState.CurrentBuilder.Call(malloc, size);
+                if (sourcePtr != null)
+                {
+                    this.sharedState.CurrentBuilder.MemCpy(allocated, sourcePtr, size, false);
+                }
+                return this.sharedState.CurrentBuilder.BitCast(allocated, targetType);
+            }
+
+            Value PopulateTuple(IPointerType mappedType, Value[] tupleItems)
+            {
                 var mappedStructType = Types.StructFromPointer(mappedType);
-                var allocated = this.sharedState.CurrentBuilder.Call(malloc, this.sharedState.ComputeSizeForType(mappedStructType));
-                var mappedTuple = this.sharedState.CurrentBuilder.BitCast(allocated, mappedType);
+                var size = this.sharedState.ComputeSizeForType(mappedStructType);
+                var mappedTuple = CopyToMemory(mappedType, size);
 
                 for (var itemIdx = 0; itemIdx < mappedStructType.Members.Count; ++itemIdx)
                 {
@@ -303,7 +313,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (res is ArrayValue array)
             {
-                var malloc = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.MemoryAllocate);
+                var malloc = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.HeapAllocate);
                 var dataArrElementType = this.MapToInteropType(array.QSharpElementType) ?? this.sharedState.Values.Unit.LlvmType;
                 var sizePerElement = this.sharedState.ComputeSizeForType(dataArrElementType);
                 var dataArr = this.sharedState.CurrentBuilder.Call(malloc, this.sharedState.CurrentBuilder.Mul(array.Length, sizePerElement));
@@ -325,20 +335,35 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 var tupleItems = new[] { array.Length, dataArr }; // FIXME: CAST DATA ARR TO THE RIGHT TYPE IF NEEDED
                 var mappedType = this.MapToInteropType(array.QSharpType)!;
-                return PopulateTuple(mappedType, tupleItems);
+                return PopulateTuple((IPointerType)mappedType, tupleItems);
             }
             else if (res is TupleValue tuple)
             {
                 var mappedType = this.MapToInteropType(tuple.QSharpType);
-                var mappedTuple = tuple.LlvmType.Equals(mappedType) ? tuple.TypedPointer : null;
-                if (mappedTuple != null || mappedType == null)
+                if (mappedType == null)
                 {
-                    this.sharedState.ScopeMgr.IncreaseReferenceCount(tuple); // make this nicer (n/a for null)
-                    return mappedTuple;
+                    return null;
+                }
+                else if (tuple.LlvmType.Equals(mappedType))
+                {
+                    var size = this.sharedState.ComputeSizeForType(tuple.StructType);
+                    return CopyToMemory((IPointerType)mappedType, size, tuple.TypedPointer);
                 }
 
                 var tupleItems = WithoutNullValues(this.ProcessReturnValue, tuple.GetTupleElements());
-                return PopulateTuple(mappedType, tupleItems);
+                return PopulateTuple((IPointerType)mappedType, tupleItems);
+            }
+            else if (res.QSharpType.Resolution.IsString)
+            {
+                var getLength = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringGetLength);
+                var strLength = this.sharedState.CurrentBuilder.Call(getLength, res.Value);
+                var size = this.sharedState.CurrentBuilder.Mul(this.sharedState.Context.CreateConstant(8), strLength);
+
+                var getData = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringGetData);
+                var strData = this.sharedState.CurrentBuilder.Call(getData, res.Value);
+
+                var expectedType = this.MapToInteropType(res.LlvmType)!;
+                return CopyToMemory((IPointerType)expectedType, size, strData); // not sure if it is better to avoid the copy and increase the ref count
             }
             else if (res.QSharpType.Resolution.IsBigInt)
             {
@@ -359,7 +384,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                // string, integer-like, floating point, callables and qubits
+                // integer-like, floating point, callables and qubits
                 var expectedType = this.MapToInteropType(res.LlvmType)!;
                 this.sharedState.ScopeMgr.IncreaseReferenceCount(res);
                 return this.CastToType(res.Value, expectedType);

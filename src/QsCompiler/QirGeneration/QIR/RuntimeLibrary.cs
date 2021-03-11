@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.QIR
     public static class RuntimeLibrary
     {
         // Q# specific helpers
-        internal const string MemoryAllocate = "memory_allocate";
+        internal const string HeapAllocate = "heap_alloc";
 
         // result functions
         public const string ResultUpdateReferenceCount = "result_update_reference_count";
@@ -17,6 +17,8 @@ namespace Microsoft.Quantum.QIR
 
         // string functions
         public const string StringCreate = "string_create";
+        public const string StringGetData = "string_get_data";
+        public const string StringGetLength = "string_get_length";
         public const string StringUpdateReferenceCount = "string_update_reference_count";
         public const string StringConcatenate = "string_concatenate";
         public const string StringEqual = "string_equal";

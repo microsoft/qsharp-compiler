@@ -279,7 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public void InitializeRuntimeLibrary()
         {
             // Q# specific helpers
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.MemoryAllocate, this.Context.Int8Type.CreatePointerType(), this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.HeapAllocate, this.Context.Int8Type.CreatePointerType(), this.Context.Int64Type);
 
             // result library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultUpdateReferenceCount, this.Context.VoidType, this.Types.Result, this.Types.Int);
@@ -287,6 +287,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // string library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringCreate, this.Types.String, this.Context.Int32Type, this.Types.DataArrayPointer);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringGetLength, this.Context.Int32Type, this.Types.String);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.StringGetData, this.Types.DataArrayPointer, this.Types.String);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringUpdateReferenceCount, this.Context.VoidType, this.Types.String, this.Types.Int);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringConcatenate, this.Types.String, this.Types.String, this.Types.String);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.StringEqual, this.Context.BoolType, this.Types.String, this.Types.String);
