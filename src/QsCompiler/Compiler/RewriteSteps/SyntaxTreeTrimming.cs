@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => Enumerable.Empty<IRewriteStep.Diagnostic>();
 
-        public bool ImplementsPreconditionVerification => false;
+        public bool ImplementsPreconditionVerification => true;
 
         public bool ImplementsTransformation => true;
 
@@ -38,10 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             this.keepAllIntrinsics = keepAllIntrinsics;
         }
 
-        public bool PreconditionVerification(QsCompilation compilation)
-        {
-            throw new System.NotImplementedException();
-        }
+        public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any();
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
