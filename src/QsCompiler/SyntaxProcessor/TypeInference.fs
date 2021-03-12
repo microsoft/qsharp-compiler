@@ -73,6 +73,36 @@ module private Ordering =
         | Equal -> Equal
         | Supertype -> Subtype
 
+type private TypeContext =
+    {
+        Expected: ResolvedType
+        OriginalExpected: ResolvedType
+        Actual: ResolvedType
+        OriginalActual: ResolvedType
+    }
+
+module private TypeContext =
+    let create expected actual =
+        {
+            Expected = expected
+            OriginalExpected = expected
+            Actual = actual
+            OriginalActual = actual
+        }
+
+    let into expectedChild (actualChild: ResolvedType) context =
+        if actualChild.Range = context.Actual.Range
+        then { context with Expected = expectedChild; Actual = actualChild }
+        else create expectedChild actualChild
+
+    let flip context =
+        {
+            Expected = context.Actual
+            OriginalExpected = context.OriginalActual
+            Actual = context.Expected
+            OriginalActual = context.OriginalExpected
+        }
+
 module private Inference =
     let characteristicsEqual info1 info2 =
         let chars1 = info1.Characteristics
@@ -93,19 +123,6 @@ module private Inference =
         function
         | Adjoint -> Keywords.qsAdjointFunctor.id
         | Controlled -> Keywords.qsControlledFunctor.id
-
-    let withOuterTypes expected actual diagnostic =
-        match diagnostic.Diagnostic with
-        | Error ErrorCode.TypeMismatch
-        | Error ErrorCode.NoCommonBaseType when Seq.length diagnostic.Arguments = 2 ->
-            let types =
-                seq {
-                    showType expected
-                    showType actual
-                }
-
-            { diagnostic with Arguments = Seq.append diagnostic.Arguments types }
-        | _ -> diagnostic
 
     let private combineCallableInfo ordering info1 info2 =
         match ordering with
@@ -240,17 +257,17 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         TypeParameter param |> ResolvedType.create (Value source)
 
     member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =
-        context.UnifyByOrdering(context.Resolve expected, Supertype, context.Resolve actual)
-        |> List.map (withOuterTypes (context.Resolve expected) (context.Resolve actual))
+        context.UnifyByOrdering(Supertype, TypeContext.create (context.Resolve expected) (context.Resolve actual))
         |> rememberErrors [ expected; actual ]
 
     member internal context.Intersect(left: ResolvedType, right: ResolvedType) =
-        context.UnifyByOrdering(context.Resolve left, Equal, context.Resolve right) |> ignore
+        context.UnifyByOrdering(Equal, TypeContext.create (context.Resolve left) (context.Resolve right))
+        |> ignore
 
         let left = context.Resolve left
         let right = context.Resolve right
         let intersection, diagnostics = combine Supertype left right
-        intersection, diagnostics |> List.map (withOuterTypes left right) |> rememberErrors [ left; right ]
+        intersection, diagnostics |> rememberErrors [ left; right ]
 
     member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
         let resolvedType = context.Resolve resolvedType
@@ -288,26 +305,33 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             |> ResolvedType.withKind (QsTypeKind.Function(context.Resolve inType, context.Resolve outType))
         | _ -> resolvedType
 
-    member private context.UnifyByOrdering(expected: ResolvedType, ordering, actual: ResolvedType) =
+    member private context.UnifyByOrdering(ordering, types) =
         let error =
             QsCompilerDiagnostic.Error
-                (ErrorCode.TypeMismatch, [ showType actual; showType expected ])
-                (actual.Range |> QsNullable.defaultValue Range.Zero)
+                (ErrorCode.TypeMismatch,
+                 [
+                     showType types.Actual
+                     showType types.Expected
+                     showType types.OriginalExpected
+                     showType types.OriginalActual
+                 ])
+                (types.Actual.Range |> QsNullable.defaultValue Range.Zero)
 
-        match expected.Resolution, actual.Resolution with
-        | _ when expected = actual -> []
+        match types.Expected.Resolution, types.Actual.Resolution with
+        | _ when types.Expected = types.Actual -> []
         | TypeParameter param, _ when variables.ContainsKey param ->
-            bind param actual
-            context.ApplyConstraints(param, actual)
+            bind param types.Actual
+            context.ApplyConstraints(param, types.Actual)
         | _, TypeParameter param when variables.ContainsKey param ->
-            bind param expected
-            context.ApplyConstraints(param, expected)
-        | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(item1, Equal, item2)
+            bind param types.Expected
+            context.ApplyConstraints(param, types.Expected)
+        | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(Equal, types |> TypeContext.into item1 item2)
         | TupleType items1, TupleType items2 ->
             [
                 if items1.Length <> items2.Length then error
                 for item1, item2 in Seq.zip items1 items2 do
-                    yield! context.UnifyByOrdering(context.Resolve item1, ordering, context.Resolve item2)
+                    let types = types |> TypeContext.into (context.Resolve item1) (context.Resolve item2)
+                    yield! context.UnifyByOrdering(ordering, types)
             ]
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let errors =
@@ -318,16 +342,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 else
                     []
 
-            errors
-            @ context.UnifyByOrdering(in2, ordering, in1)
-              @ context.UnifyByOrdering(context.Resolve out1, ordering, context.Resolve out2)
+            context.UnifyByOrdering(ordering, types |> TypeContext.flip |> TypeContext.into in2 in1)
+            @ context.UnifyByOrdering(ordering, types |> TypeContext.into (context.Resolve out1) (context.Resolve out2))
+              @ errors
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
-            context.UnifyByOrdering(in2, ordering, in1)
-            @ context.UnifyByOrdering(context.Resolve out1, ordering, context.Resolve out2)
+            context.UnifyByOrdering(ordering, types |> TypeContext.flip |> TypeContext.into in2 in1)
+            @ context.UnifyByOrdering(ordering, types |> TypeContext.into (context.Resolve out1) (context.Resolve out2))
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            error :: context.UnifyByOrdering(in2, ordering, in1)
-            @ context.UnifyByOrdering(context.Resolve out1, ordering, context.Resolve out2)
+            error :: context.UnifyByOrdering(ordering, types |> TypeContext.flip |> TypeContext.into in2 in1)
+            @ context.UnifyByOrdering(ordering, types |> TypeContext.into (context.Resolve out1) (context.Resolve out2))
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
@@ -412,6 +436,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | ArrayType _, Range -> context.Unify(item, resolvedType)
             | ArrayType _, _ ->
                 let indexRange = index.Range |> QsNullable.defaultValue Range.Zero
+
                 [
                     QsCompilerDiagnostic.Error (ErrorCode.InvalidArrayItemIndex, [ showType index ]) indexRange
                 ]
