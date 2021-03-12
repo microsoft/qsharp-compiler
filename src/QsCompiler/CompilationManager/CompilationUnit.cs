@@ -96,6 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Leaves declarations for which no such name is defined unchanged.
+        /// <para/>
         /// Does not check whether there are any conflicts when using alternative names.
         /// </remarks>
         private static Headers LoadTestNames(string source, Headers headers)
@@ -167,7 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new References(ImmutableDictionary<string, Headers>.Empty);
 
         /// <summary>
-        /// Combines the current references with <paramref name="other"/>, and verifies that there are no conflicts.
+        /// Combines the current references with <paramref name="other"/> and verifies that there are no conflicts.
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="other"/> shares references with the current references.</exception>
         /// <remarks>
@@ -188,6 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Verifies that there are no conflicts for the new set of references.
+        /// <para/>
         /// Calls <paramref name="onError"/> with suitable diagnostics if two or more references conflict,
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
         /// </remarks>
@@ -201,6 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// Calls <paramref name="onError"/> with suitable diagnostics if two or more references conflict,
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
+        /// <para/>
         /// If <paramref name="loadTestNames"/> is set to true, then public types and callables declared in referenced assemblies
         /// are exposed via their test name defined by the corresponding attribute.
         /// </remarks>
@@ -248,6 +251,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// The first tuple item in <paramref name="loaded"/> is expected to contain the id of the source from which the syntax tree was loaded,
         /// and the second is expected to contain the loaded syntax tree.
+        /// <para/>
         /// The source file of a declaration in <paramref name="combined"/> will be set to the specified source from which it was loaded,
         /// and internal declarations as well as their usages will be renamed to avoid conflicts.
         /// </remarks>
@@ -376,10 +380,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Registers <paramref name="depLock"/> as a dependent lock -
+        /// Registers <paramref name="depLock"/> as a dependent lock.
+        /// </summary>
+        /// <remarks>
         /// i.e. whenever both this compilation unit and a dependent lock are required,
         /// ensures that the compilation unit has to be the outer lock.
-        /// </summary>
+        /// </remarks>
         internal void RegisterDependentLock(ReaderWriterLockSlim depLock)
         {
             #if DEBUG
@@ -894,12 +900,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Determines the closest preceding specialization for <paramref name="pos"/> in <paramref name="file"/>.
         /// </summary>
+        /// <param name="file">The relevant file.</param>
+        /// <param name="pos">The position for which the preceding specialization should be retrieved.</param>
+        /// <param name="callableName">The name of the parent callable.</param>
+        /// <param name="callablePos">The position of the parent callable in <paramref name="file"/>.</param>
+        /// <param name="specializationPos">The position of the relevant specialization in <paramref name="file"/>.</param>
         /// <returns>
-        /// The name of the parent callable, its position in the file, as well as the position of the relevant specialization as out parameters.
-        /// Null without setting any of the out parameters if <paramref name="file"/> or <paramref name="pos"/> is null, or if the parent callable could not be determined.
+        /// The closest preceding specialization.
         /// </returns>
         /// <remarks>
         /// Sets the correct namespace name and callable position but returns no implementation if <paramref name="pos"/> is within a callable declaration.
+        /// <para/>
+        /// Returns null without setting any of the out parameters if <paramref name="file"/> or <paramref name="pos"/> is null, or if the parent callable could not be determined.
         /// </remarks>
         internal QsScope? TryGetSpecializationAt(
             FileContentManager file,
@@ -960,10 +972,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <returns>
         /// A new set of <see cref="LocalDeclarations"/> with the position information updated to the absolute values.
-        /// If <paramref name="declarations"/> is null,
-        /// all (valid) symbols defined as part of the declaration of <paramref name="parentCallable"/> with their position information set to the absolute value.
-        /// If <paramref name="parentCallable"/> is null or no callable with the name is currently compiled, <see cref="LocalDeclarations.Empty"/>.
         /// </returns>
+        /// <remarks>
+        /// If <paramref name="declarations"/> is null, returns
+        /// all (valid) symbols defined as part of the declaration of <paramref name="parentCallable"/> with their position information set to the absolute value.
+        /// <para/>
+        /// If <paramref name="parentCallable"/> is null or no callable with the name is currently compiled, returns <see cref="LocalDeclarations.Empty"/>.
+        /// </remarks>
         internal LocalDeclarations PositionedDeclarations(QsQualifiedName? parentCallable, Position? callablePos, Position? specPos, LocalDeclarations? declarations = null)
         {
             LocalDeclarations TryGetLocalDeclarations()
@@ -990,17 +1005,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and sets <paramref name="parentCallable"/> to the name of the parent callable at that position,
         /// assuming that the position corresponds to a piece of code within that file.
         /// </summary>
+        /// <param name="parentCallable">The name of the parent callable at <paramref name="pos"/>, or null if no parent could be determined.</param>
         /// <returns>
-        /// All locally declared symbols at absolute position <paramref name="pos"/> in <paramref name="file"/>
-        /// and the name of the parent callable at that position as out parameter <paramref name="parentCallable"/>.
+        /// All locally declared symbols at absolute position <paramref name="pos"/> in <paramref name="file"/>.
         /// </returns>
         /// <remarks>
         /// If <paramref name="includeDeclaredAtPosition"/> is set to true, then the returned declarations includes the symbols declared within the statement at <paramref name="pos"/>,
         /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
+        /// <para/>
         /// Note that if <paramref name="pos"/> does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
         /// the returned declarations or set value of <paramref name="parentCallable"/> are not necessarily accurate - they are for any actual piece of code, though.
+        /// <para/>
         /// If <paramref name="file"/> or <paramref name="pos"/> is null, or if the locally declared symbols could not be determined, returns <see cref="LocalDeclarations.Empty"/>.
-        /// Sets <paramref name="parentCallable"/> to null if no parent could be determind.
         /// </remarks>
         internal LocalDeclarations TryGetLocalDeclarations(FileContentManager file, Position pos, out QsQualifiedName? parentCallable, bool includeDeclaredAtPosition = false)
         {
@@ -1023,6 +1039,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <returns>The renamed and updated callables and types.</returns>
         /// <remarks>
         /// If <paramref name="predicate"/> is null, tags all types and callables.
+        /// <para/>
         /// Renames all usages to the tagged names.
         /// </remarks>
         internal static (IEnumerable<QsCallable>, IEnumerable<QsCustomType>) RenameInternalDeclarations(

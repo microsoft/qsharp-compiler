@@ -152,6 +152,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace.
+        /// <para/>
         /// Returns an empty enumerable if suitable edits could not be determined.
         /// </remarks>
         private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, IEnumerable<string> namespaces)

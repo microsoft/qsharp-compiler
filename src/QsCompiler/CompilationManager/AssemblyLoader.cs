@@ -39,6 +39,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <exception cref="ArgumentException"><paramref name="asm"/> is not an absolute file URI.</exception>
         /// <remarks>
         /// If <paramref name="onDeserializationException"/> is specified, it will be invoked on any exception thrown during deserialization.
+        /// <para/>
         /// Throws the corresponding exceptions if the information cannot be extracted.
         /// </remarks>
         public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception>? onDeserializationException = null)
@@ -79,6 +80,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <exception cref="FileNotFoundException"><paramref name="asmPath"/> does not exist.</exception>
         /// <remarks>
         /// Catches any exception throw upon loading the compilation, and invokes <paramref name="onException"/> with it if specified.
+        /// <para/>
         /// Sets <paramref name="compilation"/> to null if an exception occurred during loading.
         /// </remarks>
         public static bool LoadReferencedAssembly(
@@ -191,9 +193,9 @@ namespace Microsoft.Quantum.QsCompiler
                     resource => resource);
 
         /// <summary>
-        /// Given a reader for the byte stream of a dotnet DLL, loads any Q# compilation included as a resource.
+        /// Loads any Q# compilation included as a resource from <paramref name="assemblyFile"/>.
         /// </summary>
-        /// <param name="assemblyFile">The dotnet DLL from which to load the compilation.</param>
+        /// <param name="assemblyFile">The reader for the byte stream of a dotnet DLL from which to load the compilation.</param>
         /// <param name="compilation">The Q# compilation included as a resource of <paramref name="assemblyFile"/>.</param>
         /// <param name="onDeserializationException">Called if an exception is thrown during deserialization.</param>
         /// <returns>
@@ -201,6 +203,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </returns>
         /// <remarks>
         /// If <paramref name="onDeserializationException"/> is specified, it is invoked on any exception thrown during deserialization.
+        /// <para/>
         /// May throw an exception if <paramref name="assemblyFile"/> has been compiled with a different compiler version.
         /// </remarks>
         private static bool FromResource(
@@ -269,12 +272,14 @@ namespace Microsoft.Quantum.QsCompiler
         /// This routine extracts the namespace and type name of <paramref name="attribute"/>.
         /// </summary>
         /// <returns>
-        /// The tuple (namespace, name), or null if the constructor handle is not a <see cref="HandleKind.MethodDefinition"/> or a <see cref="HandleKind.MemberReference"/>.
+        /// The tuple (namespace, name).
         /// </returns>
         /// <remarks>
         /// There are two possible handle kinds in use for the constructor of a custom attribute,
         /// one pointing to the MethodDef table and one to the MemberRef table, see p.216 in the ECMA standard linked above and
         /// https://github.com/dotnet/corefx/blob/master/src/System.Reflection.Metadata/src/System/Reflection/Metadata/TypeSystem/CustomAttribute.cs#L42
+        /// <para/>
+        /// Returns null if the constructor handle of <paramref name="attribute"/> is not a <see cref="HandleKind.MethodDefinition"/> or a <see cref="HandleKind.MemberReference"/>.
         /// </remarks>
         private static (StringHandle, StringHandle)? GetAttributeType(MetadataReader metadataReader, CustomAttribute attribute)
         {
@@ -324,8 +329,9 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given a reader for the byte stream of a dotnet dll, read its custom attributes.
+        /// Reads the custom attributes of <paramref name="assemblyFile"/>.
         /// </summary>
+        /// <param name="assemblyFile">A reader for the byte stream of the dotnet DLL.</param>
         /// <returns>
         /// Tuples containing the name of the attribute and the constructor argument
         /// for all attributes defined in a Microsoft.Quantum* namespace.

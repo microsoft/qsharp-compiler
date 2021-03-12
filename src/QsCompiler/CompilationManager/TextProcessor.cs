@@ -57,6 +57,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Fragments for which the code only consists of whitespace are left unchanged (i.e. the <see cref="CodeFragment.Kind"/> remains set to null).
+        /// <para/>
         /// Adds a suitable error to the returned diagnostics for each fragment that cannot be processed.
         /// </remarks>
         private static IEnumerable<Diagnostic> ParseCode(ref List<CodeFragment> fragments, string filename)
@@ -290,6 +291,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="ArgumentException"><paramref name="current"/> is not within <paramref name="file"/>.</exception>
         /// <remarks>
         /// If the closest previous ending was on the last character in a line, then the returned position is on the same line after the last character.
+        /// <para/>
         /// If there is no such fragment, returns <see cref="Position.Zero"/>.
         /// </remarks>
         private static Position PositionAfterPrevious(this FileContentManager file, Position current)
@@ -400,6 +402,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// Does nothing if no lines have been modified.
         /// Recomputes and pushes the syntax diagnostics for the extracted fragments and all end-of-file diagnostics otherwise.
+        /// <para/>
         /// Processes the extracted fragment and inserts the processed fragments into the corresponding data structure.
         /// </remarks>
         internal static void UpdateLanguageProcessing(this FileContentManager file)

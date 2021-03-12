@@ -626,6 +626,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="FileContentException">The position is outside the fragment range.</exception>
         /// <remarks>
         /// If <paramref name="fragment"/> is null or <paramref name="position"/> is after its delimiter, returns the empty string.
+        /// <para/>
         /// If <paramref name="position"/> is after the end of the text of <paramref name="fragment"/> but before the delimiter, the entire text is returned with a
         /// space character appended to it.
         /// </remarks>

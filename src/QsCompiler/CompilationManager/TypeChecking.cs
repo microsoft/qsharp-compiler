@@ -69,6 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="ArgumentException"><paramref name="pos"/> is not a valid position within <paramref name="file"/>.</exception>
         /// <remarks>
         /// Documenting comments may be separated by an empty lines.
+        /// <para/>
         /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end.
         /// </remarks>
         internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
@@ -417,6 +418,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// If <paramref name="fileName"/> is null,
         /// adds all diagnostics generated during resolution and verification to <paramref name="diagnostics"/>.
+        /// <para/>
         /// If <paramref name="fileName"/> is not null, adds only the diagnostics for the file with that name to <paramref name="diagnostics"/>.
         /// </remarks>
         internal static void ResolveGlobalSymbols(NamespaceManager symbols, List<Diagnostic> diagnostics, string? fileName = null)
@@ -582,7 +584,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <param name="requiredFunctors">A set of required functors.</param>
         /// <remarks>
         /// The declarations the scope inherits from its parents are assumed to be the current declarations in <paramref name="context"/>.
-        /// If a required set of functors are specified, then each operation called within the built scope needs to support these functors.
+        /// <para/>
+        /// If <paramref name="requiredFunctors"/> is specified, then each operation called within the built scope needs to support these functors.
         /// If <paramref name="requiredFunctors"/> is null, then the functors to support are determined by the parent scope.
         /// </remarks>
         private static QsScope BuildScope(
@@ -1422,6 +1425,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// The implementation takes <paramref name="argTuple"/> as argument and needs to support auto-generation for <paramref name="requiredFunctorSupport"/>.
         /// <para/>
         /// Uses <paramref name="context"/> to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.
+        /// <para/>
         /// If necessary, generates suitable diagnostics for functor arguments (only!), which are discriminated by the missing position information
         /// for argument variables defined in the callable declaration).
         /// <para/>
@@ -2034,8 +2038,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <para/>
         /// If neither the globally declared types/callables nor the imported namespaces have changed,
         /// directly proceeds to do the type checking for the content of the callable that has been modified only.
+        /// <para/>
         /// If the globally declared types/callables have not changed, but the imported namespaces have,
         /// directly proceeds to do the type checking for the entire file content, independent on what parts have been changed.
+        /// <para/>
         /// If the globally declared types/callables have changed, a global type checking event is triggered,
         /// since the type checking for the entire compilation unit and all compilation units depending on it needs to be recomputed.
         /// </remarks>

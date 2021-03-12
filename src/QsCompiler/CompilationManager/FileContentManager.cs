@@ -185,8 +185,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.semanticDiagnostics.Get().Select(m => m.Copy()).ToImmutableArray();
 
         /// <summary>
-        /// Given <paramref name="syntaxCheckDelimiters"/> and <paramref name="lineNrChange"/>,
-        /// removes all diagnostics that are no longer valid due to that change, and
+        /// Removes all diagnostics that are no longer valid due to the specified change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// </summary>
         /// <param name="diagnostics">The diagnostics to update.</param>
@@ -522,6 +521,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// Removes all diagnostics that are no longer valid (i.e. any diagnostics that overlap with that interval), and any end-of-file diagnostics,
         /// and updates the line numbers of the remaining diagnostics.
+        /// <para/>
         /// Marks all lines that need to be re-examined by the language processor as edited (i.e. adds them to EditedLines).
         /// </remarks>
         internal void ContentUpdate(int start, int count, IReadOnlyList<CodeLine> replacements)
@@ -629,16 +629,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an <see cref="Action"/> as out parameter that replaces the tokens at <paramref name="lineNr"/>
-        /// with the ones returned by <paramref name="updatedTokens"/> when called on the current tokens
-        /// (i.e. the ones after having applied Transformation) on that line.
-        /// Applies <paramref name="modifiedTokens"/> to the tokens at <paramref name="lineNr"/> to obtain the list of tokens for which to mark all connections as edited.
-        /// Then constructs and returns an <see cref="Action"/> as out parameter
-        /// that adds <paramref name="lineNr"/> as well as all lines containing connections to mark to <see cref="editedTokens"/>.
+        /// Create <paramref name="transform"/> and <paramref name="markEdited"/> actions.
         /// </summary>
+        /// <param name="transformation">
+        /// An action that replaces the tokens at <paramref name="lineNr"/> with the ones returned by <paramref name="updatedTokens"/>
+        /// when called on the current tokens (i.e. the ones after having applied Transform) on that line.
+        /// </param>
+        /// <param name="markEdited">
+        /// An action that adds <paramref name="lineNr"/> as well as all lines containing connections to mark to <see cref="editedTokens"/>.
+        /// The list of tokens used is determined at the time <see cref="TransformAndMarkEdited"/> is invoked.
+        /// </param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="lineNr"/> is not a valid index for the current tokens.</exception>
         /// <exception cref="ArgumentException">Any of the values returned by <paramref name="updatedTokens"/> or <paramref name="modifiedTokens"/> is null.</exception>
-        /// <!-- TODO: help -->
         private void TransformAndMarkEdited(
             int lineNr,
             Func<ImmutableArray<CodeFragment>, ImmutableArray<CodeFragment>> updatedTokens,
@@ -703,6 +705,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <exception cref="ArgumentOutOfRangeException">The line number of the <paramref name="range"/> end is larger than the number of currently saved tokens.</exception>
         /// <remarks>
         /// Tokens starting at <see cref="Range.End"/> or ending at <see cref="Range.Start"/> are *not* considered to be overlapping.
+        /// <para/>
         /// Puts a write-lock on the tokens during the entire routine.
         /// </remarks>
         private void RemoveTokensInRange(Range range)
@@ -777,10 +780,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Removes all tokens that overlap with <paramref name="fragments"/>, and adds <paramref name="fragments"/> as tokens.
+        /// <para/>
         /// Attaches end of line comments for the lines on which fragments have been modified to suitable tokens.
-        /// Verifies <paramref name="fragments"/> and
-        /// throws the corresponding exception if the verification fails.
         /// </summary>
+        /// <remarks>
+        /// Verifies <paramref name="fragments"/> and throws the corresponding exception if the verification fails.
+        /// </remarks>
         internal void TokensUpdate(IReadOnlyList<CodeFragment> fragments)
         {
             if (!fragments.Any())
@@ -941,8 +946,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Merges all unprocessed changes computing the new text that is to replace a (single!) line based on the current line content.
         /// </summary>
+        /// <param name="lineNr">The line number.</param>
+        /// <param name="textToInsert">The computed text replacement.</param>
         /// <returns>
-        /// The line number and text to replace as out parameters <paramref name="lineNr"/> and <paramref name="textToInsert"/>, respectively.
         /// True if there is anything to replace, and false if the queue was empty.
         /// </returns>
         internal bool DequeueUnprocessedChanges(out int lineNr, [NotNullWhen(true)] out string? textToInsert)
@@ -998,6 +1004,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// Updates all header and semantic diagnostics.
         /// Pushes the updated diagnostics if no further computation is needed.
+        /// <para/>
         /// If a global type checking is needed, triggers the corresponding event
         /// and does not push updates to semantic diagnostic.
         /// </remarks>
@@ -1132,6 +1139,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <param name="getLineNumbers">A function returning an int array of line numbers.</param>
         /// <remarks>
         /// If <paramref name="filterBy"/> is null, returns the token indices for all tokens on the lines specified by <paramref name="getLineNumbers"/>.
+        /// <para/>
         /// Returns an empty list if <paramref name="getLineNumbers"/> is null.
         /// </remarks>
         private List<CodeFragment.TokenIndex> FilterTokenIndices(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
@@ -1162,7 +1170,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <param name="getLineNumbers">A function returning an int array of line numbers.</param>
         /// <remarks>
         /// The range of the returned fragments is the absolute range in the file.
+        /// <para/>
         /// If <paramref name="filterBy"/> is null, returns all fragments on the lines specified by <paramref name="getLineNumbers"/>.
+        /// <para/>
         /// Returns an empty list if <paramref name="getLineNumbers"/> is null.
         /// </remarks>
         private List<CodeFragment> FilterFragments(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)

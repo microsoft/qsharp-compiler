@@ -62,6 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// </summary>
         /// <remarks>
         /// Is null if no such comment exists.
+        /// <para/>
         /// Documenting comments (i.e. triple-slash comments) are *not* considered to be end of line comments.
         /// All comments which *either* follow non-whitespace content or do not start with triple-slash are considered end of line comments.
         /// </remarks>
@@ -861,13 +862,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Tries to construct a <see cref="HeaderEntry{T}"/> from <paramref name="tIndex"/> using <paramref name="getDeclaration"/>.
         /// </summary>
+        /// <param name="getDeclaration">A function used to extract the declaration from the fragment of <paramref name="tIndex"/>.</param>
+        /// <param name="tIndex">The token index.</param>
+        /// <param name="attributes">Attributes of the returned <see cref="HeaderEntry{T}"/>.</param>
+        /// <param name="doc">Documentation of the returned <see cref="HeaderEntry{T}"/>.</param>
+        /// <param name="keepInvalid">If provided, used as the <see cref="SymbolName"/> of the returned <see cref="HeaderEntry{T}"/>.</param>
         /// <exception cref="ArgumentException">The symbol of the extracted declaration is not an unqualified or invalid symbol.</exception>
         /// <exception cref="ArgumentException">The extracted declaration is Null.</exception>
         /// <remarks>
         /// If the construction succeeds, returns the <see cref="HeaderEntry{T}"/>.
+        /// <para/>
         /// If the symbol of the extracted declaration is not an unqualified symbol,
         /// verifies that it corresponds instead to an invalid symbol and returns null unless the <paramref name="keepInvalid"/> parameter has been set to a string value.
-        /// If the <paramref name="keepInvalid"/> parameter has been set to a (non-null) string, uses that string as the <see cref="SymbolName"/> for the returned <see cref="HeaderEntry{T}"/> instance.
         /// </remarks>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,

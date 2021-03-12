@@ -690,6 +690,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// The given argument newText replaces the entire lines from start to (but not including) start + count.
+        /// <para/>
         /// If <paramref name="change"/> is null, then (only) the currently queued unprocessed changes are processed.
         /// </remarks>
         internal static void UpdateScopeTacking(this FileContentManager file, TextDocumentContentChangeEvent? change)

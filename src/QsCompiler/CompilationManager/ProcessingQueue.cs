@@ -73,6 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Uses the set exception logger to log any exception that occurs during execution.
+        /// <para/>
         /// NOTE: may deadlock if <paramref name="processing"/> calls this processing queue.
         /// </remarks>
         public void QueueForExecution(Action processing) =>
@@ -93,6 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </returns>
         /// <remarks>
         /// Uses the set exception logger to log any exception that occurs during execution.
+        /// <para/>
         /// NOTE: may deadlock if <paramref name="execute"/> calls this processing queue.
         /// </remarks>
         public bool QueueForExecution<T>(Func<T> execute, [MaybeNull] out T result)
@@ -137,6 +139,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// Uses the set exception logger to log any exception that occurs during execution.
+        /// <para/>
         /// NOTE: may deadlock if <paramref name="processing"/> calls this processing queue.
         /// </remarks>
         public void ConcurrentExecution(Action processing) =>
@@ -156,6 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </returns>
         /// <remarks>
         /// Uses the set exception logger to log any exception that occurs during execution.
+        /// <para/>
         /// NOTE: may deadlock if <paramref name="execute"/> calls this processing queue.
         /// </remarks>
         public bool ConcurrentExecution<T>(Func<T> execute, [MaybeNull] out T result)
