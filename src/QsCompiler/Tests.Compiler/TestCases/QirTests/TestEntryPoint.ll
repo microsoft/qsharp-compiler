@@ -19,7 +19,7 @@ body__1:                                          ; preds = %header__1
   %10 = add i64 %5, %9
   %11 = inttoptr i64 %10 to i8*
   %12 = load i8, i8* %11, align 1
-  %13 = bitcast i8 %12 to i2
+  %13 = trunc i8 %12 to i2
   %14 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %4, i64 %7)
   %15 = bitcast i8* %14 to i2*
   store i2 %13, i2* %15, align 1
@@ -45,7 +45,7 @@ exit__1:                                          ; preds = %header__1
   %29 = insertvalue %Range %28, i64 %23, 0
   %30 = insertvalue %Range %29, i64 %25, 1
   %31 = insertvalue %Range %30, i64 %27, 2
-  %32 = bitcast i8 %b to i1
+  %32 = trunc i8 %b to i1
   %33 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i64, i1 }* getelementptr ({ i64, i1 }, { i64, i1 }* null, i32 1) to i64))
   %34 = bitcast %Tuple* %33 to { i64, i1 }*
   %35 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %34, i32 0, i32 0
@@ -82,7 +82,7 @@ body__2:                                          ; preds = %header__2
   %58 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %43, i64 %53)
   %59 = bitcast i8* %58 to i2*
   %60 = load i2, i2* %59, align 1
-  %61 = bitcast i2 %60 to i8
+  %61 = sext i2 %60 to i8
   store i8 %61, i8* %57, align 1
   br label %exiting__2
 
@@ -120,7 +120,7 @@ exit__2:                                          ; preds = %header__2
   %83 = getelementptr inbounds { i64, i1 }, { i64, i1 }* %47, i32 0, i32 1
   %84 = load i64, i64* %82, align 4
   %85 = load i1, i1* %83, align 1
-  %86 = bitcast i1 %85 to i8
+  %86 = sext i1 %85 to i8
   %87 = call i8* @__quantum__rt__heap_alloc(i64 ptrtoint ({ i64, i8 }* getelementptr ({ i64, i8 }, { i64, i8 }* null, i32 1) to i64))
   %88 = bitcast i8* %87 to { i64, i8 }*
   %89 = getelementptr { i64, i8 }, { i64, i8 }* %88, i64 0, i32 0

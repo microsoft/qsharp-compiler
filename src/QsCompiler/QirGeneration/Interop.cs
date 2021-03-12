@@ -242,6 +242,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var rangeItems = GetStructItems(givenValue, itemTypes);
                     return this.sharedState.CreateRange(rangeItems[0].Value, rangeItems[1].Value, rangeItems[2].Value);
                 }
+                else if (givenValue.NativeType.IsInteger)
+                {
+                    var expectedType = this.sharedState.LlvmTypeFromQsharpType(type);
+                    var argValue = this.sharedState.CurrentBuilder.IntCast(givenValue, expectedType, type.Resolution.IsInt);
+                    return this.sharedState.Values.FromSimpleValue(argValue, type);
+                }
+                else if (givenValue.NativeType.IsFloatingPoint)
+                {
+                    return this.sharedState.Values.FromSimpleValue(givenValue, type);
+                }
                 else
                 {
                     // bitcast to the correct type and return
@@ -402,9 +412,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var expectedType = this.MapToInteropType(res.LlvmType)!;
                 return PopulateStruct((IPointerType)expectedType, new[] { start, step, end });
             }
+            else if (res.LlvmType.IsInteger)
+            {
+                var expectedType = this.MapToInteropType(res.LlvmType)!;
+                return this.sharedState.CurrentBuilder.IntCast(res.Value, expectedType, res.QSharpType.Resolution.IsInt);
+            }
+            else if (res.LlvmType.IsFloatingPoint)
+            {
+                return res.Value;
+            }
             else
             {
-                // integer-like, floating point, callables and qubits
+                // callables and qubits
                 var expectedType = this.MapToInteropType(res.LlvmType)!;
                 this.sharedState.ScopeMgr.IncreaseReferenceCount(res);
                 return this.CastToType(res.Value, expectedType);
