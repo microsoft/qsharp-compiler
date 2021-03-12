@@ -1548,10 +1548,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsString)
                 {
-                    var value = this.SharedState.CurrentBuilder.Call(
-                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate),
-                        this.SharedState.Context.CreateConstant(0),
-                        this.SharedState.Types.DataArrayPointer.GetNullValue());
+                    var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
+                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Context.CreateConstant(0), this.SharedState.Types.DataArrayPointer.GetNullValue());
                     var built = this.SharedState.Values.From(value, type);
                     this.SharedState.ScopeMgr.RegisterValue(built);
                     return built;
@@ -1876,15 +1874,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     break;
             }
             Value end = this.SharedState.EvaluateSubexpression(rhs).Value;
-
-            Value rangePtr = this.SharedState.Constants.EmptyRange;
-            Value constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Range, rangePtr);
-            constant = this.SharedState.CurrentBuilder.InsertValue(constant, start, 0);
-            constant = this.SharedState.CurrentBuilder.InsertValue(constant, step, 1);
-            constant = this.SharedState.CurrentBuilder.InsertValue(constant, end, 2);
-
-            var exType = this.SharedState.CurrentExpressionType();
-            var value = this.SharedState.Values.From(constant, exType);
+            var value = this.SharedState.CreateRange(start, step, end);
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
@@ -1980,9 +1970,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         constantArray,
                         this.SharedState.Types.DataArrayPointer);
 
-                var n = this.SharedState.Context.CreateConstant(cleanStr.Length);
                 var createString = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                return this.SharedState.CurrentBuilder.Call(createString, n, zeroLengthString);
+                return this.SharedState.CurrentBuilder.Call(createString, this.SharedState.Context.CreateConstant(0), zeroLengthString);
             }
 
             // Creates a string value that needs to be queued for unreferencing.

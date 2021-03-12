@@ -7,8 +7,8 @@ entry:
   %3 = bitcast i8* %2 to %String**
   %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 2)
   %5 = bitcast i8* %4 to %String**
-  %6 = call %String* @__quantum__rt__string_create(i32 5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
-  %7 = call %String* @__quantum__rt__string_create(i32 5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i32 0, i32 0))
+  %6 = call %String* @__quantum__rt__string_create(i32 0, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
+  %7 = call %String* @__quantum__rt__string_create(i32 0, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i32 0, i32 0))
   %8 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   store %String* %6, %String** %1, align 8
   store %String* %7, %String** %3, align 8
@@ -22,7 +22,7 @@ condTrue__1:                                      ; preds = %entry
 condFalse__1:                                     ; preds = %entry
   %9 = call %Array* @__quantum__rt__array_copy(%Array* %arr, i1 false)
   %10 = icmp ne %Array* %arr, %9
-  %11 = call %String* @__quantum__rt__string_create(i32 1, i8* getelementptr inbounds ([2 x i8], [2 x i8]* @2, i32 0, i32 0))
+  %11 = call %String* @__quantum__rt__string_create(i32 0, i8* getelementptr inbounds ([2 x i8], [2 x i8]* @2, i32 0, i32 0))
   %12 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %9, i64 2)
   %13 = bitcast i8* %12 to %String**
   br i1 %10, label %condContinue__2, label %condFalse__2

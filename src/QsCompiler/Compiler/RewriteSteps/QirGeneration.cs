@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            var generator = new Generator(compilation, new Configuration());
+            var generator = new Generator(compilation);
             generator.Apply();
             generator.Emit(this.outputFile);
             transformed = compilation;

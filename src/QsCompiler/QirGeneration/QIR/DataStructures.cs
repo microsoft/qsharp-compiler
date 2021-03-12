@@ -281,7 +281,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal TupleValue(UserDefinedType? type, Value tuple, ImmutableArray<ResolvedType> elementTypes, GenerationContext context)
         {
             var isTypedTuple = Types.IsTypedTuple(tuple.NativeType);
-            var isOpaqueTuple = Types.IsTuple(tuple.NativeType);
+            var isOpaqueTuple = !tuple.IsNull && Types.IsTupleOrUnit(tuple.NativeType);
             if (!isTypedTuple && !isOpaqueTuple)
             {
                 throw new ArgumentException("expecting either an opaque or a typed tuple");

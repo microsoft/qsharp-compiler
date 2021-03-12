@@ -65,8 +65,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// to a Value.
         /// </summary>
         /// <param name="symbols">The symbols to bind</param>
-        /// <param name="bindVariable">The action to invoke to bind each symbol</param>
         /// <param name="ex">
+        /// <param name="bindVariable">The action to invoke to bind each symbol</param>
         /// The Q# expression that defines the value to bind the symbols to; it will be deconstructed if necessary
         /// </param>
         private void BindSymbolTuple(SymbolTuple symbols, TypedExpression ex, Action<string, IValue> bindVariable)

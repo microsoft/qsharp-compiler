@@ -8,8 +8,8 @@ namespace Microsoft.Quantum.QIR
     /// </summary>
     public static class RuntimeLibrary
     {
-        // int functions
-        public const string IntPower = "int_power";
+        // Q# specific helpers
+        internal const string HeapAllocate = "heap_alloc";
 
         // result functions
         public const string ResultUpdateReferenceCount = "result_update_reference_count";
@@ -17,6 +17,8 @@ namespace Microsoft.Quantum.QIR
 
         // string functions
         public const string StringCreate = "string_create";
+        public const string StringGetData = "string_get_data";
+        public const string StringGetLength = "string_get_length";
         public const string StringUpdateReferenceCount = "string_update_reference_count";
         public const string StringConcatenate = "string_concatenate";
         public const string StringEqual = "string_equal";
@@ -59,15 +61,12 @@ namespace Microsoft.Quantum.QIR
         public const string TupleCopy = "tuple_copy";
 
         // array functions
-        public const string ArrayCreate = "array_create";
-        public const string ArrayGetElementPtr = "array_get_element_ptr";
         public const string ArrayCreate1d = "array_create_1d";
         public const string ArrayGetElementPtr1d = "array_get_element_ptr_1d";
         public const string ArrayUpdateAliasCount = "array_update_alias_count";
         public const string ArrayUpdateReferenceCount = "array_update_reference_count";
         public const string ArrayCopy = "array_copy";
         public const string ArrayConcatenate = "array_concatenate";
-        public const string ArraySlice = "array_slice";
         public const string ArraySlice1d = "array_slice_1d";
         public const string ArrayGetSize1d = "array_get_size_1d";
 

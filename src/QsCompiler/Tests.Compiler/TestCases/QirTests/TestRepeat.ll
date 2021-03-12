@@ -9,7 +9,7 @@ repeat__1:                                        ; preds = %condContinue__2, %e
   call void @__quantum__qis__x__body(%Qubit* %q)
   call void @__quantum__qis__t__adj(%Qubit* %q)
   call void @__quantum__qis__h__body(%Qubit* %q)
-  %name = call %String* @__quantum__rt__string_create(i32 6, i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0))
+  %name = call %String* @__quantum__rt__string_create(i32 0, i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0))
   %0 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
   %1 = call { double, %String* }* @Microsoft__Quantum__Testing__QIR__Energy__body(double 0.000000e+00, %String* %0)
   %res = alloca { double, %String* }*, align 8
@@ -57,7 +57,7 @@ fixup__1:                                         ; preds = %until__1
   br i1 %15, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %fixup__1
-  %16 = call %String* @__quantum__rt__string_create(i32 19, i8* getelementptr inbounds ([20 x i8], [20 x i8]* @1, i32 0, i32 0))
+  %16 = call %String* @__quantum__rt__string_create(i32 0, i8* getelementptr inbounds ([20 x i8], [20 x i8]* @1, i32 0, i32 0))
   %17 = load %String*, %String** %3, align 8
   %18 = load %String*, %String** %8, align 8
   %19 = load { double, %String* }*, { double, %String* }** %res, align 8

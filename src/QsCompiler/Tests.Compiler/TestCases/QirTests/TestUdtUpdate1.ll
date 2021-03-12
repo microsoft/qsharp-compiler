@@ -43,7 +43,7 @@ condFalse__1:                                     ; preds = %entry
 condContinue__1:                                  ; preds = %condFalse__1, %entry
   store { double, %String* }* %19, { double, %String* }** %14, align 8
   %20 = getelementptr inbounds { double, %String* }, { double, %String* }* %19, i32 0, i32 1
-  %21 = call %String* @__quantum__rt__string_create(i32 5, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
+  %21 = call %String* @__quantum__rt__string_create(i32 0, i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__string_update_reference_count(%String* %21, i64 1)
   %22 = load %String*, %String** %20, align 8
   br i1 %12, label %condContinue__2, label %condFalse__2

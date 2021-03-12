@@ -1,4 +1,4 @@
-define %String* @Microsoft__Quantum__Testing__QIR__TestOpArgument__body() #0 {
+define %String* @Microsoft__Quantum__Testing__QIR__TestOpArgument__body() {
 entry:
   %q1 = call %Qubit* @__quantum__rt__qubit_allocate()
   %q2 = call %Qubit* @__quantum__rt__qubit_allocate()

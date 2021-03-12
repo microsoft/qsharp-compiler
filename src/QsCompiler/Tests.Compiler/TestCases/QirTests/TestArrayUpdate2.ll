@@ -39,7 +39,7 @@ body__2:                                          ; preds = %header__2
   br i1 %10, label %condTrue__1, label %condFalse__1
 
 condTrue__1:                                      ; preds = %body__2
-  %11 = call %String* @__quantum__rt__string_create(i32 3, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0))
+  %11 = call %String* @__quantum__rt__string_create(i32 0, i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0))
   br label %condContinue__1
 
 condFalse__1:                                     ; preds = %body__2

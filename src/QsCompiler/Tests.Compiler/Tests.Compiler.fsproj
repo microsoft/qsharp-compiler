@@ -21,11 +21,11 @@
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
-    <Content Include="..\..\..\examples\QIR\QirCore.qs" Link="TestCases\QirTests\QirCore.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Include="TestCases\QirTests\QirCore.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="..\..\..\examples\QIR\QirTarget.qs" Link="TestCases\QirTests\QirTarget.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    <Content Include="TestCases\QirTests\QirTarget.qs">
+        <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestAliasCounts.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

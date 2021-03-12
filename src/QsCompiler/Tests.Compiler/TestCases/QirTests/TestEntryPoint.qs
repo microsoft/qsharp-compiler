@@ -1,20 +1,22 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.Testing.QIR
-{
-    //open Microsoft.Quantum.Intrinsic;
+namespace Microsoft.Quantum.Testing.QIR {
 
     @EntryPoint()
-    operation TestEntryPoint(a : Double[], b : Bool) : Double
-    {
+    operation TestEntryPoint(
+        arr : Pauli[], str : String, res : Result, range : Range, (cnt : Int, b : Bool))
+    : (Pauli[], String, Result, Range, (Int, Bool)) {
+
         mutable sum = 0.0;
         mutable flag = b;
-        for (i in a)
+        for pauli in arr
         {
-            set sum = sum + (flag ? i | -i);
+            let value = pauli == PauliI ? 0. | 1.;
+            set sum = sum + (flag ? value | -value);
             set flag = not flag;
         }
-        return sum;
+
+        return (arr, str, res, range, (cnt, b));
     }
 }
