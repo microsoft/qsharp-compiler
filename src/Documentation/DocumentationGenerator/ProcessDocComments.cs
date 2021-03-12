@@ -107,7 +107,15 @@ namespace Microsoft.Quantum.Documentation
                     // Concatenate everything into one documentation comment.
                     var comment = new DocComment(
                         ns.Documentation.SelectMany(group => group).SelectMany(comments => comments));
-                    this.writer?.WriteOutput(ns, comment)?.Wait();
+                    if (ns.Elements.Any(element => element switch
+                        {
+                            QsNamespaceElement.QsCallable { Item: var callable } => callable.Access.IsPublic,
+                            QsNamespaceElement.QsCustomType { Item: var type } => type.Access.IsPublic,
+                            _ => false
+                        }))
+                    {
+                        this.writer?.WriteOutput(ns, comment)?.Wait();
+                    }
                 }
 
                 return ns;
@@ -141,7 +149,10 @@ namespace Microsoft.Quantum.Documentation
                     range: null, // TODO: provide more exact locations once supported by DocParser.
                     source: type.Source.AssemblyOrCodeFile);
 
-                this.writer?.WriteOutput(type, docComment)?.Wait();
+                if (type.Access.IsPublic)
+                {
+                    this.writer?.WriteOutput(type, docComment)?.Wait();
+                }
 
                 return type
                     .AttributeBuilder()
@@ -195,7 +206,10 @@ namespace Microsoft.Quantum.Documentation
                     range: null, // TODO: provide more exact locations once supported by DocParser.
                     source: callable.Source.AssemblyOrCodeFile);
 
-                this.writer?.WriteOutput(callable, docComment)?.Wait();
+                if (callable.Access.IsPublic)
+                {
+                    this.writer?.WriteOutput(callable, docComment)?.Wait();
+                }
 
                 return callable
                     .AttributeBuilder()

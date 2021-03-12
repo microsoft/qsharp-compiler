@@ -247,7 +247,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let comments = c.Comments
 
         QsCallable.New c.Kind (source, loc)
-        |> Node.BuildOr c (c.FullName, attributes, c.Modifiers, argTuple, signature, specializations, doc, comments)
+        |> Node.BuildOr c (c.FullName, attributes, c.Access, argTuple, signature, specializations, doc, comments)
 
     abstract OnOperation: QsCallable -> QsCallable
     default this.OnOperation c = this.OnCallableKind c
@@ -278,7 +278,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         let comments = t.Comments
 
         QsCustomType.New(source, loc)
-        |> Node.BuildOr t (t.FullName, attributes, t.Modifiers, typeItems, underlyingType, doc, comments)
+        |> Node.BuildOr t (t.FullName, attributes, t.Access, typeItems, underlyingType, doc, comments)
 
 
     // transformation roots called on each namespace or namespace element

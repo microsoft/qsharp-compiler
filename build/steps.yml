@@ -1,29 +1,17 @@
 steps:
-- template: init.yml
-
-
-- script: dotnet tool run fantomas -- --check --recurse .
-  displayName: "Check style"
-
-
 - pwsh: ./build.ps1
   displayName: "Build all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
-
 
 - pwsh: ./test.ps1
   displayName: "Test all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
-
 - pwsh: ./pack.ps1
   displayName: "Pack NuGets and VS Code"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
-
-##
-# VisualStudio Extension can't be built from the build script as msbuild is not available).
-##
+# Visual Studio extension can't be built from the build script as MSBuild is not available.
 - task: VSBuild@1
   displayName: 'Pack VisualStudio extension'
   condition: and(succeeded(), ne(variables['Enable.VSIX'], 'false'))
@@ -34,10 +22,7 @@ steps:
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
 
-
 - pwsh: ./manifest.ps1
   displayName: "List built packages & assemblies"
-  workingDirectory: '$(System.DefaultWorkingDirectory)/build'
   condition: succeededOrFailed()
-
-- template: wrap-up.yml
+  workingDirectory: '$(System.DefaultWorkingDirectory)/build'

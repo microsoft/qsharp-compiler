@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.Serialization
 
+#nowarn "44" // AccessModifier and Modifiers are deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -238,7 +240,6 @@ type private QsSpecializationConverter() =
 
         serializer.Serialize(writer, schema)
 
-
 /// <summary>
 /// The schema for <see cref="QsCallable"/> that is used with JSON serialization.
 /// </summary>
@@ -280,7 +281,7 @@ type private QsCallableConverter() =
             Kind = schema.Kind
             FullName = schema.FullName
             Attributes = schema.Attributes
-            Modifiers = schema.Modifiers
+            Access = schema.Modifiers.Access |> AccessModifier.toAccess Public
             Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             Signature = schema.Signature
@@ -296,7 +297,7 @@ type private QsCallableConverter() =
                 Kind = value.Kind
                 FullName = value.FullName
                 Attributes = value.Attributes
-                Modifiers = value.Modifiers
+                Modifiers = { Access = AccessModifier.ofAccess value.Access }
                 SourceFile = value.Source.CodeFile
                 Location = value.Location
                 Signature = value.Signature
@@ -345,7 +346,7 @@ type private QsCustomTypeConverter() =
         {
             FullName = schema.FullName
             Attributes = schema.Attributes
-            Modifiers = schema.Modifiers
+            Access = schema.Modifiers.Access |> AccessModifier.toAccess Public
             Source = { CodeFile = schema.SourceFile; AssemblyFile = Null }
             Location = schema.Location
             Type = schema.Type
@@ -359,7 +360,7 @@ type private QsCustomTypeConverter() =
             {
                 FullName = value.FullName
                 Attributes = value.Attributes
-                Modifiers = value.Modifiers
+                Modifiers = { Access = AccessModifier.ofAccess value.Access }
                 SourceFile = value.Source.CodeFile
                 Location = value.Location
                 Type = value.Type
@@ -407,19 +408,19 @@ type DictionaryAsArrayResolver() =
 
 module Json =
 
-    let Converters ignoreSerializationException =
+    let Converters ignoreSerializationException: JsonConverter [] =
         [|
-            new PositionConverter() :> JsonConverter
-            new RangeConverter() :> JsonConverter
-            new QsNullableLocationConverter(ignoreSerializationException) :> JsonConverter
-            new ResolvedTypeConverter(ignoreSerializationException) :> JsonConverter
-            new ResolvedCharacteristicsConverter(ignoreSerializationException) :> JsonConverter
-            new TypedExpressionConverter() :> JsonConverter
-            new ResolvedInitializerConverter() :> JsonConverter
-            new QsSpecializationConverter() :> JsonConverter
-            new QsCallableConverter() :> JsonConverter
-            new QsCustomTypeConverter() :> JsonConverter
-            new QsNamespaceConverter() :> JsonConverter
+            PositionConverter()
+            RangeConverter()
+            QsNullableLocationConverter ignoreSerializationException
+            ResolvedTypeConverter ignoreSerializationException
+            ResolvedCharacteristicsConverter ignoreSerializationException
+            TypedExpressionConverter()
+            ResolvedInitializerConverter()
+            QsSpecializationConverter()
+            QsCallableConverter()
+            QsCustomTypeConverter()
+            QsNamespaceConverter()
         |]
 
     /// Creates a serializer using the given converters.
