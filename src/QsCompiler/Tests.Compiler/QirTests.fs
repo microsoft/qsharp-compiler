@@ -140,7 +140,7 @@ let ``QIR bigints`` () = qirTest false "TestBigInts"
 
 [<Fact>]
 let ``QIR controlled partial applications`` () =
-    qirMultiTest true "TestControlled" [ "TestControlled1"; "TestControlled2"; "TestControlled3" ]
+    qirMultiTest true "TestControlled" [ "TestControlled1"; "TestControlled2" ]
 
 [<Fact>]
 let ``QIR entry points`` () = qirTest false "TestEntryPoint"
@@ -182,7 +182,8 @@ let ``QIR strings`` () = qirTest false "TestStrings"
 let ``QIR scoping`` () = qirTest false "TestScoping"
 
 [<Fact>]
-let ``QIR conditionals`` () = qirTest false "TestConditional"
+let ``QIR conditionals`` () =
+    qirMultiTest false "TestConditional" [ "TestConditional1"; "TestConditional2"; "TestConditional3" ]
 
 [<Fact>]
 let ``QIR expressions`` () = qirTest false "TestExpressions"

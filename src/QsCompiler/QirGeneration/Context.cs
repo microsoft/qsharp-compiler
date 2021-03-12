@@ -49,38 +49,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal readonly string BaseName;
 
             /// <summary>
-            /// The first item contains the array type, and the second item contains the array count name.
+            /// The first item contains the array element type, and the second item contains the array count name.
             /// If <see cref="arrayInfo"/> is not null, then <see cref="structInfo"/> is null.
             /// </summary>
-            private readonly (ITypeRef, string)? arrayInfo;
-
-            /// <summary>
-            /// Contains the struct type.
-            /// If <see cref="structInfo"/> is not null, then <see cref="arrayInfo"/> is null.
-            /// </summary>
-            private readonly ITypeRef? structInfo;
+            private readonly (ResolvedType, string)? arrayInfo;
 
             internal bool IsArray => this.arrayInfo != null;
-            internal ITypeRef ArrayType => this.arrayInfo?.Item1 ?? throw new InvalidOperationException("not an array");
+            internal ResolvedType ArrayElementType => this.arrayInfo?.Item1 ?? throw new InvalidOperationException("not an array");
             internal string ArrayCountName => this.arrayInfo?.Item2 ?? throw new InvalidOperationException("not an array");
 
-            internal bool IsStruct => this.structInfo != null;
-            internal ITypeRef StructType => this.structInfo ?? throw new InvalidOperationException("not a struct");
-
-            private ArgMapping(string baseName, (ITypeRef, string)? arrayInfo = null, ITypeRef? structInfo = null)
+            private ArgMapping(string baseName, (ResolvedType, string)? arrayInfo = null)
             {
                 this.BaseName = baseName;
                 this.arrayInfo = arrayInfo;
-                this.structInfo = structInfo;
             }
 
             internal static ArgMapping Create(string baseName) =>
                 new ArgMapping(baseName);
 
-            internal ArgMapping WithArrayInfo(ITypeRef arrayType, string arrayCountName) =>
-                new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
-
-            internal ArgMapping WithStructInfo(ITypeRef arrayType, string arrayCountName) =>
+            internal ArgMapping WithArrayInfo(ResolvedType arrayType, string arrayCountName) =>
                 new ArgMapping(this.BaseName, arrayInfo: (arrayType, arrayCountName));
         }
 
@@ -194,7 +181,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #endregion
 
         /// <summary>
-        /// Constructs a new generation context.
+        /// Initializes a new instance of the <see cref="GenerationContext"/> class.
         /// Before using the constructed context, the following needs to be done:
         /// 1.) the transformation needs to be set by calling <see cref="SetTransformation"/>,
         /// 2.) the runtime library needs to be initialized by calling <see cref="InitializeRuntimeLibrary"/>, and
@@ -267,14 +254,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             namespaceName.Replace(".", "__");
 
         /// <summary>
+        /// Generates a suitable name for and entry point.
+        /// </summary>
+        /// <param name="fullName">The entry point's qualified name.</param>
+        internal static string EntryPointName(QsQualifiedName fullName) =>
+            $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}";
+
+        /// <summary>
         /// Generates a mangled name for a callable specialization.
         /// QIR mangled names are the namespace name, with periods replaced by double underscores, followed
         /// by a double underscore and the callable name, then another double underscore and the name of the
         /// callable kind ("body", "adj", "ctl", or "ctladj").
         /// </summary>
-        /// <param name="fullName">The callable's qualified name</param>
-        /// <param name="kind">The specialization kind</param>
-        /// <returns>The mangled name for the specialization</returns>
+        /// <param name="fullName">The callable's qualified name.</param>
+        /// <param name="kind">The specialization kind.</param>
+        /// <returns>The mangled name for the specialization.</returns>
         public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind)
         {
             var suffix = InferTargetInstructions.SpecializationSuffix(kind).ToLowerInvariant();
@@ -285,10 +279,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Generates a mangled name for a callable specialization wrapper.
         /// Wrapper names are the mangled specialization name followed by double underscore and "wrapper".
         /// </summary>
-        /// <param name="namespaceName">The namespace of the Q# callable.</param>
-        /// <param name="name">The unqualified name of the Q# callable.</param>
-        /// <param name="kind">The specialization kind</param>
-        /// <returns>The mangled name for the wrapper</returns>
+        /// <param name="kind">The specialization kind.</param>
+        /// <returns>The mangled name for the wrapper.</returns>
         public static string FunctionWrapperName(QsQualifiedName fullName, QsSpecializationKind kind) =>
             $"{FunctionName(fullName, kind)}__wrapper";
 
@@ -453,7 +445,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var existing = new[]
             {
                 File.Exists(fileName) ? fileName : null,
-                generateInteropWrappers && File.Exists(bridgeFile) ? bridgeFile : null
+                generateInteropWrappers && File.Exists(bridgeFile) ? bridgeFile : null,
             };
 
             if (!overwrite && existing.Any(s => s != null))
@@ -473,6 +465,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new IOException(errorMessage);
             }
+
+            var bitcodeFileName = Path.ChangeExtension(fileName, "bc");
+            this.Module.WriteToFile(bitcodeFileName);
 
             // Generate the wrappers for the runtime library that were used, if requested
             if (generateInteropWrappers)
@@ -499,6 +494,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     throw new IOException(bridgeError);
                 }
+
+                var bitcodeBridgeFile = Path.ChangeExtension(bridgeFile, "bc");
+                this.InteropModule.WriteToFile(bitcodeBridgeFile);
             }
         }
 
@@ -514,15 +512,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // Unfortunately this is different enough from all of the other type mapping we do to require
             // an actual different routine. Blech...
-            bool MapType(ArgumentTuple t, List<ITypeRef> typeList, List<string> nameList, List<ArgMapping> mappingList)
+            IEnumerable<ITypeRef> MapType(ArgumentTuple t, List<string> nameList, List<ArgMapping> mappingList)
             {
-                bool changed = false;
-
                 if (t is ArgumentTuple.QsTuple tuple)
                 {
-                    foreach (ArgumentTuple inner in tuple.Item)
+                    foreach (var inner in tuple.Item)
                     {
-                        changed |= MapType(inner, typeList, nameList, mappingList);
+                        foreach (var mapped in MapType(inner, nameList, mappingList))
+                        {
+                            yield return mapped;
+                        }
                     }
                 }
                 else if (t is ArgumentTuple.QsTupleItem item && item.Item.VariableName is QsLocalSymbol.ValidName varName)
@@ -531,56 +530,49 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var map = ArgMapping.Create(baseName);
                     switch (item.Item.Type.Resolution)
                     {
-                        case ResolvedTypeKind.ArrayType array:
-                            // TODO: Handle multidimensional arrays
-                            // TODO: Handle arrays of structs
-                            typeList.Add(this.Context.Int64Type);
-                            var elementTypeRef = this.LlvmTypeFromQsharpType(array.Item);
-                            typeList.Add(elementTypeRef.CreatePointerType());
+                        case ResolvedTypeKind.ArrayType elementType:
+                            yield return this.Context.Int64Type;
+                            var elementTypeRef = this.LlvmTypeFromQsharpType(elementType.Item);
+                            yield return elementTypeRef.CreatePointerType();
                             var arrayCountName = $"{baseName}__count";
                             nameList.Add(arrayCountName);
                             nameList.Add(baseName);
-                            map = map.WithArrayInfo(elementTypeRef, arrayCountName);
-                            changed = true;
+                            map = map.WithArrayInfo(elementType.Item, arrayCountName);
                             mappingList.Add(map);
                             break;
-                        case ResolvedTypeKind.TupleType _:
-                            // TODO: Handle structs
-                            break;
                         default:
-                            typeList.Add(this.LlvmTypeFromQsharpType(item.Item.Type));
+                            yield return this.LlvmTypeFromQsharpType(item.Item.Type);
                             nameList.Add(baseName);
                             mappingList.Add(map);
                             break;
                     }
                 }
-                return changed;
             }
 
             if (this.TryGetFunction(qualifiedName, QsSpecializationKind.QsBody, out IrFunction? func)
                 && this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable))
             {
-                var epName = $"{qualifiedName.Namespace.Replace(".", "__")}__{qualifiedName.Name}";
+                var entryPointName = EntryPointName(qualifiedName);
+                var entryPointAttribute = this.Context.CreateAttribute(AttributeNames.EntryPoint);
 
-                // Check to see if the arg list needs mapping to more C-friendly types
-                // TODO: handle complicated return types
-                var mappedArgList = new List<ITypeRef>();
+                // Check to see if the arg list needs mapping to interop-friendly types
                 var mappedNameList = new List<string>();
                 var mappingList = new List<ArgMapping>();
-                var arraysToReleaseList = new List<Value>();
                 var mappedResultType = this.MapToInteropType(func.ReturnType);
-                if (MapType(callable.ArgumentTuple, mappedArgList, mappedNameList, mappingList) ||
-                    (mappedResultType != func.ReturnType))
+                var mappedArgList = MapType(callable.ArgumentTuple, mappedNameList, mappingList);
+
+                var entryPointType = this.Context.GetFunctionType(mappedResultType, mappedArgList);
+                if (!entryPointType.Equals(func.Signature))
                 {
                     this.StartFunction();
-                    var epFunc = this.Module.CreateFunction(epName, this.Context.GetFunctionType(mappedResultType, mappedArgList));
+                    this.CurrentFunction = this.Module.CreateFunction(entryPointName, entryPointType);
                     var namedValues = new Dictionary<string, Value>();
                     for (var i = 0; i < mappedNameList.Count; i++)
                     {
-                        epFunc.Parameters[i].Name = mappedNameList[i];
-                        namedValues[epFunc.Parameters[i].Name] = epFunc.Parameters[i];
+                        this.CurrentFunction.Parameters[i].Name = mappedNameList[i];
+                        namedValues[this.CurrentFunction.Parameters[i].Name] = this.CurrentFunction.Parameters[i];
                     }
-                    var entryBlock = epFunc.AppendBasicBlock("entry");
+                    var entryBlock = this.CurrentFunction.AppendBasicBlock("entry");
                     this.SetCurrentBlock(entryBlock);
 
                     // Build the argument list for the inner function
@@ -589,31 +581,45 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         if (mapping.IsArray)
                         {
-                            var elementSize64 = this.ComputeSizeForType(mapping.ArrayType);
-                            var elementSize = this.CurrentBuilder.IntCast(elementSize64, this.Context.Int32Type, false);
                             var length = namedValues[mapping.ArrayCountName];
-                            var array = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d), elementSize, length);
-                            argValueList.Add(array);
-                            arraysToReleaseList.Add(array);
-                            // Fill in the array if the length is >0. Since the QIR array is new, we assume we can use memcpy.
-                            var copyBlock = epFunc.AppendBasicBlock("copy");
-                            var nextBlock = epFunc.AppendBasicBlock("next");
+                            ArrayValue array = this.Values.CreateArray(length, mapping.ArrayElementType);
+                            argValueList.Add(array.OpaquePointer);
+
+                            // Fill in the array if the length is >0.
+                            // Since the QIR array is new, we assume we can use memcpy. // FIXME: THIS ASSUMPTION IS NOT VALID EITHER...!
+                            var copyBlock = this.CurrentFunction.AppendBasicBlock("copy");
+                            var nextBlock = this.CurrentFunction.AppendBasicBlock("next");
                             var cond = this.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, length, this.Context.CreateConstant(0L));
                             this.CurrentBuilder.Branch(cond, copyBlock, nextBlock);
 
-                            this.CurrentBuilder = new InstructionBuilder(copyBlock);
-                            var destBase = this.CurrentBuilder.Call(this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d), array, this.Context.CreateConstant(0L));
-                            this.CurrentBuilder.MemCpy(
-                                destBase,
-                                namedValues[mapping.BaseName],
-                                this.CurrentBuilder.Mul(length, this.CurrentBuilder.IntCast(elementSize, this.Context.Int64Type, true)),
-                                false);
+                            this.SetCurrentBlock(copyBlock);
+                            var getArrayItem = this.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
+
+                            var givenArray = namedValues[mapping.BaseName];
+                            var givenArrayPtr = this.CurrentBuilder.PointerToInt(givenArray, this.Context.Int64Type);
+                            var givenArrElementType = Types.PointerElementType(givenArray);
+                            var givenArrElementSize = this.ComputeSizeForType(givenArrElementType);
+
+                            ////
+                            // We need to populate the array
+                            var start = this.Context.CreateConstant(0L);
+                            var end = this.CurrentBuilder.Sub(array.Length, this.Context.CreateConstant(1L));
+                            void PopulateItem(Value index)
+                            {
+                                // We need to make sure that the reference count for the built item is increased by 1.
+                                var arrayElementType = this.LlvmTypeFromQsharpType(mapping.ArrayElementType);
+                                var offset = this.CurrentBuilder.Mul(index, givenArrElementSize);
+                                var elementPointer = this.CurrentBuilder.Add(givenArrayPtr, offset);
+
+                                var loaded = this.CurrentBuilder.Load(arrayElementType, this.CurrentBuilder.IntToPointer(elementPointer, (IPointerType)givenArray.NativeType));
+                                var element = this.Values.From(loaded, mapping.ArrayElementType); // FIXME: THIS IS NOT CORRECT IF WE HAVE ARRAY OF ARRAY
+                                array.GetArrayElementPointer(index).StoreValue(element);
+                            }
+                            this.IterateThroughRange(start, null, end, PopulateItem);
+                            ////
+
                             this.CurrentBuilder.Branch(nextBlock);
                             this.SetCurrentBlock(nextBlock);
-                        }
-                        else if (mapping.IsStruct)
-                        {
-                            // TODO: map structures
                         }
                         else
                         {
@@ -622,34 +628,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     Value result = this.CurrentBuilder.Call(func, argValueList);
-                    // TODO: release array
-
-                    if (func.ReturnType.IsVoid)
-                    {
-                        this.CurrentBuilder.Return();
-                    }
-                    else
-                    {
-                        if (mappedResultType != func.ReturnType)
-                        {
-                            result = this.CurrentBuilder.BitCast(result, mappedResultType);
-                        }
-                        this.CurrentBuilder.Return(result);
-                    }
+                    var mappedResult = mappedResultType.IsVoid || mappedResultType == func.ReturnType
+                        ? this.Values.From(result, callable.Signature.ReturnType)
+                        // FIME: WHY WOULD THAT BE OK; WE NEED TO DO THE SAME TRANSLATION AS FOR THE INPUT...
+                        : this.Values.From(this.CurrentBuilder.BitCast(result, mappedResultType), callable.Signature.ReturnType); // FIXME: NOT CORRECT
+                    this.AddReturn(mappedResult, mappedResultType.IsVoid);
+                    this.EndFunction();
 
                     // Mark the function as an entry point
-                    epFunc.AddAttributeAtIndex(
-                        FunctionAttributeIndex.Function,
-                        this.Context.CreateAttribute("EntryPoint"));
+                    this.CurrentFunction.AddAttributeAtIndex(FunctionAttributeIndex.Function, entryPointAttribute);
                 }
                 else
                 {
-                    this.Module.AddAlias(func, epName).Linkage = Linkage.External;
+                    this.Module.AddAlias(func, entryPointName).Linkage = Linkage.External;
                     // Mark the function as an entry point
-                    func.AddAttributeAtIndex(
-                        FunctionAttributeIndex.Function,
-                        this.Context.CreateAttribute("EntryPoint"));
+                    func.AddAttributeAtIndex(FunctionAttributeIndex.Function, entryPointAttribute);
                 }
+            }
+            else
+            {
+                throw new ArgumentException("no function with that name exists");
             }
         }
 
@@ -760,7 +758,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // todo: Currently, e.g. void (this.Context.VoidType) is not covered,
             // and for some reason we end up with i8* here as well. It would be good to cover everything and throw if something is not covered.
 
-            if ((typeName != "") && this.Config.InteropTypeMapping.TryGetValue(typeName, out string replacementName))
+            if ((typeName != string.Empty) && this.Config.InteropTypeMapping.TryGetValue(typeName, out string replacementName))
             {
                 if (this.interopType.TryGetValue(typeName, out ITypeRef interopType))
                 {
@@ -804,8 +802,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
         /// </summary>
-        /// <param name="nsName">The callable's namespace</param>
-        /// <param name="name">The callable's name</param>
         /// <param name="callable">The Q# callable, if found</param>
         /// <returns>true if the callable is found, false if not</returns>
         internal bool TryGetGlobalCallable(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCallable callable) =>
@@ -814,8 +810,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Tries to find a Q# user-defined type in the current compilation.
         /// </summary>
-        /// <param name="nsName">The UDT's namespace</param>
-        /// <param name="name">The UDT's name</param>
         /// <param name="udt">The Q# UDT< if found</param>
         /// <returns>true if the UDT is found, false if not</returns>
         internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
@@ -856,33 +850,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("the current function or the current block is null");
             }
 
-            bool HasAPredecessor(BasicBlock block)
-            {
-                foreach (var b in this.CurrentFunction.BasicBlocks)
-                {
-                    if ((b != block) && (b.Terminator != null))
-                    {
-                        var term = b.Terminator;
-                        if (term is Branch br)
-                        {
-                            if (br.Successors.Contains(block))
-                            {
-                                return true;
-                            }
-                        }
-                    }
-                }
-                return false;
-            }
-
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
 
-            if (!HasAPredecessor(this.CurrentBlock)
-                && this.CurrentFunction.BasicBlocks.Count > 1)
-            {
-                this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
-            }
-            else if (this.CurrentBlock.Terminator == null)
+            if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
             {
                 this.CurrentBuilder.Return();
             }
@@ -932,7 +902,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// generated as declarations with no definition.
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function</param>
-        /// <param name="argTuple">The specialization's argument tuple</param>
         internal IrFunction RegisterFunction(QsSpecialization spec)
         {
             var name = FunctionName(spec.Parent, spec.Kind);
@@ -1005,6 +974,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     throw new InvalidOperationException("number of function parameters does not match argument");
                 }
+
                 var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
                 var innerTuple = this.Values.CreateTuple(tupleItems);
                 var name = outerArgItems[0].Item1;
@@ -1067,7 +1037,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Generates the default constructor for a Q# user-defined type.
         /// This routine generates all the code for the constructor, not just the header.
         /// </summary>
-        /// <param name="udt">The Q# user-defined type</param>
         internal void GenerateConstructor(QsSpecialization spec, ArgumentTuple argTuple)
         {
             this.GenerateFunctionHeader(spec, argTuple, deconstuctArgument: false);
@@ -1110,11 +1079,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Tries to get the QIR function for a Q# specialization by name so it can be called.
         /// If the function hasn't been generated yet, false is returned.
         /// </summary>
-        /// <param name="namespaceName">The callable's namespace</param>
-        /// <param name="name">The Q# callable's name</param>
-        /// <param name="kind">The Q# specialization kind</param>
-        /// <param name="function">Gets filled in with the LLVM function object if it exists already</param>
-        /// <returns>true if the function has already been declared/defined, or false otherwise</returns>
+        /// <param name="callableName">The name of the Q# callable.</param>
+        /// <param name="kind">The Q# specialization kind.</param>
+        /// <param name="function">Gets filled in with the LLVM function object if it exists already.</param>
+        /// <returns>true if the function has already been declared/defined, or false otherwise.</returns>
         private bool TryGetFunction(QsQualifiedName callableName, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
         {
             var fullName = FunctionName(callableName, kind);
@@ -1125,9 +1093,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Gets the QIR function for a Q# specialization by name so it can be called.
         /// If the function hasn't been generated yet, its declaration is generated so that it can be called.
         /// </summary>
-        /// <param name="namespaceName">The callable's namespace</param>
-        /// <param name="name">The Q# callable's name</param>
-        /// <param name="kind">The Q# specialization kind</param>
         /// <returns>The LLVM object for the corresponding LLVM function</returns>
         internal IrFunction GetFunctionByName(QsQualifiedName fullName, QsSpecializationKind kind)
         {
@@ -1266,11 +1231,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             TupleValue GetArgumentTuple(ResolvedType type, Value argTuple)
             {
-                var itemTypes =
-                    type.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
-                    type.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
-                    ImmutableArray.Create(type);
-                return this.Values.FromTuple(argTuple, itemTypes);
+                if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
+                {
+                    return this.Values.FromCustomType(argTuple, udt.Item);
+                }
+                else
+                {
+                    var itemTypes =
+                        type.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
+                        type.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
+                        ImmutableArray.Create(type);
+                    return this.Values.FromTuple(argTuple, itemTypes);
+                }
             }
 
             // result value contains the return value, and output tuple is the tuple where that value should be stored
@@ -1299,19 +1271,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, List<Value> args)
+            Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
             {
                 if (TryGetTargetInstructionName(callable, out var name))
                 {
                     var func = this.GetOrCreateTargetInstruction(name);
                     return specKind == QsSpecializationKind.QsBody
-                        ? this.CurrentBuilder.Call(func, args.ToArray())
+                        ? this.CurrentBuilder.Call(func, args)
                         : throw new ArgumentException($"non-body specialization for target instruction");
                 }
                 else
                 {
                     return this.TryGetFunction(callable.FullName, specKind, out IrFunction? func)
-                        ? this.CurrentBuilder.Call(func, args.ToArray())
+                        ? this.CurrentBuilder.Call(func, args)
                         : throw new InvalidOperationException($"No function defined for {callable.FullName} {specKind}");
                 }
             }
@@ -1343,8 +1315,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, parameters =>
                         {
                             var argTuple = GetArgumentTuple(spec.Signature.ArgumentType, parameters[1]);
-                            var argList = new List<Value>(argTuple.GetTupleElements().Select(qirValue => qirValue.Value));
-                            var result = GenerateBaseMethodCall(callable, spec.Kind, argList);
+                            var args = spec.Signature.ArgumentType.Resolution.IsUserDefinedType
+                                ? new[] { argTuple.TypedPointer }
+                                : argTuple.GetTupleElements().Select(qirValue => qirValue.Value).ToArray();
+                            var result = GenerateBaseMethodCall(callable, spec.Kind, args);
                             PopulateResultTuple(callable.Signature.ReturnType, result, parameters[2]);
                         });
                     }
@@ -1560,7 +1534,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Iterates through the given array and executes the given action on each element.
         /// The action is executed within its own scope.
         /// </summary>
-        /// <param name="elementType">The type of an array item</param>
         /// <param name="array">The array to iterate over</param>
         /// <param name="executeBody">The action to perform on each item</param>
         internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)

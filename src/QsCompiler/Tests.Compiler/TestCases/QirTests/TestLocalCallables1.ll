@@ -4,7 +4,7 @@ entry:
   %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
   %1 = bitcast i8* %0 to %Callable**
   %2 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__DoNothing, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
-  store %Callable* %2, %Callable** %1
+  store %Callable* %2, %Callable** %1, align 8
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %entry
@@ -15,7 +15,7 @@ header__1:                                        ; preds = %exiting__1, %entry
 body__1:                                          ; preds = %header__1
   %5 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 %3)
   %6 = bitcast i8* %5 to %Callable**
-  %7 = load %Callable*, %Callable** %6
+  %7 = load %Callable*, %Callable** %6, align 8
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %7, i64 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %7, i64 1)
   br label %exiting__1
@@ -28,14 +28,14 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__array_update_alias_count(%Array* %arr, i64 1)
   %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
   %10 = bitcast i8* %9 to %Callable**
-  %11 = load %Callable*, %Callable** %10
+  %11 = load %Callable*, %Callable** %10, align 8
   %12 = call %Callable* @__quantum__rt__callable_copy(%Callable* %11, i1 false)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %12, i64 1)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %12)
   call void @__quantum__rt__callable_invoke(%Callable* %12, %Tuple* null, %Tuple* null)
   %13 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
   %14 = bitcast i8* %13 to %Callable**
-  %15 = load %Callable*, %Callable** %14
+  %15 = load %Callable*, %Callable** %14, align 8
   %16 = call %Callable* @__quantum__rt__callable_copy(%Callable* %15, i1 false)
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %16, i64 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %16)
@@ -44,12 +44,12 @@ exit__1:                                          ; preds = %header__1
   %19 = getelementptr inbounds { %Array*, %Tuple* }, { %Array*, %Tuple* }* %18, i32 0, i32 0
   %20 = getelementptr inbounds { %Array*, %Tuple* }, { %Array*, %Tuple* }* %18, i32 0, i32 1
   %21 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
-  store %Array* %21, %Array** %19
-  store %Tuple* null, %Tuple** %20
+  store %Array* %21, %Array** %19, align 8
+  store %Tuple* null, %Tuple** %20, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %16, %Tuple* %17, %Tuple* null)
   %22 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
   %23 = bitcast i8* %22 to %Callable**
-  %24 = load %Callable*, %Callable** %23
+  %24 = load %Callable*, %Callable** %23, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %24, %Tuple* null, %Tuple* null)
   %fct = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnTuple, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %fct, i64 1)
@@ -58,22 +58,22 @@ exit__1:                                          ; preds = %header__1
   %26 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %27 = bitcast %Tuple* %26 to { %String* }*
   %28 = getelementptr inbounds { %String* }, { %String* }* %27, i32 0, i32 0
-  store %String* %25, %String** %28
+  store %String* %25, %String** %28, align 8
   %29 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   call void @__quantum__rt__callable_invoke(%Callable* %fct, %Tuple* %26, %Tuple* %29)
   %30 = bitcast %Tuple* %29 to { %String*, { i64, double }* }*
   %31 = getelementptr inbounds { %String*, { i64, double }* }, { %String*, { i64, double }* }* %30, i32 0, i32 0
-  %str = load %String*, %String** %31
+  %str = load %String*, %String** %31, align 8
   %32 = getelementptr inbounds { %String*, { i64, double }* }, { %String*, { i64, double }* }* %30, i32 0, i32 1
-  %33 = load { i64, double }*, { i64, double }** %32
+  %33 = load { i64, double }*, { i64, double }** %32, align 8
   %34 = getelementptr inbounds { i64, double }, { i64, double }* %33, i32 0, i32 1
-  %val = load double, double* %34
+  %val = load double, double* %34, align 8
   %35 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %String*, double }* getelementptr ({ %String*, double }, { %String*, double }* null, i32 1) to i64))
   %36 = bitcast %Tuple* %35 to { %String*, double }*
   %37 = getelementptr inbounds { %String*, double }, { %String*, double }* %36, i32 0, i32 0
   %38 = getelementptr inbounds { %String*, double }, { %String*, double }* %36, i32 0, i32 1
-  store %String* %str, %String** %37
-  store double %val, double* %38
+  store %String* %str, %String** %37, align 8
+  store double %val, double* %38, align 8
   br label %header__2
 
 header__2:                                        ; preds = %exiting__2, %exit__1
@@ -84,7 +84,7 @@ header__2:                                        ; preds = %exiting__2, %exit__
 body__2:                                          ; preds = %header__2
   %41 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 %39)
   %42 = bitcast i8* %41 to %Callable**
-  %43 = load %Callable*, %Callable** %42
+  %43 = load %Callable*, %Callable** %42, align 8
   call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %43, i64 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %43, i64 -1)
   br label %exiting__2
@@ -107,7 +107,7 @@ header__3:                                        ; preds = %exiting__3, %exit__
 body__3:                                          ; preds = %header__3
   %47 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 %45)
   %48 = bitcast i8* %47 to %Callable**
-  %49 = load %Callable*, %Callable** %48
+  %49 = load %Callable*, %Callable** %48, align 8
   call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %49, i64 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %49, i64 -1)
   br label %exiting__3

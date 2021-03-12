@@ -2,7 +2,7 @@ define void @Microsoft__Quantum__Testing__QIR__TestAliasCounts__ctl(%Array* %__c
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 1)
   %1 = getelementptr inbounds { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i32 0, i32 0
-  %coefficients = load %Array*, %Array** %1
+  %coefficients = load %Array*, %Array** %1, align 8
   %2 = call i64 @__quantum__rt__array_get_size_1d(%Array* %coefficients)
   %3 = sub i64 %2, 1
   br label %header__1
@@ -15,7 +15,7 @@ header__1:                                        ; preds = %exiting__1, %entry
 body__1:                                          ; preds = %header__1
   %6 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %coefficients, i64 %4)
   %7 = bitcast i8* %6 to { double, double }**
-  %8 = load { double, double }*, { double, double }** %7
+  %8 = load { double, double }*, { double, double }** %7, align 8
   %9 = bitcast { double, double }* %8 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i64 1)
   br label %exiting__1
@@ -27,9 +27,9 @@ exiting__1:                                       ; preds = %body__1
 exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__array_update_alias_count(%Array* %coefficients, i64 1)
   %11 = getelementptr inbounds { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i32 0, i32 1
-  %qubits = load { %Array* }*, { %Array* }** %11
+  %qubits = load { %Array* }*, { %Array* }** %11, align 8
   %12 = getelementptr inbounds { %Array* }, { %Array* }* %qubits, i32 0, i32 0
-  %13 = load %Array*, %Array** %12
+  %13 = load %Array*, %Array** %12, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %13, i64 1)
   %14 = bitcast { %Array* }* %qubits to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 1)
@@ -38,9 +38,9 @@ exit__1:                                          ; preds = %header__1
   %17 = getelementptr inbounds { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i32 0, i32 0
   %18 = getelementptr inbounds { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i32 0, i32 1
   %19 = getelementptr inbounds { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i32 0, i32 2
-  store double 0.000000e+00, double* %17
-  store %Array* %coefficients, %Array** %18
-  store { %Array* }* %qubits, { %Array* }** %19
+  store double 0.000000e+00, double* %17, align 8
+  store %Array* %coefficients, %Array** %18, align 8
+  store { %Array* }* %qubits, { %Array* }** %19, align 8
   call void @Microsoft__Quantum__Testing__QIR__ApplyOp__ctl(%Array* %__controlQubits__, { double, %Array*, { %Array* }* }* %16)
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 -1)
   %20 = sub i64 %2, 1
@@ -54,7 +54,7 @@ header__2:                                        ; preds = %exiting__2, %exit__
 body__2:                                          ; preds = %header__2
   %23 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %coefficients, i64 %21)
   %24 = bitcast i8* %23 to { double, double }**
-  %25 = load { double, double }*, { double, double }** %24
+  %25 = load { double, double }*, { double, double }** %24, align 8
   %26 = bitcast { double, double }* %25 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %26, i64 -1)
   br label %exiting__2

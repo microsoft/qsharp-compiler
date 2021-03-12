@@ -9,9 +9,9 @@ entry:
   %4 = getelementptr inbounds { %Callable*, i2 }, { %Callable*, i2 }* %3, i32 0, i32 0
   %5 = getelementptr inbounds { %Callable*, i2 }, { %Callable*, i2 }* %3, i32 0, i32 1
   %6 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType2, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
-  %7 = load i2, i2* @PauliX
-  store %Callable* %6, %Callable** %4
-  store i2 %7, i2* %5
+  %7 = load i2, i2* @PauliX, align 1
+  store %Callable* %6, %Callable** %4, align 8
+  store i2 %7, i2* %5, align 1
   %8 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, [2 x void (%Tuple*, i64)*]* @MemoryManagement__1, %Tuple* %2)
   %udt2 = call { i2, i64 }* @Microsoft__Quantum__Testing__QIR_____GUID___Build__body(%Callable* %8)
   %9 = bitcast { i2, i64 }* %udt2 to %Tuple*
@@ -22,14 +22,14 @@ entry:
   %13 = getelementptr inbounds { %Callable*, i2, double }, { %Callable*, i2, double }* %11, i32 0, i32 1
   %14 = getelementptr inbounds { %Callable*, i2, double }, { %Callable*, i2, double }* %11, i32 0, i32 2
   %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType3, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
-  %16 = load i2, i2* @PauliX
-  store %Callable* %15, %Callable** %12
-  store i2 %16, i2* %13
-  store double 2.000000e+00, double* %14
+  %16 = load i2, i2* @PauliX, align 1
+  store %Callable* %15, %Callable** %12, align 8
+  store i2 %16, i2* %13, align 1
+  store double 2.000000e+00, double* %14, align 8
   %17 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__2, [2 x void (%Tuple*, i64)*]* @MemoryManagement__2, %Tuple* %10)
   %udt3 = call { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR_____GUID___Build__body(%Callable* %17)
   %18 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %udt3, i32 0, i32 0
-  %19 = load { i2, i64 }*, { i2, i64 }** %18
+  %19 = load { i2, i64 }*, { i2, i64 }** %18, align 8
   %20 = bitcast { i2, i64 }* %19 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %20, i64 1)
   %21 = bitcast { { i2, i64 }*, double }* %udt3 to %Tuple*
@@ -39,9 +39,9 @@ entry:
   %24 = getelementptr inbounds { i64, { i2, i64 }* }, { i64, { i2, i64 }* }* %23, i32 0, i32 0
   %25 = getelementptr inbounds { i64, { i2, i64 }* }, { i64, { i2, i64 }* }* %23, i32 0, i32 1
   %26 = getelementptr inbounds { i64 }, { i64 }* %udt1, i32 0, i32 0
-  %27 = load i64, i64* %26
-  store i64 %27, i64* %24
-  store { i2, i64 }* %udt2, { i2, i64 }** %25
+  %27 = load i64, i64* %26, align 4
+  store i64 %27, i64* %24, align 4
+  store { i2, i64 }* %udt2, { i2, i64 }** %25, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %1, i64 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i64 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %20, i64 -1)

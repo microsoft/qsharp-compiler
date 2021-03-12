@@ -4,7 +4,7 @@ entry:
   %q = call %Qubit* @__quantum__rt__qubit_allocate()
   call void @__quantum__qis__h__body(%Qubit* %q)
   %0 = call %Result* @__quantum__qis__mz(%Qubit* %q)
-  %1 = load %Result*, %Result** @ResultZero
+  %1 = load %Result*, %Result** @ResultZero, align 8
   %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
   br i1 %2, label %then0__1, label %continue__1
 
@@ -31,7 +31,7 @@ condFalse__1:                                     ; preds = %continue__1
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %exit__1
-  %pad = phi %Array* [ %6, %condTrue__1 ], [ %arr, %condFalse__1 ]
+  %pad = phi %Array* [ %6, %exit__1 ], [ %arr, %condFalse__1 ]
   call void @__quantum__rt__array_update_alias_count(%Array* %pad, i64 1)
   %7 = call i64 @__quantum__rt__array_get_size_1d(%Array* %pad)
   call void @__quantum__rt__array_update_alias_count(%Array* %arr, i64 -1)
@@ -47,7 +47,7 @@ header__1:                                        ; preds = %exiting__1, %condTr
 body__1:                                          ; preds = %header__1
   %10 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %6, i64 %8)
   %11 = bitcast i8* %10 to i64*
-  store i64 0, i64* %11
+  store i64 0, i64* %11, align 4
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1

@@ -1,8 +1,8 @@
 define %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate2__body(%Array* %array, %String* %even) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %array, i64 1)
-  %arr = alloca %Array*
-  store %Array* %array, %Array** %arr
+  %arr = alloca %Array*, align 8
+  store %Array* %array, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %array, i64 1)
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %array)
   %1 = sub i64 %0, 1
@@ -16,7 +16,7 @@ header__1:                                        ; preds = %exiting__1, %entry
 body__1:                                          ; preds = %header__1
   %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %array, i64 %2)
   %5 = bitcast i8* %4 to %String**
-  %6 = load %String*, %String** %5
+  %6 = load %String*, %String** %5, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %6, i64 1)
   br label %exiting__1
 
@@ -48,14 +48,14 @@ condFalse__1:                                     ; preds = %body__2
 
 condContinue__1:                                  ; preds = %condFalse__1, %condTrue__1
   %str = phi %String* [ %11, %condTrue__1 ], [ %even, %condFalse__1 ]
-  %12 = load %Array*, %Array** %arr
+  %12 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %12, i64 -1)
   %13 = call %Array* @__quantum__rt__array_copy(%Array* %12, i1 false)
   %14 = icmp ne %Array* %12, %13
   %15 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %13, i64 %i)
   %16 = bitcast i8* %15 to %String**
   call void @__quantum__rt__string_update_reference_count(%String* %str, i64 1)
-  %17 = load %String*, %String** %16
+  %17 = load %String*, %String** %16, align 8
   br i1 %14, label %condContinue__2, label %condFalse__2
 
 condFalse__2:                                     ; preds = %condContinue__1
@@ -64,10 +64,10 @@ condFalse__2:                                     ; preds = %condContinue__1
   br label %condContinue__2
 
 condContinue__2:                                  ; preds = %condFalse__2, %condContinue__1
-  store %String* %str, %String** %16
+  store %String* %str, %String** %16, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %13, i64 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %13, i64 1)
-  store %Array* %13, %Array** %arr
+  store %Array* %13, %Array** %arr, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %str, i64 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %12, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %17, i64 -1)
@@ -79,7 +79,7 @@ exiting__2:                                       ; preds = %condContinue__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  %19 = load %Array*, %Array** %arr
+  %19 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %array, i64 -1)
   call void @__quantum__rt__array_update_alias_count(%Array* %19, i64 -1)
   ret %Array* %19

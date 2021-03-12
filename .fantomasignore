@@ -1,0 +1,2 @@
+﻿# Ignore signature files because of formatting bugs.
+*.fsi

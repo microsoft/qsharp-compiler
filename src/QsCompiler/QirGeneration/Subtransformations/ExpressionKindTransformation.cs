@@ -672,7 +672,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
             }
             else
             {
@@ -886,6 +886,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
                 var ifTrue = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
+                BasicBlock afterTrue = this.SharedState.CurrentBlock!;
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.ScopeMgr.OpenScope();
@@ -893,12 +894,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
                 var ifFalse = this.SharedState.ValueStack.Pop();
                 this.SharedState.ScopeMgr.CloseScope(ifFalse, false); // force that the ref count is increased within the branch
+                BasicBlock afterFalse = this.SharedState.CurrentBlock!;
                 this.SharedState.CurrentBuilder.Branch(contBlock);
 
                 this.SharedState.SetCurrentBlock(contBlock);
                 var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
-                phi.AddIncoming(ifTrue.Value, trueBlock);
-                phi.AddIncoming(ifFalse.Value, falseBlock);
+                phi.AddIncoming(ifTrue.Value, afterTrue);
+                phi.AddIncoming(ifFalse.Value, afterFalse);
                 value = this.SharedState.Values.From(phi, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1018,10 +1020,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                // The exponent must be an integer that can fit into an i32.
-                var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.IntPower);
+                var baseValue = this.SharedState.CurrentBuilder.SIToFPCast(lhs.Value, this.SharedState.Context.DoubleType);
+                var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.DoubleType);
                 var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
-                var res = this.SharedState.CurrentBuilder.Call(powFunc, lhs.Value, exponent);
+                var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
+                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
@@ -1592,6 +1595,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.CloseScope(value);
                 array.GetArrayElementPointer(index).StoreValue(value);
             }
+
             this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
             return ResolvedExpressionKind.InvalidExpr;
         }
@@ -1755,6 +1759,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 return this.SharedState.GeneratePartialApplication(name, kind, BuildPartialApplicationBody);
+            }
+
+            var isTrivial = !arg.Exists(ex => !(ex.Expression.IsMissingExpr || ex.Expression.IsValueTuple));
+            if (isTrivial)
+            {
+                // a partial application where all arguments are partially applied
+                // is the same as just the method.
+                return this.Expressions.OnTypedExpression(method).Expression;
             }
 
             var liftedName = this.SharedState.GlobalName("PartialApplication");

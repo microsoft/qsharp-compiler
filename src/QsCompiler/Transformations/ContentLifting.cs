@@ -183,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             private (QsCallable, ResolvedType) GenerateOperation(CallableDetails callable, QsScope contents)
             {
-                var newName = UniqueVariableNames.PrependGuid(callable.Callable.FullName);
+                var newName = NameDecorator.PrependGuid(callable.Callable.FullName);
 
                 var knownVariables = contents.KnownSymbols.Variables;
 
@@ -214,7 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     QsCallableKind.Operation,
                     newName,
                     ImmutableArray<QsDeclarationAttribute>.Empty,
-                    new Modifiers(AccessModifier.Internal),
+                    Access.Internal,
                     callable.Callable.Source,
                     QsNullable<QsLocation>.Null,
                     signature,

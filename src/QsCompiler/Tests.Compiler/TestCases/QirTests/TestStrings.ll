@@ -33,7 +33,7 @@ entry:
   %15 = call %String* @__quantum__rt__string_concatenate(%String* %13, %String* %14)
   call void @__quantum__rt__string_update_reference_count(%String* %13, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %14, i64 -1)
-  %16 = load i2, i2* @PauliX
+  %16 = load i2, i2* @PauliX, align 1
   %17 = call %String* @__quantum__rt__pauli_to_string(i2 %16)
   %18 = call %String* @__quantum__rt__string_concatenate(%String* %15, %String* %17)
   call void @__quantum__rt__string_update_reference_count(%String* %15, i64 -1)
@@ -42,7 +42,7 @@ entry:
   %20 = call %String* @__quantum__rt__string_concatenate(%String* %18, %String* %19)
   call void @__quantum__rt__string_update_reference_count(%String* %18, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %19, i64 -1)
-  %21 = load %Result*, %Result** @ResultOne
+  %21 = load %Result*, %Result** @ResultOne, align 8
   %22 = call %String* @__quantum__rt__result_to_string(%Result* %21)
   %23 = call %String* @__quantum__rt__string_concatenate(%String* %20, %String* %22)
   call void @__quantum__rt__string_update_reference_count(%String* %20, i64 -1)
@@ -60,7 +60,7 @@ entry:
   %30 = call %String* @__quantum__rt__string_concatenate(%String* %28, %String* %29)
   call void @__quantum__rt__string_update_reference_count(%String* %28, i64 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %29, i64 -1)
-  %31 = load %Range, %Range* @EmptyRange
+  %31 = load %Range, %Range* @EmptyRange, align 4
   %32 = insertvalue %Range %31, i64 0, 0
   %33 = insertvalue %Range %32, i64 1, 1
   %34 = insertvalue %Range %33, i64 3, 2

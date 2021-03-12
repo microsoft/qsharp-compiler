@@ -468,6 +468,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             var match = this.pattern.Match(name).Groups[Original];
             return match.Success ? match.Value : null;
         }
+
+        // static methods for name decorations in general
+
+        private static readonly Regex GUID =
+            new Regex(@"^_[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?_", RegexOptions.IgnoreCase);
+
+        internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
+            new QsQualifiedName(
+                original.Namespace,
+                "_" + Guid.NewGuid().ToString("N") + "_" + original.Name);
+
+        public static QsQualifiedName OriginalNameFromMonomorphized(QsQualifiedName mangled) =>
+            new QsQualifiedName(
+                mangled.Namespace,
+                GUID.Replace(mangled.Name, string.Empty));
     }
 
     /// <summary>
@@ -478,8 +493,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     public class UniqueVariableNames
     : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
     {
-        private static readonly NameDecorator Decorator = new NameDecorator("qsVar");
-
         public class TransformationState
         {
             private int variableNr = 0;
@@ -515,10 +528,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // static methods for convenience
 
-        internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
-            new QsQualifiedName(
-                original.Namespace,
-                "_" + Guid.NewGuid().ToString("N") + "_" + original.Name);
+        private static readonly NameDecorator Decorator = new NameDecorator("qsVar");
 
         public static string StripUniqueName(string uniqueName) => Decorator.Undecorate(uniqueName) ?? uniqueName;
 
@@ -625,7 +635,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 kind: callable.Kind,
                 qualifiedName: this.state.GetNewName(callable.QualifiedName),
                 attributes: callable.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
-                modifiers: callable.Modifiers,
+                access: callable.Access,
                 source: callable.Source,
                 position: callable.Position,
                 symbolRange: callable.SymbolRange,
@@ -669,7 +679,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return new TypeDeclarationHeader(
                 qualifiedName: this.state.GetNewName(type.QualifiedName),
                 attributes: type.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
-                modifiers: type.Modifiers,
+                access: type.Access,
                 source: type.Source,
                 position: type.Position,
                 symbolRange: type.SymbolRange,

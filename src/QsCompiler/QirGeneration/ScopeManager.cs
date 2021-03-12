@@ -158,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// and makes sure the release function is invoked before unreferending the value.
             /// If the given value to register is a pointer, recursively loads its content and registers the loaded value.
             /// </summary>
-            public void RegisterValue(IValue value, string? releaseFunction = null)
+            public void RegisterValue(IValue value, string? releaseFunction = null, bool shallow = false)
             {
                 if (releaseFunction != null)
                 {
@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 if (this.parent.RequiresReferenceCount(value.LlvmType))
                 {
-                    this.requiredUnreferences.Add((LoadValue(value), true));
+                    this.requiredUnreferences.Add((LoadValue(value), !shallow));
                 }
             }
 
@@ -580,8 +580,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Adds a call to a runtime library function to change the reference count for the given value.
         /// The count is changed recursively for subitems unless shallow is set to true.
         /// </summary>
-        /// <param name="value">The value for which to change the reference count</param>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
+        /// <param name="value">The value for which to change the reference count</param>
         internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false)
         {
             this.scopes.Peek().ApplyPendingReferences();
@@ -625,8 +625,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The alias count is changed recursively for subitems unless shallow is set to true.
         /// Modifies *only* the alias count and not the reference count.
         /// </summary>
-        /// <param name="value">The value for which to change the alias count</param>
         /// <param name="change">The amount by which to change the alias count given as i64</param>
+        /// <param name="value">The value for which to change the alias count</param>
         internal void UpdateAliasCount(IValue change, IValue value, bool shallow = false) =>
             this.ModifyCounts(this.AliasCountUpdateFunctionForType, change, value, !shallow);
 
@@ -635,8 +635,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// that unreferences the value is executed when the scope is closed or exited.
         /// </summary>
         /// <param name="value">Value that is created within the current scope</param>
-        public void RegisterValue(IValue value) =>
-            this.scopes.Peek().RegisterValue(value);
+        public void RegisterValue(IValue value, bool shallow = false) =>
+            this.scopes.Peek().RegisterValue(value, shallow: shallow);
 
         /// <summary>
         /// Adds a value constructed as part of a qubit allocation to the current topmost scope.

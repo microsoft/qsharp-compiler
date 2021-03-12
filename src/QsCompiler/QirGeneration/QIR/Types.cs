@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.QIR
         public static bool IsTypedTuple(ITypeRef t) =>
             t is IPointerType pt
             && pt.ElementType is IStructType st
-            && st.Name == null
+            && string.IsNullOrEmpty(st.Name)
             && st.Members.Count > 0;
 
         /// <summary>
@@ -267,5 +267,13 @@ namespace Microsoft.Quantum.QIR
         public const string String = "String";
         public const string Array = "Array";
         public const string Tuple = "Tuple";
+    }
+
+    /// <summary>
+    /// Contains the names of common QIR attributes.
+    /// </summary>
+    public static class AttributeNames
+    {
+        public const string EntryPoint = "EntryPoint";
     }
 }

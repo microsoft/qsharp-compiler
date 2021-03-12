@@ -53,6 +53,8 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DocumentationGenerator", "s
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "QirGeneration", "src\QsCompiler\QirGeneration\QirGeneration.csproj", "{7FF41827-C922-448A-A241-D3C28ADD14E1}"
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LlvmBindings", "src\QsCompiler\LlvmBindings\LlvmBindings.csproj", "{36FB68CC-533A-40D4-A2E9-597A35C6912C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -315,6 +317,18 @@ Global
 		{7FF41827-C922-448A-A241-D3C28ADD14E1}.Release|x64.Build.0 = Release|Any CPU
 		{7FF41827-C922-448A-A241-D3C28ADD14E1}.Release|x86.ActiveCfg = Release|Any CPU
 		{7FF41827-C922-448A-A241-D3C28ADD14E1}.Release|x86.Build.0 = Release|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Debug|x64.Build.0 = Debug|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Debug|x86.Build.0 = Debug|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Release|Any CPU.Build.0 = Release|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Release|x64.ActiveCfg = Release|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Release|x64.Build.0 = Release|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Release|x86.ActiveCfg = Release|Any CPU
+		{36FB68CC-533A-40D4-A2E9-597A35C6912C}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

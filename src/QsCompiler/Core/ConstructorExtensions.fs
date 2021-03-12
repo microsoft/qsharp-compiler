@@ -188,7 +188,7 @@ type QsCallable with
                       (source, location)
                       (name,
                        attributes,
-                       modifiers,
+                       access,
                        argTuple,
                        signature,
                        specializations: IEnumerable<_>,
@@ -199,7 +199,7 @@ type QsCallable with
             Kind = kind
             FullName = name
             Attributes = attributes
-            Modifiers = modifiers
+            Access = access
             Source = source
             Location = location
             Signature = signature
@@ -214,12 +214,11 @@ type QsCallable with
     static member NewTypeConstructor = QsCallable.New QsCallableKind.TypeConstructor
 
 type QsCustomType with
-    static member New (source, location) (name, attributes, modifiers, items, underlyingType, documentation, comments)
-                      =
+    static member New (source, location) (name, attributes, access, items, underlyingType, documentation, comments) =
         {
             FullName = name
             Attributes = attributes
-            Modifiers = modifiers
+            Access = access
             Source = source
             Location = location
             Type = underlyingType
