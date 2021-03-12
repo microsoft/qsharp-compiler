@@ -374,9 +374,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var getLength = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringGetLength);
                 var strLength = this.sharedState.CurrentBuilder.Call(getLength, res.Value);
-                var size = this.sharedState.CurrentBuilder.Mul(
-                    this.sharedState.Context.CreateConstant(8L),
-                    this.sharedState.CurrentBuilder.IntCast(strLength, this.sharedState.Context.Int64Type, true));
+                var size = this.sharedState.CurrentBuilder.IntCast(strLength, this.sharedState.Context.Int64Type, true);
 
                 var getData = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringGetData);
                 var strData = this.sharedState.CurrentBuilder.Call(getData, res.Value);
