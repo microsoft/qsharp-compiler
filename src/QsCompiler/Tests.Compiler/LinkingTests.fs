@@ -117,7 +117,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
     member private this.BuildReference(source: string, content) =
         let comp = this.BuildContent(new CompilationUnitManager(), content)
-        Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error))
+        Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = Nullable DiagnosticSeverity.Error))
         struct (source, comp.BuiltCompilation.Namespaces)
 
     member private this.CompileMonomorphization input =

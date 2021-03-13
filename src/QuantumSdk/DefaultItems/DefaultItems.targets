@@ -57,8 +57,10 @@
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
   <PropertyGroup>
+    <DefaultEntryPointGeneration>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation.dll"</DefaultEntryPointGeneration>
     <!-- true/false optional properties -->
     <QirGeneration Condition="'$(QirOutputPath)' != ''">true</QirGeneration>
+    <CSharpGeneration Condition="$(QirGeneration)">false</CSharpGeneration>
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' != ''">true</QSharpDocsGeneration>
     <PerfDataGeneration Condition="'$(PerfDataOutputPath)' != ''">true</PerfDataGeneration>
     <!-- path compatible assembly name -->
