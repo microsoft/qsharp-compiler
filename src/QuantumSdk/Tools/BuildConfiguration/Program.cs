@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.Sdk.Tools
             Parser.Default
                 .ParseArguments<Options>(args)
                 .MapResult(
-                    (Options opts) => (int)BuildConfiguration.Generate(opts),
+                    (Options opts) => (int)Generate(opts),
                     errs => (int)ReturnCode.INVALID_ARGUMENTS);
     }
 }
