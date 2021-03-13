@@ -304,7 +304,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
             let argType, returnType =
                 decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
 
-            let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.New
+            let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.create qsSym.Range
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
         let addDiagnosticForSymbol code args =

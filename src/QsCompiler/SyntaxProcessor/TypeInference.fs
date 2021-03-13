@@ -169,7 +169,8 @@ module private Inference =
         | _, InvalidType -> ResolvedType.New InvalidType, []
         | _ when lhs = rhs -> lhs, []
         | _ ->
-            let error = ErrorCode.NoCommonBaseType, [ showType lhs; showType rhs ]
+            // TODO: Use TypeContext.
+            let error = ErrorCode.NoCommonBaseType, [ showType lhs; showType rhs; showType lhs; showType rhs ]
             ResolvedType.New InvalidType, [ QsCompilerDiagnostic.Error error Range.Zero ]
 
     let occursCheck param (resolvedType: ResolvedType) =
