@@ -629,7 +629,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Create <paramref name="transform"/> and <paramref name="markEdited"/> actions.
+        /// Create <paramref name="transformation"/> and <paramref name="markEdited"/> actions.
         /// </summary>
         /// <param name="transformation">
         /// An action that replaces the tokens at <paramref name="lineNr"/> with the ones returned by <paramref name="updatedTokens"/>
