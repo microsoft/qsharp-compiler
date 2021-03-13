@@ -59,6 +59,7 @@
   <PropertyGroup>
     <!-- true/false optional properties -->
     <QirGeneration Condition="'$(QirOutputPath)' != ''">true</QirGeneration>
+    <CSharpGeneration Condition="$(QirGeneration)">false</CSharpGeneration>
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' != ''">true</QSharpDocsGeneration>
     <PerfDataGeneration Condition="'$(PerfDataOutputPath)' != ''">true</PerfDataGeneration>
     <!-- path compatible assembly name -->
