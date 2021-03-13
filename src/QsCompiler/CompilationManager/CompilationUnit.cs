@@ -47,8 +47,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// </summary>
             /// <remarks>
             /// <paramref name="source"/> is expected to be the path to the dll from which <paramref name="syntaxTree"/> has been loaded.
+            /// <para/>
+            /// Returns an empty set of headers if <paramref name="syntaxTree"/> is null.
             /// </remarks>
-            /// <!-- TODO: where should this line go?: An empty set of headers if the given syntax tree is null. -->
             public Headers(string source, IEnumerable<QsNamespace> syntaxTree)
                 : this(
                     source,
