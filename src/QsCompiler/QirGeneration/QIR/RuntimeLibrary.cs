@@ -36,6 +36,8 @@ namespace Microsoft.Quantum.QIR
         // bigint functions
         public const string BigIntCreateI64 = "bigint_create_i64";
         public const string BigIntCreateArray = "bigint_create_array";
+        public const string BigIntGetData = "bigint_get_data";
+        public const string BigIntGetLength = "bigint_get_length"; // length in bytes, like other length function(s)
         public const string BigIntUpdateReferenceCount = "bigint_update_reference_count";
         public const string BigIntNegate = "bigint_negate";
         public const string BigIntAdd = "bigint_add";

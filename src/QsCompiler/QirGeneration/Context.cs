@@ -279,7 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public void InitializeRuntimeLibrary()
         {
             // Q# specific helpers
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.HeapAllocate, this.Context.Int8Type.CreatePointerType(), this.Context.Int64Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.HeapAllocate, this.Context.Int8Type.CreatePointerType(), this.Types.Int);
 
             // result library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultUpdateReferenceCount, this.Context.VoidType, this.Types.Result, this.Context.Int32Type);
@@ -306,6 +306,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // bigint library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateI64, this.Types.BigInt, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntCreateArray, this.Types.BigInt, this.Context.Int32Type, this.Types.DataArrayPointer);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGetLength, this.Context.Int32Type, this.Types.BigInt);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntGetData, this.Types.DataArrayPointer, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntUpdateReferenceCount, this.Context.VoidType, this.Types.BigInt, this.Context.Int32Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntNegate, this.Types.BigInt, this.Types.BigInt);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntAdd, this.Types.BigInt, this.Types.BigInt, this.Types.BigInt);

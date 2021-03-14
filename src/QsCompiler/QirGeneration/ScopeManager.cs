@@ -158,17 +158,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// and makes sure the release function is invoked before unreferending the value.
             /// If the given value to register is a pointer, recursively loads its content and registers the loaded value.
             /// </summary>
-            public void RegisterValue(IValue value, string? releaseFunction = null, bool shallow = false)
+            public void RegisterValue(IValue value, bool shallow = false)
             {
-                if (releaseFunction != null)
-                {
-                    this.requiredReleases.Add((LoadValue(value), releaseFunction));
-                }
                 if (this.parent.RequiresReferenceCount(value.LlvmType))
                 {
                     this.requiredUnreferences.Add((LoadValue(value), !shallow));
                 }
             }
+
+            /// <summary>
+            /// Adds the release function for the given value to the list of releases that need to be executed when closing or exiting the scope.
+            /// If the given value to register is a pointer, recursively loads its content such that the release is applied to the loaded value.
+            /// </summary>
+            public void RegisterRelease(IValue value, string releaseFunction) =>
+                this.requiredReleases.Add((LoadValue(value), releaseFunction));
 
             /// <summary>
             /// Adds the given value to the list of values which have been referenced.
@@ -255,12 +258,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return;
                 }
 
-                foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
-                {
-                    var func = parent.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    parent.sharedState.CurrentBuilder.Call(func, value.Value);
-                }
-
                 // Not the most efficient way to go about this, but it will do for now.
 
                 var pendingAliasCounts = scopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
@@ -293,6 +290,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 parent.ModifyCounts(parent.ReferenceCountUpdateFunctionForType, parent.plusOne, pendingReferences.ToArray());
                 parent.ModifyCounts(parent.AliasCountUpdateFunctionForType, parent.minusOne, pendingAliasCounts);
                 parent.ModifyCounts(parent.ReferenceCountUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
+
+                foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
+                {
+                    var func = parent.sharedState.GetOrCreateRuntimeFunction(funcName);
+                    parent.sharedState.CurrentBuilder.Call(func, value.Value);
+                }
             }
         }
 
@@ -648,7 +651,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Types.IsArray(value.LlvmType) ? RuntimeLibrary.QubitReleaseArray :
                 Types.IsQubit(this.sharedState.Types.Qubit) ? RuntimeLibrary.QubitRelease :
                 throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
-            this.scopes.Peek().RegisterValue(value, releaser);
+            this.scopes.Peek().RegisterRelease(value, releaser);
         }
 
         /// <summary>
