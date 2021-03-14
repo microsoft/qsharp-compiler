@@ -30,11 +30,11 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  %17 = call %String* @__quantum__rt__string_create(i32 0, i8* %str)
-  %18 = load %Result*, %Result** @ResultZero, align 8
-  %19 = load %Result*, %Result** @ResultOne, align 8
-  %20 = icmp eq i8 %res, 0
-  %21 = select i1 %20, %Result* %18, %Result* %19
+  %17 = call %String* @__quantum__rt__string_create(i8* %str)
+  %18 = icmp eq i8 %res, 0
+  %19 = call %Result* @__quantum__rt__result_get_zero()
+  %20 = call %Result* @__quantum__rt__result_get_one()
+  %21 = select i1 %18, %Result* %19, %Result* %20
   %22 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %range, i64 0, i32 0
   %23 = load i64, i64* %22, align 4
   %24 = getelementptr { i64, i64, i64 }, { i64, i64, i64 }* %range, i64 0, i32 1
@@ -102,7 +102,7 @@ exit__2:                                          ; preds = %header__2
   %69 = call i8* @__quantum__rt__string_get_data(%String* %44)
   %70 = call i8* @__quantum__rt__heap_alloc(i64 %68)
   call void @llvm.memcpy.p0i8.p0i8.i64(i8* %70, i8* %69, i64 %68, i1 false)
-  %71 = load %Result*, %Result** @ResultZero, align 8
+  %71 = call %Result* @__quantum__rt__result_get_zero()
   %72 = call i1 @__quantum__rt__result_equal(%Result* %45, %Result* %71)
   %73 = select i1 %72, i8 0, i8 -1
   %74 = extractvalue %Range %46, 0
@@ -139,15 +139,15 @@ exit__2:                                          ; preds = %header__2
   store { i64, i64, i64 }* %78, { i64, i64, i64 }** %96, align 8
   %97 = getelementptr { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }, { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* %92, i64 0, i32 4
   store { i64, i8 }* %88, { i64, i8 }** %97, align 8
-  call void @__quantum__rt__array_update_reference_count(%Array* %4, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %17, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %33, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %43, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %44, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %45, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %4, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %17, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %33, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %43, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %44, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %45, i32 -1)
   %98 = bitcast { i64, i1 }* %47 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %98, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %98, i32 -1)
   %99 = bitcast { %Array*, %String*, %Result*, %Range, { i64, i1 }* }* %37 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %99, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %99, i32 -1)
   ret { { i64, i8* }*, i8*, i8, { i64, i64, i64 }*, { i64, i8 }* }* %92
 }
