@@ -9,8 +9,21 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
-    <WarningsAsErrors>nullable</WarningsAsErrors>
+    <WarningsAsErrors>
+      nullable; <!-- Enable all nullable warnings as error. -->
+      CS1570;   <!-- (Doc) Bad XML. -->
+      CS1571;   <!-- (Doc) Duplicate <param> name. -->
+      CS1572;   <!-- (Doc) <param> name does not match an actual parameter name. -->
+      CS1574;   <!-- (Doc) Bad <cref>. -->
+      CS1587;   <!-- (Doc) XML comment appears before something not documentable. -->
+      CS1734;   <!-- (Doc) Bad <paramref>. -->
+    </WarningsAsErrors>
+    <NoWarn>
+      CS1591; <!-- (Doc) Missing XML comment for publicly visible type or member. -->
+      CS1573; <!-- (Doc) Some, but not all parameters are documented. -->
+    </NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.fsproj'">
