@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <PlatformTarget>x64</PlatformTarget>  
     <Company>Microsoft</Company>
     <Authors>Microsoft</Authors>
     <Product>Microsoft Quantum Development Kit Preview</Product>

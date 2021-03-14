@@ -3,13 +3,9 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
-open System
 open System.Collections.Immutable
-
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
-open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
 
@@ -34,6 +30,8 @@ type BuiltIn =
     static member IntrinsicNamespace = "Microsoft.Quantum.Intrinsic"
     static member StandardArrayNamespace = "Microsoft.Quantum.Arrays"
     static member TargetingNamespace = "Microsoft.Quantum.Targeting"
+    static member internal ConvertNamespace = "Microsoft.Quantum.Convert"
+    static member internal MathNamespace = "Microsoft.Quantum.Math"
 
     /// Returns the set of namespaces that is automatically opened for each compilation.
     static member NamespacesToAutoOpen = ImmutableHashSet.Create(BuiltIn.CoreNamespace)
@@ -57,10 +55,32 @@ type BuiltIn =
             tId.Namespace = BuiltIn.Deprecated.FullName.Namespace && tId.Name = BuiltIn.Deprecated.FullName.Name
         | Null -> false
 
+    /// Returns true if the given attribute indicates that the corresponding callable should be inlined.
+    static member MarksInlining(att: QsDeclarationAttribute) =
+        match att.TypeId with
+        | Value tId -> tId.Namespace = BuiltIn.Inline.FullName.Namespace && tId.Name = BuiltIn.Inline.FullName.Name
+        | Null -> false
+
     /// Returns true if the given attribute marks the corresponding declaration as unit test.
     static member MarksTestOperation(att: QsDeclarationAttribute) =
         match att.TypeId with
         | Value tId -> tId.Namespace = BuiltIn.Test.FullName.Namespace && tId.Name = BuiltIn.Test.FullName.Name
+        | Null -> false
+
+    /// Returns true if the given attribute indicates the runtime capability required for execution of the callable.
+    static member MarksRequiredCapability(att: QsDeclarationAttribute) =
+        match att.TypeId with
+        | Value tId ->
+            tId.Namespace = BuiltIn.RequiresCapability.FullName.Namespace
+            && tId.Name = BuiltIn.RequiresCapability.FullName.Name
+        | Null -> false
+
+    /// Returns true if the given attribute defines a code identifying an instruction within the quantum instruction set that matches this callable.
+    static member DefinesTargetInstruction(att: QsDeclarationAttribute) =
+        match att.TypeId with
+        | Value tId ->
+            tId.Namespace = BuiltIn.TargetInstruction.FullName.Namespace
+            && tId.Name = BuiltIn.TargetInstruction.FullName.Name
         | Null -> false
 
     /// Returns true if the given attribute defines an alternative name that may be used when loading a type or callable for testing purposes.
@@ -79,35 +99,30 @@ type BuiltIn =
             && tId.Name = GeneratedAttributes.LoadedViaTestNameInsteadOf
         | Null -> false
 
-    /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
-    /// the RequiresCapability attribute.
-    static member TryGetRequiredCapability attributes =
-        let isCapability udt =
-            BuiltIn.RequiresCapability.FullName = { Namespace = udt.Namespace; Name = udt.Name }
-
-        let extractString =
-            function
-            | StringLiteral (str, _) -> Value str
-            | _ -> Null
-
-        let capability attribute =
-            match attribute.TypeId, attribute.Argument.Expression with
-            | Value udt, ValueTuple items when isCapability udt && not items.IsEmpty ->
-                items.[0].Expression |> extractString |> QsNullable<_>.Bind RuntimeCapability.TryParse
-            | _ -> Null
-
-        let capabilities = attributes |> QsNullable<_>.Choose capability
-
-        if Seq.isEmpty capabilities
-        then Null
-        else capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
-
     // dependencies in Microsoft.Quantum.Core
 
     static member Length =
         {
             FullName = { Name = "Length"; Namespace = BuiltIn.CoreNamespace }
             Kind = Function(TypeParameters = ImmutableArray.Create "T")
+        }
+
+    static member RangeStart =
+        {
+            FullName = { Name = "RangeStart"; Namespace = BuiltIn.CoreNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
+    static member RangeStep =
+        {
+            FullName = { Name = "RangeStep"; Namespace = BuiltIn.CoreNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
+    static member RangeEnd =
+        {
+            FullName = { Name = "RangeEnd"; Namespace = BuiltIn.CoreNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
     static member RangeReverse =
@@ -123,6 +138,13 @@ type BuiltIn =
 
     static member Deprecated =
         { FullName = { Name = "Deprecated"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
+
+    static member Inline = { FullName = { Name = "Inline"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
+
+    // dependencies in Microsoft.Quantum.Targeting
+
+    static member TargetInstruction =
+        { FullName = { Name = "TargetInstruction"; Namespace = BuiltIn.TargetingNamespace }; Kind = Attribute }
 
     static member RequiresCapability =
         { FullName = { Name = "RequiresCapability"; Namespace = BuiltIn.TargetingNamespace }; Kind = Attribute }
@@ -140,6 +162,34 @@ type BuiltIn =
         {
             FullName = { Name = "NoOp"; Namespace = BuiltIn.CanonNamespace }
             Kind = Operation(TypeParameters = ImmutableArray.Create "T", IsSelfAdjoint = false)
+        }
+
+    // dependencies in Microsoft.Quantum.Convert
+
+    static member IntAsDouble =
+        {
+            FullName = { Name = "IntAsDouble"; Namespace = BuiltIn.ConvertNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
+    static member DoubleAsInt =
+        {
+            FullName = { Name = "DoubleAsInt"; Namespace = BuiltIn.ConvertNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
+    static member IntAsBigInt =
+        {
+            FullName = { Name = "IntAsBigInt"; Namespace = BuiltIn.ConvertNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
+    // dependencies in Microsoft.Quantum.Math
+
+    static member Truncate =
+        {
+            FullName = { Name = "Truncate"; Namespace = BuiltIn.MathNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
     // dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions

@@ -174,8 +174,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Converts <paramref name="position"/> from a Q# compiler position into a language server protocol position.
         /// </summary>
-        public static Lsp.Position ToLsp(this Position position) =>
-            new Lsp.Position(position.Line, position.Column);
+        public static Lsp.Position ToLsp(this Position? position) =>
+            position == null
+            ? new Lsp.Position()
+            : new Lsp.Position(position.Line, position.Column);
 
         /// <summary>
         /// Converts <paramref name="range"/> from a language server protocol range into a Q# compiler range.
