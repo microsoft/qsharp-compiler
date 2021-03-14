@@ -8,5 +8,10 @@
         <AssemblyTitle>Build tool to generate a minimal C# entry point when no C# files are included in the compilation.</AssemblyTitle>
     </PropertyGroup>
 
+  <ItemGroup>
+    <Compile Include="..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+    <Compile Include="..\..\..\Common\SigningConstants.cs" Link="Properties\SigningConstants.cs" />
+  </ItemGroup>
+
 </Project>
 
