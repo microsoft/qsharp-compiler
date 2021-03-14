@@ -39,7 +39,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the <see cref="CodeFragment.TokenIndex"/> for the first token in <paramref name="file"/>, or null if no such token exists.
+        /// Returns the <see cref="CodeFragment.TokenIndex"/> for the first token in <paramref name="file"/>,
+        /// or null if no such token exists.
         /// </summary>
         internal static CodeFragment.TokenIndex? FirstToken(this FileContentManager file)
         {
@@ -53,7 +54,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the <see cref="CodeFragment.TokenIndex"/> for the last token in <paramref name="file"/>, or null if no such token exists.
+        /// Returns the <see cref="CodeFragment.TokenIndex"/> for the last token in <paramref name="file"/>,
+        /// or null if no such token exists.
         /// </summary>
         internal static CodeFragment.TokenIndex? LastToken(this FileContentManager file)
         {
@@ -167,7 +169,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// and the name of the callable it belongs to as well as its position as <see cref="Nullable"/>.
         /// </summary>
         /// <remarks>
-        /// Returns null if <paramref name="file"/> or <paramref name="pos"/> is null, or if no preceding callable can be found (e.g. because the callable name is invalid).
+        /// Returns null if <paramref name="file"/> or <paramref name="pos"/> is null, or if no preceding callable
+        /// can be found (e.g. because the callable name is invalid).
         /// <para/>
         /// If a callable name but no specializations (preceding or otherwise) within that callable can be found,
         /// assumes that the correct specialization is an auto-inserted default body,
@@ -352,7 +355,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an <see cref="IEnumerable{T}"/> with the indices of all children of the token corresponding to <paramref name="tIndex"/>.
+        /// Returns an <see cref="IEnumerable{T}"/> with the indices of all children of the token
+        /// corresponding to <paramref name="tIndex"/>.
         /// </summary>
         /// <param name="tIndex">The token index.</param>
         /// <param name="deep">

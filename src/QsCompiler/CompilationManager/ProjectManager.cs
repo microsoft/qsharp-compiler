@@ -165,10 +165,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <summary>
             /// Initializes the project for <paramref name="projectFile"/> with <paramref name="projectInfo"/>.
             /// </summary>
-            /// <remarks>
-            /// If <paramref name="publishDiagnostics"/> is given and not null,
-            /// it is called whenever diagnostics for the project have changed and are ready for publishing.
-            /// </remarks>
+            /// <param name="publishDiagnostics">
+            /// If provided, called whenever diagnostics for the project have changed and are ready for publishing.
+            /// </param>
             internal Project(
                 Uri projectFile,
                 ProjectInformation projectInfo,
@@ -945,10 +944,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// If <paramref name="file"/> can be uniquely associated with a compilation unit,
         /// executes <paramref name="executeTask"/> on the <see cref="CompilationUnitManager"/> of that project (if one exists), passing true as second argument.
-        /// </summary>
-        /// <remarks>
+        /// <para/>
         /// Executes <paramref name="executeTask"/> on the <see cref="defaultManager"/> otherwise, passing false as second argument.
-        /// </remarks>
+        /// </summary>
         public Task ManagerTaskAsync(Uri file, Action<CompilationUnitManager, bool> executeTask) =>
             this.load.QueueForExecutionAsync(() =>
             {

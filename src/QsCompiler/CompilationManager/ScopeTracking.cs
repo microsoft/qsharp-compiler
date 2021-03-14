@@ -41,7 +41,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Checks that <paramref name="positions"/> are a valid indices in the text of <paramref name="line"/>, and that they are sorted in ascending order.
+        /// Checks that <paramref name="positions"/> are a valid indices in the text of <paramref name="line"/>, and
+        /// that they are sorted in ascending order.
         /// </summary>
         /// <exception cref="ArgumentException">The checks failed.</exception>
         /// <remarks>
@@ -304,10 +305,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the result of <paramref name="findIndex"/> applied to the text on <paramref name="line"/> when ignoring end of line comments, content within strings,
-        /// and - if <paramref name="ignoreExcessBrackets"/> is set - excessive closing brackets.
+        /// Returns the result of <paramref name="findIndex"/> applied to the text on <paramref name="line"/>
+        /// when ignoring end of line comments, content within strings, and - if <paramref name="ignoreExcessBrackets"/>
+        /// is set - excessive closing brackets.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException">Start and count do not define a valid range in the text of <paramref name="line"/>.</exception>
+        /// <exception cref="ArgumentOutOfRangeException">
+        /// Start and count do not define a valid range in the text of <paramref name="line"/>.
+        /// </exception>
         /// <remarks>
         /// The returned index is relative to the original text.
         /// <para/>
@@ -326,8 +330,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the result of <paramref name="findIndex"/> applied to the text on the substring of length <paramref name="count"/> starting at <paramref name="start"/>
-        /// when ignoring end of line comments, content within strings, and - if <paramref name="ignoreExcessBrackets"/> is set - excessive closing brackets.
+        /// Returns the result of <paramref name="findIndex"/> applied to the text on the substring of
+        /// length <paramref name="count"/> starting at <paramref name="start"/> when ignoring end of line comments,
+        /// content within strings, and - if <paramref name="ignoreExcessBrackets"/> is set - excessive closing brackets.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> and <paramref name="count"/> do not define a valid range in the text of the given <paramref name="line"/>.</exception>
         /// <remarks>
@@ -532,17 +537,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             SetIndentations(InitializeCodeLines(texts, previousLine), previousLine == null ? 0 : previousLine.FinalIndentation());
 
         /// <summary>
-        /// Returns an enumerable sequence of new <see cref="CodeLine"/> objects where the initial indentation of the sequence is <paramref name="initialIndentation"/>,
+        /// Returns an enumerable sequence of new <see cref="CodeLine"/> objects where the initial indentation
+        /// of the sequence is <paramref name="initialIndentation"/>,
         /// (re-)computing the positions of excess brackets if needed.
         /// </summary>
         private static List<CodeLine> GetUpdatedLines(this IEnumerable<CodeLine> lines, int initialIndentation) =>
             SetIndentations(lines, initialIndentation).ToList();
 
         /// <summary>
-        /// Computes the excess closing and scope error updates for <paramref name="replacements"/> at the position specified by <paramref name="start"/> and <paramref name="count"/> in <paramref name="file"/>.
+        /// Computes the excess closing and scope error updates for <paramref name="replacements"/> at the position
+        /// specified by <paramref name="start"/> and <paramref name="count"/> in <paramref name="file"/>.
         /// </summary>
         /// <returns>
-        /// A sequence of <see cref="CodeLine"/> objects for the remaining file, if the made replacements require updating the remaining file as well, and null otherwise.
+        /// A sequence of <see cref="CodeLine"/> objects for the remaining file, if the made replacements require
+        /// updating the remaining file as well, and null otherwise.
         /// </returns>
         /// <exception cref="ArgumentException"><paramref name="replacements"/> does not at least contain one <see cref="CodeLine"/>.</exception>
         /// <exception cref="ArgumentOutOfRangeException">
@@ -611,7 +619,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Computes excess bracket errors for the given range of lines in <paramref name="file"/> based on the corresponding <see cref="CodeLine"/>.
+        /// Computes excess bracket errors for the given range of lines in <paramref name="file"/>
+        /// based on the corresponding <see cref="CodeLine"/>.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">The range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) is not within <paramref name="file"/>.</exception>
         private static IEnumerable<Diagnostic> ComputeScopeDiagnostics(this FileContentManager file, int start, int count)
@@ -631,7 +640,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Computes excess bracket errors for the given range of lines in <paramref name="file"/> based on the corresponding <see cref="CodeLine"/>.
+        /// Computes excess bracket errors for the given range of lines in <paramref name="file"/>
+        /// based on the corresponding <see cref="CodeLine"/>.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="start"/> is not within <paramref name="file"/>.</exception>
         private static IEnumerable<Diagnostic> ComputeScopeDiagnostics(this FileContentManager file, int start) =>
@@ -686,7 +696,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routine(s) called by the FileContentManager upon updating a file
 
         /// <summary>
-        /// Attempts to compute an incremental update for the change specified by start, count and newText, and updates <paramref name="file"/> accordingly.
+        /// Attempts to compute an incremental update for the change specified by start, count and newText,
+        /// and updates <paramref name="file"/> accordingly.
         /// </summary>
         /// <remarks>
         /// The given argument newText replaces the entire lines from start to (but not including) start + count.

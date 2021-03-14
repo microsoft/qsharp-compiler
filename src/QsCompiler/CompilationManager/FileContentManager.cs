@@ -1134,11 +1134,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // external access to the file header and other file properties
 
         /// <summary>
-        /// Applies <paramref name="filterBy"/> to the tokens on any of the lines returned by <paramref name="getLineNumbers"/> and returns the <see cref="CodeFragment.TokenIndex"/> of the tokens for which <paramref name="filterBy"/> returned true.
+        /// Applies <paramref name="filterBy"/> to the tokens on any of the lines returned
+        /// by <paramref name="getLineNumbers"/> and returns the <see cref="CodeFragment.TokenIndex"/>
+        /// of the tokens for which <paramref name="filterBy"/> returned true.
         /// </summary>
         /// <param name="getLineNumbers">A function returning an int array of line numbers.</param>
         /// <remarks>
-        /// If <paramref name="filterBy"/> is null, returns the token indices for all tokens on the lines specified by <paramref name="getLineNumbers"/>.
+        /// If <paramref name="filterBy"/> is null, returns the token indices for all tokens on the
+        /// lines specified by <paramref name="getLineNumbers"/>.
         /// <para/>
         /// Returns an empty list if <paramref name="getLineNumbers"/> is null.
         /// </remarks>

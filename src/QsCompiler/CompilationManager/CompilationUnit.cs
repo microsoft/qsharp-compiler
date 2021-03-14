@@ -171,11 +171,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Combines the current references with <paramref name="other"/> and verifies that there are no conflicts.
         /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="other"/> shares references with the current references.</exception>
-        /// <remarks>
-        /// Calls <paramref name="onError"/> with suitable diagnostics if two or more references conflict,
+        /// <param name="onError">
+        /// Called with suitable diagnostics if two or more references conflict,
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
-        /// </remarks>
+        /// </param>
+        /// <exception cref="ArgumentException"><paramref name="other"/> shares references with the current references.</exception>
         internal References CombineWith(References other, Action<ErrorCode, string[]>? onError = null)
         {
             if (this.Declarations.Keys.Intersect(other.Declarations.Keys).Any())
@@ -188,11 +188,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a new collection with <paramref name="source"/> and all its entries removed.
         /// </summary>
+        /// <param name="onError">
+        /// Called with suitable diagnostics if two or more references conflict,
+        /// i.e. if two or more references contain a declaration with the same fully qualified name.
+        /// </param>
         /// <remarks>
         /// Verifies that there are no conflicts for the new set of references.
-        /// <para/>
-        /// Calls <paramref name="onError"/> with suitable diagnostics if two or more references conflict,
-        /// i.e. if two or more references contain a declaration with the same fully qualified name.
         /// </remarks>
         internal References Remove(string source, Action<ErrorCode, string[]>? onError = null) =>
             new References(this.Declarations.Remove(source), onError: onError);
@@ -201,10 +202,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Initializes a new set of references based on the headers in <paramref name="refs"/> and verifies that there are no conflicts.
         /// </summary>
         /// <param name="refs">A dictionary that maps the ids of dll files to the corresponding headers.</param>
-        /// <remarks>
-        /// Calls <paramref name="onError"/> with suitable diagnostics if two or more references conflict,
+        /// <param name="onError">
+        /// Called with suitable diagnostics if two or more references conflict,
         /// i.e. if two or more references contain a declaration with the same fully qualified name.
-        /// <para/>
+        /// </param>
+        /// <remarks>
         /// If <paramref name="loadTestNames"/> is set to true, then public types and callables declared in referenced assemblies
         /// are exposed via their test name defined by the corresponding attribute.
         /// </remarks>
@@ -1007,13 +1009,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// assuming that the position corresponds to a piece of code within that file.
         /// </summary>
         /// <param name="parentCallable">The name of the parent callable at <paramref name="pos"/>, or null if no parent could be determined.</param>
+        /// <param name="includeDeclaredAtPosition">
+        /// Include the symbols declared within the statement at <paramref name="pos"/> in the result,
+        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
+        /// </param>
         /// <returns>
         /// All locally declared symbols at absolute position <paramref name="pos"/> in <paramref name="file"/>.
         /// </returns>
         /// <remarks>
-        /// If <paramref name="includeDeclaredAtPosition"/> is set to true, then the returned declarations includes the symbols declared within the statement at <paramref name="pos"/>,
-        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
-        /// <para/>
         /// Note that if <paramref name="pos"/> does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
         /// the returned declarations or set value of <paramref name="parentCallable"/> are not necessarily accurate - they are for any actual piece of code, though.
         /// <para/>

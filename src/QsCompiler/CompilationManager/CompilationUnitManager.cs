@@ -30,7 +30,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal readonly bool EnableVerification;
 
         /// <summary>
-        /// The keys are the file identifiers of the source files obtained by <see cref="GetFileId"/> for the file uri and the values are the content of each file.
+        /// The keys are the file identifiers of the source files obtained by <see cref="GetFileId"/>
+        /// for the file uri and the values are the content of each file.
         /// </summary>
         private readonly ConcurrentDictionary<string, FileContentManager> fileContentManagers;
 
@@ -68,7 +69,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Initializes a <see cref="CompilationUnitManager"/> instance for a project with the given properties.
         /// </summary>
-        /// <param name="publishDiagnostics">If provided, called whenever diagnostics within a file have changed and are ready for publishing.</param>
+        /// <param name="publishDiagnostics">
+        /// If provided, called whenever diagnostics within a file have changed and are ready for publishing.
+        /// </param>
         public CompilationUnitManager(
             Action<Exception>? exceptionLogger = null,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
@@ -129,7 +132,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Cancels any ongoing type checking, waits for all queued tasks to finish,
-        /// and then disposes disposable content initialized within this <see cref="CompilationUnitManager"/> (in particular disposes the <see cref="Compilation"/>).
+        /// and then disposes disposable content initialized within this <see cref="CompilationUnitManager"/>
+        /// (in particular disposes the <see cref="Compilation"/>).
         /// </summary>
         /// <remarks>
         /// Any <see cref="FileContentManager"/> managed by this compilation is *not* disposed,
@@ -223,10 +227,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Initializes a <see cref="FileContentManager"/> for document <paramref name="uri"/> with <paramref name="fileContent"/>.
         /// </summary>
+        /// <param name="publishDiagnostics">
+        /// If provided, called to publish the diagnostics generated upon processing <paramref name="fileContent"/>.
+        /// </param>
         /// <exception cref="ArgumentException"><paramref name="uri"/> is not an absolute file URI.</exception>
-        /// <remarks>
-        /// If <paramref name="publishDiagnostics"/> is provided, publishes the diagnostics generated upon processing <paramref name="fileContent"/>.
-        /// </remarks>
         public static FileContentManager InitializeFileManager(
             Uri uri,
             string fileContent,
@@ -249,10 +253,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Initializes a <see cref="FileContentManager"/> for each entry in <paramref name="files"/> and their contents.
         /// </summary>
+        /// <param name="publishDiagnostics">
+        /// If provided, called to publish the diagnostics generated upon content processing.
+        /// </param>
         /// <exception cref="ArgumentException">Any of the given URIs in <paramref name="files"/> is not an absolute file URI.</exception>
-        /// <remarks>
-        /// If <paramref name="publishDiagnostics"/> is provided, publishes the diagnostics generated upon content processing.
-        /// </remarks>
         public static ImmutableHashSet<FileContentManager> InitializeFileManagers(
             IDictionary<Uri, string> files,
             Action<PublishDiagnosticParams>? publishDiagnostics = null,
@@ -272,11 +276,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Adds <paramref name="file"/> to this compilation unit, adapting the diagnostics for all remaining files as needed.
         /// </summary>
+        /// <param name="updatedContent">If provided, replaces the tracked content in the file manager.</param>
         /// <remarks>
         /// If a file with the same URI is already listed as a source file,
         /// replaces the current <see cref="FileContentManager"/> for that file with <paramref name="file"/>.
-        /// <para/>
-        /// If <paramref name="updatedContent"/> is specified and not null, it's used to replace the tracked content in the file manager.
         /// </remarks>
         public Task AddOrUpdateSourceFileAsync(FileContentManager file, string? updatedContent = null) =>
             this.Processing.QueueForExecutionAsync(() =>
@@ -301,9 +304,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         /// <remarks>
         /// If a file with the same URI is already listed as a source file,
-        /// replaces the current <see cref="FileContentManager"/> for that file with the new one and initializes its content to the given one.
+        /// replaces the current <see cref="FileContentManager"/> for that file with the new one and initializes
+        /// its content to the given one.
         /// <para/>
-        /// Spawns a compilation unit wide type checking unless <paramref name="suppressVerification"/> is set to true, even if no files have been added.
+        /// Spawns a compilation unit wide type checking unless <paramref name="suppressVerification"/> is set to true,
+        /// even if no files have been added.
         /// </remarks>
         public Task AddOrUpdateSourceFilesAsync(ImmutableHashSet<FileContentManager> files, bool suppressVerification = false) =>
             this.Processing.QueueForExecutionAsync(() =>
@@ -436,7 +441,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <remarks>
         /// <!-- TODO: Check this comment. Won't this remove up to the not-listed file? -->
         /// Does nothing if a file with the given Uri is not listed as source file.
-        /// Spawns a compilation unit wide type checking unless <paramref name="suppressVerification"/> is set to true, even if no files have been removed.
+        /// <para/>
+        /// Spawns a compilation unit wide type checking unless <paramref name="suppressVerification"/> is set to true,
+        /// even if no files have been removed.
         /// </remarks>
         public Task TryRemoveSourceFilesAsync(IEnumerable<Uri> files, bool suppressVerification = false, bool publishEmptyDiagnostics = true)
         {
@@ -493,7 +500,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Replaces the content from all referenced assemblies with <paramref name="references"/>, and updates all diagnostics accordingly.
+        /// Replaces the content from all referenced assemblies with <paramref name="references"/>,
+        /// and updates all diagnostics accordingly.
         /// </summary>
         public Task UpdateReferencesAsync(References references) =>
             this.UpdateReferencesAsync(references, false);
@@ -503,8 +511,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// If a global type checking is already queued, but hasn't started executing yet, does nothing and returns a completed task.
         /// If a global type checking is in progress, cancels that process via <see cref="waitForTypeCheck"/>,
-        /// then queues <see cref="SpawnGlobalTypeCheckingAsync"/> for exectution into the task queue, and sets <see cref="waitForTypeCheck"/> to null,
-        /// indicating that a type global type checking is queued and has not started executing yet.
+        /// then queues <see cref="SpawnGlobalTypeCheckingAsync"/> for exectution into the task queue,
+        /// and sets <see cref="waitForTypeCheck"/> to null, indicating that a type global type checking
+        /// is queued and has not started executing yet.
         /// </summary>
         private Task QueueGlobalTypeCheckingAsync()
         {
@@ -520,16 +529,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates all global symbols for all files in the compilation using a separate <see cref="CompilationUnit"/> instance.
+        /// Updates all global symbols for all files in the compilation using a
+        /// separate <see cref="CompilationUnit"/> instance.
         /// <para/>
         /// Copies the symbol information over to the Compilation property,
         /// updates the HeaderDiagnostics and clears the SemanticDiagnostics in all files, and publishes the updated diagnostics.
         /// <para/>
         /// Sets <see cref="waitForTypeCheck"/> to a new <see cref="CancellationTokenSource"/>,
-        /// and then spawns a task calling <see cref="RunGlobalTypeChecking"/> on the computed content using the separate <see cref="CompilationUnit"/>,
+        /// and then spawns a task calling <see cref="RunGlobalTypeChecking"/> on the computed
+        /// content using the separate <see cref="CompilationUnit"/>,
         /// with a cancellation token from the new cancellation source.
         /// </summary>
-        /// <param name="runSynchronously">Run the task synchronously ignoring any cancellations and return the completed task.</param>
+        /// <param name="runSynchronously">
+        /// Run the task synchronously ignoring any cancellations and return the completed task.
+        /// </param>
         private Task SpawnGlobalTypeCheckingAsync(bool runSynchronously = false)
         {
             this.waitForTypeCheck = new CancellationTokenSource(); // set a handle for cancelling this type check
@@ -594,7 +607,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Runs a type checking on <paramref name="content"/> using <paramref name="compilation"/>, with <paramref name="cancellationToken"/>.
+        /// Runs a type checking on <paramref name="content"/> using <paramref name="compilation"/>,
+        /// with <paramref name="cancellationToken"/>.
         /// </summary>
         /// <remarks>
         /// Once the type checking is done, locks all processing, and updates the Compilation property with the built content
@@ -664,10 +678,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates and resolves all global symbols for <paramref name="fileId"/>, and runs a type checking on the obtained content using the Compilation property.
+        /// Updates and resolves all global symbols for <paramref name="fileId"/>, and runs a type checking
+        /// on the obtained content using the Compilation property.
         /// </summary>
         /// <remarks>
-        /// Does nothing if <paramref name="cancellationToken"/> is cancelled or if <paramref name="fileId"/> is not listed as a source file.
+        /// Does nothing if <paramref name="cancellationToken"/> is cancelled or if <paramref name="fileId"/>
+        /// is not listed as a source file.
         /// <para/>
         /// Replaces the header diagnostics and the semantic diagnostics in the file with the obtained diagnostics, and publishes them.
         /// </remarks>
@@ -824,7 +840,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Each returned array item contains the array of tokens on the line with the corresponding index.
         /// </summary>
         /// <returns>
-        /// The current tokenization of the file content in memory, or null if <paramref name="textDocument"/> is not listed as a source file.
+        /// The current tokenization of the file content in memory, or null if <paramref name="textDocument"/>
+        /// is not listed as a source file.
         /// </returns>
         /// <remarks>
         /// Waits for all currently running or queued tasks to finish
@@ -957,7 +974,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Maps a <paramref name="file"/> ID assigned by the Q# compiler to all diagnostics generated during compilation.
             /// </summary>
             /// <returns>
-            /// Returns the generated diagnostics, or an empty sequence if no file with <paramref name="file"/> ID has been included in the compilation.
+            /// Returns the generated diagnostics, or an empty sequence if no file with <paramref name="file"/>
+            /// ID has been included in the compilation.
             /// </returns>
             public IEnumerable<Diagnostic> Diagnostics(string file) =>
                 this.SourceFiles.Contains(file) ?
@@ -983,8 +1001,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Get namespace comments (non-documenting).
             /// </summary>
             /// <remarks>
-            /// If file <paramref name="sourceFile"/> does not exist in the compilation, or there is not exactly one (partial) namespace <paramref name="nsName"/>,
-            /// returns a set of empty comments.
+            /// If file <paramref name="sourceFile"/> does not exist in the compilation, or there is not
+            /// exactly one (partial) namespace <paramref name="nsName"/>, returns a set of empty comments.
             /// </remarks>
             public QsComments NamespaceComments(string sourceFile, string nsName)
             {
@@ -1004,7 +1022,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// The names and corresponding short forms of the opened namespaces.
             /// </returns>
             /// <remarks>
-            /// Returns an empty sequence if <paramref name="sourceFile"/> and/or <paramref name="nsName"/> do not exist in the compilation.
+            /// Returns an empty sequence if <paramref name="sourceFile"/> and/or <paramref name="nsName"/>
+            /// do not exist in the compilation.
             /// </remarks>
             public IEnumerable<(string, string?)> OpenDirectives(string sourceFile, string nsName) =>
                 this.openDirectivesForEachFile.TryGetValue(nsName, out var lookUp)
@@ -1015,7 +1034,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// Returns all the names of all callable and types defined in namespace <paramref name="nsName"/>.
             /// </summary>
             /// <returns>
-            /// The names defined in namespace <paramref name="nsName"/>, or an empty sequence if <paramref name="nsName"/> does not exist in the compilation.
+            /// The names defined in namespace <paramref name="nsName"/>, or an empty sequence
+            /// if <paramref name="nsName"/> does not exist in the compilation.
             /// </returns>
             /// <remarks>
             /// The returned names are unique and do not contain duplications e.g. for types and the corresponding constructor.

@@ -98,7 +98,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the header items corresponding to all namespaces declared in <paramref name="file"/>, or null if <paramref name="file"/> is null.
+        /// Returns the header items corresponding to all namespaces declared in <paramref name="file"/>,
+        /// or null if <paramref name="file"/> is null.
         /// </summary>
         /// <remarks>
         /// For namespaces with an invalid namespace name, the symbol name in the header item will be set to an UnknownNamespace.
@@ -107,7 +108,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             file.GetHeaderItems(file.NamespaceDeclarationTokens(), frag => frag.Kind.DeclaredNamespace(), ReservedKeywords.InternalUse.UnknownNamespace);
 
         /// <summary>
-        /// Returns the header items corresponding to all open directives with a valid name in <paramref name="file"/>, or null if <paramref name="file"/> is null.
+        /// Returns the header items corresponding to all open directives with a valid name in <paramref name="file"/>,
+        /// or null if <paramref name="file"/> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string?, QsNullable<Range>)>)> GetOpenDirectivesHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(
@@ -134,22 +136,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 null);
 
         /// <summary>
-        /// Returns the header items corresponding to all type declarations with a valid name in <paramref name="file"/>, or null if <paramref name="file"/> is null.
+        /// Returns the header items corresponding to all type declarations with a valid name in <paramref name="file"/>,
+        /// or null if <paramref name="file"/> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<TypeDefinition>)>
             GetTypeDeclarationHeaderItems(this FileContentManager file) =>
             file.GetHeaderItems(file.TypeDeclarationTokens(), frag => frag.Kind.DeclaredType(), null);
 
         /// <summary>
-        /// Returns the header items corresponding to all callable declarations with a valid name in <paramref name="file"/>, or null if <paramref name="file"/> is null.
+        /// Returns the header items corresponding to all callable declarations with a valid name in <paramref name="file"/>,
+        /// or null if <paramref name="file"/> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, CallableDeclaration>>)>
             GetCallableDeclarationHeaderItems(this FileContentManager file) =>
             file.GetHeaderItems(file.CallableDeclarationTokens(), frag => frag.Kind.DeclaredCallable(), null);
 
         /// <summary>
-        /// Defines a function that extracts the specialization declaration
-        /// for <paramref name="fragment"/> that contains a specialization that can be used to build a <see cref="HeaderEntry{T}"/> for the specialization.
+        /// Defines a function that extracts the specialization declaration for <paramref name="fragment"/>
+        /// that contains a specialization that can be used to build a <see cref="HeaderEntry{T}"/> for
+        /// the specialization.
         /// </summary>
         /// <param name="parent">The <see cref="HeaderEntry{T}"/> of the parent.</param>
         /// <remarks>
@@ -707,7 +712,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -757,7 +762,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -830,7 +835,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -879,7 +884,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -928,7 +933,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -1007,7 +1012,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -1070,7 +1075,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -1115,7 +1120,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -1160,7 +1165,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -1205,7 +1210,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -1250,7 +1255,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>
@@ -1295,7 +1300,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
         /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
         /// <para/>
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
         /// <para/>
         /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
         /// </remarks>

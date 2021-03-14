@@ -484,7 +484,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     /// Contains all information managed by the language processor.
     /// </summary>
     /// <remarks>
-    /// All properties except <see cref="IncludeInCompilation"/> are readonly, and any modification leads to the creation of a new instance.
+    /// All properties except <see cref="IncludeInCompilation"/> are readonly, and any modification
+    /// leads to the creation of a new instance.
     /// <para/>
     /// Access to <see cref="IncludeInCompilation"/> is limited to be via the <see cref="TokenIndex"/> subclass.
     /// </remarks>
@@ -594,7 +595,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// A class to conveniently walk the saved tokens.
         /// </summary>
         /// <remarks>
-        /// This class is a subclass of <see cref="CodeFragment"/> to limit access to <see cref="IncludeInCompilation"/> to be via <see cref="TokenIndex"/>.
+        /// This class is a subclass of <see cref="CodeFragment"/> to limit access to
+        /// <see cref="IncludeInCompilation"/> to be via <see cref="TokenIndex"/>.
         /// </remarks>
         internal class TokenIndex // not disposable because File mustn't be disposed since several token indices may be using it
         {
@@ -607,13 +609,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// <summary>
             /// Initializes a new instance of the <see cref="TokenIndex"/> class.
             /// <remarks>
-            /// Verifies line number <paramref name="line"/> and <paramref name="index"/> *only* against the Tokens listed in <paramref name="file"/> (and not against the
-            /// content).
+            /// Verifies line number <paramref name="line"/> and <paramref name="index"/> *only* against the Tokens
+            /// listed in <paramref name="file"/> (and not against the content).
             /// </remarks>
             /// </summary>
             /// <exception cref="ArgumentOutOfRangeException"><paramref name="line"/> or <paramref name="index"/> are negative.</exception>
             /// <exception cref="FileContentException">
-            /// <paramref name="line"/> is outside the bounds of <paramref name="file"/>, or <paramref name="index"/> is outside the bounds of <paramref name="line"/>.
+            /// <paramref name="line"/> is outside the bounds of <paramref name="file"/>, or <paramref name="index"/>
+            /// is outside the bounds of <paramref name="line"/>.
             /// </exception>
             internal TokenIndex(FileContentManager file, int line, int index)
             {
@@ -648,7 +651,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 this.Line < this.file.NrTokenizedLines() && this.Index < this.file.GetTokenizedLine(this.Line).Length;
 
             /// <summary>
-            /// Marks the token returned by <see cref="FileContentManager.GetTokenizedLine"/> for the associated file as excluded from the compilation.
+            /// Marks the token returned by <see cref="FileContentManager.GetTokenizedLine"/> for the
+            /// associated file as excluded from the compilation.
             /// </summary>
             /// <exception cref="FileContentException">
             /// The line or index are no longer within the associated file.
@@ -663,7 +667,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Marks the token returned by <see cref="FileContentManager.GetTokenizedLine"/> for the associated file as included in the compilation.
+            /// Marks the token returned by <see cref="FileContentManager.GetTokenizedLine"/> for the
+            /// associated file as included in the compilation.
             /// </summary>
             /// <exception cref="FileContentException">
             /// The line or index are no longer within the associated file.
@@ -696,7 +701,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             /// <summary>
-            /// Returns the corresponding fragment for the token at the saved <see cref="TokenIndex"/> including any closing comments for that fragment.
+            /// Returns the corresponding fragment for the token at the saved <see cref="TokenIndex"/>
+            /// including any closing comments for that fragment.
             /// </summary>
             /// <returns>
             /// A copy of the token where its range denotes the absolute range within <see cref="file"/>.
@@ -797,7 +803,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             /// </summary>
             /// <exception cref="ArgumentException"><paramref name="parentStart"/> is larger than the start position of <paramref name="fragment"/>.</exception>
             /// <remarks>
-            /// <see cref="RelativePosition"/> is set to the position of the fragment start relative to <paramref name="parentStart"/>.
+            /// <see cref="RelativePosition"/> is set to the position of the fragment start
+            /// relative to <paramref name="parentStart"/>.
             /// </remarks>
             public TreeNode(CodeFragment fragment, IReadOnlyList<TreeNode> children, Position parentStart)
             {
@@ -873,7 +880,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// If the construction succeeds, returns the <see cref="HeaderEntry{T}"/>.
         /// <para/>
         /// If the symbol of the extracted declaration is not an unqualified symbol,
-        /// verifies that it corresponds instead to an invalid symbol and returns null unless the <paramref name="keepInvalid"/> parameter has been set to a string value.
+        /// verifies that it corresponds instead to an invalid symbol and returns null
+        /// unless the <paramref name="keepInvalid"/> parameter has been set to a string value.
         /// </remarks>
         internal static HeaderEntry<T>? From(
             Func<CodeFragment, QsNullable<Tuple<QsSymbol, T>>> getDeclaration,
