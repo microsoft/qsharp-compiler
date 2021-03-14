@@ -282,6 +282,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.HeapAllocate, this.Context.Int8Type.CreatePointerType(), this.Types.Int);
 
             // result library functions
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultGetZero, this.Types.Result);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultGetOne, this.Types.Result);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultUpdateReferenceCount, this.Context.VoidType, this.Types.Result, this.Context.Int32Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultEqual, this.Context.BoolType, this.Types.Result, this.Types.Result);
 

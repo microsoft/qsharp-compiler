@@ -12,6 +12,8 @@ namespace Microsoft.Quantum.QIR
         internal const string HeapAllocate = "heap_alloc";
 
         // result functions
+        public const string ResultGetZero = "result_get_zero";
+        public const string ResultGetOne = "result_get_one";
         public const string ResultUpdateReferenceCount = "result_update_reference_count";
         public const string ResultEqual = "result_equal";
 

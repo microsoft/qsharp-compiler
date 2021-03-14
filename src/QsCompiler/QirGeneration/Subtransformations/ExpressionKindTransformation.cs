@@ -1506,8 +1506,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsResult)
                 {
-                    var pointer = this.SharedState.Constants.ResultZero;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, pointer);
+                    var getZero = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
+                    var constant = this.SharedState.CurrentBuilder.Call(getZero);
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsQubit)
@@ -1882,8 +1882,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnResultLiteral(QsResult r)
         {
-            var valuePtr = r.IsOne ? this.SharedState.Constants.ResultOne : this.SharedState.Constants.ResultZero;
-            var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, valuePtr);
+            var getResultLiteral = this.SharedState.GetOrCreateRuntimeFunction(
+                r.IsZero ? RuntimeLibrary.ResultGetZero : RuntimeLibrary.ResultGetOne);
+            var constant = this.SharedState.CurrentBuilder.Call(getResultLiteral);
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.From(constant, exType);
             this.SharedState.ValueStack.Push(value);
