@@ -220,7 +220,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsString)
                 {
                     var createString = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var argValue = this.sharedState.CurrentBuilder.Call(createString, this.sharedState.Context.CreateConstant(0), givenValue);
+                    var argValue = this.sharedState.CurrentBuilder.Call(createString, givenValue);
                     var value = this.sharedState.Values.From(argValue, type);
                     this.sharedState.ScopeMgr.RegisterValue(value);
                     return value;

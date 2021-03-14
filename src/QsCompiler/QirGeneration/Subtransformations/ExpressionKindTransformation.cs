@@ -1549,7 +1549,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsString)
                 {
                     var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Context.CreateConstant(0), this.SharedState.Types.DataArrayPointer.GetNullValue());
+                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue());
                     var built = this.SharedState.Values.From(value, type);
                     this.SharedState.ScopeMgr.RegisterValue(built);
                     return built;
@@ -1971,7 +1971,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         this.SharedState.Types.DataArrayPointer);
 
                 var createString = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                return this.SharedState.CurrentBuilder.Call(createString, this.SharedState.Context.CreateConstant(0), zeroLengthString);
+                return this.SharedState.CurrentBuilder.Call(createString, zeroLengthString);
             }
 
             // Creates a string value that needs to be queued for unreferencing.
