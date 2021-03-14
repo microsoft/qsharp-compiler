@@ -1989,7 +1989,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (ty.IsString)
                 {
                     var addReference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                    var countChange = this.SharedState.Context.CreateConstant(1L);
+                    var countChange = this.SharedState.Context.CreateConstant(1);
                     var value = this.SharedState.EvaluateSubexpression(ex).Value;
                     this.SharedState.CurrentBuilder.Call(addReference, value, countChange);
                     return value;
@@ -2072,7 +2072,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function StringConcatenate creates a new value with reference count 1.
                 var concatenate = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
                 var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                var countChange = this.SharedState.Context.CreateConstant(-1L);
+                var countChange = this.SharedState.Context.CreateConstant(-1);
                 var app = this.SharedState.CurrentBuilder.Call(concatenate, curr, next);
                 this.SharedState.CurrentBuilder.Call(unreference, curr, countChange);
                 this.SharedState.CurrentBuilder.Call(unreference, next, countChange);
