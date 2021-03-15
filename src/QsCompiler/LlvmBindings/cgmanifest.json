@@ -1,0 +1,14 @@
+{
+    "Registrations": [
+      {
+        "Component": {
+          "Type": "git",
+          "Git": {
+            "RepositoryUrl": "https://github.com/UbiquityDotNET/Llvm.NET",
+            "CommitHash": "40ef96d067f9dea0cfed05a224030669c1b3186a"
+          }
+        },
+        "DevelopmentDependency": [ false ]
+      }
+    ]
+  }

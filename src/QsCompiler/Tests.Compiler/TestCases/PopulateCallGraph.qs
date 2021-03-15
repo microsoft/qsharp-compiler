@@ -159,8 +159,8 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
     operation Main() : Unit {
         Adjoint FooAdj();
         using (q = Qubit()) {
-            (Controlled FooCtl)([q], ());
-            (Controlled Adjoint FooCtlAdj)([q], ());
+            Controlled FooCtl([q], ());
+            Controlled Adjoint FooCtlAdj([q], ());
         }
     }
 

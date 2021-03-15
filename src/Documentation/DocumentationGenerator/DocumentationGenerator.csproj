@@ -32,4 +32,5 @@
       <PackagePath>build\Microsoft.Quantum.DocumentationGenerator.props</PackagePath>
     </Content>
   </ItemGroup>
+
 </Project>
