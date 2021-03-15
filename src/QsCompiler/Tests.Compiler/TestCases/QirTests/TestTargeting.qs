@@ -17,6 +17,8 @@ namespace Microsoft.Quantum.Testing.QIR {
     }
 }
 
+// The following definitions are needed to satisfy the precondition for the target specific compilation pass to run
+
 namespace Microsoft.Quantum.Canon {
 
     operation NoOp<'T>(arg : 'T) : Unit is Adj + Ctl { }
