@@ -325,6 +325,37 @@ module SymbolResolution =
         |> Seq.map targetName
         |> ImmutableHashSet.CreateRange
 
+    /// Returns the required runtime capability if the sequence of attributes contains at least one valid instance of
+    /// the RequiresCapability attribute.
+    let TryGetRequiredCapability attributes =
+        let getCapability (att: QsDeclarationAttribute) =
+            if att |> BuiltIn.MarksRequiredCapability then
+                match att.Argument.Expression with
+                | ValueTuple vs when vs.Length = 2 -> Some vs.[0]
+                | _ -> None
+            else
+                None
+
+        let capabilities =
+            StringArgument (getCapability, (fun ex -> ex.Expression)) attributes
+            |> QsNullable<_>.Choose RuntimeCapability.TryParse
+            |> ImmutableHashSet.CreateRange
+
+        if Seq.isEmpty capabilities
+        then Null
+        else capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
+
+    /// Checks whether the given attributes defines a code for an instruction within the quantum instruction set that matches this callable.
+    /// Returns the string code as Value if this is the case, and Null otherwise.
+    /// The returned Value is based on the first attribute that indicates the code.
+    let TryGetTargetInstructionName attributes =
+        let loadedViaTestName (att: QsDeclarationAttribute) =
+            if att |> BuiltIn.DefinesTargetInstruction then Some att.Argument else None
+
+        StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
+        |> Seq.tryHead
+        |> QsNullable.ofOption
+
 
     // routines for resolving types and signatures
 

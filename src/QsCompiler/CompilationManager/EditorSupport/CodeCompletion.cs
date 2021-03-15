@@ -430,7 +430,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// completion item data is missing properties.
         /// </summary>
         private static string? TryGetDocumentation(
-            CompilationUnit compilation, CompletionItemData data, CompletionItemKind kind, bool useMarkdown)
+            CompilationUnit compilation, CompletionItemData data, CompletionItemKind? kind, bool useMarkdown)
         {
             if (data.QualifiedName == null
                 || data.SourceFile == null
@@ -619,7 +619,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new CompletionList
             {
                 IsIncomplete = isIncomplete,
-                Items = items?.ToArray()
+                Items = items?.ToArray() ?? new CompletionItem[] { }
             };
 
         /// <summary>
