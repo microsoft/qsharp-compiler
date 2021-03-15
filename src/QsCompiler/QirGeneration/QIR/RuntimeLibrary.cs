@@ -82,7 +82,8 @@ namespace Microsoft.Quantum.QIR
         public const string CallableMakeControlled = "callable_make_controlled";
         public const string CallableUpdateAliasCount = "callable_update_alias_count";
         public const string CallableUpdateReferenceCount = "callable_update_reference_count";
-        public const string CallableMemoryManagement = "callable_memory_management";
+        public const string CaptureUpdateAliasCount = "capture_update_alias_count";
+        public const string CaptureUpdateReferenceCount = "capture_update_reference_count";
 
         // qubit functions
         public const string QubitAllocate = "qubit_allocate";

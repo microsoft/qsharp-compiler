@@ -58,21 +58,21 @@ entry:
   %55 = load %String*, %String** %54, align 8
   %56 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %16, i32 0, i32 0
   %57 = load { i2, i64 }*, { i2, i64 }** %56, align 8
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %0, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %0, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %0, i32 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %1, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %1, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %1, i32 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %4, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %4, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %4, i32 -1)
   %58 = bitcast { i2, i64 }* %49 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %58, i32 -1)
   %59 = bitcast { { i2, i64 }*, double }* %5 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %59, i32 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %6, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %6, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %6, i32 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %7, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %7, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %7, i32 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %53, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %53, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %53, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %55, i32 -1)
   %60 = bitcast { %Callable*, %String* }* %51 to %Tuple*

@@ -1,7 +1,7 @@
 define void @Microsoft__Quantum__Testing__QIR__TestOperationCalls__body() #0 {
 entry:
   %doNothing = call %Callable* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing__body(i64 1)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %doNothing, i32 1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %doNothing, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %doNothing, i32 1)
   %aux = call %Qubit* @__quantum__rt__qubit_allocate()
   call void @Microsoft__Quantum__Testing__QIR__CNOT__body(%Qubit* %aux, %Qubit* %aux)
@@ -36,11 +36,11 @@ entry:
   call void @__quantum__rt__qubit_release(%Qubit* %aux)
   %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   call void @Microsoft__Quantum__Testing__QIR__TakesSingleTupleArg__body(i64 2, %Callable* %15)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %doNothing, i32 -1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %doNothing, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %doNothing, i32 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %doNothing, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %doNothing, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %doNothing, i32 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %15, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %15, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %15, i32 -1)
   ret void
 }

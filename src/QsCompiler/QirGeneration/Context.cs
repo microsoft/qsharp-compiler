@@ -352,7 +352,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMakeControlled, this.Context.VoidType, this.Types.Callable);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateAliasCount, this.Context.VoidType, this.Types.Callable, this.Context.Int32Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Context.Int32Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.CallableMemoryManagement, this.Context.VoidType, this.Context.Int32Type, this.Types.Callable, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CaptureUpdateAliasCount, this.Context.VoidType, this.Types.Callable, this.Context.Int32Type);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.CaptureUpdateReferenceCount, this.Context.VoidType, this.Types.Callable, this.Context.Int32Type);
 
             // qubit library functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitAllocate, this.Types.Qubit);

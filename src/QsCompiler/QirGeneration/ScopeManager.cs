@@ -391,19 +391,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Each callable table contains a pointer to an array of function pointers to modify alias and reference
-        /// counts of the capture tuple.
-        /// Given a callable value, invokes the function at the given index in the memory management table of the callable
-        /// by calling the runtime function CallableMemoryManagement with the function index and the value by which to
-        /// change the count. The given change is expected to be a 64-bit integer.
-        /// </summary>
-        private void InvokeCallableMemoryManagement(int funcIndex, Value change, CallableValue callable)
-        {
-            var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMemoryManagement);
-            this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, this.sharedState.Context.CreateConstant(funcIndex), callable.Value, change);
-        }
-
-        /// <summary>
         /// For each value for which the given function returns a function name,
         /// applies the runtime function with that name to the value, casting the value if necessary.
         /// Recurs into contained items if the bool passed with the value is true.
@@ -456,11 +443,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else if (value is CallableValue callable && recurIntoInnerItems)
                     {
-                        var itemFuncId =
-                            funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
-                            funcName == RuntimeLibrary.CallableUpdateAliasCount ? 1 :
+                        var captureCountChange =
+                            funcName == RuntimeLibrary.CallableUpdateReferenceCount ? RuntimeLibrary.CaptureUpdateReferenceCount :
+                            funcName == RuntimeLibrary.CallableUpdateAliasCount ? RuntimeLibrary.CaptureUpdateAliasCount :
                             throw new NotSupportedException("unknown function for capture tuple memory management");
-                        this.InvokeCallableMemoryManagement(itemFuncId, change, callable);
+
+                        var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(captureCountChange);
+                        this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, callable.Value, change);
                         arg = callable.Value;
                     }
                     else
@@ -594,8 +583,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Given a callable value, increases the reference count of its capture tuple by 1.
         /// </summary>
         /// <param name="callable">The callable whose capture tuple to reference</param>
-        internal void ReferenceCaptureTuple(CallableValue callable) =>
-            this.InvokeCallableMemoryManagement(0, this.plusOne, callable);
+        internal void ReferenceCaptureTuple(CallableValue callable)
+        {
+            var updateRefCount = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CaptureUpdateReferenceCount);
+            this.sharedState.CurrentBuilder.Call(updateRefCount, callable.Value, this.plusOne);
+        }
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the alias count for the given value if necessary.
