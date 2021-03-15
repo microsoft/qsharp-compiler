@@ -3,40 +3,16 @@
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
 
-enum ArgumentType
+enum DataType
 {
-    ArrayType,
     BoolType,
     IntegerType,
     DoubleType,
     PauliType,
     RangeType,
     ResultType,
-    StringType
-}
-
-struct Argument
-{
-    5: ArgumentType Type = StringType;
-
-    10: string Name;
-
-    15: int32 Position;
-}
-
-struct Bool : Argument
-{
-    5: nullable<bool> Value;
-}
-
-struct Integer : Argument
-{
-    5: nullable<int64> Value;
-}
-
-struct Double : Argument
-{
-    5: nullable<double> Value;
+    StringType,
+    ArrayType
 }
 
 enum PauliValue
@@ -45,11 +21,6 @@ enum PauliValue
     PauliX,
     PauliY,
     PauliZ
-}
-
-struct Pauli : Argument
-{
-    5: nullable<PauliValue> Value;
 }
 
 struct RangeValue
@@ -61,75 +32,83 @@ struct RangeValue
     15: int64 End;
 }
 
-struct Range : Argument
-{
-    5: nullable<RangeValue> Value;
-}
-
 enum ResultValue
 {
     Zero,
     One
 }
 
-struct Result : Argument
+struct ArrayValue
 {
-    5: nullable<ResultValue> Value;
+    5: DataType Type = BoolType;
+
+    // Not null when Type is BoolType.
+    10: nullable<vector<bool>> Bool;
+
+    // Not null when Type is IntegerType.
+    15: nullable<vector<int64>> Integer;
+
+    // Not null when Type is DoubleType.
+    20: nullable<vector<double>> Double;
+
+    // Not null when Type is PauliType.
+    25: nullable<vector<PauliValue>> Pauli;
+
+    // Not null when Type is RangeType.
+    30: nullable<vector<RangeValue>> Range;
+
+    // Not null when Type is ResultType.
+    35: nullable<vector<ResultValue>> Result;
 }
 
-struct String : Argument
+struct ArgumentValue
 {
-    5: nullable<string> Value;
+    5: DataType Type = BoolType;
+
+    // Not null when Type is BoolType.
+    10: nullable<bool> Bool;
+
+    // Not null when Type is IntegerType.
+    15: nullable<int64> Integer;
+
+    // Not null when Type is DoubleType.
+    20: nullable<double> Double;
+
+    // Not null when Type is PauliType.
+    25: nullable<PauliValue> Pauli;
+
+    // Not null when Type is RangeType.
+    30: nullable<RangeValue> Range;
+
+    // Not null when Type is ResultType.
+    35: nullable<ResultValue> Result;
+
+    // Not null when Type is StringType.
+    40: nullable<string> String;
+
+    // Not null when Type is ArrayType.
+    45: nullable<ArrayValue> Array;
 }
 
-enum ArrayType
+struct Argument
 {
-    BoolType,
-    IntegerType,
-    DoubleType,
-    PauliType,
-    RangeType,
-    ResultType
+    5: DataType Type = BoolType;
+
+    10: string Name;
+
+    15: int32 Position;
+
+    // Not null when Type is ArrayType.
+    20: nullable<DataType> ArrayType;
+
+    25: vector<ArgumentValue> Values;
 }
 
-struct Array : Argument
-{
-    5: ArrayType Type = ResultType;
-}
-
-struct BoolArray : Array
-{
-    5: nullable<vector<bool>> Value;
-}
-
-struct IntegerArray : Array
-{
-    5: nullable<vector<int64>> Value;
-}
-
-struct DoubleArray : Array
-{
-    5: nullable<vector<double>> Value;
-}
-
-struct PauliArray : Array
-{
-    5: nullable<vector<PauliValue>> Value;
-}
-
-struct RangeArray : Array
-{
-    5: nullable<vector<RangeValue>> Value;
-}
-
-struct ResultArray : Array
-{
-    5: nullable<vector<ResultValue>> Value;
-}
-
-struct Operation
+struct EntryPointOperation
 {
     5: string Name;
 
-    10: vector<bonded<Argument>> Arguments;
+    10: vector<Argument> Arguments;
+
+    // TODO: Needs to be expanded to include return information.
 }
