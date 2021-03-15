@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QIR
         /// The type is a pointer to an opaque struct.
         /// For item access and deconstruction, tuple values need to be cast
         /// to a suitable concrete type depending on the types of their items.
-        /// Such a concrete tuple type is constructed using <see cref="TypedTuple"/>.
+        /// Such a concrete tuple type is constructed using <see cref="TypedTuple(Value[])"/>.
         /// </summary>
         public readonly IPointerType Tuple;
 
