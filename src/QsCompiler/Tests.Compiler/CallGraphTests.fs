@@ -93,7 +93,7 @@ type CallGraphTests(output: ITestOutputHelper) =
 
         let got =
             compilationDataStructures.Diagnostics()
-            |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error)
+            |> Seq.filter (fun d -> d.Severity = Nullable DiagnosticSeverity.Error)
             |> Seq.choose (fun d ->
                 match Diagnostics.TryGetCode d.Code with
                 | true, code -> Some code

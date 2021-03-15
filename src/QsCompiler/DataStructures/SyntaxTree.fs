@@ -173,6 +173,9 @@ type UserDefinedType =
 
     override udt.GetHashCode() = hash (udt.Namespace, udt.Name)
 
+    member this.GetFullName() =
+        { Namespace = this.Namespace; Name = this.Name }
+
 /// Fully resolved operation characteristics used to describe the properties of a Q# callable.
 /// A resolved characteristic expression by construction never contains an empty or invalid set as inner expressions,
 /// and necessarily contains the property "Adjointable" if it contains the property "SelfAdjoint".
@@ -940,6 +943,11 @@ type QsCallable =
 
     member this.WithSource source = { this with Source = source }
 
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.IsIntrinsic = this.Signature.Information.InferredInformation.IsIntrinsic
+
+    [<Newtonsoft.Json.JsonIgnore>]
+    member this.IsSelfAdjoint = this.Signature.Information.InferredInformation.IsSelfAdjoint
 
 /// used to represent the named and anonymous items in a user defined type
 type QsTypeItem =

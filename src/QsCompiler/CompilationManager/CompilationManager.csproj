@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-
   <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
@@ -10,7 +9,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.3.57" />
+    <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.9.1180" />
     <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
   </ItemGroup>
 

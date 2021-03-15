@@ -26,6 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             // TODO: Disabling nullable annotations is a workaround for
             // https://github.com/commandlineparser/commandline/issues/136.
 #nullable disable annotations
+
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
             {
@@ -47,7 +48,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SetName = CodeMode,
                 HelpText = "Destination folder where the formatted files will be generated.")]
             public string OutputFolder { get; set; }
+
 #nullable restore annotations
+
         }
 
         /// <summary>

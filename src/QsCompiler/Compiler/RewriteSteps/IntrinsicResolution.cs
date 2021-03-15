@@ -4,7 +4,7 @@
 using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution;
+using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 
 namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
@@ -15,7 +15,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     {
         public string Name => "Intrinsic Resolution";
 
-        public int Priority => 10; // Not used for built-in transformations like this
+        public int Priority => 1200; // currently not used
 
         public IDictionary<string, string?> AssemblyConstants { get; }
 

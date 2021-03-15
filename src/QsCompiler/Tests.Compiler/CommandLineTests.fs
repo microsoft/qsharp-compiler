@@ -11,7 +11,6 @@ open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
 open Xunit
 
-
 let private pathRoot = Path.GetPathRoot(Directory.GetCurrentDirectory())
 
 let private parentDir = Path.GetDirectoryName(Directory.GetCurrentDirectory())

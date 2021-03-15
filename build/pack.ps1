@@ -36,7 +36,7 @@ function Publish-One {
 
 function Pack-One() {
     param(
-        [string]$project, 
+        [string]$project,
         [string]$include_references=""
     );
 
@@ -87,9 +87,9 @@ $all_ok = $True
 
 Publish-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
 Publish-One '../src/QuantumSdk/Tools/BuildConfiguration/BuildConfiguration.csproj'
+Publish-One '../src/QuantumSdk/Tools/DefaultEntryPoint/DefaultEntryPoint.csproj'
 
 Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
-Pack-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj' '-IncludeReferencedProjects'
 Pack-Dotnet '../src/Documentation/DocumentationGenerator/DocumentationGenerator.csproj'
 Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
 Pack-One '../src/QuantumSdk/QuantumSdk.nuspec'

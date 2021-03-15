@@ -25,7 +25,6 @@
     <Compile Include="RuntimeCapability.fs" />
     <Compile Include="SyntaxTokens.fs" />
     <Compile Include="SyntaxTree.fs" />
-    <Compile Include="SyntaxExtensions.fs" />
     <Compile Include="Documentation.fs" />
     <Compile Include="Serialization.fs" />
   </ItemGroup>
