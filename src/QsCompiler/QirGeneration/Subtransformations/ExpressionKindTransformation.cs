@@ -400,7 +400,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     args = vs.Item.Select(this.SharedState.EvaluateSubexpression);
                 }
-                else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is ResolvedTypeKind.TupleType ts)
+                else if (arg.ResolvedType.Resolution is ResolvedTypeKind.TupleType ts)
                 {
                     var evaluatedArg = (TupleValue)this.SharedState.EvaluateSubexpression(arg);
                     args = evaluatedArg.GetTupleElements();
@@ -2180,7 +2180,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnValueTuple(ImmutableArray<TypedExpression> vs)
         {
-            var value = this.SharedState.Values.CreateTuple(vs);
+            IValue value =
+                vs.Length == 0 ? this.SharedState.Values.Unit :
+                vs.Length == 1 ? this.SharedState.EvaluateSubexpression(vs.Single()) :
+                this.SharedState.Values.CreateTuple(vs);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
