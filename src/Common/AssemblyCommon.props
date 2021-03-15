@@ -27,7 +27,7 @@
       CS1591 (Doc): Missing XML comment for publicly visible type or member.
       CS1573 (Doc): Some, but not all parameters are documented.
     -->
-    <NoWarn>1591; 1573</NoWarn>
+    <NoWarn>1591;1573</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.fsproj'">
