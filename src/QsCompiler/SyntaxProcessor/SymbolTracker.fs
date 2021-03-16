@@ -48,15 +48,6 @@ type private TrackedScope =
 
             requiredSupport [] functors
 
-module private SymbolTracker =
-    let withRanges range =
-        { new TypeTransformation() with
-            override this.OnRangeInformation _ = range
-        }
-            .OnType
-
-open SymbolTracker
-
 /// <summary>
 /// The <see cref="SymbolTracker"/> class does *not* make a copy of the given <see cref="NamespaceManager"/>,
 /// but instead will throw an <see cref="InvalidOperationException"/> upon accessing its content if that content has been modified
@@ -337,7 +328,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 let properties =
                     defaultLoc,
                     LocalVariable sym,
-                    decl.Type |> withRanges qsSym.Range,
+                    decl.Type |> ResolvedType.withRangeRecurse qsSym.Range,
                     decl.InferredInformation.HasLocalQuantumDependency
 
                 properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray.Empty

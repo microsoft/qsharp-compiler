@@ -173,6 +173,7 @@ let private VerifyValueArray (inference: InferenceContext) range exprs =
             let intersectionType, intersectDiagnostics = inference.Intersect(left, right)
             List.iter diagnostics.Add intersectDiagnostics
             intersectionType)
+        |> ResolvedType.withRangeRecurse (Value range)
         |> ArrayType
         |> ResolvedType.create (Value range),
         Seq.toList diagnostics

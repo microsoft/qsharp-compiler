@@ -424,6 +424,19 @@ module ResolvedType =
 
     let withRange range resolvedType = { resolvedType with range = range }
 
+    let rec withRangeRecurse range (resolvedType: ResolvedType) =
+        let kind =
+            match resolvedType.Resolution with
+            | ArrayType item -> withRangeRecurse range item |> ArrayType
+            | TupleType items -> items |> Seq.map (withRangeRecurse range) |> ImmutableArray.CreateRange |> TupleType
+            | QsTypeKind.Operation ((input, output), info) ->
+                QsTypeKind.Operation((withRangeRecurse range input, withRangeRecurse range output), info)
+            | QsTypeKind.Function (input, output) ->
+                QsTypeKind.Function(withRangeRecurse range input, withRangeRecurse range output)
+            | kind -> kind
+
+        create range kind
+
 type ResolvedType with
     static member internal New(keepRangeInfo, kind: QsTypeKind<_, UserDefinedType, QsTypeParameter, CallableInformation>) =
         match kind with

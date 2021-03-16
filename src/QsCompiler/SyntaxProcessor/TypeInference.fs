@@ -91,7 +91,7 @@ module private TypeContext =
         }
 
     let into (leftChild: ResolvedType) (rightChild: ResolvedType) context =
-        if leftChild.Range = context.Left.Range && rightChild.Range = context.Right.Range
+        if leftChild.Range = context.Left.Range || rightChild.Range = context.Right.Range
         then { context with Left = leftChild; Right = rightChild }
         else create leftChild rightChild
 
@@ -151,10 +151,11 @@ module private Inference =
         | Supertype -> [ info1; info2 ] |> CallableInformation.Common |> Some
 
     let rec combine ordering types =
+        // TODO: Different diagnostic for Equal and Subtype ordering.
         let error =
             QsCompilerDiagnostic.Error
                 (ErrorCode.NoCommonBaseType, TypeContext.toList types |> List.map showType)
-                Range.Zero
+                (QsNullable.Map2 Range.Span types.Left.Range types.Right.Range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
         | ArrayType item1, ArrayType item2 ->
