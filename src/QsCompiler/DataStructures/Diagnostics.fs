@@ -318,9 +318,9 @@ type ErrorCode =
     | PreEvaluationFailed = 7111
     | RewriteStepExecutionFailed = 7112
     | PostconditionVerificationFailed = 7113
+    | PreconditionVerificationFailed = 7202 // the corresponding warning code exists
 
     | CsharpGenerationGeneratedError = 8001
-
     | PublishingPerfResultsFailed = 8101
     | PerformanceTrackingFailed = 8102
     | SyntaxTreeNotMonomorphized = 8103
@@ -377,7 +377,7 @@ type WarningCode =
     | UnresolvedItemsInGeneratedQs = 7101
 
     | RewriteStepDiagnosticsGenerationFailed = 7201
-    | PreconditionVerificationFailed = 7202
+    | PreconditionVerificationFailed = 7202 // the corresponding error code exists
     | RewriteStepLoadedViaReflection = 7203
     | FailedToLoadRewriteStepViaReflection = 7204
 
@@ -877,9 +877,9 @@ type DiagnosticItem =
                 "Executing the transformation for the compilation step \"{0}\" loaded from \"{1}\" failed."
             | ErrorCode.PostconditionVerificationFailed ->
                 "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
+            | ErrorCode.PreconditionVerificationFailed -> "The precondition for the compilation step \"{0}\" loaded from \"{1}\" was not met."
 
             | ErrorCode.CsharpGenerationGeneratedError -> ""
-
             | ErrorCode.PublishingPerfResultsFailed -> "Performance results failed to be published at \"{0}\"."
             | ErrorCode.PerformanceTrackingFailed -> "Performance tracking failed with error \"{0}\"."
             | ErrorCode.SyntaxTreeNotMonomorphized ->

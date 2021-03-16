@@ -62,6 +62,13 @@ namespace Microsoft.Quantum.QsCompiler
             public string? ProjectName;
 
             /// <summary>
+            /// If set to true, forces all rewrite steps to execute, regardless of whether their precondition was satisfied.
+            /// If the precondition of a step is not satisfied, the transformation is executed but the output will be ignored,
+            /// and an error is generated, indicating a compilation failure.
+            /// </summary>
+            public bool ForceRewriteStepExecution;
+
+            /// <summary>
             /// If set to true, the syntax tree rewrite step that replaces all generation directives
             /// for all functor specializations is executed during compilation.
             /// </summary>
@@ -547,11 +554,11 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 if (this.config.RuntimeCapability == null || this.config.RuntimeCapability == RuntimeCapability.FullComputation)
                 {
-                    this.logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
+                    this.LogAndUpdate(ref this.compilationStatus.Validation, WarningCode.MissingEntryPoint);
                 }
                 else
                 {
-                    this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.MissingEntryPoint, Array.Empty<string>());
+                    this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.MissingEntryPoint);
                 }
             }
 
@@ -730,10 +737,18 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Logs an error with the given error code and message parameters, and updates the status passed as reference accordingly.
         /// </summary>
-        private void LogAndUpdate(ref Status current, ErrorCode code, IEnumerable<string> args)
+        private void LogAndUpdate(ref Status current, ErrorCode code, params string[] args)
         {
             this.logger?.Log(code, args);
             current = Status.Failed;
+        }
+
+        /// <summary>
+        /// Logs an error with the given warning code and message parameters, and updates the status passed as reference accordingly.
+        /// </summary>
+        private void LogAndUpdate(ref Status current, WarningCode code, params string[] args)
+        {
+            this.logger?.Log(code, args);
         }
 
         /// <summary>
@@ -751,7 +766,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private void OnCompilerException(Exception ex)
         {
-            this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.UnexpectedCompilerException, Enumerable.Empty<string>());
+            this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.UnexpectedCompilerException);
             this.LogAndUpdate(ref this.compilationStatus.Validation, ex);
         }
 
@@ -829,7 +844,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private QsCompilation? ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin, int nrReferences)
         {
-            void LogError(ErrorCode errCode, string[] args) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, errCode, args);
+            void LogError(ErrorCode errCode, params string[] args) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, errCode, args);
             void LogException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, ex);
 
             (string, ImmutableArray<QsNamespace>)? LoadReferences(string path)
@@ -841,12 +856,12 @@ namespace Microsoft.Quantum.QsCompiler
                     {
                         return (path, loaded.Namespaces);
                     }
-                    LogError(ErrorCode.FailedToLoadTargetSpecificDecompositions, new[] { targetDll });
+                    LogError(ErrorCode.FailedToLoadTargetSpecificDecompositions, targetDll);
                     return null;
                 }
                 catch (Exception ex)
                 {
-                    LogError(ErrorCode.InvalidPathToTargetSpecificDecompositions, new[] { path });
+                    LogError(ErrorCode.InvalidPathToTargetSpecificDecompositions, path);
                     LogException(ex);
                     return null;
                 }
@@ -856,7 +871,7 @@ namespace Microsoft.Quantum.QsCompiler
             var combinedSuccessfully = References.CombineSyntaxTrees(out var replacements, additionalAssemblies: nrReferences, onError: LogError, natives);
             if (!combinedSuccessfully)
             {
-                LogError(ErrorCode.ConflictsInTargetSpecificDecompositions, Array.Empty<string>());
+                LogError(ErrorCode.ConflictsInTargetSpecificDecompositions);
             }
 
             var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty);
@@ -876,6 +891,7 @@ namespace Microsoft.Quantum.QsCompiler
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
                 null;
 
+            var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
             void LogDiagnostics(ref Status status)
             {
                 try
@@ -888,13 +904,11 @@ namespace Microsoft.Quantum.QsCompiler
                 }
                 catch
                 {
-                    this.LogAndUpdate(ref status, Warning(WarningCode.RewriteStepDiagnosticsGenerationFailed, rewriteStep.Name));
+                    this.LogAndUpdate(ref status, WarningCode.RewriteStepDiagnosticsGenerationFailed, rewriteStep.Name, messageSource);
                 }
             }
 
             var status = Status.Succeeded;
-            var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
-            Diagnostic Warning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, messageSource);
             try
             {
                 transformed = compilation;
@@ -902,8 +916,15 @@ namespace Microsoft.Quantum.QsCompiler
                 if (preconditionFailed)
                 {
                     LogDiagnostics(ref status);
-                    this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, rewriteStep.Name, messageSource));
-                    return status;
+                    if (this.config.ForceRewriteStepExecution)
+                    {
+                        this.LogAndUpdate(ref status, ErrorCode.PreconditionVerificationFailed, rewriteStep.Name, messageSource);
+                    }
+                    else
+                    {
+                        this.LogAndUpdate(ref status, WarningCode.PreconditionVerificationFailed, rewriteStep.Name, messageSource);
+                        return status;
+                    }
                 }
 
                 var transformationFailed = rewriteStep.ImplementsTransformation && (!rewriteStep.Transformation(compilation, out transformed) || transformed == null);
@@ -949,7 +970,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.compilationStatus.SourceFileLoading = 0;
             if (sources == null)
             {
-                this.LogAndUpdate(ref this.compilationStatus.SourceFileLoading, ErrorCode.SourceFilesMissing, Enumerable.Empty<string>());
+                this.LogAndUpdate(ref this.compilationStatus.SourceFileLoading, ErrorCode.SourceFilesMissing);
             }
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.SourceFileLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.SourceFileLoading, d);
@@ -971,7 +992,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.compilationStatus.ReferenceLoading = 0;
             if (refs == null)
             {
-                this.logger?.Log(WarningCode.ReferencesSetToNull, Enumerable.Empty<string>());
+                this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, WarningCode.ReferencesSetToNull);
             }
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.ReferenceLoading, d);
@@ -991,7 +1012,7 @@ namespace Microsoft.Quantum.QsCompiler
         private bool WriteSyntaxTreeSerialization(MemoryStream ms)
         {
             void LogError() => this.LogAndUpdate(
-                ref this.compilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
+                ref this.compilationStatus.Serialization, ErrorCode.SerializationFailed);
 
             void LogExceptionAndError(Exception ex)
             {
@@ -1041,7 +1062,7 @@ namespace Microsoft.Quantum.QsCompiler
             catch (Exception ex)
             {
                 this.LogAndUpdate(ref this.compilationStatus.BinaryFormat, ex);
-                this.LogAndUpdate(ref this.compilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed, Enumerable.Empty<string>());
+                this.LogAndUpdate(ref this.compilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed);
                 return null;
             }
         }
@@ -1097,8 +1118,7 @@ namespace Microsoft.Quantum.QsCompiler
                 var csharpTree = MetadataGeneration.GenerateAssemblyMetadata(references.Where(r => r.Item3).Select(r => r.Item2));
                 foreach (var (dropped, _, _) in references.Where(r => !r.Item3))
                 {
-                    var warning = Warnings.LoadWarning(WarningCode.ReferenceCannotBeIncludedInDll, new[] { dropped }, null);
-                    this.LogAndUpdate(ref this.compilationStatus.DllGeneration, warning);
+                    this.LogAndUpdate(ref this.compilationStatus.DllGeneration, WarningCode.ReferencesSetToNull, dropped);
                 }
 
                 var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
@@ -1125,7 +1145,7 @@ namespace Microsoft.Quantum.QsCompiler
             catch (Exception ex)
             {
                 this.LogAndUpdate(ref this.compilationStatus.DllGeneration, ex);
-                this.LogAndUpdate(ref this.compilationStatus.DllGeneration, ErrorCode.GeneratingDllFailed, Enumerable.Empty<string>());
+                this.LogAndUpdate(ref this.compilationStatus.DllGeneration, ErrorCode.GeneratingDllFailed);
                 return null;
             }
         }

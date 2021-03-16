@@ -198,7 +198,11 @@ let ``QIR expressions`` () = qirTest false "TestExpressions"
 [<Fact>]
 let ``QIR targeting`` () =
     let compilerArgs =
-        [ "--runtime"; "BasicMeasurementFeedback" ]
+        [
+            "--runtime"
+            "BasicMeasurementFeedback"
+            "--force-rewrite-step-execution" // to make sure the target specific transformation actually runs
+        ]
         |> Seq.append (compilerArgs true "TestTargeting")
         |> Seq.toArray
 
