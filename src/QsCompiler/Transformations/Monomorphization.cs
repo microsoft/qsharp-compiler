@@ -33,16 +33,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     {
         private static bool IsIntrinsic(QsCallable callable) => callable.Specializations.Any(spec => spec.Implementation.IsIntrinsic);
 
+        private static bool IsGeneric(QsCallable callable) =>
+            callable.Signature.TypeParameters.Any() || callable.Specializations.Any(spec => spec.Signature.TypeParameters.Any());
+
         /// <summary>
         /// Performs Monomorphization on the given compilation. If the keepAllIntrinsics parameter
         /// is set to true, then unused intrinsics will not be removed from the resulting compilation.
         /// </summary>
-        public static QsCompilation NewApply(QsCompilation compilation)
+        public static QsCompilation Apply(QsCompilation compilation)
         {
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
             var concreteNamesMap = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
-            var removeList = new List<QsQualifiedName>();
 
             var nodesWithResolutions = new ConcreteCallGraph(compilation).Nodes
                 // Remove specialization information so that we only deal with the full callables.
@@ -75,31 +77,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                         .WithFullName(oldName => concreteName)
                         .WithSpecializations(specs => specs.Select(spec => spec.WithParent(_ => concreteName)).ToImmutableArray());
                     concretizations.Add(concrete);
-
-                    if (!BuiltIn.RewriteStepDependencies.Contains(node.CallableName))
-                    {
-                        removeList.Add(node.CallableName);
-                    }
                 }
             }
 
-            var removeLookup = removeList.ToLookup(x => x.Namespace);
-            var addLookup = concretizations.ToLookup(x => x.FullName.Namespace);
-
-            // ToDo: Remove things in removeList
-            // ToDo: Add concretizations
+            var callablesByNamespace = concretizations.ToLookup(x => x.FullName.Namespace);
             var namespacesWithImpls = compilation.Namespaces.Select(ns =>
             {
-                var remove = removeLookup[ns.Name].ToImmutableHashSet();
-                var add = addLookup[ns.Name].Select(call => QsNamespaceElement.NewQsCallable(call));
+                var elemsToAdd = callablesByNamespace[ns.Name].Select(call => QsNamespaceElement.NewQsCallable(call));
 
                 return ns.WithElements(elems =>
                     elems
                     .Where(elem =>
-                        elem is QsNamespaceElement.QsCallable call
-                        ? !remove.Contains(call.Item.FullName)
-                        : true)
-                    .Concat(add)
+                        !(elem is QsNamespaceElement.QsCallable call)
+                        || !IsGeneric(call.Item)
+                        || IsIntrinsic(call.Item)
+                        || BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName))
+                    .Concat(elemsToAdd)
                     .ToImmutableArray());
             }).ToImmutableArray();
 

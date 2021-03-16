@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = Monomorphize.NewApply(compilation);
+            transformed = Monomorphize.Apply(compilation);
             return true;
         }
 
