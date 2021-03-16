@@ -40,8 +40,6 @@ enum ResultValue
 
 struct ArrayValue
 {
-    5: DataType Type = BoolType;
-
     // Not null when Type is BoolType.
     10: nullable<vector<bool>> Bool;
 
@@ -63,8 +61,6 @@ struct ArrayValue
 
 struct ArgumentValue
 {
-    5: DataType Type = BoolType;
-
     // Not null when Type is BoolType.
     10: nullable<bool> Bool;
 

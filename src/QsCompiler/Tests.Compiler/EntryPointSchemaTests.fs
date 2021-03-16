@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
+open System.Collections.Generic
 open System.IO
 open System.Text
 open Bond
@@ -12,41 +13,55 @@ open Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
 
 type EntryPointSchemaTests(output: ITestOutputHelper) =
 
-    let createBoolArgumentValue(value: bool) =
-        let argumentValue = new ArgumentValue(Type = DataType.BoolType, Bool = value)
-        argumentValue
-
-    let createIntegerArgumentValue(value: int64) =
-        let argumentValue = new ArgumentValue(Type = DataType.IntegerType, Integer = value)
-        argumentValue
-
-    let createDoubleArgumentValue(value: double) =
-        let argumentValue = new ArgumentValue(Type = DataType.DoubleType, Double = value)
-        argumentValue
-
-    let createPauliArgumentValue(value: PauliValue) =
-        let argumentValue = new ArgumentValue(Type = DataType.PauliType, Pauli = value)
-        argumentValue
+    let createRangeValueFromTuple(tuple: (int64 * int64 * int64)) =
+        let rstart, rstep, rend = tuple
+        RangeValue(Start = rstart, Step = rstep, End = rend)
 
     let createRangeArgumentValue(rstart: int64, rstep: int64, rend: int64) =
-        let rangeValue = RangeValue(Start = rstart, Step = rstep, End = rend)
-        let argumentValue = new ArgumentValue(Type = DataType.RangeType, Range = rangeValue)
+        let argumentValue = new ArgumentValue(Range = ((rstart, rstep, rend) |> createRangeValueFromTuple))
         argumentValue
 
-    let createResultArgumentValue(value: ResultValue) =
-        let argumentValue = new ArgumentValue(Type = DataType.ResultType, Result = value)
+    let createArrayArgumentValue(arrayValue: ArrayValue) =
+        let argumentValue = new ArgumentValue(Array = arrayValue)
         argumentValue
 
-    let createStringArgumentValue(value: string) =
-        let argumentValue = new ArgumentValue(Type = DataType.StringType, String = value)
-        argumentValue
+    let createBoolArrayArgumentValue(lst: bool list) =
+        let arrayValue = new ArrayValue(Bool = new List<bool>())
+        List.iter (fun v -> arrayValue.Bool.Add v) lst
+        arrayValue |> createArrayArgumentValue
 
-    let createArrayArgumentValue(value: ArrayValue) =
-        let argumentValue = new ArgumentValue(Type = DataType.ArrayType, Array = value)
-        argumentValue
+    let createIntegerArrayArgumentValue(lst: int64 list) =
+        let arrayValue = new ArrayValue(Integer = new List<int64>())
+        List.iter (fun v -> arrayValue.Integer.Add v) lst
+        arrayValue |> createArrayArgumentValue
 
-    let createArgument(name: string, argType: DataType, valuesList: ArgumentValue list) =
-        let argument = new Argument(Name = name, Type = argType)
+    let createDoubleArrayArgumentValue(lst: double list) =
+        let arrayValue = new ArrayValue(Double = new List<double>())
+        List.iter (fun v -> arrayValue.Double.Add v) lst
+        arrayValue |> createArrayArgumentValue
+
+    let createPauliArrayArgumentValue(lst: PauliValue list) =
+        let arrayValue = new ArrayValue(Pauli = new List<PauliValue>())
+        List.iter (fun v -> arrayValue.Pauli.Add v) lst
+        arrayValue |> createArrayArgumentValue
+
+    let createRangeArrayArgumentValue(lst: (int64 * int64 * int64) list) =
+        let arrayValue = new ArrayValue(Range = new List<RangeValue>())
+        List.iter (fun v -> arrayValue.Range.Add(v |> createRangeValueFromTuple)) lst
+        arrayValue |> createArrayArgumentValue
+
+    let createResultArrayArgumentValue(lst: ResultValue list) =
+        let arrayValue = new ArrayValue(Result = new List<ResultValue>())
+        List.iter (fun v -> arrayValue.Result.Add v) lst
+        arrayValue |> createArrayArgumentValue
+
+    let createArgument(name: string, argType: DataType, position: int, valuesList: ArgumentValue list) =
+        let argument = new Argument(Name = name, Type = argType, Position = position)
+        List.iter (fun v -> argument.Values.Add v) valuesList
+        argument
+
+    let createArrayArgument(name: string, argType: DataType, position: int32, arrayType: DataType, valuesList: ArgumentValue list) =
+        let argument = new Argument(Name = name, Type = argType, Position = position, ArrayType = arrayType)
         List.iter (fun v -> argument.Values.Add v) valuesList
         argument
 
@@ -71,6 +86,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "BoolArg",
                             DataType.BoolType,
+                            0,
                             [])]),
                     "{\"Name\":\"UseBoolArg\",\"Arguments\":[{\"Name\":\"BoolArg\"}]}"
                 )).
@@ -82,7 +98,8 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "BoolArg",
                             DataType.BoolType,
-                            [createBoolArgumentValue(true); createBoolArgumentValue(false)])]),
+                            0,
+                            [new ArgumentValue(Bool = true); new ArgumentValue(Bool = false)])]),
                     "{\"Name\":\"UseBoolArgWithValues\",\"Arguments\":[{\"Name\":\"BoolArg\",\"Values\":[{\"Bool\":[true]},{\"Bool\":[false]}]}]}"
                 )).
             Add(
@@ -93,6 +110,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "IntegerArg",
                             DataType.IntegerType,
+                            0,
                             [])]),
                     "{\"Name\":\"UseIntegerArg\",\"Arguments\":[{\"Type\":1,\"Name\":\"IntegerArg\"}]}"
                 )).
@@ -104,8 +122,9 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "IntegerArg",
                             DataType.IntegerType,
-                            [createIntegerArgumentValue(int64(11)); createIntegerArgumentValue(int64(999))])]),
-                    "{\"Name\":\"UseIntegerArgWithValues\",\"Arguments\":[{\"Type\":1,\"Name\":\"IntegerArg\",\"Values\":[{\"Type\":1,\"Integer\":[11]},{\"Type\":1,\"Integer\":[999]}]}]}"
+                            0,
+                            [new ArgumentValue(Integer = int64(11)); new ArgumentValue(Integer = int64(999))])]),
+                    "{\"Name\":\"UseIntegerArgWithValues\",\"Arguments\":[{\"Type\":1,\"Name\":\"IntegerArg\",\"Values\":[{\"Integer\":[11]},{\"Integer\":[999]}]}]}"
                 )).
             Add(
                 "UseDoubleArg",
@@ -115,6 +134,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "DoubleArg",
                             DataType.DoubleType,
+                            0,
                             [])]),
                     "{\"Name\":\"UseDoubleArg\",\"Arguments\":[{\"Type\":2,\"Name\":\"DoubleArg\"}]}"
                 )).
@@ -126,8 +146,9 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "DoubleArg",
                             DataType.DoubleType,
-                            [createDoubleArgumentValue(0.1); createDoubleArgumentValue(0.2)])]),
-                    "{\"Name\":\"UseDoubleArgWithValues\",\"Arguments\":[{\"Type\":2,\"Name\":\"DoubleArg\",\"Values\":[{\"Type\":2,\"Double\":[0.1]},{\"Type\":2,\"Double\":[0.2]}]}]}"
+                            0,
+                            [new ArgumentValue(Double = 0.1); new ArgumentValue(Double = 0.2)])]),
+                    "{\"Name\":\"UseDoubleArgWithValues\",\"Arguments\":[{\"Type\":2,\"Name\":\"DoubleArg\",\"Values\":[{\"Double\":[0.1]},{\"Double\":[0.2]}]}]}"
                 )).
             Add(
                 "UsePauliArg",
@@ -137,6 +158,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "PauliArg",
                             DataType.PauliType,
+                            0,
                             [])]),
                     "{\"Name\":\"UsePauliArg\",\"Arguments\":[{\"Type\":3,\"Name\":\"PauliArg\"}]}"
                 )).
@@ -148,8 +170,9 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "PauliArg",
                             DataType.PauliType,
-                            [createPauliArgumentValue(PauliValue.PauliX); createPauliArgumentValue(PauliValue.PauliY); createPauliArgumentValue(PauliValue.PauliZ)])]),
-                    "{\"Name\":\"UsePauliArgWithValues\",\"Arguments\":[{\"Type\":3,\"Name\":\"PauliArg\",\"Values\":[{\"Type\":3,\"Pauli\":[1]},{\"Type\":3,\"Pauli\":[2]},{\"Type\":3,\"Pauli\":[3]}]}]}"
+                            0,
+                            [new ArgumentValue(Pauli = PauliValue.PauliX); new ArgumentValue(Pauli = PauliValue.PauliY); new ArgumentValue(Pauli = PauliValue.PauliZ)])]),
+                    "{\"Name\":\"UsePauliArgWithValues\",\"Arguments\":[{\"Type\":3,\"Name\":\"PauliArg\",\"Values\":[{\"Pauli\":[1]},{\"Pauli\":[2]},{\"Pauli\":[3]}]}]}"
                 )).
             Add(
                 "UseRangeArg",
@@ -159,6 +182,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "RangeArg",
                             DataType.RangeType,
+                            0,
                             [])]),
                     "{\"Name\":\"UseRangeArg\",\"Arguments\":[{\"Type\":4,\"Name\":\"RangeArg\"}]}"
                 )).
@@ -170,8 +194,9 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "RangeArg",
                             DataType.RangeType,
+                            0,
                             [createRangeArgumentValue(int64(1), int64(1), int64(10)); createRangeArgumentValue(int64(10), int64(5), int64(100))])]),
-                    "{\"Name\":\"UseRangeArgWithValues\",\"Arguments\":[{\"Type\":4,\"Name\":\"RangeArg\",\"Values\":[{\"Type\":4,\"Range\":[{\"Start\":1,\"Step\":1,\"End\":10}]},{\"Type\":4,\"Range\":[{\"Start\":10,\"Step\":5,\"End\":100}]}]}]}"
+                    "{\"Name\":\"UseRangeArgWithValues\",\"Arguments\":[{\"Type\":4,\"Name\":\"RangeArg\",\"Values\":[{\"Range\":[{\"Start\":1,\"Step\":1,\"End\":10}]},{\"Range\":[{\"Start\":10,\"Step\":5,\"End\":100}]}]}]}"
                 )).
             Add(
                 "UseResultArg",
@@ -181,6 +206,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "ResultArg",
                             DataType.ResultType,
+                            0,
                             [])]),
                     "{\"Name\":\"UseResultArg\",\"Arguments\":[{\"Type\":5,\"Name\":\"ResultArg\"}]}"
                 )).
@@ -192,8 +218,9 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "ResultArg",
                             DataType.ResultType,
-                            [createResultArgumentValue(ResultValue.Zero);createResultArgumentValue(ResultValue.One)])]),
-                    "{\"Name\":\"UseResultArgWithValues\",\"Arguments\":[{\"Type\":5,\"Name\":\"ResultArg\",\"Values\":[{\"Type\":5,\"Result\":[0]},{\"Type\":5,\"Result\":[1]}]}]}"
+                            0,
+                            [new ArgumentValue(Result = ResultValue.Zero); new ArgumentValue(Result = ResultValue.One)])]),
+                    "{\"Name\":\"UseResultArgWithValues\",\"Arguments\":[{\"Type\":5,\"Name\":\"ResultArg\",\"Values\":[{\"Result\":[0]},{\"Result\":[1]}]}]}"
                 )).
             Add(
                 "UseStringArg",
@@ -203,6 +230,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "StringArg",
                             DataType.StringType,
+                            0,
                             [])]),
                     "{\"Name\":\"UseStringArg\",\"Arguments\":[{\"Type\":6,\"Name\":\"StringArg\"}]}"
                 )).
@@ -214,8 +242,165 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                         [createArgument(
                             "StringArg",
                             DataType.StringType,
-                            [createStringArgumentValue("StringA");createStringArgumentValue("StringB")])]),
-                    "{\"Name\":\"UseStringArgWithValues\",\"Arguments\":[{\"Type\":6,\"Name\":\"StringArg\",\"Values\":[{\"Type\":6,\"String\":[\"StringA\"]},{\"Type\":6,\"String\":[\"StringB\"]}]}]}"
+                            0,
+                            [new ArgumentValue(String = "StringA"); new ArgumentValue(String = "StringB")])]),
+                    "{\"Name\":\"UseStringArgWithValues\",\"Arguments\":[{\"Type\":6,\"Name\":\"StringArg\",\"Values\":[{\"String\":[\"StringA\"]},{\"String\":[\"StringB\"]}]}]}"
+                )).
+            Add(
+                "UseBoolArrayArg",
+                (
+                    createEntryPointOperation(
+                        "UseBoolArrayArg",
+                        [createArrayArgument(
+                            "BoolArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.BoolType,
+                            [])]),
+                    "{\"Name\":\"UseBoolArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"BoolArrayArg\",\"ArrayType\":[0]}]}"
+                )).
+            Add(
+                "UseBoolArrayArgWithValues",
+                (
+                    createEntryPointOperation(
+                        "UseBoolArrayArgWithValues",
+                        [createArrayArgument(
+                            "BoolArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.BoolType,
+                            [createBoolArrayArgumentValue([true; false; true]); createBoolArrayArgumentValue([false; true; false])])]),
+                    "{\"Name\":\"UseBoolArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"BoolArrayArg\",\"ArrayType\":[0],\"Values\":[{\"Array\":[{\"Bool\":[[true,false,true]]}]},{\"Array\":[{\"Bool\":[[false,true,false]]}]}]}]}"
+                )).
+            Add(
+                "UseIntegerArrayArg",
+                (
+                    createEntryPointOperation(
+                        "UseIntegerArrayArg",
+                        [createArrayArgument(
+                            "IntegerArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.IntegerType,
+                            [])]),
+                    "{\"Name\":\"UseIntegerArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"IntegerArrayArg\",\"ArrayType\":[1]}]}"
+                )).
+            Add(
+                "UseIntegerArrayArgWithValues",
+                (
+                    createEntryPointOperation(
+                        "UseIntegerArrayArgWithValues",
+                        [createArrayArgument(
+                            "IntegerArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.IntegerType,
+                            [createIntegerArrayArgumentValue([int64(999); int64(-1); int64(11)]); createIntegerArrayArgumentValue([int64(2048); int64(-1024); int64(4096); int64(-8192)])])]),
+                    "{\"Name\":\"UseIntegerArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"IntegerArrayArg\",\"ArrayType\":[1],\"Values\":[{\"Array\":[{\"Integer\":[[999,-1,11]]}]},{\"Array\":[{\"Integer\":[[2048,-1024,4096,-8192]]}]}]}]}"
+                )).
+            Add(
+                "UseDoubleArrayArg",
+                (
+                    createEntryPointOperation(
+                        "UseDoubleArrayArg",
+                        [createArrayArgument(
+                            "DoubleArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.DoubleType,
+                            [])]),
+                    "{\"Name\":\"UseDoubleArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"DoubleArrayArg\",\"ArrayType\":[2]}]}"
+                )).
+            Add(
+                "UseDoubleArrayArgWithValues",
+                (
+                    createEntryPointOperation(
+                        "UseDoubleArrayArgWithValues",
+                        [createArrayArgument(
+                            "DoubleArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.DoubleType,
+                            [createDoubleArrayArgumentValue([3.14159; 0.55; 1024.333; -8192.667]); createDoubleArrayArgumentValue([999.999; -101010.10; 0.0001])])]),
+                    "{\"Name\":\"UseDoubleArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"DoubleArrayArg\",\"ArrayType\":[2],\"Values\":[{\"Array\":[{\"Double\":[[3.14159,0.55,1024.333,-8192.667]]}]},{\"Array\":[{\"Double\":[[999.999,-101010.1,0.0001]]}]}]}]}"
+                )).
+            Add(
+                "UsePauliArrayArg",
+                (
+                    createEntryPointOperation(
+                        "UsePauliArrayArg",
+                        [createArrayArgument(
+                            "PauliArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.PauliType,
+                            [])]),
+                    "{\"Name\":\"UsePauliArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"PauliArrayArg\",\"ArrayType\":[3]}]}"
+                )).
+            Add(
+                "UsePauliArrayArgWithValues",
+                (
+                    createEntryPointOperation(
+                        "UsePauliArrayArgWithValues",
+                        [createArrayArgument(
+                            "PauliArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.PauliType,
+                            [createPauliArrayArgumentValue([PauliValue.PauliX; PauliValue.PauliY; PauliValue.PauliZ]); createPauliArrayArgumentValue([PauliValue.PauliI; PauliValue.PauliZ])])]),
+                    "{\"Name\":\"UsePauliArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"PauliArrayArg\",\"ArrayType\":[3],\"Values\":[{\"Array\":[{\"Pauli\":[[1,2,3]]}]},{\"Array\":[{\"Pauli\":[[0,3]]}]}]}]}"
+                )).
+            Add(
+                "UseRangeArrayArg",
+                (
+                    createEntryPointOperation(
+                        "UseRangeArrayArg",
+                        [createArrayArgument(
+                            "RangeArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.RangeType,
+                            [])]),
+                    "{\"Name\":\"UseRangeArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"RangeArrayArg\",\"ArrayType\":[4]}]}"
+                )).
+            Add(
+                "UseRangeArrayArgWithValues",
+                (
+                    createEntryPointOperation(
+                        "UseRangeArrayArgWithValues",
+                        [createArrayArgument(
+                            "RangeArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.RangeType,
+                            [createRangeArrayArgumentValue([(int64(1), int64(1), int64(10)); (int64(10), int64(5), int64(100))]); createRangeArrayArgumentValue([(int64(1), int64(2), int64(10));])])]),
+                    "{\"Name\":\"UseRangeArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"RangeArrayArg\",\"ArrayType\":[4],\"Values\":[{\"Array\":[{\"Range\":[[{\"Start\":1,\"Step\":1,\"End\":10},{\"Start\":10,\"Step\":5,\"End\":100}]]}]},{\"Array\":[{\"Range\":[[{\"Start\":1,\"Step\":2,\"End\":10}]]}]}]}]}"
+                )).
+            Add(
+                "UseResultArrayArg",
+                (
+                    createEntryPointOperation(
+                        "UseResultArrayArg",
+                        [createArrayArgument(
+                            "ResultArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.ResultType,
+                            [])]),
+                    "{\"Name\":\"UseResultArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"ResultArrayArg\",\"ArrayType\":[5]}]}"
+                )).
+            Add(
+                "UseResultArrayArgWithValues",
+                (
+                    createEntryPointOperation(
+                        "UseResultArrayArgWithValues",
+                        [createArrayArgument(
+                            "ResultArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            DataType.ResultType,
+                            [createResultArrayArgumentValue([ResultValue.Zero; ResultValue.One]); createResultArrayArgumentValue([ResultValue.One; ResultValue.Zero])])]),
+                    "{\"Name\":\"UseResultArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"ResultArrayArg\",\"ArrayType\":[5],\"Values\":[{\"Array\":[{\"Result\":[[0,1]]}]},{\"Array\":[{\"Result\":[[1,0]]}]}]}]}"
                 ))
 
     [<Theory>]
@@ -234,6 +419,18 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     [<InlineData("UseResultArgWithValues")>]
     [<InlineData("UseStringArg")>]
     [<InlineData("UseStringArgWithValues")>]
+    [<InlineData("UseBoolArrayArg")>]
+    [<InlineData("UseBoolArrayArgWithValues")>]
+    [<InlineData("UseIntegerArrayArg")>]
+    [<InlineData("UseIntegerArrayArgWithValues")>]
+    [<InlineData("UseDoubleArrayArg")>]
+    [<InlineData("UseDoubleArrayArgWithValues")>]
+    [<InlineData("UsePauliArrayArg")>]
+    [<InlineData("UsePauliArrayArgWithValues")>]
+    [<InlineData("UseRangeArrayArg")>]
+    [<InlineData("UseRangeArrayArgWithValues")>]
+    [<InlineData("UseResultArrayArg")>]
+    [<InlineData("UseResultArrayArgWithValues")>]
     member this.``SerializeToJson``(sampleName: string) =
         let memoryStream = new MemoryStream()
         
