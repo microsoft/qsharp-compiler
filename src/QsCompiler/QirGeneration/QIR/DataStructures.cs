@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QIR.Emission
                     this.cache = (this.sharedState.CurrentBranch, loaded);
                 }
 
-                return this.cache.Item2;
+                return this.cache.Item2!; // safe since IsCached checks for null and load returns a non-null value
             }
 
             /// <summary>

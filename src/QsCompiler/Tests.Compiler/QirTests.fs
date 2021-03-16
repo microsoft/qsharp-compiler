@@ -23,10 +23,8 @@ let private checkAltOutput name actualText =
     let expectedText = ("TestCases", "QirTests", name) |> Path.Combine |> File.ReadAllText
     Assert.Contains(expectedText, GUID.Replace(actualText, "__GUID__"))
 
-let private qirMultiTest target name snippets =
-    clearOutput (name + ".ll")
-
-    [|
+let private compilerArgs target (name: string) =
+    seq {
         "build"
         "-o"
         "outputFolder"
@@ -36,18 +34,27 @@ let private qirMultiTest target name snippets =
         "--input"
         ("TestCases", "QirTests", name + ".qs") |> Path.Combine
         ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
+
         (if target
          then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
          else "")
+
         "--qir"
         Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
         "--verbosity"
         "Diagnostic"
-    |]
-    |> testOne ReturnCode.Success
+    }
+
+let private customTest name compilerArgs snippets =
+    clearOutput (name + ".ll")
+    compilerArgs |> testOne ReturnCode.Success
 
     let fullText = (name + ".ll") |> File.ReadAllText
     snippets |> List.map (fun s -> checkAltOutput (s + ".ll") fullText)
+
+let private qirMultiTest target name snippets =
+    let compilerArgs = compilerArgs target name |> Seq.toArray
+    customTest name compilerArgs snippets
 
 let private qirTest target name = qirMultiTest target name [ name ]
 
@@ -187,3 +194,12 @@ let ``QIR conditionals`` () =
 
 [<Fact>]
 let ``QIR expressions`` () = qirTest false "TestExpressions"
+
+[<Fact>]
+let ``QIR targeting`` () =
+    let compilerArgs =
+        [ "--runtime"; "BasicMeasurementFeedback" ]
+        |> Seq.append (compilerArgs true "TestTargeting")
+        |> Seq.toArray
+
+    customTest "TestTargeting" compilerArgs [ "TestTargeting" ]
