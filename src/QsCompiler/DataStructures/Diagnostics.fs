@@ -431,7 +431,7 @@ type DiagnosticItem =
             DiagnosticItem.ApplyArguments args
             << function
             | ErrorCode.TypeMismatch ->
-                "The type {0} does not match the type {1}.\nExpected type: {2}\n  Actual type: {3}"
+                "The expected type {0} does not match the actual type {1}.\nExpected type: {2}\n  Actual type: {3}"
             | ErrorCode.NoCommonBaseType ->
                 "The type {0} does not share a base type with {1}.\n First type: {2}\nSecond type: {3}"
 
