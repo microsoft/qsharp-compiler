@@ -127,6 +127,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // static methods
 
+        /// <returns>
+        /// True if the expression is self-evaluating and
+        /// doesn't require encapsulating into its own block if it should only be evaluated conditionally.
+        /// </returns>
+        private static bool ExpressionIsSelfEvaluating(TypedExpression ex) =>
+            ex.Expression.IsIdentifier || ex.Expression.IsBoolLiteral || ex.Expression.IsDoubleLiteral
+                || ex.Expression.IsIntLiteral || ex.Expression.IsPauliLiteral || ex.Expression.IsRangeLiteral
+                || ex.Expression.IsResultLiteral || ex.Expression.IsUnitValue;
+
         /// <summary>
         /// Determines the location of the item with the given name within the tuple of type items.
         /// The returned list contains the index of the item starting from the outermost tuple
@@ -378,6 +387,61 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         // private helpers
+
+        /// <summary>
+        /// Depending on the value of the given condition, evaluates the expression given for the corresponding branch.
+        /// </summary>
+        /// <returns>
+        /// A phi node that evaluates to either the value of the expression depending on the branch that was taken,
+        /// or the value of the condition if no expression has been specified for that branch.
+        /// </returns>
+        private Value ConditionalEvaluation(Value condition, TypedExpression? onCondTrue = null, TypedExpression? onCondFalse = null)
+        {
+            var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
+            var falseBlock = onCondFalse != null
+                ? this.SharedState.AddBlockAfterCurrent("condFalse")
+                : contBlock;
+            var trueBlock = onCondTrue != null
+                ? this.SharedState.AddBlockAfterCurrent("condTrue")
+                : contBlock;
+
+            // In order to ensure the correct reference counts, it is important that we create a new scope
+            // for each branch of the conditional. When we close the scope, we list the computed value as
+            // to be returned from that scope, meaning it either won't be dereferenced or its reference
+            // count will increase by 1. The result of the expression is a phi node that we then properly
+            // register with the scope manager, such that it will be unreferenced when going out of scope.
+
+            this.SharedState.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
+            var entryBlock = this.SharedState.CurrentBlock!;
+
+            var (evaluatedOnTrue, afterTrue) = (condition, entryBlock);
+            if (onCondTrue != null)
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.SetCurrentBlock(trueBlock);
+                var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
+                this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
+                this.SharedState.CurrentBuilder.Branch(contBlock);
+                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.SharedState.CurrentBlock!);
+            }
+
+            var (evaluatedOnFalse, afterFalse) = (condition, entryBlock);
+            if (onCondFalse != null)
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.SetCurrentBlock(falseBlock);
+                var onFalse = this.SharedState.EvaluateSubexpression(onCondFalse);
+                this.SharedState.ScopeMgr.CloseScope(onFalse, false); // force that the ref count is increased within the branch
+                this.SharedState.CurrentBuilder.Branch(contBlock);
+                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.SharedState.CurrentBlock!);
+            }
+
+            this.SharedState.SetCurrentBlock(contBlock);
+            var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
+            phi.AddIncoming(evaluatedOnTrue, afterTrue);
+            phi.AddIncoming(evaluatedOnFalse, afterFalse);
+            return phi;
+        }
 
         /// <summary>
         /// Handles calls to specific functor specializations of global callables.
@@ -849,11 +913,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnConditionalExpression(TypedExpression condEx, TypedExpression ifTrueEx, TypedExpression ifFalseEx)
         {
-            static bool ExpressionIsSelfEvaluating(TypedExpression ex) =>
-                ex.Expression.IsIdentifier || ex.Expression.IsBoolLiteral || ex.Expression.IsDoubleLiteral
-                    || ex.Expression.IsIntLiteral || ex.Expression.IsPauliLiteral || ex.Expression.IsRangeLiteral
-                    || ex.Expression.IsResultLiteral || ex.Expression.IsUnitValue;
-
             var cond = this.SharedState.EvaluateSubexpression(condEx);
             var exType = this.SharedState.CurrentExpressionType();
             IValue value;
@@ -869,39 +928,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
-                var falseBlock = this.SharedState.AddBlockAfterCurrent("condFalse");
-                var trueBlock = this.SharedState.AddBlockAfterCurrent("condTrue");
-
-                // In order to ensure the correct reference counts, it is important that we create a new scope
-                // for each branch of the conditional. When we close the scope, we list the computed value as
-                // to be returned from that scope, meaning it either won't be dereferenced or its reference
-                // count will increase by 1. The result of the expression is a phi node that we then properly
-                // register with the scope manager, such that it will be unreferenced when going out of scope.
-
-                this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
-
-                this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.SetCurrentBlock(trueBlock);
-                this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
-                var ifTrue = this.SharedState.ValueStack.Pop();
-                this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
-                BasicBlock afterTrue = this.SharedState.CurrentBlock!;
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-
-                this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.SetCurrentBlock(falseBlock);
-                this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
-                var ifFalse = this.SharedState.ValueStack.Pop();
-                this.SharedState.ScopeMgr.CloseScope(ifFalse, false); // force that the ref count is increased within the branch
-                BasicBlock afterFalse = this.SharedState.CurrentBlock!;
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-
-                this.SharedState.SetCurrentBlock(contBlock);
-                var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
-                phi.AddIncoming(ifTrue.Value, afterTrue);
-                phi.AddIncoming(ifFalse.Value, afterFalse);
-                value = this.SharedState.Values.From(phi, exType);
+                var evaluated = this.ConditionalEvaluation(cond.Value, onCondTrue: ifTrueEx, onCondFalse: ifFalseEx);
+                value = this.SharedState.Values.From(evaluated, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
 
@@ -1324,11 +1352,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnLogicalAnd(TypedExpression lhsEx, TypedExpression rhsEx)
         {
-            var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
-            var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
+            Value evaluated;
             var exType = this.SharedState.CurrentExpressionType();
-            var res = this.SharedState.CurrentBuilder.And(lhs.Value, rhs.Value);
-            var value = this.SharedState.Values.FromSimpleValue(res, exType);
+
+            // Special case: if the left hand side is self-evaluating (literal or simple identifier),
+            // we can safely evaluate both expression without introducing a branching.
+            if (ExpressionIsSelfEvaluating(lhsEx))
+            {
+                var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
+                var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
+                evaluated = this.SharedState.CurrentBuilder.And(lhs.Value, rhs.Value);
+            }
+            else
+            {
+                var cond = this.SharedState.EvaluateSubexpression(lhsEx).Value;
+                evaluated = this.ConditionalEvaluation(cond, onCondTrue: rhsEx);
+            }
+
+            var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
@@ -1346,11 +1387,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnLogicalOr(TypedExpression lhsEx, TypedExpression rhsEx)
         {
-            var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
-            var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
+            Value evaluated;
             var exType = this.SharedState.CurrentExpressionType();
-            var res = this.SharedState.CurrentBuilder.Or(lhs.Value, rhs.Value);
-            var value = this.SharedState.Values.FromSimpleValue(res, exType);
+
+            // Special case: if the left hand side is self-evaluating (literal or simple identifier),
+            // we can safely evaluate both expression without introducing a branching.
+            if (ExpressionIsSelfEvaluating(lhsEx))
+            {
+                var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
+                var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
+                evaluated = this.SharedState.CurrentBuilder.Or(lhs.Value, rhs.Value);
+            }
+            else
+            {
+                var cond = this.SharedState.EvaluateSubexpression(lhsEx).Value;
+                evaluated = this.ConditionalEvaluation(cond, onCondFalse: rhsEx);
+            }
+
+            var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
