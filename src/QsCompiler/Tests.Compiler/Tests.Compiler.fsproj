@@ -246,6 +246,12 @@
     <Content Include="TestCases\QirTests\TestScoping.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestTargeting.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestTargeting.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestStrings.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
