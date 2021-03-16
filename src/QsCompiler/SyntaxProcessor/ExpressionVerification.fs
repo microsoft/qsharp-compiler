@@ -291,9 +291,9 @@ let private VerifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
             |> ImmutableDictionary.CreateRange
 
         let identifier =
-            if QsNullable.isValue resolvedTargs
-            then Identifier(GlobalCallable name, ImmutableArray.CreateRange resolutions.Values |> Value)
-            else identifier
+            if resolutions.IsEmpty
+            then identifier
+            else Identifier(GlobalCallable name, ImmutableArray.CreateRange resolutions.Values |> Value)
 
         let resolvedType = (replaceTypes resolutions).OnType resId.Type |> inference.Resolve
         let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
