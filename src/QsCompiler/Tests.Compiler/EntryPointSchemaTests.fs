@@ -332,8 +332,8 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                  (createEntryPointOperation
                      ("UseMiscArgs",
                       [
-                          createArgument ("IntegerArg", DataType.BoolType, 0, []);
-                          createArgument ("PauliArg", DataType.PauliType, 1, []);
+                          createArgument ("IntegerArg", DataType.BoolType, 0, [])
+                          createArgument ("PauliArg", DataType.PauliType, 1, [])
                           createArrayArgument ("ResultArrayArg", DataType.ArrayType, 2, DataType.ResultType, [])
                       ]),
                   "{\"Name\":\"UseMiscArgs\",\"Arguments\":[{\"Name\":\"IntegerArg\"},{\"Type\":3,\"Name\":\"PauliArg\",\"Position\":1},{\"Type\":7,\"Name\":\"ResultArrayArg\",\"Position\":2,\"ArrayType\":[5]}]}"))
@@ -372,7 +372,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
         let memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(sourceJson))
         let entryPointOperation = Protocols.DeserializeFromJson(memoryStream)
         Assert.True(entryPointOperation.ValueEquals(expectedEntryPointOperation))
-        
+
 
     [<Theory>]
     [<InlineData("UseNoArgs")>]
