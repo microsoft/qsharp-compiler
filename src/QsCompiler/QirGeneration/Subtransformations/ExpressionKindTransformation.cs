@@ -1355,9 +1355,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value evaluated;
             var exType = this.SharedState.CurrentExpressionType();
 
-            // Special case: if the left hand side is self-evaluating (literal or simple identifier),
+            // Special case: if the right hand side is self-evaluating (literal or simple identifier),
             // we can safely evaluate both expression without introducing a branching.
-            if (ExpressionIsSelfEvaluating(lhsEx))
+            if (ExpressionIsSelfEvaluating(rhsEx))
             {
                 var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
                 var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1390,9 +1390,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value evaluated;
             var exType = this.SharedState.CurrentExpressionType();
 
-            // Special case: if the left hand side is self-evaluating (literal or simple identifier),
+            // Special case: if the right hand side is self-evaluating (literal or simple identifier),
             // we can safely evaluate both expression without introducing a branching.
-            if (ExpressionIsSelfEvaluating(lhsEx))
+            if (ExpressionIsSelfEvaluating(rhsEx))
             {
                 var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
                 var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
