@@ -334,68 +334,79 @@ type QsExpression with
         /// generates suitable boundaries for open ended ranges and returns the resolved slicing expression as Some.
         /// Returns None if the slicing expression is trivial, i.e. if the sliced array does not deviate from the orginal one.
         /// NOTE: Does *not* generated any diagnostics related to the given type for the array to slice.
-        let resolveSlicing (resolvedArr: TypedExpression) (idx: QsExpression) =
-            let invalidRangeDelimiter =
-                (InvalidExpr,
-                 ResolvedType.create Null InvalidType,
-                 resolvedArr.InferredInformation.HasLocalQuantumDependency,
-                 Null)
-                |> ExprWithoutTypeArgs false
+        let resolveSlicing array (index: QsExpression) =
+            let array = { array with ResolvedType = inference.Resolve array.ResolvedType }
 
-            let validSlicing (step: TypedExpression option) =
-                match resolvedArr.ResolvedType.Resolution with
-                | ArrayType _ -> step.IsNone || step.Value.ResolvedType.Resolution = Int
+            let invalidRangeDelimiter =
+                ExprWithoutTypeArgs
+                    false
+                    (InvalidExpr,
+                     ResolvedType.create Null InvalidType,
+                     array.InferredInformation.HasLocalQuantumDependency,
+                     Null)
+
+            let validSlicing step =
+                match array.ResolvedType.Resolution with
+                | ArrayType _ ->
+                    step |> Option.forall (fun expr -> Int = (inference.Resolve expr.ResolvedType).Resolution)
                 | _ -> false
 
-            let ConditionalIntExpr (cond: TypedExpression, ifTrue: TypedExpression, ifFalse: TypedExpression) =
+            let conditionalIntExpr (cond: TypedExpression) ifTrue ifFalse =
                 let quantumDep =
                     [ cond; ifTrue; ifFalse ]
                     |> List.exists (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)
 
-                (CONDITIONAL(cond, ifTrue, ifFalse), ResolvedType.create Null Int, quantumDep, Null)
-                |> ExprWithoutTypeArgs false
+                ExprWithoutTypeArgs
+                    false
+                    (CONDITIONAL(cond, ifTrue, ifFalse), ResolvedType.create Null Int, quantumDep, Null)
 
-            let OpenStartInSlicing =
+            let openStartInSlicing =
                 function
-                | Some step when validSlicing (Some step) ->
-                    ConditionalIntExpr(IsNegative step, LengthMinusOne resolvedArr, SyntaxGenerator.IntLiteral 0L)
+                | Some step when Some step |> validSlicing ->
+                    conditionalIntExpr (IsNegative step) (LengthMinusOne array) (SyntaxGenerator.IntLiteral 0L)
                 | _ -> SyntaxGenerator.IntLiteral 0L
 
-            let OpenEndInSlicing =
+            let openEndInSlicing =
                 function
-                | Some step when validSlicing (Some step) ->
-                    ConditionalIntExpr(IsNegative step, SyntaxGenerator.IntLiteral 0L, LengthMinusOne resolvedArr)
-                | ex -> if validSlicing ex then LengthMinusOne resolvedArr else invalidRangeDelimiter
+                | Some step when Some step |> validSlicing ->
+                    conditionalIntExpr (IsNegative step) (SyntaxGenerator.IntLiteral 0L) (LengthMinusOne array)
+                | ex -> if validSlicing ex then LengthMinusOne array else invalidRangeDelimiter
 
-            let resolveSlicingRange (rstart, rstep, rend) =
+            let resolveSlicingRange start step end' =
                 let integerExpr ex =
                     let ex = resolve ex
                     inference.Unify(ResolvedType.create Null Int, ex.ResolvedType) |> List.iter diagnose
                     ex
 
-                let resolvedStep = rstep |> Option.map integerExpr
+                let resolvedStep = step |> Option.map integerExpr
 
                 let resolveWith build (ex: QsExpression) =
                     if ex.isMissing then build resolvedStep else integerExpr ex
 
                 let resolvedStart, resolvedEnd =
-                    rstart |> resolveWith OpenStartInSlicing, rend |> resolveWith OpenEndInSlicing
+                    start |> resolveWith openStartInSlicing, end' |> resolveWith openEndInSlicing
 
                 match resolvedStep with
                 | Some resolvedStep ->
                     SyntaxGenerator.RangeLiteral(SyntaxGenerator.RangeLiteral(resolvedStart, resolvedStep), resolvedEnd)
                 | None -> SyntaxGenerator.RangeLiteral(resolvedStart, resolvedEnd)
 
-            match idx.Expression with
-            | RangeLiteral (lhs, rhs) when lhs.isMissing && rhs.isMissing -> None // case arr[...]
-            | RangeLiteral (lhs, rend) ->
-                lhs.Expression
-                |> (Some
-                    << function
-                    | RangeLiteral (rstart, rstep) -> resolveSlicingRange (rstart, Some rstep, rend) // cases arr[...step..ex], arr[ex..step...], arr[ex1..step..ex2], and arr[...ex...]
-                    | _ -> resolveSlicingRange (lhs, None, rend)) // case arr[...ex], arr[ex...] and arr[ex1..ex2]
-            | _ -> resolve idx |> Some // case arr[ex]
-
+            match index.Expression with
+            | RangeLiteral (lhs, rhs) when lhs.isMissing && rhs.isMissing ->
+                // case arr[...]
+                None
+            | RangeLiteral (lhs, end') ->
+                match lhs.Expression with
+                | RangeLiteral (start, step) ->
+                    // cases arr[...step..ex], arr[ex..step...], arr[ex1..step..ex2], and arr[...ex...]
+                    resolveSlicingRange start (Some step) end'
+                | _ ->
+                    // case arr[...ex], arr[ex...] and arr[ex1..ex2]
+                    resolveSlicingRange lhs None end'
+                |> Some
+            | _ ->
+                // case arr[ex]
+                resolve index |> Some
 
         /// Resolves and verifies the interpolated expressions, and returns the StringLiteral as typed expression.
         let buildStringLiteral (literal, interpolated) =
