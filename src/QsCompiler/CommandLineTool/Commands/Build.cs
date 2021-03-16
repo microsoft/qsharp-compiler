@@ -21,6 +21,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             // TODO: Disabling nullable annotations is a workaround for
             // https://github.com/commandlineparser/commandline/issues/136.
 #nullable disable annotations
+
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
             {
@@ -56,14 +57,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 HelpText = "Destination folder where the output of the compilation will be generated.")]
             public string OutputFolder { get; set; }
 
-#nullable restore annotations
-
             [Option(
                 "proj",
                 Required = false,
                 SetName = CodeMode,
                 HelpText = "Name of the project (needs to be usable as file name).")]
-            public string? ProjectName { get; set; }
+            public string ProjectName { get; set; }
 
             [Option(
                 "emit-dll",
@@ -74,11 +73,20 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public bool EmitDll { get; set; }
 
             [Option(
+                "qir",
+                Required = false,
+                SetName = CodeMode,
+                HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
+            public string QirOutputFolder { get; set; }
+
+            [Option(
                 "perf",
                 Required = false,
                 SetName = CodeMode,
                 HelpText = "Destination folder where the output of the performance assessment will be generated.")]
-            public string? PerfFolder { get; set; }
+            public string PerfOutputFolder { get; set; }
+
+#nullable restore annotations
 
             /// <summary>
             /// Reads the content of all specified response files and processes it using FromResponseFiles.
@@ -219,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AssemblyConstants = assemblyConstants,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapability = options.RuntimeCapability,
-                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation,
+                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation && options.QirOutputFolder == null,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
@@ -228,10 +236,11 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 IsExecutable = options.MakeExecutable,
                 RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false, // todo: enable debug mode?
-                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
+                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames,
+                QirOutputFolder = options.QirOutputFolder
             };
 
-            if (options.PerfFolder != null)
+            if (options.PerfOutputFolder != null)
             {
                 CompilationTracker.ClearData();
                 PerformanceTracking.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
@@ -242,9 +251,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 options.References ?? Enumerable.Empty<string>(),
                 loadOptions,
                 logger);
-            if (options.PerfFolder != null)
+            if (options.PerfOutputFolder != null)
             {
-                PublishPerformanceTrackingData(options.PerfFolder, logger);
+                PublishPerformanceTrackingData(options.PerfOutputFolder, logger);
             }
 
             return ReturnCode.Status(loaded);

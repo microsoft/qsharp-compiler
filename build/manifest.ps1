@@ -48,11 +48,10 @@ $artifacts = @{
         ".\src\QsCompiler\Optimizations\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsOptimizations.dll",
         ".\src\QsCompiler\SyntaxProcessor\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsSyntaxProcessor.dll",
         ".\src\QsCompiler\TextProcessor\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTextProcessor.dll",
-        ".\src\QsCompiler\Transformations\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTransformations.dll"
-
+        ".\src\QsCompiler\Transformations\bin\$Env:BUILD_CONFIGURATION\netstandard2.1\Microsoft.Quantum.QsTransformations.dll",
         ".\src\QsCompiler\CommandLineTool\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\qsc.dll",
-
-        ".\src\QuantumSdk\Tools\BuildConfiguration\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.Sdk.BuildConfiguration.dll"
+        ".\src\QuantumSdk\Tools\BuildConfiguration\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.Sdk.BuildConfiguration.dll",
+        ".\src\QuantumSdk\Tools\DefaultEntryPoint\bin\$Env:BUILD_CONFIGURATION\netcoreapp3.1\Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation.dll"
     ) | ForEach-Object { Join-Path $PSScriptRoot (Join-Path ".." $_) };
 }
 

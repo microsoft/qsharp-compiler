@@ -323,6 +323,7 @@ type ErrorCode =
 
     | PublishingPerfResultsFailed = 8101
     | PerformanceTrackingFailed = 8102
+    | SyntaxTreeNotMonomorphized = 8103
 
 
 type WarningCode =
@@ -382,6 +383,7 @@ type WarningCode =
 
     | CsharpGenerationGeneratedWarning = 8001
     | InvalidAssemblyProperties = 8101
+    | MissingTargetInstructionName = 8102
 
 
 type InformationCode =
@@ -880,6 +882,8 @@ type DiagnosticItem =
 
             | ErrorCode.PublishingPerfResultsFailed -> "Performance results failed to be published at \"{0}\"."
             | ErrorCode.PerformanceTrackingFailed -> "Performance tracking failed with error \"{0}\"."
+            | ErrorCode.SyntaxTreeNotMonomorphized ->
+                "The given compilation contains type parameters. The monomorphization pass needs to be run to eliminate them."
 
             | _ -> ""
 
@@ -987,6 +991,8 @@ type DiagnosticItem =
             | WarningCode.CsharpGenerationGeneratedWarning -> ""
             | WarningCode.InvalidAssemblyProperties ->
                 "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
+            | WarningCode.MissingTargetInstructionName ->
+                "Missing target instruction name for intrinsic callable. The automatically determined name conflicts with another target instruction."
             | _ -> ""
 
         code |> ApplyArguments
