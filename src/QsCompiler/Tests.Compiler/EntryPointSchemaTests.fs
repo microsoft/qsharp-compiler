@@ -328,6 +328,15 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                ])
                       ]),
                   "{\"Name\":\"UseResultArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"ResultArrayArg\",\"ArrayType\":[5],\"Values\":[{\"Array\":[{\"Result\":[[0,1]]}]},{\"Array\":[{\"Result\":[[1,0]]}]}]}]}"))
+            .Add("UseMiscArgs",
+                 (createEntryPointOperation
+                     ("UseMiscArgs",
+                      [
+                          createArgument ("IntegerArg", DataType.BoolType, 0, []);
+                          createArgument ("PauliArg", DataType.PauliType, 1, []);
+                          createArrayArgument ("ResultArrayArg", DataType.ArrayType, 2, DataType.ResultType, [])
+                      ]),
+                  "{\"Name\":\"UseMiscArgs\",\"Arguments\":[{\"Name\":\"IntegerArg\"},{\"Type\":3,\"Name\":\"PauliArg\",\"Position\":1},{\"Type\":7,\"Name\":\"ResultArrayArg\",\"Position\":2,\"ArrayType\":[5]}]}"))
 
     [<Theory>]
     [<InlineData("UseNoArgs")>]
@@ -357,10 +366,46 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     [<InlineData("UseRangeArrayArgWithValues")>]
     [<InlineData("UseResultArrayArg")>]
     [<InlineData("UseResultArrayArgWithValues")>]
-    member this.SerializeToJson(sampleName: string) =
-        let memoryStream = new MemoryStream()
+    [<InlineData("UseMiscArgs")>]
+    member this.DeserializeFromJson(sampleName: string) =
+        let expectedEntryPointOperation, sourceJson = sampleEntryPointOperations.[sampleName]
+        let memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(sourceJson))
+        let entryPointOperation = Protocols.DeserializeFromJson(memoryStream)
+        Assert.True(entryPointOperation.ValueEquals(expectedEntryPointOperation))
+        
 
+    [<Theory>]
+    [<InlineData("UseNoArgs")>]
+    [<InlineData("UseBoolArg")>]
+    [<InlineData("UseBoolArgWithValues")>]
+    [<InlineData("UseIntegerArg")>]
+    [<InlineData("UseIntegerArgWithValues")>]
+    [<InlineData("UseDoubleArg")>]
+    [<InlineData("UseDoubleArgWithValues")>]
+    [<InlineData("UsePauliArg")>]
+    [<InlineData("UsePauliArgWithValues")>]
+    [<InlineData("UseRangeArg")>]
+    [<InlineData("UseRangeArgWithValues")>]
+    [<InlineData("UseResultArg")>]
+    [<InlineData("UseResultArgWithValues")>]
+    [<InlineData("UseStringArg")>]
+    [<InlineData("UseStringArgWithValues")>]
+    [<InlineData("UseBoolArrayArg")>]
+    [<InlineData("UseBoolArrayArgWithValues")>]
+    [<InlineData("UseIntegerArrayArg")>]
+    [<InlineData("UseIntegerArrayArgWithValues")>]
+    [<InlineData("UseDoubleArrayArg")>]
+    [<InlineData("UseDoubleArrayArgWithValues")>]
+    [<InlineData("UsePauliArrayArg")>]
+    [<InlineData("UsePauliArrayArgWithValues")>]
+    [<InlineData("UseRangeArrayArg")>]
+    [<InlineData("UseRangeArrayArgWithValues")>]
+    [<InlineData("UseResultArrayArg")>]
+    [<InlineData("UseResultArrayArgWithValues")>]
+    [<InlineData("UseMiscArgs")>]
+    member this.SerializeToJson(sampleName: string) =
         let entryPointOperation, expectedJson = sampleEntryPointOperations.[sampleName]
+        let memoryStream = new MemoryStream()
         Protocols.SerializeToJson(entryPointOperation, memoryStream)
         let reader = new StreamReader(memoryStream, Encoding.UTF8)
         let json = reader.ReadToEnd()
