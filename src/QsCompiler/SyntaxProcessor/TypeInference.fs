@@ -193,13 +193,7 @@ module private Inference =
         | _ -> ResolvedType.New InvalidType, [ error ]
 
     let occursCheck param (resolvedType: ResolvedType) =
-        let param = TypeParameter param
-
-        if param <> resolvedType.Resolution && resolvedType.Exists((=) param)
-        then failwithf
-                 "Occurs check failed on types %s and %s."
-                 (ResolvedType.New param |> showType)
-                 (showType resolvedType)
+        TypeParameter param |> (=) |> resolvedType.Exists |> not
 
     let letters =
         Seq.initInfinite ((+) 1)
@@ -229,7 +223,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     let mutable statementPosition = Position.Zero
 
     let bind param substitution =
-        occursCheck param substitution
+        if occursCheck param substitution |> not then failwith "Occurs check failed."
         let variable = variables.[param]
 
         match variable.Substitution with
@@ -495,7 +489,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let diagnostics =
                 variable.Constraints
                 |> List.collect (fun typeConstraint -> context.ApplyConstraint(typeConstraint, resolvedType))
-
             variables.[param] <- { variable with Constraints = [] }
             diagnostics
         | None -> []
