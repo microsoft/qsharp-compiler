@@ -3,9 +3,37 @@
 
 /// This namespace contains test cases for type checking
 namespace Microsoft.Quantum.Testing.TypeChecking {
-
     open Microsoft.Quantum.Testing.General;
 
+    // Integral operators
+
+    function Integral1() : Unit {
+        let _ = 1 &&& 2;
+        let _ = 1 ||| 2;
+        let _ = 1 ^^^ 2;
+        let _ = 1 % 2;
+    }
+
+    function Integral2() : Unit {
+        let _ = 1L &&& 2L;
+        let _ = 1L ||| 2L;
+        let _ = 1L ^^^ 2L;
+        let _ = 1L % 2L;
+    }
+
+    function IntegralInvalid1() : Unit {
+        let _ = "1" &&& "2";
+        let _ = "1" ||| "2";
+        let _ = "1" ^^^ "2";
+        let _ = "1" % "2";
+    }
+
+    function IntegralInvalid2() : Unit {
+        let _ = 1 &&& 2L;
+        let _ = 1 ||| 2L;
+        let _ = 1 ^^^ 2L;
+        let _ = 1 % 2L;
+    }
 
     // utils for testing variance behavior 
 

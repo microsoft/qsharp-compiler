@@ -23,27 +23,20 @@ module TypeCheckingTests =
         tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
 
     [<Fact>]
-    let ``Integer size in array constructor`` () = expect "SizedArray1" []
+    let ``Supports integral operators`` () =
+        expect "Integral1" []
+        expect "Integral2" []
+        expect "IntegralInvalid1" (Error ErrorCode.ExpectingIntegralExpr |> List.replicate 4)
+        expect "IntegralInvalid2" (Error ErrorCode.NoCommonBaseType |> List.replicate 4)
 
     [<Fact>]
-    let ``Zero size in array constructor`` () = expect "SizedArray2" []
-
-    [<Fact>]
-    let ``Negative integer size in array constructor`` () = expect "SizedArray3" []
-
-    [<Fact>]
-    let ``Type variable in array constructor`` () = expect "SizedArray4" []
-
-    [<Fact>]
-    let ``Double size in array constructor`` () =
+    let ``Supports sized array literals`` () =
+        expect "SizedArray1" []
+        expect "SizedArray2" []
+        expect "SizedArray3" []
+        expect "SizedArray4" []
         expect "SizedArrayInvalid1" [ Error ErrorCode.TypeMismatch ]
-
-    [<Fact>]
-    let ``String size in array constructor`` () =
         expect "SizedArrayInvalid2" [ Error ErrorCode.TypeMismatch ]
-
-    [<Fact>]
-    let ``Tuple size in array constructor`` () =
         expect "SizedArrayInvalid3" [ Error ErrorCode.TypeMismatch ]
 
 type TypeCheckingTests() =

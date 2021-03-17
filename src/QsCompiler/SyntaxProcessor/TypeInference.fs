@@ -402,17 +402,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 let supported = info.Characteristics.SupportedFunctors.ValueOr ImmutableHashSet.Empty
                 let missing = Set.difference functors (Set.ofSeq supported)
 
-                if info.Characteristics.AreInvalid || Set.isEmpty missing then
-                    []
-                else
-                    let error =
-                        ErrorCode.MissingFunctorForAutoGeneration,
-                        [ missing |> Seq.map showFunctor |> String.concat "," ]
+                let error =
+                    ErrorCode.MissingFunctorForAutoGeneration, [ missing |> Seq.map showFunctor |> String.concat "," ]
 
-                    [ QsCompilerDiagnostic.Error error range ]
+                [
+                    if not info.Characteristics.AreInvalid && Set.isEmpty missing |> not
+                    then QsCompilerDiagnostic.Error error range
+                ]
             | _ -> []
         | Controllable controlled ->
-            let error = QsCompilerDiagnostic.Error (ErrorCode.InvalidControlledApplication, []) Range.Zero
+            let error = QsCompilerDiagnostic.Error (ErrorCode.InvalidControlledApplication, []) range
 
             match resolvedType.Resolution with
             | QsTypeKind.Operation ((input, output), info) ->
@@ -431,11 +430,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 error :: context.Unify(controlled, actualControlled)
             | _ -> [ error ]
         | Equatable ->
-            if Option.isSome resolvedType.supportsEqualityComparison then
-                []
-            else
-                let error = ErrorCode.InvalidTypeInEqualityComparison, [ showType resolvedType ]
-                [ QsCompilerDiagnostic.Error error Range.Zero ]
+            [
+                if Option.isNone resolvedType.supportsEqualityComparison
+                then QsCompilerDiagnostic.Error
+                         (ErrorCode.InvalidTypeInEqualityComparison, [ showType resolvedType ])
+                         range
+            ]
         | HasPartialApplication (missing, result) ->
             match resolvedType.Resolution with
             | QsTypeKind.Function (_, output) ->
@@ -463,9 +463,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     QsCompilerDiagnostic.Error (ErrorCode.ItemAccessForNonArray, [ showType resolvedType ]) range
                 ]
         | Integral ->
-            if resolvedType.Resolution = Int || resolvedType.Resolution = BigInt
-            then []
-            else failwithf "Integral constraint not satisfied for %A." resolvedType
+            [
+                if resolvedType.Resolution <> Int && resolvedType.Resolution <> BigInt
+                then QsCompilerDiagnostic.Error (ErrorCode.ExpectingIntegralExpr, [ showType resolvedType ]) range
+            ]
         | Iterable item ->
             match resolvedType.supportsIteration with
             | Some actualItem -> context.Unify(item, actualItem)
