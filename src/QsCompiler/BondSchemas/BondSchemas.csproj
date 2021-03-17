@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <BondCodegen Remove="*.bond" />
+    <BondCodegen Remove="**\*.bond" />
   </ItemGroup>
 
   <ItemGroup>
