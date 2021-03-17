@@ -121,6 +121,20 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let _ = () + ();
     }
 
+    // Unwrap operator
+
+    function Unwrap1(x : BigEndian) : Unit {
+        let _ = x!;
+    }
+
+    function UnwrapInvalid1(x : Int) : Unit {
+        let _ = x!;
+    }
+
+    function UnwrapInvalid2(x : Int[]) : Unit {
+        let _ = x!;
+    }
+
     // utils for testing variance behavior 
 
     function TakesBigEndian (a : BigEndian) : Unit {}

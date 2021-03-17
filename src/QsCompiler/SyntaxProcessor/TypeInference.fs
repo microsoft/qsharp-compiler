@@ -449,10 +449,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
             | ArrayType _, _ ->
-                let indexRange = index.Range |> QsNullable.defaultValue Range.Zero
-
                 [
-                    QsCompilerDiagnostic.Error (ErrorCode.InvalidArrayItemIndex, [ showType index ]) indexRange
+                    QsCompilerDiagnostic.Error
+                        (ErrorCode.InvalidArrayItemIndex, [ showType index ])
+                        (index.Range |> QsNullable.defaultValue Range.Zero)
                 ]
             | _ ->
                 [
@@ -485,7 +485,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | UserDefinedType udt ->
                 let actualItem = symbolTracker.GetUnderlyingType (fun _ -> ()) udt
                 context.Unify(item, actualItem)
-            | _ -> failwithf "Wrapped %A constraint not satisfied for %A." item resolvedType
+            | _ ->
+                [
+                    QsCompilerDiagnostic.Error (ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
+                ]
 
     member private context.ApplyConstraints(param, resolvedType) =
         match variables.TryGetValue param |> tryOption with

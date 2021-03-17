@@ -55,6 +55,12 @@ module TypeCheckingTests =
         expect "SemigroupInvalid2" [ Error ErrorCode.InvalidTypeForConcatenation ]
 
     [<Fact>]
+    let ``Supports the unwrap operator`` () =
+        expect "Unwrap1" []
+        expect "UnwrapInvalid1" [ Error ErrorCode.ExpectingUserDefinedType ]
+        expect "UnwrapInvalid2" [ Error ErrorCode.ExpectingUserDefinedType ]
+
+    [<Fact>]
     let ``Supports sized array literals`` () =
         expect "SizedArray1" []
         expect "SizedArray2" []
