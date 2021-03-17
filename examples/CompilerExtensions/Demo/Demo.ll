@@ -10,16 +10,16 @@
 @PauliZ = constant i2 -2
 @EmptyRange = internal constant %Range { i64 0, i64 1, i64 -1 }
 
-@Demo__PhaseEstimation = alias double (i64), double (i64)* @Demo__PhaseEstimation__body
+@Compiled__PhaseEstimation = alias double (i64), double (i64)* @Compiled__PhaseEstimation__body
 
-define double @Demo__PhaseEstimation__body(i64 %nrIter) #0 {
+define double @Compiled__PhaseEstimation__body(i64 %nrIter) #0 {
 entry:
   %mu = alloca double, align 8
   store double 7.951000e-01, double* %mu, align 8
   %sigma = alloca double, align 8
   store double 6.065000e-01, double* %sigma, align 8
   %target = call %Qubit* @__quantum__rt__qubit_allocate()
-  call void @Demo__Preparation__body(%Qubit* %target)
+  call void @Compiled__Preparation__body(%Qubit* %target)
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %entry
@@ -40,7 +40,7 @@ body__1:                                          ; preds = %header__1
   %p1 = fmul double %7, %time
   %8 = call double @Microsoft__Quantum__Math__PI__body()
   %p2 = fmul double %8, %time
-  %datum = call %Result* @Demo__Iteration__body(double %p1, double %p2, %Qubit* %target, %Qubit* %aux)
+  %datum = call %Result* @Compiled__Iteration__body(double %p1, double %p2, %Qubit* %target, %Qubit* %aux)
   %9 = call %Result* @__quantum__rt__result_get_zero()
   %10 = call i1 @__quantum__rt__result_equal(%Result* %datum, %Result* %9)
   br i1 %10, label %condTrue__1, label %condFalse__1
@@ -74,28 +74,28 @@ exit__1:                                          ; preds = %header__1
   ret double %18
 }
 
-declare %Qubit* @__quantum__rt__qubit_allocate()
-
-declare %Array* @__quantum__rt__qubit_allocate_array(i64)
-
-define void @Demo__Preparation__body(%Qubit* %q1) {
+define void @Compiled__Preparation__body(%Qubit* %q1) {
 entry:
   call void @__quantum__qis__h__body(%Qubit* %q1)
   ret void
 }
 
-define double @Microsoft__Quantum__Math__PI__body() {
-entry:
-  ret double 0x400921FB54442D18
-}
-
-define %Result* @Demo__Iteration__body(double %p1, double %p2, %Qubit* %q1, %Qubit* %q2) {
+define %Result* @Compiled__Iteration__body(double %p1, double %p2, %Qubit* %q1, %Qubit* %q2) {
 entry:
   call void @__quantum__qis__rz__body(double %p1, %Qubit* %q2)
   call void @__quantum__qis__crz__body(double %p2, %Qubit* %q2, %Qubit* %q2)
   call void @__quantum__qis__h__body(%Qubit* %q2)
   %0 = call %Result* @__quantum__qis__m__body(%Qubit* %q2)
   ret %Result* %0
+}
+
+declare %Qubit* @__quantum__rt__qubit_allocate()
+
+declare %Array* @__quantum__rt__qubit_allocate_array(i64)
+
+define double @Microsoft__Quantum__Math__PI__body() {
+entry:
+  ret double 0x400921FB54442D18
 }
 
 declare %Result* @__quantum__rt__result_get_zero()
@@ -106,31 +106,21 @@ declare void @__quantum__rt__result_update_reference_count(%Result*, i32)
 
 declare void @__quantum__rt__qubit_release(%Qubit*)
 
-define void @Demo__CRz__body(double %p1, %Qubit* %q1, %Qubit* %q2) {
+define %Result* @Compiled__M__body(%Qubit* %q1) {
+entry:
+  %0 = call %Result* @__quantum__qis__m__body(%Qubit* %q1)
+  ret %Result* %0
+}
+
+declare %Result* @__quantum__qis__m__body(%Qubit*)
+
+define void @Compiled__CRz__body(double %p1, %Qubit* %q1, %Qubit* %q2) {
 entry:
   call void @__quantum__qis__crz__body(double %p1, %Qubit* %q1, %Qubit* %q2)
   ret void
 }
 
 declare void @__quantum__qis__crz__body(double, %Qubit*, %Qubit*)
-
-declare void @__quantum__qis__rz__body(double, %Qubit*)
-
-declare void @__quantum__qis__h__body(%Qubit*)
-
-declare %Result* @__quantum__qis__m__body(%Qubit*)
-
-define void @Demo__Rz__body(double %p1, %Qubit* %q1) {
-entry:
-  call void @__quantum__qis__rz__body(double %p1, %Qubit* %q1)
-  ret void
-}
-
-define %Result* @Demo__M__body(%Qubit* %q1) {
-entry:
-  %0 = call %Result* @__quantum__qis__m__body(%Qubit* %q1)
-  ret %Result* %0
-}
 
 define void @Microsoft__Quantum__Intrinsic__H__body(%Qubit* %qubit) {
 entry:
@@ -163,5 +153,15 @@ entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 -1)
   ret void
 }
+
+define void @Compiled__Rz__body(double %p1, %Qubit* %q1) {
+entry:
+  call void @__quantum__qis__rz__body(double %p1, %Qubit* %q1)
+  ret void
+}
+
+declare void @__quantum__qis__rz__body(double, %Qubit*)
+
+declare void @__quantum__qis__h__body(%Qubit*)
 
 attributes #0 = { "EntryPoint" }
