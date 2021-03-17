@@ -151,16 +151,18 @@ module private Inference =
         | Supertype -> [ info1; info2 ] |> CallableInformation.Common |> Some
 
     let rec combine ordering types =
+        let range = QsNullable.Map2 Range.Span types.Left.Range types.Right.Range
+
         // TODO: Different diagnostic for Equal and Subtype ordering.
         let error =
             QsCompilerDiagnostic.Error
                 (ErrorCode.NoCommonBaseType, TypeContext.toList types |> List.map showType)
-                (QsNullable.Map2 Range.Span types.Left.Range types.Right.Range |> QsNullable.defaultValue Range.Zero)
+                (range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
         | ArrayType item1, ArrayType item2 ->
             let combinedType, diagnostics = types |> TypeContext.into item1 item2 |> combine Equal
-            ArrayType combinedType |> ResolvedType.New, diagnostics
+            ArrayType combinedType |> ResolvedType.create range, diagnostics
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
             let combinedTypes, diagnostics =
                 (items1, items2)
@@ -168,7 +170,7 @@ module private Inference =
                 |> Seq.toList
                 |> List.unzip
 
-            ImmutableArray.CreateRange combinedTypes |> TupleType |> ResolvedType.New, List.concat diagnostics
+            ImmutableArray.CreateRange combinedTypes |> TupleType |> ResolvedType.create range, List.concat diagnostics
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let input, inDiagnostics = types |> TypeContext.into in1 in2 |> combine (Ordering.not ordering)
             let output, outDiagnostics = types |> TypeContext.into out1 out2 |> combine ordering
@@ -181,16 +183,16 @@ module private Inference =
                         (ResolvedCharacteristics.New InvalidSetExpr, InferredCallableInformation.NoInformation),
                     [ error ]
 
-            QsTypeKind.Operation((input, output), info) |> ResolvedType.New,
+            QsTypeKind.Operation((input, output), info) |> ResolvedType.create range,
             inDiagnostics @ outDiagnostics @ infoDiagnostics
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
             let input, inDiagnostics = types |> TypeContext.into in1 in2 |> combine (Ordering.not ordering)
             let output, outDiagnostics = types |> TypeContext.into out1 out2 |> combine ordering
-            QsTypeKind.Function(input, output) |> ResolvedType.New, inDiagnostics @ outDiagnostics
+            QsTypeKind.Function(input, output) |> ResolvedType.create range, inDiagnostics @ outDiagnostics
         | InvalidType, _
-        | _, InvalidType -> ResolvedType.New InvalidType, []
-        | _ when types.Left = types.Right -> types.Left, []
-        | _ -> ResolvedType.New InvalidType, [ error ]
+        | _, InvalidType -> ResolvedType.create range InvalidType, []
+        | _ when types.Left = types.Right -> types.Left |> ResolvedType.withRangeRecurse range, []
+        | _ -> ResolvedType.create range InvalidType, [ error ]
 
     let occursCheck param (resolvedType: ResolvedType) =
         TypeParameter param |> (=) |> resolvedType.Exists |> not
