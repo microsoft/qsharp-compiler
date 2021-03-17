@@ -12,39 +12,6 @@ using Builder = Microsoft.Quantum.QsCompiler.CompilationBuilder.Utils;
 
 namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
-    internal static class Extensions
-    {
-        internal static void AssertCapability<TOptions>(this SumType<bool, TOptions>? capability, bool shouldHave = true, Func<TOptions, bool>? condition = null)
-        {
-            if (shouldHave)
-            {
-                Assert.IsTrue(capability.HasValue, "Expected capability to have value, but was null.");
-            }
-
-            if (capability.HasValue)
-            {
-                capability!.Value.Match(
-                    flag =>
-                    {
-                        Assert.AreEqual(flag, shouldHave);
-                        return true;
-                    },
-                    options =>
-                    {
-                        if (condition != null)
-                        {
-                            Assert.IsTrue(condition(options));
-                        }
-                        else
-                        {
-                            Assert.IsNotNull(options);
-                        }
-                        return true;
-                    });
-            }
-        }
-    }
-
     [TestClass]
     public partial class BasicFunctionality
     {
@@ -101,19 +68,16 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         {
             // NOTE: these assertions need to be adapted when the server capabilities are changed
             var initParams = TestUtils.GetInitializeParams();
-            Assert.IsNotNull(initParams.Capabilities.Workspace);
-            // We use the null-forgiving operator, since we check that Workspace
-            // is not null above.
-            initParams.Capabilities.Workspace!.ApplyEdit = true;
+            initParams.Capabilities.Workspace.ApplyEdit = true;
             var initReply = await this.rpc.InvokeWithParameterObjectAsync<InitializeResult>(Methods.Initialize.Name, initParams);
 
             Assert.IsNotNull(initReply);
             Assert.IsNotNull(initReply.Capabilities);
             Assert.IsNotNull(initReply.Capabilities.TextDocumentSync);
-            Assert.IsNotNull(initReply.Capabilities.TextDocumentSync!.Save);
+            Assert.IsNotNull(initReply.Capabilities.TextDocumentSync.Save);
             Assert.IsNull(initReply.Capabilities.CodeLensProvider);
             Assert.IsNotNull(initReply.Capabilities.CompletionProvider);
-            Assert.IsTrue(initReply.Capabilities.CompletionProvider!.ResolveProvider);
+            Assert.IsTrue(initReply.Capabilities.CompletionProvider.ResolveProvider);
             Assert.IsNotNull(initReply.Capabilities.CompletionProvider.TriggerCharacters);
             Assert.IsTrue(initReply.Capabilities.CompletionProvider.TriggerCharacters.SequenceEqual(new[] { ".", "(" }));
             Assert.IsNotNull(initReply.Capabilities.SignatureHelpProvider?.TriggerCharacters);
@@ -121,20 +85,18 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(initReply.Capabilities.ExecuteCommandProvider?.Commands);
             Assert.IsTrue(initReply.Capabilities.ExecuteCommandProvider!.Commands.Contains(CommandIds.ApplyEdit));
             Assert.IsTrue(initReply.Capabilities.TextDocumentSync.OpenClose);
-            initReply.Capabilities.TextDocumentSync.Save.AssertCapability(
-                true,
-                options => options.IncludeText);
+            Assert.IsTrue(initReply.Capabilities.TextDocumentSync.Save.IncludeText);
             Assert.AreEqual(TextDocumentSyncKind.Incremental, initReply.Capabilities.TextDocumentSync.Change);
-            initReply.Capabilities.DefinitionProvider.AssertCapability();
-            initReply.Capabilities.ReferencesProvider.AssertCapability();
-            initReply.Capabilities.DocumentHighlightProvider.AssertCapability();
-            initReply.Capabilities.DocumentSymbolProvider.AssertCapability();
-            initReply.Capabilities.WorkspaceSymbolProvider.AssertCapability(shouldHave: false);
-            initReply.Capabilities.RenameProvider.AssertCapability();
-            initReply.Capabilities.HoverProvider.AssertCapability();
-            initReply.Capabilities.DocumentFormattingProvider.AssertCapability(shouldHave: false);
-            initReply.Capabilities.DocumentRangeFormattingProvider.AssertCapability(shouldHave: false);
-            initReply.Capabilities.CodeActionProvider.AssertCapability();
+            Assert.IsTrue(initReply.Capabilities.DefinitionProvider);
+            Assert.IsTrue(initReply.Capabilities.ReferencesProvider);
+            Assert.IsTrue(initReply.Capabilities.DocumentHighlightProvider);
+            Assert.IsTrue(initReply.Capabilities.DocumentSymbolProvider);
+            Assert.IsFalse(initReply.Capabilities.WorkspaceSymbolProvider);
+            Assert.IsTrue(initReply.Capabilities.RenameProvider.Value is bool supported && supported);
+            Assert.IsTrue(initReply.Capabilities.HoverProvider);
+            Assert.IsFalse(initReply.Capabilities.DocumentFormattingProvider);
+            Assert.IsFalse(initReply.Capabilities.DocumentRangeFormattingProvider);
+            Assert.IsTrue(initReply.Capabilities.CodeActionProvider);
         }
 
         [TestMethod]

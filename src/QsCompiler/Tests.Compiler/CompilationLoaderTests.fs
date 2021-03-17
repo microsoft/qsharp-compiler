@@ -53,7 +53,7 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
 
         let errors =
             compilation.Diagnostics()
-            |> Seq.filter (fun diagnostic -> diagnostic.Severity = Nullable DiagnosticSeverity.Error)
+            |> Seq.filter (fun diagnostic -> diagnostic.Severity = DiagnosticSeverity.Error)
 
         Assert.Empty errors
         compilation.BuiltCompilation

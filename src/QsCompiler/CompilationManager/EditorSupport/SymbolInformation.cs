@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static Location AsLocation(string source, Position offset, Range relRange) =>
             new Location
             {
-                Uri = CompilationUnitManager.TryGetUri(source, out var uri) ? uri : throw new Exception($"Source location {source} could not be converted to a valid URI."),
+                Uri = CompilationUnitManager.TryGetUri(source, out var uri) ? uri : null,
                 Range = (offset + relRange).ToLsp()
             };
 
