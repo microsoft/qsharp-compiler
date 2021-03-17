@@ -486,6 +486,7 @@
     <Compile Include="CompilationLoaderTests.fs" />
     <Compile Include="CompilationTrackerTests.fs" />
     <Compile Include="QirTests.fs" />
+    <Compile Include="EntryPointSchemaTests.fs" />
 </ItemGroup>
 
   <ItemGroup>
