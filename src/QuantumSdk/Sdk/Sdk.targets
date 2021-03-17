@@ -156,7 +156,7 @@
     <Exec Condition="$(DefaultEntryPoint) != ''" Command="$(DefaultEntryPointGeneration) $(DefaultEntryPoint)" IgnoreExitCode="false" />
     <ItemGroup>
       <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
-      <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
+      <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
       <Compile Condition="$(DefaultEntryPoint) != ''" Include="$(DefaultEntryPoint)" AutoGen="true" />
     </ItemGroup>
     <Message
