@@ -35,6 +35,25 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let _ = 1 % 2L;
     }
 
+    // Iterable types
+
+    function Iterable1() : Unit {
+        let xs = [1, 2, 3];
+        for x in xs {}
+    }
+
+    function Iterable2() : Unit {
+        for i in 0 .. 10 {}
+    }
+
+    function IterableInvalid1() : Unit {
+        for c in "foo" {}
+    }
+
+    function IterableInvalid2() : Unit {
+        for d in 123 {}
+    }
+
     // utils for testing variance behavior 
 
     function TakesBigEndian (a : BigEndian) : Unit {}

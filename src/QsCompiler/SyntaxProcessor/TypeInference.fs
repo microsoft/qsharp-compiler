@@ -470,7 +470,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | Iterable item ->
             match resolvedType.supportsIteration with
             | Some actualItem -> context.Unify(item, actualItem)
-            | None -> failwithf "Iterable %A constraint not satisfied for %A." item resolvedType
+            | None ->
+                [
+                    QsCompilerDiagnostic.Error (ErrorCode.ExpectingIterableExpr, [ showType resolvedType ]) range
+                ]
         | Numeric ->
             if Option.isSome resolvedType.supportsArithmetic
             then []
@@ -492,6 +495,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             let diagnostics =
                 variable.Constraints
                 |> List.collect (fun typeConstraint -> context.ApplyConstraint(typeConstraint, resolvedType))
+
             variables.[param] <- { variable with Constraints = [] }
             diagnostics
         | None -> []

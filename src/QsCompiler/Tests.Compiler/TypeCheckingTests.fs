@@ -30,6 +30,13 @@ module TypeCheckingTests =
         expect "IntegralInvalid2" (Error ErrorCode.NoCommonBaseType |> List.replicate 4)
 
     [<Fact>]
+    let ``Supports iteration`` () =
+        expect "Iterable1" []
+        expect "Iterable2" []
+        expect "IterableInvalid1" [ Error ErrorCode.ExpectingIterableExpr ]
+        expect "IterableInvalid2" [ Error ErrorCode.ExpectingIterableExpr ]
+
+    [<Fact>]
     let ``Supports sized array literals`` () =
         expect "SizedArray1" []
         expect "SizedArray2" []
