@@ -1,13 +1,15 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.14.2011120240">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.15.2103131668-beta">
 
   <PropertyGroup>
     <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <QirOutputPath>$(MSBuildThisFileDirectory)</QirOutputPath>
+    <!--ExecutionTarget>honeywell.qpu</ExecutionTarget-->
+    <QscExe>dotnet $(MSBuildThisFileDirectory)/../../../src/QsCompiler/CommandLineTool/bin/Debug/netcoreapp3.1/qsc.dll</QscExe>
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CustomExtension\CustomExtension.csproj" IsQscReference="true" Priority="0" />
   </ItemGroup>
  
 </Project>
