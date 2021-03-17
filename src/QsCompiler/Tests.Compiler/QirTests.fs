@@ -189,6 +189,9 @@ let ``QIR strings`` () = qirTest false "TestStrings"
 let ``QIR scoping`` () = qirTest false "TestScoping"
 
 [<Fact>]
+let ``QIR short-circuiting`` () = qirTest false "TestShortCircuiting"
+
+[<Fact>]
 let ``QIR conditionals`` () =
     qirMultiTest false "TestConditional" [ "TestConditional1"; "TestConditional2"; "TestConditional3" ]
 
