@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.QIR
     public static class RuntimeLibrary
     {
         // Q# specific helpers
-        internal const string HeapAllocate = "heap_alloc";
+        internal const string HeapAllocate = "memory_allocate";
 
         // result functions
         public const string ResultGetZero = "result_get_zero";
