@@ -154,8 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.variables.TryGetValue(varName, out value);
 
             /// <summary>
-            /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope,
-            /// and makes sure the release function is invoked before unreferending the value.
+            /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope.
             /// If the given value to register is a pointer, recursively loads its content and registers the loaded value.
             /// </summary>
             public void RegisterValue(IValue value, bool shallow = false)
