@@ -240,6 +240,12 @@
     <Content Include="TestCases\QirTests\TestResults.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestShortCircuiting.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestShortCircuiting.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestScoping.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
