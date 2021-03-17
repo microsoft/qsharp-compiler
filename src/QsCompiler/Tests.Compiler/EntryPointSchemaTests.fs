@@ -89,7 +89,10 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                               ("BoolArg",
                                DataType.BoolType,
                                0,
-                               [ new ArgumentValue(Bool = true); new ArgumentValue(Bool = false) ])
+                               [
+                                   new ArgumentValue(Bool = System.Nullable(true))
+                                   new ArgumentValue(Bool = System.Nullable(false))
+                               ])
                       ]),
                   "{\"Name\":\"UseBoolArgWithValues\",\"Arguments\":[{\"Name\":\"BoolArg\",\"Values\":[{\"Bool\":[true]},{\"Bool\":[false]}]}]}"))
             .Add("UseIntegerArg",
@@ -105,8 +108,8 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                DataType.IntegerType,
                                0,
                                [
-                                   new ArgumentValue(Integer = int64 (11))
-                                   new ArgumentValue(Integer = int64 (999))
+                                   new ArgumentValue(Integer = System.Nullable(int64 (11)))
+                                   new ArgumentValue(Integer = System.Nullable(int64 (999)))
                                ])
                       ]),
                   "{\"Name\":\"UseIntegerArgWithValues\",\"Arguments\":[{\"Type\":1,\"Name\":\"IntegerArg\",\"Values\":[{\"Integer\":[11]},{\"Integer\":[999]}]}]}"))
@@ -122,7 +125,10 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                               ("DoubleArg",
                                DataType.DoubleType,
                                0,
-                               [ new ArgumentValue(Double = 0.1); new ArgumentValue(Double = 0.2) ])
+                               [
+                                   new ArgumentValue(Double = System.Nullable(0.1))
+                                   new ArgumentValue(Double = System.Nullable(0.2))
+                               ])
                       ]),
                   "{\"Name\":\"UseDoubleArgWithValues\",\"Arguments\":[{\"Type\":2,\"Name\":\"DoubleArg\",\"Values\":[{\"Double\":[0.1]},{\"Double\":[0.2]}]}]}"))
             .Add("UsePauliArg",
@@ -137,9 +143,9 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                DataType.PauliType,
                                0,
                                [
-                                   new ArgumentValue(Pauli = PauliValue.PauliX)
-                                   new ArgumentValue(Pauli = PauliValue.PauliY)
-                                   new ArgumentValue(Pauli = PauliValue.PauliZ)
+                                   new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliX))
+                                   new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliY))
+                                   new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliZ))
                                ])
                       ]),
                   "{\"Name\":\"UsePauliArgWithValues\",\"Arguments\":[{\"Type\":3,\"Name\":\"PauliArg\",\"Values\":[{\"Pauli\":[1]},{\"Pauli\":[2]},{\"Pauli\":[3]}]}]}"))
@@ -173,8 +179,8 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                DataType.ResultType,
                                0,
                                [
-                                   new ArgumentValue(Result = ResultValue.Zero)
-                                   new ArgumentValue(Result = ResultValue.One)
+                                   new ArgumentValue(Result = System.Nullable(ResultValue.Zero))
+                                   new ArgumentValue(Result = System.Nullable(ResultValue.One))
                                ])
                       ]),
                   "{\"Name\":\"UseResultArgWithValues\",\"Arguments\":[{\"Type\":5,\"Name\":\"ResultArg\",\"Values\":[{\"Result\":[0]},{\"Result\":[1]}]}]}"))
