@@ -37,6 +37,14 @@ module TypeCheckingTests =
         expect "IterableInvalid2" [ Error ErrorCode.ExpectingIterableExpr ]
 
     [<Fact>]
+    let ``Supports numeric operators`` () =
+        expect "Numeric1" []
+        expect "Numeric2" []
+        expect "Numeric3" []
+        expect "NumericInvalid1" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
+        expect "NumericInvalid2" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
+
+    [<Fact>]
     let ``Supports sized array literals`` () =
         expect "SizedArray1" []
         expect "SizedArray2" []

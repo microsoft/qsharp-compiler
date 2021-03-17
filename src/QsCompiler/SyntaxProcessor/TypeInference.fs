@@ -469,9 +469,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     QsCompilerDiagnostic.Error (ErrorCode.ExpectingIterableExpr, [ showType resolvedType ]) range
                 ]
         | Numeric ->
-            if Option.isSome resolvedType.supportsArithmetic
-            then []
-            else failwithf "Numeric constraint not satisfied for %A." resolvedType
+            [
+                if Option.isNone resolvedType.supportsArithmetic
+                then QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeInArithmeticExpr, [ showType resolvedType ]) range
+            ]
         | Semigroup ->
             if Option.isSome resolvedType.supportsConcatenation || Option.isSome resolvedType.supportsArithmetic
             then []
@@ -486,9 +487,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.ApplyConstraints(param, resolvedType) =
         match variables.TryGetValue param |> tryOption with
         | Some variable ->
-            let diagnostics =
-                variable.Constraints
-                |> List.collect (fun typeConstraint -> context.ApplyConstraint(typeConstraint, resolvedType))
+            let diagnostics = variable.Constraints |> List.collect (fun c -> context.ApplyConstraint(c, resolvedType))
             variables.[param] <- { variable with Constraints = [] }
             diagnostics
         | None -> []

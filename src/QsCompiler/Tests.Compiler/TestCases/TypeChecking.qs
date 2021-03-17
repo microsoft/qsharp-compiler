@@ -54,6 +54,43 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         for d in 123 {}
     }
 
+    // Numeric operators
+
+    function Numeric1() : Unit {
+        let _ = -1;
+        let _ = 1 - 2;
+        let _ = 1 * 2;
+        let _ = 1 / 2;
+    }
+
+    function Numeric2() : Unit {
+        let _ = -1.0;
+        let _ = 1.0 - 2.0;
+        let _ = 1.0 * 2.0;
+        let _ = 1.0 / 2.0;
+    }
+
+    function Numeric3() : Unit {
+        let _ = -1L;
+        let _ = 1L - 2L;
+        let _ = 1L * 2L;
+        let _ = 1L / 2L;
+    }
+
+    function NumericInvalid1() : Unit {
+        let _ = -One;
+        let _ = Zero - One;
+        let _ = Zero * One;
+        let _ = Zero / One;
+    }
+
+    function NumericInvalid2() : Unit {
+        let _ = -"1";
+        let _ = "1" - "2";
+        let _ = "1" * "2";
+        let _ = "1" / "2";
+    }
+
     // utils for testing variance behavior 
 
     function TakesBigEndian (a : BigEndian) : Unit {}
