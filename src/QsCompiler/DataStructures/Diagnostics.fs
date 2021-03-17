@@ -627,8 +627,7 @@ type DiagnosticItem =
                 "The type {0} does not provide item access. Items can only be accessed for values of array type."
             | ErrorCode.InvalidTypeInArithmeticExpr ->
                 "The type {0} does not support arithmetic operators. Expecting an expression of type Int, BigInt or Double."
-            | ErrorCode.InvalidTypeForConcatenation ->
-                "The type {0} does not support concatenation. Expecting an expression of array type."
+            | ErrorCode.InvalidTypeForConcatenation -> "The type {0} does not support the + operator."
             | ErrorCode.InvalidTypeInEqualityComparison -> "The type {0} does not support equality comparison."
             | ErrorCode.ArgumentMismatchInBinaryOp ->
                 "The given arguments of type {0} and {1} do not have a common base type."

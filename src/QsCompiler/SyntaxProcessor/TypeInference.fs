@@ -474,9 +474,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 then QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeInArithmeticExpr, [ showType resolvedType ]) range
             ]
         | Semigroup ->
-            if Option.isSome resolvedType.supportsConcatenation || Option.isSome resolvedType.supportsArithmetic
-            then []
-            else failwithf "Semigroup constraint not satisfied for %A." resolvedType
+            [
+                if Option.isNone resolvedType.supportsConcatenation && Option.isNone resolvedType.supportsArithmetic
+                then QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeForConcatenation, [ showType resolvedType ]) range
+            ]
         | Wrapped item ->
             match resolvedType.Resolution with
             | UserDefinedType udt ->

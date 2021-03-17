@@ -45,6 +45,16 @@ module TypeCheckingTests =
         expect "NumericInvalid2" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
 
     [<Fact>]
+    let ``Supports the semigroup operator`` () =
+        expect "Semigroup1" []
+        expect "Semigroup2" []
+        expect "Semigroup3" []
+        expect "Semigroup4" []
+        expect "Semigroup5" []
+        expect "SemigroupInvalid1" [ Error ErrorCode.InvalidTypeForConcatenation ]
+        expect "SemigroupInvalid2" [ Error ErrorCode.InvalidTypeForConcatenation ]
+
+    [<Fact>]
     let ``Supports sized array literals`` () =
         expect "SizedArray1" []
         expect "SizedArray2" []

@@ -91,6 +91,36 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let _ = "1" / "2";
     }
 
+    // Semigroup operator
+
+    function Semigroup1() : Unit {
+        let _ = 1 + 2;
+    }
+
+    function Semigroup2() : Unit {
+        let _ = 1.0 + 2.0;
+    }
+
+    function Semigroup3() : Unit {
+        let _ = 1L + 2L;
+    }
+
+    function Semigroup4() : Unit {
+        let _ = "foo" + "bar";
+    }
+
+    function Semigroup5() : Unit {
+        let _ = [()] + [()];
+    }
+
+    function SemigroupInvalid1() : Unit {
+        let _ = Zero + One;
+    }
+
+    function SemigroupInvalid2() : Unit {
+        let _ = () + ();
+    }
+
     // utils for testing variance behavior 
 
     function TakesBigEndian (a : BigEndian) : Unit {}
