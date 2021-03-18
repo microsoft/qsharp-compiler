@@ -153,10 +153,15 @@ module private Inference =
     let rec combine ordering types =
         let range = QsNullable.Map2 Range.Span types.Left.Range types.Right.Range
 
-        // TODO: Different diagnostic for Equal and Subtype ordering.
+        let relation =
+            match ordering with
+            | Subtype -> "share a subtype with"
+            | Equal -> "equal"
+            | Supertype -> "share a base type with"
+
         let error =
             QsCompilerDiagnostic.Error
-                (ErrorCode.NoCommonBaseType, TypeContext.toList types |> List.map showType)
+                (ErrorCode.MissingBaseType, relation :: (TypeContext.toList types |> List.map showType))
                 (range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with

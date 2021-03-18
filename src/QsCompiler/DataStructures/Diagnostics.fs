@@ -8,7 +8,7 @@ open System.Collections.Generic
 
 type ErrorCode =
     | TypeMismatch = 1
-    | NoCommonBaseType = 2
+    | MissingBaseType = 2
 
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
@@ -432,8 +432,7 @@ type DiagnosticItem =
             << function
             | ErrorCode.TypeMismatch ->
                 "The expected type {0} does not match the actual type {1}.\nExpected type: {2}\n  Actual type: {3}"
-            | ErrorCode.NoCommonBaseType ->
-                "The type {0} does not share a base type with {1}.\n First type: {2}\nSecond type: {3}"
+            | ErrorCode.MissingBaseType -> "The type {3} cannot be used with the type {4}, because {1} does not {0} {2}."
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
