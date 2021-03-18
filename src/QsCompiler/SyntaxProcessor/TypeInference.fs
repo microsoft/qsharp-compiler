@@ -256,7 +256,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
     member context.SetStatementPosition position = statementPosition <- position
 
-    member internal context.Fresh(source: Range) =
+    member internal context.Fresh source =
         let name = letters |> Seq.item variables.Count
 
         let param =
@@ -277,11 +277,11 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         variables.Add(param, variable)
         TypeParameter param |> ResolvedType.create (Value source)
 
-    member internal context.Unify(expected: ResolvedType, actual: ResolvedType) =
+    member internal context.Unify(expected, actual) =
         context.UnifyByOrdering(Supertype, TypeContext.create (context.Resolve expected) (context.Resolve actual))
         |> rememberErrors [ expected; actual ]
 
-    member internal context.Intersect(left: ResolvedType, right: ResolvedType) =
+    member internal context.Intersect(left, right) =
         context.UnifyByOrdering(Equal, TypeContext.create (context.Resolve left) (context.Resolve right))
         |> ignore
 
@@ -290,7 +290,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let intersection, diagnostics = TypeContext.create left right |> combine Supertype
         intersection, diagnostics |> rememberErrors [ left; right ]
 
-    member internal context.Constrain(resolvedType: ResolvedType, typeConstraint) =
+    member internal context.Constrain(resolvedType, typeConstraint) =
         let resolvedType = context.Resolve resolvedType
 
         match resolvedType.Resolution with
@@ -303,7 +303,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> context.ApplyConstraint(typeConstraint, resolvedType)
         |> rememberErrors (resolvedType :: Constraint.types typeConstraint)
 
-    member internal context.Resolve(resolvedType: ResolvedType) =
+    member internal context.Resolve resolvedType =
         let resolveWithRange type' =
             let type' = context.Resolve type'
             type' |> ResolvedType.withRange (type'.Range |> QsNullable.orElse resolvedType.Range)
@@ -377,7 +377,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _, MissingType -> []
         | _ -> [ error ]
 
-    member private context.ApplyConstraint(typeConstraint, resolvedType: ResolvedType) =
+    member private context.ApplyConstraint(typeConstraint, resolvedType) =
         let range = resolvedType.Range |> QsNullable.defaultValue Range.Zero
 
         match typeConstraint with
