@@ -34,10 +34,12 @@
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
   <Target Name="QSharpClean" BeforeTargets="Clean">
     <ItemGroup>
-      <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
-      <Compile Remove="$(_FilesToClean)**/*.g.cs" />
+      <_FilesToClean Include="$(GeneratedFilesOutputPath)**/*.g.cs" />
+      <_FilesToClean Include="$(GeneratedFilesOutputPath)**/*.g.EntryPoint.cs" />
+      <_FilesToClean Include="$(GeneratedFilesOutputPath)**/EntryPoint.g.Main.cs" />
+      <Compile Remove="@(_FilesToClean)" />
     </ItemGroup>
-    <Delete Files="@(_FilesToClean)" />
+    <Delete Files="$(GeneratedFilesOutputPath)**" />
   </Target>
 
   <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
@@ -134,7 +136,9 @@
           BeforeTargets="PrepareCSharpCompileAfterCSharpGeneration">
     <ItemGroup>
       <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/*.g.cs" />
-      <Compile Remove="$(_GeneratedFilesToRemove)**/*.g.cs" />
+      <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/*.g.EntryPoint.cs" />
+      <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/EntryPoint.g.Main.cs" />
+      <Compile Remove="@(_GeneratedFilesToRemove)" />
     </ItemGroup>
     <Delete Files="@(_GeneratedFilesToRemove)" />
     <PropertyGroup>
