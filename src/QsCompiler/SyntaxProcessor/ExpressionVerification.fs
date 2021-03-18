@@ -161,7 +161,6 @@ let private VerifyValueArray (inference: InferenceContext) range exprs =
         exprs
         |> Seq.map (fun e -> e.ResolvedType)
         |> Seq.filter (fun t -> not t.isInvalid && not t.isMissing)
-        |> Seq.distinct
 
     if Seq.isEmpty types && Seq.isEmpty exprs then
         inference.Fresh range |> ArrayType |> ResolvedType.create (Value range), Seq.toList diagnostics
@@ -170,9 +169,9 @@ let private VerifyValueArray (inference: InferenceContext) range exprs =
     else
         types
         |> Seq.reduce (fun left right ->
-            let intersectionType, intersectDiagnostics = inference.Intersect(left, right)
-            List.iter diagnostics.Add intersectDiagnostics
-            intersectionType)
+            let intersectionType, intersectionDiagnostics = inference.Intersect(left, right)
+            List.iter diagnostics.Add intersectionDiagnostics
+            intersectionType |> ResolvedType.withRangeRecurse right.Range)
         |> ResolvedType.withRangeRecurse (Value range)
         |> ArrayType
         |> ResolvedType.create (Value range),
