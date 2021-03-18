@@ -7,12 +7,16 @@ as well as the Q# language server included in our [Visual Studio extension](http
 For more information related to the language server protocol take a look at [this repository](https://github.com/Microsoft/language-server-protocol).
 These extensions provide the IDE integration for Q#, and can be found on this repository as well.
 
-The Q# compiler provides a [command line interface](./src/QsCompiler/CommandLineTool). For further information on how to use Q# binaries take a look at the [README](./src/QsCompiler/CommandLineTool/README.md) in that folder.
+The Q# [compiler](./src/QsCompiler/Compiler) is distributed as a [NuGet package](https://www.nuget.org/packages/Microsoft.Quantum.Compiler), and the [CompilationLoader class](https://github.com/microsoft/qsharp-compiler/blob/main/src/QsCompiler/Compiler/CompilationLoader.cs) exposes the different configuration options for building a compilation.
+The Q# [command line compiler](./src/QsCompiler/CommandLineTool) is included as a tool in the [Microsoft.Quantum.Sdk](./src/QuantumSdk) and provides an [extensibility mechanism](https://devblogs.microsoft.com/qsharp/extending-the-q-compiler/) for compilation steps. See the list of [project properties](./src/QuantumSdk#defined-project-properties) for more information about possible configuration options for Q# projects.
 
 - **[QsCompiler](./src/QsCompiler/)**: Q# compiler including the command line tool
 - **[QsCompiler/LanguageServer](./src/QsCompiler/LanguageServer/)**: Q# language server
+- **[Microsoft.Quantum.Sdk](./src/QuantumSdk)**: Sdk for building Q# projects and support for compiler extensions
 - **[VSCodeExtension](./src/VSCodeExtension/)**: Visual Studio Code extension
 - **[VisualStudioExtension](./src/VisualStudioExtension/)**: Visual Studio extension
+
+Q# executables can be compiled into an LLVM-based [Quantum Intermediate Representation (QIR)](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR). More details on that capability and how to use it can be found in this [README](https://github.com/microsoft/qsharp-compiler/tree/main/src/QsCompiler/QirGeneration).
 
 ## New to Quantum? ##
 
@@ -31,7 +35,8 @@ Before you can build the source code on this repository and start contributing t
 We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell.
 The script in particular generates the files that are needed for building based on the templates in this repository.
 
-The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/).
+The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). The command `dotnet build QsCompiler.sln` builds the Q# compiler and language server. 
+
 For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./src/VSCodeExtension/BUILDING.md).
 Building and debugging the Visual Studio extension requires Visual Studio 2019. Open [the corresponding solution](./VisualStudioExtension.sln) and set the [QSharpVsix project](./src/VisualStudioExtension/QSharpVsix/) as startup project, then launch and debug the extension as usual.
 The Visual Studio extension is built on the [.NET Framework 4.7.2](https://dotnet.microsoft.com/download/dotnet-framework/net472) that comes with Visual Studio 2019. Alternatively you can easily obtain it via the Visual Studio Installer.
