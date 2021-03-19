@@ -19,21 +19,64 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
 
+/// A type constraint is a set of types satisfying some property.
 type internal Constraint =
+    /// An adjointable operation.
     | Adjointable
+
+    /// <summary>
+    /// A callable from <paramref name="input"/> to <paramref name="output"/>.
+    /// </summary>
     | Callable of input: ResolvedType * output: ResolvedType
+
+    /// <summary>
+    /// A type that can be used in an operation that requires auto-generated specializations for the given
+    /// <paramref name="functors"/>.
+    /// </summary>
     | CanGenerateFunctors of functors: QsFunctor Set
+
+    /// <summary>
+    /// A controllable operation that has the given <paramref name="controlled"/> type after the controlled functor is
+    /// applied.
+    /// </summary>
     | Controllable of controlled: ResolvedType
+
+    /// A type that supports equality comparisons.
     | Equatable
+
+    /// <summary>
+    /// A callable that can be partially applied such that, given the remaining inputs as an argument of type
+    /// <paramref name="missing"/>, it will yield an output of type <paramref name="result"/>.
+    /// </summary>
     | HasPartialApplication of missing: ResolvedType * result: ResolvedType
+
+    /// <summary>
+    /// A type that can be accessed by an index of type <paramref name="index"/>, yielding an item of type
+    /// <paramref name="item"/>.
+    /// </summary>
     | Indexed of index: ResolvedType * item: ResolvedType
+
+    /// A type that represents an integer.
     | Integral
+
+    /// <summary>
+    /// A type that can be iterated over, yielding items of type <paramref name="item"/>.
+    /// </summary>
     | Iterable of item: ResolvedType
+
+    /// A type that represents a number.
     | Numeric
+
+    /// A type with the associative semigroup operator +.
     | Semigroup
+
+    /// <summary>
+    /// A wrapped type that can be unwrapped to yield an item of type <paramref name="item"/>.
+    /// </summary>
     | Wrapped of item: ResolvedType
 
 module internal Constraint =
+    /// The list of types contained in a constraint.
     let types =
         function
         | Adjointable -> []
@@ -49,39 +92,66 @@ module internal Constraint =
         | Semigroup -> []
         | Wrapped item -> [ item ]
 
+/// A placeholder type variable.
 type private Variable =
     {
+        /// The substituted type.
         Substitution: ResolvedType option
+
+        /// The list of constraints on the type of this variable.
         Constraints: Constraint list
+
+        /// Whether this variable encountered a type inference error.
         HasError: bool
+
+        /// The source range that this variable originated from.
         Source: Range
     }
 
 module private Variable =
+    /// Adds a type constraint to the type of the variable.
     let constrain typeConstraint variable =
         { variable with Constraints = typeConstraint :: variable.Constraints }
 
+/// An ordering comparison of two types.
 type private Ordering =
+    /// The type is a subtype of the other type.
     | Subtype
+
+    /// The types are equal.
     | Equal
+
+    /// The type is a supertype of the other type.
     | Supertype
 
 module private Ordering =
+    /// Negates the direction of the ordering.
     let not =
         function
         | Subtype -> Supertype
         | Equal -> Equal
         | Supertype -> Subtype
 
+/// Remembers context when recursively comparing two types side-by-side.
 type private TypeContext =
     {
+        /// The left-hand type.
         Left: ResolvedType
+
+        /// The right-hand type.
         Right: ResolvedType
+
+        /// The most recent relevant ancestor of the left-hand type.
         OriginalLeft: ResolvedType
+
+        /// The most recent relevant ancestor of the right-hand type.
         OriginalRight: ResolvedType
     }
 
 module private TypeContext =
+    /// <summary>
+    /// Creates a type context originating with <paramref name="left"/> and <paramref name="right"/>.
+    /// </summary>
     let create left right =
         {
             Left = left
@@ -90,16 +160,21 @@ module private TypeContext =
             OriginalRight = right
         }
 
+    /// Descends into the respective children of each type, preserving the original types if the range of both the left
+    /// and the right types do not change.
     let into (leftChild: ResolvedType) (rightChild: ResolvedType) context =
         if leftChild.Range = context.Left.Range || rightChild.Range = context.Right.Range
         then { context with Left = leftChild; Right = rightChild }
         else create leftChild rightChild
 
+    /// Descends into the respective children of each type, preserving the original types if the range of the right type
+    /// does not change.
     let intoRight leftChild (rightChild: ResolvedType) context =
         if rightChild.Range = context.Right.Range
         then { context with Left = leftChild; Right = rightChild }
         else create leftChild rightChild
 
+    /// Swaps the left and right types.
     let swap context =
         {
             Left = context.Right
@@ -108,30 +183,49 @@ module private TypeContext =
             OriginalRight = context.OriginalLeft
         }
 
+    /// The list of types in the context, in order: left, right, original left, original right.
     let toList context =
         [ context.Left; context.Right; context.OriginalLeft; context.OriginalRight ]
 
+/// Tools to help with type inference.
 module private Inference =
+    /// <summary>
+    /// True if <paramref name="info1"/> and <paramref name="info2"/> contain the same set of characteristics.
+    /// </summary>
     let characteristicsEqual info1 info2 =
         let chars1 = info1.Characteristics
         let chars2 = info2.Characteristics
         chars1.AreInvalid || chars2.AreInvalid || chars1.GetProperties().SetEquals(chars2.GetProperties())
 
+    /// <summary>
+    /// True if the characteristics of <paramref name="info1"/> are a subset of the characteristics of
+    /// <paramref name="info2"/>.
+    /// </summary>
     let isSubset info1 info2 =
         info1.Characteristics.GetProperties().IsSubsetOf(info2.Characteristics.GetProperties())
 
+    /// <summary>
+    /// True if the characteristics of <paramref name="info"/> contain the given <paramref name="functor"/>.
+    /// </summary>
     let hasFunctor functor info =
         info.Characteristics.SupportedFunctors
         |> QsNullable.defaultValue ImmutableHashSet.Empty
         |> fun functors -> functors.Contains functor
 
+    /// Shows the type as a string.
     let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
+    /// Shows the functor as a string.
     let showFunctor =
         function
         | Adjoint -> Keywords.qsAdjointFunctor.id
         | Controlled -> Keywords.qsControlledFunctor.id
 
+    /// <summary>
+    /// Combines information from two callables such that the resulting callable information satisfies the given
+    /// <paramref name="ordering"/> with respect to both <paramref name="info1"/> and <paramref name="info2"/>.
+    /// </summary>
+    /// <returns><see cref="Some"/> information if a combination is possible; otherwise <see cref="None"/>.</returns>
     let private combineCallableInfo ordering info1 info2 =
         match ordering with
         | Subtype ->
@@ -150,6 +244,10 @@ module private Inference =
         | Equal -> None
         | Supertype -> [ info1; info2 ] |> CallableInformation.Common |> Some
 
+    /// <summary>
+    /// Combines two types such that the resulting type satisfies the given <paramref name="ordering"/> with respect to
+    /// both original types.
+    /// </summary>
     let rec combine ordering types =
         let range = QsNullable.Map2 Range.Span types.Left.Range types.Right.Range
 
@@ -199,9 +297,13 @@ module private Inference =
         | _ when types.Left = types.Right -> types.Left |> ResolvedType.withRangeRecurse range, []
         | _ -> ResolvedType.create range InvalidType, [ error ]
 
+    /// <summary>
+    /// True if <paramref name="param"/> does not occur in <paramref name="resolvedType"/>.
+    /// </summary>
     let occursCheck param (resolvedType: ResolvedType) =
         TypeParameter param |> (=) |> resolvedType.Exists |> not
 
+    /// An infinite sequence of alphabetic strings of increasing length in alphabetical order.
     let letters =
         Seq.initInfinite ((+) 1)
         |> Seq.collect (fun length ->
@@ -210,6 +312,9 @@ module private Inference =
             |> Seq.replicate length
             |> Seq.reduce (fun strings -> Seq.allPairs strings >> Seq.map String.Concat))
 
+    /// <summary>
+    /// The set of type parameters contained in the given <paramref name="resolvedType"/>.
+    /// </summary>
     let typeParameters resolvedType =
         let mutable parameters = Set.empty
 
@@ -224,6 +329,8 @@ module private Inference =
 
 open Inference
 
+/// The inference context is an implementation of Hindley-Milner type inference. It is a source of fresh type parameters
+/// and can unify types containing them.
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
 
@@ -247,6 +354,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         diagnostics
 
+    /// Diagnostics for all type variables that are missing substitutions.
     member context.AmbiguousDiagnostics =
         [
             for variable in variables do
@@ -254,8 +362,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, []) variable.Value.Source
         ]
 
+    /// Sets the position of the statement in which types are currently being inferred.
     member context.SetStatementPosition position = statementPosition <- position
 
+    /// <summary>
+    /// Creates a fresh type parameter originating from the given <paramref name="source"/> range.
+    /// </summary>
     member internal context.Fresh source =
         let name = letters |> Seq.item variables.Count
 
@@ -277,10 +389,16 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         variables.Add(param, variable)
         TypeParameter param |> ResolvedType.create (Value source)
 
+    /// <summary>
+    /// Unifies the <paramref name="expected"/> type with the <paramref name="actual"/> type.
+    /// </summary>
     member internal context.Unify(expected, actual) =
         context.UnifyByOrdering(Supertype, TypeContext.create (context.Resolve expected) (context.Resolve actual))
         |> rememberErrors [ expected; actual ]
 
+    /// <summary>
+    /// The intersection of types <paramref name="left"/> and <paramref name="right"/>.
+    /// </summary>
     member internal context.Intersect(left, right) =
         context.UnifyByOrdering(Equal, TypeContext.create (context.Resolve left) (context.Resolve right))
         |> ignore
@@ -290,6 +408,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let intersection, diagnostics = TypeContext.create left right |> combine Supertype
         intersection, diagnostics |> rememberErrors [ left; right ]
 
+    /// <summary>
+    /// Constrains the given <paramref name="resolvedType"/> to satisfy the <paramref name="typeConstraint"/>.
+    /// </summary>
     member internal context.Constrain(resolvedType, typeConstraint) =
         let resolvedType = context.Resolve resolvedType
 
@@ -303,6 +424,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> context.ApplyConstraint(typeConstraint, resolvedType)
         |> rememberErrors (resolvedType :: Constraint.types typeConstraint)
 
+    /// <summary>
+    /// Replaces each placeholder type parameter in the given <paramref name="resolvedType"/> with its substitution if
+    /// one exists.
+    /// </summary>
     member internal context.Resolve resolvedType =
         let resolveWithRange type' =
             let type' = context.Resolve type'
@@ -326,6 +451,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             |> ResolvedType.withKind (QsTypeKind.Function(context.Resolve inType, context.Resolve outType))
         | _ -> resolvedType
 
+    /// <summary>
+    /// Unifies two types given that the left-hand type must satisfy the <paramref name="ordering"/> relation relative
+    /// to the right-hand type.
+    /// </summary>
     member private context.UnifyByOrdering(ordering, types) =
         let error =
             QsCompilerDiagnostic.Error
@@ -377,6 +506,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _, MissingType -> []
         | _ -> [ error ]
 
+    /// <summary>
+    /// Applies the <paramref name="typeConstraint"/> to the given <paramref name="resolvedType"/>.
+    /// </summary>
     member private context.ApplyConstraint(typeConstraint, resolvedType) =
         let range = resolvedType.Range |> QsNullable.defaultValue Range.Zero
 
@@ -495,6 +627,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     QsCompilerDiagnostic.Error (ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
                 ]
 
+    /// <summary>
+    /// Applies all of the constraints for <paramref name="param"/>, given that it has just been bound to
+    /// <paramref name="resolvedType"/>.
+    /// </summary>
     member private context.ApplyConstraints(param, resolvedType) =
         match variables.TryGetValue param |> tryOption with
         | Some variable ->
@@ -504,6 +640,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | None -> []
 
 module InferenceContext =
+    /// <summary>
+    /// A syntax tree transformation that resolves types using the given inference <paramref name="context"/>.
+    /// </summary>
     [<CompiledName "Resolver">]
     let resolver (context: InferenceContext) =
         let types =
