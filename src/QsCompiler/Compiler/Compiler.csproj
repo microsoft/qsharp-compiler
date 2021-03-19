@@ -41,7 +41,7 @@
     <Compile Update="Templates\QirDriverCpp.cs">
       <DesignTime>False</DesignTime>
       <AutoGen>True</AutoGen>
-      <DependentUpon>Templates\QirDriverCpp.tt</DependentUpon>
+      <DependentUpon>QirDriverCpp.tt</DependentUpon>
     </Compile>
   </ItemGroup>
 </Project>
