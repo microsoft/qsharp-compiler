@@ -240,10 +240,22 @@
     <Content Include="TestCases\QirTests\TestResults.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestShortCircuiting.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestShortCircuiting.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestScoping.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestScoping.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestTargeting.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestTargeting.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestStrings.ll">
@@ -474,6 +486,7 @@
     <Compile Include="CompilationLoaderTests.fs" />
     <Compile Include="CompilationTrackerTests.fs" />
     <Compile Include="QirTests.fs" />
+    <Compile Include="EntryPointSchemaTests.fs" />
 </ItemGroup>
 
   <ItemGroup>

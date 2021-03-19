@@ -4,33 +4,33 @@ entry:
   %1 = bitcast %Tuple* %0 to { %Callable*, i64 }*
   %2 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %1, i32 0, i32 0
   %3 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %1, i32 0, i32 1
-  %4 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop, [2 x void (%Tuple*, i64)*]* null, %Tuple* null)
+  %4 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   store %Callable* %4, %Callable** %2, align 8
   store i64 1, i64* %3, align 4
-  %qop = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, [2 x void (%Tuple*, i64)*]* @MemoryManagement__1, %Tuple* %0)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %qop, i64 1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %qop, i64 1)
+  %qop = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, [2 x void (%Tuple*, i32)*]* @MemoryManagement__1, %Tuple* %0)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %qop, i32 1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %qop, i32 1)
   %adj_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %adj_qop, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %adj_qop, i32 1)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %adj_qop)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %adj_qop, i64 1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_qop, i64 1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %adj_qop, i32 1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_qop, i32 1)
   %ctl_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %ctl_qop, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %ctl_qop, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %ctl_qop)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %ctl_qop, i64 1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_qop, i64 1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %ctl_qop, i32 1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_qop, i32 1)
   %adj_ctl_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %adj_ctl_qop, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %adj_ctl_qop, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %adj_ctl_qop)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %adj_ctl_qop)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %adj_ctl_qop, i64 1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_ctl_qop, i64 1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %adj_ctl_qop, i32 1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_ctl_qop, i32 1)
   %ctl_ctl_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %ctl_qop, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %ctl_ctl_qop, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %ctl_ctl_qop, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %ctl_ctl_qop)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %ctl_ctl_qop, i64 1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_ctl_qop, i64 1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %ctl_ctl_qop, i32 1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_ctl_qop, i32 1)
   %error_code = alloca i64, align 8
   store i64 0, i64* %error_code, align 4
   %q1 = call %Qubit* @__quantum__rt__qubit_allocate()
@@ -42,7 +42,7 @@ entry:
   store %Qubit* %q1, %Qubit** %7, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %qop, %Tuple* %5, %Tuple* null)
   %8 = call %Result* @__quantum__qis__mz(%Qubit* %q1)
-  %9 = load %Result*, %Result** @ResultOne, align 8
+  %9 = call %Result* @__quantum__rt__result_get_one()
   %10 = call i1 @__quantum__rt__result_equal(%Result* %8, %Result* %9)
   %11 = xor i1 %10, true
   br i1 %11, label %then0__1, label %else__1
@@ -58,7 +58,7 @@ else__1:                                          ; preds = %entry
   store %Qubit* %q2, %Qubit** %14, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %adj_qop, %Tuple* %12, %Tuple* null)
   %15 = call %Result* @__quantum__qis__mz(%Qubit* %q2)
-  %16 = load %Result*, %Result** @ResultOne, align 8
+  %16 = call %Result* @__quantum__rt__result_get_one()
   %17 = call i1 @__quantum__rt__result_equal(%Result* %15, %Result* %16)
   %18 = xor i1 %17, true
   br i1 %18, label %then0__2, label %else__2
@@ -80,7 +80,7 @@ else__2:                                          ; preds = %else__1
   store %Qubit* %q3, %Qubit** %22, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %ctl_qop, %Tuple* %19, %Tuple* null)
   %26 = call %Result* @__quantum__qis__mz(%Qubit* %q3)
-  %27 = load %Result*, %Result** @ResultOne, align 8
+  %27 = call %Result* @__quantum__rt__result_get_one()
   %28 = call i1 @__quantum__rt__result_equal(%Result* %26, %Result* %27)
   %29 = xor i1 %28, true
   br i1 %29, label %then0__3, label %else__3
@@ -102,7 +102,7 @@ else__3:                                          ; preds = %else__2
   store %Qubit* %q3, %Qubit** %33, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %adj_ctl_qop, %Tuple* %30, %Tuple* null)
   %37 = call %Result* @__quantum__qis__mz(%Qubit* %q3)
-  %38 = load %Result*, %Result** @ResultZero, align 8
+  %38 = call %Result* @__quantum__rt__result_get_zero()
   %39 = call i1 @__quantum__rt__result_equal(%Result* %37, %Result* %38)
   %40 = xor i1 %39, true
   br i1 %40, label %then0__4, label %else__4
@@ -134,7 +134,7 @@ else__4:                                          ; preds = %else__3
   store { %Array*, %Qubit* }* %49, { %Array*, %Qubit* }** %44, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %ctl_ctl_qop, %Tuple* %41, %Tuple* null)
   %55 = call %Result* @__quantum__qis__mz(%Qubit* %q3)
-  %56 = load %Result*, %Result** @ResultOne, align 8
+  %56 = call %Result* @__quantum__rt__result_get_one()
   %57 = call i1 @__quantum__rt__result_equal(%Result* %55, %Result* %56)
   %58 = xor i1 %57, true
   br i1 %58, label %then0__5, label %else__5
@@ -145,7 +145,7 @@ then0__5:                                         ; preds = %else__4
 
 else__5:                                          ; preds = %else__4
   %59 = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %59, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %59, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %59)
   %60 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
   %61 = bitcast %Tuple* %60 to { %Array*, %Qubit* }*
@@ -162,7 +162,7 @@ else__5:                                          ; preds = %else__4
   store %Qubit* %q3, %Qubit** %63, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %59, %Tuple* %60, %Tuple* null)
   %69 = call %Result* @__quantum__qis__mz(%Qubit* %q3)
-  %70 = load %Result*, %Result** @ResultZero, align 8
+  %70 = call %Result* @__quantum__rt__result_get_zero()
   %71 = call i1 @__quantum__rt__result_equal(%Result* %69, %Result* %70)
   %72 = xor i1 %71, true
   br i1 %72, label %then0__6, label %else__6
@@ -174,7 +174,7 @@ then0__6:                                         ; preds = %else__5
 else__6:                                          ; preds = %else__5
   %q4 = call %Qubit* @__quantum__rt__qubit_allocate()
   %73 = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %73, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %73, i32 1)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %73)
   %74 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64))
   %75 = bitcast %Tuple* %74 to { %Qubit* }*
@@ -182,7 +182,7 @@ else__6:                                          ; preds = %else__5
   store %Qubit* %q3, %Qubit** %76, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %73, %Tuple* %74, %Tuple* null)
   %77 = call %Callable* @__quantum__rt__callable_copy(%Callable* %ctl_ctl_qop, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %77, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %77, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %77)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %77)
   %78 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
@@ -217,7 +217,7 @@ else__6:                                          ; preds = %else__5
   store { %Array*, { %Array*, %Qubit* }* }* %86, { %Array*, { %Array*, %Qubit* }* }** %81, align 8
   call void @__quantum__rt__callable_invoke(%Callable* %77, %Tuple* %78, %Tuple* null)
   %99 = call %Result* @__quantum__qis__mz(%Qubit* %q4)
-  %100 = load %Result*, %Result** @ResultOne, align 8
+  %100 = call %Result* @__quantum__rt__result_get_one()
   %101 = call i1 @__quantum__rt__result_equal(%Result* %99, %Result* %100)
   %102 = xor i1 %101, true
   br i1 %102, label %then0__7, label %continue__7
@@ -227,80 +227,80 @@ then0__7:                                         ; preds = %else__6
   br label %continue__7
 
 continue__7:                                      ; preds = %then0__7, %else__6
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %73, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %73, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %74, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %77, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %77, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %82, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %89, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %96, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %92, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %85, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %78, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %99, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %q4)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %73, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %73, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %74, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %77, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %77, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %82, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %89, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %96, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %92, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %85, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %78, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %99, i64 -1)
   br label %continue__6
 
 continue__6:                                      ; preds = %continue__7, %then0__6
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %59, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %59, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %64, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %60, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %69, i64 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %59, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %59, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %64, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %60, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %69, i32 -1)
   br label %continue__5
 
 continue__5:                                      ; preds = %continue__6, %then0__5
-  call void @__quantum__rt__array_update_reference_count(%Array* %45, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %52, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %41, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %55, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %45, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %52, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %41, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %55, i32 -1)
   br label %continue__4
 
 continue__4:                                      ; preds = %continue__5, %then0__4
-  call void @__quantum__rt__array_update_reference_count(%Array* %34, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %30, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %37, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %34, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %30, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %37, i32 -1)
   br label %continue__3
 
 continue__3:                                      ; preds = %continue__4, %then0__3
-  call void @__quantum__rt__array_update_reference_count(%Array* %23, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %26, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %23, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %26, i32 -1)
   br label %continue__2
 
 continue__2:                                      ; preds = %continue__3, %then0__2
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %15, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %15, i32 -1)
   br label %continue__1
 
 continue__1:                                      ; preds = %continue__2, %then0__1
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %8, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %q1)
   call void @__quantum__rt__qubit_release(%Qubit* %q2)
   call void @__quantum__rt__qubit_release(%Qubit* %q3)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %8, i64 -1)
   %103 = load i64, i64* %error_code, align 4
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %qop, i64 -1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %adj_qop, i64 -1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %adj_ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %ctl_ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %qop, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %adj_qop, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %adj_qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %adj_ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %adj_ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %ctl_ctl_qop, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %ctl_ctl_qop, i64 -1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %qop, i32 -1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %qop, i32 -1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %adj_qop, i32 -1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_qop, i32 -1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %ctl_qop, i32 -1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_qop, i32 -1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %adj_ctl_qop, i32 -1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_ctl_qop, i32 -1)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %ctl_ctl_qop, i32 -1)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_ctl_qop, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %qop, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %qop, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %adj_qop, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %adj_qop, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %ctl_qop, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %ctl_qop, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %adj_ctl_qop, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %adj_ctl_qop, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %ctl_ctl_qop, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %ctl_ctl_qop, i32 -1)
   ret i64 %103
 }
