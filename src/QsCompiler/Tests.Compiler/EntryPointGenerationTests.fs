@@ -25,4 +25,4 @@ type EntryPointGenerationTests(output: ITestOutputHelper) =
         QirDriverGeneration.GenerateQirDriverCpp(entryPointOperation, cppMs)
         let cppReader = new StreamReader(cppMs, Encoding.UTF8)
         let generatedCpp = cppReader.ReadToEnd()
-        Assert.Equal(expectedCpp, generatedCpp);
+        Assert.Equal(expectedCpp, generatedCpp)
