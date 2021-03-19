@@ -35,7 +35,39 @@ Before you can build the source code on this repository and start contributing t
 We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell.
 The script in particular generates the files that are needed for building based on the templates in this repository.
 
-The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). The command `dotnet build QsCompiler.sln` builds the Q# compiler and language server. 
+The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). Building the [QsCompiler.sln](./QsCompiler.sln) builds the Q# compiler and language server. To test your changes to the compiler, open the project file of a Q# executable project that uses the latest version of the [Microsoft.Quantum.Sdk](https://www.nuget.org/packages/Microsoft.Quantum.Sdk/) in a text editor. You can confirm the Sdk version that the project is using by looking at the first line in the project file. You may need to edit that line to update to the latest version, and adjust your project as needed. Confirm that the project is building correctly using that version by executing the command 
+```
+dotnet build MyProject.csproj
+```
+If your project builds successfully, edit the project file in the text editor to add the following project property, adjusting the path as needed:
+```
+  <PropertyGroup>
+    <QscExe>dotnet $(MSBuildThisFileDirectory)src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
+  </PropertyGroup>
+```
+To confirm that indeed the locally built compiler version is used, you can edit `Run<T>` in your local [Project.cs](./src/QsCompiler/CommandLineTool/Program.cs) file to include the following line:
+```csharp
+private static int Run<T>(Func<T, ConsoleLogger, int> compile, T options)
+where T : Options
+{
+    Console.WriteLine("Hi from your locally built compiler!");
+    ...
+```
+From the root of this repository, build the compiler by executing the two commands 
+```
+dotnet clean QsCompiler.sln
+dotnet build QsCompiler.sln -c Debug
+```
+Build the Q# project as usual by invoking the following two commands:
+```
+dotnet clean MyProject.csproj
+dotnet build MyProject.csproj -c Debug
+```
+In the build output you should now see the print statement inserted above.
+You can also execute the project that has now been built using your local source code version of the compiler by executing the command
+```
+dotnet run --project MyProject.csproj -c Debug
+```
 
 For instructions on how to build and debug the Visual Studio Code extension take a look at [this file](./src/VSCodeExtension/BUILDING.md).
 Building and debugging the Visual Studio extension requires Visual Studio 2019. Open [the corresponding solution](./VisualStudioExtension.sln) and set the [QSharpVsix project](./src/VisualStudioExtension/QSharpVsix/) as startup project, then launch and debug the extension as usual.
