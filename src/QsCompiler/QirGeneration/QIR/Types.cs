@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.QIR
 
             this.FunctionSignature = context.GetFunctionType(context.VoidType, this.Tuple, this.Tuple, this.Tuple);
             this.CallableTable = this.FunctionSignature.CreatePointerType().CreateArrayType(4);
-            this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, this.Int);
+            this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, context.Int32Type);
             this.CallableMemoryManagementTable = this.CaptureCountFunction.CreatePointerType().CreateArrayType(2);
         }
 

@@ -1560,8 +1560,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsResult)
                 {
-                    var pointer = this.SharedState.Constants.ResultZero;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, pointer);
+                    var getZero = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
+                    var constant = this.SharedState.CurrentBuilder.Call(getZero);
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsQubit)
@@ -1603,7 +1603,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsString)
                 {
                     var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Context.CreateConstant(0), this.SharedState.Types.DataArrayPointer.GetNullValue());
+                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue());
                     var built = this.SharedState.Values.From(value, type);
                     this.SharedState.ScopeMgr.RegisterValue(built);
                     return built;
@@ -1936,8 +1936,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnResultLiteral(QsResult r)
         {
-            var valuePtr = r.IsOne ? this.SharedState.Constants.ResultOne : this.SharedState.Constants.ResultZero;
-            var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, valuePtr);
+            var getResultLiteral = this.SharedState.GetOrCreateRuntimeFunction(
+                r.IsZero ? RuntimeLibrary.ResultGetZero : RuntimeLibrary.ResultGetOne);
+            var constant = this.SharedState.CurrentBuilder.Call(getResultLiteral);
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.From(constant, exType);
             this.SharedState.ValueStack.Push(value);
@@ -2025,7 +2026,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         this.SharedState.Types.DataArrayPointer);
 
                 var createString = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                return this.SharedState.CurrentBuilder.Call(createString, this.SharedState.Context.CreateConstant(0), zeroLengthString);
+                return this.SharedState.CurrentBuilder.Call(createString, zeroLengthString);
             }
 
             // Creates a string value that needs to be queued for unreferencing.
@@ -2043,7 +2044,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (ty.IsString)
                 {
                     var addReference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                    var countChange = this.SharedState.Context.CreateConstant(1L);
+                    var countChange = this.SharedState.Context.CreateConstant(1);
                     var value = this.SharedState.EvaluateSubexpression(ex).Value;
                     this.SharedState.CurrentBuilder.Call(addReference, value, countChange);
                     return value;
@@ -2126,7 +2127,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function StringConcatenate creates a new value with reference count 1.
                 var concatenate = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
                 var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                var countChange = this.SharedState.Context.CreateConstant(-1L);
+                var countChange = this.SharedState.Context.CreateConstant(-1);
                 var app = this.SharedState.CurrentBuilder.Call(concatenate, curr, next);
                 this.SharedState.CurrentBuilder.Call(unreference, curr, countChange);
                 this.SharedState.CurrentBuilder.Call(unreference, next, countChange);
