@@ -421,7 +421,7 @@ module SymbolResolution =
         |> ignore
 
         // TODO: Warnings for unused type parameters?
-        [||]
+        Array.empty
 
     /// <summary>
     /// Helper function for ResolveCallableSignature that resolves the given argument tuple
