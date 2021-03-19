@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
+namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 
 open System
 open System.Collections.Generic
@@ -11,6 +11,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
@@ -18,79 +19,6 @@ open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
-
-/// A type constraint is a set of types satisfying some property.
-type internal Constraint =
-    /// An adjointable operation.
-    | Adjointable
-
-    /// <summary>
-    /// A callable from <paramref name="input"/> to <paramref name="output"/>.
-    /// </summary>
-    | Callable of input: ResolvedType * output: ResolvedType
-
-    /// <summary>
-    /// A type that can be used in an operation that requires auto-generated specializations for the given
-    /// <paramref name="functors"/>.
-    /// </summary>
-    | CanGenerateFunctors of functors: QsFunctor Set
-
-    /// <summary>
-    /// A controllable operation that has the given <paramref name="controlled"/> type after the controlled functor is
-    /// applied.
-    /// </summary>
-    | Controllable of controlled: ResolvedType
-
-    /// A type that supports equality comparisons.
-    | Equatable
-
-    /// <summary>
-    /// A callable that can be partially applied such that, given the remaining inputs as an argument of type
-    /// <paramref name="missing"/>, it will yield an output of type <paramref name="result"/>.
-    /// </summary>
-    | HasPartialApplication of missing: ResolvedType * result: ResolvedType
-
-    /// <summary>
-    /// A type that can be accessed by an index of type <paramref name="index"/>, yielding an item of type
-    /// <paramref name="item"/>.
-    /// </summary>
-    | Indexed of index: ResolvedType * item: ResolvedType
-
-    /// A type that represents an integer.
-    | Integral
-
-    /// <summary>
-    /// A type that can be iterated over, yielding items of type <paramref name="item"/>.
-    /// </summary>
-    | Iterable of item: ResolvedType
-
-    /// A type that represents a number.
-    | Numeric
-
-    /// A type with the associative semigroup operator +.
-    | Semigroup
-
-    /// <summary>
-    /// A wrapped type that can be unwrapped to yield an item of type <paramref name="item"/>.
-    /// </summary>
-    | Wrapped of item: ResolvedType
-
-module internal Constraint =
-    /// The list of types contained in a constraint.
-    let types =
-        function
-        | Adjointable -> []
-        | Callable (input, output) -> [ input; output ]
-        | CanGenerateFunctors _ -> []
-        | Controllable controlled -> [ controlled ]
-        | Equatable -> []
-        | HasPartialApplication (missing, result) -> [ missing; result ]
-        | Indexed (index, item) -> [ index; item ]
-        | Integral -> []
-        | Iterable item -> [ item ]
-        | Numeric -> []
-        | Semigroup -> []
-        | Wrapped item -> [ item ]
 
 /// A placeholder type variable.
 type private Variable =
@@ -514,7 +442,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         match typeConstraint with
         | _ when resolvedType.Resolution = InvalidType -> []
-        | Adjointable ->
+        | Constraint.Adjointable ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, info) when hasFunctor Adjoint info -> []
             | _ -> [ QsCompilerDiagnostic.Error (ErrorCode.InvalidAdjointApplication, []) range ]
@@ -543,7 +471,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     then QsCompilerDiagnostic.Error error range
                 ]
             | _ -> []
-        | Controllable controlled ->
+        | Constraint.Controllable controlled ->
             let error = QsCompilerDiagnostic.Error (ErrorCode.InvalidControlledApplication, []) range
 
             match resolvedType.Resolution with

@@ -7,6 +7,7 @@ namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.SymbolManagement
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open System
 
