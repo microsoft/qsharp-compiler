@@ -1,34 +1,34 @@
 define { double, %String* }* @Microsoft__Quantum__Testing__QIR__TestNestedLoops__body() {
 entry:
-  %name = call %String* @__quantum__rt__string_create(i32 0, i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0))
-  %0 = call %String* @__quantum__rt__string_create(i32 0, i8* null)
+  %name = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* null)
   %1 = call { double, %String* }* @Microsoft__Quantum__Testing__QIR__Energy__body(double 0.000000e+00, %String* %0)
   %res = alloca { double, %String* }*, align 8
   store { double, %String* }* %1, { double, %String* }** %res, align 8
   %2 = bitcast { double, %String* }* %1 to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i32 1)
   %3 = getelementptr inbounds { double, %String* }, { double, %String* }* %1, i32 0, i32 1
   %4 = load %String*, %String** %3, align 8
-  call void @__quantum__rt__string_update_reference_count(%String* %4, i64 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %4, i32 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i32 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %2, i32 -1)
   %5 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %2, i1 false)
   %6 = icmp ne %Tuple* %2, %5
   %7 = bitcast %Tuple* %5 to { double, %String* }*
   %8 = getelementptr inbounds { double, %String* }, { double, %String* }* %7, i32 0, i32 1
-  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 1)
+  call void @__quantum__rt__string_update_reference_count(%String* %name, i32 1)
   %9 = load %String*, %String** %8, align 8
   br i1 %6, label %condContinue__1, label %condFalse__1
 
 condFalse__1:                                     ; preds = %entry
-  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %9, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %name, i32 1)
+  call void @__quantum__rt__string_update_reference_count(%String* %9, i32 -1)
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %entry
   store %String* %name, %String** %8, align 8
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i32 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i32 1)
   store { double, %String* }* %7, { double, %String* }** %res, align 8
   %energy = alloca double, align 8
   store double 0.000000e+00, double* %energy, align 8
@@ -55,17 +55,17 @@ exit__1:                                          ; preds = %header__1
   store double %17, double* %16, align 8
   %18 = getelementptr inbounds { double, %String* }, { double, %String* }* %15, i32 0, i32 1
   %19 = load %String*, %String** %18, align 8
-  call void @__quantum__rt__string_update_reference_count(%String* %19, i64 1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %0, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %4, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %9, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %name, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %19, i32 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %4, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %9, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i32 -1)
   ret { double, %String* }* %15
 
 preheader__1:                                     ; preds = %body__1
