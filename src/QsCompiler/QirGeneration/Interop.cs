@@ -220,20 +220,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsString)
                 {
                     var createString = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var argValue = this.sharedState.CurrentBuilder.Call(createString, this.sharedState.Context.CreateConstant(0), givenValue);
+                    var argValue = this.sharedState.CurrentBuilder.Call(createString, givenValue);
                     var value = this.sharedState.Values.From(argValue, type);
                     this.sharedState.ScopeMgr.RegisterValue(value);
                     return value;
                 }
                 else if (type.Resolution.IsResult)
                 {
-                    var zero = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Result, this.sharedState.Constants.ResultZero);
-                    var one = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Result, this.sharedState.Constants.ResultOne);
+                    var getZero = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
+                    var getOne = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetOne);
                     var cond = this.sharedState.CurrentBuilder.Compare(
                         IntPredicate.Equal,
                         givenValue,
                         this.sharedState.Context.CreateConstant(givenValue.NativeType, 0u, false));
-                    var argValue = this.sharedState.CurrentBuilder.Select(cond, zero, one);
+                    var argValue = this.sharedState.CurrentBuilder.Select(
+                        cond,
+                        this.sharedState.CurrentBuilder.Call(getZero),
+                        this.sharedState.CurrentBuilder.Call(getOne));
                     return this.sharedState.Values.From(argValue, type);
                 }
                 else if (type.Resolution.IsRange)
@@ -394,13 +397,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (res.QSharpType.Resolution.IsResult)
             {
-                var zero = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Result, this.sharedState.Constants.ResultZero);
+                var getZero = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
                 var resType = this.MapToInteropType(this.sharedState.Types.Result)!;
                 var zeroValue = this.sharedState.Context.CreateConstant(resType, 0u, false);
                 var oneValue = this.sharedState.Context.CreateConstant(resType, ~0u, false);
 
                 var equals = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual);
-                var cond = this.sharedState.CurrentBuilder.Call(equals, res.Value, zero);
+                var cond = this.sharedState.CurrentBuilder.Call(equals, res.Value, this.sharedState.CurrentBuilder.Call(getZero));
                 return this.sharedState.CurrentBuilder.Select(cond, zeroValue, oneValue);
             }
             else if (res.QSharpType.Resolution.IsRange)

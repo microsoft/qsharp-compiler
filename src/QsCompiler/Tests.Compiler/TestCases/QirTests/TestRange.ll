@@ -32,9 +32,9 @@ entry:
   store i64 12, i64* %16, align 4
   store i64 14, i64* %18, align 4
   store i64 16, i64* %20, align 4
-  call void @__quantum__rt__array_update_alias_count(%Array* %a, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
   %b = call %Array* @__quantum__rt__array_slice_1d(%Array* %a, %Range %x, i1 false)
-  call void @__quantum__rt__array_update_alias_count(%Array* %b, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %b, i32 1)
   %21 = load %Range, %Range* @EmptyRange, align 4
   %22 = insertvalue %Range %21, i64 0, 0
   %23 = insertvalue %Range %22, i64 1, 1
@@ -63,9 +63,9 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__array_update_alias_count(%Array* %a, i64 -1)
-  call void @__quantum__rt__array_update_alias_count(%Array* %b, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %a, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %b, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %b, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %a, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %b, i32 -1)
   ret %Range %x
 }
