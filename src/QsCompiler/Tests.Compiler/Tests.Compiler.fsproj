@@ -17,10 +17,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="EntryPointGenerationTests.fs" />
     <Compile Include="TestUtils\TestUtils.fs" />
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
+    <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.cpp">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\QirCore.qs">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

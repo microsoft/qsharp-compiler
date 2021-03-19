@@ -23,5 +23,13 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
+    <PackageReference Include="System.CodeDom" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Templates\QirDriverCpp.tt">
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+      <LastGenOutput>QirDriverCpp.cs</LastGenOutput>
+    </None>
   </ItemGroup>
 </Project>
