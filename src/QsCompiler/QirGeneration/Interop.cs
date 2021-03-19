@@ -134,7 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Assuming the given parameters are defined by flattening the given argument tuple and stripping
         /// all values of type Unit, constructs the argument(s) to the QIR function that matches the argument tuple.
         /// The arguments of the current function are assumed to be given as interop friendly types
-        /// defined by <see cref="MapToInteropType"/>.
+        /// defined by <see cref="MapToInteropType(ITypeRef)"/>.
         /// This method generates suitable calls to the QIR runtime functions and other necessary
         /// conversions and casts to construct the arguments for the QIR function;
         /// i.e. this method implements the mapping "interop-friendly function arguments -> QIR function arguments".

@@ -142,7 +142,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="scope">The Q# scope to generate QIR for</param>
         /// <param name="continuation">The block where execution should continue after this scope,
         /// assuming that the scope doesn't end with a return statement</param>
-        /// <return>True if the <param name="continuation"> block is used, False otherwise.</return>
+        /// <return>True if the <paramref name="continuation"/> block is used, False otherwise.</return>
         private bool ProcessBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
         {
             this.SharedState.ScopeMgr.OpenScope();

@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// The module used for QIR generation.
-        /// Generated functions to facilitate interoperability are created in a separate <see cref="InteropModule"/>.
+        /// Generated functions to facilitate interoperability are created via <see cref="Interop"/>.
         /// </summary>
         /// <inheritdoc cref="BitcodeModule"/>
         public readonly BitcodeModule Module;
