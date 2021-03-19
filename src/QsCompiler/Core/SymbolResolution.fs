@@ -7,10 +7,10 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
+
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
@@ -418,6 +418,10 @@ module SymbolResolution =
         if unresolvableReturnType
         then returnTypeErr :: excessTypeParamWarn |> List.toArray
         else excessTypeParamWarn |> List.toArray
+        |> ignore
+
+        // TODO: Warnings for unused type parameters?
+        [||]
 
     /// <summary>
     /// Helper function for ResolveCallableSignature that resolves the given argument tuple
