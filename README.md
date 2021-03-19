@@ -12,7 +12,7 @@ The Q# [command line compiler](./src/QsCompiler/CommandLineTool) is included as 
 
 - **[QsCompiler](./src/QsCompiler/)**: Q# compiler including the command line tool
 - **[QsCompiler/LanguageServer](./src/QsCompiler/LanguageServer/)**: Q# language server
-- **[Microsoft.Quantum.Sdk](./src/QuantumSdk)**: Sdk for building Q# projects and support for compiler extensions
+- **[Microsoft.Quantum.Sdk](./src/QuantumSdk)**: Sdk for building Q# projects and support for [compiler extensions](https://github.com/microsoft/qsharp-compiler/tree/main/examples/CompilerExtensions)
 - **[VSCodeExtension](./src/VSCodeExtension/)**: Visual Studio Code extension
 - **[VisualStudioExtension](./src/VisualStudioExtension/)**: Visual Studio extension
 

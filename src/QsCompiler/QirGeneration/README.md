@@ -13,7 +13,7 @@ To enable QIR emission, open the project file in a text editor and add the follo
 ```
 If the project builds successfully, the .ll file containing QIR can be found in `qir` folder in the project folder. Alternatively, the folder path can be specified via the `QirOutputPath` project property. The project file should look similar to this:
 ```
-<Project Sdk="Microsoft.Quantum.Sdk/0.15.2102128704-alpha">
+<Project Sdk="Microsoft.Quantum.Sdk/0.15.210324373-alpha">
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
