@@ -240,7 +240,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal bool TryRemoveValue(IValue value) =>
                 TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, value));
 
-            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, bool, Scope[])" />
+            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, bool, Scope[])" />
             internal void ExecutePendingCalls(bool applyReferences = true) =>
                 ExecutePendingCalls(this.parent, applyReferences, this);
 

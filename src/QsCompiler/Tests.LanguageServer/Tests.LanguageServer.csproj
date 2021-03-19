@@ -6,7 +6,7 @@
     <IsPackable>false</IsPackable>
     <AssemblyName>Tests.Microsoft.Quantum.QsLanguageServer</AssemblyName>
     <OutputType>Library</OutputType>
-    <NoWarn>NU1701</NoWarn>
+    <NoWarn>$(NoWarn);NU1701</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
