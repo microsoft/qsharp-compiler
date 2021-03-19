@@ -71,9 +71,9 @@ dotnet run --project MyProject.csproj -c Debug
 
 If you edit the [Microsoft.Quantum.Sdk](./src/QuantumSdk) as part of your changes, you will need to pack it using [NuGet 5.8.1](https://docs.microsoft.com/en-us/nuget/release-notes/nuget-5.8). Download it and use it to pack the Sdk by executing the following commands from the root of this repository:
 ```
-dotnet publish src/QuantumSdk/Tools/Tools.sln -c Release
-dotnet publish src/QsCompiler/CommandLineTool/CommandLineTool.csproj -c Release
-nuget.exe pack src/QuantumSdk/QuantumSdk.nuspec -Version 1.0.0 -Properties Configuration=Release
+dotnet publish src/QuantumSdk/Tools/Tools.sln -c Debug
+dotnet publish src/QsCompiler/CommandLineTool/CommandLineTool.csproj -c Debug
+nuget.exe pack src/QuantumSdk/QuantumSdk.nuspec -Version 1.0.0 -Properties Configuration=Debug
 ```
 Move the created .nupkg file into your [local NuGet folder](https://docs.microsoft.com/en-us/nuget/hosting-packages/local-feeds). You can now use the package to build any Q# project by opening the project file in a text editor, and editing the Sdk version number in the first line to be
 ```
