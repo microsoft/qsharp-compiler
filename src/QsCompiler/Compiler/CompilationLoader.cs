@@ -1176,7 +1176,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="fileId"/> is incompatible with an id assigned by the Q# compiler.</exception>
         /// <exception>Generates the corresponding exception if the file cannot be created.</exception>
-        public static string GeneratedFile(string fileId, string outputFolder, string fileEnding, string? content = null, bool overwrite = true)
+        public static string GeneratedFile(string fileId, string outputFolder, string fileEnding, string? content = null)
         {
             if (!CompilationUnitManager.TryGetUri(fileId, out var file))
             {
@@ -1193,24 +1193,7 @@ namespace Microsoft.Quantum.QsCompiler
             var fileDir = filePath.StartsWith(outputUri.LocalPath)
                 ? Path.GetDirectoryName(filePath)
                 : Path.GetDirectoryName(outputUri.LocalPath);
-            var withOutEnding = Path.GetFileNameWithoutExtension(filePath);
-            var targetFile = Path.GetFullPath(Path.Combine(fileDir, withOutEnding + fileEnding));
-
-            if (!overwrite && File.Exists(targetFile))
-            {
-                var enumeration = 1;
-                var pos = fileEnding.LastIndexOf('.');
-                var (beforeEnumeration, afterEnumeration) = pos == -1
-                    ? ("", fileEnding)
-                    : (fileEnding.Substring(0, pos), fileEnding.Substring(pos));
-                do
-                {
-                    var enumeratedEnding = beforeEnumeration + enumeration.ToString() + afterEnumeration;
-                    targetFile = Path.GetFullPath(Path.Combine(fileDir, withOutEnding + enumeratedEnding));
-                    enumeration++;
-                }
-                while (File.Exists(targetFile) && enumeration < 100);
-            }
+            var targetFile = Path.GetFullPath(Path.Combine(fileDir, Path.GetFileNameWithoutExtension(filePath) + fileEnding));
 
             if (content == null)
             {
