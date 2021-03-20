@@ -664,9 +664,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         internal static void UpdateScopeTacking(this FileContentManager file, TextDocumentContentChangeEvent? change)
         {
-            /// <summary>
-            /// Replaces the lines in the range [start, end] with those for the given text.
-            /// </summary>
+            // Replaces the lines in the range [start, end] with those for the given text.
             void ComputeUpdate(int start, int end, string text)
             {
                 QsCompilerError.Verify(start >= 0 && end >= start && end < file.NrLines(), "invalid range for update");
