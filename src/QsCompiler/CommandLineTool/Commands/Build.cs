@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 "qir",
                 Required = false,
                 SetName = CodeMode,
-                HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
+                HelpText = "Destination folder for the emitted QIR; only executable projects can be compiled into QIR.")]
             public string QirOutputFolder { get; set; }
 
             [Option(
