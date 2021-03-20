@@ -34,10 +34,8 @@
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
   <Target Name="QSharpClean" BeforeTargets="Clean">
     <ItemGroup>
-      <_FilesToClean Include="$(GeneratedFilesOutputPath)**/*.g.cs" />
-      <_FilesToClean Include="$(GeneratedFilesOutputPath)**/*.g.EntryPoint.cs" />
-      <_FilesToClean Include="$(GeneratedFilesOutputPath)**/EntryPoint.g.Main.cs" />
-      <Compile Remove="@(_FilesToClean)" />
+      <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
+      <Compile Remove="$(_FilesToClean)**/*.cs" />
     </ItemGroup>
     <Delete Files="$(GeneratedFilesOutputPath)**/*.*" />
   </Target>
@@ -135,9 +133,7 @@
           DependsOnTargets="PrepareQSharpCompile"
           BeforeTargets="PrepareCSharpCompileAfterCSharpGeneration">
     <ItemGroup>
-      <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/*.g.cs" />
-      <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/*.g.EntryPoint.cs" />
-      <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/EntryPoint.g.Main.cs" />
+      <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/*.cs" />
       <Compile Remove="@(_GeneratedFilesToRemove)" />
     </ItemGroup>
     <Delete Files="@(_GeneratedFilesToRemove)" />

@@ -9,9 +9,11 @@ namespace Microsoft.Quantum.QIR
     public static class RuntimeLibrary
     {
         // Q# specific helpers
-        internal const string HeapAllocate = "heap_alloc";
+        internal const string HeapAllocate = "memory_allocate";
 
         // result functions
+        public const string ResultGetZero = "result_get_zero";
+        public const string ResultGetOne = "result_get_one";
         public const string ResultUpdateReferenceCount = "result_update_reference_count";
         public const string ResultEqual = "result_equal";
 
@@ -36,6 +38,8 @@ namespace Microsoft.Quantum.QIR
         // bigint functions
         public const string BigIntCreateI64 = "bigint_create_i64";
         public const string BigIntCreateArray = "bigint_create_array";
+        public const string BigIntGetData = "bigint_get_data";
+        public const string BigIntGetLength = "bigint_get_length"; // length in bytes, like other length function(s)
         public const string BigIntUpdateReferenceCount = "bigint_update_reference_count";
         public const string BigIntNegate = "bigint_negate";
         public const string BigIntAdd = "bigint_add";
@@ -78,7 +82,8 @@ namespace Microsoft.Quantum.QIR
         public const string CallableMakeControlled = "callable_make_controlled";
         public const string CallableUpdateAliasCount = "callable_update_alias_count";
         public const string CallableUpdateReferenceCount = "callable_update_reference_count";
-        public const string CallableMemoryManagement = "callable_memory_management";
+        public const string CaptureUpdateAliasCount = "capture_update_alias_count";
+        public const string CaptureUpdateReferenceCount = "capture_update_reference_count";
 
         // qubit functions
         public const string QubitAllocate = "qubit_allocate";

@@ -1,23 +1,23 @@
 define i64 @Microsoft__Quantum__Testing__QIR__TestCaching__body(%Array* %arr) {
 entry:
-  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 1)
   %q = call %Qubit* @__quantum__rt__qubit_allocate()
   call void @__quantum__qis__h__body(%Qubit* %q)
   %0 = call %Result* @__quantum__qis__mz(%Qubit* %q)
-  %1 = load %Result*, %Result** @ResultZero, align 8
+  %1 = call %Result* @__quantum__rt__result_get_zero()
   %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
   br i1 %2, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %entry
   %3 = call i64 @__quantum__rt__array_get_size_1d(%Array* %arr)
+  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %0, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %q)
-  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i64 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %0, i64 -1)
   ret i64 %3
 
 continue__1:                                      ; preds = %entry
+  call void @__quantum__rt__result_update_reference_count(%Result* %0, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %q)
-  call void @__quantum__rt__result_update_reference_count(%Result* %0, i64 -1)
   %4 = call i64 @__quantum__rt__array_get_size_1d(%Array* %arr)
   %5 = icmp slt i64 %4, 10
   br i1 %5, label %condTrue__1, label %condFalse__1
@@ -27,16 +27,16 @@ condTrue__1:                                      ; preds = %continue__1
   br label %header__1
 
 condFalse__1:                                     ; preds = %continue__1
-  call void @__quantum__rt__array_update_reference_count(%Array* %arr, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %arr, i32 1)
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %exit__1
   %pad = phi %Array* [ %6, %exit__1 ], [ %arr, %condFalse__1 ]
-  call void @__quantum__rt__array_update_alias_count(%Array* %pad, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %pad, i32 1)
   %7 = call i64 @__quantum__rt__array_get_size_1d(%Array* %pad)
-  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i64 -1)
-  call void @__quantum__rt__array_update_alias_count(%Array* %pad, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %pad, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %pad, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %pad, i32 -1)
   ret i64 %7
 
 header__1:                                        ; preds = %exiting__1, %condTrue__1
