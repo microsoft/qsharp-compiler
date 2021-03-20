@@ -33,7 +33,7 @@ body__2:                                          ; preds = %header__2
   %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %7)
   %10 = bitcast i8* %9 to %Array**
   %11 = load %Array*, %Array** %10, align 8
-  call void @__quantum__rt__array_update_alias_count(%Array* %11, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %11, i32 1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
@@ -41,7 +41,7 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  call void @__quantum__rt__array_update_alias_count(%Array* %0, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %0, i32 1)
   br label %header__3
 
 header__3:                                        ; preds = %exiting__3, %exit__2
@@ -53,7 +53,7 @@ body__3:                                          ; preds = %header__3
   %15 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %13)
   %16 = bitcast i8* %15 to %Array**
   %17 = load %Array*, %Array** %16, align 8
-  call void @__quantum__rt__array_update_reference_count(%Array* %17, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %17, i32 1)
   br label %exiting__3
 
 exiting__3:                                       ; preds = %body__3
@@ -61,11 +61,11 @@ exiting__3:                                       ; preds = %body__3
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
-  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i32 1)
   br i1 %cond, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %exit__3
-  call void @__quantum__rt__array_update_alias_count(%Array* %0, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %0, i32 -1)
   %19 = call %Array* @__quantum__rt__array_copy(%Array* %0, i1 false)
   %20 = icmp ne %Array* %0, %19
   %21 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 3)
@@ -95,26 +95,26 @@ exiting__4:                                       ; preds = %body__4
 exit__4:                                          ; preds = %header__4
   %30 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %19, i64 0)
   %31 = bitcast i8* %30 to %Array**
-  call void @__quantum__rt__array_update_reference_count(%Array* %21, i64 1)
-  call void @__quantum__rt__array_update_alias_count(%Array* %21, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %21, i32 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %21, i32 1)
   %32 = load %Array*, %Array** %31, align 8
-  call void @__quantum__rt__array_update_alias_count(%Array* %32, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %32, i32 -1)
   br i1 %20, label %condContinue__1, label %condFalse__1
 
 condFalse__1:                                     ; preds = %exit__4
-  call void @__quantum__rt__array_update_reference_count(%Array* %21, i64 1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %32, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %21, i32 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %32, i32 -1)
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %exit__4
   store %Array* %21, %Array** %31, align 8
-  call void @__quantum__rt__array_update_reference_count(%Array* %19, i64 1)
-  call void @__quantum__rt__array_update_alias_count(%Array* %19, i64 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %19, i32 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %19, i32 1)
   store %Array* %19, %Array** %ops, align 8
-  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %21, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %32, i64 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %19, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %21, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %32, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %19, i32 -1)
   br label %continue__1
 
 header__5:                                        ; preds = %exiting__5, %continue__1
@@ -126,7 +126,7 @@ body__5:                                          ; preds = %header__5
   %35 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %22, i64 %33)
   %36 = bitcast i8* %35 to %Array**
   %37 = load %Array*, %Array** %36, align 8
-  call void @__quantum__rt__array_update_alias_count(%Array* %37, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %37, i32 -1)
   br label %exiting__5
 
 exiting__5:                                       ; preds = %body__5
@@ -134,7 +134,7 @@ exiting__5:                                       ; preds = %body__5
   br label %header__5
 
 exit__5:                                          ; preds = %header__5
-  call void @__quantum__rt__array_update_alias_count(%Array* %22, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %22, i32 -1)
   br label %header__6
 
 header__6:                                        ; preds = %exiting__6, %exit__5
@@ -146,7 +146,7 @@ body__6:                                          ; preds = %header__6
   %41 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %39)
   %42 = bitcast i8* %41 to %Array**
   %43 = load %Array*, %Array** %42, align 8
-  call void @__quantum__rt__array_update_reference_count(%Array* %43, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %43, i32 -1)
   br label %exiting__6
 
 exiting__6:                                       ; preds = %body__6
@@ -154,7 +154,7 @@ exiting__6:                                       ; preds = %body__6
   br label %header__6
 
 exit__6:                                          ; preds = %header__6
-  call void @__quantum__rt__array_update_reference_count(%Array* %0, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %0, i32 -1)
   %45 = sub i64 %23, 1
   br label %header__7
 
@@ -167,7 +167,7 @@ body__7:                                          ; preds = %header__7
   %48 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %22, i64 %46)
   %49 = bitcast i8* %48 to %Array**
   %50 = load %Array*, %Array** %49, align 8
-  call void @__quantum__rt__array_update_reference_count(%Array* %50, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %50, i32 -1)
   br label %exiting__7
 
 exiting__7:                                       ; preds = %body__7
@@ -175,6 +175,6 @@ exiting__7:                                       ; preds = %body__7
   br label %header__7
 
 exit__7:                                          ; preds = %header__7
-  call void @__quantum__rt__array_update_reference_count(%Array* %22, i64 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %22, i32 -1)
   ret void
 }

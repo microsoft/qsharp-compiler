@@ -805,6 +805,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Executes the given rewrite step on the current CompilationOutput if it is valid, and updates the given
         /// status accordingly. Sets the CompilationOutput to the transformed compilation if the status indicates
         /// success.
+        /// </summary>
         private QsCompilation? ExecuteAsAtomicTransformation(LoadedStep rewriteStep, ref Status status)
         {
             QsCompilation? transformed = null;

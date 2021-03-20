@@ -14,7 +14,7 @@ body__1:                                          ; preds = %header__1
   %5 = bitcast i8* %4 to { i64, i64 }**
   %6 = load { i64, i64 }*, { i64, i64 }** %5, align 8
   %7 = bitcast { i64, i64 }* %6 to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %7, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %7, i32 1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
@@ -22,7 +22,7 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__array_update_alias_count(%Array* %a, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
   %x = alloca i64, align 8
   store i64 0, i64* %x, align 4
   %y = alloca i64, align 8
@@ -40,7 +40,7 @@ body__2:                                          ; preds = %header__2
   %13 = bitcast i8* %12 to { i64, i64 }**
   %z = load { i64, i64 }*, { i64, i64 }** %13, align 8
   %14 = bitcast { i64, i64 }* %z to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 1)
   %15 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %z, i32 0, i32 0
   %j = load i64, i64* %15, align 4
   %16 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %z, i32 0, i32 1
@@ -51,7 +51,7 @@ body__2:                                          ; preds = %header__2
   %19 = load i64, i64* %y, align 4
   %20 = add i64 %19, %k
   store i64 %20, i64* %y, align 4
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 -1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
@@ -80,7 +80,7 @@ body__3:                                          ; preds = %header__3
   %32 = bitcast i8* %31 to { i64, i64 }**
   %33 = load { i64, i64 }*, { i64, i64 }** %32, align 8
   %34 = bitcast { i64, i64 }* %33 to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %34, i64 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %34, i32 -1)
   br label %exiting__3
 
 exiting__3:                                       ; preds = %body__3
@@ -88,6 +88,6 @@ exiting__3:                                       ; preds = %body__3
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
-  call void @__quantum__rt__array_update_alias_count(%Array* %a, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 -1)
   ret { i64, i64 }* %23
 }
