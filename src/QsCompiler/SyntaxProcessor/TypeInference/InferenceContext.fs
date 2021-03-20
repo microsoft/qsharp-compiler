@@ -287,7 +287,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, []) variable.Value.Source
         ]
 
-    member context.SetStatementPosition position = statementPosition <- position
+    member context.UseStatementPosition position = statementPosition <- position
 
     member internal context.Fresh source =
         let name = letters |> Seq.item variables.Count

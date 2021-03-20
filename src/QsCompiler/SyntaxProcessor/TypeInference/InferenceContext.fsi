@@ -19,8 +19,8 @@ type InferenceContext =
     /// Diagnostics for all type variables that are missing substitutions.
     member AmbiguousDiagnostics: QsCompilerDiagnostic list
 
-    /// Sets the position of the statement in which types are currently being inferred.
-    member SetStatementPosition: position:Position -> unit
+    /// Updates the position of the statement in which types are currently being inferred.
+    member UseStatementPosition: position:Position -> unit
 
     /// <summary>
     /// Creates a fresh type parameter originating from the given <paramref name="source"/> range.

@@ -595,7 +595,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             List<Diagnostic> diagnostics)
         {
             var statementPosition = node.Fragment.Range.Start;
-            context.Inference.SetStatementPosition(statementPosition);
+            context.Inference.UseStatementPosition(statementPosition);
 
             var location = new QsLocation(node.RelativePosition, node.Fragment.HeaderRange);
             var (statement, buildDiagnostics) = build(location, context);
