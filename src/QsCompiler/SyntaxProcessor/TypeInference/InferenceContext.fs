@@ -257,8 +257,6 @@ module private Inference =
 
 open Inference
 
-/// The inference context is an implementation of Hindley-Milner type inference. It is a source of fresh type parameters
-/// and can unify types containing them.
 type InferenceContext(symbolTracker: SymbolTracker) =
     let variables = Dictionary()
 
@@ -282,7 +280,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         diagnostics
 
-    /// Diagnostics for all type variables that are missing substitutions.
     member context.AmbiguousDiagnostics =
         [
             for variable in variables do
@@ -290,12 +287,8 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, []) variable.Value.Source
         ]
 
-    /// Sets the position of the statement in which types are currently being inferred.
     member context.SetStatementPosition position = statementPosition <- position
 
-    /// <summary>
-    /// Creates a fresh type parameter originating from the given <paramref name="source"/> range.
-    /// </summary>
     member internal context.Fresh source =
         let name = letters |> Seq.item variables.Count
 
@@ -317,16 +310,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         variables.Add(param, variable)
         TypeParameter param |> ResolvedType.create (Value source)
 
-    /// <summary>
-    /// Unifies the <paramref name="expected"/> type with the <paramref name="actual"/> type.
-    /// </summary>
     member internal context.Unify(expected, actual) =
         context.UnifyByOrdering(Supertype, TypeContext.create (context.Resolve expected) (context.Resolve actual))
         |> rememberErrors [ expected; actual ]
 
-    /// <summary>
-    /// The intersection of types <paramref name="left"/> and <paramref name="right"/>.
-    /// </summary>
     member internal context.Intersect(left, right) =
         context.UnifyByOrdering(Equal, TypeContext.create (context.Resolve left) (context.Resolve right))
         |> ignore
@@ -336,9 +323,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let intersection, diagnostics = TypeContext.create left right |> combine Supertype
         intersection, diagnostics |> rememberErrors [ left; right ]
 
-    /// <summary>
-    /// Constrains the given <paramref name="resolvedType"/> to satisfy the <paramref name="typeConstraint"/>.
-    /// </summary>
     member internal context.Constrain(resolvedType, typeConstraint) =
         let resolvedType = context.Resolve resolvedType
 
@@ -352,10 +336,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | _ -> context.ApplyConstraint(typeConstraint, resolvedType)
         |> rememberErrors (resolvedType :: Constraint.types typeConstraint)
 
-    /// <summary>
-    /// Replaces each placeholder type parameter in the given <paramref name="resolvedType"/> with its substitution if
-    /// one exists.
-    /// </summary>
     member internal context.Resolve resolvedType =
         let resolveWithRange type' =
             let type' = context.Resolve type'
@@ -568,9 +548,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | None -> []
 
 module InferenceContext =
-    /// <summary>
-    /// A syntax tree transformation that resolves types using the given inference <paramref name="context"/>.
-    /// </summary>
     [<CompiledName "Resolver">]
     let resolver (context: InferenceContext) =
         let types =

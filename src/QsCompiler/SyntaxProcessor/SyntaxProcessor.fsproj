@@ -14,7 +14,9 @@
     </Compile>
     <Compile Include="VerificationTools.fs" />
     <Compile Include="SymbolTracker.fs" />
+    <Compile Include="TypeInference\Constraint.fsi" />
     <Compile Include="TypeInference\Constraint.fs" />
+    <Compile Include="TypeInference\InferenceContext.fsi" />
     <Compile Include="TypeInference\InferenceContext.fs" />
     <Compile Include="ScopeContext.fs" />
     <Compile Include="CapabilityInference.fs" />
