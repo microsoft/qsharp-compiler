@@ -38,7 +38,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Diagnostic? Copy(this Diagnostic message)
         {
             Lsp.Position CopyPosition(Lsp.Position position) =>
-                new Lsp.Position(position.Line, position.Character);
+                position == null ? new Lsp.Position() : new Lsp.Position(position.Line, position.Character);
 
             Lsp.Range CopyRange(Lsp.Range range) =>
                 new Lsp.Range
