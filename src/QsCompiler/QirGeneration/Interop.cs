@@ -34,6 +34,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public static IrFunction GenerateWrapper(GenerationContext sharedState, string wrapperName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation) =>
             new Interop(sharedState).GenerateWrapper(wrapperName, argumentTuple, returnType, implementation);
 
+        /// <inheritdoc cref="GenerateEntryPoint(string, ArgumentTuple, ResolvedType, IrFunction)"/>
+        internal static IrFunction GenerateEntryPoint(GenerationContext sharedState, string entryPointName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation) =>
+            new Interop(sharedState).GenerateEntryPoint(entryPointName, argumentTuple, returnType, implementation);
+
         // private methods
 
         /// <summary>
@@ -447,20 +451,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="returnType">The return type of the callable that the wrapper should invoke.</param>
         /// <param name="implementation">The QIR function that implements the body of the function that should be invoked.</param>
         /// <returns>The created wrapper function or the implementation if no wrapper function has been created.</returns>
-        /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
         private IrFunction GenerateWrapper(string wrapperName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation)
         {
             var argItems = SyntaxGenerator.ExtractItems(argumentTuple)
                 .Where(sym => !sym.Type.Resolution.IsUnitType)
                 .ToArray();
 
-            ITypeRef[] wrapperArgsTypes = argItems
-                .Select(sym => this.MapToInteropType(sym.Type)!)
-                .ToArray();
             var wrapperReturnType = this.MapToInteropType(returnType);
             var wrapperSignature = this.sharedState.Context.GetFunctionType(
                 wrapperReturnType ?? this.sharedState.Context.VoidType,
-                wrapperArgsTypes);
+                argItems.Select(sym => this.MapToInteropType(sym.Type)!));
 
             if (wrapperSignature.Equals(implementation.Signature))
             {
@@ -498,6 +498,48 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 return wrapperFunc;
             }
+        }
+
+        /// <summary>
+        /// Generates an entry point function that calls into the corresponding QIR function,
+        /// invokes the runtime function <see cref="RuntimeLibrary.Message"/> with the result, and returns void.
+        /// The arguments for the entry point are the C-compatible representation for the given argument tuple,
+        /// see <seealso cref="ProcessArguments"/>.
+        /// </summary>
+        /// <param name="entryPointName">The name to give the created entry point function.</param>
+        /// <param name="argumentTuple">The argument tuple of the callable that the entry point should invoke.</param>
+        /// <param name="returnType">The return type of the callable that the entry point should invoke.</param>
+        /// <param name="implementation">The QIR function that implements the body of the function that should be invoked.</param>
+        /// <returns>The created entry point function.</returns>
+        private IrFunction GenerateEntryPoint(string entryPointName, ArgumentTuple argumentTuple, ResolvedType returnType, IrFunction implementation)
+        {
+            var argItems = SyntaxGenerator.ExtractItems(argumentTuple)
+                .Where(sym => !sym.Type.Resolution.IsUnitType)
+                .ToArray();
+
+            var entryPointSignature = this.sharedState.Context.GetFunctionType(
+                this.sharedState.Context.VoidType,
+                argItems.Select(sym => this.MapToInteropType(sym.Type)!));
+
+            var entryPointFunction = this.sharedState.Module.CreateFunction(entryPointName, entryPointSignature);
+            var argNames = argItems.Select(arg => arg.VariableName is QsLocalSymbol.ValidName name ? name.Item : null).ToArray();
+
+            this.sharedState.GenerateFunction(entryPointFunction, argNames, parameters =>
+            {
+                var argValueList = this.ProcessArguments(argumentTuple, parameters);
+                var evaluatedValue = this.sharedState.CurrentBuilder.Call(implementation, argValueList);
+                var result = this.sharedState.Values.From(evaluatedValue, returnType);
+                this.sharedState.ScopeMgr.RegisterValue(result);
+
+                // print the return value
+                var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
+                var outputStr = QirExpressionKindTransformation.CreateStringLiteral(this.sharedState, "{0}", result);
+                this.sharedState.CurrentBuilder.Call(message, outputStr.Value);
+
+                this.sharedState.AddReturn(this.sharedState.Values.Unit, true);
+            });
+
+            return entryPointFunction;
         }
     }
 }
