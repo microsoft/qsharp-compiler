@@ -2029,57 +2029,105 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.SharedState.CurrentBuilder.Call(createString, zeroLengthString);
             }
 
-            // Creates a string value that needs to be queued for unreferencing.
-            Value ExpressionToString(TypedExpression ex)
+            // Creates a new string with reference count 1 that needs to be queued for unreferencing
+            // and contains the concatenation of both values. Both both arguments are unreferenced.
+            Value DoAppend(Value? curr, Value next, bool unreferenceNext = true)
             {
-                // Creates a string value that needs to be queued for unreferencing.
-                Value SimpleToString(TypedExpression ex, string rtFuncName)
+                if (curr == null)
                 {
-                    var exValue = this.SharedState.EvaluateSubexpression(ex).Value;
-                    var createString = this.SharedState.GetOrCreateRuntimeFunction(rtFuncName);
-                    return this.SharedState.CurrentBuilder.Call(createString, exValue);
+                    return next;
                 }
 
-                var ty = ex.ResolvedType.Resolution;
-                if (ty.IsString)
+                // The runtime function StringConcatenate creates a new value with reference count 1.
+                var concatenate = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
+                var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
+                var countChange = this.SharedState.Context.CreateConstant(-1);
+                var app = this.SharedState.CurrentBuilder.Call(concatenate, curr, next);
+                this.SharedState.CurrentBuilder.Call(unreference, curr, countChange);
+                if (unreferenceNext)
+                {
+                    this.SharedState.CurrentBuilder.Call(unreference, next, countChange);
+                }
+                return app;
+            }
+
+            // Creates a string value that needs to be queued for unreferencing.
+            Value ExpressionToString(IValue evaluated)
+            {
+                void UpdateStringRefCount(Value str, int change)
                 {
                     var addReference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                    var countChange = this.SharedState.Context.CreateConstant(1);
-                    var value = this.SharedState.EvaluateSubexpression(ex).Value;
-                    this.SharedState.CurrentBuilder.Call(addReference, value, countChange);
-                    return value;
+                    var countChange = this.SharedState.Context.CreateConstant(change);
+                    this.SharedState.CurrentBuilder.Call(addReference, str, countChange);
+                }
+
+                // Creates a string value that needs to be queued for unreferencing.
+                Value SimpleToString(string rtFuncName)
+                {
+                    var createString = this.SharedState.GetOrCreateRuntimeFunction(rtFuncName);
+                    return this.SharedState.CurrentBuilder.Call(createString, evaluated.Value);
+                }
+
+                Value TupleToString(TupleValue tuple)
+                {
+                    var str = CreateConstantString($"{tuple.TypeName}(");
+                    var tupleElements = tuple.GetTupleElements();
+                    Value? comma = null;
+
+                    for (var idx = 0; idx < tupleElements.Length; ++idx)
+                    {
+                        str = DoAppend(str, ExpressionToString(tupleElements[idx]));
+                        var isLast = idx == tupleElements.Length - 1;
+                        var next = isLast
+                            ? CreateConstantString(")")
+                            : comma ?? CreateConstantString(",");
+                        str = DoAppend(str, next, unreferenceNext: isLast);
+                    }
+
+                    if (comma != null)
+                    {
+                        UpdateStringRefCount(comma, -1);
+                    }
+                    return str;
+                }
+
+                var ty = evaluated.QSharpType.Resolution;
+                if (ty.IsString)
+                {
+                    UpdateStringRefCount(evaluated.Value, 1);
+                    return evaluated.Value;
                 }
                 else if (ty.IsBigInt)
                 {
-                    return SimpleToString(ex, RuntimeLibrary.BigIntToString);
+                    return SimpleToString(RuntimeLibrary.BigIntToString);
                 }
                 else if (ty.IsBool)
                 {
-                    return SimpleToString(ex, RuntimeLibrary.BoolToString);
+                    return SimpleToString(RuntimeLibrary.BoolToString);
                 }
                 else if (ty.IsInt)
                 {
-                    return SimpleToString(ex, RuntimeLibrary.IntToString);
+                    return SimpleToString(RuntimeLibrary.IntToString);
                 }
                 else if (ty.IsResult)
                 {
-                    return SimpleToString(ex, RuntimeLibrary.ResultToString);
+                    return SimpleToString(RuntimeLibrary.ResultToString);
                 }
                 else if (ty.IsPauli)
                 {
-                    return SimpleToString(ex, RuntimeLibrary.PauliToString);
+                    return SimpleToString(RuntimeLibrary.PauliToString);
                 }
                 else if (ty.IsQubit)
                 {
-                    return SimpleToString(ex, RuntimeLibrary.QubitToString);
+                    return SimpleToString(RuntimeLibrary.QubitToString);
                 }
                 else if (ty.IsRange)
                 {
-                    return SimpleToString(ex, RuntimeLibrary.RangeToString);
+                    return SimpleToString(RuntimeLibrary.RangeToString);
                 }
                 else if (ty.IsDouble)
                 {
-                    return SimpleToString(ex, RuntimeLibrary.DoubleToString);
+                    return SimpleToString(RuntimeLibrary.DoubleToString);
                 }
                 else if (ty.IsFunction)
                 {
@@ -2095,43 +2143,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (ty.IsArrayType)
                 {
-                    // TODO: Do something better for array-to-string
-                    return CreateConstantString("[...]");
+                    var arr = (ArrayValue)evaluated;
+                    var str = CreateConstantString("[");
+                    Value comma = CreateConstantString(",");
+                    Value closeParens = CreateConstantString("]");
+
+                    this.SharedState.IterateThroughArray(arr, item =>
+                    {
+                        str = DoAppend(str, ExpressionToString(item));
+                        str = DoAppend(str, comma, unreferenceNext: false);
+                    });
+
+                    str = DoAppend(str, closeParens);
+                    UpdateStringRefCount(comma, -1);
+                    return str;
                 }
-                else if (ty.IsTupleType)
+                else if (ty.IsTupleType || ty.IsUserDefinedType)
                 {
-                    // TODO: Do something better for tuple-to-string
-                    return CreateConstantString("(...)");
-                }
-                else if (ty is ResolvedTypeKind.UserDefinedType udt)
-                {
-                    // TODO: Do something better for UDT-to-string
-                    var udtName = udt.Item.Name;
-                    return CreateConstantString(udtName + "(...)");
+                    var tuple = (TupleValue)evaluated;
+                    return TupleToString(tuple);
                 }
                 else
                 {
                     throw new NotSupportedException("unkown type for expression in conversion to string");
                 }
-            }
-
-            // Creates a new string with reference count 1 that needs to be queued for unreferencing
-            // and contains the concatenation of both values. Both both arguments are unreferenced.
-            Value DoAppend(Value? curr, Value next)
-            {
-                if (curr == null)
-                {
-                    return next;
-                }
-
-                // The runtime function StringConcatenate creates a new value with reference count 1.
-                var concatenate = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
-                var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                var countChange = this.SharedState.Context.CreateConstant(-1);
-                var app = this.SharedState.CurrentBuilder.Call(concatenate, curr, next);
-                this.SharedState.CurrentBuilder.Call(unreference, curr, countChange);
-                this.SharedState.CurrentBuilder.Call(unreference, next, countChange);
-                return app;
             }
 
             Value? current = null;
@@ -2160,9 +2195,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             var last = CreateConstantString(str[offset..end]);
                             current = DoAppend(current, last);
                         }
+
                         if (index >= 0)
                         {
-                            var exString = ExpressionToString(exs[index]);
+                            var evaluated = this.SharedState.EvaluateSubexpression(exs[index]);
+                            var exString = ExpressionToString(evaluated);
                             current = DoAppend(current, exString);
                         }
 
