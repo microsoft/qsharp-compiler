@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler
             public string? BuildOutputFolder;
 
             /// <summary>
-            /// Directory where QIR will be generated.
+            /// Directory where the human readable QIR will be generated.
             /// No QIR will be generated unless this path is specified and valid.
             /// </summary>
             public string? QirOutputFolder;
@@ -465,6 +465,11 @@ namespace Microsoft.Quantum.QsCompiler
         public readonly string? PathToCompiledBinary;
 
         /// <summary>
+        /// Contains the absolute path where the LLVM bitcode has been written to disk.
+        /// </summary>
+        public readonly string? PathToBitCode;
+
+        /// <summary>
         /// Contains the absolute path where the generated dll containing the compiled binary has been written to disk.
         /// </summary>
         public readonly string? DllOutputPath;
@@ -654,7 +659,12 @@ namespace Microsoft.Quantum.QsCompiler
                 if (serialized && this.config.BuildOutputFolder != null)
                 {
                     PerformanceTracking.TaskStart(PerformanceTracking.Task.BinaryGeneration);
-                    this.PathToCompiledBinary = this.GenerateBinary(ms);
+                    this.PathToCompiledBinary = this.GenerateBinary(".bson", fileName =>
+                    {
+                        using var file = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+                        ms.Seek(0, SeekOrigin.Begin);
+                        ms.WriteTo(file);
+                    });
                     PerformanceTracking.TaskEnd(PerformanceTracking.Task.BinaryGeneration);
                 }
                 if (serialized && this.config.DllOutputPath != null)
@@ -667,14 +677,24 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.QirOutputFolder != null && this.compilationStatus.TargetInstructionInference == Status.Succeeded)
             {
-                var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? "main");
-                var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.QirOutputFolder) ? "." : this.config.QirOutputFolder);
-                var target = GeneratedFile(projId, outFolder, ".ll", "");
-
+                var generator = new QirGeneration();
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.QirGeneration);
-                var qirGeneration = new LoadedStep(new QirGeneration(target), typeof(IRewriteStep), thisDllUri);
+                var qirGeneration = new LoadedStep(generator, typeof(IRewriteStep), thisDllUri);
                 this.ExecuteAsAtomicTransformation(qirGeneration, ref this.compilationStatus.QirGeneration);
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.QirGeneration);
+
+                if (this.compilationStatus.QirGeneration == Status.Succeeded)
+                {
+                    PerformanceTracking.TaskStart(PerformanceTracking.Task.BitcodeGeneration);
+                    this.PathToBitCode = this.GenerateBinary(".bc", fileName =>
+                        generator.Emit(fileName, emitBitcode: true));
+                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
+
+                    // create the human readable version as well
+                    var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? "main");
+                    var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.QirOutputFolder) ? "." : this.config.QirOutputFolder);
+                    generator.Emit(GeneratedFile(projId, outFolder, ".ll", ""), emitBitcode: false);
+                }
             }
 
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.OutputGeneration);
@@ -1035,29 +1055,25 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Backtracks to the beginning of the given memory stream and writes its content to disk,
-        /// generating a suitable bson file in the specified build output folder using the project name as file name.
-        /// Generates a file name at random if no project name is specified.
-        /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
+        /// Creates a file with the given extension in the specified build output folder using the
+        /// project name as file name. Generates a file name at random if no project name is specified.
+        /// Invokes the given action with the file name to emit a binary format for the compilation.
+        /// Catches any thrown exceptions and logs suitable diagnostics in the process if necessary,
+        /// modifying the compilation status for the binary format generation accordingly.
         /// Returns the absolute path of the file where the binary representation has been generated.
         /// Returns null if the binary file could not be generated.
-        /// Does *not* close the given memory stream.
         /// </summary>
-        private string? GenerateBinary(MemoryStream serialization)
+        private string? GenerateBinary(string fileExtension, Action<string> emit)
         {
             this.compilationStatus.BinaryFormat = Status.Succeeded;
 
-            var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? Path.GetRandomFileName());
+            var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? Path.GetFileName(this.PathToCompiledBinary) ?? Path.GetRandomFileName());
             var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.BuildOutputFolder) ? "." : this.config.BuildOutputFolder);
-            var target = GeneratedFile(projId, outFolder, ".bson", "");
+            var target = GeneratedFile(projId, outFolder, fileExtension, "");
 
             try
             {
-                serialization.Seek(0, SeekOrigin.Begin);
-                using (var file = new FileStream(target, FileMode.Create, FileAccess.Write))
-                {
-                    serialization.WriteTo(file);
-                }
+                emit(target);
                 return target;
             }
             catch (Exception ex)
@@ -1206,6 +1222,7 @@ namespace Microsoft.Quantum.QsCompiler
             string FullDirectoryName(string dir) =>
                 Path.GetFullPath(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar);
 
+            fileEnding = fileEnding.Trim().TrimStart('.');
             outputFolder = string.IsNullOrWhiteSpace(outputFolder) ? "." : outputFolder;
             var outputUri = new Uri(FullDirectoryName(outputFolder));
             var currentDir = new Uri(FullDirectoryName("."));
@@ -1214,7 +1231,7 @@ namespace Microsoft.Quantum.QsCompiler
             var fileDir = filePath.StartsWith(outputUri.LocalPath)
                 ? Path.GetDirectoryName(filePath)
                 : Path.GetDirectoryName(outputUri.LocalPath);
-            var targetFile = Path.GetFullPath(Path.Combine(fileDir, Path.GetFileNameWithoutExtension(filePath) + fileEnding));
+            var targetFile = Path.GetFullPath(Path.Combine(fileDir, $"{Path.GetFileNameWithoutExtension(filePath)}.{fileEnding}"));
 
             if (content == null)
             {

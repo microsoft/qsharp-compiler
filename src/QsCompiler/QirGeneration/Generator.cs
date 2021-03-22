@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
+using System.IO;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -68,16 +70,36 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var wrapperName = GenerationContext.EntryPointName(epName);
                 this.SharedState.CreateInteropWrapper(wrapperName, epName, AttributeNames.EntryPoint);
             }
+
+            this.SharedState.GenerateRequiredFunctions();
         }
 
         /// <summary>
         /// Writes the current content to the output file.
         /// </summary>
-        /// <param name="fileName">
-        /// The file to which the output is written. The file extension is replaced with a .ll extension.
-        /// </param>
+        /// <param name="fileName">The file to which the output is written.</param>
+        /// <param name="emitBitcode">False if the file should be human readable, true if the file should contain bitcode.</param>
         /// <param name="overwrite">Whether or not to overwrite a file if it already exists.</param>
-        public void Emit(string fileName, bool overwrite = true) =>
-            this.SharedState.Emit(fileName, overwrite: overwrite);
+        public void Emit(string fileName, bool emitBitcode = false, bool overwrite = true)
+        {
+            if (!overwrite && File.Exists(fileName))
+            {
+                throw new ArgumentException($"The file \"{fileName}\" already exist(s).");
+            }
+
+            if (!this.SharedState.Module.Verify(out string validationErrors))
+            {
+                File.WriteAllText(fileName, $"LLVM errors:{Environment.NewLine}{validationErrors}");
+            }
+
+            if (emitBitcode)
+            {
+                this.SharedState.Module.WriteToFile(fileName);
+            }
+            else if (!this.SharedState.Module.WriteToTextFile(fileName, out string errorMessage))
+            {
+                throw new IOException(errorMessage);
+            }
+        }
     }
 }

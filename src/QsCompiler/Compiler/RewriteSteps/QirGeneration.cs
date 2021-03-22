@@ -13,13 +13,11 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 {
     internal class QirGeneration : IRewriteStep
     {
-        private readonly string outputFile;
-
+        private Generator? generator;
         private readonly List<IRewriteStep.Diagnostic> diagnostics;
 
-        public QirGeneration(string outputFileName)
+        public QirGeneration()
         {
-            this.outputFile = outputFileName;
             this.diagnostics = new List<IRewriteStep.Diagnostic>();
             this.AssemblyConstants = new Dictionary<string, string?>();
         }
@@ -68,15 +66,23 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            var generator = new Generator(compilation);
-            generator.Apply();
-            generator.Emit(this.outputFile);
             transformed = compilation;
+            this.generator = new Generator(transformed);
+            this.generator.Apply();
             return true;
         }
 
         /// <inheritdoc/>
         public bool PostconditionVerification(QsCompilation compilation) =>
             throw new NotImplementedException();
+
+        /// <summary>
+        /// Writes the generated QIR to an output file.
+        /// Does nothing if the transformation has not yet run.
+        /// </summary>
+        /// <param name="fileName">The file to which the output is written.</param>
+        /// <param name="emitBitcode">False if the file should be human readable, true if the file should contain bitcode.</param>
+        public void Emit(string fileName, bool emitBitcode) =>
+            this.generator?.Emit(fileName, emitBitcode: emitBitcode);
     }
 }
