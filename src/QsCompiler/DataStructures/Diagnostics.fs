@@ -7,6 +7,9 @@ open System
 open System.Collections.Generic
 
 type ErrorCode =
+    | TypeMismatch = 1
+    | MissingBaseType = 2
+
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
     | MissingStringDelimiterError = 1003
@@ -427,6 +430,11 @@ type DiagnosticItem =
         let ApplyArguments =
             DiagnosticItem.ApplyArguments args
             << function
+            | ErrorCode.TypeMismatch ->
+                "The expected type {0} does not match the actual type {1}.\nExpected type: {2}\n  Actual type: {3}"
+            | ErrorCode.MissingBaseType ->
+                "The type {3} cannot be used with the type {4}, because {1} does not {0} {2}."
+
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
             | ErrorCode.MissingStringDelimiterError -> "File ends with an unclosed string."
@@ -619,8 +627,7 @@ type DiagnosticItem =
                 "The type {0} does not provide item access. Items can only be accessed for values of array type."
             | ErrorCode.InvalidTypeInArithmeticExpr ->
                 "The type {0} does not support arithmetic operators. Expecting an expression of type Int, BigInt or Double."
-            | ErrorCode.InvalidTypeForConcatenation ->
-                "The type {0} does not support concatenation. Expecting an expression of array type."
+            | ErrorCode.InvalidTypeForConcatenation -> "The type {0} does not support the + operator."
             | ErrorCode.InvalidTypeInEqualityComparison -> "The type {0} does not support equality comparison."
             | ErrorCode.ArgumentMismatchInBinaryOp ->
                 "The given arguments of type {0} and {1} do not have a common base type."
@@ -732,7 +739,7 @@ type DiagnosticItem =
                 "The type of the given argument does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.UnexpectedTupleArgument -> "Unexpected argument tuple. Expecting an argument of type {0}."
             | ErrorCode.AmbiguousTypeParameterResolution ->
-                "The type parameter resolution for the call is ambiguous. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
+                "The type parameter resolution for the expression is ambiguous. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
             | ErrorCode.ConstrainsTypeParameter -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.DirectRecursionWithinTemplate ->
                 "Direct recursive calls within templates require explicit type arguments. Please provide type arguments, e.g. Op<Int, Double>(arg)."

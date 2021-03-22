@@ -7,10 +7,10 @@ open System
 open System.Collections.Generic
 open System.Collections.Immutable
 open System.Linq
+
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
-open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 
@@ -599,9 +599,8 @@ module SymbolResolution =
     /// <exception cref="ArgumentException">The given source file is not listed as source of that namespace.</exception>
     let rec internal ResolveType (processUDT, processTypeParameter) (qsType: QsType) =
         let resolve = ResolveType(processUDT, processTypeParameter)
-        let asResolvedType t = ResolvedType.New(true, t)
-        let buildWith builder ts = builder ts |> asResolvedType
-        let invalid = InvalidType |> asResolvedType
+        let buildWith builder ts = builder ts |> ResolvedType.New
+        let invalid = ResolvedType.New InvalidType
         let range = qsType.Range.ValueOr Range.Zero
 
         match qsType.Type with
@@ -609,7 +608,7 @@ module SymbolResolution =
         | TupleType items -> items |> AccumulateInner resolve (buildWith TupleType)
         | QsTypeKind.TypeParameter sym ->
             match sym.Symbol with
-            | Symbol name -> processTypeParameter (name, sym.Range) |> fun (k, errs) -> k |> asResolvedType, errs
+            | Symbol name -> processTypeParameter (name, sym.Range) |> fun (k, errs) -> ResolvedType.New k, errs
             | InvalidSymbol -> invalid, [||]
             | _ ->
                 invalid,
@@ -631,24 +630,24 @@ module SymbolResolution =
             [ arg; res ] |> AccumulateInner resolve (buildWith (fun ts -> QsTypeKind.Function(ts.[0], ts.[1])))
         | UserDefinedType name ->
             match name.Symbol with
-            | Symbol sym -> processUDT ((None, sym), name.Range) |> fun (k, errs) -> k |> asResolvedType, errs
+            | Symbol sym -> processUDT ((None, sym), name.Range) |> fun (k, errs) -> ResolvedType.New k, errs
             | QualifiedSymbol (ns, sym) ->
-                processUDT ((Some ns, sym), name.Range) |> fun (k, errs) -> k |> asResolvedType, errs
+                processUDT ((Some ns, sym), name.Range) |> fun (k, errs) -> ResolvedType.New k, errs
             | InvalidSymbol -> invalid, [||]
             | MissingSymbol
             | OmittedSymbols
             | SymbolTuple _ -> invalid, [| range |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingIdentifier, []) |]
-        | UnitType -> QsTypeKind.UnitType |> asResolvedType, [||]
-        | Int -> QsTypeKind.Int |> asResolvedType, [||]
-        | BigInt -> QsTypeKind.BigInt |> asResolvedType, [||]
-        | Double -> QsTypeKind.Double |> asResolvedType, [||]
-        | Bool -> QsTypeKind.Bool |> asResolvedType, [||]
-        | String -> QsTypeKind.String |> asResolvedType, [||]
-        | Qubit -> QsTypeKind.Qubit |> asResolvedType, [||]
-        | Result -> QsTypeKind.Result |> asResolvedType, [||]
-        | Pauli -> QsTypeKind.Pauli |> asResolvedType, [||]
-        | Range -> QsTypeKind.Range |> asResolvedType, [||]
-        | InvalidType -> QsTypeKind.InvalidType |> asResolvedType, [||]
+        | UnitType -> ResolvedType.New QsTypeKind.UnitType, [||]
+        | Int -> ResolvedType.New QsTypeKind.Int, [||]
+        | BigInt -> ResolvedType.New QsTypeKind.BigInt, [||]
+        | Double -> ResolvedType.New QsTypeKind.Double, [||]
+        | Bool -> ResolvedType.New QsTypeKind.Bool, [||]
+        | String -> ResolvedType.New QsTypeKind.String, [||]
+        | Qubit -> ResolvedType.New QsTypeKind.Qubit, [||]
+        | Result -> ResolvedType.New QsTypeKind.Result, [||]
+        | Pauli -> ResolvedType.New QsTypeKind.Pauli, [||]
+        | Range -> ResolvedType.New QsTypeKind.Range, [||]
+        | InvalidType -> ResolvedType.New QsTypeKind.InvalidType, [||]
         | MissingType -> NotSupportedException "missing type cannot be resolved" |> raise
 
     /// <summary>
