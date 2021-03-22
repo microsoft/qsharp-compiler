@@ -222,7 +222,7 @@ module private Inference =
             QsTypeKind.Function(input, output) |> ResolvedType.create range, inDiagnostics @ outDiagnostics
         | InvalidType, _
         | _, InvalidType -> ResolvedType.create range InvalidType, []
-        | _ when types.Left = types.Right -> types.Left |> ResolvedType.withRangeRecurse range, []
+        | _ when types.Left = types.Right -> types.Left |> ResolvedType.withAllRanges range, []
         | _ -> ResolvedType.create range InvalidType, [ error ]
 
     /// <summary>

@@ -328,7 +328,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 let properties =
                     defaultLoc,
                     LocalVariable sym,
-                    decl.Type |> ResolvedType.withRangeRecurse qsSym.Range,
+                    decl.Type |> ResolvedType.withAllRanges qsSym.Range,
                     decl.InferredInformation.HasLocalQuantumDependency
 
                 properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray.Empty

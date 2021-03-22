@@ -172,8 +172,8 @@ let private VerifyValueArray (inference: InferenceContext) range exprs =
         |> Seq.reduce (fun left right ->
             let intersectionType, intersectionDiagnostics = inference.Intersect(left, right)
             List.iter diagnostics.Add intersectionDiagnostics
-            intersectionType |> ResolvedType.withRangeRecurse right.Range)
-        |> ResolvedType.withRangeRecurse (Value range)
+            intersectionType |> ResolvedType.withAllRanges right.Range)
+        |> ResolvedType.withAllRanges (Value range)
         |> ArrayType
         |> ResolvedType.create (Value range),
         Seq.toList diagnostics
