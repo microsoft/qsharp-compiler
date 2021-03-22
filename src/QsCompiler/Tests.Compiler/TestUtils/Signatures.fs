@@ -137,6 +137,9 @@ let public MonomorphizationSignatures =
          [|
              MonomorphizationNs, "Test1", [||], "Unit"
              GenericsNs, "Test1Main", [||], "Unit"
+             GenericsNs, "Test2Main", [||], "Unit"
+             GenericsNs, "Test3Main", [||], "Unit"
+             GenericsNs, "Test4Main", [||], "Unit"
 
              GenericsNs, "BasicGeneric", [| "Double"; "Int" |], "Unit"
              GenericsNs, "BasicGeneric", [| "String"; "String" |], "Unit"
@@ -151,7 +154,10 @@ let public MonomorphizationSignatures =
         (_DefaultTypes,
          [|
              MonomorphizationNs, "Test2", [||], "Unit"
+             GenericsNs, "Test1Main", [||], "Unit"
              GenericsNs, "Test2Main", [||], "Unit"
+             GenericsNs, "Test3Main", [||], "Unit"
+             GenericsNs, "Test4Main", [||], "Unit"
 
              GenericsNs, "ArrayGeneric", [| "Qubit"; "String" |], "Int"
              GenericsNs, "ArrayGeneric", [| "Qubit"; "Int" |], "Int"
@@ -161,7 +167,10 @@ let public MonomorphizationSignatures =
         (_DefaultTypes,
          [|
              MonomorphizationNs, "Test3", [||], "Unit"
+             GenericsNs, "Test1Main", [||], "Unit"
+             GenericsNs, "Test2Main", [||], "Unit"
              GenericsNs, "Test3Main", [||], "Unit"
+             GenericsNs, "Test4Main", [||], "Unit"
 
              GenericsNs, "GenericCallsSpecializations", [| "Double"; "String"; "Qubit[]" |], "Unit"
              GenericsNs, "GenericCallsSpecializations", [| "Double"; "String"; "Double" |], "Unit"
@@ -184,7 +193,11 @@ let public MonomorphizationSignatures =
         (_DefaultTypes,
          [|
              MonomorphizationNs, "Test4", [||], "Unit"
+             GenericsNs, "Test1Main", [||], "Unit"
+             GenericsNs, "Test2Main", [||], "Unit"
+             GenericsNs, "Test3Main", [||], "Unit"
              GenericsNs, "Test4Main", [||], "Unit"
+
              GenericsNs, "_GenericCallsSelf", [||], "Unit"
              GenericsNs, "_GenericCallsSelf2", [| "Double" |], "Unit"
          |])
