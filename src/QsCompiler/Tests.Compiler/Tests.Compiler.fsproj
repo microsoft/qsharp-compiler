@@ -57,6 +57,9 @@
     <None Include="TestCases\LinkingTests\InternalRenaming.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\SyntaxTreeTrim.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>

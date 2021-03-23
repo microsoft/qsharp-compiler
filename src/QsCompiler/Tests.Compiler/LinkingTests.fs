@@ -20,10 +20,10 @@ open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
+open Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
-open Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 
 
 type LinkingTests(output: ITestOutputHelper) =
@@ -125,10 +125,8 @@ type LinkingTests(output: ITestOutputHelper) =
     member private this.CompileMonomorphization input =
         let compilationDataStructures = this.BuildContent(compilationManager, input)
         let monomorphicCompilation = Monomorphize.Apply compilationDataStructures.BuiltCompilation
-
         Assert.NotNull monomorphicCompilation
         ValidateMonomorphization.Apply monomorphicCompilation
-
         monomorphicCompilation
 
     member private this.CompileIntrinsicResolution source environment =
@@ -238,6 +236,12 @@ type LinkingTests(output: ITestOutputHelper) =
 
         Assert.True
             (generated.Access = Public, "Callables originally public should remain public if all arguments are public.")
+
+    member private this.RunSyntaxTreeTrimTest testNumber keepIntrinsics =
+        let source = (LinkingTests.ReadAndChunkSourceFile "SyntaxTreeTrim.qs").[testNumber - 1]
+        let compilationDataStructures = this.BuildContent(compilationManager, source)
+        TrimSyntaxTree.Apply(compilationDataStructures.BuiltCompilation, keepIntrinsics)
+        |> Signatures.SignatureCheck [ Signatures.SyntaxTreeTrimmingNS ] Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
 
 
     [<Fact>]
@@ -752,3 +756,19 @@ type LinkingTests(output: ITestOutputHelper) =
         checkValidCombination
             (buildDict [ (source 1, (chunks.[0], declInSource1))
                          (source 2, (chunks.[6], declInSource2)) ])
+
+    [<Fact>]
+    member this.``Trimmer Removes Unused Callables``() =
+        this.RunSyntaxTreeTrimTest 1 true
+
+    [<Fact>]
+    member this.``Trimmer Keeps UDTs``() =
+        this.RunSyntaxTreeTrimTest 2 true
+
+    [<Fact>]
+    member this.``Trimmer Keeps Intrinsics When Told``() =
+        this.RunSyntaxTreeTrimTest 3 true
+
+    [<Fact>]
+    member this.``Trimmer Removes Intrinsics When Told``() =
+        this.RunSyntaxTreeTrimTest 4 false

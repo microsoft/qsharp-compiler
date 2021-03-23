@@ -129,6 +129,7 @@ let public ClassicalControlNs = "Microsoft.Quantum.Testing.ClassicalControl"
 let public InternalRenamingNs = "Microsoft.Quantum.Testing.InternalRenaming"
 let public CycleDetectionNS = "Microsoft.Quantum.Testing.CycleDetection"
 let public PopulateCallGraphNS = "Microsoft.Quantum.Testing.PopulateCallGraph"
+let public SyntaxTreeTrimmingNS = "Microsoft.Quantum.Testing.SyntaxTreeTrimming"
 
 /// Expected callable signatures to be found when running Monomorphization tests
 let public MonomorphizationSignatures =
@@ -207,7 +208,7 @@ let public MonomorphizationSignatures =
 let private _IntrinsicResolutionTypes =
     _MakeTypeMap [| "TestType",
                     {
-                        Namespace = "Microsoft.Quantum.Testing.IntrinsicResolution"
+                        Namespace = IntrinsicResolutionNs
                         Name = "TestType"
                         Range = Null
                     }
@@ -539,5 +540,55 @@ let public ClassicalControlSignatures =
          |])
         // One-sided NOT condition
         (_DefaultTypes, [| ClassicalControlNs, "Foo", [||], "Unit" |])
+    |]
+    |> _MakeSignatures
+
+let private _SyntaxTreeTrimmingTypes =
+    let UsedUDT =
+        "UsedUDT",
+        {
+            Namespace = SyntaxTreeTrimmingNS
+            Name = "UsedUDT"
+            Range = Null
+        }
+        |> UserDefinedType
+    let UnusedUDT =
+        "UnusedUDT",
+        {
+            Namespace = SyntaxTreeTrimmingNS
+            Name = "UnusedUDT"
+            Range = Null
+        }
+        |> UserDefinedType
+    _MakeTypeMap [| UsedUDT; UnusedUDT |]
+
+let public SyntaxTreeTrimmingSignatures =
+    [| // Trimmer Removes Unused Callables
+        (_DefaultTypes,
+         [|
+             SyntaxTreeTrimmingNS, "Main", [||], "Unit"
+             SyntaxTreeTrimmingNS, "UsedOp", [||], "Unit"
+             SyntaxTreeTrimmingNS, "UsedFunc", [||], "Unit"
+         |])
+        // Trimmer Keeps UDTs
+        (_SyntaxTreeTrimmingTypes,
+         [|
+             SyntaxTreeTrimmingNS, "Main", [||], "Unit"
+             SyntaxTreeTrimmingNS, "UsedUDT", [| "Int" |], "UsedUDT"
+             SyntaxTreeTrimmingNS, "UnusedUDT", [| "String" |], "UnusedUDT"
+         |])
+        // Trimmer Keeps Intrinsics When Told
+        (_DefaultTypes,
+         [|
+             SyntaxTreeTrimmingNS, "Main", [||], "Unit"
+             SyntaxTreeTrimmingNS, "UsedIntrinsic", [||], "Unit"
+             SyntaxTreeTrimmingNS, "UnusedIntrinsic", [||], "Unit"
+         |])
+        // Trimmer Removes Intrinsics When Told
+        (_DefaultTypes,
+         [|
+             SyntaxTreeTrimmingNS, "Main", [||], "Unit"
+             SyntaxTreeTrimmingNS, "UsedIntrinsic", [||], "Unit"
+         |])
     |]
     |> _MakeSignatures
