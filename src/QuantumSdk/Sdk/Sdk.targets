@@ -35,7 +35,7 @@
   <Target Name="QSharpClean" BeforeTargets="Clean">
     <ItemGroup>
       <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
-      <Compile Remove="$(_FilesToClean)**/*.g.cs" />
+      <Compile Remove="$(_FilesToClean)**/*.cs" />
     </ItemGroup>
     <Delete Files="@(_FilesToClean)" />
   </Target>
@@ -133,8 +133,8 @@
           DependsOnTargets="PrepareQSharpCompile"
           BeforeTargets="PrepareCSharpCompileAfterCSharpGeneration">
     <ItemGroup>
-      <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/*.g.cs" />
-      <Compile Remove="$(_GeneratedFilesToRemove)**/*.g.cs" />
+      <_GeneratedFilesToRemove Include="$(GeneratedFilesOutputPath)**/*.cs" />
+      <Compile Remove="@(_GeneratedFilesToRemove)" />
     </ItemGroup>
     <Delete Files="@(_GeneratedFilesToRemove)" />
     <PropertyGroup>
@@ -156,7 +156,7 @@
     <Exec Condition="$(DefaultEntryPoint) != ''" Command="$(DefaultEntryPointGeneration) $(DefaultEntryPoint)" IgnoreExitCode="false" />
     <ItemGroup>
       <EmbeddedResource Include="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
-      <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.g.cs" Exclude="@(Compile)" AutoGen="true" />
+      <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
       <Compile Condition="$(DefaultEntryPoint) != ''" Include="$(DefaultEntryPoint)" AutoGen="true" />
     </ItemGroup>
     <Message

@@ -393,7 +393,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``Fail on multiple entry points``() =
+    member this.``Supports multiple entry points``() =
 
         let entryPoints = LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs"
         Assert.True(entryPoints.Length > 1)
@@ -401,7 +401,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let fileId = getTempFile ()
         let file = getManager fileId entryPoints.[0]
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-        this.CompileAndVerify compilationManager entryPoints.[1] [ Error ErrorCode.OtherEntryPointExists ]
+        this.CompileAndVerify compilationManager entryPoints.[1] []
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
 
