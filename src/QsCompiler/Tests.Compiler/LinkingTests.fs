@@ -240,8 +240,11 @@ type LinkingTests(output: ITestOutputHelper) =
     member private this.RunSyntaxTreeTrimTest testNumber keepIntrinsics =
         let source = (LinkingTests.ReadAndChunkSourceFile "SyntaxTreeTrim.qs").[testNumber - 1]
         let compilationDataStructures = this.BuildContent(compilationManager, source)
+
         TrimSyntaxTree.Apply(compilationDataStructures.BuiltCompilation, keepIntrinsics)
-        |> Signatures.SignatureCheck [ Signatures.SyntaxTreeTrimmingNS ] Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
+        |> Signatures.SignatureCheck
+            [ Signatures.SyntaxTreeTrimmingNS ]
+               Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
 
     [<Fact>]
     [<Trait("Category", "Monomorphization")>]
@@ -618,7 +621,6 @@ type LinkingTests(output: ITestOutputHelper) =
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
         let decorator = new NameDecorator("QsRef")
-
         for idx = 0 to references.Declarations.Count - 1 do
             let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNS "Foo", idx)
             let specializations = callables.[name].Specializations
