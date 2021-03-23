@@ -351,6 +351,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
                     gotIndexRange <- true
                     Assert.Equal(0, ex.TypeParameterResolutions.Count)
+
             | _ -> ()
 
         let walker = TypedExpressionWalker(Action<_> onExpr, ())
