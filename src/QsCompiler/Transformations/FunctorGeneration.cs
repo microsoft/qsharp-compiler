@@ -16,8 +16,6 @@ using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
-    using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
-    using TypeArgsResolution = ImmutableArray<Tuple<QsQualifiedName, string, ResolvedType>>;
 
     /// <summary>
     /// Scope transformation that replaces each operation call within a given scope

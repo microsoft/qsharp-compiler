@@ -16,11 +16,11 @@ open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
-open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 open Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
+open Microsoft.Quantum.QsCompiler.Transformations.Targeting
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
@@ -119,7 +119,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
     member private this.BuildReference(source: string, content) =
         let comp = this.BuildContent(new CompilationUnitManager(), content)
-        Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error))
+        Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = Nullable DiagnosticSeverity.Error))
         struct (source, comp.BuiltCompilation.Namespaces)
 
     member private this.CompileMonomorphization input =
@@ -152,7 +152,7 @@ type LinkingTests(output: ITestOutputHelper) =
             result.Namespaces
             |> Seq.find (fun ns -> ns.Name = Signatures.IntrinsicResolutionNS)
             |> (fun x -> [ x ])
-            |> SyntaxExtensions.Callables
+            |> SyntaxTreeExtensions.Callables
             |> Seq.find (fun call -> call.FullName = targetCallName)
 
         (*Check that the operation is not intrinsic*)
@@ -242,7 +242,6 @@ type LinkingTests(output: ITestOutputHelper) =
         let compilationDataStructures = this.BuildContent(compilationManager, source)
         TrimSyntaxTree.Apply(compilationDataStructures.BuiltCompilation, keepIntrinsics)
         |> Signatures.SignatureCheck [ Signatures.SyntaxTreeTrimmingNS ] Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
-
 
     [<Fact>]
     [<Trait("Category", "Monomorphization")>]

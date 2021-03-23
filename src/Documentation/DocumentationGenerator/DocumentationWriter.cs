@@ -102,24 +102,20 @@ namespace Microsoft.Quantum.Documentation
                 ? null : packageName;
 
             // If the output path is not null, make sure the directory exists.
-            if (outputPath != null)
+            this.OnDiagnostic?.Invoke(new IRewriteStep.Diagnostic
             {
-                this.OnDiagnostic?.Invoke(new IRewriteStep.Diagnostic
-                {
-                    Severity = DiagnosticSeverity.Info,
-                    Message = $"Writing documentation output to: {outputPath}...",
-                    Range = null,
-                    Source = null,
-                    Stage = IRewriteStep.Stage.Transformation,
-                });
-                if (!Directory.Exists(outputPath))
-                {
-                    this
-                        .TryWithExceptionsAsDiagnostics(
-                            "creating directory",
-                            () => Task.FromResult(Directory.CreateDirectory(outputPath)))
-                        .Wait();
-                }
+                Severity = DiagnosticSeverity.Info,
+                Message = $"Writing documentation output to: {outputPath}...",
+                Range = null,
+                Source = null,
+                Stage = IRewriteStep.Stage.Transformation,
+            });
+            if (!Directory.Exists(outputPath))
+            {
+                this.TryWithExceptionsAsDiagnostics(
+                    "creating directory",
+                    () => Task.FromResult(Directory.CreateDirectory(outputPath)))
+                .Wait();
             }
 
             this.packageLink = this.PackageName == null

@@ -14,6 +14,8 @@
     </Compile>
     <Compile Include="AssemblyInfo.fs" />
     <Compile Include="Utils.fs" />
+    <Compile Include="Dependencies.fs" />
+    <Compile Include="SyntaxTreeExtensions.fs" />
     <Compile Include="ConstructorExtensions.fs" />
     <Compile Include="Transformations\TransformationOptions.fs" />
     <Compile Include="Transformations\TypeTransformation.fs" />
@@ -21,7 +23,6 @@
     <Compile Include="Transformations\StatementTransformation.fs" />
     <Compile Include="Transformations\NamespaceTransformation.fs" />
     <Compile Include="Transformations\SyntaxTreeTransformation.fs" />
-    <Compile Include="Dependencies.fs" />
     <Compile Include="SyntaxGenerator.fs" />
     <Compile Include="DeclarationHeaders.fs" />
     <Compile Include="SymbolResolution.fs" />

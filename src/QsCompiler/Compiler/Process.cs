@@ -105,6 +105,7 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var entry in envVariables ?? new Dictionary<string, string>())
             {
                 var orig = Environment.GetEnvironmentVariable(entry.Key);
+                origEnvVariables.Add(entry.Key, orig);
                 Environment.SetEnvironmentVariable(entry.Key, entry.Value);
             }
 

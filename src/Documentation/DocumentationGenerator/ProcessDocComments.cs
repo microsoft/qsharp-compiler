@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.Documentation;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -31,7 +32,7 @@ namespace Microsoft.Quantum.Documentation
         /// </summary>
         public event Action<IRewriteStep.Diagnostic>? OnDiagnostic;
 
-        internal readonly DocumentationWriter? Writer;
+        internal readonly DocumentationWriter Writer;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProcessDocComments"/> class.
@@ -44,20 +45,13 @@ namespace Microsoft.Quantum.Documentation
         ///     if the documentation to be written by this object does not
         ///     relate to a particular package.
         /// </param>
-        public ProcessDocComments(
-            string? outputPath = null,
-            string? packageName = null)
+        public ProcessDocComments(string outputPath, string? packageName = null)
         : base(new TransformationState(), TransformationOptions.Disabled)
         {
-            this.Writer = outputPath == null
-                          ? null
-                          : new DocumentationWriter(outputPath, packageName);
+            this.Writer = new DocumentationWriter(outputPath, packageName);
 
-            if (this.Writer != null)
-            {
-                this.Writer.OnDiagnostic += diagnostic =>
-                    this.OnDiagnostic?.Invoke(diagnostic);
-            }
+            this.Writer.OnDiagnostic += diagnostic =>
+                this.OnDiagnostic?.Invoke(diagnostic);
 
             // We provide our own custom namespace transformation, and expression kind transformation.
             this.Namespaces = new NamespaceTransformation(this, this.Writer);
@@ -66,7 +60,7 @@ namespace Microsoft.Quantum.Documentation
         private class NamespaceTransformation
         : NamespaceTransformation<TransformationState>
         {
-            private DocumentationWriter? writer;
+            private readonly DocumentationWriter? writer;
 
             internal NamespaceTransformation(ProcessDocComments parent, DocumentationWriter? writer)
             : base(parent)
