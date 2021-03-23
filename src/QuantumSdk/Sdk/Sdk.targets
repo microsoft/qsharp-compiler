@@ -37,7 +37,7 @@
       <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
       <Compile Remove="$(_FilesToClean)**/*.cs" />
     </ItemGroup>
-    <Delete Files="$(GeneratedFilesOutputPath)**/*.*" />
+    <Delete Files="@(_FilesToClean)" />
   </Target>
 
   <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
