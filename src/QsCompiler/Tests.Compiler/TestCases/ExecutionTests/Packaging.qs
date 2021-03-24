@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.Testing.ExecutionTests
 
     operation PackageAndProjectReference () : Unit {
         Message("Welcome to Q#!");
-        Log(1, "Go check out https://docs.microsoft.com/azure/quantum/?view=qsharp-preview.");
+        Log(1, "Go check out https://docs.microsoft.com/azure/quantum.");
     }
 
     operation TypeInReferencedProject () : Unit {
