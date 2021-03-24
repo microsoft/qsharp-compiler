@@ -131,6 +131,12 @@ type BuiltIn =
             Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
+    static member Message =
+        {
+            FullName = { Name = "Message"; Namespace = BuiltIn.IntrinsicNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Empty)
+        }
+
     static member Attribute = { FullName = { Name = "Attribute"; Namespace = BuiltIn.CoreNamespace }; Kind = Attribute }
 
     static member EntryPoint =
