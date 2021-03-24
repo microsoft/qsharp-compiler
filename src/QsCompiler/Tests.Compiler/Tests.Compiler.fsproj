@@ -516,6 +516,11 @@
   <ItemGroup>
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
+    <PackageReference Include="LLVMSharp" Version="11.0.0-beta" PrivateAssets="All"/>
+    <PackageReference Include="libLLVM.runtime.win-x64" Version="11.0.0" PrivateAssets="All"/>
+    <PackageReference Include="libLLVM.runtime.osx-x64" Version="11.0.0" PrivateAssets="All"/>
+    <PackageReference Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0" PrivateAssets="All"/>
+    <PackageReference Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" PrivateAssets="All"/>
   </ItemGroup>
 
   <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
