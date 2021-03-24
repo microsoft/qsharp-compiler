@@ -132,38 +132,62 @@ int main(int argc, char* argv[])
     CLI::Option* operationOutputFileOpt = app.add_option(
         "-o,--operation-output", operationOutputFile, "File where the output of the Q# operation is written");
 
-    <# foreach (var arg in entryPointOperation.Arguments) { #>
-        hey what do you know <#= arg.Name #>
-    <# } #>
+        <# foreach (var arg in entryPointOperation.Arguments) { #>
+            hey what do you know <#= arg.Name #>
+        <# } #>
 
     <# foreach (var arg in entryPointOperation.Arguments) { #>
         <# if (arg.Type == DataType.BoolType) { #>
 
-    // Option for a Q# Bool type. hey
+    // Option for a Q# Bool type.
     bool boolValue = false;
-    app.add_option("--bool-value", boolValue, "A bool value")->required();
+    app.add_option("--<#= arg.Name #>", boolValue, "A bool value")->required();
 
         <# } else if (arg.Type == DataType.IntegerType) { #>
 
     // Add the options that correspond to the parameters that the QIR entry-point needs.
     // Option for a Q# Int type.
     int64_t intValue = 0;
-    app.add_option("--int-value", intValue, "An integer value")->required();
+    app.add_option("--<#= arg.Name #>", intValue, "An integer value")->required();
 
         <# } else if (arg.Type == DataType.DoubleType) { #>
 
     // Option for a Q# Double type.
     double_t doubleValue = 0.0;
-    app.add_option("--double-value", doubleValue, "A double value")->required();
+    app.add_option("--<#= arg.Name #>", doubleValue, "A double value")->required();
 
         <# } else if (arg.Type == DataType.PauliType) { #>
 
     // Option for Q# Pauli type.
     PauliId pauliValue = PauliId::PauliId_I;
-    app.add_option("--pauli-value", pauliValue, "A Pauli value")
+    app.add_option("--<#= arg.Name #>", pauliValue, "A Pauli value")
         ->required()
         ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
+        <# } else if (arg.Type == DataType.RangeType) { #>
+
+    // Option for Q# Range type.
+    // N.B. RangeTuple type is used here instead of QirRange because CLI11 supports tuple parsing which is leveraged and
+    //      the tuple is later translated to QirRange.
+    RangeTuple rangeValue(0, 0, 0);
+    app.add_option("--<#= arg.Name #>", rangeValue, "A Range value (start, step, end)")->required();
+
+        <# } else if (arg.Type == DataType.ResultType) { #>
+
+    // Option for Q# Result type.
+    // N.B. This is implemented as a char rather than a boolean to be consistent with the way an array of results has to
+    //      be implemented.
+    char resultAsCharValue = FalseAsChar;
+    app.add_option("--result-value", resultAsCharValue, "A Result value")
+        ->required()
+        ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
+
+        <# } else if (arg.Type == DataType.StringType) { #>
+
+    // Option for Q# String type.
+    string stringValue;
+    app.add_option("--<#= arg.Name #>", stringValue, "A String value")->required();
+    
         <# } #>
     <# } #>
 

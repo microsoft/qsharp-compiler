@@ -88,21 +88,21 @@ extern ""C"" void ");
                     " during the simulation is written\");\r\n\r\n    string operationOutputFile;\r\n    CLI" +
                     "::Option* operationOutputFileOpt = app.add_option(\r\n        \"-o,--operation-outp" +
                     "ut\", operationOutputFile, \"File where the output of the Q# operation is written\"" +
-                    ");\r\n\r\n    ");
+                    ");\r\n\r\n        ");
             
             #line 135 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  foreach (var arg in entryPointOperation.Arguments) { 
             
             #line default
             #line hidden
-            this.Write("        hey what do you know ");
+            this.Write("            hey what do you know ");
             
             #line 136 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
             
             #line default
             #line hidden
-            this.Write("\r\n    ");
+            this.Write("\r\n        ");
             
             #line 137 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } 
@@ -123,8 +123,15 @@ extern ""C"" void ");
             
             #line default
             #line hidden
-            this.Write("\r\n    // Option for a Q# Bool type. hey\r\n    bool boolValue = false;\r\n    app.add" +
-                    "_option(\"--bool-value\", boolValue, \"A bool value\")->required();\r\n\r\n        ");
+            this.Write("\r\n    // Option for a Q# Bool type.\r\n    bool boolValue = false;\r\n    app.add_opt" +
+                    "ion(\"--");
+            
+            #line 144 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\", boolValue, \"A bool value\")->required();\r\n\r\n        ");
             
             #line 146 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.IntegerType) { 
@@ -133,8 +140,14 @@ extern ""C"" void ");
             #line hidden
             this.Write("\r\n    // Add the options that correspond to the parameters that the QIR entry-poi" +
                     "nt needs.\r\n    // Option for a Q# Int type.\r\n    int64_t intValue = 0;\r\n    app." +
-                    "add_option(\"--int-value\", intValue, \"An integer value\")->required();\r\n\r\n        " +
-                    "");
+                    "add_option(\"--");
+            
+            #line 151 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\", intValue, \"An integer value\")->required();\r\n\r\n        ");
             
             #line 153 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.DoubleType) { 
@@ -142,8 +155,14 @@ extern ""C"" void ");
             #line default
             #line hidden
             this.Write("\r\n    // Option for a Q# Double type.\r\n    double_t doubleValue = 0.0;\r\n    app.a" +
-                    "dd_option(\"--double-value\", doubleValue, \"A double value\")->required();\r\n\r\n     " +
-                    "   ");
+                    "dd_option(\"--");
+            
+            #line 157 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\", doubleValue, \"A double value\")->required();\r\n\r\n        ");
             
             #line 159 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.PauliType) { 
@@ -151,18 +170,74 @@ extern ""C"" void ");
             #line default
             #line hidden
             this.Write("\r\n    // Option for Q# Pauli type.\r\n    PauliId pauliValue = PauliId::PauliId_I;\r" +
-                    "\n    app.add_option(\"--pauli-value\", pauliValue, \"A Pauli value\")\r\n        ->req" +
-                    "uired()\r\n        ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case)" +
-                    ");\r\n\r\n        ");
+                    "\n    app.add_option(\"--");
+            
+            #line 163 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\", pauliValue, \"A Pauli value\")\r\n        ->required()\r\n        ->transform(CLI::C" +
+                    "heckedTransformer(PauliMap, CLI::ignore_case));\r\n\r\n        ");
             
             #line 167 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } else if (arg.Type == DataType.RangeType) { 
+            
+            #line default
+            #line hidden
+            this.Write(@"
+    // Option for Q# Range type.
+    // N.B. RangeTuple type is used here instead of QirRange because CLI11 supports tuple parsing which is leveraged and
+    //      the tuple is later translated to QirRange.
+    RangeTuple rangeValue(0, 0, 0);
+    app.add_option(""--");
+            
+            #line 173 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\", rangeValue, \"A Range value (start, step, end)\")->required();\r\n\r\n        ");
+            
+            #line 175 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } else if (arg.Type == DataType.ResultType) { 
+            
+            #line default
+            #line hidden
+            this.Write(@"
+    // Option for Q# Result type.
+    // N.B. This is implemented as a char rather than a boolean to be consistent with the way an array of results has to
+    //      be implemented.
+    char resultAsCharValue = FalseAsChar;
+    app.add_option(""--result-value"", resultAsCharValue, ""A Result value"")
+        ->required()
+        ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
+
+        ");
+            
+            #line 185 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } else if (arg.Type == DataType.StringType) { 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    // Option for Q# String type.\r\n    string stringValue;\r\n    app.add_option(" +
+                    "\"--");
+            
+            #line 189 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\", stringValue, \"A String value\")->required();\r\n    \r\n        ");
+            
+            #line 191 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } 
             
             #line default
             #line hidden
             this.Write("    ");
             
-            #line 168 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 192 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } 
             
             #line default
