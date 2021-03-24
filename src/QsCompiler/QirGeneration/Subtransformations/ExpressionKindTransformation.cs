@@ -450,23 +450,31 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             // Creates a new string with reference count 1 that needs to be queued for unreferencing
-            // and contains the concatenation of both values. Both both arguments are unreferenced.
+            // and contains the concatenation of both values. Both arguments are unreferenced.
             Value DoAppend(Value? curr, Value next, bool unreferenceNext = true)
             {
+                var refCountUpdate = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
+                var plusOne = sharedState.Context.CreateConstant(1);
+                var minusOne = sharedState.Context.CreateConstant(-1);
+
                 if (curr == null)
                 {
+                    if (!unreferenceNext)
+                    {
+                        // Since we return next instead of a new string,
+                        // we need to increase the reference count of next unless unreferenceNext is true.
+                        sharedState.CurrentBuilder.Call(refCountUpdate, next, plusOne);
+                    }
                     return next;
                 }
 
                 // The runtime function StringConcatenate creates a new value with reference count 1.
                 var concatenate = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
-                var unreference = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                var countChange = sharedState.Context.CreateConstant(-1);
                 var app = sharedState.CurrentBuilder.Call(concatenate, curr, next);
-                sharedState.CurrentBuilder.Call(unreference, curr, countChange);
+                sharedState.CurrentBuilder.Call(refCountUpdate, curr, minusOne);
                 if (unreferenceNext)
                 {
-                    sharedState.CurrentBuilder.Call(unreference, next, countChange);
+                    sharedState.CurrentBuilder.Call(refCountUpdate, next, minusOne);
                 }
                 return app;
             }
@@ -497,11 +505,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     for (var idx = 0; idx < tupleElements.Length; ++idx)
                     {
                         str = DoAppend(str, ExpressionToString(tupleElements[idx]));
-                        var isLast = idx == tupleElements.Length - 1;
-                        var next = isLast
-                            ? CreateConstantString(")")
-                            : comma ?? CreateConstantString(",");
-                        str = DoAppend(str, next, unreferenceNext: isLast);
+                        if (idx == tupleElements.Length - 1)
+                        {
+                            str = DoAppend(str, CreateConstantString(")"), unreferenceNext: true);
+                        }
+                        else
+                        {
+                            comma ??= CreateConstantString(",");
+                            str = DoAppend(str, comma, unreferenceNext: false);
+                        }
                     }
 
                     if (comma != null)
