@@ -44,6 +44,7 @@ def items_of_kind(items, kind):
     return [
         {
             "uid": item.uid,
+            "name": item.name,
             "summary": item.summary
         }
         for item in
@@ -52,6 +53,72 @@ def items_of_kind(items, kind):
             key=(lambda item: item.uid)
         )
     ]
+
+def summaries_table(namespace, kind, header):
+    table_header = f"""
+## {header}
+
+| Name | Summary |
+|------|---------|
+"""
+    return (
+        table_header + "\n".join(
+            f"|[{item['name']}](xref:{item['uid']}) |{item['summary']}"
+            for item in namespace[kind]
+        )
+        if kind in namespace and namespace[kind]
+        else ""
+    )
+
+def write_namespace_summary(target_file : Path, namespace):
+    """
+    Given the contents of a namespace, either creates a new Markdown file
+    summarizing those contents, or appends those contents to an existing
+    Markdown file for that namespace.
+    """
+
+    begin_region = "<!-- summaries -->"
+    end_region = "<!-- /summaries -->"
+
+    # Make the summary table to be injected.
+    summaries = begin_region + "\n" + "\n".join([
+        summaries_table(namespace, 'operations', 'Operations'),
+        summaries_table(namespace, 'functions', 'Functions'),
+        summaries_table(namespace, 'newtypes', 'User-defined types'),
+    ]) + "\n" + end_region + "\n"
+
+
+    # Check if the file already exists
+    if target_file.exists():
+        contents = target_file.read_text(encoding='utf8')
+        # If it does exist, look for <!-- summaries --> and <!-- /summaries -->
+        # comments, and if they exist, replace inside that section.
+        if begin_region in contents:
+            contents[contents.index(begin_region):contents.index(end_region) + len(end_region)] = summaries
+        else:
+            contents += "\n" + summaries
+
+        with open(target_file, 'w', encoding='utf8') as f:
+            f.write(contents)
+
+    # If the file does not exist, go on and make it now.
+    else:
+        with open(target_file, 'w', encoding='utf8') as f:
+            f.write(f"""
+---
+uid: {namespace.uid}
+title: {namespace.name} namespace
+ms.topic: managed-reference
+qsharp.kind: namespace
+qsharp.name: {namespace.name}
+qsharp.summary: ""
+---
+
+# {namespace.name} Namespace
+
+{summaries}
+
+""")
 
 @click.command()
 @click.argument("sources")
@@ -87,9 +154,8 @@ def main(sources : str, output_path : str):
             "functions": items_of_kind(namespace.items, "function"),
             "newtypes": items_of_kind(namespace.items, "udt")
         }
-        
-        with open(output_path / f"{name.lower()}.yml", "w", encoding="utf8") as f:
-            f.write(namespace_comment + warning_comment + yaml.dump(namespace_page))
+
+        write_namespace_summary(output_path / f"{name.lower()}.md", namespace_page)
 
     toc_page = [
         {
