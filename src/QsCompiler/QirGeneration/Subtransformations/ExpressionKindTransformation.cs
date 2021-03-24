@@ -388,19 +388,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Creates a string literal that contains the given values as interpolation arguments.
-        /// The given string is expected to consist of text interspaced with integer constants between curly brackets.
-        /// The content between non-escaped curly brackets is parsed as integer,
+        /// The given string is expected to consist of text interspaced with integer constants between curly brackets,
+        /// e.g. "Hello, {0}!". The content between non-escaped curly brackets is parsed as integer,
         /// and replaced with the string representation of the interpolation argument at that index.
         /// Registers the built string with the scope manager.
         /// </summary>
-        internal static IValue CreateStringLiteral(GenerationContext sharedState, string str, params IValue[] exs)
+        internal static IValue CreateStringLiteral(GenerationContext sharedState, string str, params IValue[] interpolArgs)
         {
             static (int, int, int) FindNextExpression(string s, int start)
             {
                 while (true)
                 {
                     var i = s.IndexOf('{', start);
-                    if (i < 0)
+                    if (i == -1)
                     {
                         return (-1, s.Length, -1);
                     }
@@ -408,7 +408,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     else if (((i - start) - s.Substring(start, i - start).TrimEnd('\\').Length) % 2 == 0)
                     {
                         var j = s.IndexOf('}', i + 1);
-                        if (j < 0)
+                        if (j == -1)
                         {
                             throw new FormatException("Missing } in interpolated string");
                         }
@@ -602,7 +602,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             Value? current = null;
-            if (exs.Length > 0)
+            if (interpolArgs.Length > 0)
             {
                 // Compiled interpolated strings look like <text>{<int>}<text>...
                 // Our basic pattern is to scan for the next '{', append the intervening text if any
@@ -630,7 +630,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                         if (index >= 0)
                         {
-                            var exString = ExpressionToString(exs[index]);
+                            var exString = ExpressionToString(interpolArgs[index]);
                             current = DoAppend(current, exString);
                         }
 
