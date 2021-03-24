@@ -62,6 +62,13 @@ namespace Microsoft.Quantum.QsCompiler
             public string? ProjectName;
 
             /// <summary>
+            /// If set to true, forces all rewrite steps to execute, regardless of whether their precondition was satisfied.
+            /// If the precondition of a step is not satisfied, the transformation is executed but the output will be ignored,
+            /// and an error is generated, indicating a compilation failure.
+            /// </summary>
+            public bool ForceRewriteStepExecution;
+
+            /// <summary>
             /// If set to true, the syntax tree rewrite step that replaces all generation directives
             /// for all functor specializations is executed during compilation.
             /// </summary>
@@ -112,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler
             public string? BuildOutputFolder;
 
             /// <summary>
-            /// Directory where QIR will be generated.
+            /// Directory where the human readable QIR will be generated.
             /// No QIR will be generated unless this path is specified and valid.
             /// </summary>
             public string? QirOutputFolder;
@@ -458,6 +465,11 @@ namespace Microsoft.Quantum.QsCompiler
         public readonly string? PathToCompiledBinary;
 
         /// <summary>
+        /// Contains the absolute path where the LLVM bitcode has been written to disk.
+        /// </summary>
+        public readonly string? PathToBitCode;
+
+        /// <summary>
         /// Contains the absolute path where the generated dll containing the compiled binary has been written to disk.
         /// </summary>
         public readonly string? DllOutputPath;
@@ -547,11 +559,11 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 if (this.config.RuntimeCapability == null || this.config.RuntimeCapability == RuntimeCapability.FullComputation)
                 {
-                    this.logger?.Log(WarningCode.MissingEntryPoint, Array.Empty<string>());
+                    this.LogAndUpdate(ref this.compilationStatus.Validation, WarningCode.MissingEntryPoint);
                 }
                 else
                 {
-                    this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.MissingEntryPoint, Array.Empty<string>());
+                    this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.MissingEntryPoint);
                 }
             }
 
@@ -647,7 +659,12 @@ namespace Microsoft.Quantum.QsCompiler
                 if (serialized && this.config.BuildOutputFolder != null)
                 {
                     PerformanceTracking.TaskStart(PerformanceTracking.Task.BinaryGeneration);
-                    this.PathToCompiledBinary = this.GenerateBinary(ms);
+                    this.PathToCompiledBinary = this.GenerateBinary(".bson", fileName =>
+                    {
+                        using var file = new FileStream(fileName, FileMode.Create, FileAccess.Write);
+                        ms.Seek(0, SeekOrigin.Begin);
+                        ms.WriteTo(file);
+                    });
                     PerformanceTracking.TaskEnd(PerformanceTracking.Task.BinaryGeneration);
                 }
                 if (serialized && this.config.DllOutputPath != null)
@@ -660,14 +677,24 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.QirOutputFolder != null && this.compilationStatus.TargetInstructionInference == Status.Succeeded)
             {
-                var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? "main");
-                var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.QirOutputFolder) ? "." : this.config.QirOutputFolder);
-                var target = GeneratedFile(projId, outFolder, ".ll", "");
-
+                var generator = new QirGeneration();
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.QirGeneration);
-                var qirGeneration = new LoadedStep(new QirGeneration(target), typeof(IRewriteStep), thisDllUri);
+                var qirGeneration = new LoadedStep(generator, typeof(IRewriteStep), thisDllUri);
                 this.ExecuteAsAtomicTransformation(qirGeneration, ref this.compilationStatus.QirGeneration);
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.QirGeneration);
+
+                if (this.compilationStatus.QirGeneration == Status.Succeeded)
+                {
+                    PerformanceTracking.TaskStart(PerformanceTracking.Task.BitcodeGeneration);
+                    this.PathToBitCode = this.GenerateBinary(".bc", fileName =>
+                        generator.Emit(fileName, emitBitcode: true));
+                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
+
+                    // create the human readable version as well
+                    var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? "main");
+                    var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.QirOutputFolder) ? "." : this.config.QirOutputFolder);
+                    generator.Emit(GeneratedFile(projId, outFolder, ".ll", ""), emitBitcode: false);
+                }
             }
 
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.OutputGeneration);
@@ -730,10 +757,18 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Logs an error with the given error code and message parameters, and updates the status passed as reference accordingly.
         /// </summary>
-        private void LogAndUpdate(ref Status current, ErrorCode code, IEnumerable<string> args)
+        private void LogAndUpdate(ref Status current, ErrorCode code, params string[] args)
         {
             this.logger?.Log(code, args);
             current = Status.Failed;
+        }
+
+        /// <summary>
+        /// Logs an error with the given warning code and message parameters, and updates the status passed as reference accordingly.
+        /// </summary>
+        private void LogAndUpdate(ref Status current, WarningCode code, params string[] args)
+        {
+            this.logger?.Log(code, args);
         }
 
         /// <summary>
@@ -751,7 +786,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private void OnCompilerException(Exception ex)
         {
-            this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.UnexpectedCompilerException, Enumerable.Empty<string>());
+            this.LogAndUpdate(ref this.compilationStatus.Validation, ErrorCode.UnexpectedCompilerException);
             this.LogAndUpdate(ref this.compilationStatus.Validation, ex);
         }
 
@@ -830,7 +865,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private QsCompilation? ReplaceTargetSpecificImplementations(IEnumerable<string> paths, Uri rewriteStepOrigin, int nrReferences)
         {
-            void LogError(ErrorCode errCode, string[] args) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, errCode, args);
+            void LogError(ErrorCode errCode, params string[] args) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, errCode, args);
             void LogException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.TargetSpecificReplacements, ex);
 
             (string, ImmutableArray<QsNamespace>)? LoadReferences(string path)
@@ -842,12 +877,12 @@ namespace Microsoft.Quantum.QsCompiler
                     {
                         return (path, loaded.Namespaces);
                     }
-                    LogError(ErrorCode.FailedToLoadTargetSpecificDecompositions, new[] { targetDll });
+                    LogError(ErrorCode.FailedToLoadTargetSpecificDecompositions, targetDll);
                     return null;
                 }
                 catch (Exception ex)
                 {
-                    LogError(ErrorCode.InvalidPathToTargetSpecificDecompositions, new[] { path });
+                    LogError(ErrorCode.InvalidPathToTargetSpecificDecompositions, path);
                     LogException(ex);
                     return null;
                 }
@@ -857,7 +892,7 @@ namespace Microsoft.Quantum.QsCompiler
             var combinedSuccessfully = References.CombineSyntaxTrees(out var replacements, additionalAssemblies: nrReferences, onError: LogError, natives);
             if (!combinedSuccessfully)
             {
-                LogError(ErrorCode.ConflictsInTargetSpecificDecompositions, Array.Empty<string>());
+                LogError(ErrorCode.ConflictsInTargetSpecificDecompositions);
             }
 
             var targetSpecificDecompositions = new QsCompilation(replacements, ImmutableArray<QsQualifiedName>.Empty);
@@ -877,6 +912,7 @@ namespace Microsoft.Quantum.QsCompiler
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
                 null;
 
+            var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
             void LogDiagnostics(ref Status status)
             {
                 try
@@ -889,13 +925,11 @@ namespace Microsoft.Quantum.QsCompiler
                 }
                 catch
                 {
-                    this.LogAndUpdate(ref status, Warning(WarningCode.RewriteStepDiagnosticsGenerationFailed, rewriteStep.Name));
+                    this.LogAndUpdate(ref status, WarningCode.RewriteStepDiagnosticsGenerationFailed, rewriteStep.Name, messageSource);
                 }
             }
 
             var status = Status.Succeeded;
-            var messageSource = ProjectManager.MessageSource(rewriteStep.Origin);
-            Diagnostic Warning(WarningCode code, params string[] args) => Warnings.LoadWarning(code, args, messageSource);
             try
             {
                 transformed = compilation;
@@ -903,8 +937,15 @@ namespace Microsoft.Quantum.QsCompiler
                 if (preconditionFailed)
                 {
                     LogDiagnostics(ref status);
-                    this.LogAndUpdate(ref status, Warning(WarningCode.PreconditionVerificationFailed, rewriteStep.Name, messageSource));
-                    return status;
+                    if (this.config.ForceRewriteStepExecution)
+                    {
+                        this.LogAndUpdate(ref status, ErrorCode.PreconditionVerificationFailed, rewriteStep.Name, messageSource);
+                    }
+                    else
+                    {
+                        this.LogAndUpdate(ref status, WarningCode.PreconditionVerificationFailed, rewriteStep.Name, messageSource);
+                        return status;
+                    }
                 }
 
                 var transformationFailed = rewriteStep.ImplementsTransformation && (!rewriteStep.Transformation(compilation, out transformed) || transformed == null);
@@ -950,7 +991,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.compilationStatus.SourceFileLoading = 0;
             if (sources == null)
             {
-                this.LogAndUpdate(ref this.compilationStatus.SourceFileLoading, ErrorCode.SourceFilesMissing, Enumerable.Empty<string>());
+                this.LogAndUpdate(ref this.compilationStatus.SourceFileLoading, ErrorCode.SourceFilesMissing);
             }
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.SourceFileLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.SourceFileLoading, d);
@@ -972,7 +1013,7 @@ namespace Microsoft.Quantum.QsCompiler
             this.compilationStatus.ReferenceLoading = 0;
             if (refs == null)
             {
-                this.logger?.Log(WarningCode.ReferencesSetToNull, Enumerable.Empty<string>());
+                this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, WarningCode.ReferencesSetToNull);
             }
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.ReferenceLoading, d);
@@ -992,7 +1033,7 @@ namespace Microsoft.Quantum.QsCompiler
         private bool WriteSyntaxTreeSerialization(MemoryStream ms)
         {
             void LogError() => this.LogAndUpdate(
-                ref this.compilationStatus.Serialization, ErrorCode.SerializationFailed, Enumerable.Empty<string>());
+                ref this.compilationStatus.Serialization, ErrorCode.SerializationFailed);
 
             void LogExceptionAndError(Exception ex)
             {
@@ -1014,35 +1055,31 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Backtracks to the beginning of the given memory stream and writes its content to disk,
-        /// generating a suitable bson file in the specified build output folder using the project name as file name.
-        /// Generates a file name at random if no project name is specified.
-        /// Logs suitable diagnostics in the process and modifies the compilation status accordingly.
+        /// Creates a file with the given extension in the specified build output folder using the
+        /// project name as file name. Generates a file name at random if no project name is specified.
+        /// Invokes the given action with the file name to emit a binary format for the compilation.
+        /// Catches any thrown exceptions and logs suitable diagnostics in the process if necessary,
+        /// modifying the compilation status for the binary format generation accordingly.
         /// Returns the absolute path of the file where the binary representation has been generated.
         /// Returns null if the binary file could not be generated.
-        /// Does *not* close the given memory stream.
         /// </summary>
-        private string? GenerateBinary(MemoryStream serialization)
+        private string? GenerateBinary(string fileExtension, Action<string> emit)
         {
             this.compilationStatus.BinaryFormat = Status.Succeeded;
 
-            var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? Path.GetRandomFileName());
+            var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? Path.GetFileName(this.PathToCompiledBinary) ?? Path.GetRandomFileName());
             var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.BuildOutputFolder) ? "." : this.config.BuildOutputFolder);
-            var target = GeneratedFile(projId, outFolder, ".bson", "");
+            var target = GeneratedFile(projId, outFolder, fileExtension, "");
 
             try
             {
-                serialization.Seek(0, SeekOrigin.Begin);
-                using (var file = new FileStream(target, FileMode.Create, FileAccess.Write))
-                {
-                    serialization.WriteTo(file);
-                }
+                emit(target);
                 return target;
             }
             catch (Exception ex)
             {
                 this.LogAndUpdate(ref this.compilationStatus.BinaryFormat, ex);
-                this.LogAndUpdate(ref this.compilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed, Enumerable.Empty<string>());
+                this.LogAndUpdate(ref this.compilationStatus.BinaryFormat, ErrorCode.GeneratingBinaryFailed);
                 return null;
             }
         }
@@ -1098,8 +1135,7 @@ namespace Microsoft.Quantum.QsCompiler
                 var csharpTree = MetadataGeneration.GenerateAssemblyMetadata(references.Where(r => r.Item3).Select(r => r.Item2));
                 foreach (var (dropped, _, _) in references.Where(r => !r.Item3))
                 {
-                    var warning = Warnings.LoadWarning(WarningCode.ReferenceCannotBeIncludedInDll, new[] { dropped }, null);
-                    this.LogAndUpdate(ref this.compilationStatus.DllGeneration, warning);
+                    this.LogAndUpdate(ref this.compilationStatus.DllGeneration, WarningCode.ReferencesSetToNull, dropped);
                 }
 
                 var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
@@ -1126,7 +1162,7 @@ namespace Microsoft.Quantum.QsCompiler
             catch (Exception ex)
             {
                 this.LogAndUpdate(ref this.compilationStatus.DllGeneration, ex);
-                this.LogAndUpdate(ref this.compilationStatus.DllGeneration, ErrorCode.GeneratingDllFailed, Enumerable.Empty<string>());
+                this.LogAndUpdate(ref this.compilationStatus.DllGeneration, ErrorCode.GeneratingDllFailed);
                 return null;
             }
         }
@@ -1186,6 +1222,7 @@ namespace Microsoft.Quantum.QsCompiler
             string FullDirectoryName(string dir) =>
                 Path.GetFullPath(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar);
 
+            fileEnding = fileEnding.Trim().TrimStart('.');
             outputFolder = string.IsNullOrWhiteSpace(outputFolder) ? "." : outputFolder;
             var outputUri = new Uri(FullDirectoryName(outputFolder));
             var currentDir = new Uri(FullDirectoryName("."));
@@ -1194,7 +1231,7 @@ namespace Microsoft.Quantum.QsCompiler
             var fileDir = filePath.StartsWith(outputUri.LocalPath)
                 ? Path.GetDirectoryName(filePath)
                 : Path.GetDirectoryName(outputUri.LocalPath);
-            var targetFile = Path.GetFullPath(Path.Combine(fileDir, Path.GetFileNameWithoutExtension(filePath) + fileEnding));
+            var targetFile = Path.GetFullPath(Path.Combine(fileDir, $"{Path.GetFileNameWithoutExtension(filePath)}.{fileEnding}"));
 
             if (content == null)
             {

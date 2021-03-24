@@ -65,6 +65,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public IEnumerable<string>? AdditionalAssemblyProperties { get; set; }
 
         [Option(
+            "force-rewrite-step-execution",
+            Required = false,
+            Default = false,
+            HelpText = "Specifies whether to execute rewrite steps even if their precondition is not satisfied. If this is the case, the transformation output will be ignored and the compilation fails.")]
+        public bool ForceRewriteStepExecution { get; set; }
+
+        [Option(
             "runtime",
             Required = false,
             SetName = CodeMode,

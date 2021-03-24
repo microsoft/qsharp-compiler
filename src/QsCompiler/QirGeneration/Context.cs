@@ -112,7 +112,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
+        private readonly List<string> pendingCallableTables = new List<string>();
         private readonly Dictionary<ResolvedType, GlobalVariable> memoryManagementTables = new Dictionary<ResolvedType, GlobalVariable>();
+        private readonly List<ResolvedType> pendingMemoryManagementTables = new List<ResolvedType>();
 
         #endregion
 
@@ -425,29 +427,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        /// <summary>
-        /// Writes the current content to the output file.
-        /// </summary>
-        public void Emit(string fileName, bool overwrite = true)
-        {
-            if (!overwrite && File.Exists(fileName))
-            {
-                throw new ArgumentException($"The file \"{fileName}\" already exist(s).");
-            }
-
-            this.GenerateRequiredFunctions();
-
-            if (!this.Module.Verify(out string validationErrors))
-            {
-                File.WriteAllText(fileName, $"LLVM errors:{Environment.NewLine}{validationErrors}");
-            }
-
-            if (!this.Module.WriteToTextFile(fileName, out string errorMessage))
-            {
-                throw new IOException(errorMessage);
-            }
-        }
-
         #endregion
 
         #region Look-up
@@ -516,7 +495,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <returns>true if the function has been properly ended</returns>
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
-        internal bool EndFunction()
+        internal bool EndFunction(bool generatePending = false)
         {
             if (this.CurrentFunction == null || this.CurrentBlock == null)
             {
@@ -530,6 +509,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.CurrentBuilder.Return();
             }
 
+            if (generatePending)
+            {
+                this.GenerateRequiredFunctions();
+            }
             return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any();
         }
 
@@ -835,6 +818,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         : null;
                 var table = this.CreateCallableTable(key, BuildSpec);
                 this.callableTables.Add(key, (callable, table));
+                this.pendingCallableTables.Add(key);
                 return table;
             }
         }
@@ -873,6 +857,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
             table = this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
             this.memoryManagementTables.Add(type, table);
+            this.pendingMemoryManagementTables.Add(type);
             return table;
         }
 
@@ -880,6 +865,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Sets the current function to the given one and sets the parameter names to the given names.
         /// Populates the body of the given function by invoking the given action with the function parameters.
         /// If the current block after the invokation is not terminated, adds a void return.
+        /// Does *not* generate any required functions that have been added by <paramref name="executeBody"/>;
+        /// it is up to the caller to ensure that the necessary functions are created.
         /// </summary>
         internal void GenerateFunction(IrFunction func, string?[] argNames, Action<IReadOnlyList<Argument>> executeBody)
         {
@@ -903,7 +890,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.CurrentBuilder.Return();
             }
-            this.EndFunction();
+            this.EndFunction(generatePending: false);
         }
 
         /// <summary>
@@ -930,7 +917,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Additionally, this method generates all necessary partial applications and all necessary functions
         /// for managing reference counts for capture tuples.
         /// </summary>
-        private void GenerateRequiredFunctions()
+        internal void GenerateRequiredFunctions()
         {
             TupleValue GetArgumentTuple(ResolvedType type, Value argTuple)
             {
@@ -985,14 +972,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    return this.TryGetFunction(callable.FullName, specKind, out IrFunction? func)
-                        ? this.CurrentBuilder.Call(func, args)
-                        : throw new InvalidOperationException($"No function defined for {callable.FullName} {specKind}");
+                    var func = this.GetFunctionByName(callable.FullName, specKind);
+                    return this.CurrentBuilder.Call(func, args);
                 }
             }
 
-            foreach (var (callable, _) in this.callableTables.Values)
+            foreach (var key in this.pendingCallableTables)
             {
+                var (callable, _) = this.callableTables[key];
                 foreach (var spec in callable.Specializations)
                 {
                     var fullName = FunctionWrapperName(callable.FullName, spec.Kind);
@@ -1015,14 +1002,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
             }
+            this.pendingCallableTables.Clear();
 
             foreach (var (func, body) in this.liftedPartialApplications)
             {
                 this.GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, body);
             }
+            this.liftedPartialApplications.Clear();
 
-            foreach (var (type, table) in this.memoryManagementTables)
+            foreach (var type in this.pendingMemoryManagementTables)
             {
+                var table = this.memoryManagementTables[type];
                 var functions = new List<(string, Action<Value, IValue>)>
                 {
                     ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
@@ -1045,6 +1035,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
             }
+            this.pendingMemoryManagementTables.Clear();
         }
 
         #endregion

@@ -225,6 +225,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 ProjectName = options.ProjectName,
                 AssemblyConstants = assemblyConstants,
+                ForceRewriteStepExecution = options.ForceRewriteStepExecution,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapability = options.RuntimeCapability,
                 SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation && options.QirOutputFolder == null,
