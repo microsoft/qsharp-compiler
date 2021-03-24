@@ -2,7 +2,7 @@
 
 Welcome to the Microsoft Quantum Development Kit!
 
-This repository contains the Q# compiler included in the [Quantum Development Kit](https://docs.microsoft.com/quantum/),
+This repository contains the Q# compiler included in the [Quantum Development Kit](https://docs.microsoft.com/azure/quantum/),
 as well as the Q# language server included in our [Visual Studio extension](https://marketplace.visualstudio.com/items?itemName=quantum.DevKit) and our [Visual Studio Code extension](https://marketplace.visualstudio.com/items?itemName=quantum.quantum-devkit-vscode).
 For more information related to the language server protocol take a look at [this repository](https://github.com/Microsoft/language-server-protocol).
 These extensions provide the IDE integration for Q#, and can be found on this repository as well.
@@ -20,13 +20,13 @@ Q# executables can be compiled into an LLVM-based [Quantum Intermediate Represen
 
 ## New to Quantum? ##
 
-See the [introduction to quantum computing](https://docs.microsoft.com/quantum/concepts/) provided with the Quantum Development Kit.
+See the [introduction to quantum computing](https://docs.microsoft.com/azure/quantum/concepts-overview/) provided with the Quantum Development Kit.
 
 ## Installing the Quantum Development Kit
 
-**If you're looking to use Q# to write quantum applications, please see the instructions on how to get started with using the [Quantum Development Kit](https://docs.microsoft.com/quantum/install-guide/) including the Q# compiler, language server, and development environment extensions.**
+**If you're looking to use Q# to write quantum applications, please see the instructions on how to get started with using the [Quantum Development Kit](https://docs.microsoft.com/azure/quantum/install-overview-qdk/) including the Q# compiler, language server, and development environment extensions.**
 
-Please see the [installation guide](https://docs.microsoft.com/quantum/install-guide) for further information on how to get started using the Quantum Development Kit to develop quantum applications.
+Please see the [installation guide](https://docs.microsoft.com/azure/quantum/install-overview-qdk) for further information on how to get started using the Quantum Development Kit to develop quantum applications.
 You may also visit our [Quantum](https://github.com/microsoft/quantum) repository, which offers a wide variety of samples on how to write quantum based programs.
 
 ## Building from Source ##
@@ -35,7 +35,7 @@ Before you can build the source code on this repository and start contributing t
 We refer to the [PowerShell GitHub repository](https://github.com/powershell/powershell) for instructions on how to install PowerShell.
 The script in particular generates the files that are needed for building based on the templates in this repository.
 
-The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). Building the [QsCompiler.sln](./QsCompiler.sln) builds the Q# compiler and language server. To test your changes to the compiler, open the project file of a Q# project that uses the latest version of the [Microsoft.Quantum.Sdk](https://www.nuget.org/packages/Microsoft.Quantum.Sdk/) in a text editor. You can confirm the Sdk version that the project is using by looking at the first line in the project file. You may need to edit that line to update to the latest version, and adjust your project as needed. Confirm that the project is building correctly using that version by executing the command 
+The Q# compiler and language server in this repository are built using [.NET Core](https://docs.microsoft.com/dotnet/core/). Building the [QsCompiler.sln](./QsCompiler.sln) builds the Q# compiler and language server. To test your changes to the compiler, open the project file of a Q# project that uses the latest version of the [Microsoft.Quantum.Sdk](https://www.nuget.org/packages/Microsoft.Quantum.Sdk/) in a text editor. You can confirm the Sdk version that the project is using by looking at the first line in the project file. You may need to edit that line to update to the latest version, and adjust your project as needed. Confirm that the project is building correctly using that version by executing the command
 ```
 dotnet build MyProject.csproj
 ```
@@ -53,7 +53,7 @@ where T : Options
     Console.WriteLine("Hi from your locally built compiler!");
     ...
 ```
-From the root of this repository, build the compiler by executing the two commands 
+From the root of this repository, build the compiler by executing the two commands
 ```
 dotnet clean QsCompiler.sln
 dotnet build QsCompiler.sln -c Debug
@@ -99,7 +99,7 @@ This repository includes both C# and F# code, as well as .csproj and .fsproj pro
 ## Feedback ##
 
 If you have feedback about the content in this repository, please let us know by filing a [new issue](https://github.com/microsoft/qsharp-compiler/issues/new/choose)!
-If you have feedback about some other part of the Microsoft Quantum Development Kit, please see the [contribution guide](https://docs.microsoft.com/quantum/contributing/) for more information.
+If you have feedback about some other part of the Microsoft Quantum Development Kit, please see the [contribution guide](https://docs.microsoft.com/azure/quantum/contributing-overview/) for more information.
 
 ## Reporting Security Issues ##
 

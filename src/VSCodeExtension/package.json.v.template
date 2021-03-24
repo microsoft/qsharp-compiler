@@ -5,7 +5,7 @@
     "description": "Microsoft Quantum Development Kit for Visual Studio Code provides support for developing quantum algorithms in the Q# programming language.",
     "publisher": "quantum",
     "author": "Microsoft DevLabs",
-    "homepage": "http://docs.microsoft.com/quantum/",
+    "homepage": "https://docs.microsoft.com/azure/quantum/",
     "icon": "MS_Quantum_Spot_Dev-200.png",
     "repository": {
         "type": "git",
