@@ -9,13 +9,14 @@
 // ------------------------------------------------------------------------------
 namespace Microsoft.Quantum.QsCompiler.Templates
 {
+    using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
     using System;
     
     /// <summary>
     /// Class to produce the template output
     /// </summary>
     
-    #line 1 "C:\Microsoft\ReposA\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+    #line 1 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.TextTemplating", "16.0.0.0")]
     public partial class QirDriverCpp : QirDriverCppBase
     {
@@ -36,12 +37,197 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 
 extern ""C"" void ");
             
-            #line 11 "C:\Microsoft\ReposA\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 12 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             
             #line default
             #line hidden
-            this.Write("(); // NOLINT\r\n\r\nint main(int argc, char* argv[])\r\n{\r\n    return 0;\r\n}\r\n");
+            this.Write("(); // NOLINT\r\n\r\n// Copyright (c) Microsoft Corporation.\r\n// Licensed under the M" +
+                    "IT License.\r\n\r\n#include <cstring> // for memcpy\r\n#include <fstream>\r\n#include <i" +
+                    "ostream>\r\n#include <map>\r\n#include <memory>\r\n#include <vector>\r\n\r\n#include \"CLI1" +
+                    "1.hpp\"\r\n\r\n#include \"CoreTypes.hpp\"\r\n#include \"QirContext.hpp\"\r\n#include \"QirType" +
+                    "s.hpp\"\r\n#include \"QuantumApi_I.hpp\"\r\n#include \"SimFactory.hpp\"\r\n\r\n#include \"quan" +
+                    "tum__qis_internal.hpp\"\r\n#include \"quantum__rt.hpp\"\r\n\r\nusing namespace Microsoft:" +
+                    ":Quantum;\r\nusing namespace std;\r\n\r\n// This is the function corresponding to the " +
+                    "QIR entry-point.\r\nextern \"C\" int64_t Quantum__StandaloneSupportedInputs__Exercis" +
+                    "eInputs__body( // NOLINT\r\n    int64_t intValue,\r\n    double doubleValue,\r\n    Re" +
+                    "sult resultValue,\r\n    QirString* stringValue);\r\n\r\nconst char FalseAsChar = 0x0;" +
+                    "\r\nconst char TrueAsChar = 0x1;\r\nmap<string, bool> BoolAsCharMap{\r\n    {\"0\", Fals" +
+                    "eAsChar},\r\n    {\"false\", FalseAsChar},\r\n    {\"1\", TrueAsChar},\r\n    {\"true\", Tru" +
+                    "eAsChar}};\r\n\r\nmap<string, PauliId> PauliMap{\r\n    {\"PauliI\", PauliId::PauliId_I}" +
+                    ",\r\n    {\"PauliX\", PauliId::PauliId_X},\r\n    {\"PauliY\", PauliId::PauliId_Y},\r\n   " +
+                    " {\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\nmap<string, char> ResultAsCharMap{\r\n    {\"0" +
+                    "\", FalseAsChar},\r\n    {\"Zero\", FalseAsChar},\r\n    {\"false\", FalseAsChar},\r\n    {" +
+                    "\"1\", TrueAsChar},\r\n    {\"One\", TrueAsChar},\r\n    {\"true\", TrueAsChar}};\r\n\r\ntempl" +
+                    "ate<typename T>\r\nQirArray* CreateQirArray(T* dataBuffer, int64_t itemCount)\r\n{\r\n" +
+                    "    int32_t typeSize = sizeof(T); // NOLINT\r\n    QirArray* qirArray = quantum__r" +
+                    "t__array_create_1d(typeSize, itemCount);\r\n    memcpy(qirArray->buffer, dataBuffe" +
+                    "r, typeSize * itemCount);\r\n    return qirArray;\r\n}\r\n\r\ntemplate<typename D, typen" +
+                    "ame S>\r\nunique_ptr<D[]> TranslateVectorToBuffer(vector<S>sourceVector, function<" +
+                    "D(S)> translationFunction)\r\n{\r\n    unique_ptr<D[]> buffer (new D[sourceVector.si" +
+                    "ze()]);\r\n    for (int index = 0; index < sourceVector.size(); index++)\r\n    {\r\n " +
+                    "       buffer[index] = translationFunction(sourceVector[index]);\r\n    }\r\n\r\n    r" +
+                    "eturn buffer;\r\n}\r\n\r\nusing RangeTuple = tuple<int64_t, int64_t, int64_t>;\r\nQirRan" +
+                    "ge TranslateRangeTupleToQirRange(RangeTuple rangeTuple)\r\n{\r\n    QirRange qirRang" +
+                    "e = {\r\n        get<0>(rangeTuple), // Start\r\n        get<1>(rangeTuple), // Step" +
+                    "\r\n        get<2>(rangeTuple)  // End\r\n    };\r\n\r\n    return qirRange;\r\n}\r\n\r\nbool " +
+                    "TranslateCharToBool(char boolAsChar)\r\n{\r\n    return (boolAsChar != FalseAsChar);" +
+                    "\r\n}\r\n\r\n// Result Zero and One are opaque types defined by the runtime. They are " +
+                    "declared here and initialized before executing\r\n// the simulation.\r\nResult Runti" +
+                    "meResultZero = nullptr;\r\nResult RuntimeResultOne = nullptr;\r\nResult TranslateCha" +
+                    "rToResult(char resultAsChar)\r\n{\r\n    return resultAsChar == FalseAsChar ? Runtim" +
+                    "eResultZero : RuntimeResultOne;\r\n}\r\n\r\nint main(int argc, char* argv[])\r\n{\r\n    C" +
+                    "LI::App app(\"QIR Standalone Entry Point Inputs Reference\");\r\n\r\n    // Initialize" +
+                    " simulator.\r\n    unique_ptr<ISimulator> sim = CreateFullstateSimulator();\r\n    Q" +
+                    "irContextScope qirctx(sim.get(), false /*trackAllocatedObjects*/);\r\n    RuntimeR" +
+                    "esultZero = sim->UseZero();\r\n    RuntimeResultOne = sim->UseOne();\r\n\r\n    // Add" +
+                    " the --simulation-output and --operation-output options.\r\n    // N.B. These opti" +
+                    "ons should be present in all standalone drivers.\r\n    string simulationOutputFil" +
+                    "e;\r\n    CLI::Option* simulationOutputFileOpt = app.add_option(\r\n        \"-s,--si" +
+                    "mulation-output\", simulationOutputFile,\r\n        \"File where the output produced" +
+                    " during the simulation is written\");\r\n\r\n    string operationOutputFile;\r\n    CLI" +
+                    "::Option* operationOutputFileOpt = app.add_option(\r\n        \"-o,--operation-outp" +
+                    "ut\", operationOutputFile, \"File where the output of the Q# operation is written\"" +
+                    ");\r\n\r\n    ");
+            
+            #line 135 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ foreach (var arg in entryPointOperation.Arguments) { 
+            
+            #line default
+            #line hidden
+            this.Write("        hey what do you know ");
+            
+            #line 136 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    ");
+            
+            #line 137 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    ");
+            
+            #line 139 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ foreach (var arg in entryPointOperation.Arguments) { 
+            
+            #line default
+            #line hidden
+            this.Write("        ");
+            
+            #line 140 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ if (arg.Name == "BoolArg") { 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    // Option for a Q# Bool type. hey\r\n    bool boolValue = false;\r\n    app.add" +
+                    "_option(\"--bool-value\", boolValue, \"A bool value\")->required();\r\n\r\n        ");
+            
+            #line 146 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } else if (arg.Name == "IntArg") { 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    // Add the options that correspond to the parameters that the QIR entry-poi" +
+                    "nt needs.\r\n    // Option for a Q# Int type.\r\n    int64_t intValue = 0;\r\n    app." +
+                    "add_option(\"--int-value\", intValue, \"An integer value\")->required();\r\n\r\n        " +
+                    "");
+            
+            #line 153 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write("    ");
+            
+            #line 154 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    // Add the options that correspond to the parameters that the QIR entry-poi" +
+                    "nt needs.\r\n    // Option for a Q# Int type.\r\n    int64_t intValue = 0;\r\n    app." +
+                    "add_option(\"--int-value\", intValue, \"An integer value\")->required();\r\n\r\n    // O" +
+                    "ption for a Q# Array<Int> type.\r\n    vector<int64_t> integerVector;\r\n    app.add" +
+                    "_option(\"--integer-array\", integerVector, \"An integer array\")->required();\r\n\r\n  " +
+                    "  // Option for a Q# Double type.\r\n    double_t doubleValue = 0.0;\r\n    app.add_" +
+                    "option(\"--double-value\", doubleValue, \"A double value\")->required();\r\n\r\n    // O" +
+                    "ption for a Q# Array<Double> type.\r\n    vector<double_t> doubleVector;\r\n    app." +
+                    "add_option(\"--double-array\", doubleVector, \"A double array\")->required();\r\n\r\n   " +
+                    " // Option for a Q# Bool type.\r\n    bool boolValue = false;\r\n    app.add_option(" +
+                    "\"--bool-value\", boolValue, \"A bool value\")->required();\r\n\r\n    // Option for a Q" +
+                    "# Array<Bool> type.\r\n    // N.B. For command line parsing, a char vector is used" +
+                    " because vector<bool> is a specialized version of vector not\r\n    //      suppor" +
+                    "ted by CLI11.\r\n    vector<char> boolAsCharVector;\r\n    app.add_option(\"--bool-ar" +
+                    "ray\", boolAsCharVector, \"A bool array\")\r\n        ->required()\r\n        ->transfo" +
+                    "rm(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));\r\n\r\n    // Option f" +
+                    "or Q# Pauli type.\r\n    PauliId pauliValue = PauliId::PauliId_I;\r\n    app.add_opt" +
+                    "ion(\"--pauli-value\", pauliValue, \"A Pauli value\")\r\n        ->required()\r\n       " +
+                    " ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));\r\n\r\n    // Opt" +
+                    "ion for a Q# Array<Pauli> type.\r\n    std::vector<PauliId> pauliVector;\r\n    app." +
+                    "add_option(\"--pauli-array\", pauliVector, \"A Pauli array\")\r\n        ->required()\r" +
+                    "\n        ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));\r\n\r\n  " +
+                    "  // Option for Q# Range type.\r\n    // N.B. RangeTuple type is used here instead" +
+                    " of QirRange because CLI11 supports tuple parsing which is leveraged and\r\n    //" +
+                    "      the tuple is later translated to QirRange.\r\n    RangeTuple rangeValue(0, 0" +
+                    ", 0);\r\n    app.add_option(\"--range-value\", rangeValue, \"A Range value (start, st" +
+                    "ep, end)\")->required();\r\n\r\n    // Option for a Q# Array<Range> type.\r\n    vector" +
+                    "<RangeTuple> rangeTupleVector;\r\n    app.add_option(\"--range-array\", rangeTupleVe" +
+                    "ctor, \"A Range array\")->required();\r\n\r\n    // Option for Q# Result type.\r\n    //" +
+                    " N.B. This is implemented as a char rather than a boolean to be consistent with " +
+                    "the way an array of results has to\r\n    //      be implemented.\r\n    char result" +
+                    "AsCharValue = FalseAsChar;\r\n    app.add_option(\"--result-value\", resultAsCharVal" +
+                    "ue, \"A Result value\")\r\n        ->required()\r\n        ->transform(CLI::CheckedTra" +
+                    "nsformer(ResultAsCharMap, CLI::ignore_case));\r\n\r\n    // Option for a Q# Array<Re" +
+                    "sult> type.\r\n    // N.B. Similarly to the case of Q# Array<bool>, for command li" +
+                    "ne parsing, a char vector is used because CLI11 does\r\n    //      not support ve" +
+                    "ctor<bool> since it is a specialized version of vector.\r\n    vector<char> result" +
+                    "AsCharVector;\r\n    app.add_option(\"--result-array\", resultAsCharVector, \"A Resul" +
+                    "t array\")\r\n        ->required()\r\n        ->transform(CLI::CheckedTransformer(Res" +
+                    "ultAsCharMap, CLI::ignore_case));\r\n\r\n    // Option for Q# String type.\r\n    stri" +
+                    "ng stringValue;\r\n    app.add_option(\"--string-value\", stringValue, \"A String val" +
+                    "ue\")->required();\r\n\r\n    // With all the options added, parse arguments from the" +
+                    " command line.\r\n    CLI11_PARSE(app, argc, argv);\r\n\r\n    // Translate values to " +
+                    "its final form after parsing.\r\n    // Create a QirArray of integer values.\r\n    " +
+                    "QirArray* qirIntegerArray = CreateQirArray(integerVector.data(), integerVector.s" +
+                    "ize());\r\n\r\n    // Create a QirArray of double values.\r\n    QirArray* qirDoubleAr" +
+                    "ray = CreateQirArray(doubleVector.data(), doubleVector.size());\r\n\r\n    // Create" +
+                    " a QirArray of bool values.\r\n    unique_ptr<bool[]> boolArray = TranslateVectorT" +
+                    "oBuffer<bool, char>(boolAsCharVector, TranslateCharToBool);\r\n    QirArray* qirbo" +
+                    "olArray = CreateQirArray(boolArray.get(), boolAsCharVector.size());\r\n\r\n    // Cr" +
+                    "eate a QirArray of Pauli values.\r\n    QirArray* qirPauliArray = CreateQirArray(p" +
+                    "auliVector.data(), pauliVector.size());\r\n\r\n    // Create a QirRange.\r\n    QirRan" +
+                    "ge qirRange = TranslateRangeTupleToQirRange(rangeValue);\r\n\r\n    // Create a QirA" +
+                    "rray of Range values.\r\n    unique_ptr<QirRange[]> rangeArray = TranslateVectorTo" +
+                    "Buffer<QirRange, RangeTuple>(\r\n        rangeTupleVector, TranslateRangeTupleToQi" +
+                    "rRange);\r\n\r\n    QirArray* qirRangeArray = CreateQirArray(rangeArray.get(), range" +
+                    "TupleVector.size());\r\n\r\n    // Create a Result.\r\n    Result result = TranslateCh" +
+                    "arToResult(resultAsCharValue);\r\n\r\n    // Create a QirArray of Result values.\r\n  " +
+                    "  unique_ptr<Result[]> resultArray = TranslateVectorToBuffer<Result, char>(resul" +
+                    "tAsCharVector, TranslateCharToResult);\r\n    QirArray* qirResultArray = CreateQir" +
+                    "Array(resultArray.get(), resultAsCharVector.size());\r\n\r\n    // Create a QirStrin" +
+                    "g.\r\n    QirString* qirString = quantum__rt__string_create(stringValue.c_str());\r" +
+                    "\n\r\n    // Redirect the simulator output from std::cout if the --simulator-output" +
+                    " option is present.\r\n    ostream* simulatorOutputStream = &cout;\r\n    ofstream s" +
+                    "imulationOutputFileStream;\r\n    if (!simulationOutputFileOpt->empty())\r\n    {\r\n " +
+                    "       simulationOutputFileStream.open(simulationOutputFile);\r\n        Quantum::" +
+                    "Qis::Internal::SetOutputStream(simulationOutputFileStream);\r\n        simulatorOu" +
+                    "tputStream = &simulationOutputFileStream;\r\n    }\r\n\r\n    // Redirect the Q# opera" +
+                    "tion output from std::cout if the --operation-output option is present.\r\n    ost" +
+                    "ream* operationOutputStream = &cout;\r\n    ofstream operationOutputFileStream;\r\n " +
+                    "   if (!operationOutputFileOpt->empty())\r\n    {\r\n        operationOutputFileStre" +
+                    "am.open(operationOutputFile);\r\n        operationOutputStream = &operationOutputF" +
+                    "ileStream;\r\n    }\r\n\r\n    // Run simulation and write the output of the operation" +
+                    " to the corresponding stream.\r\n    int64_t operationOutput = Quantum__Standalone" +
+                    "SupportedInputs__ExerciseInputs__body(\r\n        intValue, doubleValue, result, q" +
+                    "irString);\r\n\r\n    simulatorOutputStream->flush();\r\n    (*operationOutputStream) " +
+                    "<< operationOutput << endl;\r\n    operationOutputStream->flush();\r\n\r\n    // Close" +
+                    " opened file buffers;\r\n    if (operationOutputFileStream.is_open())\r\n    {\r\n    " +
+                    "    operationOutputFileStream.close();\r\n    }\r\n\r\n    if (simulationOutputFileStr" +
+                    "eam.is_open())\r\n    {\r\n        simulationOutputFileStream.close();\r\n    }\r\n}\r\n");
             return this.GenerationEnvironment.ToString();
         }
     }
