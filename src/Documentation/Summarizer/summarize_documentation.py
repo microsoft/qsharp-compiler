@@ -66,8 +66,6 @@ def summaries_table(namespace : Namespace, kind : str, header : str) -> str:
         return lines[0] if lines else ""
 
     items = items_of_kind(namespace.items, kind)
-    print(items)
-    print(namespace.items)
     return (
         table_header + "\n".join(
             f"|[{item['name']}](xref:{item['uid']}) |{first_line(item['summary'])} |"
