@@ -42,83 +42,162 @@ extern ""C"" void ");
             
             #line default
             #line hidden
-            this.Write("(); // NOLINT\r\n\r\n// Copyright (c) Microsoft Corporation.\r\n// Licensed under the M" +
-                    "IT License.\r\n\r\n#include <cstring> // for memcpy\r\n#include <fstream>\r\n#include <i" +
-                    "ostream>\r\n#include <map>\r\n#include <memory>\r\n#include <vector>\r\n\r\n#include \"CLI1" +
-                    "1.hpp\"\r\n\r\n#include \"CoreTypes.hpp\"\r\n#include \"QirContext.hpp\"\r\n#include \"QirType" +
-                    "s.hpp\"\r\n#include \"QuantumApi_I.hpp\"\r\n#include \"SimFactory.hpp\"\r\n\r\n#include \"quan" +
-                    "tum__qis_internal.hpp\"\r\n#include \"quantum__rt.hpp\"\r\n\r\nusing namespace Microsoft:" +
-                    ":Quantum;\r\nusing namespace std;\r\n\r\n// This is the function corresponding to the " +
-                    "QIR entry-point.\r\nextern \"C\" int64_t Quantum__StandaloneSupportedInputs__Exercis" +
-                    "eInputs__body( // NOLINT\r\n    int64_t intValue,\r\n    double doubleValue,\r\n    Re" +
-                    "sult resultValue,\r\n    QirString* stringValue);\r\n\r\nconst char FalseAsChar = 0x0;" +
-                    "\r\nconst char TrueAsChar = 0x1;\r\nmap<string, bool> BoolAsCharMap{\r\n    {\"0\", Fals" +
-                    "eAsChar},\r\n    {\"false\", FalseAsChar},\r\n    {\"1\", TrueAsChar},\r\n    {\"true\", Tru" +
-                    "eAsChar}};\r\n\r\nmap<string, PauliId> PauliMap{\r\n    {\"PauliI\", PauliId::PauliId_I}" +
-                    ",\r\n    {\"PauliX\", PauliId::PauliId_X},\r\n    {\"PauliY\", PauliId::PauliId_Y},\r\n   " +
-                    " {\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\nmap<string, char> ResultAsCharMap{\r\n    {\"0" +
-                    "\", FalseAsChar},\r\n    {\"Zero\", FalseAsChar},\r\n    {\"false\", FalseAsChar},\r\n    {" +
-                    "\"1\", TrueAsChar},\r\n    {\"One\", TrueAsChar},\r\n    {\"true\", TrueAsChar}};\r\n\r\ntempl" +
-                    "ate<typename T>\r\nQirArray* CreateQirArray(T* dataBuffer, int64_t itemCount)\r\n{\r\n" +
-                    "    int32_t typeSize = sizeof(T); // NOLINT\r\n    QirArray* qirArray = quantum__r" +
-                    "t__array_create_1d(typeSize, itemCount);\r\n    memcpy(qirArray->buffer, dataBuffe" +
-                    "r, typeSize * itemCount);\r\n    return qirArray;\r\n}\r\n\r\ntemplate<typename D, typen" +
-                    "ame S>\r\nunique_ptr<D[]> TranslateVectorToBuffer(vector<S>sourceVector, function<" +
-                    "D(S)> translationFunction)\r\n{\r\n    unique_ptr<D[]> buffer (new D[sourceVector.si" +
-                    "ze()]);\r\n    for (int index = 0; index < sourceVector.size(); index++)\r\n    {\r\n " +
-                    "       buffer[index] = translationFunction(sourceVector[index]);\r\n    }\r\n\r\n    r" +
-                    "eturn buffer;\r\n}\r\n\r\nusing RangeTuple = tuple<int64_t, int64_t, int64_t>;\r\nQirRan" +
-                    "ge TranslateRangeTupleToQirRange(RangeTuple rangeTuple)\r\n{\r\n    QirRange qirRang" +
-                    "e = {\r\n        get<0>(rangeTuple), // Start\r\n        get<1>(rangeTuple), // Step" +
-                    "\r\n        get<2>(rangeTuple)  // End\r\n    };\r\n\r\n    return qirRange;\r\n}\r\n\r\nbool " +
-                    "TranslateCharToBool(char boolAsChar)\r\n{\r\n    return (boolAsChar != FalseAsChar);" +
-                    "\r\n}\r\n\r\n// Result Zero and One are opaque types defined by the runtime. They are " +
-                    "declared here and initialized before executing\r\n// the simulation.\r\nResult Runti" +
-                    "meResultZero = nullptr;\r\nResult RuntimeResultOne = nullptr;\r\nResult TranslateCha" +
-                    "rToResult(char resultAsChar)\r\n{\r\n    return resultAsChar == FalseAsChar ? Runtim" +
-                    "eResultZero : RuntimeResultOne;\r\n}\r\n\r\nint main(int argc, char* argv[])\r\n{\r\n    C" +
-                    "LI::App app(\"QIR Standalone Entry Point Inputs Reference\");\r\n\r\n    // Initialize" +
-                    " simulator.\r\n    unique_ptr<ISimulator> sim = CreateFullstateSimulator();\r\n    Q" +
-                    "irContextScope qirctx(sim.get(), false /*trackAllocatedObjects*/);\r\n    RuntimeR" +
-                    "esultZero = sim->UseZero();\r\n    RuntimeResultOne = sim->UseOne();\r\n\r\n    // Add" +
-                    " the --simulation-output and --operation-output options.\r\n    // N.B. These opti" +
-                    "ons should be present in all standalone drivers.\r\n    string simulationOutputFil" +
-                    "e;\r\n    CLI::Option* simulationOutputFileOpt = app.add_option(\r\n        \"-s,--si" +
-                    "mulation-output\", simulationOutputFile,\r\n        \"File where the output produced" +
-                    " during the simulation is written\");\r\n\r\n    string operationOutputFile;\r\n    CLI" +
-                    "::Option* operationOutputFileOpt = app.add_option(\r\n        \"-o,--operation-outp" +
-                    "ut\", operationOutputFile, \"File where the output of the Q# operation is written\"" +
-                    ");\r\n\r\n        ");
+            this.Write(@"(); // NOLINT
+
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+#include <cstring> // for memcpy
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <memory>
+#include <vector>
+
+#include ""CLI11.hpp""
+
+#include ""CoreTypes.hpp""
+#include ""QirContext.hpp""
+#include ""QirTypes.hpp""
+#include ""QuantumApi_I.hpp""
+#include ""SimFactory.hpp""
+
+#include ""quantum__qis_internal.hpp""
+#include ""quantum__rt.hpp""
+
+using namespace Microsoft::Quantum;
+using namespace std;
+
+// This is the function corresponding to the QIR entry-point.
+extern ""C"" int64_t Quantum__StandaloneSupportedInputs__ExerciseInputs__body( // NOLINT
+    int64_t intValue,
+    double doubleValue,
+    Result resultValue,
+    QirString* stringValue);
+
+extern ""C"" void ");
             
-            #line 135 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- foreach (var arg in entryPointOperation.Arguments) { 
+            #line 45 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             
             #line default
             #line hidden
-            this.Write("            hey what do you know ");
+            this.Write("(\r\n    ");
             
-            #line 136 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\r\n        ");
-            
-            #line 137 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
-            
-            #line default
-            #line hidden
-            this.Write("\r\n    ");
-            
-            #line 139 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 46 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  foreach (var arg in entryPointOperation.Arguments) { 
             
             #line default
             #line hidden
             this.Write("        ");
             
-            #line 140 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 47 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ if (arg.Type == DataType.IntegerType) { 
+            
+            #line default
+            #line hidden
+            this.Write("    int64_t intValue,\r\n        ");
+            
+            #line 49 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } else if (arg.Type == DataType.DoubleType) { 
+            
+            #line default
+            #line hidden
+            this.Write("    double doubleValue,\r\n        ");
+            
+            #line 51 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } else if (arg.Type == DataType.ResultType) { 
+            
+            #line default
+            #line hidden
+            this.Write("    Result resultValue,\r\n        ");
+            
+            #line 53 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } else if (arg.Type == DataType.StringType) { 
+            
+            #line default
+            #line hidden
+            this.Write("    QirString* stringValue\r\n        ");
+            
+            #line 55 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write("    ");
+            
+            #line 56 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write(");\r\n\r\nconst char FalseAsChar = 0x0;\r\nconst char TrueAsChar = 0x1;\r\nmap<string, bo" +
+                    "ol> BoolAsCharMap{\r\n    {\"0\", FalseAsChar},\r\n    {\"false\", FalseAsChar},\r\n    {\"" +
+                    "1\", TrueAsChar},\r\n    {\"true\", TrueAsChar}};\r\n\r\nmap<string, PauliId> PauliMap{\r\n" +
+                    "    {\"PauliI\", PauliId::PauliId_I},\r\n    {\"PauliX\", PauliId::PauliId_X},\r\n    {\"" +
+                    "PauliY\", PauliId::PauliId_Y},\r\n    {\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\nmap<strin" +
+                    "g, char> ResultAsCharMap{\r\n    {\"0\", FalseAsChar},\r\n    {\"Zero\", FalseAsChar},\r\n" +
+                    "    {\"false\", FalseAsChar},\r\n    {\"1\", TrueAsChar},\r\n    {\"One\", TrueAsChar},\r\n " +
+                    "   {\"true\", TrueAsChar}};\r\n\r\ntemplate<typename T>\r\nQirArray* CreateQirArray(T* d" +
+                    "ataBuffer, int64_t itemCount)\r\n{\r\n    int32_t typeSize = sizeof(T); // NOLINT\r\n " +
+                    "   QirArray* qirArray = quantum__rt__array_create_1d(typeSize, itemCount);\r\n    " +
+                    "memcpy(qirArray->buffer, dataBuffer, typeSize * itemCount);\r\n    return qirArray" +
+                    ";\r\n}\r\n\r\ntemplate<typename D, typename S>\r\nunique_ptr<D[]> TranslateVectorToBuffe" +
+                    "r(vector<S>sourceVector, function<D(S)> translationFunction)\r\n{\r\n    unique_ptr<" +
+                    "D[]> buffer (new D[sourceVector.size()]);\r\n    for (int index = 0; index < sourc" +
+                    "eVector.size(); index++)\r\n    {\r\n        buffer[index] = translationFunction(sou" +
+                    "rceVector[index]);\r\n    }\r\n\r\n    return buffer;\r\n}\r\n\r\nusing RangeTuple = tuple<i" +
+                    "nt64_t, int64_t, int64_t>;\r\nQirRange TranslateRangeTupleToQirRange(RangeTuple ra" +
+                    "ngeTuple)\r\n{\r\n    QirRange qirRange = {\r\n        get<0>(rangeTuple), // Start\r\n " +
+                    "       get<1>(rangeTuple), // Step\r\n        get<2>(rangeTuple)  // End\r\n    };\r\n" +
+                    "\r\n    return qirRange;\r\n}\r\n\r\nbool TranslateCharToBool(char boolAsChar)\r\n{\r\n    r" +
+                    "eturn (boolAsChar != FalseAsChar);\r\n}\r\n\r\n// Result Zero and One are opaque types" +
+                    " defined by the runtime. They are declared here and initialized before executing" +
+                    "\r\n// the simulation.\r\nResult RuntimeResultZero = nullptr;\r\nResult RuntimeResultO" +
+                    "ne = nullptr;\r\nResult TranslateCharToResult(char resultAsChar)\r\n{\r\n    return re" +
+                    "sultAsChar == FalseAsChar ? RuntimeResultZero : RuntimeResultOne;\r\n}\r\n\r\nint main" +
+                    "(int argc, char* argv[])\r\n{\r\n    CLI::App app(\"QIR Standalone Entry Point Inputs" +
+                    " Reference\");\r\n\r\n    // Initialize simulator.\r\n    unique_ptr<ISimulator> sim = " +
+                    "CreateFullstateSimulator();\r\n    QirContextScope qirctx(sim.get(), false /*track" +
+                    "AllocatedObjects*/);\r\n    RuntimeResultZero = sim->UseZero();\r\n    RuntimeResult" +
+                    "One = sim->UseOne();\r\n\r\n    // Add the --simulation-output and --operation-outpu" +
+                    "t options.\r\n    // N.B. These options should be present in all standalone driver" +
+                    "s.\r\n    string simulationOutputFile;\r\n    CLI::Option* simulationOutputFileOpt =" +
+                    " app.add_option(\r\n        \"-s,--simulation-output\", simulationOutputFile,\r\n     " +
+                    "   \"File where the output produced during the simulation is written\");\r\n\r\n    st" +
+                    "ring operationOutputFile;\r\n    CLI::Option* operationOutputFileOpt = app.add_opt" +
+                    "ion(\r\n        \"-o,--operation-output\", operationOutputFile, \"File where the outp" +
+                    "ut of the Q# operation is written\");\r\n\r\n        ");
+            
+            #line 149 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ foreach (var arg in entryPointOperation.Arguments) { 
+            
+            #line default
+            #line hidden
+            this.Write("            hey what do you know ");
+            
+            #line 150 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            
+            #line default
+            #line hidden
+            this.Write("\r\n        ");
+            
+            #line 151 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    ");
+            
+            #line 153 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ foreach (var arg in entryPointOperation.Arguments) { 
+            
+            #line default
+            #line hidden
+            this.Write("        ");
+            
+            #line 154 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  if (arg.Type == DataType.BoolType) { 
             
             #line default
@@ -126,14 +205,14 @@ extern ""C"" void ");
             this.Write("\r\n    // Option for a Q# Bool type.\r\n    bool boolValue = false;\r\n    app.add_opt" +
                     "ion(\"--");
             
-            #line 144 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 158 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
             
             #line default
             #line hidden
             this.Write("\", boolValue, \"A bool value\")->required();\r\n\r\n        ");
             
-            #line 146 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 160 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.IntegerType) { 
             
             #line default
@@ -142,14 +221,14 @@ extern ""C"" void ");
                     "nt needs.\r\n    // Option for a Q# Int type.\r\n    int64_t intValue = 0;\r\n    app." +
                     "add_option(\"--");
             
-            #line 151 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 165 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
             
             #line default
             #line hidden
             this.Write("\", intValue, \"An integer value\")->required();\r\n\r\n        ");
             
-            #line 153 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 167 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.DoubleType) { 
             
             #line default
@@ -157,14 +236,14 @@ extern ""C"" void ");
             this.Write("\r\n    // Option for a Q# Double type.\r\n    double_t doubleValue = 0.0;\r\n    app.a" +
                     "dd_option(\"--");
             
-            #line 157 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 171 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
             
             #line default
             #line hidden
             this.Write("\", doubleValue, \"A double value\")->required();\r\n\r\n        ");
             
-            #line 159 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 173 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.PauliType) { 
             
             #line default
@@ -172,7 +251,7 @@ extern ""C"" void ");
             this.Write("\r\n    // Option for Q# Pauli type.\r\n    PauliId pauliValue = PauliId::PauliId_I;\r" +
                     "\n    app.add_option(\"--");
             
-            #line 163 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 177 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
             
             #line default
@@ -180,7 +259,7 @@ extern ""C"" void ");
             this.Write("\", pauliValue, \"A Pauli value\")\r\n        ->required()\r\n        ->transform(CLI::C" +
                     "heckedTransformer(PauliMap, CLI::ignore_case));\r\n\r\n        ");
             
-            #line 167 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 181 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.RangeType) { 
             
             #line default
@@ -192,14 +271,14 @@ extern ""C"" void ");
     RangeTuple rangeValue(0, 0, 0);
     app.add_option(""--");
             
-            #line 173 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 187 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
             
             #line default
             #line hidden
             this.Write("\", rangeValue, \"A Range value (start, step, end)\")->required();\r\n\r\n        ");
             
-            #line 175 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 189 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.ResultType) { 
             
             #line default
@@ -215,7 +294,7 @@ extern ""C"" void ");
 
         ");
             
-            #line 185 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 199 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } else if (arg.Type == DataType.StringType) { 
             
             #line default
@@ -223,21 +302,21 @@ extern ""C"" void ");
             this.Write("\r\n    // Option for Q# String type.\r\n    string stringValue;\r\n    app.add_option(" +
                     "\"--");
             
-            #line 189 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 203 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
             
             #line default
             #line hidden
             this.Write("\", stringValue, \"A String value\")->required();\r\n    \r\n        ");
             
-            #line 191 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 205 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } 
             
             #line default
             #line hidden
             this.Write("    ");
             
-            #line 192 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 206 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } 
             
             #line default

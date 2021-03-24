@@ -42,6 +42,20 @@ extern "C" int64_t Quantum__StandaloneSupportedInputs__ExerciseInputs__body( // 
     Result resultValue,
     QirString* stringValue);
 
+extern "C" void <#= entryPointOperation.Name #>(
+    <# foreach (var arg in entryPointOperation.Arguments) { #>
+        <# if (arg.Type == DataType.IntegerType) { #>
+    int64_t intValue,
+        <# } else if (arg.Type == DataType.DoubleType) { #>
+    double doubleValue,
+        <# } else if (arg.Type == DataType.ResultType) { #>
+    Result resultValue,
+        <# } else if (arg.Type == DataType.StringType) { #>
+    QirString* stringValue
+        <# } #>
+    <# } #>
+);
+
 const char FalseAsChar = 0x0;
 const char TrueAsChar = 0x1;
 map<string, bool> BoolAsCharMap{
