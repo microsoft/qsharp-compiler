@@ -137,18 +137,32 @@ int main(int argc, char* argv[])
     <# } #>
 
     <# foreach (var arg in entryPointOperation.Arguments) { #>
-        <# if (arg.Name == "BoolArg") { #>
+        <# if (arg.Type == DataType.BoolType) { #>
 
     // Option for a Q# Bool type. hey
     bool boolValue = false;
     app.add_option("--bool-value", boolValue, "A bool value")->required();
 
-        <# } else if (arg.Name == "IntArg") { #>
+        <# } else if (arg.Type == DataType.IntegerType) { #>
 
     // Add the options that correspond to the parameters that the QIR entry-point needs.
     // Option for a Q# Int type.
     int64_t intValue = 0;
     app.add_option("--int-value", intValue, "An integer value")->required();
+
+        <# } else if (arg.Type == DataType.DoubleType) { #>
+
+    // Option for a Q# Double type.
+    double_t doubleValue = 0.0;
+    app.add_option("--double-value", doubleValue, "A double value")->required();
+
+        <# } else if (arg.Type == DataType.PauliType) { #>
+
+    // Option for Q# Pauli type.
+    PauliId pauliValue = PauliId::PauliId_I;
+    app.add_option("--pauli-value", pauliValue, "A Pauli value")
+        ->required()
+        ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
         <# } #>
     <# } #>
