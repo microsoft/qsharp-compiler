@@ -1,0 +1,33 @@
+﻿<?xml version="1.0"?>
+<package  xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>    
+    <id>Microsoft.Quantum.QirGeneration</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>Microsoft</authors>
+    <owners>QuantumEngineering, Microsoft</owners>
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Q# compiler extension for QIR emission.</description>
+    <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
+    <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
+    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
+    <copyright>$copyright$</copyright>
+    <tags>Quantum Q# QSharp QIR</tags>
+    <dependencies>
+      <dependency id="Microsoft.Quantum.Compiler" version="$version$" />
+      <dependency id="System.Memory" version="4.5.4" />
+      <dependency id="LLVMSharp" version="11.0.0-beta" />
+      <dependency id="libLLVM.runtime.win-x64" version="11.0.0" />
+      <dependency id="libLLVM.runtime.osx-x64" version="11.0.0" />
+      <dependency id="libLLVM.runtime.ubuntu.20.04-x64" version="11.0.0" />
+      <dependency id="libLLVM.runtime.ubuntu.18.04-x64" version="11.0.0" />
+    </dependencies>
+  </metadata>
+  <files>
+    <file src="QirGeneration.props" target="build\QirGeneration.props" />
+    <file src="bin\$Configuration$\**\Microsoft.Quantum.LlvmBindings.dll" target="lib" />
+    <!--file src="bin\$Configuration$\**\Microsoft.Quantum.QirGeneration.dll" target="lib" />
+    <file src="bin\$Configuration$\**\Microsoft.Quantum.QirGeneration.xml" target="lib" /-->
+  </files>
+</package>
