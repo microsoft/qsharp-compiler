@@ -61,9 +61,13 @@ def summaries_table(namespace, kind, header):
 | Name | Summary |
 |------|---------|
 """
+    def first_line(summary):
+        lines = summary.splitlines()
+        return lines[0] if lines else ""
+
     return (
         table_header + "\n".join(
-            f"|[{item['name']}](xref:{item['uid']}) |{item['summary']}"
+            f"|[{item['name']}](xref:{item['uid']}) |{first_line(item['summary'])} |"
             for item in namespace[kind]
         )
         if kind in namespace and namespace[kind]
@@ -94,7 +98,7 @@ def write_namespace_summary(target_file : Path, namespace):
         # If it does exist, look for <!-- summaries --> and <!-- /summaries -->
         # comments, and if they exist, replace inside that section.
         if begin_region in contents:
-            contents[contents.index(begin_region):contents.index(end_region) + len(end_region)] = summaries
+            contents = contents[:contents.index(begin_region)] + summaries + contents[contents.index(end_region) + len(end_region):]
         else:
             contents += "\n" + summaries
 
