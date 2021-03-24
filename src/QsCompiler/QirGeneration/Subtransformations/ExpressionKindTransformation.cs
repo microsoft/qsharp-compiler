@@ -404,7 +404,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         return (-1, s.Length, -1);
                     }
-                    else if ((i == start) || (s[i - 1] != '\\'))
+                    // if the number of backslashes before the '{' is even, then the '{' is not escapted
+                    else if (((i - start) - s.Substring(start, i - start).TrimEnd('\\').Length) % 2 == 0)
                     {
                         var j = s.IndexOf('}', i + 1);
                         if (j < 0)
