@@ -21,7 +21,8 @@ let private clearOutput name =
 
 let private checkAltOutput name actualText =
     let expectedText = ("TestCases", "QirTests", name) |> Path.Combine |> File.ReadAllText
-    Assert.Contains(expectedText, GUID.Replace(actualText, "__GUID__"))
+    let actualTextLF = GUID.Replace(actualText, "__GUID__").Replace(System.Environment.NewLine, "\n")
+    Assert.Contains(expectedText, actualTextLF)
 
 let private compilerArgs target (name: string) =
     seq {

@@ -4,25 +4,39 @@
 // needs to be available for testing
 namespace Microsoft.Quantum.Core {
 
-    @ Attribute()
+    @Attribute()
     newtype Attribute = Unit;
 
-    @ Attribute()
+    @Attribute()
     newtype EntryPoint = Unit;
 
-    @ Attribute()
-    newtype Deprecated = String;
+    @Attribute()
+    newtype Inline = Unit;
 
+    @Attribute()
+    newtype Deprecated = (NewName : String);
 
-    function Default<'T>() : 'T {
+    function Default<'T> () : 'T {
         return (new 'T[1])[0];
     }
 
-    function Length<'T>(arr : 'T[]) : Int {
+    function Length<'T> (a : 'T[]) : Int {
+        body intrinsic;
+    }
+    
+    function RangeStart (range : Range) : Int {
+        body intrinsic;
+    }
+    
+    function RangeEnd (range : Range) : Int {
+        body intrinsic;
+    }
+    
+    function RangeStep (range : Range) : Int {
         body intrinsic;
     }
 
-    function RangeReverse(r : Range) : Range {
+    function RangeReverse(range : Range) : Range {
         body intrinsic;
     }
 }

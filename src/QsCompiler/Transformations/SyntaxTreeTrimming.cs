@@ -24,7 +24,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
         {
             public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
             {
-                var callablesToKeep = new CallGraph(compilation, true).Nodes.Select(node => node.CallableName).ToImmutableHashSet();
+                var namespaceNames = compilation.Namespaces.Select(ns => ns.Name).ToImmutableHashSet();
+                var augmentedEntryPoints = BuiltIn.AllBuiltIns
+                    .Where(bi => bi.Kind != BuiltInKind.Attribute && namespaceNames.Contains(bi.FullName.Namespace))
+                    .Select(bi => bi.FullName)
+                    .Concat(compilation.EntryPoints)
+                    .Distinct()
+                    .ToImmutableArray();
+                var compilationWithBuiltIns = new QsCompilation(compilation.Namespaces, augmentedEntryPoints);
+                var callablesToKeep = new CallGraph(compilationWithBuiltIns, true).Nodes.Select(node => node.CallableName).ToImmutableHashSet();
 
                 // ToDo: convert to using ternary operator, when target-type
                 // conditional expressions are supported in C#
@@ -43,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
                 if (elem is QsNamespaceElement.QsCallable call)
                 {
                     return call.Item.Specializations.Any(spec => spec.Implementation.IsIntrinsic)
-                        || BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName)
+                        //|| BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName)
                         || graphNodes.Contains(call.Item.FullName);
                 }
                 else
@@ -56,8 +64,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
             {
                 if (elem is QsNamespaceElement.QsCallable call)
                 {
-                    return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName)
-                        || graphNodes.Contains(call.Item.FullName);
+                    //return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName)
+                    //    || graphNodes.Contains(call.Item.FullName);
+                    return graphNodes.Contains(call.Item.FullName);
                 }
                 else
                 {
