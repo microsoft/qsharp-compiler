@@ -39,8 +39,6 @@ let private compilerArgs target (name: string) =
          then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
          else "")
 
-        "--qir"
-        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
         "--load"
 
         Path.Combine
