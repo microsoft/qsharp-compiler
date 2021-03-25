@@ -6,7 +6,7 @@
 from collections import defaultdict
 from dataclasses import dataclass, asdict, field
 from pathlib import Path
-from typing import Set
+from typing import Set, Union
 import glob
 
 import click
@@ -44,6 +44,7 @@ def items_of_kind(items, kind):
     return [
         {
             "uid": item.uid,
+            "name": item.name,
             "summary": item.summary
         }
         for item in
@@ -53,11 +54,82 @@ def items_of_kind(items, kind):
         )
     ]
 
+def summaries_table(namespace : Namespace, kind : str, header : str) -> str:
+    table_header = f"""
+## {header}
+
+| Name | Summary |
+|------|---------|
+"""
+    def first_line(summary : str) -> str:
+        lines = summary.splitlines()
+        return lines[0] if lines else ""
+
+    items = items_of_kind(namespace.items, kind)
+    return (
+        table_header + "\n".join(
+            f"|[{item['name']}](xref:{item['uid']}) |{first_line(item['summary'])} |"
+            for item in items
+        )
+        if items
+        else ""
+    )
+
+def write_namespace_summary(target_file : Path, namespace : Namespace) -> None:
+    """
+    Given the contents of a namespace, either creates a new Markdown file
+    summarizing those contents, or adds those contents to an existing Markdown
+    file, overwriting any existing summary tables.
+    """
+
+    begin_region = "<!-- summaries -->"
+    end_region = "<!-- /summaries -->"
+
+    # Make the summary table to be injected.
+    summaries = begin_region + "\n" + "\n".join([
+        summaries_table(namespace, 'operation', 'Operations'),
+        summaries_table(namespace, 'function', 'Functions'),
+        summaries_table(namespace, 'udt', 'User-defined types'),
+    ]) + "\n" + end_region + "\n"
+
+
+    # Check if the file already exists
+    if target_file.exists():
+        contents = target_file.read_text(encoding='utf8')
+        # If it does exist, look for <!-- summaries --> and <!-- /summaries -->
+        # comments, and if they exist, replace inside that section.
+        if begin_region in contents:
+            contents = contents[:contents.index(begin_region)] + summaries + contents[contents.index(end_region) + len(end_region):]
+        else:
+            contents += "\n" + summaries
+
+        with open(target_file, 'w', encoding='utf8') as f:
+            f.write(contents)
+
+    # If the file does not exist, go on and make it now.
+    else:
+        with open(target_file, 'w', encoding='utf8') as f:
+            f.write(f"""
+---
+uid: {namespace.uid}
+title: {namespace.name} namespace
+ms.topic: managed-reference
+qsharp.kind: namespace
+qsharp.name: {namespace.name}
+qsharp.summary: ""
+---
+
+# {namespace.name} Namespace
+
+{summaries}
+
+""")
+
 @click.command()
 @click.argument("sources")
 @click.argument("output_path")
-def main(sources : str, output_path : str):
-    namespaces = defaultdict(Namespace)
+def main(sources : str, output_path : Union[str, Path]):
+    namespaces: dict = defaultdict(Namespace)
     output_path = Path(output_path)
     for source in glob.glob(sources):
         print(source)
@@ -77,19 +149,7 @@ def main(sources : str, output_path : str):
             ))
 
     for namespace_name, namespace in namespaces.items():
-        uid = namespace.uid or namespace_name
-        name = namespace.name or namespace_name
-        namespace_page = {
-            "uid": uid,
-            "name": name,
-            "summary": namespace.summary,
-            "operations": items_of_kind(namespace.items, "operation"),
-            "functions": items_of_kind(namespace.items, "function"),
-            "newtypes": items_of_kind(namespace.items, "udt")
-        }
-        
-        with open(output_path / f"{name.lower()}.yml", "w", encoding="utf8") as f:
-            f.write(namespace_comment + warning_comment + yaml.dump(namespace_page))
+        write_namespace_summary(output_path / f"{namespace_name.lower()}.md", namespace)
 
     toc_page = [
         {
