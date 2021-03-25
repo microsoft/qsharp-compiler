@@ -875,6 +875,9 @@ namespace Microsoft.Quantum.QsCompiler
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
+                rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.QirEmissionGeneratedError) :
+                rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.QirEmissionGeneratedWarning) :
+                rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.QirEmissionGeneratedInfo) :
                 null;
 
             void LogDiagnostics(ref Status status)
@@ -884,7 +887,7 @@ namespace Microsoft.Quantum.QsCompiler
                     var steps = rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty;
                     foreach (var diagnostic in steps)
                     {
-                        this.LogAndUpdate(ref status, LoadedStep.ConvertDiagnostic(diagnostic, GetDiagnosticsCode));
+                        this.LogAndUpdate(ref status, LoadedStep.ConvertDiagnostic(rewriteStep.Name, diagnostic, GetDiagnosticsCode));
                     }
                 }
                 catch
