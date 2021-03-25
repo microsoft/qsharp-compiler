@@ -166,7 +166,7 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
 
     <# foreach (var arg in entryPointOperation.Arguments) { #>
-        <# } else if (arg.Type == DataType.IntegerType) { #>
+        <# if (arg.Type == DataType.IntegerType) { #>
     // Add the options that correspond to the parameters that the QIR entry-point needs.
     // Option for a Q# Int type.
     int64_t <#= arg.Name #> = 0;
