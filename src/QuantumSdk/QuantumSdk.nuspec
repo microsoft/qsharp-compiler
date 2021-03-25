@@ -9,7 +9,7 @@
     <license type="expression">MIT</license>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>The Microsoft Quantum Sdk for developing in Q#.</description>
-    <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
+    <releaseNotes>See: https://docs.microsoft.com/azure/quantum/qdk-relnotes/</releaseNotes>
     <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
     <icon>images\qdk-nuget-icon.png</icon>
     <copyright>© Microsoft Corporation. All rights reserved.</copyright>
