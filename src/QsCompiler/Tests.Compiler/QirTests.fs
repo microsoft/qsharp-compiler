@@ -42,7 +42,10 @@ let private compilerArgs target (name: string) =
         "--qir"
         Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
         "--load"
-        Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Microsoft.Quantum.QirGeneration.dll")
+
+        Path.Combine
+            (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Microsoft.Quantum.QirGeneration.dll")
+
         "--verbosity"
         "Diagnostic"
     }
