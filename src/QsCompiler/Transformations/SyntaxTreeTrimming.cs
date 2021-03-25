@@ -51,7 +51,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
                 if (elem is QsNamespaceElement.QsCallable call)
                 {
                     return call.Item.Specializations.Any(spec => spec.Implementation.IsIntrinsic)
-                        //|| BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName)
                         || graphNodes.Contains(call.Item.FullName);
                 }
                 else
@@ -64,8 +63,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
             {
                 if (elem is QsNamespaceElement.QsCallable call)
                 {
-                    //return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName)
-                    //    || graphNodes.Contains(call.Item.FullName);
                     return graphNodes.Contains(call.Item.FullName);
                 }
                 else
