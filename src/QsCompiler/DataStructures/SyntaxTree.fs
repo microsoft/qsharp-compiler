@@ -447,7 +447,7 @@ module ResolvedType =
     /// <summary>
     /// Recursively replaces every range in <paramref name="resolvedType"/> with <paramref name="range"/>.
     /// </summary>
-    [<CompiledName "WithRangeRecurse">]
+    [<CompiledName "WithAllRanges">]
     let rec withAllRanges range (resolvedType: ResolvedType) =
         match resolvedType.Resolution with
         | ArrayType item -> withAllRanges range item |> ArrayType
