@@ -49,7 +49,10 @@ let private compilerArgs target (name: string) =
     }
 
 let private customTest name compilerArgs snippets =
-    let fileName = name + ".ll"
+    if not <| Directory.Exists "qir"
+    then Directory.CreateDirectory "qir" |> ignore
+
+    let fileName = Path.Combine("qir", name + ".ll")
     clearOutput fileName
     compilerArgs |> testOne ReturnCode.Success
 

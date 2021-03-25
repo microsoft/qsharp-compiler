@@ -27,7 +27,5 @@
   <files>
     <file src="QirGeneration.props" target="build\QirGeneration.props" />
     <file src="bin\$Configuration$\**\Microsoft.Quantum.LlvmBindings.dll" target="lib" />
-    <!--file src="bin\$Configuration$\**\Microsoft.Quantum.QirGeneration.dll" target="lib" />
-    <file src="bin\$Configuration$\**\Microsoft.Quantum.QirGeneration.xml" target="lib" /-->
   </files>
 </package>
