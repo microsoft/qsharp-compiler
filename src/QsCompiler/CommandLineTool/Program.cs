@@ -77,11 +77,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public const int MonomorphizationErrors = -12;
 
         /// <summary>
-        /// Return code indicating that generating QIR for the built compilation failed.
-        /// </summary>
-        public const int QirGenerationErrors = -13;
-
-        /// <summary>
         /// Return code indicating that an unexpected exception was thrown when executing the invoked command to the Q# command line compiler.
         /// </summary>
         public const int UnexpectedError = -1000;
@@ -96,8 +91,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             loaded.Monomorphization == CompilationLoader.Status.Failed ? MonomorphizationErrors :
             loaded.TargetSpecificReplacements == CompilationLoader.Status.Failed ? TargetingErrors :
             loaded.TargetSpecificCompilation == CompilationLoader.Status.Failed ? TargetingErrors :
-            loaded.TargetInstructionInference == CompilationLoader.Status.Failed ? TargetingErrors :
-            loaded.QirGeneration == CompilationLoader.Status.Failed ? QirGenerationErrors :
             loaded.Documentation == CompilationLoader.Status.Failed ? DocGenerationErrors :
             loaded.BinaryFormat == CompilationLoader.Status.Failed ? BinaryGenerationErrors :
             loaded.DllGeneration == CompilationLoader.Status.Failed ? DllGenerationErrors :

@@ -238,7 +238,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false, // todo: enable debug mode?
                 ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames,
-                QirOutputFolder = options.QirOutputFolder
             };
 
             if (options.PerfOutputFolder != null)

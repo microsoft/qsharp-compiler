@@ -52,12 +52,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// required by each callable.
         /// </summary>
         public const int CapabilityInference = 60;
-
-        /// <summary>
-        /// Priority of the built-in transformation that creates a separate callable for each intrinsic
-        /// specialization and adds a TargetInstruction attribute if needed.
-        /// </summary>
-        public const int TargetInstructionSeparation = 25;
     }
 
     public interface IRewriteStep

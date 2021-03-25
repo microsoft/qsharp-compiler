@@ -119,12 +119,6 @@ namespace Microsoft.Quantum.QsCompiler
             public string? BuildOutputFolder;
 
             /// <summary>
-            /// Directory where the human readable QIR will be generated.
-            /// No QIR will be generated unless this path is specified and valid.
-            /// </summary>
-            public string? QirOutputFolder;
-
-            /// <summary>
             /// Output path for the dll containing the compiled binaries.
             /// No dll will be generated unless this path is specified and valid.
             /// </summary>
@@ -267,7 +261,6 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status DllGeneration = Status.NotRun;
             internal Status CapabilityInference = Status.NotRun;
             internal Status TargetInstructionInference = Status.NotRun;
-            internal Status QirGeneration = Status.NotRun;
             internal Status[] LoadedRewriteSteps;
 
             internal ExecutionStatus(IEnumerable<IRewriteStep> externalRewriteSteps) =>
@@ -288,11 +281,9 @@ namespace Microsoft.Quantum.QsCompiler
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
                 this.WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
                 this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
-                this.WasSuccessful(options.QirOutputFolder != null, this.TargetInstructionInference) &&
                 this.WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 this.WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 this.WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
-                this.WasSuccessful(options.QirOutputFolder != null, this.QirGeneration) &&
                 this.LoadedRewriteSteps.All(status => this.WasSuccessful(true, status));
         }
 
@@ -359,13 +350,6 @@ namespace Microsoft.Quantum.QsCompiler
         public Status CapabilityInference => this.compilationStatus.CapabilityInference;
 
         /// <summary>
-        /// Indicates whether a separate callable that corresponds to an instruction
-        /// implemented by the execution target has been generated for each intrinsic specialization.
-        /// This rewrite step is only executed when generating QIR.
-        /// </summary>
-        public Status TargetInstructionInference => this.compilationStatus.TargetInstructionInference;
-
-        /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully.
         /// This step is only executed if the corresponding configuration is specified.
         /// </summary>
@@ -382,12 +366,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// This step is only executed if the corresponding configuration is specified.
         /// </summary>
         public Status BinaryFormat => this.compilationStatus.BinaryFormat;
-
-        /// <summary>
-        /// Indicates whether QIR has been emitted successfully.
-        /// This step is only executed if the corresponding configuration is specified.
-        /// </summary>
-        public Status QirGeneration => this.compilationStatus.QirGeneration;
 
         /// <summary>
         /// Indicates whether a dll containing the compiled binary has been generated successfully.
@@ -614,7 +592,9 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
-                var rewriteStep = new LoadedStep(new Monomorphization(this.config.QirOutputFolder == null), typeof(IRewriteStep), thisDllUri);
+                // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
+                // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
+                var rewriteStep = new LoadedStep(new Monomorphization(true), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
@@ -622,12 +602,6 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var capabilityInference = new LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((capabilityInference.Priority, capabilityInference.Name, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
-            }
-
-            if (this.config.QirOutputFolder != null)
-            {
-                var separateTargetInstructions = new LoadedStep(new TargetInstructionInference(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((separateTargetInstructions.Priority, separateTargetInstructions.Name, () => this.ExecuteAsAtomicTransformation(separateTargetInstructions, ref this.compilationStatus.TargetInstructionInference)));
             }
 
             for (int j = 0; j < this.externalRewriteSteps.Length; j++)
@@ -672,28 +646,6 @@ namespace Microsoft.Quantum.QsCompiler
                     PerformanceTracking.TaskStart(PerformanceTracking.Task.DllGeneration);
                     this.DllOutputPath = this.GenerateDll(ms);
                     PerformanceTracking.TaskEnd(PerformanceTracking.Task.DllGeneration);
-                }
-            }
-
-            if (this.config.QirOutputFolder != null && this.compilationStatus.TargetInstructionInference == Status.Succeeded)
-            {
-                var generator = new QirGeneration();
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.QirGeneration);
-                var qirGeneration = new LoadedStep(generator, typeof(IRewriteStep), thisDllUri);
-                this.ExecuteAsAtomicTransformation(qirGeneration, ref this.compilationStatus.QirGeneration);
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.QirGeneration);
-
-                if (this.compilationStatus.QirGeneration == Status.Succeeded)
-                {
-                    PerformanceTracking.TaskStart(PerformanceTracking.Task.BitcodeGeneration);
-                    this.PathToBitCode = this.GenerateBinary(".bc", fileName =>
-                        generator.Emit(fileName, emitBitcode: true));
-                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
-
-                    // create the human readable version as well
-                    var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? "main");
-                    var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.QirOutputFolder) ? "." : this.config.QirOutputFolder);
-                    generator.Emit(GeneratedFile(projId, outFolder, ".ll", ""), emitBitcode: false);
                 }
             }
 

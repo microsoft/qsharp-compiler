@@ -41,15 +41,18 @@ let private compilerArgs target (name: string) =
 
         "--qir"
         Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+        "--load"
+        Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Microsoft.Quantum.QirGeneration.dll")
         "--verbosity"
         "Diagnostic"
     }
 
 let private customTest name compilerArgs snippets =
-    clearOutput (name + ".ll")
+    let fileName = Path.Combine("qir", name + ".ll")
+    clearOutput fileName
     compilerArgs |> testOne ReturnCode.Success
 
-    let fullText = (name + ".ll") |> File.ReadAllText
+    let fullText = fileName |> File.ReadAllText
     snippets |> List.map (fun s -> checkAltOutput (s + ".ll") fullText)
 
 let private qirMultiTest target name snippets =
