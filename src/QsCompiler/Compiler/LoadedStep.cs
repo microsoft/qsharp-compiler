@@ -124,7 +124,11 @@ namespace Microsoft.Quantum.QsCompiler
                 Message = $"{stageAnnotation}{diagnostic.Message}",
                 Source = diagnostic.Source,
                 Range = diagnostic.Source is null || diagnostic.Range is null
-                        ? new VisualStudio.LanguageServer.Protocol.Range()
+                        ? new VisualStudio.LanguageServer.Protocol.Range
+                          {
+                              Start = new Position(0, 0),
+                              End = new Position(0, 0),
+                          }
                         : diagnostic.Range.ToLsp()
             };
         }
