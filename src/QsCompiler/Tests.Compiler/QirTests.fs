@@ -157,7 +157,8 @@ let ``QIR controlled partial applications`` () =
     qirMultiTest true "TestControlled" [ "TestControlled1"; "TestControlled2" ]
 
 [<Fact>]
-let ``QIR entry points`` () = qirTest false "TestEntryPoint"
+let ``QIR entry points`` () =
+    qirMultiTest false "TestEntryPoint" [ "TestEntryPoint1"; "TestEntryPoint2" ]
 
 [<Fact>]
 let ``QIR partial applications`` () =

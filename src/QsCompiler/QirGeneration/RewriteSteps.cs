@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.IO;
 using System.Linq;
+using System.Reflection;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.QIR;
@@ -61,7 +62,8 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     Severity = DiagnosticSeverity.Error,
                     Stage = IRewriteStep.Stage.PreconditionVerification,
-                    Message = DiagnosticItem.Message(ErrorCode.SyntaxTreeNotMonomorphized, Array.Empty<string>())
+                    Message = DiagnosticItem.Message(ErrorCode.SyntaxTreeNotMonomorphized, Array.Empty<string>()),
+                    Source = Assembly.GetExecutingAssembly().Location
                 });
                 return false;
             }
