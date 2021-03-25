@@ -49,7 +49,7 @@ let private compilerArgs target (name: string) =
     }
 
 let private customTest name compilerArgs snippets =
-    let fileName = Path.Combine("qir", name + ".ll")
+    let fileName = name + ".ll"
     clearOutput fileName
     compilerArgs |> testOne ReturnCode.Success
 
