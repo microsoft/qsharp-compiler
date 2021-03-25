@@ -65,6 +65,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public IEnumerable<string>? AdditionalAssemblyProperties { get; set; }
 
         [Option(
+            "skip-monomorphization",
+            Required = false,
+            Default = false,
+            HelpText = "Specifies whether to omit monomorphizing the AST for executables.")]
+        public bool SkipMonomorphization { get; set; }
+
+        [Option(
             "force-rewrite-step-execution",
             Required = false,
             Default = false,

@@ -260,7 +260,6 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status BinaryFormat = Status.NotRun;
             internal Status DllGeneration = Status.NotRun;
             internal Status CapabilityInference = Status.NotRun;
-            internal Status TargetInstructionInference = Status.NotRun;
             internal Status[] LoadedRewriteSteps;
 
             internal ExecutionStatus(IEnumerable<IRewriteStep> externalRewriteSteps) =>

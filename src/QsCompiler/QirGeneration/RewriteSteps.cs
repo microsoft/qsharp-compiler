@@ -17,7 +17,7 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal class QirGeneration : IRewriteStep
     {
-        internal static int EmissionPriority = 10;
+        internal static int EmissionPriority = -10;
         private readonly List<IRewriteStep.Diagnostic> diagnostics;
 
         public QirGeneration()
@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler
         public string Name => "QIR Generation";
 
         /// <inheritdoc/>
-        public int Priority => EmissionPriority; // relative priority within this dll only
+        public int Priority => EmissionPriority;
 
         /// <inheritdoc/>
         public IDictionary<string, string?> AssemblyConstants { get; }
@@ -123,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler
         public string Name => "Target Instruction Separation";
 
         /// <inheritdoc/>
-        public int Priority => QirGeneration.EmissionPriority + 1; // relative priority within this dll only
+        public int Priority => QirGeneration.EmissionPriority + 1;
 
         /// <inheritdoc/>
         public IDictionary<string, string?> AssemblyConstants { get; }

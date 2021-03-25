@@ -73,13 +73,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             public bool EmitDll { get; set; }
 
             [Option(
-                "qir",
-                Required = false,
-                SetName = CodeMode,
-                HelpText = "Destination folder for the emitted QIR; only executable projects can be compiled into QIR.")]
-            public string QirOutputFolder { get; set; }
-
-            [Option(
                 "perf",
                 Required = false,
                 SetName = CodeMode,
@@ -228,7 +221,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 ForceRewriteStepExecution = options.ForceRewriteStepExecution,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapability = options.RuntimeCapability,
-                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation && options.QirOutputFolder == null,
+                SkipMonomorphization = options.SkipMonomorphization,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
