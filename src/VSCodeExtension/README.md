@@ -1,8 +1,12 @@
 # Microsoft Quantum Development Kit Preview
 
 Thank you for your interest in Microsoft's Quantum Development Kit for Visual Studio Code preview.
+
 The Quantum Development Kit contains the tools you'll need to build your own quantum computing programs and experiments.
+
 Assuming some experience with Visual Studio Code, beginners can write their first quantum program, and experienced researchers can quickly and efficiently develop new quantum algorithms.
+
+For version history and related information, please refer to the [Quantum Development Kit Release Notes](https://docs.microsoft.com/en-us/azure/quantum/qdk-relnotes).
 
 ## Getting Started
 

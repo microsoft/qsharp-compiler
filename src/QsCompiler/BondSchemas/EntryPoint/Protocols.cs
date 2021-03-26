@@ -10,7 +10,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
     /// <summary>
     /// This class provides methods for serialization/deserialization of objects in the Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint namespace.
     /// </summary>
-    public static class Protocols
+    internal static class Protocols
     {
         /// <summary>
         /// Deserializes an EntryPointOperation object from its JSON representation.
