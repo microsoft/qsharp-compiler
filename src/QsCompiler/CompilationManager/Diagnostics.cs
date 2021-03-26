@@ -83,34 +83,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Range = ((positionOffset ?? Position.Zero) + msg.Range).ToLsp()
             };
 
-        internal const string QsCodePrefix = "QS";
+        private const string CodePrefix = "QS";
+
+        internal static string CodeString(int code) => CodePrefix + code.ToString("D4");
 
         public static bool TryGetCode(string str, out int code)
         {
             code = -1;
             str = str?.Trim() ?? "";
             return !string.IsNullOrWhiteSpace(str) &&
-                str.StartsWith(QsCodePrefix, StringComparison.InvariantCultureIgnoreCase) &&
+                str.StartsWith(CodePrefix, StringComparison.InvariantCultureIgnoreCase) &&
                 int.TryParse(str.Substring(2), out code);
         }
     }
 
     public static class Informations
     {
-        public static string Code(this InformationCode code) =>
-            Information((int)code);
+        public static string Code(this InformationCode code) => Information((int)code);
 
-        internal static string Information(int code) =>
-            $"{Diagnostics.QsCodePrefix}{code}";
+        internal static string Information(int code) => Diagnostics.CodeString(code);
     }
 
     public static class Warnings
     {
-        public static string Code(this WarningCode code) =>
-            Warning((int)code);
+        public static string Code(this WarningCode code) => Warning((int)code);
 
-        internal static string Warning(int code) =>
-            $"{Diagnostics.QsCodePrefix}{code}";
+        internal static string Warning(int code) => Diagnostics.CodeString(code);
 
         // warnings 70**
 
@@ -141,11 +139,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
     public static class Errors
     {
-        public static string Code(this ErrorCode code) =>
-            Error((int)code);
+        public static string Code(this ErrorCode code) => Error((int)code);
 
-        internal static string Error(int code) =>
-            $"{Diagnostics.QsCodePrefix}{code}";
+        internal static string Error(int code) => Diagnostics.CodeString(code);
 
         // errors 70**
 
