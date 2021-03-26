@@ -14,12 +14,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
     /// <summary>
     /// Class to produce the template output
     /// </summary>
-    
-    #line 1 "C:\Microsoft\ReposA\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.TextTemplating", "16.0.0.0")]
     public partial class QirDriverCpp : QirDriverCppBase
     {
-#line hidden
         /// <summary>
         /// Create the template output
         /// </summary>
@@ -35,19 +32,11 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 //      executable.
 
 extern ""C"" void ");
-            
-            #line 11 "C:\Microsoft\ReposA\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
-            
-            #line default
-            #line hidden
             this.Write("(); // NOLINT\r\n\r\nint main(int argc, char* argv[])\r\n{\r\n    return 0;\r\n}\r\n");
             return this.GenerationEnvironment.ToString();
         }
     }
-    
-    #line default
-    #line hidden
     #region Base class
     /// <summary>
     /// Base class for this transformation
