@@ -71,12 +71,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// Unless this is set to true, the syntax tree rewrite step that eliminates selective abstractions is executed during compilation.
             /// In particular, all conjugations are inlined.
             /// </summary>
-            public bool SkipSyntaxTreeTrimming;
+            public bool SkipConjugationInlining;
 
             /// <summary>
             /// Unless this is set to true, all unused callables are removed from the syntax tree.
             /// </summary>
-            public bool SkipSyntaxTreeTrimming2;
+            public bool SkipSyntaxTreeTrimming;
 
             /// <summary>
             /// If set to true, the compiler attempts to pre-evaluate the built compilation as much as possible.
@@ -256,8 +256,8 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status TargetSpecificReplacements = Status.NotRun;
             internal Status FunctorSupport = Status.NotRun;
             internal Status PreEvaluation = Status.NotRun;
+            internal Status ConjugationInlining = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
-            internal Status TreeTrimming2 = Status.NotRun;
             internal Status ConvertClassicalControl = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
             internal Status Documentation = Status.NotRun;
@@ -280,8 +280,9 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 this.WasSuccessful(true, this.Validation) &&
                 this.WasSuccessful(true, this.PluginLoading) &&
+                this.WasSuccessful(!options.IsExecutable && !options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 this.WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
-                this.WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                this.WasSuccessful(!options.SkipConjugationInlining, this.ConjugationInlining) &&
                 this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
@@ -583,10 +584,10 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
 
-            if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming2)
+            if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
             {
                 var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(this.config.QirOutputFolder == null), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming2)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
 
             if (this.config.ConvertClassicalControl)
@@ -601,10 +602,10 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
             }
 
-            if (!this.config.SkipSyntaxTreeTrimming)
+            if (!this.config.SkipConjugationInlining)
             {
                 var rewriteStep = new LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConjugationInlining)));
             }
 
             if (this.config.AttemptFullPreEvaluation)

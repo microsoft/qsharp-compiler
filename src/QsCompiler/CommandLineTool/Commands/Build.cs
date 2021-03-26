@@ -229,8 +229,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 RuntimeCapability = options.RuntimeCapability,
                 SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation && options.QirOutputFolder == null,
                 GenerateFunctorSupport = true,
-                SkipSyntaxTreeTrimming2 = options.TrimLevel == 0,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
+                SkipConjugationInlining = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 BuildOutputFolder = options.OutputFolder ?? (usesPlugins ? "." : null),
                 DllOutputPath = options.EmitDll ? " " : null, // set to e.g. an empty space to generate the dll in the same location as the .bson file
