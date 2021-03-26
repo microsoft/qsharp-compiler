@@ -73,6 +73,3 @@ Write-Host "##[info]Finding NuSpec references..."
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
 .\FindNuspecReferences.ps1;
 Pop-Location
-Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/QirGeneration')
-.\FindNuspecReferences.ps1;
-Pop-Location
