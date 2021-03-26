@@ -142,7 +142,10 @@
     <Content Include="TestCases\QirTests\TestDoubles.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestEntryPoint.ll">
+    <Content Include="TestCases\QirTests\TestEntryPoint1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestEntryPoint2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestEntryPoint.qs">
@@ -355,9 +358,6 @@
     <None Include="TestCases\LinkingTests\InternalRenaming.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\LinkingTests\SyntaxTreeTrim.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </None>
     <None Include="TestCases\OptimizerTests\Arithmetic_output.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -417,10 +417,10 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\StringParsingTests\StringParsing.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\StringParsingTests\StringInterpolation.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\AttributeGeneration.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>

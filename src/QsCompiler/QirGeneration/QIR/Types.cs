@@ -282,5 +282,6 @@ namespace Microsoft.Quantum.QIR
     public static class AttributeNames
     {
         public const string EntryPoint = "EntryPoint";
+        public const string InteropFriendly = "InteropFriendly";
     }
 }

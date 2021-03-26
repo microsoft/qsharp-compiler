@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler
 
         public string? OutputFolder { get; }
 
-        internal static Diagnostic ConvertDiagnostic(IRewriteStep.Diagnostic diagnostic, Func<DiagnosticSeverity, string?>? getCode = null)
+        internal static Diagnostic ConvertDiagnostic(string stepName, IRewriteStep.Diagnostic diagnostic, Func<DiagnosticSeverity, string?>? getCode = null)
         {
             var severity =
                 diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Error ? DiagnosticSeverity.Error :
@@ -110,10 +110,14 @@ namespace Microsoft.Quantum.QsCompiler
                 diagnostic.Severity == CodeAnalysis.DiagnosticSeverity.Info ? DiagnosticSeverity.Information :
                 DiagnosticSeverity.Hint;
 
-            var stageAnnotation =
-                diagnostic.Stage == IRewriteStep.Stage.PreconditionVerification ? $"[{diagnostic.Stage}] " :
-                diagnostic.Stage == IRewriteStep.Stage.PostconditionVerification ? $"[{diagnostic.Stage}] " :
-                "";
+            var addStage =
+                diagnostic.Stage == IRewriteStep.Stage.PreconditionVerification ||
+                diagnostic.Stage == IRewriteStep.Stage.PostconditionVerification;
+
+            var origin =
+                string.IsNullOrWhiteSpace(stepName) && !addStage ? $"" :
+                string.IsNullOrWhiteSpace(stepName) && addStage ? $"[{diagnostic.Stage}] " :
+                addStage ? $"[{diagnostic.Stage} {stepName}] " : $"[{stepName}] ";
 
             // NOTE: If we change data structure to add or change properties,
             // then the cast below in GeneratedDiagnostics needs to be adapted.
@@ -121,10 +125,14 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 Code = getCode?.Invoke(severity),
                 Severity = severity,
-                Message = $"{stageAnnotation}{diagnostic.Message}",
+                Message = $"{origin}{diagnostic.Message}",
                 Source = diagnostic.Source,
                 Range = diagnostic.Source is null || diagnostic.Range is null
-                        ? new VisualStudio.LanguageServer.Protocol.Range()
+                        ? new VisualStudio.LanguageServer.Protocol.Range
+                          {
+                              Start = new Position(0, 0),
+                              End = new Position(0, 0),
+                          }
                         : diagnostic.Range.ToLsp()
             };
         }

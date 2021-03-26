@@ -143,7 +143,7 @@ type ExecutionTests(output: ITestOutputHelper) =
     member this.``Referencing Projects and Packages``() =
         ExecuteAndCompareOutput "PackageAndProjectReference" "
                 Welcome to Q#!
-                Info: Go check out https://docs.microsoft.com/en-us/quantum/?view=qsharp-preview.
+                Info: Go check out https://docs.microsoft.com/azure/quantum.
             "
 
         ExecuteAndCompareOutput "TypeInReferencedProject" "

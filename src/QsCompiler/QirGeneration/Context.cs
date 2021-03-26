@@ -209,10 +209,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             namespaceName.Replace(".", "__");
 
         /// <summary>
-        /// Generates a suitable name for and entry point.
+        /// The name of the interop-friendly wrapper function for the callable.
         /// </summary>
-        /// <param name="fullName">The entry point's qualified name.</param>
-        internal static string EntryPointName(QsQualifiedName fullName) =>
+        public static string InteropFriendlyWrapperName(QsQualifiedName fullName) =>
+            $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}__Interop";
+
+        /// <summary>
+        /// The name of the entry point function calling into the body of the callable with the given name.
+        /// </summary>
+        public static string EntryPointName(QsQualifiedName fullName) =>
             $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}";
 
         /// <summary>
@@ -394,35 +399,63 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Generates an interop-friendly wrapper around the callable with the given name such that it can be invoked
-        /// from within native code without relying on the QIR runtime or adhering to the QIR specification.
-        /// See <seealso cref="Interop.ProcessArguments"/> and <seealso cref="Interop.ProcessReturnValue"/>
-        /// for more detail.
-        /// <br/>
-        /// If an attribute name is specified, adds an attribute with the given name to the created wrapper.
-        /// If no wrapper needed to be created because the signature of the callable is interop-friendly,
-        /// adds the attribute to the existing function.
+        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the givne name
+        /// and the corresponding QIR function for the given specialization kind.
+        /// Attaches the attributes with the given names to the returned IrFunction.
         /// </summary>
-        /// <param name="wrapperName">The function name to give the wrapper.</param>
-        /// <param name="qualifiedName">The fully qualified name of the Q# callable to create a wrapper for.</param>
-        /// <param name="attributeName">Optionally the name of the attribute to attach.</param>
         /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
-        public void CreateInteropWrapper(string wrapperName, QsQualifiedName qualifiedName, string? attributeName = null)
+        private void CreateBridgeFunction(
+            QsQualifiedName qualifiedName,
+            QsSpecializationKind specKind,
+            Func<QsCallable, IrFunction, IrFunction> createBridge,
+            params string[] attributes)
         {
-            if (this.TryGetFunction(qualifiedName, QsSpecializationKind.QsBody, out IrFunction? func)
-                && this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable))
+            if (this.TryGetGlobalCallable(qualifiedName, out QsCallable? callable)
+                && this.TryGetFunction(qualifiedName, specKind, out IrFunction? func))
             {
-                var wrapper = Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, func);
-                if (attributeName != null)
+                var bridge = createBridge(callable, func);
+                foreach (var attName in attributes)
                 {
-                    var attribute = this.Context.CreateAttribute(attributeName);
-                    wrapper.AddAttributeAtIndex(FunctionAttributeIndex.Function, attribute);
+                    var attribute = this.Context.CreateAttribute(attName);
+                    bridge.AddAttributeAtIndex(FunctionAttributeIndex.Function, attribute);
                 }
             }
             else
             {
                 throw new ArgumentException("no function with that name exists");
             }
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="Interop.GenerateWrapper(GenerationContext, string, ArgumentTuple, ResolvedType, IrFunction)"/>
+        /// <br/>
+        /// Adds an <see cref="AttributeNames.InteropFriendly"/> attribute marking the created wrapper as interop wrapper.
+        /// If no wrapper needed to be created because the signature of the callable is interop-friendly,
+        /// adds the attribute to the existing function.
+        /// </summary>
+        /// <param name="qualifiedName">The fully qualified name of the Q# callable to create a wrapper for.</param>
+        /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
+        public void CreateInteropFriendlyWrapper(QsQualifiedName qualifiedName)
+        {
+            string wrapperName = InteropFriendlyWrapperName(qualifiedName);
+            IrFunction InteropWrapper(QsCallable callable, IrFunction implementation) =>
+                Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
+            this.CreateBridgeFunction(qualifiedName, QsSpecializationKind.QsBody, InteropWrapper, AttributeNames.InteropFriendly);
+        }
+
+        /// <summary>
+        /// <inheritdoc cref="Interop.GenerateEntryPoint(GenerationContext, string, ArgumentTuple, ResolvedType, IrFunction)"/>
+        /// <br/>
+        /// Adds an <see cref="AttributeNames.EntryPoint"/> attribute to the created function.
+        /// </summary>
+        /// <param name="qualifiedName">The fully qualified name of the Q# callable to create a wrapper for.</param>
+        /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
+        internal void CreateEntryPoint(QsQualifiedName qualifiedName)
+        {
+            string entryPointName = EntryPointName(qualifiedName);
+            IrFunction EntryPoint(QsCallable callable, IrFunction implementation) =>
+                Interop.GenerateEntryPoint(this, entryPointName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
+            this.CreateBridgeFunction(qualifiedName, QsSpecializationKind.QsBody, EntryPoint, AttributeNames.EntryPoint);
         }
 
         /// <summary>

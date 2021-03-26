@@ -9,7 +9,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
     /// <summary>
     /// This class provides extension methods for objects in the Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint namespace.
     /// </summary>
-    public static class Extensions
+    internal static class Extensions
     {
         /// <summary>
         /// Determine whether the values of two object instances are equal.
