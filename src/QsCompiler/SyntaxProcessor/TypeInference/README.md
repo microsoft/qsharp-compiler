@@ -31,12 +31,12 @@ To apply a function to an argument of type Int, the function type must match `In
 // must unify with
 // 'a0 -> 'a0
 //
-// f(7) is of type 'b0.
-f(7);
+// result is of type 'b0.
+let result = f(7);
 ```
 
 Unification yields `'a0 ↦ Int` and `'b0 ↦ 'a0`.
-We can conclude that `'b0 ↦ Int`, so `f(7)` is of type `Int`, as expected.
+We can conclude that `'b0 ↦ Int`, so `result` is of type `Int`, as expected.
 
 Hindley-Milner type inference normally performs *generalization*, the opposite of instantiation, when a `let` binding is encountered.
 However, since `let` bindings are monomorphic in Q#, generalization is not supported.
