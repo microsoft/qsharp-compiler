@@ -86,6 +86,7 @@ function Pack-Dotnet() {
 $all_ok = $True
 
 Publish-One '../src/QsCompiler/CommandLineTool/CommandLineTool.csproj'
+Publish-One '../src/QsCompiler/LlvmBindings/LlvmBindings.csproj'
 Publish-One '../src/QuantumSdk/Tools/BuildConfiguration/BuildConfiguration.csproj'
 Publish-One '../src/QuantumSdk/Tools/DefaultEntryPoint/DefaultEntryPoint.csproj'
 

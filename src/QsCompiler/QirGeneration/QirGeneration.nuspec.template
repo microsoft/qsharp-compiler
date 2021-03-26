@@ -20,6 +20,6 @@
   </metadata>
   <files>
     <file src="QirGeneration.props" target="build\Microsoft.Quantum.QirGeneration.props" />
-    <file src="bin\$Configuration$\**\Microsoft.Quantum.LlvmBindings.dll" target="lib" />
+    <file src="..\LlvmBindings\bin\$Configuration$\netstandard2.1\publish\*.dll" target="lib" />
   </files>
 </package>

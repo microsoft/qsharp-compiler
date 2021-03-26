@@ -46,10 +46,10 @@ function Add-NuGetDependencyFromCsprojToNuspec($PathToCsproj)
     }
 }
 
-# Find all package dependencies on QirGeneration.csproj and LlvmBindings.csproj, 
+# Find all package dependencies on QirGeneration.csproj, 
 # and add the compiler as a package dependency instead.
+# All dependencies for the llvm bindings are published and included in the package by the nuspec template.
 Add-NuGetDependencyFromCsprojToNuspec "QirGeneration.csproj" $dep
-Add-NuGetDependencyFromCsprojToNuspec "..\LlvmBindings\LlvmBindings.csproj" $dep
 $dependency = $dep.AppendChild($nuspec.CreateElement('dependency', $nuspec.package.metadata.NamespaceURI))
 $dependency.SetAttribute('id', 'Microsoft.Quantum.Compiler')
 $dependency.SetAttribute('version', '$version$')
