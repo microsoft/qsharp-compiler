@@ -17,17 +17,6 @@
 
     <copyright>$copyright$</copyright>
     <tags>Quantum Q# QSharp QIR</tags>
-    
-    <dependencies>
-      <dependency id="Microsoft.Quantum.Compiler" version="$version$" />
-      <dependency id="System.Memory" version="4.5.4" />
-      <dependency id="LLVMSharp" version="11.0.0-beta" />
-      <dependency id="libLLVM.runtime.win-x64" version="11.0.0" />
-      <dependency id="libLLVM.runtime.osx-x64" version="11.0.0" />
-      <dependency id="libLLVM.runtime.ubuntu.20.04-x64" version="11.0.0" />
-      <dependency id="libLLVM.runtime.ubuntu.18.04-x64" version="11.0.0" />
-    </dependencies>
-    
   </metadata>
   <files>
     <file src="QirGeneration.props" target="build\Microsoft.Quantum.QirGeneration.props" />
