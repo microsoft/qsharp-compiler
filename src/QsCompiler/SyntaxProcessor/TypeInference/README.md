@@ -24,7 +24,7 @@ let f = Identity;
 ```
 
 When the function is applied, the argument type is unified with the input of the function type.
-To apply a function to an argument of type Int, the function type must match `Int -> 'b0`, where `'b0` is another freshly instantiated type variable.
+To apply a function to an argument of type `Int`, the function type must match `Int -> 'b0`, where `'b0` is another freshly instantiated type variable.
 
 ```qsharp
 // Int -> 'b0
@@ -37,6 +37,7 @@ let result = f(7);
 
 Unification yields `'a0 ↦ Int` and `'b0 ↦ 'a0`.
 We can conclude that `'b0 ↦ Int`, so `result` is of type `Int`, as expected.
+By the same reasoning, we have also learned that `f` is of type `Int -> Int`.
 
 Hindley-Milner type inference normally performs *generalization*, the opposite of instantiation, when a `let` binding is encountered.
 However, since `let` bindings are monomorphic in Q#, generalization is not supported.
@@ -49,7 +50,7 @@ Q#'s type system has two additional features that extend the Hindley-Milner type
 ### Constraints
 
 Constraints are used to require that some types satisfy certain properties.
-For example, using the `==` operator requires that the type supports equality comparisons, and using `for` loop requires that the type supports iteration.
+For example, using the `==` operator requires that the type supports equality comparisons, and using a `for` loop requires that the type supports iteration.
 Constraints are not themselves first-class types in Q#, so all constrained types must resolve to a specific type that satisfies the constraint.
 
 ### Subtyping
