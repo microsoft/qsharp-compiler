@@ -1,0 +1,25 @@
+﻿<?xml version="1.0"?>
+<package  xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>    
+    <id>Microsoft.Quantum.QirGeneration</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>Microsoft</authors>
+    <owners>QuantumEngineering, Microsoft</owners>
+
+    <license type="expression">MIT</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>Q# compiler extension for QIR emission.</description>
+
+    <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
+    <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
+    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
+
+    <copyright>$copyright$</copyright>
+    <tags>Quantum Q# QSharp QIR</tags>
+  </metadata>
+  <files>
+    <file src="QirGeneration.props" target="build\Microsoft.Quantum.QirGeneration.props" />
+    <file src="bin\$Configuration$\**\Microsoft.Quantum.LlvmBindings.dll" target="lib" />
+  </files>
+</package>
