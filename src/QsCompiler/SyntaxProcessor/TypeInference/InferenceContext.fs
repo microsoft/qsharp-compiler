@@ -266,10 +266,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         if occursCheck param substitution |> not then failwith "Occurs check failed."
         let variable = variables.[param]
 
-        match variable.Substitution with
-        | Some substitution' when substitution <> substitution' ->
-            failwith "The type parameter is already bound to a different type."
-        | _ -> variables.[param] <- { variable with Substitution = Some substitution }
+        if Option.isSome variable.Substitution
+        then failwith "Type parameter is already bound."
+
+        variables.[param] <- { variable with Substitution = Some substitution }
 
     let rememberErrors types diagnostics =
         if types |> Seq.contains (ResolvedType.New InvalidType) || List.isEmpty diagnostics |> not then
