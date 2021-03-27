@@ -5,6 +5,7 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <NoWarn>$(NoWarn);SA1636</NoWarn> <!-- Not sure if copyrigth header should be changed -->
+    <NoWarn>$(NoWarn);CS1574</NoWarn> <!-- Wrong types in comments cref -->
   </PropertyGroup>
 
   <ItemGroup>
