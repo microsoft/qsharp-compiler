@@ -9,6 +9,7 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Ubiquity.NET.Llvm.Values
@@ -62,7 +63,9 @@ namespace Ubiquity.NET.Llvm.Values
                    .GetEnumerator();
         }
 
-        public bool TryGetValue(FunctionAttributeIndex key, out ICollection<AttributeValue> value)
+#pragma warning disable CS8767 // IReadOnlyDictionary<TKey,TValue> interface does not have nullability attributes in netstandard2.1, this suppression could be removed after move to .NET 5
+        public bool TryGetValue(FunctionAttributeIndex key, [MaybeNullWhen(false)] out ICollection<AttributeValue> value)
+#pragma warning restore CS8767
         {
             value = default;
             if (this.ContainsKey(key))

@@ -29,7 +29,7 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets the function containing the block.</summary>
-        public IrFunction ContainingFunction
+        public IrFunction? ContainingFunction
         {
             get
             {
@@ -47,7 +47,7 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets the first instruction in the block.</summary>
-        public Instruction FirstInstruction
+        public Instruction? FirstInstruction
         {
             get
             {
@@ -57,7 +57,7 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets the last instruction in the block.</summary>
-        public Instruction LastInstruction
+        public Instruction? LastInstruction
         {
             get
             {
@@ -71,7 +71,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// May be null if the block is not yet well-formed
         /// as is commonly the case while generating code for a new block.
         /// </remarks>
-        public Instruction Terminator
+        public Instruction? Terminator
         {
             get
             {
@@ -100,7 +100,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <param name="instruction">instruction in the block to get the next instruction from.</param>
         /// <returns>Next instruction or default if none.</returns>
         /// <exception cref="ArgumentException">Thrown when <paramref cref="Instruction"/> is from a different block.</exception>
-        public Instruction GetNextInstruction(Instruction instruction)
+        public Instruction? GetNextInstruction(Instruction instruction)
         {
             if (instruction == default)
             {

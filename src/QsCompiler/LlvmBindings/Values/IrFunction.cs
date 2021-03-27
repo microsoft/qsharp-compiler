@@ -221,7 +221,7 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets the Entry block for this function.</summary>
-        public BasicBlock EntryBlock
+        public BasicBlock? EntryBlock
             => this.ValueHandle.BasicBlocksCount == 0 ? default : BasicBlock.FromHandle(this.ValueHandle.EntryBasicBlock);
 
         /// <summary>Gets the basic blocks for the function.</summary>
@@ -251,7 +251,7 @@ namespace Ubiquity.NET.Llvm.Values
         public ITypeRef ReturnType => this.Signature.ReturnType;
 
         /// <summary>Gets or sets the personality function for exception handling in this function.</summary>
-        public unsafe IrFunction PersonalityFunction
+        public unsafe IrFunction? PersonalityFunction
         {
             get => LLVM.HasPersonalityFn(this.ValueHandle) == 0 ? default : FromHandle<IrFunction>(this.ValueHandle.PersonalityFn)!;
 

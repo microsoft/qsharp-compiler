@@ -51,7 +51,7 @@ namespace Ubiquity.NET.Llvm.Values
 
         /// <summary>Gets the value for named attributes with values.</summary>
         /// <value>The value as a string or <see lang="default"/> if the attribute has no value.</value>
-        public string StringValue
+        public string? StringValue
         {
             get
             {

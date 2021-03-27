@@ -27,7 +27,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         }
 
         /// <summary>Gets or sets the Unwind destination for this <see cref="CatchSwitch"/>.</summary>
-        public unsafe BasicBlock UnwindDestination
+        public unsafe BasicBlock? UnwindDestination
         {
             get
             {

@@ -32,7 +32,7 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets or sets the linker section this object belongs to.</summary>
-        public string Section
+        public string? Section
         {
             get => this.ValueHandle == default ? default : this.ValueHandle.Section;
             set

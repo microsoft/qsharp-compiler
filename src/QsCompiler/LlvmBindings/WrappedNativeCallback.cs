@@ -25,10 +25,10 @@ namespace Ubiquity.NET.Llvm.Interop
     {
         private readonly IntPtr NativeFuncPtr;
 
-        // keeps a live ref for the delegate around so GC won't clean it up
-        private Delegate UnpinnedDelegate;
-
         private readonly GCHandle Handle;
+
+        // keeps a live ref for the delegate around so GC won't clean it up
+        private Delegate? UnpinnedDelegate;
 
         /// <summary>Initializes a new instance of the <see cref="WrappedNativeCallback"/> class.</summary>
         /// <param name="d">Delegate.</param>

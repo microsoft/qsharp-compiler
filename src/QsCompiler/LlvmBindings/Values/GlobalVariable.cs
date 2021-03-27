@@ -49,7 +49,7 @@ namespace Ubiquity.NET.Llvm.Values
         }
 
         /// <summary>Gets or sets the initial value for the variable.</summary>
-        public Constant Initializer
+        public Constant? Initializer
         {
             get
             {

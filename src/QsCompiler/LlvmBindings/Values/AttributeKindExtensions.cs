@@ -416,7 +416,7 @@ namespace Ubiquity.NET.Llvm.Values
                             return false;
                         }
 
-                        IrFunction function;
+                        IrFunction? function;
                         switch (value)
                         {
                             case IrFunction f:
@@ -455,7 +455,7 @@ namespace Ubiquity.NET.Llvm.Values
 
             if (index >= FunctionAttributeIndex.Parameter0)
             {
-                IrFunction function;
+                IrFunction? function;
                 switch (value)
                 {
                     case IrFunction f:

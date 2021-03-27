@@ -76,7 +76,7 @@ namespace Ubiquity.NET.Llvm.Values
 
         /// <summary>Generates a string representing the LLVM syntax of the value.</summary>
         /// <returns>string version of the value formatted by LLVM.</returns>
-        public override string ToString() => this.ValueHandle == default ? default : this.ValueHandle.PrintToString();
+        public override string ToString() => this.ValueHandle == default ? string.Empty : this.ValueHandle.PrintToString();
 
         /// <summary>Replace all uses of a <see cref="Value"/> with another one.</summary>
         /// <param name="other">New value.</param>

@@ -25,7 +25,7 @@ namespace Ubiquity.NET.Llvm
 
         public Context Context { get; }
 
-        public TMappedType GetOrCreateItem(THandle handle, Action<THandle> foundHandleRelease = default)
+        public TMappedType GetOrCreateItem(THandle handle, Action<THandle>? foundHandleRelease = default)
         {
             if (this.HandleMap.TryGetValue(handle, out TMappedType retVal))
             {

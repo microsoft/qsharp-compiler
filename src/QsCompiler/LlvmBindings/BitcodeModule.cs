@@ -233,7 +233,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="name">Name of the function to get.</param>
         /// <returns>The function or default if not found.</returns>
         [Obsolete("Use TryGetFunction instead")]
-        public IrFunction GetFunction(string name)
+        public IrFunction? GetFunction(string name)
         {
             this.ThrowIfDisposed();
 
@@ -245,7 +245,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="name">Name of the function.</param>
         /// <param name="function">The function or <see langword="default"/> if not found.</param>
         /// <returns><see langword="true"/> if the function was found or <see langword="false"/> if not.</returns>
-        public bool TryGetFunction(string name, out IrFunction function)
+        public bool TryGetFunction(string name, [MaybeNullWhen(false)] out IrFunction function)
         {
             this.ThrowIfDisposed();
 
@@ -473,7 +473,7 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Retrieves a <see cref="ITypeRef"/> by name from the module.</summary>
         /// <param name="name">Name of the type.</param>
         /// <returns>The type or default if no type with the specified name exists in the module.</returns>
-        public ITypeRef GetTypeByName(string name)
+        public ITypeRef? GetTypeByName(string name)
         {
             this.ThrowIfDisposed();
 
@@ -484,7 +484,7 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Retrieves a named global from the module.</summary>
         /// <param name="name">Name of the global.</param>
         /// <returns><see cref="GlobalVariable"/> or <see langword="default"/> if not found.</returns>
-        public GlobalVariable GetNamedGlobal(string name)
+        public GlobalVariable? GetNamedGlobal(string name)
         {
             this.ThrowIfDisposed();
 

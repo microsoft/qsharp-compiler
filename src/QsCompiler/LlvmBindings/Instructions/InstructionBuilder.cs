@@ -40,7 +40,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         public Context Context { get; }
 
         /// <summary>Gets the <see cref="BasicBlock"/> this builder is building instructions for.</summary>
-        public BasicBlock InsertBlock
+        public BasicBlock? InsertBlock
         {
             get
             {
@@ -50,7 +50,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         }
 
         /// <summary>Gets the function this builder currently inserts into.</summary>
-        public IrFunction InsertFunction => this.InsertBlock?.ContainingFunction;
+        public IrFunction? InsertFunction => this.InsertBlock?.ContainingFunction;
 
         internal LLVMBuilderRef BuilderHandle { get; }
 

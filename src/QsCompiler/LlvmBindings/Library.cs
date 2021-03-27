@@ -18,7 +18,7 @@ namespace Ubiquity.NET.Llvm.Interop
         private static int CurrentInitializationState;
 
         // lazy initialized singleton unmanaged delegate so it is never collected
-        private static Lazy<LLVMFatalErrorHandler> FatalErrorHandlerDelegate;
+        private static Lazy<LLVMFatalErrorHandler>? FatalErrorHandlerDelegate;
 
         private Library()
         {

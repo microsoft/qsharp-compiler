@@ -11,11 +11,8 @@ using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
-
 using LLVMSharp.Interop;
-
 using Ubiquity.NET.Llvm.Interop;
-
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 

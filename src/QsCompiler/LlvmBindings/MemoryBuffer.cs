@@ -40,7 +40,7 @@ namespace Ubiquity.NET.Llvm
         /// This constructor makes a copy of the data array as a <see cref="MemoryBuffer"/> the memory in the buffer
         /// is unmanaged memory usable by the LLVM native code. It is released in the Dispose method.
         /// </remarks>
-        public MemoryBuffer(byte[] data, string name = default)
+        public MemoryBuffer(byte[] data, string name = "")
         {
             fixed (byte* pData = data.AsSpan())
             {
