@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Instruction for the LLVM intrinsic memset function</summary>
+    /// <summary>Instruction for the LLVM intrinsic memset function.</summary>
     public class MemSet
         : MemIntrinsic
     {
-        internal MemSet( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal MemSet(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

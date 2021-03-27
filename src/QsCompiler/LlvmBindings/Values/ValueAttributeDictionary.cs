@@ -13,79 +13,79 @@ using System.Linq;
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>re-usable implementation of IAttributeDictionary for containers that implement IAttributeAccessor</summary>
+    /// <summary>re-usable implementation of IAttributeDictionary for containers that implement IAttributeAccessor.</summary>
     /// <remarks>
     /// This uses the low-level methods of IAttributeAccessor to abstract out the differences in the
-    /// LLVM-C API for attributes on CallSites vs. Functions
+    /// LLVM-C API for attributes on CallSites vs. Functions.
     /// </remarks>
     internal class ValueAttributeDictionary
         : IAttributeDictionary
     {
-        public Context Context => Container.Context;
+        private readonly Func<IrFunction> FunctionFetcher;
+        private readonly IAttributeAccessor Container;
 
-        public ICollection<AttributeValue> this[ FunctionAttributeIndex key ]
+        internal ValueAttributeDictionary(IAttributeAccessor container, Func<IrFunction> functionFetcher)
+        {
+            this.Container = container;
+            this.FunctionFetcher = functionFetcher;
+        }
+
+        public Context Context => this.Container.Context;
+
+        public IEnumerable<FunctionAttributeIndex> Keys
+            => new ReadOnlyCollection<FunctionAttributeIndex>(this.GetValidKeys().ToList());
+
+        public IEnumerable<ICollection<AttributeValue>> Values
+            => new ReadOnlyCollection<ICollection<AttributeValue>>(this.Select(kvp => kvp.Value).ToList());
+
+        public int Count => this.GetValidKeys().Count();
+
+        public ICollection<AttributeValue> this[FunctionAttributeIndex key]
         {
             get
             {
-                if( !ContainsKey( key ) )
+                if (!this.ContainsKey(key))
                 {
-                    throw new KeyNotFoundException( );
+                    throw new KeyNotFoundException();
                 }
 
-                return new ValueAttributeCollection( Container, key );
+                return new ValueAttributeCollection(this.Container, key);
             }
         }
 
-        public IEnumerable<FunctionAttributeIndex> Keys
-            => new ReadOnlyCollection<FunctionAttributeIndex>( GetValidKeys( ).ToList( ) );
+        public bool ContainsKey(FunctionAttributeIndex key) => this.GetValidKeys().Any(k => k == key);
 
-        public IEnumerable<ICollection<AttributeValue>> Values
-            => new ReadOnlyCollection<ICollection<AttributeValue>>( this.Select( kvp => kvp.Value ).ToList( ) );
-
-        public int Count => GetValidKeys( ).Count( );
-
-        public bool ContainsKey( FunctionAttributeIndex key ) => GetValidKeys( ).Any( k => k == key );
-
-        public IEnumerator<KeyValuePair<FunctionAttributeIndex, ICollection<AttributeValue>>> GetEnumerator( )
+        public IEnumerator<KeyValuePair<FunctionAttributeIndex, ICollection<AttributeValue>>> GetEnumerator()
         {
-            return ( from key in GetValidKeys( )
-                     select new KeyValuePair<FunctionAttributeIndex, ICollection<AttributeValue>>( key, this[ key ] )
-                   ).GetEnumerator( );
+            return (from key in this.GetValidKeys()
+                    select new KeyValuePair<FunctionAttributeIndex, ICollection<AttributeValue>>(key, this[key]))
+                   .GetEnumerator();
         }
 
-        public bool TryGetValue( FunctionAttributeIndex key, out ICollection<AttributeValue> value )
+        public bool TryGetValue(FunctionAttributeIndex key, out ICollection<AttributeValue> value)
         {
             value = default;
-            if( ContainsKey( key ) )
+            if (this.ContainsKey(key))
             {
                 return false;
             }
 
-            value = new ValueAttributeCollection( Container, key );
+            value = new ValueAttributeCollection(this.Container, key);
             return true;
         }
 
-        IEnumerator IEnumerable.GetEnumerator( ) => GetEnumerator( );
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-        internal ValueAttributeDictionary( IAttributeAccessor container, Func<IrFunction> functionFetcher )
+        private IEnumerable<FunctionAttributeIndex> GetValidKeys()
         {
-            Container = container;
-            FunctionFetcher = functionFetcher;
-        }
-
-        private IEnumerable<FunctionAttributeIndex> GetValidKeys( )
-        {
-            var endIndex = FunctionAttributeIndex.Parameter0 + FunctionFetcher().Parameters.Count;
-            for( var index = FunctionAttributeIndex.Function; index < endIndex; ++index )
+            var endIndex = FunctionAttributeIndex.Parameter0 + this.FunctionFetcher().Parameters.Count;
+            for (var index = FunctionAttributeIndex.Function; index < endIndex; ++index)
             {
-                if( Container.GetAttributeCountAtIndex( index ) > 0 )
+                if (this.Container.GetAttributeCountAtIndex(index) > 0)
                 {
                     yield return index;
                 }
             }
         }
-
-        private readonly Func<IrFunction> FunctionFetcher;
-        private readonly IAttributeAccessor Container;
     }
 }

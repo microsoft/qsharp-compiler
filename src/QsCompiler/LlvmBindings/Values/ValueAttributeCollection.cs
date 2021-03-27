@@ -14,39 +14,39 @@ namespace Ubiquity.NET.Llvm.Values
     internal class ValueAttributeCollection
         : ICollection<AttributeValue>
     {
-        public ValueAttributeCollection( IAttributeAccessor container, FunctionAttributeIndex index )
+        public ValueAttributeCollection(IAttributeAccessor container, FunctionAttributeIndex index)
         {
-            Container = container;
-            Index = index;
+            this.Container = container;
+            this.Index = index;
         }
 
-        public int Count => ( int )Container.GetAttributeCountAtIndex( Index );
+        public int Count => (int)this.Container.GetAttributeCountAtIndex(this.Index);
 
         public bool IsReadOnly => false;
 
-        public void Add( AttributeValue item )
+        public void Add(AttributeValue item)
         {
-            Container.AddAttributeAtIndex( Index, item );
+            this.Container.AddAttributeAtIndex(this.Index, item);
         }
 
-        public void Clear( )
+        public void Clear()
         {
-            foreach( AttributeValue attrib in this )
+            foreach (AttributeValue attrib in this)
             {
-                Remove( attrib );
+                this.Remove(attrib);
             }
         }
 
-        public bool Contains( AttributeValue item )
+        public bool Contains(AttributeValue item)
         {
-            return this.Any( a => a == item );
+            return this.Any(a => a == item);
         }
 
-        public void CopyTo( AttributeValue[ ] array, int arrayIndex )
+        public void CopyTo(AttributeValue[] array, int arrayIndex)
         {
             /* ReSharper disable ConditionIsAlwaysTrueOrFalse */
             /* ReSharper disable HeuristicUnreachableCode */
-            if( array == default )
+            if (array == default)
             {
                 return;
             }
@@ -54,34 +54,34 @@ namespace Ubiquity.NET.Llvm.Values
             /* ReSharper enable HeuristicUnreachableCode */
             /* ReSharper enable ConditionIsAlwaysTrueOrFalse */
 
-            foreach( AttributeValue attribute in this )
+            foreach (AttributeValue attribute in this)
             {
-                array[ arrayIndex ] = attribute;
+                array[arrayIndex] = attribute;
                 ++arrayIndex;
             }
         }
 
-        public IEnumerator<AttributeValue> GetEnumerator( )
+        public IEnumerator<AttributeValue> GetEnumerator()
         {
-            return Container.GetAttributesAtIndex( Index ).GetEnumerator( );
+            return this.Container.GetAttributesAtIndex(this.Index).GetEnumerator();
         }
 
-        public bool Remove( AttributeValue item )
+        public bool Remove(AttributeValue item)
         {
-            bool retVal = Contains( item );
-            if( item.IsEnum )
+            bool retVal = this.Contains(item);
+            if (item.IsEnum)
             {
-                Container.RemoveAttributeAtIndex( Index, item.Kind );
+                this.Container.RemoveAttributeAtIndex(this.Index, item.Kind);
             }
             else
             {
-                Container.RemoveAttributeAtIndex( Index, item.Name );
+                this.Container.RemoveAttributeAtIndex(this.Index, item.Name);
             }
 
             return retVal;
         }
 
-        IEnumerator IEnumerable.GetEnumerator( ) => GetEnumerator( );
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
         private readonly IAttributeAccessor Container;
         private readonly FunctionAttributeIndex Index;

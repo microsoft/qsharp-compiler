@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Instruction to zero extend a value</summary>
+    /// <summary>Instruction to zero extend a value.</summary>
     public class ZeroExtend
         : Cast
     {
-        internal ZeroExtend( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal ZeroExtend(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

@@ -14,8 +14,8 @@ namespace Ubiquity.NET.Llvm.Instructions
     public class ExtractElement
         : Instruction
     {
-        internal ExtractElement( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal ExtractElement(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

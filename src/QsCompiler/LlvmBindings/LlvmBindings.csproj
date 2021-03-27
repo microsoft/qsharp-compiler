@@ -1,8 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);SA1636</NoWarn> <!-- Not sure if copyrigth header should be changed -->
   </PropertyGroup>
 
   <ItemGroup>
