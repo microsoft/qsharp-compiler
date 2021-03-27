@@ -22,7 +22,7 @@ If the project builds successfully, the .ll file containing QIR can be found in 
   </PropertyGroup>
 </Project>
 ```
-For more information about project properties and other Sdk capabilities, see [here](./src/QuantumSdk#the-microsoftquantumsdk-nuget-package). Examples for working with QIR, and specifically a project with QIR emission enabled can be found [here](./examples/QIR).
+For more information about project properties and other Sdk capabilities, see [here](../../../src/QuantumSdk#the-microsoftquantumsdk-nuget-package). Examples for working with QIR, and specifically a project with QIR emission enabled can be found [here](../../../examples/QIR).
 
 ## Limitations
 
