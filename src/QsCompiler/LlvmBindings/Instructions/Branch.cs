@@ -15,16 +15,16 @@ namespace Ubiquity.NET.Llvm.Instructions
     public class Branch
         : Terminator
     {
+        internal Branch(LLVMValueRef valueRef)
+            : base(valueRef)
+        {
+        }
+
         /// <summary>Gets a value indicating whether this branch is conditional.</summary>
         public bool IsConditional => this.ValueHandle.IsConditional;
 
         /// <summary>Gets the condition for the branch, if any.</summary>
         public Value? Condition
             => !this.IsConditional ? default : FromHandle<Value>(this.ValueHandle.Condition);
-
-        internal Branch(LLVMValueRef valueRef)
-            : base(valueRef)
-        {
-        }
     }
 }

@@ -19,6 +19,11 @@ namespace Ubiquity.NET.Llvm.Instructions
     public class CatchSwitch
         : Instruction
     {
+        internal CatchSwitch(LLVMValueRef valueRef)
+            : base(valueRef)
+        {
+        }
+
         /// <summary>Gets or sets the Parent pad for this <see cref="CatchSwitch"/>.</summary>
         public Value ParentPad
         {
@@ -39,11 +44,6 @@ namespace Ubiquity.NET.Llvm.Instructions
             {
                 LLVM.SetUnwindDest(this.ValueHandle, value!.BlockHandle);
             }
-        }
-
-        internal CatchSwitch(LLVMValueRef valueRef)
-            : base(valueRef)
-        {
         }
     }
 }

@@ -416,26 +416,13 @@ namespace Ubiquity.NET.Llvm.Values
                             return false;
                         }
 
-                        IrFunction? function;
-                        switch (value)
+                        IrFunction? function = value switch
                         {
-                            case IrFunction f:
-                                function = f;
-                                break;
-
-                            case CallInstruction call:
-                                function = call.TargetFunction;
-                                break;
-
-                            case Argument arg:
-                                function = arg.ContainingFunction;
-                                break;
-
-                            default:
-                                function = default;
-                                break;
-                        }
-
+                            IrFunction f => f,
+                            CallInstruction call => call.TargetFunction,
+                            Argument arg => arg.ContainingFunction,
+                            _ => default,
+                        };
                         int paramIndex = index - FunctionAttributeIndex.Parameter0;
                         if (paramIndex >= (function?.Parameters.Count ?? 0))
                         {
@@ -455,26 +442,13 @@ namespace Ubiquity.NET.Llvm.Values
 
             if (index >= FunctionAttributeIndex.Parameter0)
             {
-                IrFunction? function;
-                switch (value)
+                IrFunction? function = value switch
                 {
-                    case IrFunction f:
-                        function = f;
-                        break;
-
-                    case CallInstruction call:
-                        function = call.TargetFunction;
-                        break;
-
-                    case Argument arg:
-                        function = arg.ContainingFunction;
-                        break;
-
-                    default:
-                        function = default;
-                        break;
-                }
-
+                    IrFunction f => f,
+                    CallInstruction call => call.TargetFunction,
+                    Argument arg => arg.ContainingFunction,
+                    _ => default,
+                };
                 int paramIndex = index - FunctionAttributeIndex.Parameter0;
                 if (paramIndex > ((function?.Parameters.Count ?? 0) - 1))
                 {

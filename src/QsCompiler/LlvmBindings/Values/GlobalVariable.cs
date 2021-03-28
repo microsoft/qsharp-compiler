@@ -15,6 +15,11 @@ namespace Ubiquity.NET.Llvm.Values
     public class GlobalVariable
         : GlobalObject
     {
+        internal GlobalVariable(LLVMValueRef valueRef)
+            : base(valueRef)
+        {
+        }
+
         /// <summary>Gets or sets a value indicating whether this variable is initialized in an external module.</summary>
         public bool IsExternallyInitialized
         {
@@ -62,11 +67,6 @@ namespace Ubiquity.NET.Llvm.Values
                 var val = this.ValueHandle;
                 val.Initializer = value?.ValueHandle ?? default;
             }
-        }
-
-        internal GlobalVariable(LLVMValueRef valueRef)
-            : base(valueRef)
-        {
         }
     }
 }
