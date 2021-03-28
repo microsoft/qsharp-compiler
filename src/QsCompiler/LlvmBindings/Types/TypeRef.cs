@@ -120,13 +120,8 @@ namespace Ubiquity.NET.Llvm.Types
         internal static T FromHandle<T>(LLVMTypeRef typeRef)
             where T : class, ITypeRef
         {
-            if (typeRef == default)
-            {
-                return default;
-            }
-
             var ctx = GetContextFor(typeRef);
-            return ctx.GetTypeFor(typeRef) as T;
+            return (T)ctx.GetTypeFor(typeRef);
         }
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Context created here is owned, and disposed of via the ContextCache")]

@@ -115,7 +115,7 @@ namespace Ubiquity.NET.Llvm.Values
         {
             var context = valueRef.GetContext();
 
-            return context.GetValueFor(valueRef) as T;
+            return (T)context.GetValueFor(valueRef);
         }
 
         internal class InterningFactory
