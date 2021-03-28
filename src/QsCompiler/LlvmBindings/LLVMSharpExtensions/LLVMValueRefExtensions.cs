@@ -34,7 +34,7 @@ namespace LLVMSharp.Interop
         }
 
         /// <summary>Convenience wrapper for LLVM.GlobalCopyAllMetadata.</summary>
-        public static (LLVMValueMetadataEntryRef metadataRef, uint count) GlobalCopyAllMetadata(this LLVMValueRef self)
+        public static (LLVMValueMetadataEntryRef MetadataRef, uint Count) GlobalCopyAllMetadata(this LLVMValueRef self)
         {
             UIntPtr count;
             LLVMValueMetadataEntryRef metadataRef = LLVM.GlobalCopyAllMetadata(self, &count);

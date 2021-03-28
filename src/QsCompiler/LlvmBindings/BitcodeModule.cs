@@ -61,16 +61,16 @@ namespace Ubiquity.NET.Llvm
     public sealed class BitcodeModule
         : IDisposable
     {
-        /// <summary>Gets a value indicating whether the module is disposed or not.</summary>
-        public bool IsDisposed;
-
-        internal LLVMModuleRef ModuleHandle;
+        private LLVMModuleRef moduleHandle;
 
         private BitcodeModule(LLVMModuleRef handle)
         {
-            this.ModuleHandle = handle;
+            this.moduleHandle = handle;
             this.Context = ContextCache.GetContextFor(handle.Context);
         }
+
+        /// <summary>Gets a value indicating whether the module is disposed or not.</summary>
+        public bool IsDisposed { get; private set; }
 
         /// <summary>Gets the <see cref="Context"/> this module belongs to.</summary>
         public Context Context { get; }
@@ -81,12 +81,12 @@ namespace Ubiquity.NET.Llvm
             get
             {
                 this.ThrowIfDisposed();
-                return this.ModuleHandle.Target;
+                return this.moduleHandle.Target;
             }
 
             set
             {
-                this.ModuleHandle.Target = value;
+                this.moduleHandle.Target = value;
             }
         }
 
@@ -96,7 +96,7 @@ namespace Ubiquity.NET.Llvm
             get
             {
                 this.ThrowIfDisposed();
-                var current = this.ModuleHandle.FirstGlobal;
+                var current = this.moduleHandle.FirstGlobal;
                 while (current != default)
                 {
                     yield return Value.FromHandle<GlobalVariable>(current)!;
@@ -111,7 +111,7 @@ namespace Ubiquity.NET.Llvm
             get
             {
                 this.ThrowIfDisposed();
-                var current = this.ModuleHandle.FirstFunction;
+                var current = this.moduleHandle.FirstFunction;
                 while (current != default)
                 {
                     yield return Value.FromHandle<IrFunction>(current)!;
@@ -126,7 +126,7 @@ namespace Ubiquity.NET.Llvm
             get
             {
                 this.ThrowIfDisposed();
-                var current = this.ModuleHandle.FirstGlobalAlias();
+                var current = this.moduleHandle.FirstGlobalAlias();
                 while (current != default)
                 {
                     yield return Value.FromHandle<GlobalAlias>(current)!;
@@ -141,9 +141,11 @@ namespace Ubiquity.NET.Llvm
             get
             {
                 this.ThrowIfDisposed();
-                return this.ModuleHandle.GetModuleIdentifier();
+                return this.moduleHandle.GetModuleIdentifier();
             }
         }
+
+        internal ref LLVMModuleRef ModuleHandle => ref this.moduleHandle;
 
         /// <summary>Load a bit-code module from a given file.</summary>
         /// <param name="path">path of the file to load.</param>
@@ -189,7 +191,7 @@ namespace Ubiquity.NET.Llvm
             if (!this.IsDisposed)
             {
                 // remove the module handle from the module cache.
-                this.ModuleHandle.Dispose();
+                this.moduleHandle.Dispose();
                 this.IsDisposed = true;
             }
         }
@@ -211,7 +213,7 @@ namespace Ubiquity.NET.Llvm
                 throw new ArgumentException();
             }
 
-            if (this.ModuleHandle.Link(otherModule.ModuleHandle))
+            if (this.moduleHandle.Link(otherModule.moduleHandle))
             {
                 throw new InternalCodeGeneratorException();
             }
@@ -226,7 +228,7 @@ namespace Ubiquity.NET.Llvm
         public bool Verify(out string errorMessage)
         {
             this.ThrowIfDisposed();
-            return this.ModuleHandle.TryVerify(LLVMVerifierFailureAction.LLVMReturnStatusAction, out errorMessage);
+            return this.moduleHandle.TryVerify(LLVMVerifierFailureAction.LLVMReturnStatusAction, out errorMessage);
         }
 
         /// <summary>Gets a function by name from this module.</summary>
@@ -237,7 +239,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var funcRef = this.ModuleHandle.GetNamedFunction(name);
+            var funcRef = this.moduleHandle.GetNamedFunction(name);
             return funcRef == default ? default : Value.FromHandle<IrFunction>(funcRef);
         }
 
@@ -249,7 +251,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var funcRef = this.ModuleHandle.GetNamedFunction(name);
+            var funcRef = this.moduleHandle.GetNamedFunction(name);
             if (funcRef == default)
             {
                 function = default;
@@ -292,10 +294,10 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            LLVMValueRef valueRef = this.ModuleHandle.GetNamedFunction(name);
+            LLVMValueRef valueRef = this.moduleHandle.GetNamedFunction(name);
             if (valueRef == default)
             {
-                valueRef = this.ModuleHandle.AddFunction(name, signature.GetTypeRef());
+                valueRef = this.moduleHandle.AddFunction(name, signature.GetTypeRef());
             }
 
             return Value.FromHandle<IrFunction>(valueRef)!;
@@ -312,7 +314,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var status = this.ModuleHandle.WriteBitcodeToFile(path);
+            var status = this.moduleHandle.WriteBitcodeToFile(path);
             if (status != 0)
             {
                 throw new IOException();
@@ -327,7 +329,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            return this.ModuleHandle.TryPrintToFile(path, out errMsg);
+            return this.moduleHandle.TryPrintToFile(path, out errMsg);
         }
 
         /// <summary>Creates a string representation of the module.</summary>
@@ -341,7 +343,7 @@ namespace Ubiquity.NET.Llvm
         public string WriteToString()
         {
             this.ThrowIfDisposed();
-            return this.ModuleHandle.PrintToString();
+            return this.moduleHandle.PrintToString();
         }
 
         /// <summary>Writes the LLVM IR bit code into a memory buffer.</summary>
@@ -349,7 +351,7 @@ namespace Ubiquity.NET.Llvm
         public MemoryBuffer WriteToBuffer()
         {
             this.ThrowIfDisposed();
-            return new MemoryBuffer(memoryBufferRef: this.ModuleHandle.WriteBitcodeToMemoryBuffer());
+            return new MemoryBuffer(memoryBufferRef: this.moduleHandle.WriteBitcodeToMemoryBuffer());
         }
 
         /// <summary>Add an alias to the module.</summary>
@@ -360,7 +362,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var handle = this.ModuleHandle.AddAlias(aliasee.NativeType.GetTypeRef(), aliasee.ValueHandle, aliasName);
+            var handle = this.moduleHandle.AddAlias(aliasee.NativeType.GetTypeRef(), aliasee.ValueHandle, aliasName);
             return Value.FromHandle<GlobalAlias>(handle)!;
         }
 
@@ -371,7 +373,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var handle = this.ModuleHandle.GetNamedGlobalAlias(name);
+            var handle = this.moduleHandle.GetNamedGlobalAlias(name);
             return Value.FromHandle<GlobalAlias>(handle);
         }
 
@@ -387,7 +389,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var handle = this.ModuleHandle.AddGlobalInAddressSpace(typeRef.GetTypeRef(), name, addressSpace);
+            var handle = this.moduleHandle.AddGlobalInAddressSpace(typeRef.GetTypeRef(), name, addressSpace);
             return Value.FromHandle<GlobalVariable>(handle)!;
         }
 
@@ -435,7 +437,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var handle = this.ModuleHandle.AddGlobal(typeRef.GetTypeRef(), name);
+            var handle = this.moduleHandle.AddGlobal(typeRef.GetTypeRef(), name);
             return Value.FromHandle<GlobalVariable>(handle)!;
         }
 
@@ -477,7 +479,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var hType = this.ModuleHandle.GetTypeByName(name);
+            var hType = this.moduleHandle.GetTypeByName(name);
             return hType == default ? default : TypeRef.FromHandle(hType);
         }
 
@@ -488,7 +490,7 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
 
-            var hGlobal = this.ModuleHandle.GetNamedGlobal(name);
+            var hGlobal = this.moduleHandle.GetNamedGlobal(name);
             return hGlobal == default ? default : Value.FromHandle<GlobalVariable>(hGlobal);
         }
 
@@ -526,7 +528,7 @@ namespace Ubiquity.NET.Llvm
             }
 
             LLVMTypeRef[] llvmArgs = args.Select(a => a.GetTypeRef()).ToArray();
-            LLVMValueRef valueRef = this.ModuleHandle.GetIntrinsicDeclaration(id, llvmArgs);
+            LLVMValueRef valueRef = this.moduleHandle.GetIntrinsicDeclaration(id, llvmArgs);
             return (IrFunction)Value.FromHandle(valueRef)!;
         }
 
@@ -535,7 +537,7 @@ namespace Ubiquity.NET.Llvm
         public BitcodeModule Clone()
         {
             this.ThrowIfDisposed();
-            return FromHandle(this.ModuleHandle.Clone())!;
+            return FromHandle(this.moduleHandle.Clone())!;
         }
 
         /// <summary>Clones the module into a new <see cref="Context"/>.</summary>
@@ -566,8 +568,8 @@ namespace Ubiquity.NET.Llvm
         {
             this.ThrowIfDisposed();
             this.Context.RemoveModule(this);
-            var retVal = this.ModuleHandle;
-            this.ModuleHandle = default;
+            var retVal = this.moduleHandle;
+            this.moduleHandle = default;
             return retVal;
         }
 
