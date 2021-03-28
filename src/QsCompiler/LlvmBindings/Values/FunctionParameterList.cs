@@ -17,6 +17,22 @@ namespace Ubiquity.NET.Llvm.Values
     internal class FunctionParameterList
         : IReadOnlyList<Argument>
     {
+        private readonly IrFunction owningFunction;
+
+        internal FunctionParameterList(IrFunction owningFunction)
+        {
+            this.owningFunction = owningFunction;
+        }
+
+        public int Count
+        {
+            get
+            {
+                uint count = this.owningFunction.ValueHandle.ParamsCount;
+                return (int)Math.Min(count, int.MaxValue);
+            }
+        }
+
         public Argument this[int index]
         {
             get
@@ -26,17 +42,8 @@ namespace Ubiquity.NET.Llvm.Values
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }
 
-                LLVMValueRef valueRef = this.OwningFunction.ValueHandle.GetParam((uint)index);
+                LLVMValueRef valueRef = this.owningFunction.ValueHandle.GetParam((uint)index);
                 return Value.FromHandle<Argument>(valueRef)!;
-            }
-        }
-
-        public int Count
-        {
-            get
-            {
-                uint count = this.OwningFunction.ValueHandle.ParamsCount;
-                return (int)Math.Min(count, int.MaxValue);
             }
         }
 
@@ -44,18 +51,11 @@ namespace Ubiquity.NET.Llvm.Values
         {
             for (uint i = 0; i < this.Count; ++i)
             {
-                LLVMValueRef val = this.OwningFunction.ValueHandle.GetParam(i);
+                LLVMValueRef val = this.owningFunction.ValueHandle.GetParam(i);
                 yield return Value.FromHandle<Argument>(val)!;
             }
         }
 
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
-
-        internal FunctionParameterList(IrFunction owningFunction)
-        {
-            this.OwningFunction = owningFunction;
-        }
-
-        private readonly IrFunction OwningFunction;
     }
 }

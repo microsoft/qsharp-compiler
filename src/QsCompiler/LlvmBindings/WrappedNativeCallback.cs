@@ -23,12 +23,12 @@ namespace Ubiquity.NET.Llvm.Interop
     public abstract class WrappedNativeCallback
         : DisposableObject
     {
-        private readonly IntPtr NativeFuncPtr;
+        private readonly IntPtr nativeFuncPtr;
 
-        private readonly GCHandle Handle;
+        private readonly GCHandle handle;
 
         // keeps a live ref for the delegate around so GC won't clean it up
-        private Delegate? UnpinnedDelegate;
+        private Delegate? unpinnedDelegate;
 
         /// <summary>Initializes a new instance of the <see cref="WrappedNativeCallback"/> class.</summary>
         /// <param name="d">Delegate.</param>
@@ -47,9 +47,9 @@ namespace Ubiquity.NET.Llvm.Interop
                 throw new ArgumentException();
             }
 
-            this.UnpinnedDelegate = d;
-            this.Handle = GCHandle.Alloc(this.UnpinnedDelegate);
-            this.NativeFuncPtr = Marshal.GetFunctionPointerForDelegate(this.UnpinnedDelegate);
+            this.unpinnedDelegate = d;
+            this.handle = GCHandle.Alloc(this.unpinnedDelegate);
+            this.nativeFuncPtr = Marshal.GetFunctionPointerForDelegate(this.unpinnedDelegate);
         }
 
         /// <summary>Converts a callback to an IntPtr suitable for passing to native code.</summary>
@@ -58,13 +58,13 @@ namespace Ubiquity.NET.Llvm.Interop
 
         /// <summary>Gets the raw native function pointer for the pinned delegate.</summary>
         /// <returns>Native callable function pointer.</returns>
-        public IntPtr ToIntPtr() => this.NativeFuncPtr;
+        public IntPtr ToIntPtr() => this.nativeFuncPtr;
 
         /// <inheritdoc/>
         protected override void Dispose(bool disposing)
         {
-            this.Handle.Free();
-            this.UnpinnedDelegate = default;
+            this.handle.Free();
+            this.unpinnedDelegate = default;
         }
 
         /// <summary>Gets a delegate from the raw native callback.</summary>

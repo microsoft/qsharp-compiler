@@ -17,17 +17,17 @@ namespace Ubiquity.NET.Llvm.Values
     internal class BasicBlockCollection
         : ICollection<BasicBlock>
     {
-        private readonly IrFunction ContainingFunction;
+        private readonly IrFunction containingFunction;
 
         internal BasicBlockCollection(IrFunction function)
         {
-            this.ContainingFunction = function;
+            this.containingFunction = function;
         }
 
         public bool IsReadOnly => false;
 
         /// <summary>Gets a count of the blocks in the collection.</summary>
-        public int Count => checked((int)this.ContainingFunction.ValueHandle.BasicBlocksCount);
+        public int Count => checked((int)this.containingFunction.ValueHandle.BasicBlocksCount);
 
         /// <summary>Add a block to the underlying function.</summary>
         /// <param name="item"><see cref="BasicBlock"/> to add to the function.</param>
@@ -38,10 +38,10 @@ namespace Ubiquity.NET.Llvm.Values
         {
             if (item.ContainingFunction == default)
             {
-                LLVM.AppendExistingBasicBlock(this.ContainingFunction.ValueHandle, item.BlockHandle);
+                LLVM.AppendExistingBasicBlock(this.containingFunction.ValueHandle, item.BlockHandle);
             }
 
-            if (item.ContainingFunction != this.ContainingFunction)
+            if (item.ContainingFunction != this.containingFunction)
             {
                 throw new ArgumentException();
             }
@@ -52,7 +52,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <inheritdoc/>
         public IEnumerator<BasicBlock> GetEnumerator()
         {
-            LLVMBasicBlockRef blockRef = this.ContainingFunction.ValueHandle.FirstBasicBlock;
+            LLVMBasicBlockRef blockRef = this.containingFunction.ValueHandle.FirstBasicBlock;
             while (blockRef != default)
             {
                 yield return BasicBlock.FromHandle(blockRef)!;
@@ -74,7 +74,7 @@ namespace Ubiquity.NET.Llvm.Values
 
         public bool Contains(BasicBlock item)
         {
-            return item.ContainingFunction == this.ContainingFunction;
+            return item.ContainingFunction == this.containingFunction;
         }
 
         public void CopyTo(BasicBlock[] array, int arrayIndex)
@@ -92,7 +92,7 @@ namespace Ubiquity.NET.Llvm.Values
 
         public bool Remove(BasicBlock item)
         {
-            if (item.ContainingFunction != this.ContainingFunction)
+            if (item.ContainingFunction != this.containingFunction)
             {
                 return false;
             }

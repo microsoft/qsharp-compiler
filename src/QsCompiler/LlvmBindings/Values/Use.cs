@@ -15,19 +15,19 @@ namespace Ubiquity.NET.Llvm.Values
     /// </remarks>
     public class Use
     {
-        /// <summary>Gets the <see cref="User"/> of this <see cref="Use"/>.</summary>
-        public User User => Value.FromHandle<User>(this.OpaqueHandle.GetUser())!;
-
-        /// <summary>Gets the <see cref="Value"/> used.</summary>
-        public Value Value => Value.FromHandle(this.OpaqueHandle.GetUsedValue())!;
+        private readonly LLVMUseRef opaqueHandle;
 
         /// <summary>Initializes a new instance of the <see cref="Use"/> class from low level LLVM <see cref="LLVMUseRef"/>.</summary>
         /// <param name="useRef">LLVM raw reference.</param>
         internal Use(LLVMUseRef useRef)
         {
-            this.OpaqueHandle = useRef;
+            this.opaqueHandle = useRef;
         }
 
-        private readonly LLVMUseRef OpaqueHandle;
+        /// <summary>Gets the <see cref="User"/> of this <see cref="Use"/>.</summary>
+        public User User => Value.FromHandle<User>(this.opaqueHandle.GetUser())!;
+
+        /// <summary>Gets the <see cref="Value"/> used.</summary>
+        public Value Value => Value.FromHandle(this.opaqueHandle.GetUsedValue())!;
     }
 }

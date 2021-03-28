@@ -21,27 +21,27 @@ namespace Ubiquity.NET.Llvm.Instructions
     public sealed class SuccessorBlockCollection
         : IOperandCollection<BasicBlock>
     {
-        private readonly Instruction Container;
+        private readonly Instruction container;
 
         internal SuccessorBlockCollection(Instruction container)
         {
-            this.Container = container;
+            this.container = container;
         }
 
         /// <summary>Gets the count of elements in this collection.</summary>
-        public int Count => checked((int)this.Container.ValueHandle.SuccessorsCount);
+        public int Count => checked((int)this.container.ValueHandle.SuccessorsCount);
 
         /// <inheritdoc/>
         public BasicBlock this[int index]
         {
             get
             {
-                return BasicBlock.FromHandle(this.Container.ValueHandle.GetSuccessor((uint)index))!;
+                return BasicBlock.FromHandle(this.container.ValueHandle.GetSuccessor((uint)index))!;
             }
 
             set
             {
-                this.Container.ValueHandle.SetSuccessor((uint)index, value?.BlockHandle ?? default);
+                this.container.ValueHandle.SetSuccessor((uint)index, value?.BlockHandle ?? default);
             }
         }
 
@@ -51,7 +51,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         {
             for (int i = 0; i < this.Count; ++i)
             {
-                yield return BasicBlock.FromHandle(this.Container.ValueHandle.GetSuccessor((uint)i))!;
+                yield return BasicBlock.FromHandle(this.container.ValueHandle.GetSuccessor((uint)i))!;
             }
         }
 

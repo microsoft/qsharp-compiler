@@ -22,16 +22,16 @@ namespace Ubiquity.NET.Llvm.Values
     internal class ValueAttributeDictionary
         : IAttributeDictionary
     {
-        private readonly Func<IrFunction> FunctionFetcher;
-        private readonly IAttributeAccessor Container;
+        private readonly Func<IrFunction> functionFetcher;
+        private readonly IAttributeAccessor container;
 
         internal ValueAttributeDictionary(IAttributeAccessor container, Func<IrFunction> functionFetcher)
         {
-            this.Container = container;
-            this.FunctionFetcher = functionFetcher;
+            this.container = container;
+            this.functionFetcher = functionFetcher;
         }
 
-        public Context Context => this.Container.Context;
+        public Context Context => this.container.Context;
 
         public IEnumerable<FunctionAttributeIndex> Keys
             => new ReadOnlyCollection<FunctionAttributeIndex>(this.GetValidKeys().ToList());
@@ -50,7 +50,7 @@ namespace Ubiquity.NET.Llvm.Values
                     throw new KeyNotFoundException();
                 }
 
-                return new ValueAttributeCollection(this.Container, key);
+                return new ValueAttributeCollection(this.container, key);
             }
         }
 
@@ -73,7 +73,7 @@ namespace Ubiquity.NET.Llvm.Values
                 return false;
             }
 
-            value = new ValueAttributeCollection(this.Container, key);
+            value = new ValueAttributeCollection(this.container, key);
             return true;
         }
 
@@ -81,10 +81,10 @@ namespace Ubiquity.NET.Llvm.Values
 
         private IEnumerable<FunctionAttributeIndex> GetValidKeys()
         {
-            var endIndex = FunctionAttributeIndex.Parameter0 + this.FunctionFetcher().Parameters.Count;
+            var endIndex = FunctionAttributeIndex.Parameter0 + this.functionFetcher().Parameters.Count;
             for (var index = FunctionAttributeIndex.Function; index < endIndex; ++index)
             {
-                if (this.Container.GetAttributeCountAtIndex(index) > 0)
+                if (this.container.GetAttributeCountAtIndex(index) > 0)
                 {
                     yield return index;
                 }

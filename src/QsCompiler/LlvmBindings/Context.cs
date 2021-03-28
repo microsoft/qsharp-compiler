@@ -40,13 +40,13 @@ namespace Ubiquity.NET.Llvm
         : DisposableObject,
         IBitcodeModuleFactory
     {
-        private readonly WrappedNativeCallback<LLVMDiagnosticHandler> ActiveHandler;
+        private readonly WrappedNativeCallback<LLVMDiagnosticHandler> activeHandler;
 
         // child item wrapper factories
-        private readonly Value.InterningFactory ValueCache;
-        private readonly BitcodeModule.InterningFactory ModuleCache;
-        private readonly TypeRef.InterningFactory TypeCache;
-        private readonly AttributeValue.InterningFactory AttributeValueCache;
+        private readonly Value.InterningFactory valueCache;
+        private readonly BitcodeModule.InterningFactory moduleCache;
+        private readonly TypeRef.InterningFactory typeCache;
+        private readonly AttributeValue.InterningFactory attributeValueCache;
 
         /// <summary>Initializes a new instance of the <see cref="Context"/> class.Creates a new context.</summary>
         public Context()
@@ -63,13 +63,13 @@ namespace Ubiquity.NET.Llvm
             }
 
             this.ContextHandle = contextRef;
-            this.ActiveHandler = new WrappedNativeCallback<LLVMDiagnosticHandler>(DiagnosticHandler);
-            this.ValueCache = new Value.InterningFactory(this);
-            this.ModuleCache = new BitcodeModule.InterningFactory(this);
-            this.TypeCache = new TypeRef.InterningFactory(this);
-            this.AttributeValueCache = new AttributeValue.InterningFactory(this);
+            this.activeHandler = new WrappedNativeCallback<LLVMDiagnosticHandler>(DiagnosticHandler);
+            this.valueCache = new Value.InterningFactory(this);
+            this.moduleCache = new BitcodeModule.InterningFactory(this);
+            this.typeCache = new TypeRef.InterningFactory(this);
+            this.attributeValueCache = new AttributeValue.InterningFactory(this);
 
-            LLVM.ContextSetDiagnosticHandler(this.ContextHandle, this.ActiveHandler, (void*)default);
+            LLVM.ContextSetDiagnosticHandler(this.ContextHandle, this.activeHandler, (void*)default);
         }
 
         /// <summary>Gets the LLVM void type for this context.</summary>
@@ -118,7 +118,7 @@ namespace Ubiquity.NET.Llvm
         public ITypeRef PpcFloat128Type => TypeRef.FromHandle(LLVM.PPCFP128TypeInContext(this.ContextHandle))!;
 
         /// <summary>Gets the modules created in this context.</summary>
-        public IEnumerable<BitcodeModule> Modules => this.ModuleCache;
+        public IEnumerable<BitcodeModule> Modules => this.moduleCache;
 
         internal LLVMContextRef ContextHandle { get; }
 
@@ -596,13 +596,13 @@ namespace Ubiquity.NET.Llvm
         /// <inheritdoc/>
         public BitcodeModule CreateBitcodeModule()
         {
-            return this.ModuleCache.CreateBitcodeModule();
+            return this.moduleCache.CreateBitcodeModule();
         }
 
         /// <inheritdoc/>
         public BitcodeModule CreateBitcodeModule(string moduleId)
         {
-            return this.ModuleCache.CreateBitcodeModule(moduleId);
+            return this.moduleCache.CreateBitcodeModule(moduleId);
         }
 
         /// <summary>Gets non-zero Metadata kind ID for a given name.</summary>
@@ -627,14 +627,14 @@ namespace Ubiquity.NET.Llvm
         // maintained. (LLVM has no method of retrieving the context that owns an attribute)
         internal AttributeValue GetAttributeFor(LLVMAttributeRef handle)
         {
-            return this.AttributeValueCache.GetOrCreateItem(handle);
+            return this.attributeValueCache.GetOrCreateItem(handle);
         }
 
         internal void RemoveModule(BitcodeModule module)
         {
             if (module.ModuleHandle.Handle != default)
             {
-                this.ModuleCache.Remove(module.ModuleHandle);
+                this.moduleCache.Remove(module.ModuleHandle);
             }
         }
 
@@ -652,17 +652,17 @@ namespace Ubiquity.NET.Llvm
             }
 
             // make sure handle to existing module isn't auto disposed.
-            return this.ModuleCache.GetOrCreateItem(moduleRef);
+            return this.moduleCache.GetOrCreateItem(moduleRef);
         }
 
         internal Value GetValueFor(LLVMValueRef valueRef)
         {
-            return this.ValueCache.GetOrCreateItem(valueRef);
+            return this.valueCache.GetOrCreateItem(valueRef);
         }
 
         internal ITypeRef GetTypeFor(LLVMTypeRef typeRef)
         {
-            return this.TypeCache.GetOrCreateItem(typeRef);
+            return this.typeCache.GetOrCreateItem(typeRef);
         }
 
         /// <summary>Disposes the context to release unmanaged resources deterministically.</summary>
@@ -684,7 +684,7 @@ namespace Ubiquity.NET.Llvm
             }
 
             LLVM.ContextSetDiagnosticHandler(this.ContextHandle, default, (void*)default);
-            this.ActiveHandler.Dispose();
+            this.activeHandler.Dispose();
 
             ContextCache.TryRemove(this.ContextHandle);
 

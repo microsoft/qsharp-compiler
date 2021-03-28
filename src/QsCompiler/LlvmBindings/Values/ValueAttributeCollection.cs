@@ -14,19 +14,22 @@ namespace Ubiquity.NET.Llvm.Values
     internal class ValueAttributeCollection
         : ICollection<AttributeValue>
     {
+        private readonly IAttributeAccessor container;
+        private readonly FunctionAttributeIndex index;
+
         public ValueAttributeCollection(IAttributeAccessor container, FunctionAttributeIndex index)
         {
-            this.Container = container;
-            this.Index = index;
+            this.container = container;
+            this.index = index;
         }
 
-        public int Count => (int)this.Container.GetAttributeCountAtIndex(this.Index);
+        public int Count => (int)this.container.GetAttributeCountAtIndex(this.index);
 
         public bool IsReadOnly => false;
 
         public void Add(AttributeValue item)
         {
-            this.Container.AddAttributeAtIndex(this.Index, item);
+            this.container.AddAttributeAtIndex(this.index, item);
         }
 
         public void Clear()
@@ -63,7 +66,7 @@ namespace Ubiquity.NET.Llvm.Values
 
         public IEnumerator<AttributeValue> GetEnumerator()
         {
-            return this.Container.GetAttributesAtIndex(this.Index).GetEnumerator();
+            return this.container.GetAttributesAtIndex(this.index).GetEnumerator();
         }
 
         public bool Remove(AttributeValue item)
@@ -71,19 +74,16 @@ namespace Ubiquity.NET.Llvm.Values
             bool retVal = this.Contains(item);
             if (item.IsEnum)
             {
-                this.Container.RemoveAttributeAtIndex(this.Index, item.Kind);
+                this.container.RemoveAttributeAtIndex(this.index, item.Kind);
             }
             else
             {
-                this.Container.RemoveAttributeAtIndex(this.Index, item.Name);
+                this.container.RemoveAttributeAtIndex(this.index, item.Name);
             }
 
             return retVal;
         }
 
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
-
-        private readonly IAttributeAccessor Container;
-        private readonly FunctionAttributeIndex Index;
     }
 }

@@ -15,10 +15,10 @@ namespace Ubiquity.NET.Llvm.Interop
         : DisposableObject,
         ILibLlvm
     {
-        private static int CurrentInitializationState;
+        private static int currentInitializationState;
 
         // lazy initialized singleton unmanaged delegate so it is never collected
-        private static Lazy<LLVMFatalErrorHandler>? FatalErrorHandlerDelegate;
+        private static Lazy<LLVMFatalErrorHandler>? fatalErrorHandlerDelegate;
 
         private Library()
         {
@@ -48,7 +48,7 @@ namespace Ubiquity.NET.Llvm.Interop
         public static ILibLlvm InitializeLLVM()
         {
             var previousState = (InitializationState)Interlocked.CompareExchange(
-                ref CurrentInitializationState,
+                ref currentInitializationState,
                 (int)InitializationState.Initializing,
                 (int)InitializationState.Uninitialized);
             if (previousState != InitializationState.Uninitialized)
@@ -59,11 +59,11 @@ namespace Ubiquity.NET.Llvm.Interop
             // initialize the static fields
             unsafe
             {
-                FatalErrorHandlerDelegate = new Lazy<LLVMFatalErrorHandler>(() => FatalErrorHandler, LazyThreadSafetyMode.PublicationOnly);
+                fatalErrorHandlerDelegate = new Lazy<LLVMFatalErrorHandler>(() => FatalErrorHandler, LazyThreadSafetyMode.PublicationOnly);
             }
 
-            LLVM.InstallFatalErrorHandler(Marshal.GetFunctionPointerForDelegate(FatalErrorHandlerDelegate.Value));
-            Interlocked.Exchange(ref CurrentInitializationState, (int)InitializationState.Initialized);
+            LLVM.InstallFatalErrorHandler(Marshal.GetFunctionPointerForDelegate(fatalErrorHandlerDelegate.Value));
+            Interlocked.Exchange(ref currentInitializationState, (int)InitializationState.Initialized);
             return new Library();
         }
 
@@ -817,7 +817,7 @@ namespace Ubiquity.NET.Llvm.Interop
         private static void InternalShutdownLLVM()
         {
             var previousState = (InitializationState)Interlocked.CompareExchange(
-                ref CurrentInitializationState,
+                ref currentInitializationState,
                 (int)InitializationState.ShuttingDown,
                 (int)InitializationState.Initialized);
             if (previousState != InitializationState.Initialized)
@@ -827,7 +827,7 @@ namespace Ubiquity.NET.Llvm.Interop
 
             LLVM.Shutdown();
 
-            Interlocked.Exchange(ref CurrentInitializationState, (int)InitializationState.ShutDown);
+            Interlocked.Exchange(ref currentInitializationState, (int)InitializationState.ShutDown);
         }
     }
 }

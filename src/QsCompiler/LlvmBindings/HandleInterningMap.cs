@@ -15,7 +15,7 @@ namespace Ubiquity.NET.Llvm
     internal abstract class HandleInterningMap<THandle, TMappedType>
         : IHandleInterning<THandle, TMappedType>
     {
-        private readonly IDictionary<THandle, TMappedType> HandleMap
+        private readonly IDictionary<THandle, TMappedType> handleMap
             = new ConcurrentDictionary<THandle, TMappedType>(EqualityComparer<THandle>.Default);
 
         private protected HandleInterningMap(Context context)
@@ -27,34 +27,34 @@ namespace Ubiquity.NET.Llvm
 
         public TMappedType GetOrCreateItem(THandle handle, Action<THandle>? foundHandleRelease = default)
         {
-            if (this.HandleMap.TryGetValue(handle, out TMappedType retVal))
+            if (this.handleMap.TryGetValue(handle, out TMappedType retVal))
             {
                 foundHandleRelease?.Invoke(handle);
                 return retVal;
             }
 
             retVal = this.ItemFactory(handle);
-            this.HandleMap.Add(handle, retVal);
+            this.handleMap.Add(handle, retVal);
 
             return retVal;
         }
 
         public void Clear()
         {
-            this.DisposeItems(this.HandleMap.Values);
-            this.HandleMap.Clear();
+            this.DisposeItems(this.handleMap.Values);
+            this.handleMap.Clear();
         }
 
         public void Remove(THandle handle)
         {
-            if (this.HandleMap.TryGetValue(handle, out TMappedType item))
+            if (this.handleMap.TryGetValue(handle, out TMappedType item))
             {
-                this.HandleMap.Remove(handle);
+                this.handleMap.Remove(handle);
                 this.DisposeItem(item);
             }
         }
 
-        public IEnumerator<TMappedType> GetEnumerator() => this.HandleMap.Values.GetEnumerator();
+        public IEnumerator<TMappedType> GetEnumerator() => this.handleMap.Values.GetEnumerator();
 
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 

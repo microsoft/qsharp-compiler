@@ -23,15 +23,15 @@ namespace Ubiquity.NET.Llvm.Values
         : IOperandCollection<T>
         where T : Value
     {
-        private readonly Value Container;
+        private readonly Value container;
 
         internal ValueOperandListCollection(Value container)
         {
-            this.Container = container;
+            this.container = container;
         }
 
         /// <summary>Gets the count of operands in this collection.</summary>
-        public int Count => this.Container.ValueHandle.OperandCount;
+        public int Count => this.container.ValueHandle.OperandCount;
 
         /// <summary>Gets the operand at the specified index.</summary>
         /// <param name="index">Index of the operand to receive.</param>
@@ -42,7 +42,7 @@ namespace Ubiquity.NET.Llvm.Values
             get => this.GetOperand<T>(index);
             set
             {
-                this.Container.ValueHandle.SetOperand((uint)index, value?.ValueHandle ?? default);
+                this.container.ValueHandle.SetOperand((uint)index, value?.ValueHandle ?? default);
             }
         }
 
@@ -81,7 +81,7 @@ namespace Ubiquity.NET.Llvm.Values
             where TItem : T
         {
             uint offset = (uint)i.GetOffset(this.Count);
-            return Value.FromHandle<TItem>(this.Container.ValueHandle.GetOperand(offset));
+            return Value.FromHandle<TItem>(this.container.ValueHandle.GetOperand(offset));
         }
     }
 }
