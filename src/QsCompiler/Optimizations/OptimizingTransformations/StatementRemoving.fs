@@ -83,10 +83,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
                 let lhs = List.map fst myList |> ImmutableArray.CreateRange |> VariableNameTuple
 
                 let rhs =
-                    List.map snd myList
-                    |> ImmutableArray.CreateRange
-                    |> QubitTupleAllocation
-                    |> ResolvedInitializer.New
+                    List.map snd myList |> ImmutableArray.CreateRange |> QubitTupleAllocation |> ResolvedInitializer.New
 
                 let newBody = QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
                 QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
