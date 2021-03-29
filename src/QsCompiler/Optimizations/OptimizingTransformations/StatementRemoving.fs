@@ -69,7 +69,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
 
                         Seq.init (safeCastInt64 num) (fun i ->
                             VariableName(sprintf "__qsItem%d__%s__" i name),
-                            ResolvedInitializer.create Null SingleQubitAllocation)
+                            ResolvedInitializer.New SingleQubitAllocation)
                     | DiscardedItem, _ -> Seq.empty
                     | _ -> Seq.singleton (l, r))
                 |> List.ofSeq
@@ -86,7 +86,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
                     List.map snd myList
                     |> ImmutableArray.CreateRange
                     |> QubitTupleAllocation
-                    |> ResolvedInitializer.create Null
+                    |> ResolvedInitializer.New
 
                 let newBody = QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
                 QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton

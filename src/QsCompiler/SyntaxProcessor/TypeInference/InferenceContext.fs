@@ -177,7 +177,9 @@ module private Inference =
     /// both original types.
     /// </summary>
     let rec combine ordering types =
-        let range = QsNullable.Map2 Range.Span types.Left.Range types.Right.Range
+        let range =
+            QsNullable.Map2 Range.Span (TypeRange.tryRange types.Left.Range) (TypeRange.tryRange types.Right.Range)
+            |> TypeRange.inferred
 
         let relation =
             match ordering with
@@ -188,7 +190,7 @@ module private Inference =
         let error =
             QsCompilerDiagnostic.Error
                 (ErrorCode.MissingBaseType, relation :: (TypeContext.toList types |> List.map showType))
-                (range |> QsNullable.defaultValue Range.Zero)
+                (TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
         | ArrayType item1, ArrayType item2 ->
@@ -268,11 +270,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         if Option.isSome variable.Substitution
         then failwith "Type parameter is already bound."
-
         variables.[param] <- { variable with Substitution = Some substitution }
 
     let rememberErrors types diagnostics =
-        if types |> Seq.contains (ResolvedType.create Null InvalidType) || List.isEmpty diagnostics |> not then
+        if types |> Seq.contains (ResolvedType.New InvalidType) || List.isEmpty diagnostics |> not then
             for param in types |> Seq.fold (fun params' -> typeParameters >> Set.union params') Set.empty do
                 match variables.TryGetValue param |> tryOption with
                 | Some variable -> variables.[param] <- { variable with HasError = true }
@@ -308,7 +309,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             }
 
         variables.Add(param, variable)
-        TypeParameter param |> ResolvedType.create (Value source)
+        TypeParameter param |> ResolvedType.create (Inferred source)
 
     member internal context.Unify(expected, actual) =
         context.UnifyByOrdering(Supertype, TypeContext.create (context.Resolve expected) (context.Resolve actual))
@@ -339,7 +340,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member internal context.Resolve resolvedType =
         let resolveWithRange type' =
             let type' = context.Resolve type'
-            type' |> ResolvedType.withRange (type'.Range |> QsNullable.orElse resolvedType.Range)
+            type' |> ResolvedType.withRange (type'.Range |> TypeRange.orElse resolvedType.Range)
 
         match resolvedType.Resolution with
         | TypeParameter param ->
@@ -367,7 +368,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let error =
             QsCompilerDiagnostic.Error
                 (ErrorCode.TypeMismatch, TypeContext.toList types |> List.map showType)
-                (types.Right.Range |> QsNullable.defaultValue Range.Zero)
+                (TypeRange.tryRange types.Right.Range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
         | _ when types.Left = types.Right -> []
@@ -418,7 +419,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     /// Applies the <paramref name="typeConstraint"/> to the given <paramref name="resolvedType"/>.
     /// </summary>
     member private context.ApplyConstraint(typeConstraint, resolvedType) =
-        let range = resolvedType.Range |> QsNullable.defaultValue Range.Zero
+        let range = TypeRange.tryRange resolvedType.Range |> QsNullable.defaultValue Range.Zero
 
         match typeConstraint with
         | _ when resolvedType.Resolution = InvalidType -> []
@@ -497,7 +498,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 [
                     QsCompilerDiagnostic.Error
                         (ErrorCode.InvalidArrayItemIndex, [ showType index ])
-                        (index.Range |> QsNullable.defaultValue Range.Zero)
+                        (TypeRange.tryRange index.Range |> QsNullable.defaultValue Range.Zero)
                 ]
             | _ ->
                 [

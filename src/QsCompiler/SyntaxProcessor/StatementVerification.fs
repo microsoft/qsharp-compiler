@@ -120,7 +120,12 @@ let rec private VerifyBinding (inference: InferenceContext) tryBuildDeclaration 
         | None, diagnostics -> VariableName name, [||], diagnostics
     | SymbolTuple symbols ->
         let types = symbols |> Seq.map (fun symbol -> inference.Fresh symbol.RangeOrDefault) |> Seq.toList
-        let tupleType = ImmutableArray.CreateRange types |> TupleType |> ResolvedType.create symbol.Range
+
+        let tupleType =
+            ImmutableArray.CreateRange types
+            |> TupleType
+            |> ResolvedType.create (TypeRange.inferred symbol.Range)
+
         let unifyDiagnostics = inference.Unify(tupleType, rhsType)
 
         let verify symbol symbolType =
@@ -357,18 +362,24 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
 let private NewBindingScope kind comments (location: QsLocation) context (symbol: QsSymbol, init: QsInitializer) =
     let rec verifyInitializer init =
         match init.Initializer with
-        | SingleQubitAllocation -> ResolvedInitializer.create init.Range SingleQubitAllocation, Seq.empty
+        | SingleQubitAllocation ->
+            SingleQubitAllocation |> ResolvedInitializer.create (TypeRange.inferred init.Range), Seq.empty
         | QubitRegisterAllocation size ->
             let size, diagnostics = resolveExpr context size
             context.Inference.Unify(ResolvedType.New Int, size.ResolvedType) |> diagnostics.AddRange
             onAutoInvertCheckQuantumDependency context.Symbols size |> diagnostics.AddRange
-            QubitRegisterAllocation size |> ResolvedInitializer.create init.Range, upcast diagnostics
+
+            QubitRegisterAllocation size |> ResolvedInitializer.create (TypeRange.inferred init.Range),
+            upcast diagnostics
         | QubitTupleAllocation items ->
             let items, diagnostics = items |> Seq.map verifyInitializer |> Seq.toList |> List.unzip
 
-            ImmutableArray.CreateRange items |> QubitTupleAllocation |> ResolvedInitializer.create init.Range,
+            ImmutableArray.CreateRange items
+            |> QubitTupleAllocation
+            |> ResolvedInitializer.create (TypeRange.inferred init.Range),
             Seq.concat diagnostics
-        | InvalidInitializer -> ResolvedInitializer.create init.Range InvalidInitializer, Seq.empty
+        | InvalidInitializer ->
+            InvalidInitializer |> ResolvedInitializer.create (TypeRange.inferred init.Range), Seq.empty
 
     let init, initDiagnostics = verifyInitializer init
 

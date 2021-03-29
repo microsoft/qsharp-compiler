@@ -130,7 +130,7 @@ type ResolvedInitializerConverter() =
     inherit JsonConverter<ResolvedInitializer>()
 
     override this.ReadJson(reader, _, _, _, serializer) =
-        serializer.Deserialize<_> reader |> ResolvedInitializer.create Null
+        serializer.Deserialize<_> reader |> ResolvedInitializer.create TypeRange.Generated
 
     override this.WriteJson(writer: JsonWriter, value: ResolvedInitializer, serializer: JsonSerializer) =
         serializer.Serialize(writer, value.Resolution)
