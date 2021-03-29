@@ -230,7 +230,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
             {
                 var id = Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name));
+#pragma warning disable 618 // UserDefinedType.Range is obsolete.
                 this.SharedState.LogIdentifierLocation(id, udt.Range);
+#pragma warning restore 618
                 return QsTypeKind.NewUserDefinedType(udt);
             }
 
@@ -238,7 +240,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             {
                 var resT = ResolvedType.New(QsTypeKind.NewTypeParameter(tp));
                 var id = Identifier.NewLocalVariable(SyntaxTreeToQsharp.Default.ToCode(resT) ?? "");
+#pragma warning disable 618 // QsTypeParameter.Range is obsolete.
                 this.SharedState.LogIdentifierLocation(id, tp.Range);
+#pragma warning restore 618
                 return resT.Resolution;
             }
         }
@@ -605,7 +609,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             internal UserDefinedType RenameUdt(UserDefinedType udt)
             {
                 var newName = this.GetNewName(new QsQualifiedName(udt.Namespace, udt.Name));
+#pragma warning disable 618 // UserDefinedType.Range is obsolete.
                 return new UserDefinedType(newName.Namespace, newName.Name, udt.Range);
+#pragma warning restore 618
             }
         }
 
@@ -702,7 +708,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 QsTypeKind.NewUserDefinedType(this.state.RenameUdt(udt));
 
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
+#pragma warning disable 618 // QsTypeParameter.Range is obsolete.
                 QsTypeKind.NewTypeParameter(new QsTypeParameter(this.state.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+#pragma warning restore 618
         }
 
         private class ExpressionKindTransformation : Core.ExpressionKindTransformation

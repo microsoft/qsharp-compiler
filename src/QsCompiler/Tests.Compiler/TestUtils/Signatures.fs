@@ -3,6 +3,8 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.Signatures
 
+#nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
+
 open System.Collections.Generic
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler

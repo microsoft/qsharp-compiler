@@ -439,7 +439,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                     // Reroute a type parameter's origin to the newly generated operation
                     if (!this.SharedState.IsRecursiveIdentifier && this.SharedState.OldName.Equals(tp.Origin))
                     {
+#pragma warning disable 618 // QsTypeParameter.Range is obsolete.
                         tp = new QsTypeParameter(this.SharedState.NewName, tp.TypeName, tp.Range);
+#pragma warning restore 618
                     }
 
                     return base.OnTypeParameter(tp);

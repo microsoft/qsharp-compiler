@@ -5,6 +5,8 @@
 [<System.Runtime.CompilerServices.Extension>]
 module Microsoft.Quantum.QsCompiler.SyntaxTreeExtensions
 
+#nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable

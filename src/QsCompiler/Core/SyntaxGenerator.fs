@@ -252,7 +252,7 @@ module SyntaxGenerator =
             | BuiltInKind.Function typeParams -> typeParams.[0]
             | _ -> ArgumentException "Length is expected to be a function" |> raise
 
-        let typeParameter = QsTypeParameter.New(callableName, typeParameterName, Null)
+        let typeParameter = QsTypeParameter.New(callableName, typeParameterName)
 
         let genArrayType =
             QsTypeKind.ArrayType(QsTypeKind.TypeParameter typeParameter |> ResolvedType.New) |> ResolvedType.New

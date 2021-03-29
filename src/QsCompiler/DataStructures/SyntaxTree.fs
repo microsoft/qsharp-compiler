@@ -132,6 +132,8 @@ type QsTypeParameter =
 
         /// The source code range where the type parameter occurs. Null for auto-generated or inferred types. Range is
         /// ignored when comparing type parameters.
+        // TODO: RELEASE 2021-10: Remove obsolete property.
+        [<Obsolete "Use ResolvedType.Range instead.">]
         Range: QsNullable<Range>
     }
 
@@ -161,6 +163,8 @@ type UserDefinedType =
 
         /// The source code range where the user defined type name occurs. Null for auto-generated or inferred types.
         /// Range is ignored when comparing user defined types.
+        // TODO: RELEASE 2021-10: Remove obsolete property.
+        [<Obsolete "Use ResolvedType.Range instead.">]
         Range: QsNullable<Range>
     }
 
@@ -385,6 +389,12 @@ type TypeRange =
     | Generated
 
 module TypeRange =
+    /// <summary>
+    /// Creates an <see cref="Annotated"/> type range if a range is given, or the <see cref="Generated"/> type range
+    /// otherwise.
+    /// </summary>
+    let annotated = QsNullable<_>.Map Annotated >> QsNullable.defaultValue Generated
+
     /// <summary>
     /// Creates an <see cref="Inferred"/> type range if a range is given, or the <see cref="Generated"/> type range
     /// otherwise.

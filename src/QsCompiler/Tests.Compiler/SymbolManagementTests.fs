@@ -3,6 +3,8 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.SymbolManagementTests
 
+#nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
+
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SymbolManagement
