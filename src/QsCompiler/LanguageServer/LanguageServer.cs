@@ -555,16 +555,20 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<DocumentSymbolParams>(arg);
-            try
+            if (param != null)
             {
-                return QsCompilerError.RaiseOnFailure(
-                    () => this.editorState.DocumentSymbols(param) ?? Array.Empty<SymbolInformation>(),
-                    "DocumentSymbols threw an exception");
+                try
+                {
+                    return QsCompilerError.RaiseOnFailure(
+                        () => this.editorState.DocumentSymbols(param) ?? Array.Empty<SymbolInformation>(),
+                        "DocumentSymbols threw an exception");
+                }
+                catch
+                {
+                    // This is ok, if it happens we'll return an empty array.
+                }
             }
-            catch
-            {
-                return Array.Empty<SymbolInformation>();
-            }
+            return Array.Empty<SymbolInformation>();
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
@@ -607,14 +611,18 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<CompletionItem>(arg);
+            if (param?.Data == null)
+            {
+                return null;
+            }
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
             var format = this.ChooseFormat(supportedFormats);
             try
             {
-                var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param?.Data));
-                return QsCompilerError.RaiseOnFailure(
+                var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param.Data));
+                return (data != null) ? QsCompilerError.RaiseOnFailure(
                     () => this.editorState.ResolveCompletion(param, data, format),
-                    "ResolveCompletion threw an exception");
+                    "ResolveCompletion threw an exception") : null;
             }
             catch
             {
