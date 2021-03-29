@@ -11,18 +11,48 @@ using Microsoft.Build.Framework;
 using Microsoft.Build.Utilities;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
+    internal class ResourceOperationKindConverter : JsonConverter<ResourceOperationKind>
+    {
+        public override ResourceOperationKind ReadJson(JsonReader reader, Type objectType, ResourceOperationKind existingValue, bool hasExistingValue, JsonSerializer serializer) =>
+            reader.ReadAsString() switch
+            {
+                "create" => ResourceOperationKind.Create,
+                "delete" => ResourceOperationKind.Delete,
+                "rename" => ResourceOperationKind.Delete,
+                var badValue => throw new JsonSerializationException($"Could not deserialize {badValue} as ResourceOperationKind.")
+            };
+        public override void WriteJson(JsonWriter writer, ResourceOperationKind value, JsonSerializer serializer)
+        {
+            writer.WriteValue(value switch
+            {
+                ResourceOperationKind.Create => "create",
+                ResourceOperationKind.Delete => "delete",
+                ResourceOperationKind.Rename => "rename",
+                _ => throw new JsonSerializationException($"Could not serialize {value} as ResourceOperationKind.")
+            });
+        }
+    }
+
     public static class Utils
     {
         // language server tools -
         // wrapping these into a try .. catch .. to make sure errors don't go unnoticed as they otherwise would
 
+        public static readonly JsonSerializer jsonSerializer = new JsonSerializer();
+        static Utils()
+        {
+            jsonSerializer.Converters.Add(
+                new ResourceOperationKindConverter()
+            );
+        }
         public static T TryJTokenAs<T>(JToken arg)
             where T : class =>
-            QsCompilerError.RaiseOnFailure(() => arg.ToObject<T>(), "could not cast given JToken");
+            QsCompilerError.RaiseOnFailure(() => arg.ToObject<T>(jsonSerializer), "could not cast given JToken");
 
         private static ShowMessageParams? AsMessageParams(string text, MessageType severity) =>
             text == null ? null : new ShowMessageParams { Message = text, MessageType = severity };
