@@ -78,7 +78,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Assert.IsNotNull(protocolError);
                 if (protocolError != null)
                 {
-                    Assert.AreEqual(ProtocolError.Codes.AwaitingInitialization, Utils.TryJTokenAs<ProtocolError>(reply).Code);
+                    Assert.AreEqual(ProtocolError.Codes.AwaitingInitialization, protocolError.Code);
                 }
             }
 
@@ -98,7 +98,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             Assert.IsNotNull(initReply);
 
             var init = await this.rpc.InvokeWithParameterObjectAsync<JToken>(Methods.Initialize.Name, initParams);
-            Assert.IsTrue(Utils.TryJTokenAs<InitializeError>(init).Retry);
+            var initializeError = Utils.TryJTokenAs<InitializeError>(init);
+            Assert.IsTrue(initializeError != null ? initializeError.Retry : false);
         }
 
         [TestMethod]
