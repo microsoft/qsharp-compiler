@@ -11,6 +11,13 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Ubiquity.NET.Llvm.Values;
 
+// KEHA: check if current block is terminated prior to code generation for each statement function,
+//       creating new block if it is.
+//
+// another option:
+//       can we create a new block only for terminal inst (return, fail), but only attach it to the
+//       function if we need it? Or, leave it unattached?
+
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
     using ResolvedExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
@@ -227,6 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.SharedState.ScopeMgr.OpenScope();
             ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
+
             this.Transformation.Statements.OnScope(stm.Body); // Process the body
             this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
             return QsStatementKind.EmptyStatement;
@@ -316,6 +324,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
             this.SharedState.CurrentBuilder.Call(fail, message.Value);
             this.SharedState.CurrentBuilder.Unreachable();
+
+            // Fail is terminal, so we need to complete the current block
+            // and start a new one.
+            var newBlock = this.SharedState.AddBlockAfterCurrent(this.SharedState.CurrentBuilder.InsertBlock.Name);
+            this.SharedState.SetCurrentBlock(newBlock);
 
             return QsStatementKind.EmptyStatement;
         }

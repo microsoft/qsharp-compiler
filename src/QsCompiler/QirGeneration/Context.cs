@@ -556,11 +556,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("the current function or the current block is null");
             }
 
-            this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
-
-            if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
+            if (this.CurrentBlock.Instructions.Any())
             {
-                this.CurrentBuilder.Return();
+                this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
+
+                if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
+                {
+                    this.CurrentBuilder.Return();
+                }
+            }
+            else
+            {
+                // Block has no instructions. Assume it was superfluously created after
+                // a terminal instruction (i.e. return, fail).
+                this.ScopeMgr.CloseScope(isTerminated: true);
+                this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
             }
 
             return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any();
@@ -588,6 +598,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.CurrentBuilder.Return(result.Value);
                 }
+
+                // Return is terminal, so we need to complete the current block
+                // and start a new one.
+                var newBlock = this.AddBlockAfterCurrent(this.CurrentBuilder.InsertBlock.Name);
+                this.SetCurrentBlock(newBlock);
             }
             else if (!returnsVoid)
             {
@@ -1404,9 +1419,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Makes the given basic block current, creates a new builder for it, and makes that builder current.
         /// This method does not check to make sure that the block isn't already current.
         /// </summary>
+        /// <remarks>
+        /// Note that if the current block has no instructions, it is pruned from the current function.
+        /// </remarks>
         /// <param name="b">The block to make current</param>
         internal void SetCurrentBlock(BasicBlock b)
         {
+            if (this.CurrentFunction != null && this.CurrentBlock != null)
+            {
+                if (!this.CurrentBlock.Instructions.Any())
+                {
+                    // No code was generated to the old block. Assume it was
+                    // created superfluously after a terminal instruction (i.e. return or fail).
+                    this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
+                }
+            }
+
             this.CurrentBlock = b;
             this.CurrentBuilder = new InstructionBuilder(b);
         }
@@ -1444,6 +1472,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return next == null
                 ? this.CurrentFunction.AppendBasicBlock(continueName)
                 : this.CurrentFunction.InsertBasicBlock(continueName, next);
+        }
+
+        /// <summary>
+        /// Ensures that <see cref="CurrentBlock"/> is suitable for code generation (i.e. not terminated),
+        /// replacing it with a new one if necessary.
+        /// </summary>
+        /// <remarks>
+        /// If a new block is created, the old name of <see cref="CurrentBlock"/> is used as its base name.
+        /// </remarks>
+        /// <returns>True if <see cref="CurrentBlock"/> was replaced. False otherwise.</returns>
+        /// <exception cref="InvalidOperationException">The current function or block is set to null.</exception>
+        internal bool PrepareCurrentBlockForCodeGen()
+        {
+            if (this.CurrentFunction == null || this.CurrentBlock == null)
+            {
+                throw new InvalidOperationException("no current function and block specified");
+            }
+
+            if (this.CurrentBlock.Terminator != null)
+            {
+                // Create a new block, since the current block is already terminated
+                // and hence should not be used for new code generation.
+                var block = this.AddBlockAfterCurrent(this.CurrentBuilder.InsertBlock.Name);
+                this.SetCurrentBlock(block);
+                return true;
+            }
+
+            return false;
         }
 
         /// <summary>
