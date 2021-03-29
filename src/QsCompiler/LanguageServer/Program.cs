@@ -83,6 +83,8 @@ namespace Microsoft.Quantum.QsLanguageServer
 
         public static int Main(string[] args)
         {
+            System.Diagnostics.Debugger.Launch();
+
             // We need to set the current directory to the same directory of
             // the LanguageServer executable so that it will pick the global.json file
             // and force the MSBuildLocator to use .NET Core SDK 3.1
