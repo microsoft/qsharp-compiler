@@ -295,7 +295,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         let param =
             Seq.initInfinite (fun i -> if i = 0 then name else name + string (i - 1))
-            |> Seq.map (fun name -> QsTypeParameter.New(symbolTracker.Parent, name, Null))
+            |> Seq.map (fun name -> QsTypeParameter.New(symbolTracker.Parent, name))
             |> Seq.skipWhile (fun param ->
                 variables.ContainsKey param || symbolTracker.DefinedTypeParameters.Contains param.TypeName)
             |> Seq.head

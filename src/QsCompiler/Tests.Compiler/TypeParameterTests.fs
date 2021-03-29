@@ -27,7 +27,7 @@ type TypeParameterTests() =
         Assert.True(pieces.Length = 2)
         let parent = qualifiedName pieces.[0]
         let name = pieces.[1]
-        QsTypeParameter.New(parent, name, Null)
+        QsTypeParameter.New(parent, name)
 
     let FooA = typeParameter "Foo.A"
     let FooB = typeParameter "Foo.B"

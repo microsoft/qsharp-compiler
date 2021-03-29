@@ -3,6 +3,8 @@
 
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxTree
 
+#nowarn "44" // UserDefinedType.Range is deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable

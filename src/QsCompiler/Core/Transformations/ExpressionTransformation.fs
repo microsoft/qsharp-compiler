@@ -454,12 +454,9 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
      -> ImmutableDictionary<(QsQualifiedName * string), ResolvedType>
 
     default this.OnTypeParamResolutions typeParams =
-        let asTypeParameter (key) =
-            QsTypeParameter.New(fst key, snd key, Null)
-
         let filteredTypeParams =
             typeParams
-            |> Seq.map (fun kv -> this.Types.OnTypeParameter(kv.Key |> asTypeParameter), kv.Value)
+            |> Seq.map (fun kv -> QsTypeParameter.New(fst kv.Key, snd kv.Key) |> this.Types.OnTypeParameter, kv.Value)
             |> Seq.choose (function
                 | TypeParameter tp, value -> Some((tp.Origin, tp.TypeName), this.Types.OnType value)
                 | _ -> None)

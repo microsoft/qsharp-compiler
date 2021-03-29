@@ -3,18 +3,30 @@
 
 module Microsoft.Quantum.QsCompiler.SyntaxExtensions
 
+#nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
+
+open System
 open System.Collections.Generic
-open System.Collections.ObjectModel
 open System.Collections.Immutable
+open System.Collections.ObjectModel
 open System.Linq
+
+open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-
 
 type QsQualifiedName with
     static member New(nsName, cName) = { Namespace = nsName; Name = cName }
 
 type UserDefinedType with
+    static member New(ns, name) =
+        {
+            Namespace = ns
+            Name = name
+            Range = Null
+        }
+
+    [<Obsolete "Use UserDefinedType.New(string, string) instead.">]
     static member New(nsName, tName, range) =
         {
             Namespace = nsName
@@ -23,6 +35,14 @@ type UserDefinedType with
         }
 
 type QsTypeParameter with
+    static member New(origin, name) =
+        {
+            Origin = origin
+            TypeName = name
+            Range = Null
+        }
+
+    [<Obsolete "Use QsTypeParameter.New(string, string) instead.">]
     static member New(origin, tName, range) =
         {
             Origin = origin
