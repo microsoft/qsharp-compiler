@@ -280,7 +280,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 this.WasSuccessful(true, this.Validation) &&
                 this.WasSuccessful(true, this.PluginLoading) &&
-                this.WasSuccessful(!options.IsExecutable && !options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                this.WasSuccessful(options.IsExecutable && !options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 this.WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 this.WasSuccessful(!options.SkipConjugationInlining, this.ConjugationInlining) &&
                 this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&

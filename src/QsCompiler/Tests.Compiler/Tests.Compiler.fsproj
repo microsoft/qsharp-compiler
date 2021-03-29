@@ -337,6 +337,9 @@
     <None Include="TestCases\LinkingTests\ReferenceLinking.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\LinkingTests\SyntaxTreeTrim.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\LinkingTests\ValidEntryPoints.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
