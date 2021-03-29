@@ -123,6 +123,13 @@ type TypeTransformationBase(options: TransformationOptions) =
         if not options.Enable then
             t
         else
+            let range =
+                match t.Range with
+                | Annotated range -> Value range |> this.OnRangeInformation |> QsNullable<_>.Map Annotated
+                | Inferred range -> Value range |> this.OnRangeInformation |> QsNullable<_>.Map Inferred
+                | TypeRange.Generated -> Null
+                |> QsNullable.defaultValue TypeRange.Generated
+
             let transformed =
                 match t.Resolution with
                 | ExpressionType.UnitType -> this.OnUnitType()
@@ -143,12 +150,5 @@ type TypeTransformationBase(options: TransformationOptions) =
                 | ExpressionType.Result -> this.OnResult()
                 | ExpressionType.Pauli -> this.OnPauli()
                 | ExpressionType.Range -> this.OnRange()
-
-            let range =
-                match t.Range with
-                | Annotated range -> Value range |> this.OnRangeInformation |> QsNullable<_>.Map Annotated
-                | Inferred range -> Value range |> this.OnRangeInformation |> QsNullable<_>.Map Inferred
-                | TypeRange.Generated -> Null
-                |> QsNullable.defaultValue TypeRange.Generated
 
             ResolvedType.create range |> Node.BuildOr t transformed
