@@ -22,7 +22,7 @@
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
-    <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.json">
+    <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.json">jfkdsl f
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.cpp">
