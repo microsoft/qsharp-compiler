@@ -44,6 +44,12 @@ function Add-NuGetDependencyFromCsprojToNuspec($PathToCsproj)
             $onedependency.SetAttribute('version', $_.Version)
         }
     }
+
+    # Recursively check on project references:
+    $projectDependency = $csproj.Project.ItemGroup.ProjectReference | Where-Object { $null -ne $_ }
+    $projectDependency | ForEach-Object {
+        Add-NuGetDependencyFromCsprojToNuspec $_.Include $dep
+    }
 }
 
 # Find all package dependencies on QirGeneration.csproj, 
