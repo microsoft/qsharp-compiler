@@ -49,17 +49,23 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 
 using namespace Microsoft::Quantum;
 using namespace std;
-
-struct InteropArray
-{
-    int64_t Size;
-    void* Data;
-
-    InteropArray(int64_t size, void* data) :
-        Size(size),
-        Data(data){}
-};
-
+    
+");
+            
+            #line 26 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ if (CppInterop.AtLeastOneArrayArgument(entryPointOperation)) { 
+            
+            #line default
+            #line hidden
+            this.Write("struct InteropArray\r\n{\r\n    int64_t Size;\r\n    void* Data;\r\n\r\n    InteropArray(in" +
+                    "t64_t size, void* data) :\r\n        Size(size),\r\n        Data(data){}\r\n};\r\n");
+            
+            #line 36 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write(@"
 using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
@@ -82,926 +88,125 @@ struct InteropRange
 extern ""C"" void ");
 
             
-            #line 55 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 57 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             
             #line default
             #line hidden
-            this.Write("(\r\n    ");
-            
-            #line 56 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- foreach (var arg in entryPointOperation.Arguments) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 57 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- if (arg.Type == DataType.IntegerType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    int64_t ");
+            this.Write("( // NOLINT\r\n");
             
             #line 58 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 59 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.ArrayType == DataType.IntegerType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    InteropArray* ");
-            
-            #line 60 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 61 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.DoubleType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    double ");
-            
-            #line 62 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 63 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.ArrayType == DataType.DoubleType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    InteropArray* ");
-            
-            #line 64 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 65 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.BoolType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    char ");
-            
-            #line 66 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 67 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.ArrayType == DataType.BoolType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    InteropArray* ");
-            
-            #line 68 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 69 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.PauliType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    char ");
-            
-            #line 70 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 71 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.ArrayType == DataType.PauliType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    InteropArray* ");
-            
-            #line 72 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 73 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.RangeType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    InteropRange* ");
-            
-            #line 74 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 75 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ResultType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    char ");
-            
-            #line 76 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 77 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.ArrayType == DataType.ResultType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    InteropArray* ");
-            
-            #line 78 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 79 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.StringType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    const char* ");
-            
-            #line 80 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 81 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
-            
-            #line default
-            #line hidden
-            this.Write("    ");
-            
-            #line 82 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\n" +
-                    "map<string, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", " +
-                    "InteropFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsC" +
-                    "har}};\r\n\r\nmap<string, PauliId> PauliMap{\r\n    {\"PauliI\", PauliId::PauliId_I},\r\n " +
-                    "   {\"PauliX\", PauliId::PauliId_X},\r\n    {\"PauliY\", PauliId::PauliId_Y},\r\n    {\"P" +
-                    "auliZ\", PauliId::PauliId_Z}};\r\n\r\nconst char InteropResultZeroAsChar = 0x0;\r\ncons" +
-                    "t char InteropResultOneAsChar = 0x1;\r\nmap<string, char> ResultAsCharMap{\r\n    {\"" +
-                    "0\", InteropResultZeroAsChar},\r\n    {\"Zero\", InteropResultZeroAsChar},\r\n    {\"1\"," +
-                    " InteropResultOneAsChar},\r\n    {\"One\", InteropResultOneAsChar}\r\n};\r\n\r\ntemplate<t" +
-                    "ypename T>\r\nunique_ptr<InteropArray> CreateInteropArray(vector<T>& v)\r\n{\r\n    un" +
-                    "ique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));\r\n    return " +
-                    "array;\r\n}\r\n\r\nunique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)\r" +
-                    "\n{\r\n    unique_ptr<InteropRange> range(new InteropRange(rangeTuple));\r\n    retur" +
-                    "n range;\r\n}\r\n\r\ntemplate<typename T>\r\nvoid FreePointerVector(vector<T*>& v)\r\n{\r\n " +
-                    "   for (auto p : v)\r\n    {\r\n        delete p;\r\n    }\r\n}\r\n\r\nchar TranslatePauliTo" +
-                    "Char(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli);\r\n}\r\n\r\ntemplate<typ" +
-                    "ename S, typename D>\r\nvoid TranslateVector(vector<S>& sourceVector, vector<D>& d" +
-                    "estinationVector, function<D(S&)> translationFunction)\r\n{\r\n    destinationVector" +
-                    ".resize(sourceVector.size());\r\n    transform(sourceVector.begin(), sourceVector." +
-                    "end(), destinationVector.begin(), translationFunction);\r\n}\r\n\r\nInteropRange* Tran" +
-                    "slateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)\r\n{\r\n    InteropRang" +
-                    "e* range = new InteropRange(rangeTuple);\r\n    return range;\r\n}\r\n\r\nconst char* Tr" +
-                    "anslateStringToCharBuffer(string& s)\r\n{\r\n    return s.c_str();\r\n}\r\n\r\nint main(in" +
-                    "t argc, char* argv[])\r\n{\r\n    CLI::App app(\"QIR Standalone Entry Point Inputs Re" +
-                    "ference\");\r\n\r\n    // Initialize simulator.\r\n    unique_ptr<IRuntimeDriver> sim =" +
-                    " CreateFullstateSimulator();\r\n    QirContextScope qirctx(sim.get(), false /*trac" +
-                    "kAllocatedObjects*/);\r\n\r\n    // Add the --simulation-output options.\r\n    // N.B" +
-                    ". This option should be present in all standalone drivers.\r\n    string simulatio" +
-                    "nOutputFile;\r\n    CLI::Option* simulationOutputFileOpt = app.add_option(\r\n      " +
-                    "  \"-s,--simulation-output\", simulationOutputFile,\r\n        \"File where the outpu" +
-                    "t produced during the simulation is written\");\r\n\r\n    ");
-            
-            #line 168 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- foreach (var arg in entryPointOperation.Arguments) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 169 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- if (arg.Type == DataType.IntegerType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Add the options that correspond to the parameters that the QIR entry-point" +
-                    " needs.\r\n    // Option for a Q# Int type.\r\n    int64_t ");
-            
-            #line 172 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(" = 0;\r\n    app.add_option(\"--");
-            
-            #line 173 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 173 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"An integer value\")->required();\r\n        ");
-            
-            #line 174 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.IntegerType) { 
-            
-            #line default
-            #line hidden
-            this.Write("\r\n    // Option for a Q# Array<Int> type.\r\n    vector<int64_t> ");
-            
-            #line 177 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(";\r\n    app.add_option(\"--");
-            
-            #line 178 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 178 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"An integer array\")->required();\r\n\r\n        ");
-            
-            #line 180 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.DoubleType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for a Q# Double type.\r\n    double_t ");
-            
-            #line 182 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(" = 0.0;\r\n    app.add_option(\"--");
-            
-            #line 183 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 183 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A double value\")->required();\r\n        ");
-            
-            #line 184 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.DoubleType) { 
-            
-            #line default
-            #line hidden
-            this.Write("\r\n    // Option for a Q# Array<Double> type.\r\n    vector<double_t> ");
-            
-            #line 187 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(";\r\n    app.add_option(\"--");
-            
-            #line 188 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 188 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A double array\")->required();\r\n\r\n        ");
-            
-            #line 190 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.BoolType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for a Q# Bool type.\r\n    char ");
-            
-            #line 192 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(" = InteropFalseAsChar;\r\n    app.add_option(\"--");
-            
-            #line 193 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 193 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A bool value\")\r\n        ->required()\r\n        ->transform(CLI::CheckedTransfor" +
-                    "mer(BoolAsCharMap, CLI::ignore_case));\r\n\r\n        ");
-            
-            #line 197 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.BoolType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for a Q# Array<Bool> type.\r\n    // N.B. For command line parsing, a" +
-                    " char vector is used because vector<bool> is a specialized version of vector not" +
-                    "\r\n    //      supported by CLI11.\r\n    vector<char> ");
-            
-            #line 201 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(";\r\n    app.add_option(\"--");
-            
-            #line 202 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 202 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A bool array\")\r\n        ->required()\r\n        ->transform(CLI::CheckedTransfor" +
-                    "mer(BoolAsCharMap, CLI::ignore_case));\r\n        ");
-            
-            #line 205 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.PauliType) { 
-            
-            #line default
-            #line hidden
-            this.Write("\r\n    PauliId ");
-            
-            #line 207 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(" = PauliId::PauliId_I;\r\n    app.add_option(\"--");
-            
-            #line 208 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 208 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A Pauli value\")\r\n        ->required()\r\n        ->transform(CLI::CheckedTransfo" +
-                    "rmer(PauliMap, CLI::ignore_case));\r\n\r\n        ");
-            
-            #line 212 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.PauliType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for a Q# Array<Pauli> type.\r\n    std::vector<PauliId> ");
-            
-            #line 214 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(";\r\n    app.add_option(\"--pauli-array\", ");
-            
-            #line 215 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A Pauli array\")\r\n        ->required()\r\n        ->transform(CLI::CheckedTransfo" +
-                    "rmer(PauliMap, CLI::ignore_case));\r\n        ");
-            
-            #line 218 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.RangeType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for Q# Range type.\r\n    // N.B. RangeTuple type is used here instea" +
-                    "d of QirRange because CLI11 supports tuple parsing which is leveraged and\r\n    /" +
-                    "/      the tuple is later translated to QirRange.\r\n    RangeTuple ");
-            
-            #line 222 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("(0, 0, 0);\r\n    app.add_option(\"--");
-            
-            #line 223 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 223 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A Range value (start, step, end)\")->required();\r\n        ");
-            
-            #line 224 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for a Q# Array<Range> type.\r\n    vector<RangeTuple> ");
-            
-            #line 226 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(";\r\n    app.add_option(\"--");
-            
-            #line 227 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 227 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A Range array\")->required();\r\n        ");
-            
-            #line 228 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ResultType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for Q# Result type.\r\n    // N.B. This is implemented as a char rath" +
-                    "er than a boolean to be consistent with the way an array of results has to\r\n    " +
-                    "//      be implemented.\r\n    char ");
-            
-            #line 232 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(" = InteropResultZeroAsChar;\r\n    app.add_option(\"--");
-            
-            #line 233 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 233 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A Result value\")\r\n        ->required()\r\n        ->transform(CLI::CheckedTransf" +
-                    "ormer(ResultAsCharMap, CLI::ignore_case));\r\n        ");
-            
-            #line 236 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.ResultType) { 
-            
-            #line default
-            #line hidden
-            this.Write(@"    // Option for a Q# Array<Result> type.
-    // N.B. Similarly to the case of Q# Array<bool>, for command line parsing, a char vector is used because CLI11 does
-    //      not support vector<bool> since it is a specialized version of vector.
-    vector<char> ");
-            
-            #line 240 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(";\r\n    app.add_option(\"--");
-            
-            #line 241 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 241 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A Result array\")\r\n        ->required()\r\n        ->transform(CLI::CheckedTransf" +
-                    "ormer(ResultAsCharMap, CLI::ignore_case));\r\n        ");
-            
-            #line 244 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.StringType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for Q# String type.\r\n    string ");
-            
-            #line 246 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(";\r\n    app.add_option(\"--");
-            
-            #line 247 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 247 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A String value\")->required();\r\n        ");
-            
-            #line 248 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.StringType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Option for a Q# Array<String> type.\r\n    vector<string> ");
-            
-            #line 250 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(";\r\n    app.add_option(\"--");
-            
-            #line 251 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("\", ");
-            
-            #line 251 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", \"A String array\")->required();\r\n        ");
-            
-            #line 252 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
-            
-            #line default
-            #line hidden
-            this.Write("    ");
-            
-            #line 253 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
-            
-            #line default
-            #line hidden
-            this.Write("\r\n\r\n    // With all the options added, parse arguments from the command line.\r\n  " +
-                    "  CLI11_PARSE(app, argc, argv);\r\n\r\n    ");
-            
-            #line 259 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- foreach (var arg in entryPointOperation.Arguments) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 260 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- if (arg.Type == DataType.ArrayType && arg.Type == DataType.IntegerType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Translate values to its final form after parsing.\r\n    // Create an intero" +
-                    "p array of integer values.\r\n    unique_ptr<InteropArray> ");
-            
-            #line 263 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array = CreateInteropArray(");
-            
-            #line 263 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n        ");
-            
-            #line 264 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.DoubleType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Create an interop array of double values.\r\n    unique_ptr<InteropArray> ");
-            
-            #line 266 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array = CreateInteropArray(");
-            
-            #line 266 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n        ");
-            
-            #line 267 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.BoolType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Create an interop array of bool values.\r\n    unique_ptr<InteropArray> ");
-            
-            #line 269 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array = CreateInteropArray(");
-            
-            #line 269 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n        ");
-            
-            #line 270 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.PauliType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Translate a PauliID value to its char representation.\r\n    char ");
-            
-            #line 272 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("AsCharValue = TranslatePauliToChar(");
-            
-            #line 272 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n        ");
-            
-            #line 273 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.PauliType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Create an interop array of Pauli values represented as chars.\r\n    vector<" +
-                    "char> ");
-            
-            #line 275 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("AsCharVector;\r\n    TranslateVector<PauliId, char>(");
-            
-            #line 276 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", ");
-            
-            #line 276 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("AsCharVector, TranslatePauliToChar);\r\n    unique_ptr<InteropArray> ");
-            
-            #line 277 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array = CreateInteropArray(");
-            
-            #line 277 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("AsCharVector);\r\n        ");
-            
-            #line 278 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.RangeType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Create an interop range.\r\n    unique_ptr<InteropRange> ");
-            
-            #line 280 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Value = CreateInteropRange(");
-            
-            #line 280 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n            ");
-            
-            #line 281 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    vector<InteropRange*> ");
-            
-            #line 282 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Vector;\r\n    TranslateVector<RangeTuple, InteropRange*>(");
-            
-            #line 283 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", ");
-            
-            #line 283 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Vector, TranslateRangeTupleToInteropRangePointer);\r\n    unique_ptr<InteropArray> " +
-                    "");
-            
-            #line 284 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array = CreateInteropArray(");
-            
-            #line 284 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Vector);\r\n        ");
-            
-            #line 285 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.ResultType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Create an interop array of Result values.\r\n    unique_ptr<InteropArray> ");
-            
-            #line 287 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array = CreateInteropArray(");
-            
-            #line 287 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(");\r\n        ");
-            
-            #line 288 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.StringType) { 
-            
-            #line default
-            #line hidden
-            this.Write("    // Create an interop array of String values.\r\n    vector<const char *> ");
-            
-            #line 290 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("BufferVector;\r\n    TranslateVector<string, const char*>(");
-            
-            #line 291 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(", ");
-            
-            #line 291 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("BufferVector, TranslateStringToCharBuffer);\r\n    unique_ptr<InteropArray> ");
-            
-            #line 292 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array = CreateInteropArray(");
-            
-            #line 292 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("BufferVector);\r\n        ");
-            
-            #line 293 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
-            
-            #line default
-            #line hidden
-            this.Write("    ");
-            
-            #line 294 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
+ for (int i = 0; i < entryPointOperation.Arguments.Count; i++) {
+    var arg = entryPointOperation.Arguments[i];
+    Write($"    {CppInterop.CppType(arg)} {arg.Name}");
+    if (i < entryPointOperation.Arguments.Count-1) {
+        WriteLine(",");
+    }
+} 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n);\r\n\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;" +
+                    "\r\nmap<string, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\"" +
+                    ", InteropFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueA" +
+                    "sChar}};\r\n\r\nmap<string, PauliId> PauliMap{\r\n    {\"PauliI\", PauliId::PauliId_I},\r" +
+                    "\n    {\"PauliX\", PauliId::PauliId_X},\r\n    {\"PauliY\", PauliId::PauliId_Y},\r\n    {" +
+                    "\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\nconst char InteropResultZeroAsChar = 0x0;\r\nco" +
+                    "nst char InteropResultOneAsChar = 0x1;\r\nmap<string, char> ResultAsCharMap{\r\n    " +
+                    "{\"0\", InteropResultZeroAsChar},\r\n    {\"Zero\", InteropResultZeroAsChar},\r\n    {\"1" +
+                    "\", InteropResultOneAsChar},\r\n    {\"One\", InteropResultOneAsChar}\r\n};\r\n\r\ntemplate" +
+                    "<typename T>\r\nunique_ptr<InteropArray> CreateInteropArray(vector<T>& v)\r\n{\r\n    " +
+                    "unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));\r\n    retur" +
+                    "n array;\r\n}\r\n\r\nunique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple" +
+                    ")\r\n{\r\n    unique_ptr<InteropRange> range(new InteropRange(rangeTuple));\r\n    ret" +
+                    "urn range;\r\n}\r\n\r\ntemplate<typename T>\r\nvoid FreePointerVector(vector<T*>& v)\r\n{\r" +
+                    "\n    for (auto p : v)\r\n    {\r\n        delete p;\r\n    }\r\n}\r\n\r\nchar TranslatePauli" +
+                    "ToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli);\r\n}\r\n\r\ntemplate<t" +
+                    "ypename S, typename D>\r\nvoid TranslateVector(vector<S>& sourceVector, vector<D>&" +
+                    " destinationVector, function<D(S&)> translationFunction)\r\n{\r\n    destinationVect" +
+                    "or.resize(sourceVector.size());\r\n    transform(sourceVector.begin(), sourceVecto" +
+                    "r.end(), destinationVector.begin(), translationFunction);\r\n}\r\n\r\nInteropRange* Tr" +
+                    "anslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)\r\n{\r\n    InteropRa" +
+                    "nge* range = new InteropRange(rangeTuple);\r\n    return range;\r\n}\r\n\r\nconst char* " +
+                    "TranslateStringToCharBuffer(string& s)\r\n{\r\n    return s.c_str();\r\n}\r\n\r\nint main(" +
+                    "int argc, char* argv[])\r\n{\r\n    CLI::App app(\"QIR Standalone Entry Point Inputs " +
+                    "Reference\");\r\n\r\n    // Initialize simulator.\r\n    unique_ptr<IRuntimeDriver> sim" +
+                    " = CreateFullstateSimulator();\r\n    QirContextScope qirctx(sim.get(), false /*tr" +
+                    "ackAllocatedObjects*/);\r\n\r\n    // Add the --simulation-output options.\r\n    // N" +
+                    ".B. This option should be present in all standalone drivers.\r\n    string simulat" +
+                    "ionOutputFile;\r\n    CLI::Option* simulationOutputFileOpt = app.add_option(\r\n    " +
+                    "    \"--simulation-output\", simulationOutputFile,\r\n        \"File where the output" +
+                    " produced during the simulation is written\");\r\n    \r\n");
+            
+            #line 151 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ foreach (var arg in entryPointOperation.Arguments) {
+    WriteLine("");
+    WriteLine($"    {CppInterop.CppVarType(arg)} {arg.Name};"); 
+    if (CppInterop.CppVarInitialValue(arg) != null) { WriteLine($"    {arg.Name} = {CppInterop.CppVarInitialValue(arg)};"); }
+    WriteLine($"    app.add_option(\"{CppInterop.CliOptionString(arg)}\", {arg.Name}, \"{CppInterop.CliDescription(arg)}\")");
+    if (CppInterop.TransformationType(arg) == null) {
+        WriteLine("        ->required();");
+    } else {
+        WriteLine($"        ->required()->transform(CLI::CheckedTransformer({CppInterop.TransformationType(arg)}, CLI::ignore_case));");
+    }
+} 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n    // With all the options added, parse arguments from the command line.\r\n    " +
+                    "CLI11_PARSE(app, argc, argv);\r\n\r\n");
+            
+            #line 166 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ foreach (var arg in entryPointOperation.Arguments) {
+    switch (arg.Type) {
+        case DataType.PauliType:
+            WriteLine("    // Translate a PauliID value to its char representation.");
+            WriteLine($"    char {arg.Name}AsCharValue = TranslatePauliToChar({arg.Name});");
+            break;
+        case DataType.RangeType:
+            WriteLine("    // Create an interop range.");
+            WriteLine($"    unique_ptr<InteropRange> {arg.Name}Value = CreateInteropRange({arg.Name});");
+            break;
+        case DataType.ArrayType:
+            switch (arg.ArrayType) {
+                case DataType.IntegerType:
+                    WriteLine("    // Translate values to its final form after parsing.");
+                    WriteLine("    // Create an interop array of integer values.");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name});");
+                    break;
+                case DataType.DoubleType:
+                    WriteLine("    // Create an interop array of double values.");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name});");
+                    break;
+                case DataType.BoolType:
+                    WriteLine("    // Create an interop array of bool values.");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name});");
+                    break;
+                case DataType.PauliType:
+                    WriteLine("    // Create an interop array of Pauli values represented as chars.");
+                    WriteLine($"    vector<char> {arg.Name}AsCharVector;");
+                    WriteLine($"    TranslateVector<PauliId, char>({arg.Name}, {arg.Name}AsCharVector, TranslatePauliToChar);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name}AsCharVector);");
+                    break;
+                case DataType.RangeType:
+                    WriteLine($"    vector<InteropRange*> {arg.Name}Vector;");
+                    WriteLine($"    TranslateVector<RangeTuple, InteropRange*>({arg.Name}, {arg.Name}Vector, TranslateRangeTupleToInteropRangePointer);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name}Vector);");
+                    break;
+                case DataType.ResultType:
+                    WriteLine("    // Create an interop array of Result values.");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name});");
+                    break;
+                case DataType.StringType:
+                    WriteLine("    // Create an interop array of String values.");
+                    WriteLine($"    vector<const char *> {arg.Name}BufferVector;");
+                    WriteLine($"    TranslateVector<string, const char*>({arg.Name}, {arg.Name}BufferVector, TranslateStringToCharBuffer);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name}BufferVector);");
+                    break;
+            }
+            break;
+    }
+} 
             
             #line default
             #line hidden
@@ -1018,203 +223,53 @@ extern ""C"" void ");
     // Run simulation and write the output of the operation to the corresponding stream.
     ");
             
-            #line 306 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 227 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             
             #line default
             #line hidden
-            this.Write("(\r\n    ");
+            this.Write("(\r\n");
             
-            #line 307 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- foreach (var arg in entryPointOperation.Arguments) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 308 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- if (arg.Type == DataType.IntegerType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 309 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 310 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.IntegerType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 311 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            #line 228 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ for (int i = 0; i < entryPointOperation.Arguments.Count; i++) {
+    var arg = entryPointOperation.Arguments[i];
+    switch (arg.Type) {
+        case DataType.PauliType:
+            Write($"        {arg.Name}AsCharValue");
+            break;
+        case DataType.RangeType:
+            Write($"        {arg.Name}Value");
+            break;
+        case DataType.StringType:
+            Write($"        {arg.Name}.c_str()");
+            break;
+        case DataType.ArrayType:
+            Write($"        {arg.Name}Array.get()");
+            break;
+        default:
+            Write($"        {arg.Name}");
+            break;
+    }
+    if (i < entryPointOperation.Arguments.Count-1 ) {
+        WriteLine(",");
+    }
+} 
             
             #line default
             #line hidden
-            this.Write("Array.get(),\r\n        ");
+            this.Write("\r\n);\r\n\r\n");
             
-            #line 312 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.DoubleType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 313 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
+            #line 254 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ foreach (var arg in entryPointOperation.Arguments) {
+    if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
+        Write($"    FreePointerVector({arg.Name}Vector);");
+    }
+} 
             
             #line default
             #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 314 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.DoubleType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 315 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array.get(),\r\n        ");
-            
-            #line 316 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.BoolType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 317 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 318 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.BoolType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 319 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array.get(),\r\n        ");
-            
-            #line 320 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.PauliType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 321 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("AsCharValue,\r\n        ");
-            
-            #line 322 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.PauliType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 323 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array.get(),\r\n        ");
-            
-            #line 324 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.RangeType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 325 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Value.get(),\r\n        ");
-            
-            #line 326 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ResultType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 327 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(",\r\n        ");
-            
-            #line 328 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.ArrayType && arg.Type == DataType.ResultType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 329 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write("Array.get(),\r\n        ");
-            
-            #line 330 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } else if (arg.Type == DataType.StringType) { 
-            
-            #line default
-            #line hidden
-            this.Write("        ");
-            
-            #line 331 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-            this.Write(this.ToStringHelper.ToStringWithCulture(arg.Name));
-            
-            #line default
-            #line hidden
-            this.Write(".c_str());\r\n        ");
-            
-            #line 332 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
-            
-            #line default
-            #line hidden
-            this.Write("    ");
-            
-            #line 333 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- } 
-            
-            #line default
-            #line hidden
-            this.Write("    );\r\n\r\n    FreePointerVector(rangeVector);\r\n    simulatorOutputStream->flush()" +
-                    ";\r\n    if (simulationOutputFileStream.is_open())\r\n    {\r\n        simulationOutpu" +
-                    "tFileStream.close();\r\n    }\r\n}\r\n");
+            this.Write("\r\n    simulatorOutputStream->flush();\r\n    if (simulationOutputFileStream.is_open" +
+                    "())\r\n    {\r\n        simulationOutputFileStream.close();\r\n    }\r\n}\r\n");
             return this.GenerationEnvironment.ToString();
         }
     }
