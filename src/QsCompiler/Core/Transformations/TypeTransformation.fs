@@ -144,5 +144,11 @@ type TypeTransformationBase(options: TransformationOptions) =
                 | ExpressionType.Pauli -> this.OnPauli()
                 | ExpressionType.Range -> this.OnRange()
 
-            let range = this.OnRangeInformation t.Range
-            Node.BuildOr t transformed (ResolvedType.create range)
+            let range =
+                match t.Range with
+                | Annotated range -> Value range |> this.OnRangeInformation |> QsNullable<_>.Map Annotated
+                | Inferred range -> Value range |> this.OnRangeInformation |> QsNullable<_>.Map Inferred
+                | TypeRange.Generated -> Null
+                |> QsNullable.defaultValue TypeRange.Generated
+
+            ResolvedType.create range |> Node.BuildOr t transformed

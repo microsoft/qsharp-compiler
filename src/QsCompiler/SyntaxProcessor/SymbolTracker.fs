@@ -297,7 +297,10 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
             let argType, returnType =
                 decl.ArgumentType |> StripPositionInfo.Apply, decl.ReturnType |> StripPositionInfo.Apply
 
-            let idType = kind ((argType, returnType), decl.Information) |> ResolvedType.create qsSym.Range
+            let idType =
+                kind ((argType, returnType), decl.Information)
+                |> ResolvedType.create (TypeRange.inferred qsSym.Range)
+
             LocalVariableDeclaration.New false (defaultLoc, GlobalCallable fullName, idType, false), decl.TypeParameters
 
         let addDiagnosticForSymbol code args =
@@ -330,7 +333,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
                 let properties =
                     defaultLoc,
                     LocalVariable sym,
-                    decl.Type |> ResolvedType.withAllRanges qsSym.Range,
+                    decl.Type |> ResolvedType.withAllRanges (TypeRange.inferred qsSym.Range),
                     decl.InferredInformation.HasLocalQuantumDependency
 
                 properties |> LocalVariableDeclaration.New decl.InferredInformation.IsMutable, ImmutableArray.Empty

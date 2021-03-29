@@ -373,6 +373,39 @@ type CallableInformation =
 
         { Characteristics = commonCharacteristics; InferredInformation = inferredForAll }
 
+/// The source code range for a type.
+type TypeRange =
+    /// The type is annotated explicitly at the given range.
+    | Annotated of Range
+
+    /// The type is inferred from an expression or other piece of source code at the given range.
+    | Inferred of Range
+
+    /// The type is automatically generated and has no range.
+    | Generated
+
+module TypeRange =
+    /// <summary>
+    /// Creates an <see cref="Inferred"/> type range if a range is given, or the <see cref="Generated"/> type range
+    /// otherwise.
+    /// </summary>
+    let inferred = QsNullable<_>.Map Inferred >> QsNullable.defaultValue Generated
+
+    /// Returns the range if it exists.
+    let tryRange =
+        function
+        | Annotated range
+        | Inferred range -> Value range
+        | Generated -> Null
+
+    /// <summary>
+    /// Returns the original type range if it is not generated, otherwise returns <paramref name="ifGenerated"/>.
+    /// </summary>
+    let orElse ifGenerated =
+        function
+        | Annotated _
+        | Inferred _ as range -> range
+        | Generated -> ifGenerated
 
 /// Fully resolved Q# type.
 /// A Q# resolved type by construction never contains any arity-0 or arity-1 tuple types.
@@ -384,7 +417,7 @@ type ResolvedType =
     private
         {
             kind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
-            range: Range QsNullable
+            range: TypeRange
         }
 
         interface ITuple
@@ -408,8 +441,7 @@ type ResolvedType =
         /// By construction never contains any arity-0 or arity-1 tuple types.
         member this.Resolution = this.kind
 
-        /// The source code range where this type originated. For inferred types, this is the range of the expression
-        /// that has this type. Range is ignored when comparing resolved types.
+        /// The source code range where this type originated. Range is ignored when comparing resolved types.
         member this.Range = this.range
 
 module ResolvedType =
@@ -464,7 +496,7 @@ type ResolvedType with
     /// Creates a resolved type with no source code range.
     /// </summary>
     /// <exception cref="ArgumentException"><paramref name="kind"/> is an empty tuple.</exception>
-    static member New kind = ResolvedType.create Null kind
+    static member New kind = ResolvedType.create Generated kind
 
     /// Given a map that for a type parameter returns the corresponding resolved type it is supposed to be replaced with,
     /// replaces the type parameters in the given type with their resolutions.
