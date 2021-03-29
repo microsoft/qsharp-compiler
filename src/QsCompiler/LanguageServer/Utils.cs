@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 new ResourceOperationKindConverter()
             );
         }
-        public static T TryJTokenAs<T>(JToken arg)
+        public static T? TryJTokenAs<T>(JToken arg)
             where T : class =>
             QsCompilerError.RaiseOnFailure(() => arg.ToObject<T>(jsonSerializer), "could not cast given JToken");
 
