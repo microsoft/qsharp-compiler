@@ -656,12 +656,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </returns>
         private Value ConditionalEvaluation(Value condition, TypedExpression? onCondTrue = null, TypedExpression? onCondFalse = null)
         {
-            var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
+            var contBlock = this.SharedState.FunctionContext.AddBlockAfterCurrent("condContinue");
             var falseBlock = onCondFalse != null
-                ? this.SharedState.AddBlockAfterCurrent("condFalse")
+                ? this.SharedState.FunctionContext.AddBlockAfterCurrent("condFalse")
                 : contBlock;
             var trueBlock = onCondTrue != null
-                ? this.SharedState.AddBlockAfterCurrent("condTrue")
+                ? this.SharedState.FunctionContext.AddBlockAfterCurrent("condTrue")
                 : contBlock;
 
             // In order to ensure the correct reference counts, it is important that we create a new scope
@@ -670,14 +670,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // count will increase by 1. The result of the expression is a phi node that we then properly
             // register with the scope manager, such that it will be unreferenced when going out of scope.
 
-            this.SharedState.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
-            var entryBlock = this.SharedState.CurrentBlock!;
+            this.SharedState.FunctionContext.Emit(b => b.Branch(condition, trueBlock, falseBlock));
+            var entryBlock = this.SharedState.FunctionContext.CurrentBlock;
 
             var (evaluatedOnTrue, afterTrue) = (condition, entryBlock);
             if (onCondTrue != null)
             {
                 this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.SetCurrentBlock(trueBlock);
+                this.SharedState.FunctionContext.SetCurrentBlock(trueBlock);
                 var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
                 this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);

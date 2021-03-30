@@ -91,7 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumInstructionSet;
 
-        internal FunctionBuilder CurrentFunctionBuilder { get; private set; }
+        internal FunctionContext FunctionContext { get; private set; }
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
@@ -552,16 +552,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
         internal bool EndFunction()
         {
-            if (this.CurrentFunctionBuilder == null)
+            if (this.FunctionContext == null)
             {
                 throw new InvalidOperationException("the current function builder is null");
             }
 
-            this.ScopeMgr.CloseScope(this.CurrentFunctionBuilder.IsCurrentBlockTerminated);
+            this.ScopeMgr.CloseScope(this.FunctionContext.IsCurrentBlockTerminated);
 
-            if (!this.CurrentFunctionBuilder.IsCurrentBlockTerminated && this.CurrentFunctionBuilder.Function.ReturnType.IsVoid)
+            if (!this.FunctionContext.IsCurrentBlockTerminated && this.FunctionContext.Function.ReturnType.IsVoid)
             {
-                this.CurrentFunctionBuilder.EmitInstructions(b => b.Return());
+                this.FunctionContext.Emit(b => b.Return());
             }
 
             return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any();
@@ -664,9 +664,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.CurrentFunction = this.RegisterFunction(spec);
-            this.CurrentFunctionBuilder = new FunctionBuilder(this.CurrentFunction);
+            this.FunctionContext = new FunctionContext(this.CurrentFunction, this.BlockName);
 
-            this.CurrentBlock = this.CurrentFunctionBuilder.CurrentBlock;
+            this.CurrentBlock = this.FunctionContext.CurrentBlock;
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
@@ -927,25 +927,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.StartFunction();
             this.CurrentFunction = func; // TODO remove line
 
-            this.CurrentFunctionBuilder = new FunctionBuilder(func);
+            this.FunctionContext = new FunctionContext(func, this.BlockName);
 
             for (var i = 0; i < argNames.Length; ++i)
             {
                 var name = argNames[i];
                 if (name != null)
                 {
-                    func.Parameters[i].Name = name;
+                    this.FunctionContext.Function.Parameters[i].Name = name;
                 }
             }
-            this.SetCurrentBlock(this.CurrentFunction.AppendBasicBlock("entry"));
 
             this.ScopeMgr.OpenScope();
-            executeBody(this.CurrentFunction.Parameters);
-            var isTerminated = this.CurrentBlock?.Terminator != null;
+            executeBody(this.FunctionContext.Function.Parameters);
+            var isTerminated = this.FunctionContext.IsCurrentBlockTerminated;
             this.ScopeMgr.CloseScope(isTerminated);
             if (!isTerminated)
             {
-                this.CurrentBuilder.Return();
+                this.FunctionContext.Emit(b => b.Return());
             }
             this.EndFunction();
         }
@@ -1112,60 +1111,60 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered</param>
         /// <param name="increment">The value that is added to the loop variable after each iteration </param>
         /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop</param>
-        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
+        /// <exception cref="InvalidOperationException">The current function builder is set to null.</exception>
         internal void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
         {
-            if (this.CurrentFunction == null || this.CurrentBlock == null)
+            if (this.FunctionContext == null)
             {
-                throw new InvalidOperationException("current function is set to null");
+                throw new InvalidOperationException("current function builder is set to null");
             }
 
             // Contains the loop header that creates the phi-node, evaluates the condition,
             // and then branches into the body or exits the loop depending on whether the condition evaluates to true.
             var headerName = this.BlockName("header");
-            BasicBlock headerBlock = this.CurrentFunction.AppendBasicBlock(headerName);
+            BasicBlock headerBlock = this.FunctionContext.Function.AppendBasicBlock(headerName);
 
             // Contains the body of the loop, which has its own naming scope.
             var bodyName = this.BlockName("body");
-            BasicBlock bodyBlock = this.CurrentFunction.AppendBasicBlock(bodyName);
+            BasicBlock bodyBlock = this.FunctionContext.Function.AppendBasicBlock(bodyName);
 
             // Increments the loop variable and then branches into the header block
             // which determines whether to enter the next iteration.
             var exitingName = this.BlockName("exiting");
-            BasicBlock exitingBlock = this.CurrentFunction.AppendBasicBlock(exitingName);
+            BasicBlock exitingBlock = this.FunctionContext.Function.AppendBasicBlock(exitingName);
 
             // Empty block that will be entered when the loop exits that may get populated by subsequent computations.
             var exitName = this.BlockName("exit");
-            BasicBlock exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
+            BasicBlock exitBlock = this.FunctionContext.Function.AppendBasicBlock(exitName);
 
             PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
             {
                 // End the current block by branching into the header of the loop
-                BasicBlock precedingBlock = this.CurrentBlock ?? throw new InvalidOperationException("no preceding block");
+                BasicBlock precedingBlock = this.FunctionContext.CurrentBlock;
 
                 // We need to open a scope before starting the for-loop by creating the header block, since
                 // it is possible for the condition to perform an allocation that needs to get cleaned up.
                 this.ScopeMgr.OpenScope();
-                this.CurrentBuilder.Branch(headerBlock);
+                this.FunctionContext.Emit(b => b.Branch(headerBlock));
 
                 // Header block: create/update phi node representing the iteration variable and evaluate the condition
-                this.SetCurrentBlock(headerBlock);
-                var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
+                this.FunctionContext.SetCurrentBlock(headerBlock);
+                var loopVariable = this.FunctionContext.Emit(b => b.PhiNode(this.Types.Int));
                 loopVariable.AddIncoming(startValue, precedingBlock);
 
                 var condition = evaluateCondition(loopVariable);
-                this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
+                this.ScopeMgr.CloseScope(this.FunctionContext.IsCurrentBlockTerminated);
 
-                this.CurrentBuilder.Branch(condition, bodyBlock, exitBlock);
+                this.FunctionContext.Emit(b => b.Branch(condition, bodyBlock, exitBlock));
                 return loopVariable;
             }
 
             bool PopulateLoopBody(Action executeBody)
             {
                 this.ScopeMgr.OpenScope();
-                this.SetCurrentBlock(bodyBlock);
+                this.FunctionContext.SetCurrentBlock(bodyBlock);
                 executeBody();
-                var isTerminated = this.CurrentBlock?.Terminator != null;
+                var isTerminated = this.FunctionContext.IsCurrentBlockTerminated;
                 this.ScopeMgr.CloseScope(isTerminated);
                 return isTerminated;
             }
@@ -1176,14 +1175,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // continue into the exiting block, which updates the loop variable and enters the next iteration.
                 if (!bodyWasTerminated)
                 {
-                    this.CurrentBuilder.Branch(exitingBlock);
+                    this.FunctionContext.Emit(b => b.Branch(exitingBlock));
                 }
 
                 // Update the iteration value (phi node) and enter the next iteration
-                this.SetCurrentBlock(exitingBlock);
-                var nextValue = this.CurrentBuilder.Add(loopVariable, increment);
+                this.FunctionContext.SetCurrentBlock(exitingBlock);
+
+                var nextValue = this.FunctionContext.Emit(b => b.Add(loopVariable, increment));
                 loopVariable.AddIncoming(nextValue, exitingBlock);
-                this.CurrentBuilder.Branch(headerBlock);
+                this.FunctionContext.Emit(b => b.Branch(headerBlock));
             }
 
             this.ExecuteLoop(exitBlock, () =>
@@ -1210,7 +1210,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             loop();
             this.EndBranch();
             this.IsWithinLoop = withinOuterLoop;
-            this.SetCurrentBlock(continuation);
+            this.FunctionContext.SetCurrentBlock(continuation);
         }
 
         /// <summary>
@@ -1234,7 +1234,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value CreatePreheader(Value increment)
             {
                 var preheaderName = this.BlockName("preheader");
-                var preheaderBlock = this.CurrentFunction.AppendBasicBlock(preheaderName);
+                var preheaderBlock = this.FunctionContext.Function.AppendBasicBlock(preheaderName);
 
                 // End the current block by branching to the preheader
                 this.CurrentBuilder.Branch(preheaderBlock);
@@ -1470,34 +1470,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return next == null
                 ? this.CurrentFunction.AppendBasicBlock(continueName)
                 : this.CurrentFunction.InsertBasicBlock(continueName, next);
-        }
-
-        /// <summary>
-        /// Ensures that <see cref="CurrentBlock"/> is suitable for code generation (i.e. not terminated),
-        /// replacing it with a new one if necessary.
-        /// </summary>
-        /// <remarks>
-        /// If a new block is created, the old name of <see cref="CurrentBlock"/> is used as its base name.
-        /// </remarks>
-        /// <returns>True if <see cref="CurrentBlock"/> was replaced. False otherwise.</returns>
-        /// <exception cref="InvalidOperationException">The current function or block is set to null.</exception>
-        internal bool PrepareCurrentBlockForCodeGen()
-        {
-            if (this.CurrentFunction == null || this.CurrentBlock == null)
-            {
-                throw new InvalidOperationException("no current function and block specified");
-            }
-
-            if (this.CurrentBlock.Terminator != null)
-            {
-                // Create a new block, since the current block is already terminated
-                // and hence should not be used for new code generation.
-                var block = this.AddBlockAfterCurrent(this.CurrentBuilder.InsertBlock.Name);
-                this.SetCurrentBlock(block);
-                return true;
-            }
-
-            return false;
         }
 
         /// <summary>

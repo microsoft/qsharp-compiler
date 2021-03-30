@@ -7,9 +7,10 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
-    internal class FunctionBuilder
+    internal class FunctionContext
     {
         private readonly IrFunction function;
+        private readonly Func<string, string> uniqueBlockName;
         private InstructionBuilder currentBuilder;
 
         internal IrFunction Function => this.function;
@@ -20,14 +21,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal bool IsCurrentBlockEmpty => !this.CurrentBlock.Instructions.Any();
 
-        internal FunctionBuilder(IrFunction function)
+        internal FunctionContext(IrFunction function, Func<string, string> uniqueBlockName)
         {
             this.function = function;
+            this.uniqueBlockName = uniqueBlockName;
             this.currentBuilder = new InstructionBuilder(this.function.AppendBasicBlock("entry"));
         }
 
-        internal void EmitInstructions(Action<InstructionBuilder> action)
+        //internal Value EmitInstructions(Func<InstructionBuilder, Value> action)
+        //{
+        //    Value result;
+        //    this.EmitInstructions(builder => result = action(builder));
+        //    return result;
+        //}
+
+        internal T Emit<T>(Func<InstructionBuilder, T> func)
         {
+            T result;
             if (this.IsCurrentBlockTerminated)
             {
                 // Current block has already been terminated.
@@ -35,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var unreachableBlock = this.AddBlockAfterCurrent($"{this.CurrentBlock.Name}__unreachable");
                 var unreachableBuilder = new InstructionBuilder(unreachableBlock);
 
-                action(unreachableBuilder);
+                result = func(unreachableBuilder);
 
                 if (!unreachableBlock.Instructions.Any())
                 {
@@ -49,17 +59,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                action(this.currentBuilder);
+                result = func(this.currentBuilder);
             }
+
+            return result;
         }
 
         /// <summary>
         /// Creates a new basic block and adds it to the current function immediately after the current block.
         /// </summary>
-        /// <param name="continueName">The name for the new block.</param>
+        /// <param name="name">The base name for the new block; a counter will be appended to ensure uniqueness</param>
         /// <returns>The new block.</returns>
         /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
-        internal BasicBlock AddBlockAfterCurrent(string continueName)
+        internal BasicBlock AddBlockAfterCurrent(string name)
         {
             var flag = false;
             BasicBlock? next = null;
@@ -77,6 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
+            var continueName = this.uniqueBlockName(name);
             return next == null
                 ? this.function.AppendBasicBlock(continueName)
                 : this.function.InsertBasicBlock(continueName, next);
