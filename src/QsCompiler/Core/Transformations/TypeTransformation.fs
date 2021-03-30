@@ -5,7 +5,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
 #nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
 
+open System
 open System.Collections.Immutable
+
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -16,15 +18,19 @@ type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypePa
 
 
 type TypeTransformationBase(options: TransformationOptions) =
-
     let Node = if options.Rebuild then Fold else Walk
-    new() = new TypeTransformationBase(TransformationOptions.Default)
+
+    new() = TypeTransformationBase TransformationOptions.Default
 
 
     // supplementary type information
 
+    [<Obsolete "Use OnRangeInformation(TypeRange) instead.">]
     abstract OnRangeInformation: QsNullable<Range> -> QsNullable<Range>
     default this.OnRangeInformation range = range
+
+    abstract OnTypeRange: TypeRange -> TypeRange
+    default this.OnTypeRange range = range
 
     abstract OnCharacteristicsExpression: ResolvedCharacteristics -> ResolvedCharacteristics
     default this.OnCharacteristicsExpression fs = fs
@@ -123,12 +129,7 @@ type TypeTransformationBase(options: TransformationOptions) =
         if not options.Enable then
             t
         else
-            let range =
-                match t.Range with
-                | Annotated range -> Value range |> this.OnRangeInformation |> QsNullable<_>.Map Annotated
-                | Inferred range -> Value range |> this.OnRangeInformation |> QsNullable<_>.Map Inferred
-                | TypeRange.Generated -> Null
-                |> QsNullable.defaultValue TypeRange.Generated
+            let range = this.OnTypeRange t.Range
 
             let transformed =
                 match t.Resolution with
