@@ -33,6 +33,13 @@ let internal rangeOrDefault expr =
     | InvalidExpr, Null -> Range.Zero
     | _, Null -> failwith "valid expression without a range"
 
+/// <summary>
+/// Recursively replaces the ranges in the <see cref="ResolvedType"/> with a range spanning <paramref name="lhs"/> and
+/// <paramref name="rhs"/>.
+/// </summary>
+let private withSpanningRange (lhs: TypedExpression) (rhs: TypedExpression) =
+    QsNullable.Map2 Range.Span lhs.Range rhs.Range |> TypeRange.inferred |> ResolvedType.withAllRanges
+
 /// Calls the given addWarning function with a suitable warning code and the given range
 /// if the given expression contains an operation call.
 let private VerifyConditionalExecution (expr: TypedExpression) =
@@ -91,7 +98,7 @@ let private VerifyIsIntegral (inference: InferenceContext) expr =
 let private VerifyIntegralOp (inference: InferenceContext) lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
     let constrainDiagnostics = inference.Constrain(exType, Integral)
-    exType, intersectDiagnostics @ constrainDiagnostics
+    exType |> withSpanningRange lhs rhs, intersectDiagnostics @ constrainDiagnostics
 
 /// Verifies that the given resolved type indeed supports arithmetic operations,
 /// adding an InvalidTypeInArithmeticExpr error with the given range using addError otherwise.
@@ -110,7 +117,7 @@ let private VerifySupportsArithmetic (inference: InferenceContext) expr =
 let private VerifyArithmeticOp (inference: InferenceContext) lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
     let constrainDiagnostics = inference.Constrain(exType, Numeric)
-    exType, intersectDiagnostics @ constrainDiagnostics
+    exType |> withSpanningRange lhs rhs, intersectDiagnostics @ constrainDiagnostics
 
 /// Verifies that the given resolved type indeed supports iteration,
 /// adding an ExpectingIterableExpr error with the given range using addError otherwise.
@@ -131,7 +138,7 @@ let internal VerifyIsIterable (inference: InferenceContext) expr =
 let private VerifyConcatenation (inference: InferenceContext) lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
     let constrainDiagnostics = inference.Constrain(exType, Semigroup)
-    exType, intersectDiagnostics @ constrainDiagnostics
+    exType |> withSpanningRange lhs rhs, intersectDiagnostics @ constrainDiagnostics
 
 /// Verifies that given resolved types can be used within an equality comparison expression.
 /// First tries to find a common base type for the two types,
@@ -141,7 +148,7 @@ let private VerifyConcatenation (inference: InferenceContext) lhs rhs =
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
 let private VerifyEqualityComparison (inference: InferenceContext) lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
-    let constrainDiagnostics = inference.Constrain(exType, Equatable)
+    let constrainDiagnostics = inference.Constrain(exType |> withSpanningRange lhs rhs, Equatable)
     intersectDiagnostics @ constrainDiagnostics
 
 /// Given a list of all item types and there corresponding ranges, verifies that a value array literal can be built from them.
@@ -710,7 +717,10 @@ type QsExpression with
             VerifyConditionalExecution ifTrue |> List.iter diagnose
             VerifyConditionalExecution ifFalse |> List.iter diagnose
 
-            let exType = inference.Intersect(ifTrue.ResolvedType, ifFalse.ResolvedType) |> takeDiagnostics
+            let exType =
+                inference.Intersect(ifTrue.ResolvedType, ifFalse.ResolvedType)
+                |> takeDiagnostics
+                |> ResolvedType.withAllRanges (TypeRange.inferred this.Range)
 
             let localQdependency =
                 [ cond; ifTrue; ifFalse ] |> Seq.exists (fun ex -> ex.InferredInformation.HasLocalQuantumDependency)

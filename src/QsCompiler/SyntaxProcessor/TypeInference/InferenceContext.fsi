@@ -35,6 +35,9 @@ type InferenceContext =
     /// <summary>
     /// The intersection of types <paramref name="left"/> and <paramref name="right"/>.
     /// </summary>
+    /// <returns>
+    /// The intersecting type with a <see cref="TypeRange.Generated"/> range.
+    /// </returns>
     member internal Intersect: left:ResolvedType * right:ResolvedType -> ResolvedType * QsCompilerDiagnostic list
 
     /// <summary>
