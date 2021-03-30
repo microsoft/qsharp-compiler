@@ -33,13 +33,6 @@ let internal rangeOrDefault expr =
     | InvalidExpr, Null -> Range.Zero
     | _, Null -> failwith "valid expression without a range"
 
-/// <summary>
-/// Recursively replaces the ranges in the <see cref="ResolvedType"/> with a range spanning <paramref name="lhs"/> and
-/// <paramref name="rhs"/>.
-/// </summary>
-let private withSpanningRange (lhs: TypedExpression) (rhs: TypedExpression) =
-    QsNullable.Map2 Range.Span lhs.Range rhs.Range |> TypeRange.inferred |> ResolvedType.withAllRanges
-
 /// Calls the given addWarning function with a suitable warning code and the given range
 /// if the given expression contains an operation call.
 let private VerifyConditionalExecution (expr: TypedExpression) =
@@ -95,10 +88,11 @@ let private VerifyIsIntegral (inference: InferenceContext) expr =
 /// Verifies that both given resolved types are of kind Int or BigInt, and that both are the same,
 /// adding an ArgumentMismatchInBinaryOp or ExpectingIntegralExpr error with the corresponding range using addError otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
-let private VerifyIntegralOp (inference: InferenceContext) lhs rhs =
+let private VerifyIntegralOp (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
+    let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
     let constrainDiagnostics = inference.Constrain(exType, Integral)
-    exType |> withSpanningRange lhs rhs, intersectDiagnostics @ constrainDiagnostics
+    exType, intersectDiagnostics @ constrainDiagnostics
 
 /// Verifies that the given resolved type indeed supports arithmetic operations,
 /// adding an InvalidTypeInArithmeticExpr error with the given range using addError otherwise.
@@ -114,10 +108,11 @@ let private VerifySupportsArithmetic (inference: InferenceContext) expr =
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
 /// Returns the type of the arithmetic expression (i.e. the found base type).
-let private VerifyArithmeticOp (inference: InferenceContext) lhs rhs =
+let private VerifyArithmeticOp (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
+    let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
     let constrainDiagnostics = inference.Constrain(exType, Numeric)
-    exType |> withSpanningRange lhs rhs, intersectDiagnostics @ constrainDiagnostics
+    exType, intersectDiagnostics @ constrainDiagnostics
 
 /// Verifies that the given resolved type indeed supports iteration,
 /// adding an ExpectingIterableExpr error with the given range using addError otherwise.
@@ -135,10 +130,11 @@ let internal VerifyIsIterable (inference: InferenceContext) expr =
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
 /// Returns the type of the concatenation expression (i.e. the found base type).
-let private VerifyConcatenation (inference: InferenceContext) lhs rhs =
+let private VerifyConcatenation (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
+    let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
     let constrainDiagnostics = inference.Constrain(exType, Semigroup)
-    exType |> withSpanningRange lhs rhs, intersectDiagnostics @ constrainDiagnostics
+    exType, intersectDiagnostics @ constrainDiagnostics
 
 /// Verifies that given resolved types can be used within an equality comparison expression.
 /// First tries to find a common base type for the two types,
@@ -146,9 +142,10 @@ let private VerifyConcatenation (inference: InferenceContext) lhs rhs =
 /// If a common base type exists, verifies that this base type supports equality comparison,
 /// adding the corresponding error otherwise.
 /// If one of the given types is a missing type, also adds the corresponding ExpressionOfUnknownType error(s).
-let private VerifyEqualityComparison (inference: InferenceContext) lhs rhs =
+let private VerifyEqualityComparison (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
-    let constrainDiagnostics = inference.Constrain(exType |> withSpanningRange lhs rhs, Equatable)
+    let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
+    let constrainDiagnostics = inference.Constrain(exType, Equatable)
     intersectDiagnostics @ constrainDiagnostics
 
 /// Given a list of all item types and there corresponding ranges, verifies that a value array literal can be built from them.
@@ -618,7 +615,7 @@ type QsExpression with
         let buildArithmeticOp buildExprKind (lhs, rhs) =
             let lhs = resolve lhs
             let rhs = resolve rhs
-            let resolvedType = VerifyArithmeticOp inference lhs rhs |> takeDiagnostics
+            let resolvedType = VerifyArithmeticOp inference this.Range lhs rhs |> takeDiagnostics
 
             let localQdependency =
                 lhs.InferredInformation.HasLocalQuantumDependency
@@ -634,7 +631,7 @@ type QsExpression with
         let buildAddition (lhs, rhs) =
             let lhs = resolve lhs
             let rhs = resolve rhs
-            let resolvedType = VerifyConcatenation inference lhs rhs |> takeDiagnostics
+            let resolvedType = VerifyConcatenation inference this.Range lhs rhs |> takeDiagnostics
 
             let localQdependency =
                 lhs.InferredInformation.HasLocalQuantumDependency
@@ -655,7 +652,7 @@ type QsExpression with
                     inference.Unify(ResolvedType.New Int, rhs.ResolvedType) |> List.iter diagnose
                     lhs.ResolvedType
                 else
-                    VerifyArithmeticOp inference lhs rhs |> takeDiagnostics
+                    VerifyArithmeticOp inference this.Range lhs rhs |> takeDiagnostics
 
             let localQdependency =
                 lhs.InferredInformation.HasLocalQuantumDependency
@@ -668,7 +665,7 @@ type QsExpression with
         let buildIntegralOp buildExprKind (lhs, rhs) =
             let lhs = resolve lhs
             let rhs = resolve rhs
-            let resolvedType = VerifyIntegralOp inference lhs rhs |> takeDiagnostics
+            let resolvedType = VerifyIntegralOp inference this.Range lhs rhs |> takeDiagnostics
 
             let localQdependency =
                 lhs.InferredInformation.HasLocalQuantumDependency
@@ -859,13 +856,17 @@ type QsExpression with
         | MUL (lhs, rhs) -> buildArithmeticOp MUL (lhs, rhs)
         | DIV (lhs, rhs) -> buildArithmeticOp DIV (lhs, rhs)
         | LT (lhs, rhs) ->
-            buildBooleanOpWith (fun lhs rhs -> VerifyArithmeticOp inference lhs rhs |> snd) false LT (lhs, rhs)
+            buildBooleanOpWith (fun lhs rhs -> VerifyArithmeticOp inference this.Range lhs rhs |> snd) false LT
+                (lhs, rhs)
         | LTE (lhs, rhs) ->
-            buildBooleanOpWith (fun lhs rhs -> VerifyArithmeticOp inference lhs rhs |> snd) false LTE (lhs, rhs)
+            buildBooleanOpWith (fun lhs rhs -> VerifyArithmeticOp inference this.Range lhs rhs |> snd) false LTE
+                (lhs, rhs)
         | GT (lhs, rhs) ->
-            buildBooleanOpWith (fun lhs rhs -> VerifyArithmeticOp inference lhs rhs |> snd) false GT (lhs, rhs)
+            buildBooleanOpWith (fun lhs rhs -> VerifyArithmeticOp inference this.Range lhs rhs |> snd) false GT
+                (lhs, rhs)
         | GTE (lhs, rhs) ->
-            buildBooleanOpWith (fun lhs rhs -> VerifyArithmeticOp inference lhs rhs |> snd) false GTE (lhs, rhs)
+            buildBooleanOpWith (fun lhs rhs -> VerifyArithmeticOp inference this.Range lhs rhs |> snd) false GTE
+                (lhs, rhs)
         | POW (lhs, rhs) -> buildPower (lhs, rhs) // power takes a special role because you can raise integers and doubles to integer and double powers, but bigint only to integer powers
         | MOD (lhs, rhs) -> buildIntegralOp MOD (lhs, rhs)
         | LSHIFT (lhs, rhs) -> buildShiftOp LSHIFT (lhs, rhs)
@@ -875,8 +876,8 @@ type QsExpression with
         | BXOR (lhs, rhs) -> buildIntegralOp BXOR (lhs, rhs)
         | AND (lhs, rhs) -> buildBooleanOpWith (VerifyAreBooleans inference) true AND (lhs, rhs)
         | OR (lhs, rhs) -> buildBooleanOpWith (VerifyAreBooleans inference) true OR (lhs, rhs)
-        | EQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison inference) false EQ (lhs, rhs)
-        | NEQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison inference) false NEQ (lhs, rhs)
+        | EQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison inference this.Range) false EQ (lhs, rhs)
+        | NEQ (lhs, rhs) -> buildBooleanOpWith (VerifyEqualityComparison inference this.Range) false NEQ (lhs, rhs)
         | NEG ex -> verifyAndBuildWith NEG (VerifySupportsArithmetic inference) ex
         | BNOT ex -> verifyAndBuildWith BNOT (VerifyIsIntegral inference) ex
         | NOT ex ->
