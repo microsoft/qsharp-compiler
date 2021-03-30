@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private Value CastToType(Value value, ITypeRef expectedType) =>
             value.NativeType.Equals(expectedType)
             ? value
-            : this.sharedState.CurrentBuilder.BitCast(value, expectedType);
+            : this.sharedState.FunctionContext.Emit(b => b.BitCast(value, expectedType));
 
         /// <inheritdoc cref="MapToInteropType(ITypeRef)"/>
         private ITypeRef? MapToInteropType(ResolvedType type) =>
@@ -154,11 +154,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             (Value Length, Value DataArray) LoadSizedArray(Value value)
             {
-                var lengthPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(0));
-                var dataArrPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(1));
-                var length = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Int, lengthPtr);
-                var dataArr = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.DataArrayPointer, dataArrPtr);
-                return (length, dataArr);
+                return this.sharedState.FunctionContext.Emit(b =>
+                {
+                    var lengthPtr = b.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(0));
+                    var dataArrPtr = b.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(1));
+                    var length = b.Load(this.sharedState.Types.Int, lengthPtr);
+                    var dataArr = b.Load(this.sharedState.Types.DataArrayPointer, dataArrPtr);
+
+                    return (length, dataArr);
+                });
             }
 
             IValue[] GetStructItems(Value value, IEnumerable<ResolvedType> itemTypes)
@@ -166,8 +170,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var itemIndex = 0;
                 Value NextTupleItem()
                 {
-                    var itemPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(itemIndex++));
-                    return this.sharedState.CurrentBuilder.Load(Types.PointerElementType(itemPtr), itemPtr);
+                    return this.sharedState.FunctionContext.Emit(b =>
+                    {
+                        var itemPtr = b.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(itemIndex++));
+                        return b.Load(Types.PointerElementType(itemPtr), itemPtr);
+                    });
                 }
                 return itemTypes.Select(arg => ProcessGivenValue(arg, NextTupleItem)).ToArray();
             }
@@ -185,7 +192,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var (length, dataArr) = LoadSizedArray(givenValue);
                     ArrayValue array = this.sharedState.Values.CreateArray(length, arrItemType.Item);
 
-                    var dataArrStart = this.sharedState.CurrentBuilder.PointerToInt(dataArr, this.sharedState.Context.Int64Type);
+                    var dataArrStart = this.sharedState.FunctionContext.Emit(b => b.PointerToInt(dataArr, this.sharedState.Context.Int64Type));
                     var givenArrElementType = this.MapToInteropType(array.LlvmElementType) ?? this.sharedState.Values.Unit.LlvmType;
                     var givenArrElementSize = this.sharedState.ComputeSizeForType(givenArrElementType);
 
@@ -193,17 +200,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         var element = ProcessGivenValue(array.QSharpElementType, () =>
                         {
-                            var offset = this.sharedState.CurrentBuilder.Mul(index, givenArrElementSize);
-                            var elementPointer = this.sharedState.CurrentBuilder.IntToPointer(
-                                this.sharedState.CurrentBuilder.Add(dataArrStart, offset),
-                                givenArrElementType.CreatePointerType());
-                            return this.sharedState.CurrentBuilder.Load(givenArrElementType, elementPointer);
+                            return this.sharedState.FunctionContext.Emit(b =>
+                            {
+                                var offset = b.Mul(index, givenArrElementSize);
+                                var elementPointer = b.IntToPointer(
+                                    b.Add(dataArrStart, offset), givenArrElementType.CreatePointerType());
+                                return b.Load(givenArrElementType, elementPointer);
+                            });
                         });
                         array.GetArrayElementPointer(index).StoreValue(element);
                     }
 
                     var start = this.sharedState.Context.CreateConstant(0L);
-                    var end = this.sharedState.CurrentBuilder.Sub(array.Length, this.sharedState.Context.CreateConstant(1L));
+                    var end = this.sharedState.FunctionContext.Emit(b => b.Sub(array.Length, this.sharedState.Context.CreateConstant(1L)));
                     this.sharedState.IterateThroughRange(start, null, end, PopulateItem);
                     return array;
                 }
@@ -216,7 +225,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var createBigInt = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
                     var (length, dataArr) = LoadSizedArray(givenValue);
-                    var argValue = this.sharedState.CurrentBuilder.Call(createBigInt, length, dataArr);
+                    var argValue = this.sharedState.FunctionContext.Emit(b => b.Call(createBigInt, length, dataArr));
                     var value = this.sharedState.Values.From(argValue, type);
                     this.sharedState.ScopeMgr.RegisterValue(value);
                     return value;
@@ -224,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsString)
                 {
                     var createString = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var argValue = this.sharedState.CurrentBuilder.Call(createString, givenValue);
+                    var argValue = this.sharedState.FunctionContext.Emit(b => b.Call(createString, givenValue));
                     var value = this.sharedState.Values.From(argValue, type);
                     this.sharedState.ScopeMgr.RegisterValue(value);
                     return value;
@@ -233,15 +242,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var getZero = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
                     var getOne = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetOne);
-                    var cond = this.sharedState.CurrentBuilder.Compare(
+
+                    return this.sharedState.FunctionContext.Emit(b =>
+                    {
+                        var cond = b.Compare(
                         IntPredicate.Equal,
                         givenValue,
                         this.sharedState.Context.CreateConstant(givenValue.NativeType, 0u, false));
-                    var argValue = this.sharedState.CurrentBuilder.Select(
-                        cond,
-                        this.sharedState.CurrentBuilder.Call(getZero),
-                        this.sharedState.CurrentBuilder.Call(getOne));
-                    return this.sharedState.Values.From(argValue, type);
+                        var argValue = b.Select(
+                            cond,
+                            b.Call(getZero),
+                            b.Call(getOne));
+                        return this.sharedState.Values.From(argValue, type);
+                    });
                 }
                 else if (type.Resolution.IsRange)
                 {
@@ -252,7 +265,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (givenValue.NativeType.IsInteger)
                 {
                     var expectedType = this.sharedState.LlvmTypeFromQsharpType(type);
-                    var argValue = this.sharedState.CurrentBuilder.IntCast(givenValue, expectedType, type.Resolution.IsInt);
+                    var argValue = this.sharedState.FunctionContext.Emit(b => b.IntCast(givenValue, expectedType, type.Resolution.IsInt));
                     return this.sharedState.Values.FromSimpleValue(argValue, type);
                 }
                 else if (givenValue.NativeType.IsFloatingPoint)
@@ -308,133 +321,136 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("the current function is null");
             }
 
-            Value CopyToMemory(IPointerType targetType, Value size, Value? sourcePtr = null)
+            return this.sharedState.FunctionContext.Emit(b =>
             {
-                var malloc = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.HeapAllocate);
-                var allocated = this.sharedState.CurrentBuilder.Call(malloc, size);
-                if (sourcePtr != null)
+                Value CopyToMemory(IPointerType targetType, Value size, Value? sourcePtr = null)
                 {
-                    this.sharedState.CurrentBuilder.MemCpy(allocated, sourcePtr, size, false);
-                }
-                return this.sharedState.CurrentBuilder.BitCast(allocated, targetType);
-            }
-
-            Value PopulateStruct(IPointerType mappedType, Value[] tupleItems)
-            {
-                var mappedStructType = Types.StructFromPointer(mappedType);
-                var size = this.sharedState.ComputeSizeForType(mappedStructType);
-                var mappedTuple = CopyToMemory(mappedType, size);
-
-                for (var itemIdx = 0; itemIdx < mappedStructType.Members.Count; ++itemIdx)
-                {
-                    var itemPtr = this.sharedState.CurrentBuilder.GetElementPtr(mappedStructType, mappedTuple, this.PointerIndex(itemIdx));
-                    var tupleItem = this.CastToType(tupleItems[itemIdx], mappedStructType.Members[itemIdx]);
-                    this.sharedState.CurrentBuilder.Store(tupleItem, itemPtr);
-                }
-                return mappedTuple;
-            }
-
-            if (res.QSharpType.Resolution.IsUnitType)
-            {
-                return null;
-            }
-
-            if (res is ArrayValue array)
-            {
-                var malloc = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.HeapAllocate);
-                var dataArrElementType = this.MapToInteropType(array.QSharpElementType) ?? this.sharedState.Values.Unit.LlvmType;
-                var sizePerElement = this.sharedState.ComputeSizeForType(dataArrElementType);
-                var dataArr = this.sharedState.CurrentBuilder.Call(malloc, this.sharedState.CurrentBuilder.Mul(array.Length, sizePerElement));
-
-                var dataArrStart = this.sharedState.CurrentBuilder.PointerToInt(dataArr, this.sharedState.Context.Int64Type);
-                void PopulateItem(Value index)
-                {
-                    var offset = this.sharedState.CurrentBuilder.Mul(index, sizePerElement);
-                    var elementPointer = this.sharedState.CurrentBuilder.IntToPointer(
-                        this.sharedState.CurrentBuilder.Add(dataArrStart, offset),
-                        dataArrElementType.CreatePointerType());
-                    var element = this.ProcessReturnValue(array.GetArrayElement(index)) ?? this.sharedState.Values.Unit.Value;
-                    this.sharedState.CurrentBuilder.Store(element, elementPointer);
+                    var malloc = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.HeapAllocate);
+                    var allocated = b.Call(malloc, size);
+                    if (sourcePtr != null)
+                    {
+                        b.MemCpy(allocated, sourcePtr, size, false);
+                    }
+                    return b.BitCast(allocated, targetType);
                 }
 
-                var start = this.sharedState.Context.CreateConstant(0L);
-                var end = this.sharedState.CurrentBuilder.Sub(array.Length, this.sharedState.Context.CreateConstant(1L));
-                this.sharedState.IterateThroughRange(start, null, end, PopulateItem);
+                Value PopulateStruct(IPointerType mappedType, Value[] tupleItems)
+                {
+                    var mappedStructType = Types.StructFromPointer(mappedType);
+                    var size = this.sharedState.ComputeSizeForType(mappedStructType);
+                    var mappedTuple = CopyToMemory(mappedType, size);
 
-                var tupleItems = new[] { array.Length, dataArr }; // FIXME: CAST DATA ARR TO THE RIGHT TYPE IF NEEDED
-                var mappedType = this.MapToInteropType(array.QSharpType)!;
-                return PopulateStruct((IPointerType)mappedType, tupleItems);
-            }
-            else if (res is TupleValue tuple)
-            {
-                var mappedType = this.MapToInteropType(tuple.QSharpType);
-                if (mappedType == null)
+                    for (var itemIdx = 0; itemIdx < mappedStructType.Members.Count; ++itemIdx)
+                    {
+                        var itemPtr = b.GetElementPtr(mappedStructType, mappedTuple, this.PointerIndex(itemIdx));
+                        var tupleItem = this.CastToType(tupleItems[itemIdx], mappedStructType.Members[itemIdx]);
+                        b.Store(tupleItem, itemPtr);
+                    }
+                    return mappedTuple;
+                }
+
+                if (res.QSharpType.Resolution.IsUnitType)
                 {
                     return null;
                 }
-                else if (tuple.LlvmType.Equals(mappedType))
+
+                if (res is ArrayValue array)
                 {
-                    var size = this.sharedState.ComputeSizeForType(tuple.StructType);
-                    return CopyToMemory((IPointerType)mappedType, size, tuple.TypedPointer);
+                    var malloc = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.HeapAllocate);
+                    var dataArrElementType = this.MapToInteropType(array.QSharpElementType) ?? this.sharedState.Values.Unit.LlvmType;
+                    var sizePerElement = this.sharedState.ComputeSizeForType(dataArrElementType);
+                    var dataArr = b.Call(malloc, b.Mul(array.Length, sizePerElement));
+
+                    var dataArrStart = b.PointerToInt(dataArr, this.sharedState.Context.Int64Type);
+                    void PopulateItem(Value index)
+                    {
+                        var offset = b.Mul(index, sizePerElement);
+                        var elementPointer = b.IntToPointer(
+                            b.Add(dataArrStart, offset),
+                            dataArrElementType.CreatePointerType());
+                        var element = this.ProcessReturnValue(array.GetArrayElement(index)) ?? this.sharedState.Values.Unit.Value;
+                        b.Store(element, elementPointer);
+                    }
+
+                    var start = this.sharedState.Context.CreateConstant(0L);
+                    var end = b.Sub(array.Length, this.sharedState.Context.CreateConstant(1L));
+                    this.sharedState.IterateThroughRange(start, null, end, PopulateItem);
+
+                    var tupleItems = new[] { array.Length, dataArr }; // FIXME: CAST DATA ARR TO THE RIGHT TYPE IF NEEDED
+                    var mappedType = this.MapToInteropType(array.QSharpType)!;
+                    return PopulateStruct((IPointerType)mappedType, tupleItems);
                 }
+                else if (res is TupleValue tuple)
+                {
+                    var mappedType = this.MapToInteropType(tuple.QSharpType);
+                    if (mappedType == null)
+                    {
+                        return null;
+                    }
+                    else if (tuple.LlvmType.Equals(mappedType))
+                    {
+                        var size = this.sharedState.ComputeSizeForType(tuple.StructType);
+                        return CopyToMemory((IPointerType)mappedType, size, tuple.TypedPointer);
+                    }
 
-                var tupleItems = WithoutNullValues(this.ProcessReturnValue, tuple.GetTupleElements());
-                return PopulateStruct((IPointerType)mappedType, tupleItems);
-            }
-            else if (res.QSharpType.Resolution.IsBigInt)
-            {
-                // TODO: We can't know the length of the big int without runtime support.
-                // We may also need functions to access the data array for both string and big int.
-                throw new NotImplementedException("returning values of type BigInt is not yet supported");
-            }
-            else if (res.QSharpType.Resolution.IsString)
-            {
-                var getLength = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringGetLength);
-                var strLength = this.sharedState.CurrentBuilder.Call(getLength, res.Value);
-                var size = this.sharedState.CurrentBuilder.IntCast(strLength, this.sharedState.Context.Int64Type, true);
+                    var tupleItems = WithoutNullValues(this.ProcessReturnValue, tuple.GetTupleElements());
+                    return PopulateStruct((IPointerType)mappedType, tupleItems);
+                }
+                else if (res.QSharpType.Resolution.IsBigInt)
+                {
+                    // TODO: We can't know the length of the big int without runtime support.
+                    // We may also need functions to access the data array for both string and big int.
+                    throw new NotImplementedException("returning values of type BigInt is not yet supported");
+                }
+                else if (res.QSharpType.Resolution.IsString)
+                {
+                    var getLength = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringGetLength);
+                    var strLength = b.Call(getLength, res.Value);
+                    var size = b.IntCast(strLength, this.sharedState.Context.Int64Type, true);
 
-                var getData = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringGetData);
-                var strData = this.sharedState.CurrentBuilder.Call(getData, res.Value);
+                    var getData = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringGetData);
+                    var strData = b.Call(getData, res.Value);
 
-                var expectedType = this.MapToInteropType(res.LlvmType)!;
-                return CopyToMemory((IPointerType)expectedType, size, strData); // not sure if it is better to avoid the copy and increase the ref count
-            }
-            else if (res.QSharpType.Resolution.IsResult)
-            {
-                var getZero = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
-                var resType = this.MapToInteropType(this.sharedState.Types.Result)!;
-                var zeroValue = this.sharedState.Context.CreateConstant(resType, 0u, false);
-                var oneValue = this.sharedState.Context.CreateConstant(resType, ~0u, false);
+                    var expectedType = this.MapToInteropType(res.LlvmType)!;
+                    return CopyToMemory((IPointerType)expectedType, size, strData); // not sure if it is better to avoid the copy and increase the ref count
+                }
+                else if (res.QSharpType.Resolution.IsResult)
+                {
+                    var getZero = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
+                    var resType = this.MapToInteropType(this.sharedState.Types.Result)!;
+                    var zeroValue = this.sharedState.Context.CreateConstant(resType, 0u, false);
+                    var oneValue = this.sharedState.Context.CreateConstant(resType, ~0u, false);
 
-                var equals = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual);
-                var cond = this.sharedState.CurrentBuilder.Call(equals, res.Value, this.sharedState.CurrentBuilder.Call(getZero));
-                return this.sharedState.CurrentBuilder.Select(cond, zeroValue, oneValue);
-            }
-            else if (res.QSharpType.Resolution.IsRange)
-            {
-                var start = this.sharedState.CurrentBuilder.ExtractValue(res.Value, 0u);
-                var step = this.sharedState.CurrentBuilder.ExtractValue(res.Value, 1u);
-                var end = this.sharedState.CurrentBuilder.ExtractValue(res.Value, 2u);
+                    var equals = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual);
+                    var cond = b.Call(equals, res.Value, b.Call(getZero));
+                    return b.Select(cond, zeroValue, oneValue);
+                }
+                else if (res.QSharpType.Resolution.IsRange)
+                {
+                    var start = b.ExtractValue(res.Value, 0u);
+                    var step = b.ExtractValue(res.Value, 1u);
+                    var end = b.ExtractValue(res.Value, 2u);
 
-                var expectedType = this.MapToInteropType(res.LlvmType)!;
-                return PopulateStruct((IPointerType)expectedType, new[] { start, step, end });
-            }
-            else if (res.LlvmType.IsInteger)
-            {
-                var expectedType = this.MapToInteropType(res.LlvmType)!;
-                return this.sharedState.CurrentBuilder.IntCast(res.Value, expectedType, res.QSharpType.Resolution.IsInt);
-            }
-            else if (res.LlvmType.IsFloatingPoint)
-            {
-                return res.Value;
-            }
-            else
-            {
-                // callables and qubits
-                var expectedType = this.MapToInteropType(res.LlvmType)!;
-                this.sharedState.ScopeMgr.IncreaseReferenceCount(res);
-                return this.CastToType(res.Value, expectedType);
-            }
+                    var expectedType = this.MapToInteropType(res.LlvmType)!;
+                    return PopulateStruct((IPointerType)expectedType, new[] { start, step, end });
+                }
+                else if (res.LlvmType.IsInteger)
+                {
+                    var expectedType = this.MapToInteropType(res.LlvmType)!;
+                    return b.IntCast(res.Value, expectedType, res.QSharpType.Resolution.IsInt);
+                }
+                else if (res.LlvmType.IsFloatingPoint)
+                {
+                    return res.Value;
+                }
+                else
+                {
+                    // callables and qubits
+                    var expectedType = this.MapToInteropType(res.LlvmType)!;
+                    this.sharedState.ScopeMgr.IncreaseReferenceCount(res);
+                    return this.CastToType(res.Value, expectedType);
+                }
+            });
         }
 
         /// <summary>
@@ -475,7 +491,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.sharedState.GenerateFunction(wrapperFunc, argNames, parameters =>
                 {
                     var argValueList = this.ProcessArguments(argumentTuple, parameters);
-                    var evaluatedValue = this.sharedState.CurrentBuilder.Call(implementation, argValueList);
+                    var evaluatedValue = this.sharedState.FunctionContext.Emit(b => b.Call(implementation, argValueList));
                     var result = this.sharedState.Values.From(evaluatedValue, returnType);
                     this.sharedState.ScopeMgr.RegisterValue(result);
 
@@ -492,7 +508,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         // ProcessReturnValue makes sure the memory for the returned value isn't freed
                         var returnValue = this.ProcessReturnValue(result)!;
                         this.sharedState.ScopeMgr.ExitFunction(this.sharedState.Values.Unit);
-                        this.sharedState.CurrentBuilder.Return(returnValue);
+                        this.sharedState.FunctionContext.Emit(b => b.Return(returnValue));
                     }
                 });
 
@@ -527,14 +543,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.sharedState.GenerateFunction(entryPointFunction, argNames, parameters =>
             {
                 var argValueList = this.ProcessArguments(argumentTuple, parameters);
-                var evaluatedValue = this.sharedState.CurrentBuilder.Call(implementation, argValueList);
+                var evaluatedValue = this.sharedState.FunctionContext.Emit(b => b.Call(implementation, argValueList));
                 var result = this.sharedState.Values.From(evaluatedValue, returnType);
                 this.sharedState.ScopeMgr.RegisterValue(result);
 
                 // print the return value
                 var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
                 var outputStr = QirExpressionKindTransformation.CreateStringLiteral(this.sharedState, "{0}", result);
-                this.sharedState.CurrentBuilder.Call(message, outputStr.Value);
+                this.sharedState.FunctionContext.Emit(b => b.Call(message, outputStr.Value));
 
                 this.sharedState.AddReturn(this.sharedState.Values.Unit, true);
             });

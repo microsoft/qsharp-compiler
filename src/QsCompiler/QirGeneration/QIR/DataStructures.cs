@@ -327,7 +327,7 @@ namespace Microsoft.Quantum.QIR.Emission
             new IValue.Cached<Value>(pointer, this.sharedState, this.GetTypedPointer);
 
         private Value GetElementPointer(uint index) =>
-            this.sharedState.CurrentBuilder.GetStructElementPointer(this.StructType, this.TypedPointer, index);
+            this.sharedState.FunctionContext.Emit(b => b.GetStructElementPointer(this.StructType, this.TypedPointer, index));
 
         private IValue.Cached<PointerValue> CreateCachedPointer(ResolvedType type, uint index) =>
             new IValue.Cached<PointerValue>(
@@ -342,7 +342,7 @@ namespace Microsoft.Quantum.QIR.Emission
             // The runtime function TupleCreate creates a new value with reference count 1 and alias count 0.
             var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCreate);
             var size = this.sharedState.ComputeSizeForType(this.StructType);
-            var tuple = this.sharedState.CurrentBuilder.Call(constructor, size);
+            var tuple = this.sharedState.FunctionContext.Emit(b => b.Call(constructor, size));
             if (registerWithScopeManager)
             {
                 this.sharedState.ScopeMgr.RegisterValue(this);
@@ -466,7 +466,7 @@ namespace Microsoft.Quantum.QIR.Emission
             // The runtime function ArrayCreate1d creates a new value with reference count 1 and alias count 0.
             var constructor = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCreate1d);
             var elementSize = this.sharedState.ComputeSizeForType(this.LlvmElementType, this.sharedState.Context.Int32Type);
-            var pointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
+            var pointer = this.sharedState.FunctionContext.Emit(b => b.Call(constructor, elementSize, this.Length));
             if (registerWithScopeManager)
             {
                 this.sharedState.ScopeMgr.RegisterValue(this);
@@ -483,9 +483,13 @@ namespace Microsoft.Quantum.QIR.Emission
         internal PointerValue GetArrayElementPointer(Value index)
         {
             var getElementPointer = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetElementPtr1d);
-            var opaqueElementPointer = this.sharedState.CurrentBuilder.Call(getElementPointer, this.OpaquePointer, index);
-            var typedElementPointer = this.sharedState.CurrentBuilder.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
-            return new PointerValue(typedElementPointer, this.QSharpElementType, this.sharedState);
+
+            return this.sharedState.FunctionContext.Emit(b =>
+            {
+                var opaqueElementPointer = b.Call(getElementPointer, this.OpaquePointer, index);
+                var typedElementPointer = b.BitCast(opaqueElementPointer, this.LlvmElementType.CreatePointerType());
+                return new PointerValue(typedElementPointer, this.QSharpElementType, this.sharedState);
+            });
         }
 
         /// <summary>

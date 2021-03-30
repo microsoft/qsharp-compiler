@@ -12,6 +12,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly IrFunction function;
         private readonly Func<string, string> uniqueBlockName;
         private InstructionBuilder currentBuilder;
+        private InstructionBuilder? activelyEmittingTo = null;
 
         internal IrFunction Function => this.function;
 
@@ -28,41 +29,57 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.currentBuilder = new InstructionBuilder(this.function.AppendBasicBlock("entry"));
         }
 
-        //internal Value EmitInstructions(Func<InstructionBuilder, Value> action)
-        //{
-        //    Value result;
-        //    this.EmitInstructions(builder => result = action(builder));
-        //    return result;
-        //}
+        internal void Emit(Action<InstructionBuilder> action)
+        {
+            this.Emit(builder =>
+            {
+                action(builder);
+                return true;
+            });
+        }
 
         internal T Emit<T>(Func<InstructionBuilder, T> func)
         {
-            T result;
-            if (this.IsCurrentBlockTerminated)
+            if (this.activelyEmittingTo != null)
             {
-                // Current block has already been terminated.
-                // Create a new block to hold any unreachable instructions emitted.
-                var unreachableBlock = this.AddBlockAfterCurrent($"{this.CurrentBlock.Name}__unreachable");
-                var unreachableBuilder = new InstructionBuilder(unreachableBlock);
+                return func(this.activelyEmittingTo);
+            }
 
-                result = func(unreachableBuilder);
-
-                if (!unreachableBlock.Instructions.Any())
+            try
+            {
+                T result;
+                if (this.IsCurrentBlockTerminated)
                 {
-                    // No instructions were emitted by the action. Prune empty unreachable block.
-                    this.RemoveBlock(unreachableBlock);
+                    // Current block has already been terminated.
+                    // Create a new block to hold any unreachable instructions emitted.
+                    var unreachableBlock = this.AddBlockAfterCurrent($"{this.CurrentBlock.Name}__unreachable");
+                    var unreachableBuilder = new InstructionBuilder(unreachableBlock);
+
+                    this.activelyEmittingTo = unreachableBuilder;
+                    result = func(unreachableBuilder);
+
+                    if (!unreachableBlock.Instructions.Any())
+                    {
+                        // No instructions were emitted by the action. Prune empty unreachable block.
+                        this.RemoveBlock(unreachableBlock);
+                    }
+                    else
+                    {
+                        this.SetCurrentBlock(unreachableBlock);
+                    }
                 }
                 else
                 {
-                    this.SetCurrentBlock(unreachableBlock);
+                    this.activelyEmittingTo = this.currentBuilder;
+                    result = func(this.currentBuilder);
                 }
-            }
-            else
-            {
-                result = func(this.currentBuilder);
-            }
 
-            return result;
+                return result;
+            }
+            finally
+            {
+                this.activelyEmittingTo = null;
+            }
         }
 
         /// <summary>
@@ -105,13 +122,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="b">The block to make current</param>
         internal void SetCurrentBlock(BasicBlock b)
         {
+            this.AssertNotEmitting(nameof(this.SetCurrentBlock));
+
             // TODO: validate that b is inside this function.
             this.currentBuilder = new InstructionBuilder(b);
         }
 
         internal bool RemoveBlock(BasicBlock b)
         {
+            this.AssertNotEmitting(nameof(this.RemoveBlock));
             return this.function.BasicBlocks.Remove(b);
+        }
+
+        private void AssertNotEmitting(string operation)
+        {
+            if (this.activelyEmittingTo != null)
+            {
+                throw new InvalidOperationException(
+                    $"Call to {nameof(FunctionContext)}.{operation} not valid from inside {nameof(this.Emit)}");
+            }
         }
     }
 }

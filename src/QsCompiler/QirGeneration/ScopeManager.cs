@@ -448,7 +448,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             throw new NotSupportedException("unknown function for capture tuple memory management");
 
                         var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(captureCountChange);
-                        this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, callable.Value, change);
+                        this.sharedState.FunctionContext.Emit(b => b.Call(invokeMemoryManagment, callable.Value, change));
                         arg = callable.Value;
                     }
                     else
@@ -457,7 +457,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    this.sharedState.CurrentBuilder.Call(func, arg, change);
+                    this.sharedState.FunctionContext.Emit(b => b.Call(func, arg, change));
                 }
             }
 
@@ -585,7 +585,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void ReferenceCaptureTuple(CallableValue callable)
         {
             var updateRefCount = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CaptureUpdateReferenceCount);
-            this.sharedState.CurrentBuilder.Call(updateRefCount, callable.Value, this.plusOne);
+            this.sharedState.FunctionContext.Emit(b => b.Call(updateRefCount, callable.Value, this.plusOne));
         }
 
         /// <summary>

@@ -680,7 +680,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.FunctionContext.SetCurrentBlock(trueBlock);
                 var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
                 this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
-                this.SharedState.CurrentBuilder.Branch(contBlock);
+                this.SharedState.FunctionContext.Emit(b => b.Branch(contBlock));
                 (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.SharedState.CurrentBlock!);
             }
 
@@ -691,12 +691,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.SetCurrentBlock(falseBlock);
                 var onFalse = this.SharedState.EvaluateSubexpression(onCondFalse);
                 this.SharedState.ScopeMgr.CloseScope(onFalse, false); // force that the ref count is increased within the branch
-                this.SharedState.CurrentBuilder.Branch(contBlock);
+                this.SharedState.FunctionContext.Emit(b => b.Branch(contBlock));
                 (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.SharedState.CurrentBlock!);
             }
 
             this.SharedState.SetCurrentBlock(contBlock);
-            var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
+            var phi = this.SharedState.FunctionContext.Emit(b => b.PhiNode(this.SharedState.CurrentLlvmExpressionType()));
             phi.AddIncoming(evaluatedOnTrue, afterTrue);
             phi.AddIncoming(evaluatedOnFalse, afterFalse);
             return phi;
@@ -734,7 +734,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var argList = args.Select(a => a.Value).ToArray();
-                var res = this.SharedState.CurrentBuilder.Call(func, argList);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, argList));
                 if (func.Signature.ReturnType.IsVoid)
                 {
                     return this.SharedState.Values.Unit;
@@ -815,7 +815,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (returnType.Resolution.IsUnitType)
             {
                 Value resultTuple = this.SharedState.Constants.UnitValue;
-                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple);
+                this.SharedState.FunctionContext.Emit(b => b.Call(func, calledValue.Value, callableArg, resultTuple));
                 return this.SharedState.Values.Unit;
             }
             else
@@ -824,7 +824,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? elementTypes.Item
                     : ImmutableArray.Create(returnType);
                 TupleValue resultTuple = this.SharedState.Values.CreateTuple(resElementTypes);
-                this.SharedState.CurrentBuilder.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer);
+                this.SharedState.FunctionContext.Emit(b => b.Call(func, calledValue.Value, callableArg, resultTuple.OpaquePointer));
                 return returnType.Resolution.IsTupleType
                     ? resultTuple
                     : resultTuple.GetTupleElements().Single();
@@ -881,7 +881,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
-                var modified = this.SharedState.CurrentBuilder.Call(makeCopy, callable.Value, forceCopy);
+                var modified = this.SharedState.FunctionContext.Emit(b => b.Call(makeCopy, callable.Value, forceCopy));
                 callable = this.SharedState.Values.FromCallable(modified, callable.QSharpType);
                 this.SharedState.ScopeMgr.ReferenceCaptureTuple(callable);
                 this.SharedState.ScopeMgr.RegisterValue(callable);
@@ -890,7 +890,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // CallableMakeAdjoint and CallableMakeControlled do *not* create a new value
             // but instead modify the given callable in place.
             var applyFunctor = this.SharedState.GetOrCreateRuntimeFunction(runtimeFunctionName);
-            this.SharedState.CurrentBuilder.Call(applyFunctor, callable.Value);
+            this.SharedState.FunctionContext.Emit(b => b.Call(applyFunctor, callable.Value));
             return callable;
         }
 
@@ -909,7 +909,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // The runtime function CallableCreate creates a new value with reference count 1.
             var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
             var memoryManagementTable = this.SharedState.GetOrCreateCallableMemoryManagementTable(capture);
-            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? this.SharedState.Constants.UnitValue);
+            var res = this.SharedState.FunctionContext.Emit(b => b.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? this.SharedState.Constants.UnitValue));
             var value = this.SharedState.Values.FromCallable(res, callableType);
             this.SharedState.ScopeMgr.RegisterValue(value);
             return value;
@@ -926,19 +926,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Add(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Add(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.FAdd(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.FAdd(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntAdd creates a new value with reference count 1.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntAdd);
-                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(adder, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -946,7 +946,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // The runtime function StringConcatenate creates a new value with reference count 1.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
-                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(adder, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -954,7 +954,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // The runtime function ArrayConcatenate creates a new value with reference count 1 and alias count 0.
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
-                var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(adder, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromArray(res, elementType.Item);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -993,7 +993,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Since we keep track of alias counts for arrays, there is no need to force the copy.
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
-                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
+                var slice = this.SharedState.FunctionContext.Emit(b => b.Call(sliceArray, array.Value, index.Value, forceCopy));
                 value = this.SharedState.Values.FromArray(slice, elementType);
                 this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
             }
@@ -1016,7 +1016,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntCreateI64 creates a value with reference count 1.
                 var createBigInt = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64);
                 var val = this.SharedState.Context.CreateConstant((long)b);
-                var res = this.SharedState.CurrentBuilder.Call(createBigInt, val);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(createBigInt, val));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1036,7 +1036,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
                     byteArrayPointer,
                     this.SharedState.Types.DataArrayPointer);
-                var res = this.SharedState.CurrentBuilder.Call(createBigInt, n, zeroByteArray);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(createBigInt, n, zeroByteArray));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1054,14 +1054,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.And(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.And(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntBitwiseAnd creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitwiseAnd);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1083,14 +1083,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Xor(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Xor(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntBitwiseXor creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitwiseXor);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1112,14 +1112,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (exType.Resolution.IsInt)
             {
                 Value minusOne = this.SharedState.Context.CreateConstant(-1L);
-                var res = this.SharedState.CurrentBuilder.Xor(exValue.Value, minusOne);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Xor(exValue.Value, minusOne));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntBitwiseNot creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitwiseNot);
-                var res = this.SharedState.CurrentBuilder.Call(func, exValue.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, exValue.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1141,14 +1141,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Or(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Or(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntBitwiseOr creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntBitwiseOr);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1182,7 +1182,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var ifTrue = this.SharedState.EvaluateSubexpression(ifTrueEx);
                 var ifFalse = this.SharedState.EvaluateSubexpression(ifFalseEx);
-                var res = this.SharedState.CurrentBuilder.Select(cond.Value, ifTrue.Value, ifFalse.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Select(cond.Value, ifTrue.Value, ifFalse.Value));
                 value = this.SharedState.Values.From(res, exType);
             }
             else
@@ -1214,19 +1214,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.SDiv(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.SDiv(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.FDiv(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.FDiv(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntDivide creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntDivide);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1259,33 +1259,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Generate a call to the result equality testing function
                 var equals = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual);
-                var res = this.SharedState.CurrentBuilder.Call(equals, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(equals, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsBool || lhsEx.ResolvedType.Resolution.IsInt || lhsEx.ResolvedType.Resolution.IsQubit
                 || lhsEx.ResolvedType.Resolution.IsPauli)
             {
                 // Works for pointers as well as integer types
-                var res = this.SharedState.CurrentBuilder.Compare(IntPredicate.Equal, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(IntPredicate.Equal, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndEqual, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(RealPredicate.OrderedAndEqual, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsString)
             {
                 // Generate a call to the string equality testing function
                 var compareEquality = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringEqual);
-                var res = this.SharedState.CurrentBuilder.Call(compareEquality, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(compareEquality, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsBigInt)
             {
                 // Generate a call to the bigint equality testing function
                 var compareEquality = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntEqual);
-                var res = this.SharedState.CurrentBuilder.Call(compareEquality, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(compareEquality, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else
@@ -1307,17 +1307,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var baseValue = this.SharedState.CurrentBuilder.SIToFPCast(lhs.Value, this.SharedState.Context.DoubleType);
+                // TODO: combine some Emit calls
+                var baseValue = this.SharedState.FunctionContext.Emit(b => b.SIToFPCast(lhs.Value, this.SharedState.Context.DoubleType));
                 var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.powi.f", this.SharedState.Context.DoubleType);
-                var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
-                var resAsDouble = this.SharedState.CurrentBuilder.Call(powFunc, baseValue, exponent);
-                var res = this.SharedState.CurrentBuilder.FPToSICast(resAsDouble, this.SharedState.Types.Int);
+                var exponent = this.SharedState.FunctionContext.Emit(b => b.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true));
+                var resAsDouble = this.SharedState.FunctionContext.Emit(b => b.Call(powFunc, baseValue, exponent));
+                var res = this.SharedState.FunctionContext.Emit(b => b.FPToSICast(resAsDouble, this.SharedState.Types.Int));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
             {
                 var powFunc = this.SharedState.Module.GetIntrinsicDeclaration("llvm.pow.f", this.SharedState.Types.Double);
-                var res = this.SharedState.CurrentBuilder.Call(powFunc, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(powFunc, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
@@ -1325,8 +1326,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The runtime function BigIntPower creates a new value with reference count 1.
                 // The exponent must be an integer that can fit into an i32.
                 var powFunc = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntPower);
-                var exponent = this.SharedState.CurrentBuilder.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true);
-                var res = this.SharedState.CurrentBuilder.Call(powFunc, lhs.Value, exponent);
+                var exponent = this.SharedState.FunctionContext.Emit(b => b.IntCast(rhs.Value, this.SharedState.Context.Int32Type, true));
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(powFunc, lhs.Value, exponent));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1372,18 +1373,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (lhsEx.ResolvedType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterThan, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(IntPredicate.SignedGreaterThan, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndGreaterThan, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(RealPredicate.OrderedAndGreaterThan, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreater);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else
@@ -1404,18 +1405,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (lhsEx.ResolvedType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedGreaterThanOrEqual, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(IntPredicate.SignedGreaterThanOrEqual, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndGreaterThanOrEqual, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(RealPredicate.OrderedAndGreaterThanOrEqual, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreaterEq);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else
@@ -1468,33 +1469,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Generate a call to the result equality testing function
                 var compareEquality = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultEqual);
-                var res = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(compareEquality, lhs.Value, rhs.Value));
+                var res = this.SharedState.FunctionContext.Emit(b => b.Not(b.Call(compareEquality, lhs.Value, rhs.Value)));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsBool || lhsEx.ResolvedType.Resolution.IsInt || lhsEx.ResolvedType.Resolution.IsQubit
                 || lhsEx.ResolvedType.Resolution.IsPauli)
             {
                 // Works for pointers as well as integer types
-                var res = this.SharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(IntPredicate.NotEqual, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndNotEqual, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(RealPredicate.OrderedAndNotEqual, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsString)
             {
                 // Generate a call to the string equality testing function
                 var compareEquality = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringEqual);
-                var res = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(compareEquality, lhs.Value, rhs.Value));
+                var res = this.SharedState.FunctionContext.Emit(b => b.Not(b.Call(compareEquality, lhs.Value, rhs.Value)));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsBigInt)
             {
                 // Generate a call to the bigint equality testing function
                 var compareEquality = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntEqual);
-                var res = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(compareEquality, lhs.Value, rhs.Value));
+                var res = this.SharedState.FunctionContext.Emit(b => b.Not(b.Call(compareEquality, lhs.Value, rhs.Value)));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else
@@ -1525,14 +1526,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.ShiftLeft(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.ShiftLeft(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntLeftShift creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntShiftLeft);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1554,18 +1555,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (lhsEx.ResolvedType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLessThan, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(IntPredicate.SignedLessThan, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndLessThan, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(RealPredicate.OrderedAndLessThan, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreaterEq);
-                var res = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value));
+                var res = this.SharedState.FunctionContext.Emit(b => b.Not(b.Call(func, lhs.Value, rhs.Value)));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else
@@ -1586,18 +1587,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (lhsEx.ResolvedType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(IntPredicate.SignedLessThanOrEqual, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.Compare(RealPredicate.OrderedAndLessThanOrEqual, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Compare(RealPredicate.OrderedAndLessThanOrEqual, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (lhsEx.ResolvedType.Resolution.IsBigInt)
             {
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntGreater);
-                var res = this.SharedState.CurrentBuilder.Not(this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value));
+                var res = this.SharedState.FunctionContext.Emit(b => b.Not(b.Call(func, lhs.Value, rhs.Value)));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else
@@ -1620,7 +1621,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
                 var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
-                evaluated = this.SharedState.CurrentBuilder.And(lhs.Value, rhs.Value);
+                evaluated = this.SharedState.FunctionContext.Emit(b => b.And(lhs.Value, rhs.Value));
             }
             else
             {
@@ -1637,7 +1638,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // Get the Value for the expression
             var arg = this.SharedState.EvaluateSubexpression(ex);
-            var res = this.SharedState.CurrentBuilder.Not(arg.Value);
+            var res = this.SharedState.FunctionContext.Emit(b => b.Not(arg.Value));
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.FromSimpleValue(res, exType);
             this.SharedState.ValueStack.Push(value);
@@ -1655,7 +1656,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
                 var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
-                evaluated = this.SharedState.CurrentBuilder.Or(lhs.Value, rhs.Value);
+                evaluated = this.SharedState.FunctionContext.Emit(b => b.Or(lhs.Value, rhs.Value));
             }
             else
             {
@@ -1677,14 +1678,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.SRem(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.SRem(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntModulus creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntModulus);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1706,19 +1707,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Mul(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Mul(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.FMul(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.FMul(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntMultiply creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntMultiply);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1767,19 +1768,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Neg(exValue.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Neg(exValue.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.FNeg(exValue.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.FNeg(exValue.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntNegative creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntNegate);
-                var res = this.SharedState.CurrentBuilder.Call(func, exValue.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, exValue.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1814,13 +1815,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsPauli)
                 {
                     var pointer = this.SharedState.Constants.PauliI;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pointer);
+                    var constant = this.SharedState.FunctionContext.Emit(b => b.Load(this.SharedState.Types.Pauli, pointer));
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsResult)
                 {
                     var getZero = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
-                    var constant = this.SharedState.CurrentBuilder.Call(getZero);
+                    var constant = this.SharedState.FunctionContext.Emit(b => b.Call(getZero));
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsQubit)
@@ -1831,7 +1832,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsRange)
                 {
                     var pointer = this.SharedState.Constants.EmptyRange;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Range, pointer);
+                    var constant = this.SharedState.FunctionContext.Emit(b => b.Load(this.SharedState.Types.Range, pointer));
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution is ResolvedTypeKind.TupleType ts)
@@ -1862,7 +1863,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsString)
                 {
                     var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue());
+                    var value = this.SharedState.FunctionContext.Emit(b => b.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue()));
                     var built = this.SharedState.Values.From(value, type);
                     this.SharedState.ScopeMgr.RegisterValue(built);
                     return built;
@@ -1897,7 +1898,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // We need to populate the array
             var start = this.SharedState.Context.CreateConstant(0L);
-            var end = this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
+            var end = this.SharedState.FunctionContext.Emit(b => b.Sub(array.Length, this.SharedState.Context.CreateConstant(1L)));
             void PopulateItem(Value index)
             {
                 // We need to make sure that the reference count for the built item is increased by 1.
@@ -2066,7 +2067,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     var invokeCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableInvoke);
                     var innerCallable = (CallableValue)captureTuple.GetTupleElement(0);
-                    this.SharedState.CurrentBuilder.Call(invokeCallable, ApplyFunctors(innerCallable).Value, innerArg.OpaquePointer, parameters[2]);
+                    this.SharedState.FunctionContext.Emit(b => b.Call(invokeCallable, ApplyFunctors(innerCallable).Value, innerArg.OpaquePointer, parameters[2]));
                 }
 
                 return this.SharedState.GeneratePartialApplication(name, kind, BuildPartialApplicationBody);
@@ -2140,7 +2141,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             IValue LoadPauli(Value pauli)
             {
-                var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Pauli, pauli);
+                var constant = this.SharedState.FunctionContext.Emit(b => b.Load(this.SharedState.Types.Pauli, pauli));
                 var exType = this.SharedState.CurrentExpressionType();
                 return this.SharedState.Values.From(constant, exType);
             }
@@ -2197,7 +2198,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var getResultLiteral = this.SharedState.GetOrCreateRuntimeFunction(
                 r.IsZero ? RuntimeLibrary.ResultGetZero : RuntimeLibrary.ResultGetOne);
-            var constant = this.SharedState.CurrentBuilder.Call(getResultLiteral);
+            var constant = this.SharedState.FunctionContext.Emit(b => b.Call(getResultLiteral));
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.From(constant, exType);
             this.SharedState.ValueStack.Push(value);
@@ -2213,14 +2214,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.ArithmeticShiftRight(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.ArithmeticShiftRight(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntRightShift creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntShiftRight);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -2250,19 +2251,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             IValue value;
             if (exType.Resolution.IsInt)
             {
-                var res = this.SharedState.CurrentBuilder.Sub(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Sub(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsDouble)
             {
-                var res = this.SharedState.CurrentBuilder.FSub(lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.FSub(lhs.Value, rhs.Value));
                 value = this.SharedState.Values.FromSimpleValue(res, exType);
             }
             else if (exType.Resolution.IsBigInt)
             {
                 // The runtime function BigIntSubtract creates a new value with reference count 1.
                 var func = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntSubtract);
-                var res = this.SharedState.CurrentBuilder.Call(func, lhs.Value, rhs.Value);
+                var res = this.SharedState.FunctionContext.Emit(b => b.Call(func, lhs.Value, rhs.Value));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }

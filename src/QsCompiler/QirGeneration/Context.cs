@@ -580,20 +580,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // when exiting the function or a reference will be added by ExitScope
                 // before exiting the scope by since it will be used by the caller.
                 this.ScopeMgr.ExitFunction(returned: result);
-
-                if (returnsVoid)
-                {
-                    this.CurrentBuilder.Return();
-                }
-                else
-                {
-                    this.CurrentBuilder.Return(result.Value);
-                }
-
-                // Return is terminal, so we need to complete the current block
-                // and start a new one.
-                var newBlock = this.AddBlockAfterCurrent(this.CurrentBuilder.InsertBlock.Name);
-                this.SetCurrentBlock(newBlock);
+                this.FunctionContext.Emit(b => returnsVoid ? b.Return() : b.Return(result.Value));
             }
             else if (!returnsVoid)
             {
@@ -1097,11 +1084,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>A range with the given start, step and end.</returns>
         internal IValue CreateRange(Value start, Value step, Value end)
         {
-            Value constant = this.CurrentBuilder.Load(this.Types.Range, this.Constants.EmptyRange);
-            constant = this.CurrentBuilder.InsertValue(constant, start, 0u);
-            constant = this.CurrentBuilder.InsertValue(constant, step, 1u);
-            constant = this.CurrentBuilder.InsertValue(constant, end, 2u);
-            return this.Values.From(constant, ResolvedType.New(ResolvedTypeKind.Range));
+            return this.FunctionContext.Emit(b =>
+            {
+                Value constant = b.Load(this.Types.Range, this.Constants.EmptyRange);
+                constant = b.InsertValue(constant, start, 0u);
+                constant = b.InsertValue(constant, step, 1u);
+                constant = b.InsertValue(constant, end, 2u);
+                return this.Values.From(constant, ResolvedType.New(ResolvedTypeKind.Range));
+            });
         }
 
         /// <summary>
@@ -1262,7 +1252,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // and otherwise we check if it is larger than or equal to the end value.
                 var isGreaterOrEqualEnd = this.CurrentBuilder.Compare(
                     IntPredicate.SignedGreaterThanOrEqual, loopVariable, end);
-                return this.CurrentBuilder.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
+                return this.FunctionContext.Emit(b => b.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd));
             }
 
             Value? loopVarIncreases = step == null ? null : CreatePreheader(step);
@@ -1285,10 +1275,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             var increment = this.Context.CreateConstant(1L);
-            var endValue = this.CurrentBuilder.Sub(array.Length, increment);
+            var endValue = this.FunctionContext.Emit(b => b.Sub(array.Length, increment));
 
             Value EvaluateCondition(Value loopVariable) =>
-                this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
+                this.FunctionContext.Emit(b => b.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue));
 
             void ExecuteBody(Value loopVariable) =>
                 executeBody(array.GetArrayElement(loopVariable));
@@ -1370,12 +1360,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Everything else we let getelementptr compute for us
                 var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
-                // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
-                var firstPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
-                var first = this.CurrentBuilder.PointerToInt(firstPtr, intType);
-                var secondPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
-                var second = this.CurrentBuilder.PointerToInt(secondPtr, intType);
-                return this.CurrentBuilder.Sub(second, first);
+
+                return this.FunctionContext.Emit(b =>
+                {
+                    // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
+                    var firstPtr = b.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
+                    var first = b.PointerToInt(firstPtr, intType);
+                    var secondPtr = b.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(1) });
+                    var second = b.PointerToInt(secondPtr, intType);
+                    return b.Sub(second, first);
+                });
             }
         }
 
@@ -1433,7 +1427,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.CurrentBlock = b;
-            this.CurrentBuilder = new InstructionBuilder(b);
+            this.FunctionContext.Emit(b => b.= new InstructionBuilder(b));
         }
 
         /// <summary>

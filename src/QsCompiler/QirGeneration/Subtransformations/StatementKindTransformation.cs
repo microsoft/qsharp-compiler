@@ -159,7 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.ScopeMgr.CloseScope(isTerminated);
             if (!isTerminated)
             {
-                this.SharedState.CurrentBuilder.Branch(continuation);
+                this.SharedState.FunctionContext.Emit(b => b.Branch(continuation));
                 return true;
             }
             return false;
@@ -179,7 +179,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     if (init.Resolution.IsSingleQubitAllocation)
                     {
-                        Value allocation = this.SharedState.CurrentBuilder.Call(allocateOne);
+                        Value allocation = this.SharedState.FunctionContext.Emit(b => b.Call(allocateOne));
                         var value = this.SharedState.Values.From(allocation, init.Type);
                         this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
                         return value;
@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     else if (init.Resolution is ResolvedInitializerKind.QubitRegisterAllocation reg)
                     {
                         Value countValue = this.SharedState.EvaluateSubexpression(reg.Item).Value;
-                        Value allocation = this.SharedState.CurrentBuilder.Call(allocateArray, countValue);
+                        Value allocation = this.SharedState.FunctionContext.Emit(b => b.Call(allocateArray, countValue));
                         var value = this.SharedState.Values.From(allocation, init.Type);
                         this.SharedState.ScopeMgr.RegisterAllocatedQubits(value);
                         return value;
@@ -279,7 +279,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 contBlockUsed = contBlockUsed || nextConditional == contBlock;
 
                 // Create the branch
-                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
+                this.SharedState.FunctionContext.Emit(b => b.Branch(testValue, conditionalBlock, nextConditional));
 
                 // Get a builder for the then block, make it current, and then process the block
                 this.SharedState.StartBranch();
@@ -322,13 +322,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Release any resources (qubits or memory) before we fail.
             this.SharedState.ScopeMgr.ExitFunction(message);
             var fail = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Fail);
-            this.SharedState.CurrentBuilder.Call(fail, message.Value);
-            this.SharedState.CurrentBuilder.Unreachable();
-
-            // Fail is terminal, so we need to complete the current block
-            // and start a new one.
-            var newBlock = this.SharedState.AddBlockAfterCurrent(this.SharedState.CurrentBuilder.InsertBlock.Name);
-            this.SharedState.SetCurrentBlock(newBlock);
+            this.SharedState.FunctionContext.Emit(b =>
+            {
+                b.Call(fail, message.Value);
+                b.Unreachable();
+            });
 
             return QsStatementKind.EmptyStatement;
         }
@@ -405,18 +403,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
                 this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.CurrentBuilder.Branch(repeatBlock);
+                this.SharedState.FunctionContext.Emit(b => b.Branch(repeatBlock));
                 this.SharedState.SetCurrentBlock(repeatBlock);
                 this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
                 if (this.SharedState.CurrentBlock?.Terminator == null)
                 {
-                    this.SharedState.CurrentBuilder.Branch(testBlock);
+                    this.SharedState.FunctionContext.Emit(b => b.Branch(testBlock));
                 }
 
                 this.SharedState.SetCurrentBlock(testBlock);
                 var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition).Value;
                 this.SharedState.ScopeMgr.ApplyPendingReferences();
-                this.SharedState.CurrentBuilder.Branch(test, contBlock, fixupBlock);
+                this.SharedState.FunctionContext.Emit(b => b.Branch(test, contBlock, fixupBlock));
 
                 // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
                 // We need to make sure to properly invoke all calls to unreference, release, and remove alias counts
@@ -430,7 +428,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.CloseScope(isTerminated);
                 if (!isTerminated)
                 {
-                    this.SharedState.CurrentBuilder.Branch(repeatBlock);
+                    this.SharedState.FunctionContext.Emit(b => b.Branch(repeatBlock));
                 }
             });
 
@@ -517,12 +515,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
                 this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.CurrentBuilder.Branch(testBlock);
+                this.SharedState.FunctionContext.Emit(b => b.Branch(testBlock));
                 this.SharedState.SetCurrentBlock(testBlock);
 
                 var test = this.SharedState.EvaluateSubexpression(stm.Condition).Value;
                 this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
-                this.SharedState.CurrentBuilder.Branch(test, bodyBlock, contBlock);
+                this.SharedState.FunctionContext.Emit(b => b.Branch(test, bodyBlock, contBlock));
                 this.ProcessBlock(bodyBlock, stm.Body, testBlock);
             });
 

@@ -112,9 +112,9 @@ namespace Microsoft.Quantum.QIR
             else
             {
                 var range = this.sharedState.EvaluateSubexpression(rangeEx).Value;
-                startValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 0u);
-                stepValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 1u);
-                endValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 2u);
+                startValue = () => this.sharedState.FunctionContext.Emit(b => b.ExtractValue(range, 0u));
+                stepValue = () => this.sharedState.FunctionContext.Emit(b => b.ExtractValue(range, 1u));
+                endValue = () => this.sharedState.FunctionContext.Emit(b => b.ExtractValue(range, 2u));
             }
             return (startValue, stepValue, endValue);
         }
@@ -148,14 +148,14 @@ namespace Microsoft.Quantum.QIR
         private IValue IntAsDouble(TypedExpression arg)
         {
             var value = this.sharedState.EvaluateSubexpression(arg);
-            var cast = this.sharedState.CurrentBuilder.SIToFPCast(value.Value, this.sharedState.Types.Double);
+            var cast = this.sharedState.FunctionContext.Emit(b => b.SIToFPCast(value.Value, this.sharedState.Types.Double));
             return this.sharedState.Values.FromSimpleValue(cast, Double);
         }
 
         private IValue DoubleAsInt(TypedExpression arg)
         {
             var value = this.sharedState.EvaluateSubexpression(arg);
-            var cast = this.sharedState.CurrentBuilder.FPToSICast(value.Value, this.sharedState.Types.Int);
+            var cast = this.sharedState.FunctionContext.Emit(b => b.FPToSICast(value.Value, this.sharedState.Types.Int));
             return this.sharedState.Values.FromSimpleValue(cast, Int);
         }
 
@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.QIR
             // The runtime function BigIntCreateI64 creates a value with reference count 1.
             var createBigInt = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64);
             var value = this.sharedState.EvaluateSubexpression(arg);
-            var res = this.sharedState.CurrentBuilder.Call(createBigInt, value.Value);
+            var res = this.sharedState.FunctionContext.Emit(b => b.Call(createBigInt, value.Value));
             var evaluated = this.sharedState.Values.From(res, BigInt);
             this.sharedState.ScopeMgr.RegisterValue(evaluated);
             return evaluated;
@@ -196,20 +196,16 @@ namespace Microsoft.Quantum.QIR
             var step = getStep() ?? this.sharedState.Context.CreateConstant(1L);
             var end = getEnd();
 
-            var newStart = this.sharedState.CurrentBuilder.Add(
-                start,
-                this.sharedState.CurrentBuilder.Mul(
-                    step,
-                    this.sharedState.CurrentBuilder.SDiv(
-                        this.sharedState.CurrentBuilder.Sub(end, start), step)));
-            return this.sharedState.CreateRange(newStart, this.sharedState.CurrentBuilder.Neg(step), start);
+            var newStart = this.sharedState.FunctionContext.Emit(b =>
+                b.Add(start, b.Mul(step, b.SDiv(b.Sub(end, start), step))));
+            return this.sharedState.CreateRange(newStart, this.sharedState.FunctionContext.Emit(b => b.Neg(step), start));
         }
 
         private IValue Message(TypedExpression arg)
         {
             var value = this.sharedState.EvaluateSubexpression(arg);
             var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
-            this.sharedState.CurrentBuilder.Call(message, value.Value);
+            this.sharedState.FunctionContext.Emit(b => b.Call(message, value.Value));
             return this.sharedState.Values.Unit;
         }
     }
