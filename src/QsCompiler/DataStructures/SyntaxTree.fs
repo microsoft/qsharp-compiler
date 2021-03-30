@@ -150,6 +150,11 @@ type QsTypeParameter =
 
     override param.GetHashCode() = hash (param.Origin, param.TypeName)
 
+    /// <summary>
+    /// Returns this type parameter with the given <paramref name="origin"/>.
+    /// </summary>
+    member param.WithOrigin origin = { param with Origin = origin }
+
 /// used to represent the use of a user defined type within a fully resolved Q# type
 [<CustomEquality>]
 [<CustomComparison>]

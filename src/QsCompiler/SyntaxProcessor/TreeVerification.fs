@@ -3,8 +3,6 @@
 
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.SyntaxTree
 
-#nowarn "44" // UserDefinedType.Range is deprecated.
-
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -177,7 +175,6 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
                     (source,
                      (getLocation header).Range |> QsCompilerDiagnostic.Error(ErrorCode.TypeCannotContainItself, []))
                     |> diagnostics.Add
-
                 []
 
     let getTypes location (vtype: ResolvedType) (rootIndex: int option) =
@@ -196,10 +193,7 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
             let queue = Queue()
 
             let parent =
-                (header.QualifiedName.Namespace,
-                 header.QualifiedName.Name,
-                 header.Location |> QsNullable<_>.Map(fun loc -> loc.Range))
-                |> UserDefinedType.New
+                UserDefinedType.New(header.QualifiedName.Namespace, header.QualifiedName.Name)
                 |> UserDefinedType
                 |> ResolvedType.New
 
