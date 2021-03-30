@@ -242,7 +242,6 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return new InitializeError { Retry = true };
             }
-            System.Diagnostics.Debugger.Launch();
 
             // setting this to null for now, since we are not using it and the deserialization causes issues
             // Note that we must do so by creating an object that represents the

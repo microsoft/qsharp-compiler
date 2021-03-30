@@ -89,14 +89,14 @@ namespace Microsoft.Quantum.QsLanguageServer
         // language server tools -
         // wrapping these into a try .. catch .. to make sure errors don't go unnoticed as they otherwise would
 
-        public static readonly JsonSerializer jsonSerializer = new JsonSerializer()
+        public static readonly JsonSerializer JsonSerializer = new JsonSerializer()
         {
             ContractResolver = new ResourceOperationKindContractResolver()
         };
 
         public static T? TryJTokenAs<T>(JToken arg)
             where T : class =>
-            QsCompilerError.RaiseOnFailure(() => arg.ToObject<T>(jsonSerializer), "could not cast given JToken");
+            QsCompilerError.RaiseOnFailure(() => arg.ToObject<T>(JsonSerializer), "could not cast given JToken");
 
         private static ShowMessageParams? AsMessageParams(string text, MessageType severity) =>
             text == null ? null : new ShowMessageParams { Message = text, MessageType = severity };
