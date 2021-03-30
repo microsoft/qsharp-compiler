@@ -243,11 +243,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return new InitializeError { Retry = true };
             }
 
-            arg.SelectToken("capabilities.textDocument.codeAction")?.Replace(null); // setting this to null for now, since we are not using it and the deserialization causes issues
+            // setting this to null for now, since we are not using it and the deserialization causes issues
+            // Note that we must do so by creating an object that represents the
+            // JSON `null` keyword, rather than a C# null.
+            arg.SelectToken("capabilities.textDocument.codeAction")?.Replace(JValue.CreateNull());
             var param = Utils.TryJTokenAs<InitializeParams>(arg);
-            this.clientCapabilities = param.Capabilities;
+            this.clientCapabilities = param?.Capabilities;
 
-            if (param.InitializationOptions is JObject options)
+            if (param?.InitializationOptions is JObject options)
             {
                 if (options.TryGetValue("name", out var name))
                 {
@@ -262,7 +265,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             bool supportsCompletion = !this.ClientNameIs("VisualStudio") || this.ClientVersionIsAtLeast(new Version(16, 3));
             bool useTriggerCharWorkaround = this.ClientNameIs("VisualStudio") && !this.ClientVersionIsAtLeast(new Version(16, 4));
 
-            var rootUri = param.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out var uri) ? uri : null);
+            var rootUri = param?.RootUri ?? (Uri.TryCreate(param?.RootPath, UriKind.Absolute, out var uri) ? uri : null);
             this.workspaceFolder = rootUri != null && rootUri.IsAbsoluteUri && rootUri.IsFile && Directory.Exists(rootUri.LocalPath) ? rootUri.LocalPath : null;
             this.LogToWindow($"workspace folder: {this.workspaceFolder ?? "(Null)"}", MessageType.Info);
             this.fileWatcher.ListenAsync(this.workspaceFolder, true, dict => this.InitializeWorkspaceAsync(dict), "*.csproj", "*.dll", "*.qs").Wait(); // not strictly necessary to wait but less confusing
@@ -329,6 +332,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return Task.CompletedTask;
             }
             var param = Utils.TryJTokenAs<DidOpenTextDocumentParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDidOpenName}, but got null.");
+            }
             return this.editorState.OpenFileAsync(
                 param.TextDocument,
                 this.ShowInWindow,
@@ -343,6 +350,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return Task.CompletedTask;
             }
             var param = Utils.TryJTokenAs<DidCloseTextDocumentParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDidCloseName}, but got null.");
+            }
             return this.editorState.CloseFileAsync(param.TextDocument, this.LogToWindow);
         }
 
@@ -356,7 +367,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var param = Utils.TryJTokenAs<DidSaveTextDocumentParams>(arg);
             // NB: if param.Text is null, then there's nothing to actually
             //     do here.
-            return param.Text == null
+            return param?.Text == null
                    ? Task.CompletedTask
                    : this.editorState.SaveFileAsync(param.TextDocument, param.Text);
         }
@@ -369,6 +380,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return Task.CompletedTask;
             }
             var param = Utils.TryJTokenAs<DidChangeTextDocumentParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDidChangeName}, but got null.");
+            }
             return this.editorState.DidChangeAsync(param);
         }
 
@@ -401,6 +416,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDefinitionName}, but got null.");
+            }
             var defaultLocation = new Location
             {
                 Uri = param.TextDocument.Uri,
@@ -426,6 +445,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDocumentHighlightName}, but got null.");
+            }
             try
             {
                 return QsCompilerError.RaiseOnFailure(
@@ -446,6 +469,11 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<ReferenceParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentReferencesName}, but got null.");
+            }
+
             try
             {
                 return QsCompilerError.RaiseOnFailure(
@@ -466,6 +494,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentHoverName}, but got null.");
+            }
             var supportedFormats = this.clientCapabilities?.TextDocument?.Hover?.ContentFormat;
             var format = this.ChooseFormat(supportedFormats);
             try
@@ -488,6 +520,11 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
             }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentSignatureHelpName}, but got null.");
+            }
+
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
             var format = this.ChooseFormat(supportedFormats);
             var task = new Task<object?>(() =>
@@ -518,16 +555,20 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<DocumentSymbolParams>(arg);
-            try
+            if (param != null)
             {
-                return QsCompilerError.RaiseOnFailure(
-                    () => this.editorState.DocumentSymbols(param) ?? Array.Empty<SymbolInformation>(),
-                    "DocumentSymbols threw an exception");
+                try
+                {
+                    return QsCompilerError.RaiseOnFailure(
+                        () => this.editorState.DocumentSymbols(param) ?? Array.Empty<SymbolInformation>(),
+                        "DocumentSymbols threw an exception");
+                }
+                catch
+                {
+                    // This is ok, if it happens we'll return an empty array.
+                }
             }
-            catch
-            {
-                return Array.Empty<SymbolInformation>();
-            }
+            return Array.Empty<SymbolInformation>();
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
@@ -538,6 +579,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
             }
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentCompletionName}, but got null.");
+            }
             var task = new Task<object?>(() =>
             {
                 // Wait for the file manager to finish processing any changes
@@ -566,14 +611,18 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return ProtocolError.AwaitingInitialization;
             }
             var param = Utils.TryJTokenAs<CompletionItem>(arg);
+            if (param?.Data == null)
+            {
+                return null;
+            }
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
             var format = this.ChooseFormat(supportedFormats);
             try
             {
-                var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param?.Data));
-                return QsCompilerError.RaiseOnFailure(
+                var data = Utils.TryJTokenAs<CompletionItemData>(JToken.FromObject(param.Data));
+                return (data != null) ? QsCompilerError.RaiseOnFailure(
                     () => this.editorState.ResolveCompletion(param, data, format),
-                    "ResolveCompletion threw an exception");
+                    "ResolveCompletion threw an exception") : null;
             }
             catch
             {
@@ -597,7 +646,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
-            var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg).ToCodeActionParams();
+            var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg)?.ToCodeActionParams();
             if (param == null)
             {
                 this.LogToWindow("No code action parameters found; skipping code actions.", MessageType.Warning);
@@ -623,11 +672,21 @@ namespace Microsoft.Quantum.QsLanguageServer
         [JsonRpcMethod(Methods.WorkspaceExecuteCommandName)]
         public object? OnExecuteCommand(JToken arg)
         {
-            ExecuteCommandParams param = Utils.TryJTokenAs<ExecuteCommandParams>(arg);
+            var param = Utils.TryJTokenAs<ExecuteCommandParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.WorkspaceExecuteCommandName}, but got null.");
+            }
+            // currently all supported commands take a single argument
+            var argument = (JObject?)param.Arguments?.Single();
+            if (argument == null)
+            {
+                throw new JsonSerializationException($"Expected an array with a single command argument, but got null.");
+            }
             object? CastAndExecute<T>(Func<T, object?> command)
                 where T : class =>
                 QsCompilerError.RaiseOnFailure(
-                    () => command(Utils.TryJTokenAs<T>((JObject)param.Arguments.Single())), // currently all supported commands take a single argument
+                    () => command(Utils.TryJTokenAs<T>(argument) ?? throw new Exception($"Expected a command argument of type {typeof(T)}.")),
                     "ExecuteCommand threw an exception");
             try
             {
@@ -685,7 +744,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
 
             // to avoid unnecessary work, we need to coalesce before *and* after inserting additional change event for project files!
-            var changes = CoalesceingQueue.Coalesce(param.Changes);
+            var changes = CoalesceingQueue.Coalesce(param?.Changes ?? Array.Empty<FileEvent>());
             changes = CoalesceingQueue.Coalesce(changes.SelectMany(PreprocessEvent));
 
             bool IsDll(FileEvent e) => e.Uri.LocalPath.EndsWith(".dll", StringComparison.InvariantCultureIgnoreCase);

@@ -29,7 +29,7 @@
     <PackageReference Include="Microsoft.Build.Framework" Version="16.3.0" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Utilities.Core" Version="16.3.0" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.VisualStudio.LanguageServer.Protocol" Version="16.9.1180" />
-    <PackageReference Include="Newtonsoft.Json" Version="12.0.2" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
     <PackageReference Include="StreamJsonRpc" Version="2.2.34" />
     <PackageReference Include="System.Reactive" Version="4.2.0" />
     <PackageReference Include="System.Reflection.Metadata" Version="1.7.0" />
@@ -45,5 +45,5 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
   </ItemGroup>
-  
+
 </Project>
