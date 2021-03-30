@@ -91,6 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumInstructionSet;
 
+        internal FunctionBuilder CurrentFunctionBuilder { get; private set; }
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
@@ -551,26 +552,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
         internal bool EndFunction()
         {
-            if (this.CurrentFunction == null || this.CurrentBlock == null)
+            if (this.CurrentFunctionBuilder == null)
             {
-                throw new InvalidOperationException("the current function or the current block is null");
+                throw new InvalidOperationException("the current function builder is null");
             }
 
-            if (this.CurrentBlock.Instructions.Any())
-            {
-                this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
+            this.ScopeMgr.CloseScope(this.CurrentFunctionBuilder.IsCurrentBlockTerminated);
 
-                if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
-                {
-                    this.CurrentBuilder.Return();
-                }
-            }
-            else
+            if (!this.CurrentFunctionBuilder.IsCurrentBlockTerminated && this.CurrentFunctionBuilder.Function.ReturnType.IsVoid)
             {
-                // Block has no instructions. Assume it was superfluously created after
-                // a terminal instruction (i.e. return, fail).
-                this.ScopeMgr.CloseScope(isTerminated: true);
-                this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
+                this.CurrentFunctionBuilder.EmitInstructions(b => b.Return());
             }
 
             return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any();
@@ -673,7 +664,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.CurrentFunction = this.RegisterFunction(spec);
-            this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
+            this.CurrentFunctionBuilder = new FunctionBuilder(this.CurrentFunction);
+
+            this.CurrentBlock = this.CurrentFunctionBuilder.CurrentBlock;
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
@@ -932,13 +925,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void GenerateFunction(IrFunction func, string?[] argNames, Action<IReadOnlyList<Argument>> executeBody)
         {
             this.StartFunction();
-            this.CurrentFunction = func;
+            this.CurrentFunction = func; // TODO remove line
+
+            this.CurrentFunctionBuilder = new FunctionBuilder(func);
+
             for (var i = 0; i < argNames.Length; ++i)
             {
                 var name = argNames[i];
                 if (name != null)
                 {
-                    this.CurrentFunction.Parameters[i].Name = name;
+                    func.Parameters[i].Name = name;
                 }
             }
             this.SetCurrentBlock(this.CurrentFunction.AppendBasicBlock("entry"));
@@ -1423,6 +1419,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Note that if the current block has no instructions, it is pruned from the current function.
         /// </remarks>
         /// <param name="b">The block to make current</param>
+        [Obsolete("Use FunctionBuilder.")]
         internal void SetCurrentBlock(BasicBlock b)
         {
             if (this.CurrentFunction != null && this.CurrentBlock != null)
@@ -1445,6 +1442,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="name">The base name for the new block; a counter will be appended to ensure uniqueness</param>
         /// <returns>The new block</returns>
         /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
+        [Obsolete("Use FunctionBuilder.")]
         internal BasicBlock AddBlockAfterCurrent(string name)
         {
             if (this.CurrentFunction == null)
