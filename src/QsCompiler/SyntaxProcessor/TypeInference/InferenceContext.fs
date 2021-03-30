@@ -176,26 +176,28 @@ module private Inference =
     /// Combines two types such that the resulting type satisfies the given <paramref name="ordering"/> with respect to
     /// both original types.
     /// </summary>
+    /// <returns>
+    /// The combined type with a <see cref="Generated"/> range.
+    /// </returns>
     let rec combine ordering types =
-        let range =
-            QsNullable.Map2 Range.Span (TypeRange.tryRange types.Left.Range) (TypeRange.tryRange types.Right.Range)
-            |> TypeRange.inferred
-
         let relation =
             match ordering with
             | Subtype -> "share a subtype with"
             | Equal -> "equal"
             | Supertype -> "share a base type with"
 
+        let range =
+            QsNullable.Map2 Range.Span (TypeRange.tryRange types.Left.Range) (TypeRange.tryRange types.Right.Range)
+
         let error =
             QsCompilerDiagnostic.Error
                 (ErrorCode.MissingBaseType, relation :: (TypeContext.toList types |> List.map showType))
-                (TypeRange.tryRange range |> QsNullable.defaultValue Range.Zero)
+                (range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
         | ArrayType item1, ArrayType item2 ->
             let combinedType, diagnostics = types |> TypeContext.into item1 item2 |> combine Equal
-            ArrayType combinedType |> ResolvedType.create range, diagnostics
+            ArrayType combinedType |> ResolvedType.New, diagnostics
         | TupleType items1, TupleType items2 when items1.Length = items2.Length ->
             let combinedTypes, diagnostics =
                 (items1, items2)
@@ -203,7 +205,7 @@ module private Inference =
                 |> Seq.toList
                 |> List.unzip
 
-            ImmutableArray.CreateRange combinedTypes |> TupleType |> ResolvedType.create range, List.concat diagnostics
+            ImmutableArray.CreateRange combinedTypes |> TupleType |> ResolvedType.New, List.concat diagnostics
         | QsTypeKind.Operation ((in1, out1), info1), QsTypeKind.Operation ((in2, out2), info2) ->
             let input, inDiagnostics = types |> TypeContext.into in1 in2 |> combine (Ordering.not ordering)
             let output, outDiagnostics = types |> TypeContext.into out1 out2 |> combine ordering
@@ -216,16 +218,16 @@ module private Inference =
                         (ResolvedCharacteristics.New InvalidSetExpr, InferredCallableInformation.NoInformation),
                     [ error ]
 
-            QsTypeKind.Operation((input, output), info) |> ResolvedType.create range,
+            QsTypeKind.Operation((input, output), info) |> ResolvedType.New,
             inDiagnostics @ outDiagnostics @ infoDiagnostics
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
             let input, inDiagnostics = types |> TypeContext.into in1 in2 |> combine (Ordering.not ordering)
             let output, outDiagnostics = types |> TypeContext.into out1 out2 |> combine ordering
-            QsTypeKind.Function(input, output) |> ResolvedType.create range, inDiagnostics @ outDiagnostics
+            QsTypeKind.Function(input, output) |> ResolvedType.New, inDiagnostics @ outDiagnostics
         | InvalidType, _
-        | _, InvalidType -> ResolvedType.create range InvalidType, []
-        | _ when types.Left = types.Right -> types.Left |> ResolvedType.withAllRanges range, []
-        | _ -> ResolvedType.create range InvalidType, [ error ]
+        | _, InvalidType -> ResolvedType.New InvalidType, []
+        | _ when types.Left = types.Right -> types.Left |> ResolvedType.withAllRanges TypeRange.Generated, []
+        | _ -> ResolvedType.New InvalidType, [ error ]
 
     /// <summary>
     /// True if <paramref name="param"/> does not occur in <paramref name="resolvedType"/>.
