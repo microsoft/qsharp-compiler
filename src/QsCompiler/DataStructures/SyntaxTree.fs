@@ -393,15 +393,17 @@ module TypeRange =
     /// Creates an <see cref="Annotated"/> type range if a range is given, or the <see cref="Generated"/> type range
     /// otherwise.
     /// </summary>
-    let annotated = QsNullable<_>.Map Annotated >> QsNullable.defaultValue Generated
+    let internal annotated = QsNullable<_>.Map Annotated >> QsNullable.defaultValue Generated
 
     /// <summary>
     /// Creates an <see cref="Inferred"/> type range if a range is given, or the <see cref="Generated"/> type range
     /// otherwise.
     /// </summary>
+    [<CompiledName "Inferred">]
     let inferred = QsNullable<_>.Map Inferred >> QsNullable.defaultValue Generated
 
     /// Returns the range if it exists.
+    [<CompiledName "TryRange">]
     let tryRange =
         function
         | Annotated range
@@ -411,6 +413,7 @@ module TypeRange =
     /// <summary>
     /// Returns the original type range if it is not generated, otherwise returns <paramref name="ifGenerated"/>.
     /// </summary>
+    [<CompiledName "OrElse">]
     let orElse ifGenerated =
         function
         | Annotated _
