@@ -797,11 +797,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Get all current diagnostics.
         /// </summary>
+        /// <returns>
+        /// If <paramref name="textDocument"/> is specified, an array with a single item containing all current diagnostics for the given file.
+        /// If <paramref name="textDocument"/> is not specified, the diagnostics for all source files are returned.
+        /// If <paramref name="textDocument"/> is not listed as a source file, null.
+        /// </returns>
         /// <remarks>
-        /// If <paramref name="textDocument"/> is specified, returns an array with a single item containing all current diagnostics for the given file.
-        /// If <paramref name="textDocument"/> is not specified, returns the diagnostics for all source files are returned.
-        /// If <paramref name="textDocument"/> is not listed as a source file, returns null.
-        /// <para/>
         /// This method waits for all currently running or queued tasks to finish
         /// before accumulating the diagnostics by calling <see cref="FlushAndExecute"/>.
         /// </remarks>
