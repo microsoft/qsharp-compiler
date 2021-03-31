@@ -94,7 +94,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private FunctionContext? functionContext;
         internal FunctionContext FunctionContext
         {
-            get => this.functionContext ?? throw new InvalidOperationException();
+            get => this.functionContext
+                ?? throw new InvalidOperationException("the current function context is null");
             private set => this.functionContext = value;
         }
 
@@ -555,11 +556,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current context is set to null.</exception>
         internal bool EndFunction()
         {
-            if (this.FunctionContext == null)
-            {
-                throw new InvalidOperationException("the current function context is null");
-            }
-
             this.ScopeMgr.CloseScope(this.FunctionContext.IsCurrentBlockTerminated);
 
             if (!this.FunctionContext.IsCurrentBlockTerminated && this.FunctionContext.Function.ReturnType.IsVoid)
@@ -1104,11 +1100,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         internal void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
         {
-            if (this.FunctionContext == null)
-            {
-                throw new InvalidOperationException("current function context is set to null");
-            }
-
             // Contains the loop header that creates the phi-node, evaluates the condition,
             // and then branches into the body or exits the loop depending on whether the condition evaluates to true.
             var headerName = this.BlockName("header");
@@ -1214,11 +1205,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current block is set to null.</exception>
         internal void IterateThroughRange(Value start, Value? step, Value end, Action<Value> executeBody)
         {
-            if (this.FunctionContext == null)
-            {
-                throw new InvalidOperationException("current function context is set to null");
-            }
-
             // Creates a preheader block to determine the direction of the loop.
             // The returned value evaluates to true if he given increment is positive.
             Value CreatePreheader(Value increment)

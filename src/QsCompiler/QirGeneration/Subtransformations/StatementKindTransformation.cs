@@ -501,11 +501,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         public override QsStatementKind OnWhileStatement(QsWhileStatement stm)
         {
-            if (this.SharedState.FunctionContext == null)
-            {
-                throw new InvalidOperationException("current function context is set to null");
-            }
-
             // The basic approach here is to put the evaluation of the test expression into one basic block,
             // the body of the loop in a second basic block, and then have a third basic block as the continuation.
 
