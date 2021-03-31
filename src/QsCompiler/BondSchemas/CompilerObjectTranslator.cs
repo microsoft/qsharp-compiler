@@ -537,9 +537,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.QsTypeParameter(
                 origin: bondQsTypeParameter.Origin.ToCompilerObject(),
                 typeName: bondQsTypeParameter.TypeName,
-                range: bondQsTypeParameter.Range != null ?
-                    bondQsTypeParameter.Range.ToCompilerObject().ToQsNullableGeneric() :
-                    QsNullable<DataTypes.Range>.Null);
+                range: QsNullable<DataTypes.Range>.Null);
 
         private static SyntaxTree.QsWhileStatement ToCompilerObject(this QsWhileStatement bondQsWhileStatement) =>
             new SyntaxTree.QsWhileStatement(
@@ -653,9 +651,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.UserDefinedType(
                 @namespace: bondUserDefinedType.Namespace,
                 name: bondUserDefinedType.Name,
-                range: bondUserDefinedType.Range != null ?
-                    bondUserDefinedType.Range.ToCompilerObject().ToQsNullableGeneric() :
-                    QsNullable<DataTypes.Range>.Null);
+                range: QsNullable<DataTypes.Range>.Null);
 
         private static Tuple<SyntaxTree.SymbolTuple, SyntaxTree.ResolvedType> ToCompilerObject(this QsLoopItem bondQsLoopItem) =>
             new Tuple<SyntaxTree.SymbolTuple, SyntaxTree.ResolvedType>(
