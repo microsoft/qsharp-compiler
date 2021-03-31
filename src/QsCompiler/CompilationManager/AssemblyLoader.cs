@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler
     public static class AssemblyLoader
     {
         /// <summary>
-        /// Loads the Q# data structures in a referenced assembly given <paramref name="asm"/>,
+        /// Loads the Q# data structures in a referenced assembly with the URI <paramref name="asm"/>,
         /// and returns the loaded content via <paramref name="headers"/>.
         /// </summary>
         /// <param name="asm">The uri of the referenced assembly.</param>
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Loads the Q# data structures in a referenced assembly given <paramref name="asmPath"/>,
+        /// Loads the Q# data structures in a referenced assembly with the path <paramref name="asmPath"/>,
         /// and returns the loaded content as <paramref name="compilation"/>.
         /// </summary>
         /// <returns>
