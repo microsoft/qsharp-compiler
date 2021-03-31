@@ -158,18 +158,20 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
         internal PointerValue(Value? pointer, ResolvedType type, GenerationContext context)
         {
-            void Store(IValue v) =>
-                context.CurrentBuilder.Store(v.Value, this.pointer);
-
-            IValue Reload() =>
-                context.Values.From(
-                    context.CurrentBuilder.Load(this.LlvmType, this.pointer),
-                    this.QSharpType);
-
             this.QSharpType = type;
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
-            this.pointer = pointer ?? context.CurrentBuilder.Alloca(this.LlvmType);
-            this.cachedValue = new IValue.Cached<IValue>(context, Reload, Store);
+            this.pointer = pointer ?? context.FunctionContext.Emit(b => b.Alloca(this.LlvmType));
+            this.cachedValue = context.FunctionContext.Emit(b =>
+            {
+                void Store(IValue v) => b.Store(v.Value, this.pointer);
+
+                IValue Reload() =>
+                    context.Values.From(
+                        b.Load(this.LlvmType, this.pointer),
+                        this.QSharpType);
+
+                return new IValue.Cached<IValue>(context, Reload, Store);
+            });
         }
 
         /// <summary>
@@ -312,12 +314,12 @@ namespace Microsoft.Quantum.QIR.Emission
 
         private Value GetOpaquePointer() =>
             this.typedPointer.IsCached
-            ? this.sharedState.CurrentBuilder.BitCast(this.TypedPointer, this.sharedState.Types.Tuple)
+            ? this.sharedState.FunctionContext.Emit(b => b.BitCast(this.TypedPointer, this.sharedState.Types.Tuple))
             : throw new InvalidOperationException("tuple pointer is undefined");
 
         private Value GetTypedPointer() =>
             this.opaquePointer.IsCached
-            ? this.sharedState.CurrentBuilder.BitCast(this.OpaquePointer, this.StructType.CreatePointerType())
+            ? this.sharedState.FunctionContext.Emit(b => b.BitCast(this.OpaquePointer, this.StructType.CreatePointerType()))
             : throw new InvalidOperationException("tuple pointer is undefined");
 
         private IValue.Cached<Value> CreateOpaquePointerCache(Value? pointer = null) =>
@@ -454,9 +456,9 @@ namespace Microsoft.Quantum.QIR.Emission
 
         // private helpers
 
-        private Value GetLength() => this.sharedState.CurrentBuilder.Call(
+        private Value GetLength() => this.sharedState.FunctionContext.Emit(b => b.Call(
             this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
-            this.OpaquePointer);
+            this.OpaquePointer));
 
         private IValue.Cached<Value> CreateLengthCache(Value length) =>
             new IValue.Cached<Value>(length, this.sharedState, this.GetLength);

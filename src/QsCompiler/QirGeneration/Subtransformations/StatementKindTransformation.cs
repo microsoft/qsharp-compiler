@@ -153,9 +153,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private bool ProcessBlock(BasicBlock block, QsScope scope, BasicBlock continuation)
         {
             this.SharedState.ScopeMgr.OpenScope();
-            this.SharedState.SetCurrentBlock(block);
+            this.SharedState.FunctionContext.SetCurrentBlock(block);
             this.Transformation.Statements.OnScope(scope);
-            var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+            var isTerminated = this.SharedState.FunctionContext.IsCurrentBlockTerminated;
             this.SharedState.ScopeMgr.CloseScope(isTerminated);
             if (!isTerminated)
             {
@@ -236,20 +236,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             ProcessQubitBinding(stm.Binding); // Apply the bindings and add them to the scope
 
             this.Transformation.Statements.OnScope(stm.Body); // Process the body
-            this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
+            this.SharedState.ScopeMgr.CloseScope(this.SharedState.FunctionContext.IsCurrentBlockTerminated);
             return QsStatementKind.EmptyStatement;
         }
 
-        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
+        /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
         {
-            if (this.SharedState.CurrentFunction == null || this.SharedState.CurrentBlock == null)
+            if (this.SharedState.FunctionContext == null)
             {
-                throw new InvalidOperationException("the current function or the current block is set to null");
+                throw new InvalidOperationException("the current function context is set to null");
             }
 
             var clauses = stm.ConditionalBlocks;
-            var contBlock = this.SharedState.AddBlockAfterCurrent("continue");
+            var contBlock = this.SharedState.FunctionContext.AddBlockAfterCurrent("continue");
             var contBlockUsed = false;
 
             // if/then/elif...else
@@ -263,7 +263,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Evaluate the test, which should be a Boolean at this point
                 var test = clauses[n].Item1;
                 var testValue = this.SharedState.EvaluateSubexpression(test).Value;
-                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
+                var conditionalBlock = this.SharedState.FunctionContext.Function.InsertBasicBlock(
                             this.SharedState.BlockName($"then{n}"), contBlock);
 
                 // If this is an intermediate clause, then the next block if the test fails
@@ -271,10 +271,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // If this is the last clause, then the next block is the default clause's block
                 // if there is one, or the continue block if not.
                 var nextConditional = n < clauses.Length - 1
-                    ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
+                    ? this.SharedState.FunctionContext.Function.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
                     : (stm.Default.IsNull
                         ? contBlock
-                        : this.SharedState.CurrentFunction.InsertBasicBlock(
+                        : this.SharedState.FunctionContext.Function.InsertBasicBlock(
                                 this.SharedState.BlockName($"else"), contBlock));
                 contBlockUsed = contBlockUsed || nextConditional == contBlock;
 
@@ -286,25 +286,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 contBlockUsed = this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
 
-                this.SharedState.SetCurrentBlock(nextConditional);
+                this.SharedState.FunctionContext.SetCurrentBlock(nextConditional);
             }
 
             // Deal with the default, if there is any
             if (stm.Default.IsValue)
             {
                 this.SharedState.StartBranch();
-                contBlockUsed = this.ProcessBlock(this.SharedState.CurrentBlock, stm.Default.Item.Body, contBlock) || contBlockUsed;
+                contBlockUsed = this.ProcessBlock(
+                    this.SharedState.FunctionContext.CurrentBlock, stm.Default.Item.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
             }
 
             // Finally, set the continuation block as current or prune it if it is unused.
             if (contBlockUsed)
             {
-                this.SharedState.SetCurrentBlock(contBlock);
+                this.SharedState.FunctionContext.SetCurrentBlock(contBlock);
             }
             else
             {
-                this.SharedState.CurrentFunction.BasicBlocks.Remove(contBlock);
+                this.SharedState.FunctionContext.RemoveBlock(contBlock);
             }
             return QsStatementKind.EmptyStatement;
         }
@@ -332,13 +333,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <exception cref="InvalidOperationException">
-        /// The current function or the current block is set to null, or if the iteration is not over an array or range.
+        /// The current function context is set to null, or if the iteration is not over an array or range.
         /// </exception>
         public override QsStatementKind OnForStatement(QsForStatement stm)
         {
-            if (this.SharedState.CurrentFunction == null || this.SharedState.CurrentBlock == null)
+            if (this.SharedState.FunctionContext == null)
             {
-                throw new InvalidOperationException("current function is set to null");
+                throw new InvalidOperationException("current function context is set to null");
             }
 
             if (stm.IterationValues.ResolvedType.Resolution.IsRange)
@@ -380,12 +381,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return QsStatementKind.EmptyStatement;
         }
 
-        /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
+        /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         public override QsStatementKind OnRepeatStatement(QsRepeatStatement stm)
         {
-            if (this.SharedState.CurrentFunction == null)
+            if (this.SharedState.FunctionContext == null)
             {
-                throw new InvalidOperationException("current function is set to null");
+                throw new InvalidOperationException("current function context is set to null");
             }
 
             // The basic approach here is to put the repeat into one basic block.
@@ -395,23 +396,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // analyze the loop later if we do it this way.
             // We need to be a bit careful about scopes here, though.
 
-            var repeatBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("repeat"));
-            var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("until"));
-            var fixupBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("fixup"));
-            var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("rend"));
+            var repeatBlock = this.SharedState.FunctionContext.AppendBlock("repeat");
+            var testBlock = this.SharedState.FunctionContext.AppendBlock("until");
+            var fixupBlock = this.SharedState.FunctionContext.AppendBlock("fixup");
+            var contBlock = this.SharedState.FunctionContext.AppendBlock("rend");
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
                 this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.FunctionContext.Emit(b => b.Branch(repeatBlock));
-                this.SharedState.SetCurrentBlock(repeatBlock);
+                this.SharedState.FunctionContext.SetCurrentBlock(repeatBlock);
                 this.Transformation.Statements.OnScope(stm.RepeatBlock.Body);
-                if (this.SharedState.CurrentBlock?.Terminator == null)
+                if (!this.SharedState.FunctionContext.IsCurrentBlockTerminated)
                 {
                     this.SharedState.FunctionContext.Emit(b => b.Branch(testBlock));
                 }
 
-                this.SharedState.SetCurrentBlock(testBlock);
+                this.SharedState.FunctionContext.SetCurrentBlock(testBlock);
                 var test = this.SharedState.EvaluateSubexpression(stm.SuccessCondition).Value;
                 this.SharedState.ScopeMgr.ApplyPendingReferences();
                 this.SharedState.FunctionContext.Emit(b => b.Branch(test, contBlock, fixupBlock));
@@ -419,12 +420,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We have a do-while pattern here, and the repeat block will be executed one more time than the fixup.
                 // We need to make sure to properly invoke all calls to unreference, release, and remove alias counts
                 // for variables and values in the repeat-block after the statement ends.
-                this.SharedState.SetCurrentBlock(contBlock);
+                this.SharedState.FunctionContext.SetCurrentBlock(contBlock);
                 this.SharedState.ScopeMgr.ExitScope(false);
 
-                this.SharedState.SetCurrentBlock(fixupBlock);
+                this.SharedState.FunctionContext.SetCurrentBlock(fixupBlock);
                 this.Transformation.Statements.OnScope(stm.FixupBlock.Body);
-                var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+                var isTerminated = this.SharedState.FunctionContext.IsCurrentBlockTerminated;
                 this.SharedState.ScopeMgr.CloseScope(isTerminated);
                 if (!isTerminated)
                 {
@@ -497,29 +498,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return QsStatementKind.EmptyStatement;
         }
 
-        /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
+        /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         public override QsStatementKind OnWhileStatement(QsWhileStatement stm)
         {
-            if (this.SharedState.CurrentFunction == null)
+            if (this.SharedState.FunctionContext == null)
             {
-                throw new InvalidOperationException("current function is set to null");
+                throw new InvalidOperationException("current function context is set to null");
             }
 
             // The basic approach here is to put the evaluation of the test expression into one basic block,
             // the body of the loop in a second basic block, and then have a third basic block as the continuation.
 
-            var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("while"));
-            var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("do"));
-            var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("wend"));
+            var testBlock = this.SharedState.FunctionContext.AppendBlock("while");
+            var bodyBlock = this.SharedState.FunctionContext.AppendBlock("do");
+            var contBlock = this.SharedState.FunctionContext.AppendBlock("wend");
 
             this.SharedState.ExecuteLoop(contBlock, () =>
             {
                 this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.FunctionContext.Emit(b => b.Branch(testBlock));
-                this.SharedState.SetCurrentBlock(testBlock);
+                this.SharedState.FunctionContext.SetCurrentBlock(testBlock);
 
                 var test = this.SharedState.EvaluateSubexpression(stm.Condition).Value;
-                this.SharedState.ScopeMgr.CloseScope(this.SharedState.CurrentBlock?.Terminator != null);
+                this.SharedState.ScopeMgr.CloseScope(this.SharedState.FunctionContext.IsCurrentBlockTerminated);
                 this.SharedState.FunctionContext.Emit(b => b.Branch(test, bodyBlock, contBlock));
                 this.ProcessBlock(bodyBlock, stm.Body, testBlock);
             });

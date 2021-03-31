@@ -208,19 +208,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 if (sharedState.ScopeMgr.RequiresReferenceCount(value.LlvmType) && !unreferenceOriginal)
                 {
-                    var contBlock = sharedState.AddBlockAfterCurrent("condContinue");
-                    var falseBlock = sharedState.AddBlockAfterCurrent("condFalse");
+                    var contBlock = sharedState.FunctionContext.AddBlockAfterCurrent("condContinue");
+                    var falseBlock = sharedState.FunctionContext.AddBlockAfterCurrent("condFalse");
 
-                    sharedState.CurrentBuilder.Branch(wasCopied, contBlock, falseBlock);
+                    sharedState.FunctionContext.Emit(b => b.Branch(wasCopied, contBlock, falseBlock));
                     sharedState.ScopeMgr.OpenScope();
-                    sharedState.SetCurrentBlock(falseBlock);
+                    sharedState.FunctionContext.SetCurrentBlock(falseBlock);
 
                     sharedState.ScopeMgr.IncreaseReferenceCount(value, shallow);
                     sharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow);
 
                     sharedState.ScopeMgr.CloseScope(false);
-                    sharedState.CurrentBuilder.Branch(contBlock);
-                    sharedState.SetCurrentBlock(contBlock);
+                    sharedState.FunctionContext.Emit(b => b.Branch(contBlock));
+                    sharedState.FunctionContext.SetCurrentBlock(contBlock);
                 }
                 pointer.StoreValue(value);
             }
@@ -232,9 +232,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
                 var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
                 var forceCopy = sharedState.Context.CreateConstant(false);
-                var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
+                var copy = sharedState.FunctionContext.Emit(b => b.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy));
                 var array = sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
-                var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, originalArray.OpaquePointer, array.OpaquePointer);
+                var wasCopied = sharedState.FunctionContext.Emit(b => b.Compare(IntPredicate.NotEqual, originalArray.OpaquePointer, array.OpaquePointer));
                 sharedState.ScopeMgr.RegisterValue(array);
 
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
@@ -299,11 +299,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // alias count is larger than 0, and otherwise merely increases the reference count of the tuple by 1.
                     var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.TupleCopy);
                     var forceCopy = sharedState.Context.CreateConstant(false);
-                    var copy = sharedState.CurrentBuilder.Call(createShallowCopy, original.OpaquePointer, forceCopy);
+                    var copy = sharedState.FunctionContext.Emit(b => b.Call(createShallowCopy, original.OpaquePointer, forceCopy));
                     var tuple = original.TypeName == null
                         ? sharedState.Values.FromTuple(copy, original.ElementTypes)
                         : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
-                    var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, original.OpaquePointer, tuple.OpaquePointer);
+                    var wasCopied = sharedState.FunctionContext.Emit(b => b.Compare(IntPredicate.NotEqual, original.OpaquePointer, tuple.OpaquePointer));
                     return (wasCopied, tuple);
                 }
 
@@ -427,26 +427,29 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var cleanStr = s.Replace("\\{", "{").Replace("\\\\", "\\").Replace("\\n", "\n")
                     .Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\"", "\"");
 
-                Value? constantArray = null;
-                if (cleanStr.Length > 0)
+                return sharedState.FunctionContext.Emit(b =>
                 {
-                    var constantString = sharedState.Context.CreateConstantString(cleanStr, true);
-                    var globalConstant = sharedState.Module.AddGlobal(
-                        constantString.NativeType, true, Linkage.Internal, constantString);
-                    constantArray = sharedState.CurrentBuilder.GetElementPtr(
-                        sharedState.Context.Int8Type.CreateArrayType((uint)cleanStr.Length + 1), // +1 because zero terminated
-                        globalConstant,
-                        new[] { sharedState.Context.CreateConstant(0) });
-                }
+                    Value? constantArray = null;
+                    if (cleanStr.Length > 0)
+                    {
+                        var constantString = sharedState.Context.CreateConstantString(cleanStr, true);
+                        var globalConstant = sharedState.Module.AddGlobal(
+                            constantString.NativeType, true, Linkage.Internal, constantString);
+                        constantArray = b.GetElementPtr(
+                            sharedState.Context.Int8Type.CreateArrayType((uint)cleanStr.Length + 1), // +1 because zero terminated
+                            globalConstant,
+                            new[] { sharedState.Context.CreateConstant(0) });
+                    }
 
-                var zeroLengthString = constantArray == null
-                    ? sharedState.Types.DataArrayPointer.GetNullValue()
-                    : sharedState.CurrentBuilder.BitCast(
-                        constantArray,
-                        sharedState.Types.DataArrayPointer);
+                    var zeroLengthString = constantArray == null
+                        ? sharedState.Types.DataArrayPointer.GetNullValue()
+                        : b.BitCast(
+                            constantArray,
+                            sharedState.Types.DataArrayPointer);
 
-                var createString = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                return sharedState.CurrentBuilder.Call(createString, zeroLengthString);
+                    var createString = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
+                    return b.Call(createString, zeroLengthString);
+                });
             }
 
             // Creates a new string with reference count 1 that needs to be queued for unreferencing
@@ -463,20 +466,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         // Since we return next instead of a new string,
                         // we need to increase the reference count of next unless unreferenceNext is true.
-                        sharedState.CurrentBuilder.Call(refCountUpdate, next, plusOne);
+                        sharedState.FunctionContext.Emit(b => b.Call(refCountUpdate, next, plusOne));
                     }
                     return next;
                 }
 
                 // The runtime function StringConcatenate creates a new value with reference count 1.
                 var concatenate = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
-                var app = sharedState.CurrentBuilder.Call(concatenate, curr, next);
-                sharedState.CurrentBuilder.Call(refCountUpdate, curr, minusOne);
-                if (unreferenceNext)
+
+                return sharedState.FunctionContext.Emit(b =>
                 {
-                    sharedState.CurrentBuilder.Call(refCountUpdate, next, minusOne);
-                }
-                return app;
+                    var app = b.Call(concatenate, curr, next);
+                    b.Call(refCountUpdate, curr, minusOne);
+                    if (unreferenceNext)
+                    {
+                        b.Call(refCountUpdate, next, minusOne);
+                    }
+                    return app;
+                });
             }
 
             // Creates a string value that needs to be queued for unreferencing.
@@ -486,14 +493,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var addReference = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
                     var countChange = sharedState.Context.CreateConstant(change);
-                    sharedState.CurrentBuilder.Call(addReference, str, countChange);
+                    sharedState.FunctionContext.Emit(b => b.Call(addReference, str, countChange));
                 }
 
                 // Creates a string value that needs to be queued for unreferencing.
                 Value SimpleToString(string rtFuncName)
                 {
                     var createString = sharedState.GetOrCreateRuntimeFunction(rtFuncName);
-                    return sharedState.CurrentBuilder.Call(createString, evaluated.Value);
+                    return sharedState.FunctionContext.Emit(b => b.Call(createString, evaluated.Value));
                 }
 
                 Value TupleToString(TupleValue tuple)
@@ -681,21 +688,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
                 this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
                 this.SharedState.FunctionContext.Emit(b => b.Branch(contBlock));
-                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.SharedState.CurrentBlock!);
+                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.SharedState.FunctionContext.CurrentBlock);
             }
 
             var (evaluatedOnFalse, afterFalse) = (condition, entryBlock);
             if (onCondFalse != null)
             {
                 this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.SetCurrentBlock(falseBlock);
+                this.SharedState.FunctionContext.SetCurrentBlock(falseBlock);
                 var onFalse = this.SharedState.EvaluateSubexpression(onCondFalse);
                 this.SharedState.ScopeMgr.CloseScope(onFalse, false); // force that the ref count is increased within the branch
                 this.SharedState.FunctionContext.Emit(b => b.Branch(contBlock));
-                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.SharedState.CurrentBlock!);
+                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.SharedState.FunctionContext.CurrentBlock);
             }
 
-            this.SharedState.SetCurrentBlock(contBlock);
+            this.SharedState.FunctionContext.SetCurrentBlock(contBlock);
             var phi = this.SharedState.FunctionContext.Emit(b => b.PhiNode(this.SharedState.CurrentLlvmExpressionType()));
             phi.AddIncoming(evaluatedOnTrue, afterTrue);
             phi.AddIncoming(evaluatedOnFalse, afterFalse);
@@ -1029,13 +1036,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var byteArray = ConstantArray.From(
                     this.SharedState.Context.Int8Type,
                     bytes.Select(s => this.SharedState.Context.CreateConstant(s)).ToArray());
-                var byteArrayPointer = this.SharedState.CurrentBuilder.GetElementPtr(
+                var byteArrayPointer = this.SharedState.FunctionContext.Emit(b => b.GetElementPtr(
                     this.SharedState.Context.Int8Type.CreateArrayType((uint)bytes.Length),
                     byteArray,
-                    new[] { this.SharedState.Context.CreateConstant(0) });
-                var zeroByteArray = this.SharedState.CurrentBuilder.BitCast(
+                    new[] { this.SharedState.Context.CreateConstant(0) }));
+                var zeroByteArray = this.SharedState.FunctionContext.Emit(b => b.BitCast(
                     byteArrayPointer,
-                    this.SharedState.Types.DataArrayPointer);
+                    this.SharedState.Types.DataArrayPointer));
                 var res = this.SharedState.FunctionContext.Emit(b => b.Call(createBigInt, n, zeroByteArray));
                 value = this.SharedState.Values.From(res, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
@@ -1795,121 +1802,124 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnNewArray(ResolvedType elementType, TypedExpression lengthEx)
         {
-            IValue DefaultValue(ResolvedType type)
+            return this.SharedState.FunctionContext.Emit(b =>
             {
-                if (type.Resolution.IsInt)
+                IValue DefaultValue(ResolvedType type)
                 {
-                    var value = this.SharedState.Context.CreateConstant(0L);
-                    return this.SharedState.Values.FromSimpleValue(value, type);
-                }
-                else if (type.Resolution.IsDouble)
-                {
-                    var value = this.SharedState.Context.CreateConstant(0.0);
-                    return this.SharedState.Values.FromSimpleValue(value, type);
-                }
-                else if (type.Resolution.IsBool)
-                {
-                    var value = this.SharedState.Context.CreateConstant(false);
-                    return this.SharedState.Values.FromSimpleValue(value, type);
-                }
-                else if (type.Resolution.IsPauli)
-                {
-                    var pointer = this.SharedState.Constants.PauliI;
-                    var constant = this.SharedState.FunctionContext.Emit(b => b.Load(this.SharedState.Types.Pauli, pointer));
-                    return this.SharedState.Values.From(constant, type);
-                }
-                else if (type.Resolution.IsResult)
-                {
-                    var getZero = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
-                    var constant = this.SharedState.FunctionContext.Emit(b => b.Call(getZero));
-                    return this.SharedState.Values.From(constant, type);
-                }
-                else if (type.Resolution.IsQubit)
-                {
-                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Qubit);
-                    return this.SharedState.Values.From(value, type);
-                }
-                else if (type.Resolution.IsRange)
-                {
-                    var pointer = this.SharedState.Constants.EmptyRange;
-                    var constant = this.SharedState.FunctionContext.Emit(b => b.Load(this.SharedState.Types.Range, pointer));
-                    return this.SharedState.Values.From(constant, type);
-                }
-                else if (type.Resolution is ResolvedTypeKind.TupleType ts)
-                {
-                    var values = ts.Item.Select(DefaultValue).ToArray();
-                    return this.SharedState.Values.CreateTuple(values);
-                }
-                else if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
-                {
-                    if (!this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
+                    if (type.Resolution.IsInt)
                     {
-                        throw new ArgumentException("type declaration not found");
+                        var value = this.SharedState.Context.CreateConstant(0L);
+                        return this.SharedState.Values.FromSimpleValue(value, type);
                     }
+                    else if (type.Resolution.IsDouble)
+                    {
+                        var value = this.SharedState.Context.CreateConstant(0.0);
+                        return this.SharedState.Values.FromSimpleValue(value, type);
+                    }
+                    else if (type.Resolution.IsBool)
+                    {
+                        var value = this.SharedState.Context.CreateConstant(false);
+                        return this.SharedState.Values.FromSimpleValue(value, type);
+                    }
+                    else if (type.Resolution.IsPauli)
+                    {
+                        var pointer = this.SharedState.Constants.PauliI;
+                        var constant = b.Load(this.SharedState.Types.Pauli, pointer);
+                        return this.SharedState.Values.From(constant, type);
+                    }
+                    else if (type.Resolution.IsResult)
+                    {
+                        var getZero = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
+                        var constant = b.Call(getZero);
+                        return this.SharedState.Values.From(constant, type);
+                    }
+                    else if (type.Resolution.IsQubit)
+                    {
+                        var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Qubit);
+                        return this.SharedState.Values.From(value, type);
+                    }
+                    else if (type.Resolution.IsRange)
+                    {
+                        var pointer = this.SharedState.Constants.EmptyRange;
+                        var constant = b.Load(this.SharedState.Types.Range, pointer);
+                        return this.SharedState.Values.From(constant, type);
+                    }
+                    else if (type.Resolution is ResolvedTypeKind.TupleType ts)
+                    {
+                        var values = ts.Item.Select(DefaultValue).ToArray();
+                        return this.SharedState.Values.CreateTuple(values);
+                    }
+                    else if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
+                    {
+                        if (!this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
+                        {
+                            throw new ArgumentException("type declaration not found");
+                        }
 
-                    var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType items ? items.Item : ImmutableArray.Create(udtDecl.Type);
-                    var values = elementTypes.Select(DefaultValue).ToArray();
-                    return this.SharedState.Values.CreateCustomType(udt.Item, values);
+                        var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType items ? items.Item : ImmutableArray.Create(udtDecl.Type);
+                        var values = elementTypes.Select(DefaultValue).ToArray();
+                        return this.SharedState.Values.CreateCustomType(udt.Item, values);
+                    }
+                    if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
+                    {
+                        return this.SharedState.Values.CreateArray(itemType.Item);
+                    }
+                    else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
+                    {
+                        var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Callable);
+                        return this.SharedState.Values.FromCallable(value, type);
+                    }
+                    else if (type.Resolution.IsString)
+                    {
+                        var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
+                        var value = b.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue());
+                        var built = this.SharedState.Values.From(value, type);
+                        this.SharedState.ScopeMgr.RegisterValue(built);
+                        return built;
+                    }
+                    else if (type.Resolution.IsBigInt)
+                    {
+                        var value = b.Call(
+                            this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64),
+                            this.SharedState.Context.CreateConstant(0L));
+                        var built = this.SharedState.Values.From(value, type);
+                        this.SharedState.ScopeMgr.RegisterValue(built);
+                        return built;
+                    }
+                    else if (type.Resolution.IsUnitType)
+                    {
+                        return this.SharedState.Values.Unit;
+                    }
+                    else
+                    {
+                        throw new NotSupportedException("no known default value for the given type");
+                    }
                 }
-                if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
-                {
-                    return this.SharedState.Values.CreateArray(itemType.Item);
-                }
-                else if (type.Resolution.IsFunction || type.Resolution.IsOperation)
-                {
-                    var value = Constant.ConstPointerToNullFor(this.SharedState.Types.Callable);
-                    return this.SharedState.Values.FromCallable(value, type);
-                }
-                else if (type.Resolution.IsString)
-                {
-                    var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var value = this.SharedState.FunctionContext.Emit(b => b.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue()));
-                    var built = this.SharedState.Values.From(value, type);
-                    this.SharedState.ScopeMgr.RegisterValue(built);
-                    return built;
-                }
-                else if (type.Resolution.IsBigInt)
-                {
-                    var value = this.SharedState.CurrentBuilder.Call(
-                        this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateI64),
-                        this.SharedState.Context.CreateConstant(0L));
-                    var built = this.SharedState.Values.From(value, type);
-                    this.SharedState.ScopeMgr.RegisterValue(built);
-                    return built;
-                }
-                else if (type.Resolution.IsUnitType)
-                {
-                    return this.SharedState.Values.Unit;
-                }
-                else
-                {
-                    throw new NotSupportedException("no known default value for the given type");
-                }
-            }
 
-            // TODO: new multi-dimensional arrays
-            var length = this.SharedState.EvaluateSubexpression(lengthEx);
-            var array = this.SharedState.Values.CreateArray(length.Value, elementType);
-            this.SharedState.ValueStack.Push(array);
-            if (array.Length == this.SharedState.Context.CreateConstant(0L))
-            {
+                // TODO: new multi-dimensional arrays
+                var length = this.SharedState.EvaluateSubexpression(lengthEx);
+                var array = this.SharedState.Values.CreateArray(length.Value, elementType);
+                this.SharedState.ValueStack.Push(array);
+                if (array.Length == this.SharedState.Context.CreateConstant(0L))
+                {
+                    return ResolvedExpressionKind.InvalidExpr;
+                }
+
+                // We need to populate the array
+                var start = this.SharedState.Context.CreateConstant(0L);
+                var end = b.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
+                void PopulateItem(Value index)
+                {
+                    // We need to make sure that the reference count for the built item is increased by 1.
+                    this.SharedState.ScopeMgr.OpenScope();
+                    var value = DefaultValue(elementType);
+                    this.SharedState.ScopeMgr.CloseScope(value);
+                    array.GetArrayElementPointer(index).StoreValue(value);
+                }
+
+                this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
                 return ResolvedExpressionKind.InvalidExpr;
-            }
-
-            // We need to populate the array
-            var start = this.SharedState.Context.CreateConstant(0L);
-            var end = this.SharedState.FunctionContext.Emit(b => b.Sub(array.Length, this.SharedState.Context.CreateConstant(1L)));
-            void PopulateItem(Value index)
-            {
-                // We need to make sure that the reference count for the built item is increased by 1.
-                this.SharedState.ScopeMgr.OpenScope();
-                var value = DefaultValue(elementType);
-                this.SharedState.ScopeMgr.CloseScope(value);
-                array.GetArrayElementPointer(index).StoreValue(value);
-            }
-
-            this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
-            return ResolvedExpressionKind.InvalidExpr;
+            });
         }
 
         public override ResolvedExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)

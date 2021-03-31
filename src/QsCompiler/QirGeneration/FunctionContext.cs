@@ -22,10 +22,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal bool IsCurrentBlockEmpty => !this.CurrentBlock.Instructions.Any();
 
-        internal FunctionContext(IrFunction function, Func<string, string> uniqueBlockName)
+        internal FunctionContext(IrFunction function, Func<string, string> uniqueLocalName)
         {
             this.function = function;
-            this.uniqueBlockName = uniqueBlockName;
+            this.uniqueBlockName = uniqueLocalName;
             this.currentBuilder = new InstructionBuilder(this.function.AppendBasicBlock("entry"));
         }
 
@@ -110,6 +110,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return next == null
                 ? this.function.AppendBasicBlock(continueName)
                 : this.function.InsertBasicBlock(continueName, next);
+        }
+
+        internal BasicBlock AppendBlock(string name)
+        {
+            return this.Function.AppendBasicBlock(this.uniqueBlockName(name));
         }
 
         /// <summary>

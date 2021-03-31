@@ -144,12 +144,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// i.e. this method implements the mapping "interop-friendly function arguments -> QIR function arguments".
         /// </summary>
         /// <returns>The array of arguments with which to invoke the QIR function with the given argument tuple.</returns>
-        /// <exception cref="InvalidOperationException">The current function is null.</exception>
+        /// <exception cref="InvalidOperationException">The current function context is null.</exception>
         private Value[] ProcessArguments(ArgumentTuple arg, IReadOnlyList<Argument> parameters)
         {
-            if (this.sharedState.CurrentFunction == null)
+            if (this.sharedState.FunctionContext == null)
             {
-                throw new InvalidOperationException("the current function is null");
+                throw new InvalidOperationException("the current function context is null");
             }
 
             (Value Length, Value DataArray) LoadSizedArray(Value value)
@@ -313,12 +313,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// It is the responsibility of the code calling into the QIR entry point wrapper to free that memory.
         /// </summary>
         /// <returns>The interop-friendly value for the given value obtained by invoking a QIR function.</returns>
-        /// <exception cref="InvalidOperationException">The current function is null.</exception>
+        /// <exception cref="InvalidOperationException">The current function context is null.</exception>
         private Value? ProcessReturnValue(IValue res)
         {
-            if (this.sharedState.CurrentFunction == null)
+            if (this.sharedState.FunctionContext == null)
             {
-                throw new InvalidOperationException("the current function is null");
+                throw new InvalidOperationException("the current function context is null");
             }
 
             return this.sharedState.FunctionContext.Emit(b =>

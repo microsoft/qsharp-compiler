@@ -92,9 +92,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly FunctionLibrary quantumInstructionSet;
 
         internal FunctionContext FunctionContext { get; private set; }
-        internal IrFunction? CurrentFunction { get; private set; }
-        internal BasicBlock? CurrentBlock { get; private set; }
-        internal InstructionBuilder CurrentBuilder { get; private set; }
+        internal IrFunction CurrentFunction => this.FunctionContext.Function;
         internal ITypeRef? BuiltType { get; set; }
 
         internal readonly ScopeManager ScopeMgr;
@@ -158,7 +156,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Functions = new Functions(this);
             this.transformation = null; // needs to be set by the instantiating transformation
 
-            this.CurrentBuilder = new InstructionBuilder(this.Context);
             this.ValueStack = new Stack<IValue>();
             this.ExpressionTypeStack = new Stack<ResolvedType>();
             this.inlineLevels = new Stack<IValue>();
@@ -549,12 +546,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// and closing a naming scope.
         /// </summary>
         /// <returns>true if the function has been properly ended</returns>
-        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
+        /// <exception cref="InvalidOperationException">The current context is set to null.</exception>
         internal bool EndFunction()
         {
             if (this.FunctionContext == null)
             {
-                throw new InvalidOperationException("the current function builder is null");
+                throw new InvalidOperationException("the current function context is null");
             }
 
             this.ScopeMgr.CloseScope(this.FunctionContext.IsCurrentBlockTerminated);
@@ -650,11 +647,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
-            this.CurrentFunction = this.RegisterFunction(spec);
-            this.FunctionContext = new FunctionContext(this.CurrentFunction, this.BlockName);
+            var func = this.RegisterFunction(spec);
+            this.FunctionContext = new FunctionContext(func, this.BlockName);
 
-            this.CurrentBlock = this.FunctionContext.CurrentBlock;
-            this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
                 return;
@@ -749,6 +744,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (this.CurrentFunction != null)
             {
+                // FIXME: can CurrentFunction / FunctionContext actually be null here?
                 var itemTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts
                         ? ts.Item
                         : ImmutableArray.Create(spec.Signature.ArgumentType);
@@ -912,8 +908,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal void GenerateFunction(IrFunction func, string?[] argNames, Action<IReadOnlyList<Argument>> executeBody)
         {
             this.StartFunction();
-            this.CurrentFunction = func; // TODO remove line
-
             this.FunctionContext = new FunctionContext(func, this.BlockName);
 
             for (var i = 0; i < argNames.Length; ++i)
@@ -1010,13 +1004,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     var func = this.GetOrCreateTargetInstruction(name);
                     return specKind == QsSpecializationKind.QsBody
-                        ? this.CurrentBuilder.Call(func, args)
+                        ? this.FunctionContext.Emit(b => b.Call(func, args))
                         : throw new ArgumentException($"non-body specialization for target instruction");
                 }
                 else
                 {
                     return this.TryGetFunction(callable.FullName, specKind, out IrFunction? func)
-                        ? this.CurrentBuilder.Call(func, args)
+                        ? this.FunctionContext.Emit(b => b.Call(func, args))
                         : throw new InvalidOperationException($"No function defined for {callable.FullName} {specKind}");
                 }
             }
@@ -1101,12 +1095,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered</param>
         /// <param name="increment">The value that is added to the loop variable after each iteration </param>
         /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop</param>
-        /// <exception cref="InvalidOperationException">The current function builder is set to null.</exception>
+        /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         internal void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
         {
             if (this.FunctionContext == null)
             {
-                throw new InvalidOperationException("current function builder is set to null");
+                throw new InvalidOperationException("current function context is set to null");
             }
 
             // Contains the loop header that creates the phi-node, evaluates the condition,
@@ -1214,9 +1208,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current block is set to null.</exception>
         internal void IterateThroughRange(Value start, Value? step, Value end, Action<Value> executeBody)
         {
-            if (this.CurrentFunction == null)
+            if (this.FunctionContext == null)
             {
-                throw new InvalidOperationException("current function is set to null");
+                throw new InvalidOperationException("current function context is set to null");
             }
 
             // Creates a preheader block to determine the direction of the loop.
@@ -1227,32 +1221,36 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var preheaderBlock = this.FunctionContext.Function.AppendBasicBlock(preheaderName);
 
                 // End the current block by branching to the preheader
-                this.CurrentBuilder.Branch(preheaderBlock);
+                this.FunctionContext.Emit(b => b.Branch(preheaderBlock));
 
                 // Preheader block: determine whether the step size is positive
-                this.SetCurrentBlock(preheaderBlock);
-                return this.CurrentBuilder.Compare(
-                    IntPredicate.SignedGreaterThan,
-                    increment,
-                    this.Context.CreateConstant(0L));
+                this.FunctionContext.SetCurrentBlock(preheaderBlock);
+                return this.FunctionContext.Emit(b =>
+                    b.Compare(
+                        IntPredicate.SignedGreaterThan,
+                        increment,
+                        this.Context.CreateConstant(0L)));
             }
 
             Value EvaluateCondition(Value? loopVarIncreases, Value loopVariable)
             {
-                var isSmallerOrEqualEnd = this.CurrentBuilder.Compare(
-                    IntPredicate.SignedLessThanOrEqual, loopVariable, end);
-                if (loopVarIncreases == null)
+                return this.FunctionContext.Emit(b =>
                 {
-                    // Step size is one by default, meaning the loop variable increases.
-                    return isSmallerOrEqualEnd;
-                }
+                    var isSmallerOrEqualEnd = b.Compare(
+                        IntPredicate.SignedLessThanOrEqual, loopVariable, end);
+                    if (loopVarIncreases == null)
+                    {
+                        // Step size is one by default, meaning the loop variable increases.
+                        return isSmallerOrEqualEnd;
+                    }
 
-                // If we increase the loop variable in each iteration (i.e. step is positive)
-                // then we need to check that the current value is smaller than or equal to the end value,
-                // and otherwise we check if it is larger than or equal to the end value.
-                var isGreaterOrEqualEnd = this.CurrentBuilder.Compare(
-                    IntPredicate.SignedGreaterThanOrEqual, loopVariable, end);
-                return this.FunctionContext.Emit(b => b.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd));
+                    // If we increase the loop variable in each iteration (i.e. step is positive)
+                    // then we need to check that the current value is smaller than or equal to the end value,
+                    // and otherwise we check if it is larger than or equal to the end value.
+                    var isGreaterOrEqualEnd = b.Compare(
+                        IntPredicate.SignedGreaterThanOrEqual, loopVariable, end);
+                    return b.Select(loopVarIncreases, isSmallerOrEqualEnd, isGreaterOrEqualEnd);
+                });
             }
 
             Value? loopVarIncreases = step == null ? null : CreatePreheader(step);
@@ -1403,68 +1401,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #endregion
 
-        #region Block, scope, and value management
-
-        /// <summary>
-        /// Makes the given basic block current, creates a new builder for it, and makes that builder current.
-        /// This method does not check to make sure that the block isn't already current.
-        /// </summary>
-        /// <remarks>
-        /// Note that if the current block has no instructions, it is pruned from the current function.
-        /// </remarks>
-        /// <param name="b">The block to make current</param>
-        [Obsolete("Use FunctionBuilder.")]
-        internal void SetCurrentBlock(BasicBlock b)
-        {
-            if (this.CurrentFunction != null && this.CurrentBlock != null)
-            {
-                if (!this.CurrentBlock.Instructions.Any())
-                {
-                    // No code was generated to the old block. Assume it was
-                    // created superfluously after a terminal instruction (i.e. return or fail).
-                    this.CurrentFunction.BasicBlocks.Remove(this.CurrentBlock);
-                }
-            }
-
-            this.CurrentBlock = b;
-            this.FunctionContext.Emit(b => b.= new InstructionBuilder(b));
-        }
-
-        /// <summary>
-        /// Creates a new basic block and adds it to the current function immediately after the current block.
-        /// </summary>
-        /// <param name="name">The base name for the new block; a counter will be appended to ensure uniqueness</param>
-        /// <returns>The new block</returns>
-        /// <exception cref="InvalidOperationException">The current function is set to null.</exception>
-        [Obsolete("Use FunctionBuilder.")]
-        internal BasicBlock AddBlockAfterCurrent(string name)
-        {
-            if (this.CurrentFunction == null)
-            {
-                throw new InvalidOperationException("no current function specified");
-            }
-
-            var flag = false;
-            BasicBlock? next = null;
-            foreach (var block in this.CurrentFunction.BasicBlocks)
-            {
-                if (flag)
-                {
-                    next = block;
-                    break;
-                }
-
-                if (block == this.CurrentBlock)
-                {
-                    flag = true;
-                }
-            }
-
-            var continueName = this.BlockName(name);
-            return next == null
-                ? this.CurrentFunction.AppendBasicBlock(continueName)
-                : this.CurrentFunction.InsertBasicBlock(continueName, next);
-        }
+        #region Scope and value management
 
         /// <summary>
         /// Generates a unique name for a statement block.

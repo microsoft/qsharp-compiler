@@ -293,7 +293,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
                 {
                     var func = parent.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    parent.sharedState.CurrentBuilder.Call(func, value.Value);
+                    parent.sharedState.FunctionContext.Emit(b => b.Call(func, value.Value));
                 }
             }
         }
