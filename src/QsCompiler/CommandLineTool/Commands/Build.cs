@@ -10,7 +10,6 @@ using System.Linq;
 using CommandLine;
 using CommandLine.Text;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
@@ -22,6 +21,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             // TODO: Disabling nullable annotations is a workaround for
             // https://github.com/commandlineparser/commandline/issues/136.
 #nullable disable annotations
+
             [Usage(ApplicationAlias = "qsCompiler")]
             public static IEnumerable<Example> UsageExamples
             {
@@ -45,41 +45,48 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             [Option(
                 "response-files",
                 Required = true,
-                SetName = RESPONSE_FILES,
+                SetName = Options.ResponseFiles,
                 HelpText = "Response file(s) providing command arguments. Required only if no other arguments are specified. Non-default values for options specified via command line take precedence.")]
-            public IEnumerable<string> ResponseFiles { get; set; }
+            public new IEnumerable<string> ResponseFiles { get; set; }
 
             [Option(
                 'o',
                 "output",
                 Required = false,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Destination folder where the output of the compilation will be generated.")]
             public string OutputFolder { get; set; }
-
-#nullable restore annotations
 
             [Option(
                 "proj",
                 Required = false,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Name of the project (needs to be usable as file name).")]
-            public string? ProjectName { get; set; }
+            public string ProjectName { get; set; }
 
             [Option(
                 "emit-dll",
                 Required = false,
                 Default = false,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Specifies whether the compiler should emit a .NET Core dll containing the compiled Q# code.")]
             public bool EmitDll { get; set; }
 
             [Option(
+                "qir",
+                Required = false,
+                SetName = CodeMode,
+                HelpText = "Destination folder for the emitted QIR; only executable projects can be compiled into QIR.")]
+            public string QirOutputFolder { get; set; }
+
+            [Option(
                 "perf",
                 Required = false,
-                SetName = CODE_MODE,
+                SetName = CodeMode,
                 HelpText = "Destination folder where the output of the performance assessment will be generated.")]
-            public string? PerfFolder { get; set; }
+            public string PerfOutputFolder { get; set; }
+
+#nullable restore annotations
 
             /// <summary>
             /// Reads the content of all specified response files and processes it using FromResponseFiles.
@@ -168,6 +175,31 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 });
         }
 
+        /// <summary>
+        /// Publishes performance tracking data.
+        /// Logs errors if something went wrong while tracking performance or publishing results.
+        /// </summary>
+        private static void PublishPerformanceTrackingData(string perfFolder, ConsoleLogger logger)
+        {
+            if (PerformanceTracking.FailureOccurred)
+            {
+                var ex = PerformanceTracking.FailureException ?? new InvalidOperationException($"Performance tracking failed to publish.");
+                logger.Log(ErrorCode.PerformanceTrackingFailed, new string[] { ex.Message });
+                logger.Log(ex);
+                return;
+            }
+
+            try
+            {
+                CompilationTracker.PublishResults(perfFolder);
+            }
+            catch (Exception ex)
+            {
+                logger.Log(ErrorCode.PublishingPerfResultsFailed, new string[] { perfFolder });
+                logger.Log(ex);
+            }
+        }
+
         // publicly accessible routines
 
         /// <summary>
@@ -179,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             if (!BuildOptions.IncorporateResponseFiles(options, out var incorporated))
             {
                 logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, Array.Empty<string>());
-                return ReturnCode.INVALID_ARGUMENTS;
+                return ReturnCode.InvalidArguments;
             }
 
             options = incorporated;
@@ -195,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 AssemblyConstants = assemblyConstants,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapability = options.RuntimeCapability,
-                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation,
+                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation && options.QirOutputFolder == null,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
@@ -204,12 +236,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 IsExecutable = options.MakeExecutable,
                 RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = false, // todo: enable debug mode?
-                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
+                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames,
+                QirOutputFolder = options.QirOutputFolder
             };
 
-            if (options.PerfFolder != null)
+            if (options.PerfOutputFolder != null)
             {
-                CompilationLoader.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
+                CompilationTracker.ClearData();
+                PerformanceTracking.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
             }
 
             var loaded = new CompilationLoader(
@@ -217,17 +251,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 options.References ?? Enumerable.Empty<string>(),
                 loadOptions,
                 logger);
-            if (options.PerfFolder != null)
+            if (options.PerfOutputFolder != null)
             {
-                try
-                {
-                    CompilationTracker.PublishResults(options.PerfFolder);
-                }
-                catch (Exception ex)
-                {
-                    logger.Log(ErrorCode.PublishingPerfResultsFailed, new string[] { options.PerfFolder });
-                    logger.Log(ex);
-                }
+                PublishPerformanceTrackingData(options.PerfOutputFolder, logger);
             }
 
             return ReturnCode.Status(loaded);

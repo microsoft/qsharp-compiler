@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -7,7 +7,6 @@ using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
@@ -353,9 +352,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     }
                     var characteristics = fragment.Kind switch
                     {
-                        QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item3.Argument),
-                        QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item3.Argument),
-                        QsFragmentKind.TypeDefinition type => GetCharacteristics(type.Item3),
+                        QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item.Signature.Argument),
+                        QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item.Signature.Argument),
+                        QsFragmentKind.TypeDefinition type => GetCharacteristics(type.Item.UnderlyingType),
                         _ => Enumerable.Empty<Characteristics>()
                     };
                     return
@@ -606,11 +605,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var docString = $"{docPrefix}# Summary{endLine}{docPrefix}{endLine}";
 
             var (argTuple, typeParams) =
-                callableDecl.IsValue ? (callableDecl.Item.Item2.Item3.Argument,
-                                        callableDecl.Item.Item2.Item3.TypeParameters)
-                : typeDecl.IsValue ? (typeDecl.Item.Item2.Item2, ImmutableArray<QsSymbol>.Empty)
+                callableDecl.IsValue ? (callableDecl.Item.Item2.Item2.Signature.Argument,
+                                        callableDecl.Item.Item2.Item2.Signature.TypeParameters)
+                : typeDecl.IsValue ? (typeDecl.Item.Item2.UnderlyingType, ImmutableArray<QsSymbol>.Empty)
                 : (null, ImmutableArray<QsSymbol>.Empty);
-            var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item3.ReturnType.Type.IsUnitType;
+            var hasOutput = callableDecl.IsValue && !callableDecl.Item.Item2.Item2.Signature.ReturnType.Type.IsUnitType;
 
             var args = argTuple == null ? ImmutableArray<Tuple<QsSymbol, QsType>>.Empty : SyntaxGenerator.ExtractItems(argTuple);
             docString = string.Concat(

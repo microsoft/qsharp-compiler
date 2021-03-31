@@ -48,7 +48,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public class StatementWalker<TState> : StatementTransformation<TState>
                 where TState : TransformationState
             {
-                public StatementWalker(SyntaxTreeTransformation<TState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public StatementWalker(SyntaxTreeTransformation<TState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 
@@ -65,7 +66,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             public class ExpressionWalker<TState> : ExpressionTransformation<TState>
                 where TState : TransformationState
             {
-                public ExpressionWalker(SyntaxTreeTransformation<TState> parent) : base(parent, TransformationOptions.NoRebuild)
+                public ExpressionWalker(SyntaxTreeTransformation<TState> parent)
+                    : base(parent, TransformationOptions.NoRebuild)
                 {
                 }
 

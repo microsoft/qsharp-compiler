@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <PropertyGroup>
+    <PlatformTarget>x64</PlatformTarget>  
     <Company>Microsoft</Company>
     <Authors>Microsoft</Authors>
     <Product>Microsoft Quantum Development Kit Preview</Product>
@@ -8,9 +9,37 @@
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
-    <WarningsAsErrors>nullable</WarningsAsErrors>
+
+    <!--
+      CS1570 (Doc): Bad XML.
+      CS1571 (Doc): Duplicate <param> name.
+      CS1572 (Doc): <param> name does not match an actual parameter name.
+      CS1574 (Doc): Bad <cref>.
+      CS1587 (Doc): XML comment appears before something not documentable.
+      CS1734 (Doc): Bad <paramref>.
+      nullable:     Enable all nullable warnings as error.
+    -->
+    <WarningsAsErrors>1570;1571;1572;1574;1587;1734;nullable</WarningsAsErrors>
+    
+    <!--
+      CS1591 (Doc): Missing XML comment for publicly visible type or member.
+      CS1573 (Doc): Some, but not all parameters are documented.
+    -->
+    <NoWarn>1591;1573</NoWarn>
   </PropertyGroup>
+
+  <PropertyGroup Condition="'$(MSBuildProjectExtension)' == '.fsproj'">
+    <!-- Enable and treat as error malformed XML doc comment warning (FS3390) -->
+    <OtherFlags>--warnon:3390</OtherFlags>
+    <WarningsAsErrors>3390</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup Condition="'$(MSBuildProjectExtension)' == '.csproj'">
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.321" PrivateAssets="All" />
+    <AdditionalFiles Include="$(MSBuildThisFileDirectory)\stylecop.json" Link="stylecop.json" />
+  </ItemGroup>
 
   <!--
     When DefineConstants receives a list with the semicolon escaped (%3B),

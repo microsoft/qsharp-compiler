@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -406,7 +406,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// If the file is not a YAML map, then its contents are blindly overwritten.
         /// </summary>
         /// <param name="map">The YAML mapping node to merge into the data in the file.</param>
-        /// <param name="fileName">The full path name of the file to read and rewrite.</param>
+        /// <param name="fileBaseName">The full path name of the file to read and rewrite.</param>
         internal static void MergeYamlFile(YamlMappingNode map, string rootPath, string fileBaseName)
         {
             var yamlReader = new YamlStream();

@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public Task<Diagnostic[]> GetFileDiagnosticsAsync(string? filename = null) =>
             this.rpc.InvokeWithParameterObjectAsync<Diagnostic[]>(
                 Methods.WorkspaceExecuteCommand.Name,
-                TestUtils.ServerCommand(CommandIds.FileDiagnostics, filename == null ? new TextDocumentIdentifier { Uri = null } : TestUtils.GetTextDocumentIdentifier(filename)));
+                TestUtils.ServerCommand(CommandIds.FileDiagnostics, filename == null ? new TextDocumentIdentifier { Uri = new Uri("file://unknown") } : TestUtils.GetTextDocumentIdentifier(filename)));
 
         public Task SetupAsync()
         {
@@ -88,7 +88,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public void CaptureDiagnostics(JToken arg)
         {
             var param = arg.ToObject<PublishDiagnosticParams>();
-            this.receivedDiagnostics.Push(param);
+            if (param != null)
+            {
+                this.receivedDiagnostics.Push(param);
+            }
         }
     }
 }

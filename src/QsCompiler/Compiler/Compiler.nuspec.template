@@ -11,12 +11,12 @@
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>The Q# compiler.</description>
 
-    <releaseNotes>See: https://docs.microsoft.com/en-us/quantum/relnotes/</releaseNotes>
+    <releaseNotes>See: https://docs.microsoft.com/azure/quantum/qdk-relnotes/</releaseNotes>
     <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
     <icon>images\qdk-nuget-icon.png</icon>
 
     <copyright>$copyright$</copyright>
-    <tags>Quantum Q# Qsharp </tags>
+    <tags>Quantum Q# QSharp</tags>
   </metadata>
   <files>
     <file src="..\..\..\build\assets\qdk-nuget-icon.png" target="images" />

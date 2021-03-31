@@ -2,7 +2,7 @@ name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(DayOfMonth)$(rev:rr)
 
 variables:
   Build.Major: 0
-  Build.Minor: 14
+  Build.Minor: 15
   Assembly.Version: $(Build.BuildNumber)
   Assembly.Constants: ''
   Drops.Dir: $(Build.ArtifactStagingDirectory)/drops
@@ -18,14 +18,28 @@ pr:
 - features/*
 - release/*
 
-jobs:
-- job: "QsCompiler"
-  pool: 
-    vmImage: 'windows-latest'
-  steps:
-  - template: steps.yml
+schedules:
+- cron: "0 9 * * Sat"
+  displayName: 'Build for Component Governance'
+  branches:
+    include:
+    - main
+  always: true
 
-  - task: ms.vss-governance-buildtask.governance-build-task-component-detection.ComponentGovernanceComponentDetection@0
-    displayName: 'Component detection'
-    inputs:
-      failOnAlert: true
+pool:
+  vmImage: windows-latest
+
+jobs:
+- job: Build
+  steps:
+  - template: init.yml
+  - template: steps.yml
+  - template: wrap-up.yml
+
+- job: Style
+  steps:
+  - script: dotnet tool restore
+    displayName: Restore .NET tools
+
+  - script: dotnet tool run fantomas -- --check --recurse .
+    displayName: Fantomas

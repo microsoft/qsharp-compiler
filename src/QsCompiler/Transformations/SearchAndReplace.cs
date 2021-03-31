@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -268,26 +268,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override QsCustomType OnTypeDeclaration(QsCustomType t)
             {
-                if (!this.SharedState.IsRelevant(t.SourceFile) || t.Location.IsNull)
+                if (!this.SharedState.IsRelevant(t.Source.AssemblyOrCodeFile) || t.Location.IsNull)
                 {
                     return t;
                 }
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(t.FullName)))
                 {
-                    this.SharedState.DeclarationLocation = new Tuple<string, QsLocation>(t.SourceFile, t.Location.Item);
+                    this.SharedState.DeclarationLocation = Tuple.Create(t.Source.AssemblyOrCodeFile, t.Location.Item);
                 }
                 return base.OnTypeDeclaration(t);
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable c)
             {
-                if (!this.SharedState.IsRelevant(c.SourceFile) || c.Location.IsNull)
+                if (!this.SharedState.IsRelevant(c.Source.AssemblyOrCodeFile) || c.Location.IsNull)
                 {
                     return c;
                 }
                 if (this.SharedState.TrackIdentifier(Identifier.NewGlobalCallable(c.FullName)))
                 {
-                    this.SharedState.DeclarationLocation = new Tuple<string, QsLocation>(c.SourceFile, c.Location.Item);
+                    this.SharedState.DeclarationLocation = Tuple.Create(c.Source.AssemblyOrCodeFile, c.Location.Item);
                 }
                 return base.OnCallableDeclaration(c);
             }
@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
 
             public override QsSpecialization OnSpecializationDeclaration(QsSpecialization spec) =>
-                this.SharedState.IsRelevant(spec.SourceFile) ? base.OnSpecializationDeclaration(spec) : spec;
+                this.SharedState.IsRelevant(spec.Source.AssemblyOrCodeFile) ? base.OnSpecializationDeclaration(spec) : spec;
 
             public override QsNullable<QsLocation> OnLocation(QsNullable<QsLocation> loc)
             {
@@ -314,9 +314,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 return loc;
             }
 
-            public override string OnSourceFile(string source)
+            public override Source OnSource(Source source)
             {
-                this.SharedState.Source = source;
+                this.SharedState.Source = source.AssemblyOrCodeFile;
                 return source;
             }
         }
@@ -468,6 +468,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             var match = this.pattern.Match(name).Groups[Original];
             return match.Success ? match.Value : null;
         }
+
+        // static methods for name decorations in general
+
+        private static readonly Regex GUID =
+            new Regex(@"^_[({]?[a-fA-F0-9]{8}[-]?([a-fA-F0-9]{4}[-]?){3}[a-fA-F0-9]{12}[})]?_", RegexOptions.IgnoreCase);
+
+        internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
+            new QsQualifiedName(
+                original.Namespace,
+                "_" + Guid.NewGuid().ToString("N") + "_" + original.Name);
+
+        public static QsQualifiedName OriginalNameFromMonomorphized(QsQualifiedName mangled) =>
+            new QsQualifiedName(
+                mangled.Namespace,
+                GUID.Replace(mangled.Name, string.Empty));
     }
 
     /// <summary>
@@ -478,8 +493,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     public class UniqueVariableNames
     : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
     {
-        private static readonly NameDecorator Decorator = new NameDecorator("qsVar");
-
         public class TransformationState
         {
             private int variableNr = 0;
@@ -515,10 +528,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // static methods for convenience
 
-        internal static QsQualifiedName PrependGuid(QsQualifiedName original) =>
-            new QsQualifiedName(
-                original.Namespace,
-                "_" + Guid.NewGuid().ToString("N") + "_" + original.Name);
+        private static readonly NameDecorator Decorator = new NameDecorator("qsVar");
 
         public static string StripUniqueName(string uniqueName) => Decorator.Undecorate(uniqueName) ?? uniqueName;
 
@@ -625,8 +635,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 kind: callable.Kind,
                 qualifiedName: this.state.GetNewName(callable.QualifiedName),
                 attributes: callable.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
-                modifiers: callable.Modifiers,
-                sourceFile: callable.SourceFile,
+                access: callable.Access,
+                source: callable.Source,
                 position: callable.Position,
                 symbolRange: callable.SymbolRange,
                 argumentTuple: this.Namespaces.OnArgumentTuple(callable.ArgumentTuple),
@@ -653,7 +663,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 information: specialization.Information,
                 parent: this.state.GetNewName(specialization.Parent),
                 attributes: specialization.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
-                sourceFile: specialization.SourceFile,
+                source: specialization.Source,
                 position: specialization.Position,
                 headerRange: specialization.HeaderRange,
                 documentation: this.Namespaces.OnDocumentation(specialization.Documentation));
@@ -669,8 +679,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             return new TypeDeclarationHeader(
                 qualifiedName: this.state.GetNewName(type.QualifiedName),
                 attributes: type.Attributes.Select(this.Namespaces.OnAttribute).ToImmutableArray(),
-                modifiers: type.Modifiers,
-                sourceFile: type.SourceFile,
+                access: type.Access,
+                source: type.Source,
                 position: type.Position,
                 symbolRange: type.SymbolRange,
                 type: this.Types.OnType(type.Type),
@@ -684,7 +694,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public TypeTransformation(RenameReferences parent) : base(parent) =>
+            public TypeTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsTypeKind OnUserDefinedType(UserDefinedType udt) =>
@@ -698,7 +709,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public ExpressionKindTransformation(RenameReferences parent) : base(parent) =>
+            public ExpressionKindTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsExpressionKind OnIdentifier(Identifier id, QsNullable<ImmutableArray<ResolvedType>> typeArgs)
@@ -715,7 +727,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         {
             private readonly TransformationState state;
 
-            public NamespaceTransformation(RenameReferences parent) : base(parent) =>
+            public NamespaceTransformation(RenameReferences parent)
+                : base(parent) =>
                 this.state = parent.state;
 
             public override QsDeclarationAttribute OnAttribute(QsDeclarationAttribute attribute)

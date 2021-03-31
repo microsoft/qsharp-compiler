@@ -12,7 +12,6 @@ using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
 using Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
@@ -30,37 +29,6 @@ namespace Microsoft.Quantum.QsCompiler
     public class CompilationLoader
     {
         /// <summary>
-        /// Represents the type of a task event.
-        /// </summary>
-        public enum CompilationTaskEventType
-        {
-            Start,
-            End
-        }
-
-        /// <summary>
-        /// Represents the arguments associated to a task event.
-        /// </summary>
-        public class CompilationTaskEventArgs : EventArgs
-        {
-            public CompilationTaskEventType Type;
-            public string? ParentTaskName;
-            public string TaskName;
-
-            public CompilationTaskEventArgs(CompilationTaskEventType type, string? parentTaskName, string taskName)
-            {
-                this.ParentTaskName = parentTaskName;
-                this.TaskName = taskName;
-                this.Type = type;
-            }
-        }
-
-        /// <summary>
-        /// Defines the handler for compilation task events.
-        /// </summary>
-        public delegate void CompilationTaskEventHandler(object sender, CompilationTaskEventArgs args);
-
-        /// <summary>
         /// Given a load function that loads the content of a sequence of files from disk,
         /// returns the content for all sources to compile.
         /// </summary>
@@ -71,11 +39,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// returns the loaded references for the compilation.
         /// </summary>
         public delegate References ReferenceLoader(Func<IEnumerable<string>, References> loadFromDisk);
-
-        /// <summary>
-        /// Used to raise a compilation task event.
-        /// </summary>
-        public static event CompilationTaskEventHandler? CompilationTaskEvent;
 
         /// <summary>
         /// If LoadAssembly is not null, it will be used to load the dlls that are search for classes defining rewrite steps.
@@ -149,6 +112,12 @@ namespace Microsoft.Quantum.QsCompiler
             /// No binaries will be written to disk unless this path is specified and valid.
             /// </summary>
             public string? BuildOutputFolder;
+
+            /// <summary>
+            /// Directory where QIR will be generated.
+            /// No QIR will be generated unless this path is specified and valid.
+            /// </summary>
+            public string? QirOutputFolder;
 
             /// <summary>
             /// Output path for the dll containing the compiled binaries.
@@ -248,10 +217,10 @@ namespace Microsoft.Quantum.QsCompiler
             /// If the ProjectName does have an extension ending with "proj", returns the project name without that extension.
             /// Returns null if the project name is null.
             /// </summary>
-            internal string? ProjectNameWithoutExtension =>
+            internal string? ProjectNameWithoutPathOrExtension =>
                 this.ProjectName == null ? null :
                 Path.GetExtension(this.ProjectName).EndsWith("proj") ? Path.GetFileNameWithoutExtension(this.ProjectName) :
-                this.ProjectName;
+                Path.GetFileName(this.ProjectName);
         }
 
         /// <summary>
@@ -259,8 +228,19 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public enum Status
         {
+            /// <summary>
+            /// Indicates that a compilation step has not been executed.
+            /// </summary>
             NotRun = -1,
+
+            /// <summary>
+            /// Indicates that a compilation step successfully executed.
+            /// </summary>
             Succeeded = 0,
+
+            /// <summary>
+            /// Indicates that a compilation step executed but failed.
+            /// </summary>
             Failed = 1
         }
 
@@ -281,6 +261,8 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status BinaryFormat = Status.NotRun;
             internal Status DllGeneration = Status.NotRun;
             internal Status CapabilityInference = Status.NotRun;
+            internal Status TargetInstructionInference = Status.NotRun;
+            internal Status QirGeneration = Status.NotRun;
             internal Status[] LoadedRewriteSteps;
 
             internal ExecutionStatus(IEnumerable<IRewriteStep> externalRewriteSteps) =>
@@ -294,16 +276,18 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 this.WasSuccessful(true, this.Validation) &&
                 this.WasSuccessful(true, this.PluginLoading) &&
-                this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
-                this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 this.WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
+                this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
                 this.WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
+                this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
+                this.WasSuccessful(options.QirOutputFolder != null, this.TargetInstructionInference) &&
                 this.WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 this.WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
                 this.WasSuccessful(options.DllOutputPath != null, this.DllGeneration) &&
-                this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
+                this.WasSuccessful(options.QirOutputFolder != null, this.QirGeneration) &&
                 this.LoadedRewriteSteps.All(status => this.WasSuccessful(true, status));
         }
 
@@ -333,6 +317,12 @@ namespace Microsoft.Quantum.QsCompiler
         public Status Validation => this.compilationStatus.Validation;
 
         /// <summary>
+        /// Indicates whether any target-specific compilation steps executed successfully.
+        /// This includes the step to convert control flow statements when needed.
+        /// </summary>
+        public Status TargetSpecificCompilation => this.compilationStatus.ConvertClassicalControl;
+
+        /// <summary>
         /// Indicates whether target specific implementations for functions and operations
         /// have been used to replace the ones declared within the compilation unit.
         /// This step is only executed if the specified configuration contains the path to the target package.
@@ -358,6 +348,19 @@ namespace Microsoft.Quantum.QsCompiler
         public Status Monomorphization => this.compilationStatus.Monomorphization;
 
         /// <summary>
+        /// Indicates whether the inference of required runtime capabilities for execution completed successfully.
+        /// This rewrite step is only executed when compiling a library.
+        /// </summary>
+        public Status CapabilityInference => this.compilationStatus.CapabilityInference;
+
+        /// <summary>
+        /// Indicates whether a separate callable that corresponds to an instruction
+        /// implemented by the execution target has been generated for each intrinsic specialization.
+        /// This rewrite step is only executed when generating QIR.
+        /// </summary>
+        public Status TargetInstructionInference => this.compilationStatus.TargetInstructionInference;
+
+        /// <summary>
         /// Indicates whether documentation for the compilation was generated successfully.
         /// This step is only executed if the corresponding configuration is specified.
         /// </summary>
@@ -374,6 +377,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// This step is only executed if the corresponding configuration is specified.
         /// </summary>
         public Status BinaryFormat => this.compilationStatus.BinaryFormat;
+
+        /// <summary>
+        /// Indicates whether QIR has been emitted successfully.
+        /// This step is only executed if the corresponding configuration is specified.
+        /// </summary>
+        public Status QirGeneration => this.compilationStatus.QirGeneration;
 
         /// <summary>
         /// Indicates whether a dll containing the compiled binary has been generated successfully.
@@ -473,15 +482,27 @@ namespace Microsoft.Quantum.QsCompiler
         /// executing the compilation steps specified by the given options.
         /// Uses the specified logger to log all diagnostic events.
         /// </summary>
+        /// <remarks>This method waits for <see cref="System.Threading.Tasks.Task"/>s to complete and may deadlock if invoked through a <see cref="System.Threading.Tasks.Task"/>.</remarks>
         public CompilationLoader(SourceLoader loadSources, ReferenceLoader loadReferences, Configuration? options = null, ILogger? logger = null)
         {
-            this.RaiseCompilationTaskStart(null, "OverallCompilation");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.OverallCompilation);
 
             // loading the content to compiler
-            BondSchemas.Protocols.Initialize();
             this.logger = logger;
             this.LoadDiagnostics = ImmutableArray<Diagnostic>.Empty;
             this.config = options ?? default;
+
+            // When loading references is done through the generated C# a Bond deserializer is not needed.
+            if (!this.config.LoadReferencesBasedOnGeneratedCsharp)
+            {
+                BondSchemas.Protocols.InitializeDeserializer();
+            }
+
+            // When the syntax tree is not serialized a Bond serializer is not needed.
+            if (this.config.SerializeSyntaxTree)
+            {
+                BondSchemas.Protocols.InitializeSerializer();
+            }
 
             Status rewriteStepLoading = Status.Succeeded;
             this.externalRewriteSteps = ExternalRewriteStepsManager.Load(this.config, d => this.LogAndUpdateLoadDiagnostics(ref rewriteStepLoading, d), ex => this.LogAndUpdate(ref rewriteStepLoading, ex));
@@ -489,20 +510,20 @@ namespace Microsoft.Quantum.QsCompiler
             this.compilationStatus = new ExecutionStatus(this.externalRewriteSteps);
             this.compilationStatus.PluginLoading = rewriteStepLoading;
 
-            this.RaiseCompilationTaskStart("OverallCompilation", "SourcesLoading");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.SourcesLoading);
             var sourceFiles = loadSources(this.LoadSourceFiles);
-            this.RaiseCompilationTaskEnd("OverallCompilation", "SourcesLoading");
-            this.RaiseCompilationTaskStart("OverallCompilation", "ReferenceLoading");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.SourcesLoading);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.ReferenceLoading);
             var references = loadReferences(
                 refs => this.LoadAssemblies(
                     refs,
                     loadTestNames: this.config.ExposeReferencesViaTestNames,
                     ignoreDllResources: this.config.LoadReferencesBasedOnGeneratedCsharp));
-            this.RaiseCompilationTaskEnd("OverallCompilation", "ReferenceLoading");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceLoading);
 
             // building the compilation
 
-            this.RaiseCompilationTaskStart("OverallCompilation", "Build");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.Build);
             this.compilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(
                 sourceFiles,
@@ -547,97 +568,116 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.LoadTargetSpecificDecompositions)
             {
-                this.RaiseCompilationTaskStart("Build", "ReplaceTargetSpecificImplementations");
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.ReplaceTargetSpecificImplementations);
                 this.CompilationOutput = this.ReplaceTargetSpecificImplementations(
                     this.config.TargetPackageAssemblies ?? Enumerable.Empty<string>(),
                     thisDllUri,
                     references.Declarations.Count);
-                this.RaiseCompilationTaskEnd("Build", "ReplaceTargetSpecificImplementations");
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReplaceTargetSpecificImplementations);
             }
 
-            this.RaiseCompilationTaskEnd("OverallCompilation", "Build");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.Build);
 
             // executing the specified rewrite steps
 
-            var steps = new List<(int, Func<QsCompilation?>)>();
-
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
+            var steps = new List<(int, string, Func<QsCompilation?>)>();
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConvertClassicalControl)));
             }
 
             if (this.config.GenerateFunctorSupport)
             {
                 var rewriteStep = new LoadedStep(new FunctorGeneration(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
             }
 
             if (!this.config.SkipSyntaxTreeTrimming)
             {
                 var rewriteStep = new LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
 
             if (this.config.AttemptFullPreEvaluation)
             {
                 var rewriteStep = new LoadedStep(new FullPreEvaluation(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
             }
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
-                var rewriteStep = new LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
+                var rewriteStep = new LoadedStep(new Monomorphization(this.config.QirOutputFolder == null), typeof(IRewriteStep), thisDllUri);
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
             if (!this.config.IsExecutable)
             {
                 var capabilityInference = new LoadedStep(new CapabilityInference(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((capabilityInference.Priority, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
+                steps.Add((capabilityInference.Priority, capabilityInference.Name, () => this.ExecuteAsAtomicTransformation(capabilityInference, ref this.compilationStatus.CapabilityInference)));
+            }
+
+            if (this.config.QirOutputFolder != null)
+            {
+                var separateTargetInstructions = new LoadedStep(new TargetInstructionInference(), typeof(IRewriteStep), thisDllUri);
+                steps.Add((separateTargetInstructions.Priority, separateTargetInstructions.Name, () => this.ExecuteAsAtomicTransformation(separateTargetInstructions, ref this.compilationStatus.TargetInstructionInference)));
             }
 
             for (int j = 0; j < this.externalRewriteSteps.Length; j++)
             {
-                var priority = this.externalRewriteSteps[j].Priority;
+                var rewriteStep = this.externalRewriteSteps[j];
+                var priority = rewriteStep.Priority;
                 Func<QsCompilation?> Execute(int index) => () =>
                     this.ExecuteAsAtomicTransformation(this.externalRewriteSteps[index], ref this.compilationStatus.LoadedRewriteSteps[index]);
-                steps.Add((priority, Execute(j)));
+                steps.Add((priority, rewriteStep.Name, Execute(j)));
             }
 
-            this.RaiseCompilationTaskStart("OverallCompilation", "RewriteSteps");
             SortRewriteSteps(steps, t => t.Item1);
-            foreach (var (_, rewriteStep) in steps)
+            foreach (var (_, name, rewriteStep) in steps)
             {
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SingleRewriteStep, name);
                 this.CompilationOutput = rewriteStep();
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SingleRewriteStep, name);
             }
-
-            this.RaiseCompilationTaskEnd("OverallCompilation", "RewriteSteps");
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps);
 
             // generating the compiled binary, dll, and docs
 
-            this.RaiseCompilationTaskStart("OverallCompilation", "OutputGeneration");
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.OutputGeneration);
             using (var ms = new MemoryStream())
             {
-                this.RaiseCompilationTaskStart("OutputGeneration", "SyntaxTreeSerialization");
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.SyntaxTreeSerialization);
                 var serialized = this.config.SerializeSyntaxTree && this.WriteSyntaxTreeSerialization(ms);
-                this.RaiseCompilationTaskEnd("OutputGeneration", "SyntaxTreeSerialization");
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.SyntaxTreeSerialization);
                 if (serialized && this.config.BuildOutputFolder != null)
                 {
-                    this.RaiseCompilationTaskStart("OutputGeneration", "BinaryGeneration");
+                    PerformanceTracking.TaskStart(PerformanceTracking.Task.BinaryGeneration);
                     this.PathToCompiledBinary = this.GenerateBinary(ms);
-                    this.RaiseCompilationTaskEnd("OutputGeneration", "BinaryGeneration");
+                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.BinaryGeneration);
                 }
                 if (serialized && this.config.DllOutputPath != null)
                 {
-                    this.RaiseCompilationTaskStart("OutputGeneration", "DllGeneration");
+                    PerformanceTracking.TaskStart(PerformanceTracking.Task.DllGeneration);
                     this.DllOutputPath = this.GenerateDll(ms);
-                    this.RaiseCompilationTaskEnd("OutputGeneration", "DllGeneration");
+                    PerformanceTracking.TaskEnd(PerformanceTracking.Task.DllGeneration);
                 }
             }
 
-            this.RaiseCompilationTaskEnd("OverallCompilation", "OutputGeneration");
-            this.RaiseCompilationTaskEnd(null, "OverallCompilation");
+            if (this.config.QirOutputFolder != null && this.compilationStatus.TargetInstructionInference == Status.Succeeded)
+            {
+                var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? "main");
+                var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.QirOutputFolder) ? "." : this.config.QirOutputFolder);
+                var target = GeneratedFile(projId, outFolder, ".ll", "");
+
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.QirGeneration);
+                var qirGeneration = new LoadedStep(new QirGeneration(target), typeof(IRewriteStep), thisDllUri);
+                this.ExecuteAsAtomicTransformation(qirGeneration, ref this.compilationStatus.QirGeneration);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.QirGeneration);
+            }
+
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.OutputGeneration);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.OverallCompilation);
         }
 
         /// <summary>
@@ -768,18 +808,6 @@ namespace Microsoft.Quantum.QsCompiler
         // private helper methods used during construction
 
         /// <summary>
-        /// Raises a compilation task start event.
-        /// </summary>
-        private void RaiseCompilationTaskStart(string? parentTaskName, string taskName) =>
-            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.Start, parentTaskName, taskName));
-
-        /// <summary>
-        /// Raises a compilation task end event.
-        /// </summary>
-        private void RaiseCompilationTaskEnd(string? parentTaskName, string taskName) =>
-            CompilationTaskEvent?.Invoke(this, new CompilationTaskEventArgs(CompilationTaskEventType.End, parentTaskName, taskName));
-
-        /// <summary>
         /// Executes the given rewrite step on the current CompilationOutput if it is valid, and updates the given
         /// status accordingly. Sets the CompilationOutput to the transformed compilation if the status indicates
         /// success.
@@ -850,9 +878,12 @@ namespace Microsoft.Quantum.QsCompiler
         private Status ExecuteRewriteStep(LoadedStep rewriteStep, QsCompilation compilation, out QsCompilation? transformed)
         {
             string? GetDiagnosticsCode(DiagnosticSeverity severity) =>
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
-                rewriteStep.Name == "CsharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
+                rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
+                rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
+                rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
+                rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.QirEmissionGeneratedError) :
+                rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.QirEmissionGeneratedWarning) :
+                rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.QirEmissionGeneratedInfo) :
                 null;
 
             void LogDiagnostics(ref Status status)
@@ -862,7 +893,7 @@ namespace Microsoft.Quantum.QsCompiler
                     var steps = rewriteStep.GeneratedDiagnostics ?? ImmutableArray<IRewriteStep.Diagnostic>.Empty;
                     foreach (var diagnostic in steps)
                     {
-                        this.LogAndUpdate(ref status, LoadedStep.ConvertDiagnostic(diagnostic, GetDiagnosticsCode));
+                        this.LogAndUpdate(ref status, LoadedStep.ConvertDiagnostic(rewriteStep.Name, diagnostic, GetDiagnosticsCode));
                     }
                 }
                 catch
@@ -954,7 +985,7 @@ namespace Microsoft.Quantum.QsCompiler
             }
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.ReferenceLoading, d);
-            var headers = ProjectManager.LoadReferencedAssemblies(refs ?? Enumerable.Empty<string>(), OnDiagnostic, OnException, ignoreDllResources);
+            var headers = ProjectManager.LoadReferencedAssembliesInParallel(refs ?? Enumerable.Empty<string>(), OnDiagnostic, OnException, ignoreDllResources);
             var projId = this.config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.config.ProjectNameWithExtension), "qsproj");
             var references = new References(headers, loadTestNames, (code, args) => OnDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
@@ -1002,7 +1033,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private string? GenerateBinary(MemoryStream serialization)
         {
-            this.compilationStatus.BinaryFormat = 0;
+            this.compilationStatus.BinaryFormat = Status.Succeeded;
 
             var projId = Path.GetFullPath(this.config.ProjectNameWithExtension ?? Path.GetRandomFileName());
             var outFolder = Path.GetFullPath(string.IsNullOrWhiteSpace(this.config.BuildOutputFolder) ? "." : this.config.BuildOutputFolder);
@@ -1081,14 +1112,14 @@ namespace Microsoft.Quantum.QsCompiler
                 }
 
                 var compilation = CodeAnalysis.CSharp.CSharpCompilation.Create(
-                    this.config.ProjectNameWithoutExtension ?? Path.GetFileNameWithoutExtension(outputPath),
+                    this.config.ProjectNameWithoutPathOrExtension ?? Path.GetFileNameWithoutExtension(outputPath),
                     syntaxTrees: new[] { csharpTree },
                     references: references.Select(r => r.Item2).Append(MetadataReference.CreateFromFile(typeof(object).Assembly.Location)), // if System.Object can't be found a warning is generated
                     options: new CodeAnalysis.CSharp.CSharpCompilationOptions(outputKind: CodeAnalysis.OutputKind.DynamicallyLinkedLibrary, optimizationLevel: OptimizationLevel.Release));
 
                 using var outputStream = File.OpenWrite(outputPath);
                 serialization.Seek(0, SeekOrigin.Begin);
-                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.ResourceNameQsDataBondV1, () => serialization, true);
+                var astResource = new CodeAnalysis.ResourceDescription(DotnetCoreDll.SyntaxTreeResourceName, () => serialization, true);
                 var result = compilation.Emit(
                     outputStream,
                     options: new CodeAnalysis.Emit.EmitOptions(),
@@ -1151,14 +1182,15 @@ namespace Microsoft.Quantum.QsCompiler
         /// Given a file id assigned by the Q# compiler, computes the corresponding path in the specified output folder.
         /// Returns the computed absolute path for a file with the specified ending.
         /// If the content for that file is specified, writes that content to disk.
-        /// Throws an ArgumentException if the given file id is incompatible with and id assigned by the Q# compiler.
-        /// Throws the corresponding exception any of the path operations fails or if the writing fails.
+        /// Throws the corresponding exception if any of the path operations fails or if the writing fails.
         /// </summary>
+        /// <exception cref="ArgumentException"><paramref name="fileId"/> is incompatible with an id assigned by the Q# compiler.</exception>
+        /// <exception>Generates the corresponding exception if the file cannot be created.</exception>
         public static string GeneratedFile(string fileId, string outputFolder, string fileEnding, string? content = null)
         {
             if (!CompilationUnitManager.TryGetUri(fileId, out var file))
             {
-                throw new ArgumentException("the given file id is not consistent with and id generated by the Q# compiler");
+                throw new ArgumentException("the given file id is not consistent with an id generated by the Q# compiler");
             }
             string FullDirectoryName(string dir) =>
                 Path.GetFullPath(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar);

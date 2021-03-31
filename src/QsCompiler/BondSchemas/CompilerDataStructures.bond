@@ -1,6 +1,9 @@
 ﻿// Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+// This schema corresponds to the C# code at Generated/CompilerDataStructures.cs
+// N.B Whenever this schema changes, C# code must be generated again.
+
 namespace Microsoft.Quantum.QsCompiler.BondSchemas;
 
 // Data structures from DataTypes.fs

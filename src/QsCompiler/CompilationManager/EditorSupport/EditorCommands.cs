@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -203,7 +203,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Hover? GetHover(string? info) => info == null ? null : new Hover
             {
                 Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new Lsp.Range { Start = position?.ToLsp(), End = position?.ToLsp() }
+                Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() }
             };
 
             var markdown = format == MarkupKind.Markdown;
@@ -379,7 +379,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : ImmutableArray.Create<QsExpression?>(ex);
                 return argItems.AddRange(Enumerable.Repeat<QsExpression?>(null, declItems.Item.Length - argItems.Length))
                     .Zip(declItems.Item, (e, d) => (e, d))
-                    .SelectMany(arg => ExtractParameterRanges(arg.Item1, arg.Item2));
+                    .SelectMany(arg => ExtractParameterRanges(arg.e, arg.d));
             }
 
             var callArgs = ExtractParameterRanges(args, argTuple).ToArray();
@@ -393,7 +393,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             MarkupContent AsMarkupContent(string str) => new MarkupContent { Kind = format, Value = str };
             ParameterInformation AsParameterInfo(string? paramName) => new ParameterInformation
             {
-                Label = paramName,
+                Label = paramName ?? "<unknown parameter>",
                 Documentation = AsMarkupContent(documentation.ParameterDescription(paramName))
             };
 

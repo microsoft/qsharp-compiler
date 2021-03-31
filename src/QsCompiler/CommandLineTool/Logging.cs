@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -41,12 +41,14 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Prints the given message to the Console.
         /// Errors and Warnings are printed to the error stream.
         /// </summary>
-        private static void PrintToConsole(DiagnosticSeverity severity, string message)
+        private static void PrintToConsole(DiagnosticSeverity? severity, string message)
         {
-            var (stream, color) =
-                severity == DiagnosticSeverity.Error ? (Console.Error, ConsoleColor.Red) :
-                severity == DiagnosticSeverity.Warning ? (Console.Error, ConsoleColor.Yellow) :
-                (Console.Out, Console.ForegroundColor);
+            var (stream, color) = severity switch
+            {
+                DiagnosticSeverity.Error => (Console.Error, ConsoleColor.Red),
+                DiagnosticSeverity.Warning => (Console.Error, ConsoleColor.Yellow),
+                _ => (Console.Out, Console.ForegroundColor)
+            };
 
             var consoleColor = Console.ForegroundColor;
             Console.ForegroundColor = color;
@@ -65,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Prints a summary containing the currently counted number of errors, warnings and exceptions.
         /// Indicates a compilation failure if the given status does not correspond to the ReturnCode indicating a success.
         /// </summary>
-        public virtual void ReportSummary(int status = CommandLineCompiler.ReturnCode.SUCCESS)
+        public virtual void ReportSummary(int status = CommandLineCompiler.ReturnCode.Success)
         {
             string ItemString(int nr, string name) => $"{nr} {name}{(nr == 1 ? "" : "s")}";
             var errors = ItemString(this.NrErrorsLogged, "error");
@@ -75,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 : "";
 
             Console.WriteLine("\n____________________________________________\n");
-            if (status == CommandLineCompiler.ReturnCode.SUCCESS)
+            if (status == CommandLineCompiler.ReturnCode.Success)
             {
                 Console.WriteLine($"Q#: Success! ({errors}, {warnings}) {exceptions}\n");
                 return;

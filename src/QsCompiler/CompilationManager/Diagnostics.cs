@@ -1,13 +1,15 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
+
 using Lsp = Microsoft.VisualStudio.LanguageServer.Protocol;
 using Position = Microsoft.Quantum.QsCompiler.DataTypes.Position;
 
@@ -15,25 +17,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     public static class Diagnostics
     {
-        internal static char ExpectedEnding(ErrorCode invalidFragmentEnding)
-        {
-            if (invalidFragmentEnding == ErrorCode.ExpectingOpeningBracket)
+        internal static ImmutableList<char> ExpectedEndings(ErrorCode invalidFragmentEnding) =>
+            invalidFragmentEnding switch
             {
-                return '{';
-            }
-            else if (invalidFragmentEnding == ErrorCode.ExpectingSemicolon)
-            {
-                return ';';
-            }
-            else if (invalidFragmentEnding == ErrorCode.UnexpectedFragmentDelimiter)
-            {
-                return CodeFragment.MissingDelimiter;
-            }
-            else
-            {
-                throw new NotImplementedException("unrecognized fragment ending");
-            }
-        }
+                ErrorCode.ExpectingOpeningBracket => ImmutableList.Create('{'),
+                ErrorCode.ExpectingSemicolon => ImmutableList.Create(';'),
+                ErrorCode.ExpectingOpeningBracketOrSemicolon => ImmutableList.Create('{', ';'),
+                ErrorCode.UnexpectedFragmentDelimiter => ImmutableList.Create(CodeFragment.MissingDelimiter),
+                _ => throw new ArgumentException("Unrecognized fragment ending.")
+            };
 
         private static DiagnosticSeverity Severity(QsCompilerDiagnostic msg)
         {
@@ -79,8 +71,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Generates a suitable Diagnostic from the given CompilerDiagnostic returned by the Q# compiler.
         /// The message range contained in the given CompilerDiagnostic is first converted to a Position object,
         /// and then added to the given positionOffset if the latter is not null.
-        /// Throws an ArgumentOutOfRangeException if the contained range contains zero or negative entries, or if its Start is bigger than its End.
         /// </summary>
+        /// <exception cref="ArgumentOutOfRangeException">The contained range contains zero or negative entries, or its Start is bigger than its End.</exception>
         internal static Diagnostic Generate(string filename, QsCompilerDiagnostic msg, Position? positionOffset = null) =>
             new Diagnostic
             {
@@ -129,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = null
+                Range = new Lsp.Range { Start = new Lsp.Position(0, 0), End = new Lsp.Position(0, 0) }
             };
 
         // warnings 20**
@@ -142,7 +134,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = WarningCode.ExcessSemicolon.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(WarningCode.ExcessSemicolon, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
+                Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
     }
@@ -164,32 +156,42 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Code = Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = null
+                Range = new Lsp.Range { Start = new Lsp.Position(0, 0), End = new Lsp.Position(0, 0) }
             };
 
         // errors 20**
 
         internal static Diagnostic InvalidFragmentEnding(string filename, ErrorCode code, Position pos)
         {
+            if (pos == null)
+            {
+                throw new ArgumentNullException(nameof(pos));
+            }
+
             return new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
                 Code = Code(code),
                 Source = filename,
                 Message = DiagnosticItem.Message(code, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
+                Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
 
         internal static Diagnostic MisplacedOpeningBracketError(string filename, Position pos)
         {
+            if (pos == null)
+            {
+                throw new ArgumentNullException(nameof(pos));
+            }
+
             return new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
                 Code = ErrorCode.MisplacedOpeningBracket.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MisplacedOpeningBracket, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
+                Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
 
@@ -197,37 +199,69 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         internal static Diagnostic ExcessBracketError(string filename, Position pos)
         {
+            if (pos == null)
+            {
+                throw new ArgumentNullException(nameof(pos));
+            }
+
             return new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
                 Code = ErrorCode.ExcessBracketError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.ExcessBracketError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
+                Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
 
         internal static Diagnostic MissingClosingBracketError(string filename, Position pos)
         {
+            if (pos == null)
+            {
+                throw new ArgumentNullException(nameof(pos));
+            }
+
             return new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
                 Code = ErrorCode.MissingBracketError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MissingBracketError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
+                Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
 
         internal static Diagnostic MissingStringDelimiterError(string filename, Position pos)
         {
+            if (pos == null)
+            {
+                throw new ArgumentNullException(nameof(pos));
+            }
+
             return new Diagnostic
             {
                 Severity = DiagnosticSeverity.Error,
                 Code = ErrorCode.MissingStringDelimiterError.Code(),
                 Source = filename,
                 Message = DiagnosticItem.Message(ErrorCode.MissingStringDelimiterError, Enumerable.Empty<string>()),
-                Range = pos == null ? null : new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
+                Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
+            };
+        }
+
+        internal static Diagnostic InvalidCharacterInInterpolatedArgument(string filename, Position pos, char invalidCharacter)
+        {
+            if (pos == null)
+            {
+                throw new ArgumentNullException(nameof(pos));
+            }
+
+            return new Diagnostic
+            {
+                Severity = DiagnosticSeverity.Error,
+                Code = ErrorCode.InvalidCharacterInInterpolatedArgument.Code(),
+                Source = filename,
+                Message = DiagnosticItem.Message(ErrorCode.InvalidCharacterInInterpolatedArgument, new[] { invalidCharacter.ToString() }),
+                Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() }
             };
         }
     }

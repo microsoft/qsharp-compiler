@@ -71,6 +71,10 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     newtype OpType12 = (Int, Unit => Unit is Adj);
     newtype OpType13 = ((Unit => Unit) is Adj, Int);
     newtype OpType14 = (Int, (Unit => Unit) is Adj);
+    newtype OpType15 = ((Int, Qubit) => Int);
+    newtype OpType16 = (Qubit => Unit : Adjoint);
+    newtype OpType17 = (Qubit => Unit : Adjoint, Controlled);
+    newtype OpType18 = ((Int, Qubit, (Qubit, Qubit), Result) => Unit : Adjoint, Controlled);
 
     newtype FctType1 = (Unit -> Unit);
     newtype FctType2 = ((Unit -> Unit), Int);

@@ -6,6 +6,6 @@ producing namespace and TOC files from the gathered documentation.
 For example:
 
 ```bash
-$ pip install -r requirementx.txt
+$ pip install -r requirements.txt
 $ python obj/qsharp/docs/*.md obj/qsharp/docs
 ```

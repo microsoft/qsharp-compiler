@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -11,9 +11,7 @@ using System.Threading.Tasks;
 using Microsoft.Build.Execution;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
-using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
-using static Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.QsLanguageServer
 {
@@ -96,7 +94,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// </summary>
         private static IEnumerable<string> GetItemsByType(ProjectInstance project, string itemType) =>
             project.Items
-                .Where(item => item.ItemType == itemType && item.EvaluatedInclude != null)
+                .Where(item => item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase) && item.EvaluatedInclude != null)
                 .Select(item => Path.Combine(project.Directory, item.EvaluatedInclude));
 
         /// <summary>
@@ -126,18 +124,16 @@ namespace Microsoft.Quantum.QsLanguageServer
 
             var processorArchitecture = projectInstance.GetPropertyValue("ResolvedProcessorArchitecture");
             var resRuntimeCapability = projectInstance.GetPropertyValue("ResolvedRuntimeCapabilities");
-            var runtimeCapability = Enum.TryParse(resRuntimeCapability, out RuntimeCapabilities result)
-                ? result.ToCapability()
-                : RuntimeCapability.FullComputation;
+            var runtimeCapability = RuntimeCapability.TryParse(resRuntimeCapability).ValueOr(RuntimeCapability.FullComputation);
 
-            var sourceFiles = GetItemsByType(projectInstance, "QsharpCompile");
+            var sourceFiles = GetItemsByType(projectInstance, "QSharpCompile");
             var csharpFiles = GetItemsByType(projectInstance, "Compile").Where(file => !file.EndsWith(".g.cs"));
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
 
-            var version = projectInstance.GetPropertyValue("QsharpLangVersion");
-            var isExecutable = "QsharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQsharpOutputType"), StringComparison.InvariantCultureIgnoreCase);
-            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.InvariantCultureIgnoreCase);
+            var version = projectInstance.GetPropertyValue("QSharpLangVersion");
+            var isExecutable = "QSharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQSharpOutputType"), StringComparison.OrdinalIgnoreCase);
+            var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.OrdinalIgnoreCase);
             var defaultSimulator = projectInstance.GetPropertyValue("DefaultSimulator")?.Trim();
 
             var telemetryMeas = new Dictionary<string, int>();
@@ -222,8 +218,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Invokes the given Action showError with a suitable message if the given file cannot be loaded.
         /// Invokes the given Action logError with a suitable message if the given file cannot be associated with a compilation unit,
         /// or if the given file is already listed as being open in the editor.
-        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is not an absolute file URI.</exception>
         internal Task OpenFileAsync(
             TextDocumentItem textDocument,
             Action<string, MessageType>? showError = null,
@@ -254,7 +250,8 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     showError?.Invoke(
                         $"Version control and opening multiple versions of the same file in the editor are currently not supported. \n" +
-                        $"Intellisense has been disable for the file '{textDocument.Uri.LocalPath}'. An editor restart is required to enable intellisense again.", MessageType.Error);
+                        $"Intellisense has been disable for the file '{textDocument.Uri.LocalPath}'. An editor restart is required to enable intellisense again.",
+                        MessageType.Error);
                     #if DEBUG
                     if (showError == null)
                     {
@@ -288,8 +285,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// <summary>
         /// To be called whenever a file is changed within the editor (i.e. changes are not necessarily reflected on disk).
         /// Does nothing if the given file is listed as to be ignored.
-        /// Throws an ArgumentException if the uri of the text document identifier in the given parameter is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of the text document identifier in the given parameter is not an absolute file URI.</exception>
         internal Task DidChangeAsync(DidChangeTextDocumentParams param)
         {
             if (!ValidFileUri(param.TextDocument.Uri))
@@ -317,8 +314,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Used to reload the file content when a file is saved.
         /// Does nothing if the given file is listed as to be ignored.
         /// Expects to get the entire content of the file at the time of saving as argument.
-        /// Throws an ArgumentException if the uri of the given text document identifier is not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is not an absolute file URI.</exception>
         internal Task SaveFileAsync(TextDocumentIdentifier textDocument, string fileContent)
         {
             if (!ValidFileUri(textDocument.Uri))
@@ -352,8 +349,8 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// Does nothing if the given file is listed as to be ignored.
         /// Otherwise the file content is reloaded from disk (in case changes in the editor are discarded without closing), and the diagnostics are updated.
         /// Invokes the given Action onError with a suitable message if the given file is not listed as being open in the editor.
-        /// Throws an ArgumentException if the uri of the given text document identifier is null or not an absolute file uri.
         /// </summary>
+        /// <exception cref="ArgumentException">The URI of <paramref name="textDocument"/> is null or not an absolute file URI.</exception>
         internal Task CloseFileAsync(TextDocumentIdentifier textDocument, Action<string, MessageType>? onError = null)
         {
             if (textDocument is null || !ValidFileUri(textDocument.Uri))
@@ -396,7 +393,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// or if the specified uri is not a valid file uri.
         /// or if some parameters are unspecified (null) or inconsistent with the tracked editor state.
         /// </summary>
-        public WorkspaceEdit? Rename(RenameParams param, bool versionedChanges = false) =>
+        public WorkspaceEdit? Rename(RenameParams? param, bool versionedChanges = false) =>
             ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.Rename(param, versionedChanges) : null;
 
         /// <summary>

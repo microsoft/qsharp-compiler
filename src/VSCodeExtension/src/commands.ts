@@ -25,7 +25,7 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
     )
 }
 
-export function createNewProject(context: vscode.ExtensionContext) {    
+export function createNewProject(context: vscode.ExtensionContext) {
     let env = yeoman.createEnv();
     env.options.extensionPath = context.extensionPath;
     env.registerStub(QSharpGenerator, 'qsharp:app');
@@ -40,14 +40,14 @@ export function createNewProject(context: vscode.ExtensionContext) {
 
 export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
     let packageVersion =
-        oc(packageInfo).nugetVersion
+        oc(packageInfo).nugetVersion()
         ? `::${packageInfo!.nugetVersion}`
         : "";
     let proc = cp.spawn(
         dotNetSdk.path,
         ["new", "--install", `Microsoft.Quantum.ProjectTemplates${packageVersion}`]
     );
-    
+
     let errorMessage = "";
     proc.stderr.on(
         'data', data => {
@@ -57,7 +57,7 @@ export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageIn
     proc.stdout.on(
         'data', data => {
             console.log("" + data);
-        }        
+        }
     )
 
     proc.on(
@@ -79,7 +79,7 @@ export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageIn
 
 export function openDocumentationHome() {
     return vscode.env.openExternal(
-        vscode.Uri.parse("https://docs.microsoft.com/quantum/")
+        vscode.Uri.parse("https://docs.microsoft.com/azure/quantum/")
     );
 }
 

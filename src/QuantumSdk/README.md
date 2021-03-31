@@ -28,11 +28,11 @@ Any project that uses the Quantum Sdk can easily incorporate custom compilation 
 ```
     <ProjectReference Include="MyCustomCompilationStep.csproj" IsQscReference="true"/>
     ...
-    <PackageReference Include="MyCustom.Qsharp.Compiler.Extensions" Version="1.0.0.0" IsQscReference="true"/>
+    <PackageReference Include="MyCustom.QSharp.Compiler.Extensions" Version="1.0.0.0" IsQscReference="true"/>
 ```
 Marking all assets as private by adding a `PrivateAssets="All"` attribute is generally a good practice if the reference is a development only dependency, which is often the case for assemblies that implement rewrite steps.
 
-A custom compilation step is defined by a class that implements the [IRewriteStep interface](https://github.com/microsoft/qsharp-compiler/blob/main/src/QsCompiler/Compiler/PluginInterface.cs). The output assembly of a project reference or any .NET Core library contained in a package reference marked as qsc reference is loaded during compilation and searched for classes implementing the `IRewriteStep` interface. Any such class is instantiated using the default constructor, and the implemented transformation is executed. 
+A custom compilation step is defined by a class that implements the [IRewriteStep interface](https://github.com/microsoft/qsharp-compiler/blob/main/src/QsCompiler/Compiler/PluginInterface.cs). The output assembly of a project reference or any .NET Core library contained in a package reference marked as qsc reference is loaded during compilation and searched for classes implementing the `IRewriteStep` interface. Any such class is instantiated using the default constructor, and the implemented transformation is executed.
 
 [comment]: # (TODO: add a section detailing the IRewriteStep interface, and link it here)
 
@@ -40,15 +40,15 @@ The order in which these steps are executed can be configured by specifying thei
 ```
     <ProjectReference Include="MyCustomCompilationStep.csproj" IsQscReference="true" Priority="2"/>
     ...
-    <PackageReference Include="MyCustom.Qsharp.Compiler.Extensions" Version="1.0.0.0" IsQscReference="true" Priority="1"/>
+    <PackageReference Include="MyCustom.QSharp.Compiler.Extensions" Version="1.0.0.0" IsQscReference="true" Priority="1"/>
 ```
 If no priority is specified, the priority for that reference is set to zero.
 Steps defined within packages or projects with higher priority are executed first. If several classes within a certain reference implement the `IRewriteStep` interface, then these steps are executed according to their priority specified as part of the interface. The priority defined for the project or package reference takes precedence, such that the priorities defined by the interface property are not compared across assemblies.
 
 [comment]: # (TODO: describe how to limit included rewrite steps to a particular execution target)
 
-An example for defining custom compilation steps in a referenced .NET Core project can be found [here](https://github.com/microsoft/qsharp-compiler/tree/main/examples). 
-See the [this section](#packaging) for more detail on how to package a Q# compiler extension to distribute it as a NuGet package. 
+An example for defining custom compilation steps in a referenced .NET Core project can be found [here](https://github.com/microsoft/qsharp-compiler/tree/main/examples).
+See the [this section](#packaging) for more detail on how to package a Q# compiler extension to distribute it as a NuGet package.
 
 
 ### Injected C# code ###
@@ -58,16 +58,16 @@ The Sdk defines a couple of build targets that can be redefined to run certain t
 
 The following such targets are currently available:
 
-- `BeforeQsharpCompile`:
+- `BeforeQSharpCompile`:
 The target will execute right before the Q# compiler is invoked. All assembly references and the paths to all qsc references will be resolved at that time.
 
-- `BeforeCsharpCompile`:
+- `BeforeCSharpCompile`:
 The target will execute right before the C# compiler is invoked. All Q# compilation steps will have completed at that time, and in particular all rewrite steps will have been executed.
 
 For example, if a qsc reference contains a rewrite step that generates C# code during transformation, that code can be included into the built dll by adding the following target to the project file:
 
 ```
-  <Target Name="BeforeCsharpCompile">
+  <Target Name="BeforeCSharpCompile">
     <ItemGroup>
       <Compile Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
     </ItemGroup>
@@ -92,7 +92,7 @@ The content of the file should be similar to the following, with `Package_Name` 
 
 </Project>
 ```
-This [example](https://github.com/microsoft/qsharp-compiler/tree/main/examples/CompilerExtensions/ExtensionPackage) provides a template for packaging a Q# compiler extension. 
+This [example](https://github.com/microsoft/qsharp-compiler/tree/main/examples/CompilerExtensions/ExtensionPackage) provides a template for packaging a Q# compiler extension.
 
 If you develop a NuGet package to extend the Q# compilation process, we recommend to distribute it as a self-contained package to avoid issues due to references that could not be resolved. Each qsc reference is loaded into its own context to avoid issues when several references depend on different versions of the same package.
 
@@ -118,42 +118,56 @@ in the project that implements the compilation step.
 
 The Sdk defines the following properties for each project using it:
 
-- `QsharpLangVersion`:
+- `QSharpLangVersion`:    
 The version of the Q# language specification.
 
-- `QuantumSdkVersion`:
+- `QuantumSdkVersion`:   
 The NuGet version of the Sdk package.
 
 The following properties can be configured to customize the build:
 
-- `AdditionalQscArguments`:
+- `AdditionalQscArguments`:   
 May contain additional arguments to pass to the Q# command line compiler. Valid additional arguments are `--emit-dll`, or `--no-warn` followed by any number of integers specifying the warnings to ignore.
 
-- `CsharpGeneration`:
+- `CSharpGeneration`:   
 Specifies whether to generate C# code as part of the compilation process. Setting this property to false may prevent certain interoperability features or integration with other pieces of the Quantum Development Kit.
 
-- `DefaultSimulator`:
+- `DefaultSimulator`:   
 Specifies the simulator to use by default for execution. Valid values are QuantumSimulator, ToffoliSimulator, ResourcesEstimator, or the fully qualified name of a custom simulator.
 
-- `IncludeQsharpCorePackages`:
+- `IncludeQSharpCorePackages`:    
 Specifies whether the packages providing the basic language support for Q# are referenced. This property is set to true by default. If set to false, the Sdk will not reference any Q# libraries.
 
-- `IncludeProviderPackages`:
+- `IncludeProviderPackages`:    
 Specifies whether the packages for specific hardware providers should be automatically included based on the specified `ExecutionTarget`. This property is set to true by default. If set to false, the Sdk will not automatically reference any provider packages.
 
-- `QscExe`:
+- `QscExe`:    
 The command to invoke the Q# compiler. The value set by default invokes the Q# compiler that is packaged as tool with the Sdk. The default value can be accessed via the `DefaultQscExe` property.
 
-- `QscVerbosity`:
+- `QscVerbosity`:    
 Defines the verbosity of the Q# compiler. Recognized values are: Quiet, Minimal, Normal, Detailed, and Diagnostic.
 
-- `QsharpDocsGeneration`:
-Specified whether to generate yml documentation for the compiled Q# code. The default value is "false".
+- `PerfDataGeneration`:    
+Specifies whether to generate performance analysis data for the compilation. The default value is "true" if `PerfDataOutputPath` is specified and "false" otherwise. Note that setting this property to `"false"` will disable generating performance data, even if `PerfDataOutputPath` is also set.
 
-- `QsharpDocsOutputPath`:
-Directory where any generated documentation will be saved.
+- `PerfDataOutputPath`:    
+Directory where the generated performance analysis data will be saved. If no directory is specified and `PerfDataGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/perf".
 
-- `QsharpDocsPackageId`: Specifies the package ID that should appear in generated documentation. Set to `PackageId` by default, but can be overriden to allow for documenting parts of metapackages.
+- `QirGeneration`:    
+Specifies whether to generate QIR for the compiled Q# code. The default value is "true" if `QirOutputPath` is specified and "false" otherwise. Note that setting this property to `"false"` will disable generating QIR, even if `QirOutputPath` is also set.
+
+- `QirOutputPath`:    
+Directory where the generated QIR will be saved. If no directory is specified and `QirGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/qir".
+
+- `QSharpDocsGeneration`:    
+Specifies whether to generate yml documentation for the compiled Q# code. The default value is "true" if `QSharpDocsOutputPath` is specified and "false" otherwise. Note that setting this property to `"false"` will disable generating docs, even if `QSharpDocsOutputPath` is also set.
+
+- `QSharpDocsOutputPath`:    
+Directory where the generated documentation will be saved. If no directory is specified and `QSharpDocsGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/docs".
+
+- `QSharpDocsPackageId`:    
+Specifies the package ID that should appear in generated documentation. Set to `PackageId` by default, but can be overridden to allow for documenting parts of metapackages.
+
 
 [comment]: # (TODO: document QscBuildConfigExe, QscBuildConfigOutputPath)
 
@@ -161,16 +175,16 @@ Directory where any generated documentation will be saved.
 
 The following configurable item groups are used by the Sdk:
 
-- `PackageLoadFallbackFolder`:
+- `PackageLoadFallbackFolder`:    
 Contains the directories where the Q# compiler will look for a suitable dll if a qsc reference or one if its dependencies cannot be found. By default, the project output path is included in this item group.
 
-- `PackageReference`:
+- `PackageReference`:    
 Contains all referenced NuGet packages. Package references for which the `IsQscReference` attribute is set to "true" may extend the Q# compiler and any implemented rewrite steps will be executed as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
 
-- `ProjectReference`:
+- `ProjectReference`:    
 Contains all referenced projects. Project references for which the `IsQscReference` attribute is set to "true" may extend the Q# compiler and any implemented rewrite steps will be executed as part of the compilation process. See [this section](#extending-the-q#-compiler) for more details.
 
-- `QsharpCompile`:
+- `QSharpCompile`:    
 Contains all Q# source files included in the compilation.
 
 # Sdk Packages #
@@ -186,7 +200,7 @@ The order of evaluation for properties and item groups is roughly the following:
 - Item groups defined or included by the specific project file
 - Item groups defined in *.targets files of the Sdk
 
-Similar considerations apply for the definition of targets. MSBuild will overwrite targets if multiple targets with the same name are defined. In that case, the target is replaced in its entirety independent on whether the values for `DependsOn`, `BeforeTarget`, and `AfterTarget` match - i.e. those will be overwritten. However, a target can be "anchored" by the surrounding targets' specifications of their dependencies, see e.g. the defined `BeforeCsharpCompile` target.
+Similar considerations apply for the definition of targets. MSBuild will overwrite targets if multiple targets with the same name are defined. In that case, the target is replaced in its entirety independent on whether the values for `DependsOn`, `BeforeTarget`, and `AfterTarget` match - i.e. those will be overwritten. However, a target can be "anchored" by the surrounding targets' specifications of their dependencies, see e.g. the defined `BeforeCSharpCompile` target.
 
 ## Load context in .NET Core
 
@@ -195,6 +209,6 @@ To avoid issues with conflicting packages, we load each Q# compiler extension in
 ## Known Issues ##
 
 The following issues and PRs may be of interest when using the Sdk:
-> https://github.com/NuGet/Home/issues/8692
-> https://github.com/dotnet/runtime/issues/949
-> https://github.com/NuGet/NuGet.Client/pull/3170
+> https://github.com/NuGet/Home/issues/8692    
+> https://github.com/dotnet/runtime/issues/949    
+> https://github.com/NuGet/NuGet.Client/pull/3170    
