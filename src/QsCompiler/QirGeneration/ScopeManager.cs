@@ -154,21 +154,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.variables.TryGetValue(varName, out value);
 
             /// <summary>
-            /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope,
-            /// and makes sure the release function is invoked before unreferending the value.
+            /// Adds the given value to the list of tracked values that need to be unreferenced when closing or exiting the scope.
             /// If the given value to register is a pointer, recursively loads its content and registers the loaded value.
             /// </summary>
-            public void RegisterValue(IValue value, string? releaseFunction = null, bool shallow = false)
+            public void RegisterValue(IValue value, bool shallow = false)
             {
-                if (releaseFunction != null)
-                {
-                    this.requiredReleases.Add((LoadValue(value), releaseFunction));
-                }
                 if (this.parent.RequiresReferenceCount(value.LlvmType))
                 {
                     this.requiredUnreferences.Add((LoadValue(value), !shallow));
                 }
             }
+
+            /// <summary>
+            /// Adds the release function for the given value to the list of releases that need to be executed when closing or exiting the scope.
+            /// If the given value to register is a pointer, recursively loads its content such that the release is applied to the loaded value.
+            /// </summary>
+            public void RegisterRelease(IValue value, string releaseFunction) =>
+                this.requiredReleases.Add((LoadValue(value), releaseFunction));
 
             /// <summary>
             /// Adds the given value to the list of values which have been referenced.
@@ -238,7 +240,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal bool TryRemoveValue(IValue value) =>
                 TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, value));
 
-            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, List{IValue}, bool, Scope[])" />
+            /// <inheritdoc cref="ExecutePendingCalls(ScopeManager, bool, Scope[])" />
             internal void ExecutePendingCalls(bool applyReferences = true) =>
                 ExecutePendingCalls(this.parent, applyReferences, this);
 
@@ -253,12 +255,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 if (!scopes.Any())
                 {
                     return;
-                }
-
-                foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
-                {
-                    var func = parent.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    parent.sharedState.CurrentBuilder.Call(func, value.Value);
                 }
 
                 // Not the most efficient way to go about this, but it will do for now.
@@ -293,12 +289,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 parent.ModifyCounts(parent.ReferenceCountUpdateFunctionForType, parent.plusOne, pendingReferences.ToArray());
                 parent.ModifyCounts(parent.AliasCountUpdateFunctionForType, parent.minusOne, pendingAliasCounts);
                 parent.ModifyCounts(parent.ReferenceCountUpdateFunctionForType, parent.minusOne, pendingUnreferences.ToArray());
+
+                foreach (var (value, funcName) in scopes.SelectMany(s => s.requiredReleases))
+                {
+                    var func = parent.sharedState.GetOrCreateRuntimeFunction(funcName);
+                    parent.sharedState.CurrentBuilder.Call(func, value.Value);
+                }
             }
         }
 
         private readonly GenerationContext sharedState;
-        private readonly IValue minusOne;
-        private readonly IValue plusOne;
+        private readonly Value minusOne;
+        private readonly Value plusOne;
 
         /// <summary>
         /// New variables and values are always added to the scope on top of the stack.
@@ -319,9 +321,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public ScopeManager(GenerationContext ctx)
         {
             this.sharedState = ctx;
-            var intType = ResolvedType.New(ResolvedTypeKind.Int);
-            this.minusOne = ctx.Values.FromSimpleValue(ctx.Context.CreateConstant(-1L), intType);
-            this.plusOne = ctx.Values.FromSimpleValue(ctx.Context.CreateConstant(1L), intType);
+            this.minusOne = ctx.Context.CreateConstant(-1);
+            this.plusOne = ctx.Context.CreateConstant(1);
         }
 
         // private helpers
@@ -389,24 +390,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Each callable table contains a pointer to an array of function pointers to modify alias and reference
-        /// counts of the capture tuple.
-        /// Given a callable value, invokes the function at the given index in the memory management table of the callable
-        /// by calling the runtime function CallableMemoryManagement with the function index and the value by which to
-        /// change the count. The given change is expected to be a 64-bit integer.
-        /// </summary>
-        private void InvokeCallableMemoryManagement(int funcIndex, IValue change, CallableValue callable)
-        {
-            var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableMemoryManagement);
-            this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, this.sharedState.Context.CreateConstant(funcIndex), callable.Value, change.Value);
-        }
-
-        /// <summary>
         /// For each value for which the given function returns a function name,
         /// applies the runtime function with that name to the value, casting the value if necessary.
         /// Recurs into contained items if the bool passed with the value is true.
         /// </summary>
-        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, params (IValue, bool)[] values)
+        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, Value change, params (IValue, bool)[] values)
         {
             foreach (var (value, recur) in values)
             {
@@ -419,7 +407,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// applies the runtime function with that name to the given value, casting the value if necessary.
         /// Recurs into contained items if the bool passed with the value is true.
         /// </summary>
-        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, IValue change, IValue value, bool recurIntoInnerItems)
+        private void ModifyCounts(Func<ITypeRef, string?> getFunctionName, Value change, IValue value, bool recurIntoInnerItems)
         {
             void ProcessValue(string funcName, IValue value)
             {
@@ -454,11 +442,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else if (value is CallableValue callable && recurIntoInnerItems)
                     {
-                        var itemFuncId =
-                            funcName == RuntimeLibrary.CallableUpdateReferenceCount ? 0 :
-                            funcName == RuntimeLibrary.CallableUpdateAliasCount ? 1 :
+                        var captureCountChange =
+                            funcName == RuntimeLibrary.CallableUpdateReferenceCount ? RuntimeLibrary.CaptureUpdateReferenceCount :
+                            funcName == RuntimeLibrary.CallableUpdateAliasCount ? RuntimeLibrary.CaptureUpdateAliasCount :
                             throw new NotSupportedException("unknown function for capture tuple memory management");
-                        this.InvokeCallableMemoryManagement(itemFuncId, change, callable);
+
+                        var invokeMemoryManagment = this.sharedState.GetOrCreateRuntimeFunction(captureCountChange);
+                        this.sharedState.CurrentBuilder.Call(invokeMemoryManagment, callable.Value, change);
                         arg = callable.Value;
                     }
                     else
@@ -467,7 +457,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var func = this.sharedState.GetOrCreateRuntimeFunction(funcName);
-                    this.sharedState.CurrentBuilder.Call(func, arg, change.Value);
+                    this.sharedState.CurrentBuilder.Call(func, arg, change);
                 }
             }
 
@@ -582,7 +572,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="change">The amount by which to change the reference count given as i64</param>
         /// <param name="value">The value for which to change the reference count</param>
-        internal void UpdateReferenceCount(IValue change, IValue value, bool shallow = false)
+        internal void UpdateReferenceCount(Value change, IValue value, bool shallow = false)
         {
             this.scopes.Peek().ApplyPendingReferences();
             this.ModifyCounts(this.ReferenceCountUpdateFunctionForType, change, value, !shallow);
@@ -592,8 +582,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Given a callable value, increases the reference count of its capture tuple by 1.
         /// </summary>
         /// <param name="callable">The callable whose capture tuple to reference</param>
-        internal void ReferenceCaptureTuple(CallableValue callable) =>
-            this.InvokeCallableMemoryManagement(0, this.plusOne, callable);
+        internal void ReferenceCaptureTuple(CallableValue callable)
+        {
+            var updateRefCount = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CaptureUpdateReferenceCount);
+            this.sharedState.CurrentBuilder.Call(updateRefCount, callable.Value, this.plusOne);
+        }
 
         /// <summary>
         /// Adds a call to a runtime library function to increase the alias count for the given value if necessary.
@@ -627,7 +620,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="change">The amount by which to change the alias count given as i64</param>
         /// <param name="value">The value for which to change the alias count</param>
-        internal void UpdateAliasCount(IValue change, IValue value, bool shallow = false) =>
+        internal void UpdateAliasCount(Value change, IValue value, bool shallow = false) =>
             this.ModifyCounts(this.AliasCountUpdateFunctionForType, change, value, !shallow);
 
         /// <summary>
@@ -649,7 +642,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 Types.IsArray(value.LlvmType) ? RuntimeLibrary.QubitReleaseArray :
                 Types.IsQubit(this.sharedState.Types.Qubit) ? RuntimeLibrary.QubitRelease :
                 throw new ArgumentException("AddQubitValue expects an argument of type Qubit or Qubit[]");
-            this.scopes.Peek().RegisterValue(value, releaser);
+            this.scopes.Peek().RegisterRelease(value, releaser);
         }
 
         /// <summary>

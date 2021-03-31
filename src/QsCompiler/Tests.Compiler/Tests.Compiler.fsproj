@@ -17,10 +17,17 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Compile Include="EntryPointGenerationTests.fs" />
     <Compile Include="TestUtils\TestUtils.fs" />
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
+    <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.cpp">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\QirCore.qs">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -135,7 +142,10 @@
     <Content Include="TestCases\QirTests\TestDoubles.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestEntryPoint.ll">
+    <Content Include="TestCases\QirTests\TestEntryPoint1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestEntryPoint2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestEntryPoint.qs">
@@ -240,10 +250,22 @@
     <Content Include="TestCases\QirTests\TestResults.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestShortCircuiting.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestShortCircuiting.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestScoping.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestScoping.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestTargeting.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestTargeting.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestStrings.ll">
@@ -474,6 +496,7 @@
     <Compile Include="CompilationLoaderTests.fs" />
     <Compile Include="CompilationTrackerTests.fs" />
     <Compile Include="QirTests.fs" />
+    <Compile Include="EntryPointSchemaTests.fs" />
 </ItemGroup>
 
   <ItemGroup>

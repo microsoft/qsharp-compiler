@@ -23,5 +23,25 @@
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json.Bson" Version="1.0.2" />
+    <PackageReference Include="System.CodeDom" Version="5.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Templates\QirDriverCpp.tt">
+      <Generator>TextTemplatingFilePreprocessor</Generator>
+      <LastGenOutput>QirDriverCpp.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Templates\QirDriverCpp.cs">
+      <DesignTime>False</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>QirDriverCpp.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 </Project>
