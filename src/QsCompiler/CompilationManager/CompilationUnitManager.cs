@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </summary>
     public class CompilationUnitManager : IDisposable
     {
-        internal readonly bool EnableVerification;
+        internal bool EnableVerification { get; private set; }
 
         /// <summary>
         /// the keys are the file identifiers of the source files obtained by GetFileId for the file uri and the values are the content of each file
@@ -105,20 +105,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // i.e. during the flushing task we again need to cancel any ongoing type checking.
             this.waitForTypeCheck?.Cancel();
             this.waitForTypeCheck = null;
+
             var succeeded = this.Processing.QueueForExecution(
                 () =>
                 {
                     this.waitForTypeCheck?.Cancel(); // needed in the case where WaitForTypeCheck above was null
+
                     foreach (var file in this.fileContentManagers.Values)
                     {
                         file.Flush();
                         this.PublishDiagnostics(file.Diagnostics());
                     }
-                    var task = this.EnableVerification ? this.SpawnGlobalTypeCheckingAsync(runSynchronously: true) : Task.CompletedTask;
-                    QsCompilerError.Verify(task.IsCompleted, "global type checking hasn't completed");
+
+                    if (this.EnableVerification)
+                    {
+                        var task = this.SpawnGlobalTypeCheckingAsync(runSynchronously: true);
+                        QsCompilerError.Verify(task.IsCompleted, "Global type checking hasn't completed.");
+                    }
+
                     return execute?.Invoke();
                 },
                 out var result);
+
             return succeeded ? result : null;
         }
 
@@ -130,8 +138,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         public void Dispose()
         {
-            // we need to flush on disposing, since otherwise we may end up with some queued or running tasks
-            // - or (global type checking) tasks spawned by those - trying to access disposed stuff
+            // We need to flush on disposing, since otherwise we may end up with some queued or running tasks (or global
+            // type checking tasks spawned by those) trying to access disposed stuff. Disable verification to prevent
+            // FlushAndExecute from spawning a new type-checking task.
+            this.EnableVerification = false;
             this.FlushAndExecute<object>(() =>
             {
                 this.waitForTypeCheck?.Dispose();

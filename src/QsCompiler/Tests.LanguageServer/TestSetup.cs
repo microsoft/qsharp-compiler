@@ -88,7 +88,10 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public void CaptureDiagnostics(JToken arg)
         {
             var param = arg.ToObject<PublishDiagnosticParams>();
-            this.receivedDiagnostics.Push(param);
+            if (param != null)
+            {
+                this.receivedDiagnostics.Push(param);
+            }
         }
     }
 }
