@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.SymbolManagement
 
+#nowarn "44" // QsTypeParameter.Range and UserDefinedType.Range are deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable

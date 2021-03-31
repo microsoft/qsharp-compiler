@@ -719,7 +719,7 @@ let private VerifyCallExpr buildCallableType
                     // We hence treat self-recursions separately and require that for direct self-recursions all type parameters need to be resolved;
                     // i.e. we prevent type parametrized partial applications of the parent callable, and all type arguments are attached to the identifier.
                     let typeParam =
-                        QsTypeParameter.New(fst entry.Key, snd entry.Key, Null) |> TypeParameter |> ResolvedType.New
+                        QsTypeParameter.New(fst entry.Key, snd entry.Key) |> TypeParameter |> ResolvedType.New
 
                     match res.Resolution with
                     | TypeParameter tp when tp.Origin = fst entry.Key && tp.TypeName = snd entry.Key -> typeParam
@@ -758,7 +758,7 @@ let private VerifyCallExpr buildCallableType
                         invalid
                     else // explicitly specified by type argument
                         let typeParam =
-                            QsTypeParameter.New(fst entry.Key, snd entry.Key, Null) |> TypeParameter |> ResolvedType.New
+                            QsTypeParameter.New(fst entry.Key, snd entry.Key) |> TypeParameter |> ResolvedType.New
 
                         let conflicting = entry |> Seq.filter (fun (t, _) -> typeParam = StripPositionInfo.Apply t)
 
@@ -839,8 +839,7 @@ let internal VerifyAssignment expectedType (parent, definedTypeParams) mismatchE
 
     let nonTrivialResolutions =
         tpResolutions.ToLookup(fst, snd).Where containsNonTrivialResolution
-        |> Seq.map (fun g ->
-            QsTypeParameter.New(fst g.Key, snd g.Key, Null) |> TypeParameter |> ResolvedType.New |> toString)
+        |> Seq.map (fun g -> QsTypeParameter.New(fst g.Key, snd g.Key) |> TypeParameter |> ResolvedType.New |> toString)
         |> Seq.toList
 
     if nonTrivialResolutions.Any() then

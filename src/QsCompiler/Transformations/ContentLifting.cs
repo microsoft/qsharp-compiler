@@ -434,16 +434,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 {
                 }
 
-                public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
-                {
+                public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp) =>
                     // Reroute a type parameter's origin to the newly generated operation
-                    if (!this.SharedState.IsRecursiveIdentifier && this.SharedState.OldName.Equals(tp.Origin))
-                    {
-                        tp = new QsTypeParameter(this.SharedState.NewName, tp.TypeName, tp.Range);
-                    }
-
-                    return base.OnTypeParameter(tp);
-                }
+                    !this.SharedState.IsRecursiveIdentifier && this.SharedState.OldName.Equals(tp.Origin)
+                        ? base.OnTypeParameter(tp.WithOrigin(this.SharedState.NewName))
+                        : base.OnTypeParameter(tp);
             }
         }
     }

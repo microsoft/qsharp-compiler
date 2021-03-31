@@ -536,9 +536,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 Origin = qsTypeParameter.Origin.ToBondSchema(),
                 TypeName = qsTypeParameter.TypeName,
-                Range = qsTypeParameter.Range.IsNull ?
-                    null :
-                    qsTypeParameter.Range.Item.ToBondSchema()
+                Range = null
             };
 
         private static QsValueUpdate ToBondSchema(this SyntaxTree.QsValueUpdate valueUpdate) =>
@@ -675,9 +673,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 Namespace = userDefinedType.Namespace,
                 Name = userDefinedType.Name,
-                Range = userDefinedType.Range.IsNull ?
-                    null :
-                    userDefinedType.Range.Item.ToBondSchema()
+                Range = null
             };
 
         private static CharacteristicsKindComposition<TBond> ToBondSchemaGeneric<TBond, TCompiler>(
