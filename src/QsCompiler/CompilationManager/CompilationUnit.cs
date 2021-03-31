@@ -240,7 +240,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Combines the syntax trees loaded from different source assemblies into a single syntax tree.
         /// </summary>
-        /// <param name="combined">The resulting combined syntax tree, or an empty array of namespaces on faliure.</param>
+        /// <param name="combined">The resulting combined syntax tree, or an empty array of namespaces on failure.</param>
         /// <param name="additionalAssemblies">The number of additional assemblies included in the compilation besides the loaded assemblies.</param>
         /// <param name="onError">Invoked on the error messages generated when the given syntax trees contain conflicting declarations.</param>
         /// <param name="loaded">
