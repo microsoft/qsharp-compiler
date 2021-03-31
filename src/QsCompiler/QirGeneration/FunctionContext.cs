@@ -48,6 +48,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             try
             {
                 T result;
+                var currentInstCount = 0;
+
                 if (this.IsCurrentBlockTerminated)
                 {
                     // Current block has already been terminated.
@@ -70,8 +72,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
+                    currentInstCount = this.CurrentBlock.Instructions.Count();
                     this.activelyEmittingTo = this.currentBuilder;
                     result = func(this.currentBuilder);
+                }
+
+                // Validate that the new instruction sequence does not contain
+                // terminators before the last instruction.
+                var newInstructions = this.CurrentBlock.Instructions.Skip(currentInstCount);
+                foreach (var inst in newInstructions.SkipLast(1))
+                {
+                    if (inst is Terminator)
+                    {
+                        throw new InvalidOperationException($"Call to {nameof(this.Emit)} results in an invalid block.");
+                    }
                 }
 
                 return result;
@@ -139,12 +153,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return this.function.BasicBlocks.Remove(b);
         }
 
-        private void AssertNotEmitting(string operation)
+        private void AssertNotEmitting(string invalidOp)
         {
             if (this.activelyEmittingTo != null)
             {
                 throw new InvalidOperationException(
-                    $"Call to {nameof(FunctionContext)}.{operation} not valid from inside {nameof(this.Emit)}");
+                    $"Call to {nameof(FunctionContext)}.{invalidOp} not valid from inside {nameof(this.Emit)}");
             }
         }
     }
