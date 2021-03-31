@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using CommandLine;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -105,8 +107,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var logger = options.GetLogger();
             try
             {
+                var current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+                var fallbackFolders = options.PackageLoadFallbackFolders.Prepend(current);
                 CompilationLoader.LoadAssembly = path =>
-                    LoadContext.LoadAssembly(path, options.PackageLoadFallbackFolders?.ToArray());
+                    LoadContext.LoadAssembly(path, fallbackFolders.ToArray());
 
                 var result = compile(options, logger);
                 logger.ReportSummary(result);
