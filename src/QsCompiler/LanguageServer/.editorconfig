@@ -1,0 +1,2 @@
+﻿[*.cs]
+dotnet_diagnostic.VSTHRD002.severity = none # Synchronously waiting on tasks or awaiters may cause deadlocks.
