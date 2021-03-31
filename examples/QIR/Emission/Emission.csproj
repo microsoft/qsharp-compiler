@@ -1,0 +1,28 @@
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.15.210324373-alpha">
+
+  <PropertyGroup>
+    <QscVerbosity>Detailed</QscVerbosity>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <QirGeneration>true</QirGeneration>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="qir\**" />
+  </ItemGroup>
+
+  <!--
+  Providing this target is usually not needed;
+  we just do that here to make sure the files with the generated QIR are deleted when the project is cleaned
+  despite that we added them in a way that displays them as part of the project.
+  -->
+  <Target Name="CleanAll" BeforeTargets="QSharpClean">
+    <ItemGroup>
+      <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
+      <_FilesToClean Include="$(QirOutputPath)**/*.ll" />
+      <Compile Remove="$(_FilesToClean)**/*.g.cs" />
+    </ItemGroup>
+    <Delete Files="@(_FilesToClean)" />
+  </Target>
+
+</Project>

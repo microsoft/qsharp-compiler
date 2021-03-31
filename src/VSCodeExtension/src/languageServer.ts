@@ -23,7 +23,7 @@ import * as tmp from 'tmp';
 import * as portfinder from 'portfinder';
 
 import { promisify } from 'util';
-import { StreamInfo, LanguageClient, ServerOptions, RevealOutputChannelOn, LanguageClientOptions, CloseAction, ErrorAction, State } from 'vscode-languageclient';
+import { StreamInfo, LanguageClient, ServerOptions, RevealOutputChannelOn, LanguageClientOptions, CloseAction, ErrorAction, State } from 'vscode-languageclient/node';
 import { sendTelemetryEvent, EventNames, ErrorSeverities, forwardServerTelemetry } from './telemetry';
 
 import DecompressZip = require('decompress-zip');

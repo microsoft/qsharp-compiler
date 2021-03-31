@@ -13,12 +13,12 @@ entry:
   %8 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 0
   %9 = load %Callable*, %Callable** %8, align 8
   %10 = call %Callable* @__quantum__rt__callable_copy(%Callable* %9, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %10, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %10, i32 1)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %10)
   call void @__quantum__rt__callable_invoke(%Callable* %10, %Tuple* %3, %Tuple* %result-tuple)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %10, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %10, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %10, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %10, i32 -1)
   ret void
 }
 
@@ -47,13 +47,13 @@ entry:
   %16 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %5, i32 0, i32 0
   %17 = load %Callable*, %Callable** %16, align 8
   %18 = call %Callable* @__quantum__rt__callable_copy(%Callable* %17, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %18, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %18)
   call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* %12, %Tuple* %result-tuple)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %18, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %18, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %18, i32 -1)
   ret void
 }
 
@@ -82,43 +82,43 @@ entry:
   %16 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %5, i32 0, i32 0
   %17 = load %Callable*, %Callable** %16, align 8
   %18 = call %Callable* @__quantum__rt__callable_copy(%Callable* %17, i1 false)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %18, i32 1)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %18)
   call void @__quantum__rt__callable_make_controlled(%Callable* %18)
   call void @__quantum__rt__callable_invoke(%Callable* %18, %Tuple* %12, %Tuple* %result-tuple)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i64 -1)
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %18, i64 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %18, i64 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %18, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %18, i32 -1)
   ret void
 }
 
-define void @MemoryManagement__2__RefCount(%Tuple* %capture-tuple, i64 %count-change) {
+define void @MemoryManagement__2__RefCount(%Tuple* %capture-tuple, i32 %count-change) {
 entry:
   %0 = bitcast %Tuple* %capture-tuple to { %Callable*, { i64, double }* }*
   %1 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 0
   %2 = load %Callable*, %Callable** %1, align 8
-  call void @__quantum__rt__callable_memory_management(i32 0, %Callable* %2, i64 %count-change)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %2, i64 %count-change)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %2, i32 %count-change)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %2, i32 %count-change)
   %3 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 1
   %4 = load { i64, double }*, { i64, double }** %3, align 8
   %5 = bitcast { i64, double }* %4 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i64 %count-change)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %capture-tuple, i64 %count-change)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i32 %count-change)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %capture-tuple, i32 %count-change)
   ret void
 }
 
-define void @MemoryManagement__2__AliasCount(%Tuple* %capture-tuple, i64 %count-change) {
+define void @MemoryManagement__2__AliasCount(%Tuple* %capture-tuple, i32 %count-change) {
 entry:
   %0 = bitcast %Tuple* %capture-tuple to { %Callable*, { i64, double }* }*
   %1 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 0
   %2 = load %Callable*, %Callable** %1, align 8
-  call void @__quantum__rt__callable_memory_management(i32 1, %Callable* %2, i64 %count-change)
-  call void @__quantum__rt__callable_update_alias_count(%Callable* %2, i64 %count-change)
+  call void @__quantum__rt__capture_update_alias_count(%Callable* %2, i32 %count-change)
+  call void @__quantum__rt__callable_update_alias_count(%Callable* %2, i32 %count-change)
   %3 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 1
   %4 = load { i64, double }*, { i64, double }** %3, align 8
   %5 = bitcast { i64, double }* %4 to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i64 %count-change)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %capture-tuple, i64 %count-change)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i32 %count-change)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %capture-tuple, i32 %count-change)
   ret void
 }

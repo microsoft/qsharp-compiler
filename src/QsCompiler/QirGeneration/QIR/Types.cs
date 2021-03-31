@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.QIR
         /// The type is a pointer to an opaque struct.
         /// For item access and deconstruction, tuple values need to be cast
         /// to a suitable concrete type depending on the types of their items.
-        /// Such a concrete tuple type is constructed using <see cref="TypedTuple"/>.
+        /// Such a concrete tuple type is constructed using <see cref="TypedTuple(Value[])"/>.
         /// </summary>
         public readonly IPointerType Tuple;
 
@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.QIR
 
             this.FunctionSignature = context.GetFunctionType(context.VoidType, this.Tuple, this.Tuple, this.Tuple);
             this.CallableTable = this.FunctionSignature.CreatePointerType().CreateArrayType(4);
-            this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, this.Int);
+            this.CaptureCountFunction = context.GetFunctionType(context.VoidType, this.Tuple, context.Int32Type);
             this.CallableMemoryManagementTable = this.CaptureCountFunction.CreatePointerType().CreateArrayType(2);
         }
 
@@ -282,5 +282,6 @@ namespace Microsoft.Quantum.QIR
     public static class AttributeNames
     {
         public const string EntryPoint = "EntryPoint";
+        public const string InteropFriendly = "InteropFriendly";
     }
 }
