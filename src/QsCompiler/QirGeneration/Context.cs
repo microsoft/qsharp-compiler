@@ -99,7 +99,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             private set => this.functionContext = value;
         }
 
-        internal IrFunction CurrentFunction => this.FunctionContext.Function;
         internal ITypeRef? BuiltType { get; set; }
 
         internal readonly ScopeManager ScopeMgr;
@@ -665,15 +664,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // are the arguments to the function and we need to reconstruct the tuple.
             // The reason for this choice of representation is that relying only on the argument type
             // rather than the argument tuple for determining the signature of a function is much cleaner.
-            if (outerArgItems.Length == 1 && this.CurrentFunction.Parameters.Count > 1)
+            if (outerArgItems.Length == 1 && this.FunctionContext.Function.Parameters.Count > 1)
             {
                 if (!(outerArgItems[0].Item2.Resolution is ResolvedTypeKind.TupleType ts)
-                    || ts.Item.Length != this.CurrentFunction.Parameters.Count)
+                    || ts.Item.Length != this.FunctionContext.Function.Parameters.Count)
                 {
                     throw new InvalidOperationException("number of function parameters does not match argument");
                 }
 
-                var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
+                var tupleItems = this.FunctionContext.Function.Parameters.Select((v, i) => this.Values.From(v, ts.Item[i])).ToArray();
                 var innerTuple = this.Values.CreateTuple(tupleItems);
                 var name = outerArgItems[0].Item1;
                 if (name != null)
@@ -693,10 +692,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 for (var i = 0; i < outerArgItems.Length; ++i)
                 {
                     var (argName, argType) = outerArgItems[i];
-                    var argValue = this.Values.From(this.CurrentFunction.Parameters[i], argType);
+                    var argValue = this.Values.From(this.FunctionContext.Function.Parameters[i], argType);
                     if (argName != null)
                     {
-                        this.CurrentFunction.Parameters[i].Name = argName;
+                        this.FunctionContext.Function.Parameters[i].Name = argName;
                         this.ScopeMgr.RegisterVariable(argName, argValue);
                     }
                     else
@@ -744,21 +743,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.AddReturn(this.Values.Unit, returnsVoid: false);
             }
-            else if (this.CurrentFunction != null)
-            {
-                // FIXME: can CurrentFunction / FunctionContext actually be null here?
-                var itemTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts
-                        ? ts.Item
-                        : ImmutableArray.Create(spec.Signature.ArgumentType);
-                if (itemTypes.Length != this.CurrentFunction.Parameters.Count)
-                {
-                    throw new InvalidOperationException("number of function parameters does not match argument");
-                }
 
-                var tupleItems = this.CurrentFunction.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
-                var udtTuple = this.Values.CreateTuple(tupleItems);
-                this.AddReturn(udtTuple, returnsVoid: false);
+            var itemTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts
+                    ? ts.Item
+                    : ImmutableArray.Create(spec.Signature.ArgumentType);
+            if (itemTypes.Length != this.FunctionContext.Function.Parameters.Count)
+            {
+                throw new InvalidOperationException("number of function parameters does not match argument");
             }
+
+            var tupleItems = this.FunctionContext.Function.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
+            var udtTuple = this.Values.CreateTuple(tupleItems);
+            this.AddReturn(udtTuple, returnsVoid: false);
         }
 
         /// <summary>
