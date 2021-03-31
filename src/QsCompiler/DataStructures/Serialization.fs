@@ -129,11 +129,16 @@ type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
 type ResolvedInitializerConverter() =
     inherit JsonConverter<ResolvedInitializer>()
 
-    override this.ReadJson(reader, _, _, _, serializer) =
-        serializer.Deserialize<_> reader |> ResolvedInitializer.create TypeRange.Generated
+    override this.ReadJson(reader: JsonReader,
+                           objectType: Type,
+                           existingValue: ResolvedInitializer,
+                           hasExistingValue: bool,
+                           serializer: JsonSerializer) =
+        serializer.Deserialize<QsInitializerKind<ResolvedInitializer, TypedExpression>>(reader)
+        |> ResolvedInitializer.New
 
     override this.WriteJson(writer: JsonWriter, value: ResolvedInitializer, serializer: JsonSerializer) =
-        serializer.Serialize(writer, value.Resolution)
+        serializer.Serialize(writer, (value.Resolution))
 
 
 type TypedExpressionConverter() =

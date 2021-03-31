@@ -4,8 +4,6 @@
 // mock-up for the purpose of testing
 namespace Microsoft.Quantum.Simulation.Core
 
-#nowarn "44" // UserDefinedType.Range is deprecated.
-
 open System
 
 [<AttributeUsage(AttributeTargets.Assembly, AllowMultiple = true)>]
