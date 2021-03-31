@@ -105,6 +105,4 @@ struct EntryPointOperation
     5: string Name;
 
     10: vector<Argument> Arguments;
-
-    // TODO: Needs to be expanded to include return information.
 }
