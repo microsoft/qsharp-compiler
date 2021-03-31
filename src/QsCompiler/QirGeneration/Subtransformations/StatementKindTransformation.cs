@@ -11,13 +11,6 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 using Ubiquity.NET.Llvm.Values;
 
-// KEHA: check if current block is terminated prior to code generation for each statement function,
-//       creating new block if it is.
-//
-// another option:
-//       can we create a new block only for terminal inst (return, fail), but only attach it to the
-//       function if we need it? Or, leave it unattached?
-
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
     using ResolvedExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
@@ -243,11 +236,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         public override QsStatementKind OnConditionalStatement(QsConditionalStatement stm)
         {
-            if (this.SharedState.FunctionContext == null)
-            {
-                throw new InvalidOperationException("the current function context is set to null");
-            }
-
             var clauses = stm.ConditionalBlocks;
             var contBlock = this.SharedState.FunctionContext.AddBlockAfterCurrent("continue");
             var contBlockUsed = false;
@@ -337,11 +325,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </exception>
         public override QsStatementKind OnForStatement(QsForStatement stm)
         {
-            if (this.SharedState.FunctionContext == null)
-            {
-                throw new InvalidOperationException("current function context is set to null");
-            }
-
             if (stm.IterationValues.ResolvedType.Resolution.IsRange)
             {
                 void ExecuteBody(Value loopVariable)
@@ -384,11 +367,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         public override QsStatementKind OnRepeatStatement(QsRepeatStatement stm)
         {
-            if (this.SharedState.FunctionContext == null)
-            {
-                throw new InvalidOperationException("current function context is set to null");
-            }
-
             // The basic approach here is to put the repeat into one basic block.
             // A second basic block holds the evaluation of the test expression and the test itself.
             // The fixup is in a third basic block, and then there is a final basic block as the continuation.

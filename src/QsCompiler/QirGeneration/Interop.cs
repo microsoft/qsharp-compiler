@@ -147,11 +147,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function context is null.</exception>
         private Value[] ProcessArguments(ArgumentTuple arg, IReadOnlyList<Argument> parameters)
         {
-            if (this.sharedState.FunctionContext == null)
-            {
-                throw new InvalidOperationException("the current function context is null");
-            }
-
             (Value Length, Value DataArray) LoadSizedArray(Value value)
             {
                 return this.sharedState.FunctionContext.Emit(b =>
@@ -316,11 +311,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The current function context is null.</exception>
         private Value? ProcessReturnValue(IValue res)
         {
-            if (this.sharedState.FunctionContext == null)
-            {
-                throw new InvalidOperationException("the current function context is null");
-            }
-
             return this.sharedState.FunctionContext.Emit(b =>
             {
                 Value CopyToMemory(IPointerType targetType, Value size, Value? sourcePtr = null)

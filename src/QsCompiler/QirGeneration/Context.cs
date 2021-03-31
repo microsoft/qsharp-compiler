@@ -552,7 +552,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// and closing a naming scope.
         /// </summary>
         /// <returns>true if the function has been properly ended</returns>
-        /// <exception cref="InvalidOperationException">The current context is set to null.</exception>
+        /// <exception cref="InvalidOperationException">The current function context is set to null.</exception>
         internal bool EndFunction()
         {
             this.ScopeMgr.CloseScope(this.FunctionContext.IsCurrentBlockTerminated);
