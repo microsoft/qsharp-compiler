@@ -30,8 +30,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// <summary>Initializes a new instance of the <see cref="InstructionBuilder"/> class for a <see cref="BasicBlock"/>.</summary>
         /// <param name="block">Block this builder is initially attached to.</param>
         public InstructionBuilder(BasicBlock block)
-            : this(block
-                         .Context)
+            : this(block.Context)
         {
             this.PositionAtEnd(block);
         }

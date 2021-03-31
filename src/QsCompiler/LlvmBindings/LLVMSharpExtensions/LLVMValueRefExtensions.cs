@@ -40,13 +40,5 @@ namespace LLVMSharp.Interop
             LLVMValueMetadataEntryRef metadataRef = LLVM.GlobalCopyAllMetadata(self, &count);
             return (metadataRef, (uint)count);
         }
-
-        // /// <summary>Convenience wrapper for LLVM.InstructionGetAllMetadataOtherThanDebugLoc</summary>
-        // public static (LLVMValueMetadataEntryRef entries, uint numEntries) InstructionGetAllMetadataOtherThanDebugLoc( this LLVMValueRef self )
-        // {
-        //     UIntPtr numEntries;
-        //     LLVMValueMetadataEntryRef entries = LLVM.InstructionGetAllMetadataOtherThanDebugLoc( self, &numEntries );
-        //     return ( entries, (uint)numEntries );
-        // }
     }
 }
