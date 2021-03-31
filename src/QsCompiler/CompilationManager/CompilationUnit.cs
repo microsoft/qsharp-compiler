@@ -298,7 +298,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     }
 
     /// <summary>
-    /// Apart from storing and providing the means to update the compilation itself,
+    /// Represents a compilation. Apart from storing and providing the means to update the compilation itself,
     /// this class stores referenced content and provides the infrastructure to track global symbols.
     /// </summary>
     /// <remarks>
