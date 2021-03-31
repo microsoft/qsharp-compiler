@@ -600,41 +600,46 @@ type ResolvedInitializer =
         {
             // the private constructor enforces that the guarantees given for any instance of ResolvedInitializer
             // -> the static member New replaces the record constructor
-            _InitializerKind: QsInitializerKind<ResolvedInitializer, TypedExpression>
-            _ResolvedType: ResolvedType
+            kind: QsInitializerKind<ResolvedInitializer, TypedExpression>
+            resolvedType: ResolvedType
         }
+
         interface ITuple
 
         /// Contains the fully resolved Q# initializer.
         /// By construction never contains any arity-0 or arity-1 tuple types.
-        member this.Resolution = this._InitializerKind
+        member this.Resolution = this.kind
 
         /// the fully resolved Q# type of the initializer.
-        member this.Type = this._ResolvedType
+        member this.Type = this.resolvedType
 
-        /// <summary>
-        /// Builds a ResolvedInitializer based on a compatible Q# initializer kind, and replaces the (inaccessible) record constructor.
-        /// Replaces an arity-1 tuple by its item type.
-        /// </summary>
-        /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
-        static member New(kind: QsInitializerKind<ResolvedInitializer, TypedExpression>) =
-            let qArrayT = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
+module ResolvedInitializer =
+    let create range kind =
+        let arrayType = Qubit |> ResolvedType.create range |> ArrayType |> ResolvedType.create range
 
-            let buildTupleType is =
-                TupleType((is |> Seq.map (fun x -> x._ResolvedType)).ToImmutableArray()) |> ResolvedType.New
+        let tupleType =
+            Seq.map (fun init -> init.resolvedType)
+            >> ImmutableArray.CreateRange
+            >> TupleType
+            >> ResolvedType.create range
 
-            match kind with
-            | QsInitializerKind.QubitTupleAllocation is when is.Length = 0 ->
-                ArgumentException "tuple initializer requires at least one item" |> raise
-            | QsInitializerKind.QubitTupleAllocation is when is.Length = 1 -> is.[0]
-            | QsInitializerKind.QubitTupleAllocation is ->
-                { _InitializerKind = kind; _ResolvedType = buildTupleType is }
-            | QsInitializerKind.QubitRegisterAllocation _ -> { _InitializerKind = kind; _ResolvedType = qArrayT }
-            | QsInitializerKind.SingleQubitAllocation ->
-                { _InitializerKind = kind; _ResolvedType = Qubit |> ResolvedType.New }
-            | QsInitializerKind.InvalidInitializer ->
-                { _InitializerKind = kind; _ResolvedType = InvalidType |> ResolvedType.New }
+        match kind with
+        | QsInitializerKind.QubitTupleAllocation items when items.IsEmpty ->
+            ArgumentException "Tuple initializer is empty." |> raise
+        | QsInitializerKind.QubitTupleAllocation items when items.Length = 1 -> items.[0]
+        | QsInitializerKind.QubitTupleAllocation items -> { kind = kind; resolvedType = tupleType items }
+        | QsInitializerKind.QubitRegisterAllocation _ -> { kind = kind; resolvedType = arrayType }
+        | QsInitializerKind.SingleQubitAllocation -> { kind = kind; resolvedType = ResolvedType.create range Qubit }
+        | QsInitializerKind.InvalidInitializer -> { kind = kind; resolvedType = ResolvedType.create range InvalidType }
 
+type ResolvedInitializer with
+    /// <summary>
+    /// Builds a ResolvedInitializer based on a compatible Q# initializer kind, and replaces the (inaccessible) record constructor.
+    /// Replaces an arity-1 tuple by its item type.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
+    static member New kind =
+        ResolvedInitializer.create Generated kind
 
 type LocalVariableDeclaration<'Name> =
     {

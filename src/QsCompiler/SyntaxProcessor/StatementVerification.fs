@@ -4,80 +4,44 @@
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Statements
 
 open System
-open System.Collections.Generic
 open System.Collections.Immutable
+
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
+open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
-
 // some utils for type checking statements
 
-/// Given a verification function that takes an error logging function as well as an expression type, expression kind, and its range,
-/// first resolves the given expression, and then verifies its resolved type with the verification function.
-/// Returns the typed expression built upon resolution, the return value of the verification function,
-/// and an array with the diagnostics generated during resolution and verification.
-let private ExpressionVerifyWith verification context (expr: QsExpression) =
-    let accumulatedDiagnostics = new List<QsCompilerDiagnostic>()
-
-    let addError code =
-        QsCompilerDiagnostic.Error code >> accumulatedDiagnostics.Add
-
-    let typedExpr = expr.Resolve context accumulatedDiagnostics.Add
-    let resVerification = verification addError (typedExpr.ResolvedType, typedExpr.Expression, expr.RangeOrDefault)
-    typedExpr, resVerification, accumulatedDiagnostics |> Seq.toArray
-
-/// Given a verification function that takes an error logging function as well as an expression type and its range,
-/// first resolves the given expression, and then verifies its resolved type with the verification function.
-/// Returns the typed expression built upon resolution, the return value of the verification function,
-/// and an array with the diagnostics generated during resolution and verification.
-let private VerifyWith verification =
-    ExpressionVerifyWith(fun addErr (exT, _, exRange) -> verification addErr (exT, exRange))
-
-/// Resolves the given expression, and returns the typed expression built upon resolution,
-/// as well as an array with the diagnostics generated during resolution.
-let private Verify context =
-    VerifyWith (fun _ _ -> ()) context >> fun (ex, _, err) -> ex, err
-
-/// Helper method that returns a suitable verification method based on VerifyAssignment
-/// that can be passed to ExpressionVerifyWith.
-let private AssignmentVerification expected (context: ScopeContext) errCode =
-    let parent = context.Symbols.Parent, context.Symbols.DefinedTypeParameters
-
-    let verification addErr (t, e, r) =
-        VerifyAssignment expected parent errCode addErr (t, Some e, r)
-
-    verification
+let private resolveExpr context (expr: QsExpression) =
+    let diagnostics = ResizeArray()
+    expr.Resolve context diagnostics.Add, diagnostics
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested,
 /// checks if the given typed expression has any local quantum dependencies.
 /// If it does, returns an array with suitable diagnostics. Returns an empty array otherwise.
 /// Remark: inversions can only be auto-generated if the only quantum dependencies occur within expresssion statements.
-let private onAutoInvertCheckQuantumDependency (symbols: SymbolTracker) (ex: TypedExpression, range) =
-    if not
-        (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint
-         && ex.InferredInformation.HasLocalQuantumDependency) then
-        [||]
-    else
-        [|
-            range |> QsCompilerDiagnostic.Error(ErrorCode.QuantumDependencyOutsideExprStatement, [])
-        |]
+let private onAutoInvertCheckQuantumDependency (symbols: SymbolTracker) (expr: TypedExpression) =
+    [|
+        if symbols.RequiredFunctorSupport.Contains Adjoint
+           && expr.InferredInformation.HasLocalQuantumDependency then
+            QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) (rangeOrDefault expr)
+    |]
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested,
 /// returns an array with containing a diagnostic for the given range with the given error code.
 /// Returns an empty array otherwise.
 let private onAutoInvertGenerateError (errCode, range) (symbols: SymbolTracker) =
-    if not (symbols.RequiredFunctorSupport.Contains QsFunctor.Adjoint)
-    then [||]
-    else [| range |> QsCompilerDiagnostic.Error errCode |]
-
+    if symbols.RequiredFunctorSupport.Contains Adjoint
+    then [| range |> QsCompilerDiagnostic.Error errCode |]
+    else [||]
 
 // utils for building QsStatements from QsFragmentKinds
 
@@ -89,20 +53,20 @@ let private asStatement comments location vars kind =
 /// Resolves and verifies the given Q# expression given a symbol tracker containing all currently declared symbols,
 /// verifies that the resolved expression is indeed of type Unit, and builds a Q# expression-statement at the given location from it.
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
-let NewExpressionStatement comments location symbols expr =
-    let verifiedExpr, _, diagnostics = VerifyWith VerifyIsUnit symbols expr
-    verifiedExpr |> QsExpressionStatement |> asStatement comments location LocalDeclarations.Empty, diagnostics
+let NewExpressionStatement comments location context expr =
+    let expr, diagnostics = resolveExpr context expr
+    context.Inference.Unify(ResolvedType.New UnitType, expr.ResolvedType) |> diagnostics.AddRange
+    QsExpressionStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
 /// Resolves and verifies the given Q# expression given the resolution context, verifies that the resolved expression is
 /// indeed of type String, and builds a Q# fail-statement at the given location from it.
 ///
 /// Returns the built statement as well as an array of diagnostics generated during resolution and verification.
 let NewFailStatement comments location context expr =
-    let verifiedExpr, _, diagnostics = VerifyWith VerifyIsString context expr
-    let autoGenErrs = (verifiedExpr, expr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
-    verifiedExpr |> QsFailStatement |> asStatement comments location LocalDeclarations.Empty,
-    Array.concat [ diagnostics
-                   autoGenErrs ]
+    let expr, diagnostics = resolveExpr context expr
+    context.Inference.Unify(ResolvedType.New String, expr.ResolvedType) |> diagnostics.AddRange
+    onAutoInvertCheckQuantumDependency context.Symbols expr |> diagnostics.AddRange
+    QsFailStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
 /// Resolves and verifies the given Q# expression using the resolution context.
 /// Verifies that the type of the resolved expression is indeed compatible with the expected return type of the parent callable.
@@ -111,16 +75,16 @@ let NewFailStatement comments location context expr =
 /// and returns it along with an array of diagnostics generated during resolution and verification.
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics.
-let NewReturnStatement comments (location: QsLocation) (context: ScopeContext) expr =
-    let verifyIsReturnType = AssignmentVerification context.ReturnType context ErrorCode.TypeMismatchInReturn
-    let verifiedExpr, _, diagnostics = ExpressionVerifyWith verifyIsReturnType context expr
+let NewReturnStatement comments (location: QsLocation) context expr =
+    let expr, diagnostics = resolveExpr context expr
 
-    let autoGenErrs =
-        context.Symbols
-        |> onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range)
+    VerifyAssignment context.Inference context.ReturnType ErrorCode.TypeMismatchInReturn expr
+    |> diagnostics.AddRange
 
-    let statement = verifiedExpr |> QsReturnStatement |> asStatement comments location LocalDeclarations.Empty
-    statement, Array.append diagnostics autoGenErrs
+    onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range) context.Symbols
+    |> diagnostics.AddRange
+
+    QsReturnStatement expr |> asStatement comments location LocalDeclarations.Empty, diagnostics.ToArray()
 
 /// Given a Q# symbol, as well as the resolved type of the right hand side that is assigned to it,
 /// shape matches the symbol tuple with the type to determine whether the assignment is valid, and
@@ -133,77 +97,45 @@ let NewReturnStatement comments (location: QsLocation) (context: ScopeContext) e
 /// If warnOnDiscard is set to true, generates a DiscardingItemInAssignment warning if a symbol on the left hand side is missing.
 /// Returns the resolved SymbolTuple, as well as an array with all local variable declarations returned by tryBuildDeclaration,
 /// along with an array containing all generated diagnostics.
-let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)) warnOnDiscard =
-    let symbolTuple (items: _ list) =
-        if items.Length = 0
-        then ArgumentException "symbol tuple has to contain at least one item" |> raise
-        elif items.Length = 1
-        then items.[0]
-        else VariableNameTuple(items.ToImmutableArray())
+let rec private VerifyBinding (inference: InferenceContext) tryBuildDeclaration (symbol, rhsType) warnOnDiscard =
+    let symbolTuple =
+        function
+        | [] -> failwith "Symbol tuple is empty."
+        | [ x ] -> x
+        | xs -> ImmutableArray.CreateRange xs |> VariableNameTuple
 
-    let withUnknownExprErr (s, d, errs) =
-        s,
-        d,
-        Array.concat [ errs
-                       [|
-                           rhsRange |> QsCompilerDiagnostic.Error(ErrorCode.ExpressionOfUnknownType, [])
-                       |] ]
+    match symbol.Symbol with
+    | InvalidSymbol -> InvalidItem, [||], [||]
+    | MissingSymbol when warnOnDiscard ->
+        let warning = QsCompilerDiagnostic.Warning (WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
+        DiscardedItem, [||], [| warning |]
+    | MissingSymbol -> DiscardedItem, [||], [||]
+    | OmittedSymbols
+    | QualifiedSymbol _ ->
+        let error = QsCompilerDiagnostic.Error (ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
+        InvalidItem, [||], [| error |]
+    | Symbol name ->
+        match tryBuildDeclaration (name, symbol.RangeOrDefault) (rhsType) with
+        | Some declaration, diagnostics -> VariableName name, [| declaration |], diagnostics
+        | None, diagnostics -> VariableName name, [||], diagnostics
+    | SymbolTuple symbols ->
+        let types = symbols |> Seq.map (fun symbol -> inference.Fresh symbol.RangeOrDefault) |> Seq.toList
 
-    let rec GetBindings (sym: QsSymbol, exType: ResolvedType, exKind: QsExpressionKind<_, _, _> option) =
-        match sym.Symbol with
-        | _ when exType.isMissing -> GetBindings(sym, InvalidType |> ResolvedType.New, None) |> withUnknownExprErr
-        | QsSymbolKind.InvalidSymbol -> InvalidItem, [||], [||]
-        | QsSymbolKind.MissingSymbol when warnOnDiscard ->
-            DiscardedItem,
-            [||],
-            [|
-                sym.RangeOrDefault |> QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, [])
-            |]
-        | QsSymbolKind.MissingSymbol -> DiscardedItem, [||], [||]
-        | QsSymbolKind.OmittedSymbols
-        | QsSymbolKind.QualifiedSymbol _ ->
-            InvalidItem,
-            [||],
-            [|
-                sym.RangeOrDefault |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, [])
-            |]
-        | QsSymbolKind.Symbol name ->
-            match tryBuildDeclaration (name, sym.RangeOrDefault) (exType, exKind, rhsRange) with
-            | Some decl, errs -> VariableName name, [| decl |], errs
-            | None, errs -> VariableName name, [||], errs
-        | QsSymbolKind.SymbolTuple syms when syms.Length = 1 -> GetBindings(syms.[0], exType, exKind)
-        | QsSymbolKind.SymbolTuple syms ->
-            match exType with
-            | Tuple ts when syms.Length = ts.Length ->
-                let (symItems, declarations, errs) =
-                    match exKind with
-                    | Some (ValueTuple (vs: ImmutableArray<TypedExpression>)) when vs.Length = ts.Length ->
-                        Seq.zip3 syms ts vs |> Seq.map (fun (s, t, v) -> GetBindings(s, t, Some v.Expression))
-                    | _ -> Seq.zip syms ts |> Seq.map (fun (s, t) -> GetBindings(s, t, None))
-                    |> Seq.toList
-                    |> List.unzip3
+        let tupleType =
+            ImmutableArray.CreateRange types
+            |> TupleType
+            |> ResolvedType.create (TypeRange.inferred symbol.Range)
 
-                symbolTuple symItems, Array.concat declarations, Array.concat errs
-            | _ ->
-                let (symItems, declarations, errs) =
-                    syms
-                    |> Seq.map (fun s -> (s, InvalidType |> ResolvedType.New, None) |> GetBindings)
-                    |> Seq.toList
-                    |> List.unzip3
+        let unifyDiagnostics = inference.Unify(tupleType, rhsType)
 
-                let errs =
-                    if exType.isInvalid then
-                        errs
-                    else
-                        [|
-                            sym.RangeOrDefault
-                            |> QsCompilerDiagnostic.Error(ErrorCode.SymbolTupleShapeMismatch, [ exType |> toString ])
-                        |]
-                        :: errs
+        let verify symbol symbolType =
+            VerifyBinding inference tryBuildDeclaration (symbol, symbolType) warnOnDiscard
 
-                symbolTuple symItems, Array.concat declarations, Array.concat errs
+        let combine (item, declarations1, diagnostics1) (items, declarations2, diagnostics2) =
+            item :: items, Array.append declarations1 declarations2, Array.append diagnostics1 diagnostics2
 
-    GetBindings(qsSym, rhsType, rhsEx)
+        let items, declarations, diagnostics = Seq.foldBack combine (Seq.map2 verify symbols types) ([], [||], [||])
+        symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
 
 /// Resolves and verifies the given Q# expressions using the resolution context.
 /// Verifies that the type of the resolved right hand side expression is indeed compatible with the resolved type of the left hand side expression.
@@ -212,73 +144,47 @@ let private VerifyBinding tryBuildDeclaration (qsSym, (rhsType, rhsEx, rhsRange)
 /// and returns it along with an array of diagnostics generated during resolution and verification.
 /// Errors due to the statement not satisfying the necessary conditions for the required auto-generation of specializations
 /// (specified by the given SymbolTracker) are also included in the returned diagnostics.
-let NewValueUpdate comments (location: QsLocation) context (lhs: QsExpression, rhs: QsExpression) =
-    let verifiedLhs, lhsErrs = Verify context lhs
+let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
+    let lhs, diagnostics = resolveExpr context lhs
+    let rhs, rhsDiagnostics = resolveExpr context rhs
+    let localQdep = rhs.InferredInformation.HasLocalQuantumDependency
+    diagnostics.AddRange rhsDiagnostics
 
-    let VerifyIsCorrectType =
-        AssignmentVerification verifiedLhs.ResolvedType context ErrorCode.TypeMismatchInValueUpdate
+    VerifyAssignment context.Inference lhs.ResolvedType ErrorCode.TypeMismatchInValueUpdate rhs
+    |> diagnostics.AddRange
 
-    let verifiedRhs, _, rhsErrs = ExpressionVerifyWith VerifyIsCorrectType context rhs
-    let localQdep = verifiedRhs.InferredInformation.HasLocalQuantumDependency
-
-    let rec VerifyMutability =
+    let rec verifyMutability: TypedExpression -> _ =
         function
-        | Tuple (exs: TypedExpression list) -> exs |> Seq.collect VerifyMutability |> Seq.toArray
-        | Item (ex: TypedExpression) when ex.InferredInformation.IsMutable ->
+        | Tuple exs -> exs |> Seq.iter verifyMutability
+        | Item ex when ex.InferredInformation.IsMutable ->
             match ex.Expression with
             | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
             | _ -> ()
-            [||]
-        | Item (ex: TypedExpression) ->
-            let range = ex.Range.ValueOr Range.Zero
+        | Item ex ->
+            QsCompilerDiagnostic.Error (ErrorCode.UpdateOfImmutableIdentifier, []) (ex.Range.ValueOr Range.Zero)
+            |> diagnostics.Add
+        | _ -> () // both missing and invalid expressions on the lhs are fine
 
-            [|
-                range |> QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, [])
-            |]
-        | _ ->
-            // both missing and invalid expressions on the lhs are fine
-            Array.empty
+    verifyMutability lhs
 
-    let refErrs = verifiedLhs |> VerifyMutability
+    onAutoInvertGenerateError ((ErrorCode.ValueUpdateWithinAutoInversion, []), location.Range) context.Symbols
+    |> diagnostics.AddRange
 
-    let autoGenErrs =
-        context.Symbols
-        |> onAutoInvertGenerateError ((ErrorCode.ValueUpdateWithinAutoInversion, []), location.Range)
-
-    let statement =
-        QsValueUpdate.New(verifiedLhs, verifiedRhs)
-        |> QsValueUpdate
-        |> asStatement comments location LocalDeclarations.Empty
-
-    statement,
-    Array.concat [ lhsErrs
-                   refErrs
-                   rhsErrs
-                   autoGenErrs ]
+    QsValueUpdate.New(lhs, rhs)
+    |> QsValueUpdate
+    |> asStatement comments location LocalDeclarations.Empty,
+    diagnostics.ToArray()
 
 /// Adds a variable declaration with the given name, quantum dependency, and type at the given location to the given symbol tracker.
 /// Generates the corresponding error(s) if a symbol with the same name is already visible on that scope and/or the given name is not a valid variable name.
 /// Generates an InvalidUseOfTypeParameterizedObject error if the given variable type contains external type parameters
 /// (i.e. type parameters that do no belong to the parent callable associated with the given symbol tracker).
 /// Returns the pushed declaration as Some, if the declaration was successfully added to given symbol tracker, and None otherwise.
-let private TryAddDeclaration isMutable
-                              (symbols: SymbolTracker)
-                              (name: string, location, localQdep)
-                              (rhsType: ResolvedType, rhsEx, rhsRange)
-                              =
-    let t, tpErr =
-        if rhsType.isTypeParametrized symbols.Parent
-           || IsTypeParamRecursion (symbols.Parent, symbols.DefinedTypeParameters) rhsEx then
-            InvalidType |> ResolvedType.New,
-            [|
-                rhsRange |> QsCompilerDiagnostic.Error(ErrorCode.InvalidUseOfTypeParameterizedObject, [])
-            |]
-        else
-            rhsType, [||]
-
+let private TryAddDeclaration isMutable (symbols: SymbolTracker) (name: string, location, localQdep) rhsType =
+    let t, tpErr = rhsType, [||]
     let decl = LocalVariableDeclaration<_>.New isMutable (location, name, t, localQdep)
     let added, errs = symbols.TryAddVariableDeclartion decl
-    (if added then Some decl else None), errs |> Array.append tpErr
+    (if added then Some decl else None), Array.append tpErr errs
 
 /// Given a Q# symbol, as well as the expression on the right hand side that is assigned to it,
 /// resolves and verifies the assignment using VerifyBinding and the resolution context.
@@ -286,42 +192,37 @@ let private TryAddDeclaration isMutable
 /// generating the corresponding error(s) if a symbol with the same name is already visible on that scope and/or the symbol is not a valid variable name.
 /// Builds the corresponding Q# let- or mutable-statement (depending on the given kind) at the given location,
 /// and returns it along with an array of all generated diagnostics.
-let private NewBinding kind comments (location: QsLocation) context (qsSym: QsSymbol, qsExpr: QsExpression) =
-    let rhs, rhsErrs = Verify context qsExpr
+let private NewBinding kind comments (location: QsLocation) context (symbol, expr) =
+    let expr, diagnostics = resolveExpr context expr
 
-    let symTuple, varDeclarations, errs =
-        let isMutable =
-            match kind with
-            | MutableBinding -> true
-            | ImmutableBinding -> false
-
-        let localQdep = rhs.InferredInformation.HasLocalQuantumDependency
-
+    let symbolTuple, varDeclarations, bindingDiagnostics =
         let addDeclaration (name, range) =
-            TryAddDeclaration isMutable context.Symbols (name, (Value location.Offset, range), localQdep)
+            TryAddDeclaration
+                (kind = MutableBinding)
+                context.Symbols
+                (name, (Value location.Offset, range), expr.InferredInformation.HasLocalQuantumDependency)
 
-        VerifyBinding addDeclaration (qsSym, (rhs.ResolvedType, Some rhs.Expression, qsExpr.RangeOrDefault)) false
+        VerifyBinding context.Inference addDeclaration (symbol, expr.ResolvedType) false
 
-    let autoGenErrs = (rhs, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
-    let binding = QsBinding<TypedExpression>.New kind (symTuple, rhs) |> QsVariableDeclaration
+    diagnostics.AddRange bindingDiagnostics
+    onAutoInvertCheckQuantumDependency context.Symbols expr |> diagnostics.AddRange
 
-    binding |> asStatement comments location (LocalDeclarations.New varDeclarations),
-    Array.concat [ rhsErrs
-                   errs
-                   autoGenErrs ]
+    QsBinding.New kind (symbolTuple, expr)
+    |> QsVariableDeclaration
+    |> asStatement comments location (LocalDeclarations.New varDeclarations),
+    diagnostics.ToArray()
 
 /// Resolves, verifies and builds the Q# let-statement at the given location binding the given expression to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker.
 /// Returns the built statement along with an array containing all diagnostics generated in the process.
-let NewImmutableBinding comments location symbols (qsSym, qsExpr) =
-    NewBinding QsBindingKind.ImmutableBinding comments location symbols (qsSym, qsExpr)
+let NewImmutableBinding comments location symbols (symbol, expr) =
+    NewBinding QsBindingKind.ImmutableBinding comments location symbols (symbol, expr)
 
 /// Resolves, verifies and builds the Q# mutable-statement at the given location binding the given expression to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker.
 /// Returns the built statement along with an array containing all diagnostics generated in the process.
-let NewMutableBinding comments location symbols (qsSym, qsExpr) =
-    NewBinding QsBindingKind.MutableBinding comments location symbols (qsSym, qsExpr)
-
+let NewMutableBinding comments location symbols (symbol, expr) =
+    NewBinding QsBindingKind.MutableBinding comments location symbols (symbol, expr)
 
 type BlockStatement<'T> = delegate of QsScope -> 'T
 
@@ -333,51 +234,50 @@ type BlockStatement<'T> = delegate of QsScope -> 'T
 /// Returns an array with all generated diagnostics,
 /// as well as a delegate that given a Q# scope returns the built for-statement with the given scope as the body.
 /// NOTE: the declared loop variables are *not* visible after the statements ends, hence they are *not* attaches as local declarations to the statement!
-let NewForStatement comments (location: QsLocation) context (qsSym: QsSymbol, qsExpr: QsExpression) =
-    let iterExpr, itemT, iterErrs = VerifyWith VerifyIsIterable context qsExpr
+let NewForStatement comments (location: QsLocation) context (symbol, expr) =
+    let expr, diagnostics = resolveExpr context expr
+    let itemType, iterableDiagnostics = VerifyIsIterable context.Inference expr
+    diagnostics.AddRange iterableDiagnostics
 
-    let symTuple, _, varErrs =
-        let localQdep = iterExpr.InferredInformation.HasLocalQuantumDependency
-
+    let symbolTuple, _, bindingDiagnostics =
         let addDeclaration (name, range) =
-            TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), localQdep)
+            TryAddDeclaration
+                false
+                context.Symbols
+                (name, (Value location.Offset, range), expr.InferredInformation.HasLocalQuantumDependency)
 
-        VerifyBinding addDeclaration (qsSym, (itemT, None, qsExpr.RangeOrDefault)) false
+        VerifyBinding context.Inference addDeclaration (symbol, itemType) false
 
-    let autoGenErrs = (iterExpr, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
+    diagnostics.AddRange bindingDiagnostics
+    onAutoInvertCheckQuantumDependency context.Symbols expr |> diagnostics.AddRange
 
     let forLoop body =
-        QsForStatement.New((symTuple, itemT), iterExpr, body) |> QsForStatement
+        QsForStatement.New((symbolTuple, itemType), expr, body) |> QsForStatement
 
-    new BlockStatement<_>(forLoop >> asStatement comments location LocalDeclarations.Empty),
-    Array.concat [ iterErrs
-                   varErrs
-                   autoGenErrs ]
+    BlockStatement(forLoop >> asStatement comments location LocalDeclarations.Empty), diagnostics.ToArray()
 
 /// Given the location of the statement header and the resolution context,
 /// builds the Q# while-statement at the given location with the given expression as condition.
 /// Verifies the expression is indeed of type Bool, and returns an array with all generated diagnostics,
 /// as well as a delegate that given a Q# scope returns the built while-statement with the given scope as the body.
-let NewWhileStatement comments (location: QsLocation) context (qsExpr: QsExpression) =
-    let cond, _, errs = VerifyWith VerifyIsBoolean context qsExpr
+let NewWhileStatement comments (location: QsLocation) context condition =
+    let condition, diagnostics = resolveExpr context condition
+    context.Inference.Unify(ResolvedType.New Bool, condition.ResolvedType) |> diagnostics.AddRange
 
     let whileLoop body =
-        QsWhileStatement.New(cond, body) |> QsWhileStatement
+        QsWhileStatement.New(condition, body) |> QsWhileStatement
 
-    new BlockStatement<_>(whileLoop >> asStatement comments location LocalDeclarations.Empty), errs
+    BlockStatement(whileLoop >> asStatement comments location LocalDeclarations.Empty), diagnostics.ToArray()
 
 /// Resolves and verifies the given Q# expression using the resolution context.
 /// Verifies that the type of the resolved expression is indeed of kind Bool.
 /// Returns an array of all diagnostics generated during resolution and verification,
 /// as well as a delegate that given a positioned block of Q# statements returns the corresponding conditional block.
-let NewConditionalBlock comments location context (qsExpr: QsExpression) =
-    let condition, _, errs = VerifyWith VerifyIsBoolean context qsExpr
-    let autoGenErrs = (condition, qsExpr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
-
-    let block body =
-        condition, QsPositionedBlock.New comments (Value location) body
-
-    new BlockStatement<_>(block), Array.concat [ errs; autoGenErrs ]
+let NewConditionalBlock comments location context condition =
+    let condition, diagnostics = resolveExpr context condition
+    context.Inference.Unify(ResolvedType.New Bool, condition.ResolvedType) |> diagnostics.AddRange
+    onAutoInvertCheckQuantumDependency context.Symbols condition |> diagnostics.AddRange
+    BlockStatement(fun body -> condition, QsPositionedBlock.New comments (Value location) body), diagnostics.ToArray()
 
 /// <summary>
 /// Given a conditional block for the if-clause of a Q# if-statement, a sequence of conditional blocks for the elif-clauses,
@@ -429,14 +329,14 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
         | Value loc -> loc
 
     let usedInOuter =
-        let accumulate = new AccumulateIdentifiers()
-        accumulate.Statements.OnScope outer.Body |> ignore
-        accumulate.SharedState.UsedLocalVariables
+        let identifiers = AccumulateIdentifiers()
+        identifiers.Statements.OnScope outer.Body |> ignore
+        identifiers.SharedState.UsedLocalVariables
 
     let updatedInInner =
-        let accumulate = new AccumulateIdentifiers()
-        accumulate.Statements.OnScope inner.Body |> ignore
-        accumulate.SharedState.ReassignedVariables
+        let identifiers = AccumulateIdentifiers()
+        identifiers.Statements.OnScope inner.Body |> ignore
+        identifiers.SharedState.ReassignedVariables
 
     let updateErrs =
         updatedInInner
@@ -459,43 +359,50 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
 /// Returns an array with all generated diagnostics,
 /// as well as a delegate that given a Q# scope returns the built using- or borrowing-statement with the given scope as the body.
 /// NOTE: the declared variables are *not* visible after the statements ends, hence they are *not* attaches as local declarations to the statement!
-let private NewBindingScope kind comments (location: QsLocation) context (qsSym: QsSymbol, qsInit: QsInitializer) =
-    let rec VerifyInitializer (init: QsInitializer) =
+let private NewBindingScope kind comments (location: QsLocation) context (symbol: QsSymbol, init: QsInitializer) =
+    let rec verifyInitializer init =
         match init.Initializer with
-        | SingleQubitAllocation -> SingleQubitAllocation |> ResolvedInitializer.New, [||]
-        | QubitRegisterAllocation nr ->
-            let verifiedNr, _, err = VerifyWith VerifyIsInteger context nr
-            let autoGenErrs = (verifiedNr, nr.RangeOrDefault) |> onAutoInvertCheckQuantumDependency context.Symbols
-            QubitRegisterAllocation verifiedNr |> ResolvedInitializer.New, Array.concat [ err; autoGenErrs ]
-        | QubitTupleAllocation is ->
-            let items, errs = is |> Seq.map VerifyInitializer |> Seq.toList |> List.unzip
-            QubitTupleAllocation(items.ToImmutableArray()) |> ResolvedInitializer.New, Array.concat errs
-        | InvalidInitializer -> InvalidInitializer |> ResolvedInitializer.New, [||]
+        | SingleQubitAllocation ->
+            SingleQubitAllocation |> ResolvedInitializer.create (TypeRange.inferred init.Range), Seq.empty
+        | QubitRegisterAllocation size ->
+            let size, diagnostics = resolveExpr context size
+            context.Inference.Unify(ResolvedType.New Int, size.ResolvedType) |> diagnostics.AddRange
+            onAutoInvertCheckQuantumDependency context.Symbols size |> diagnostics.AddRange
 
-    let initializer, initErrs = VerifyInitializer qsInit
+            QubitRegisterAllocation size |> ResolvedInitializer.create (TypeRange.inferred init.Range),
+            upcast diagnostics
+        | QubitTupleAllocation items ->
+            let items, diagnostics = items |> Seq.map verifyInitializer |> Seq.toList |> List.unzip
 
-    let symTuple, _, varErrs =
-        let rhsRange = qsInit.Range.ValueOr Range.Zero
+            ImmutableArray.CreateRange items
+            |> QubitTupleAllocation
+            |> ResolvedInitializer.create (TypeRange.inferred init.Range),
+            Seq.concat diagnostics
+        | InvalidInitializer ->
+            InvalidInitializer |> ResolvedInitializer.create (TypeRange.inferred init.Range), Seq.empty
 
+    let init, initDiagnostics = verifyInitializer init
+
+    let symbolTuple, _, bindingDiagnostics =
         let addDeclaration (name, range) =
             TryAddDeclaration false context.Symbols (name, (Value location.Offset, range), false)
 
-        VerifyBinding addDeclaration (qsSym, (initializer.Type, None, rhsRange)) true
+        VerifyBinding context.Inference addDeclaration (symbol, init.Type) true
 
     let bindingScope body =
-        QsQubitScope.New kind ((symTuple, initializer), body) |> QsQubitScope
+        QsQubitScope.New kind ((symbolTuple, init), body) |> QsQubitScope
 
-    let statement = BlockStatement<_>(bindingScope >> asStatement comments location LocalDeclarations.Empty)
-    statement, Array.append initErrs varErrs
+    BlockStatement(bindingScope >> asStatement comments location LocalDeclarations.Empty),
+    Seq.append initDiagnostics bindingDiagnostics |> Seq.toArray
 
 /// Resolves, verifies and builds the Q# using-statement at the given location binding the given initializer to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker.
 /// Returns the built statement along with an array containing all diagnostics generated in the process.
-let NewAllocateScope comments location symbols (qsSym, qsInit) =
-    NewBindingScope QsQubitScopeKind.Allocate comments location symbols (qsSym, qsInit)
+let NewAllocateScope comments location symbols (symbol, init) =
+    NewBindingScope QsQubitScopeKind.Allocate comments location symbols (symbol, init)
 
 /// Resolves, verifies and builds the Q# borrowing-statement at the given location binding the given initializer to the given symbol.
 /// Adds the corresponding local variable declarations to the given symbol tracker.
 /// Returns the built statement along with an array containing all diagnostics generated in the process.
-let NewBorrowScope comments location symbols (qsSym, qsInit) =
-    NewBindingScope QsQubitScopeKind.Borrow comments location symbols (qsSym, qsInit)
+let NewBorrowScope comments location symbols (symbol, init) =
+    NewBindingScope QsQubitScopeKind.Borrow comments location symbols (symbol, init)

@@ -36,15 +36,15 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Double size in array constructor`` () =
-        expect "SizedArrayInvalid1" [ Error ErrorCode.ExpectingIntExpr ]
+        expect "SizedArrayInvalid1" [ Error ErrorCode.TypeMismatch ]
 
     [<Fact>]
     let ``String size in array constructor`` () =
-        expect "SizedArrayInvalid2" [ Error ErrorCode.ExpectingIntExpr ]
+        expect "SizedArrayInvalid2" [ Error ErrorCode.TypeMismatch ]
 
     [<Fact>]
     let ``Tuple size in array constructor`` () =
-        expect "SizedArrayInvalid3" [ Error ErrorCode.ExpectingIntExpr ]
+        expect "SizedArrayInvalid3" [ Error ErrorCode.TypeMismatch ]
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =
@@ -54,39 +54,54 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.Variance() =
         this.Expect "Variance1" []
-        this.Expect "Variance2" [ Error ErrorCode.ArgumentTypeMismatch ]
-        this.Expect "Variance3" [ Error ErrorCode.ArgumentTypeMismatch ]
-        this.Expect "Variance4" [ Error ErrorCode.ArrayBaseTypeMismatch ]
-        this.Expect "Variance5" [ Error ErrorCode.ArrayBaseTypeMismatch ]
-        this.Expect "Variance6" [ Error ErrorCode.ArrayBaseTypeMismatch ]
-        this.Expect "Variance7" []
-        this.Expect "Variance8" []
-        this.Expect "Variance9" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance10" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance11" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance12" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance13" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
-        this.Expect "Variance14" [ Error ErrorCode.CallableTypeInputTypeMismatch ]
+        this.Expect "Variance2" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance3" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance4" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance5" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance6" [ Error ErrorCode.TypeMismatch ]
+
+        this.Expect
+            "Variance7"
+            [
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
+
+        this.Expect
+            "Variance8"
+            [
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.AmbiguousTypeParameterResolution
+            ]
+
+        this.Expect "Variance9" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance10" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance11" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance12" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance13" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance14" [ Error ErrorCode.TypeMismatch ]
 
 
     [<Fact>]
     member this.``Common base type``() =
         this.Expect "CommonBaseType1" []
-
-        this.Expect
-            "CommonBaseType2"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
-        this.Expect
-            "CommonBaseType3"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
+        this.Expect "CommonBaseType2" [ Error ErrorCode.MissingBaseType ]
+        this.Expect "CommonBaseType3" [ Error ErrorCode.MissingBaseType ]
         this.Expect "CommonBaseType4" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "CommonBaseType5" []
         this.Expect "CommonBaseType6" []
@@ -95,18 +110,11 @@ type TypeCheckingTests() =
         this.Expect "CommonBaseType9" []
         this.Expect "CommonBaseType10" []
         this.Expect "CommonBaseType11" [ Error ErrorCode.TypeMismatchInReturn ]
-
-        this.Expect
-            "CommonBaseType12"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
+        this.Expect "CommonBaseType12" [ Error ErrorCode.MissingBaseType ]
         this.Expect "CommonBaseType13" []
         this.Expect "CommonBaseType14" []
         this.Expect "CommonBaseType15" [ Error ErrorCode.TypeMismatchInReturn ]
-        this.Expect "CommonBaseType16" [ Error ErrorCode.MultipleTypesInArray ]
+        this.Expect "CommonBaseType16" [ Error ErrorCode.MissingBaseType ]
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" []
 
@@ -118,12 +126,12 @@ type TypeCheckingTests() =
                 Warning WarningCode.ReturnTypeNotResolvedByArgument
             ]
 
-        this.Expect "CommonBaseType20" [ Error ErrorCode.MultipleTypesInArray ]
+        this.Expect "CommonBaseType20" [ Error ErrorCode.MissingBaseType ]
         this.Expect "CommonBaseType21" []
         this.Expect "CommonBaseType22" []
         this.Expect "CommonBaseType23" []
         this.Expect "CommonBaseType24" []
-        this.Expect "CommonBaseType25" [ Error ErrorCode.MultipleTypesInArray ]
+        this.Expect "CommonBaseType25" [ Error ErrorCode.MissingBaseType ]
 
 
     [<Fact>]
@@ -175,19 +183,8 @@ type TypeCheckingTests() =
                 Error ErrorCode.InvalidUseOfUnderscorePattern
             ]
 
-        this.Expect
-            "NoCommonBaseEquality"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
-        this.Expect
-            "NoCommonBaseInequality"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
+        this.Expect "NoCommonBaseEquality" [ Error ErrorCode.MissingBaseType ]
+        this.Expect "NoCommonBaseInequality" [ Error ErrorCode.MissingBaseType ]
 
 
     [<Fact>]
@@ -200,15 +197,8 @@ type TypeCheckingTests() =
         this.Expect "MatchArgument6" []
         this.Expect "MatchArgument7" []
         this.Expect "MatchArgument8" []
-        this.Expect "MatchArgument9" [ Error ErrorCode.ArgumentTypeMismatch ]
-
-        this.Expect
-            "MatchArgument10"
-            [
-                Error ErrorCode.AmbiguousTypeParameterResolution
-                Error ErrorCode.AmbiguousTypeParameterResolution
-            ]
-
+        this.Expect "MatchArgument9" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "MatchArgument10" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "MatchArgument11" []
         this.Expect "MatchArgument12" []
         this.Expect "MatchArgument13" []
@@ -217,42 +207,77 @@ type TypeCheckingTests() =
         this.Expect "MatchArgument16" []
         this.Expect "MatchArgument17" []
         this.Expect "MatchArgument18" []
-        this.Expect "MatchArgument19" [ Error ErrorCode.ArgumentTupleShapeMismatch ]
+        this.Expect "MatchArgument19" [ Error ErrorCode.TypeMismatch ]
 
 
     [<Fact>]
     member this.``Partial application``() =
         this.Expect "PartialApplication1" []
-        this.Expect "PartialApplication2" [ Error ErrorCode.ArgumentTupleShapeMismatch ]
-        this.Expect "PartialApplication3" [ Error ErrorCode.ArgumentTypeMismatch ]
-        this.Expect "PartialApplication4" [ Error ErrorCode.ArgumentTypeMismatch ]
-        this.Expect "PartialApplication5" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "PartialApplication2" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication3" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication4" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication5" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication6" []
-        this.Expect "PartialApplication7" [ Error ErrorCode.ArgumentTupleShapeMismatch ]
-        this.Expect "PartialApplication8" [ Error ErrorCode.ArgumentTupleShapeMismatch ]
+
+        this.Expect
+            "PartialApplication7"
+            [
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
+        this.Expect "PartialApplication8" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication9" []
         this.Expect "PartialApplication10" []
         this.Expect "PartialApplication11" []
         this.Expect "PartialApplication12" []
         this.Expect "PartialApplication13" []
         this.Expect "PartialApplication14" []
-
-        this.Expect
-            "PartialApplication15"
-            [ Error ErrorCode.ArgumentTypeMismatch; Error ErrorCode.ArgumentTypeMismatch ]
-
-        this.Expect "PartialApplication16" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "PartialApplication15" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication16" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication17" []
-        this.Expect "PartialApplication18" [ Error ErrorCode.OperationCallOutsideOfOperation ]
+        this.Expect "PartialApplication18" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication19" []
         this.Expect "PartialApplication20" []
         this.Expect "PartialApplication21" []
         this.Expect "PartialApplication22" [ Error ErrorCode.MissingFunctorForAutoGeneration ]
         this.Expect "PartialApplication23" []
-        this.Expect "PartialApplication24" [ Error ErrorCode.InvalidControlledApplication ]
-        this.Expect "PartialApplication25" [ Error ErrorCode.InvalidControlledApplication ]
-        this.Expect "PartialApplication26" [ Error ErrorCode.InvalidAdjointApplication ]
-        this.Expect "PartialApplication27" [ Error ErrorCode.InvalidAdjointApplication ]
+
+        this.Expect
+            "PartialApplication24"
+            [
+                Error ErrorCode.InvalidControlledApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
+        this.Expect
+            "PartialApplication25"
+            [
+                Error ErrorCode.InvalidControlledApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
+        this.Expect
+            "PartialApplication26"
+            [
+                Error ErrorCode.InvalidAdjointApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
+        this.Expect
+            "PartialApplication27"
+            [
+                Error ErrorCode.InvalidAdjointApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
         this.Expect "PartialApplication28" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "PartialApplication29" []
         this.Expect "PartialApplication30" []

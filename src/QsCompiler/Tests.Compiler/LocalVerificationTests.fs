@@ -30,47 +30,22 @@ type LocalVerificationTests() =
 
     [<Fact>]
     member this.``Type argument inference``() =
-        this.Expect "TypeArgumentsInference1" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
-        this.Expect "TypeArgumentsInference2" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
-
-        this.Expect
-            "TypeArgumentsInference3"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.MultipleTypesInArray
-            ]
-
-        this.Expect
-            "TypeArgumentsInference4"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.MultipleTypesInArray
-            ]
+        this.Expect "TypeArgumentsInference1" []
+        this.Expect "TypeArgumentsInference2" []
+        this.Expect "TypeArgumentsInference3" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference4" [ Error ErrorCode.TypeMismatch ]
 
         this.Expect
             "TypeArgumentsInference5"
             [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
 
-        this.Expect "TypeArgumentsInference6" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
-        this.Expect "TypeArgumentsInference7" [ Error ErrorCode.UnresolvedTypeParameterForRecursiveCall ]
-
-        this.Expect
-            "TypeArgumentsInference8"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-            ]
-
-        this.Expect
-            "TypeArgumentsInference9"
-            [
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-                Error ErrorCode.UnresolvedTypeParameterForRecursiveCall
-            ]
-
+        this.Expect "TypeArgumentsInference6" []
+        this.Expect "TypeArgumentsInference7" []
+        this.Expect "TypeArgumentsInference8" []
+        this.Expect "TypeArgumentsInference9" []
         this.Expect "TypeArgumentsInference10" []
         this.Expect "TypeArgumentsInference11" []
         this.Expect "TypeArgumentsInference12" []
@@ -82,41 +57,41 @@ type LocalVerificationTests() =
         this.Expect "TypeArgumentsInference18" []
         this.Expect "TypeArgumentsInference19" []
         this.Expect "TypeArgumentsInference20" []
-        this.Expect "TypeArgumentsInference21" [ Error ErrorCode.ConstrainsTypeParameter ]
-        this.Expect "TypeArgumentsInference22" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "TypeArgumentsInference21" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference22" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference23" []
         this.Expect "TypeArgumentsInference24" []
         this.Expect "TypeArgumentsInference25" []
         this.Expect "TypeArgumentsInference26" []
-        this.Expect "TypeArgumentsInference27" [ Error ErrorCode.ConstrainsTypeParameter ]
-        this.Expect "TypeArgumentsInference28" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "TypeArgumentsInference27" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference28" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference29" [ Error ErrorCode.InvalidCyclicTypeParameterResolution ]
 
         this.Expect
             "TypeArgumentsInference30"
             [
-                Error ErrorCode.TypeParameterResConflictWithTypeArgument
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
+                Error ErrorCode.TypeMismatch
             ]
 
         this.Expect
             "TypeArgumentsInference31"
             [
-                Error ErrorCode.TypeParameterResConflictWithTypeArgument
                 Error ErrorCode.InvalidCyclicTypeParameterResolution
+                Error ErrorCode.TypeMismatch
             ]
 
-        this.Expect "TypeArgumentsInference32" [ Error ErrorCode.ConstrainsTypeParameter ]
-        this.Expect "TypeArgumentsInference33" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "TypeArgumentsInference32" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference33" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference34" []
         this.Expect "TypeArgumentsInference35" []
         this.Expect "TypeArgumentsInference36" []
         this.Expect "TypeArgumentsInference37" []
-        this.Expect "TypeArgumentsInference38" [ Error ErrorCode.ConstrainsTypeParameter ]
-        this.Expect "TypeArgumentsInference39" [ Error ErrorCode.ArgumentTypeMismatch ]
+        this.Expect "TypeArgumentsInference38" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference39" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference40" []
-        this.Expect "TypeArgumentsInference41" [ Error ErrorCode.TypeParameterResConflictWithTypeArgument ]
-        this.Expect "TypeArgumentsInference42" [ Error ErrorCode.TypeParameterResConflictWithTypeArgument ]
+        this.Expect "TypeArgumentsInference41" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference42" [ Error ErrorCode.TypeMismatch ]
 
 
     [<Fact>]
@@ -129,32 +104,32 @@ type LocalVerificationTests() =
         this.Expect "VariableDeclaration6" []
         this.Expect "VariableDeclaration7" []
         this.Expect "VariableDeclaration8" []
-        this.Expect "VariableDeclaration9" [ Error ErrorCode.SymbolTupleShapeMismatch ]
-        this.Expect "VariableDeclaration10" [ Error ErrorCode.SymbolTupleShapeMismatch ]
-        this.Expect "VariableDeclaration11" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration12" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration13" [ Error ErrorCode.ConstrainsTypeParameter ]
+        this.Expect "VariableDeclaration9" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "VariableDeclaration10" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "VariableDeclaration11" []
+
+        this.Expect
+            "VariableDeclaration12"
+            [
+                Error ErrorCode.ExpectingCallableExpr
+                Error ErrorCode.InvalidCyclicTypeParameterResolution
+            ]
+
+        this.Expect "VariableDeclaration13" []
 
         this.Expect
             "VariableDeclaration14"
             [
-                Error ErrorCode.InvalidUseOfTypeParameterizedObject
-                Error ErrorCode.InvalidUseOfTypeParameterizedObject
+                Error ErrorCode.AmbiguousTypeParameterResolution
+                Error ErrorCode.InvalidCyclicTypeParameterResolution
             ]
 
-        this.Expect "VariableDeclaration15" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration16" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration17" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-
-        this.Expect
-            "VariableDeclaration18"
-            [
-                Error ErrorCode.InvalidUseOfTypeParameterizedObject
-                Error ErrorCode.MultipleTypesInArray
-            ]
-
-        this.Expect "VariableDeclaration19" [ Error ErrorCode.InvalidUseOfTypeParameterizedObject ]
-        this.Expect "VariableDeclaration20" [ Error ErrorCode.ConstrainsTypeParameter ]
+        this.Expect "VariableDeclaration15" []
+        this.Expect "VariableDeclaration16" []
+        this.Expect "VariableDeclaration17" []
+        this.Expect "VariableDeclaration18" []
+        this.Expect "VariableDeclaration19" []
+        this.Expect "VariableDeclaration20" []
         this.Expect "VariableDeclaration21" []
         this.Expect "VariableDeclaration22" []
         this.Expect "VariableDeclaration23" []
@@ -178,7 +153,7 @@ type LocalVerificationTests() =
         this.Expect "CopyAndUpdateArray5" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "CopyAndUpdateArray6" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "CopyAndUpdateArray7" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "CopyAndUpdateArray8" [ Error ErrorCode.ConstrainsTypeParameter ]
+        this.Expect "CopyAndUpdateArray8" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
         this.Expect "CopyAndUpdateArray9" []
         this.Expect "CopyAndUpdateArray10" []
         this.Expect "CopyAndUpdateArray11" []
@@ -186,7 +161,7 @@ type LocalVerificationTests() =
         this.Expect "CopyAndUpdateArray13" []
         this.Expect "CopyAndUpdateArray14" []
         this.Expect "CopyAndUpdateArray15" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
-        this.Expect "CopyAndUpdateArray16" [ Error ErrorCode.ConstrainsTypeParameter ]
+        this.Expect "CopyAndUpdateArray16" [ Error ErrorCode.TypeMismatchInCopyAndUpdateExpr ]
 
 
     [<Fact>]
@@ -210,15 +185,8 @@ type LocalVerificationTests() =
         this.Expect "ApplyAndReassign3" []
         this.Expect "ApplyAndReassign4" []
         this.Expect "ApplyAndReassign5" []
-        this.Expect "ApplyAndReassign6" [ Error ErrorCode.ExpectingBoolExpr ]
-
-        this.Expect
-            "ApplyAndReassign7"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
+        this.Expect "ApplyAndReassign6" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "ApplyAndReassign7" [ Error ErrorCode.MissingBaseType ]
         this.Expect "ApplyAndReassign8" [ Error ErrorCode.UpdateOfImmutableIdentifier ]
         this.Expect "ApplyAndReassign9" [ Error ErrorCode.UpdateOfArrayItemExpr ]
         this.Expect "ApplyAndReassign10" [ Error ErrorCode.UpdateOfArrayItemExpr ]
@@ -231,27 +199,14 @@ type LocalVerificationTests() =
         this.Expect "ItemAccess2" [ Error ErrorCode.UnknownItemName ]
         this.Expect "ItemAccess3" []
         this.Expect "ItemAccess4" []
-
-        this.Expect
-            "ItemAccess5"
-            [
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-                Error ErrorCode.ArgumentMismatchInBinaryOp
-            ]
-
+        this.Expect "ItemAccess5" [ Error ErrorCode.MissingBaseType ]
         this.Expect "ItemAccess6" []
         this.Expect "ItemAccess7" []
         this.Expect "ItemAccess8" []
         this.Expect "ItemAccess9" []
         this.Expect "ItemAccess10" []
         this.Expect "ItemAccess11" []
-
-        this.Expect
-            "ItemAccess12"
-            [
-                Error ErrorCode.OperationCallOutsideOfOperation
-                Error ErrorCode.OperationCallOutsideOfOperation
-            ]
+        this.Expect "ItemAccess12" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
 
         this.Expect
             "ItemAccess13"

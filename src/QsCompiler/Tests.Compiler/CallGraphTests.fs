@@ -345,16 +345,16 @@ type CallGraphTests(output: ITestOutputHelper) =
         AssertInConcreteGraph graph BarCtlAdj
         AssertInConcreteGraph graph Unused
 
-    [<Fact(Skip = "Double reference resolution is not yet supported")>]
+    [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
     member this.``Concrete Graph Double Reference Resolution``() =
         let graph = PopulateCallGraphWithExe 11 |> ConcreteCallGraph
 
         let makeNode resType =
-            MakeNode "Foo" QsSpecializationKind.QsBody [ ("A", resType) ]
+            MakeNode "Foo" QsSpecializationKind.QsBody [ "A", resType ]
 
         let FooInt = makeNode Int
-        let FooFunc = makeNode ((ResolvedType.New Int, ResolvedType.New Int) |> QsTypeKind.Function)
+        let FooFunc = makeNode (QsTypeKind.Function(ResolvedType.New Int, ResolvedType.New Int))
 
         AssertInConcreteGraph graph FooInt
         AssertInConcreteGraph graph FooFunc
