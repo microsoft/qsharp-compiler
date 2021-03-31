@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else
                     {
-                        this.SetCurrentBlock(unreachableBlock);
+                        this.currentBuilder = unreachableBuilder;
                     }
                 }
                 else

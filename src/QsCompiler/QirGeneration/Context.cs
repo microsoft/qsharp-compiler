@@ -91,7 +91,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumInstructionSet;
 
-        internal FunctionContext FunctionContext { get; private set; }
+        private FunctionContext? functionContext;
+        internal FunctionContext FunctionContext
+        {
+            get => this.functionContext ?? throw new InvalidOperationException();
+            private set => this.functionContext = value;
+        }
+
         internal IrFunction CurrentFunction => this.FunctionContext.Function;
         internal ITypeRef? BuiltType { get; set; }
 

@@ -198,7 +198,7 @@ namespace Microsoft.Quantum.QIR
 
             var newStart = this.sharedState.FunctionContext.Emit(b =>
                 b.Add(start, b.Mul(step, b.SDiv(b.Sub(end, start), step))));
-            return this.sharedState.CreateRange(newStart, this.sharedState.FunctionContext.Emit(b => b.Neg(step), start));
+            return this.sharedState.CreateRange(newStart, this.sharedState.FunctionContext.Emit(b => b.Neg(step)), start);
         }
 
         private IValue Message(TypedExpression arg)
