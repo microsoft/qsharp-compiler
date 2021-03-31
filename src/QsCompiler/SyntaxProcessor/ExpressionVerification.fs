@@ -772,7 +772,8 @@ type QsExpression with
             if isPartial || context.IsInOperation then
                 inference.Constrain(callable.ResolvedType, Callable(argType, output)) |> List.iter diagnose
             else
-                // TODO: Better error message.
+                // TODO: This error message could be improved. Calling an operation from a function is currently a type
+                // mismatch error.
                 inference.Unify
                     (QsTypeKind.Function(argType, output) |> ResolvedType.create (TypeRange.inferred callable.Range),
                      callable.ResolvedType)
@@ -789,12 +790,10 @@ type QsExpression with
                     result
                 | None -> output
 
-            // Be pessimistic: if we don't know that the callable is a function at this point, assume it's an
-            // operation.
             let isFunction =
                 match (inference.Resolve callable.ResolvedType).Resolution with
                 | QsTypeKind.Function _ -> true
-                | _ -> false
+                | _ -> false // Be pessimistic and assume the callable is an operation.
 
             let hasQuantumDependency =
                 if isPartial || isFunction then
