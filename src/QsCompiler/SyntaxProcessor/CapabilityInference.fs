@@ -276,7 +276,8 @@ let rec private referenceReasons context
 and private referenceDiagnostics includeReasons context (name: QsQualifiedName, range: _ QsNullable) =
     match context.Globals.TryGetCallable name (context.Symbols.Parent.Namespace, context.Symbols.SourceFile) with
     | Found declaration ->
-        let capability = (BuiltIn.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
+        let capability =
+            (SymbolResolution.TryGetRequiredCapability declaration.Attributes).ValueOr RuntimeCapability.Base
 
         if context.Capability.Implies capability then
             Seq.empty
@@ -388,7 +389,7 @@ let private callableDependentCapability (callables: ImmutableDictionary<_, _>) (
 
     // The capability of a callable based on its initial capability and the capability of all dependencies.
     and callableCapability visited (callable: QsCallable) =
-        (BuiltIn.TryGetRequiredCapability callable.Attributes)
+        (SymbolResolution.TryGetRequiredCapability callable.Attributes)
             .ValueOrApply(fun () ->
                 if isDeclaredInSourceFile callable then
                     [
@@ -430,7 +431,8 @@ let InferCapabilities compilation =
     transformation.Namespaces <-
         { new NamespaceTransformation(transformation) with
             override this.OnCallableDeclaration callable =
-                let isMissingCapability = BuiltIn.TryGetRequiredCapability callable.Attributes |> QsNullable.isNull
+                let isMissingCapability =
+                    SymbolResolution.TryGetRequiredCapability callable.Attributes |> QsNullable.isNull
 
                 if isMissingCapability && isDeclaredInSourceFile callable
                 then callableCapability callable |> toAttribute |> callable.AddAttribute

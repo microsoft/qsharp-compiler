@@ -11,15 +11,14 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
-open Microsoft.Quantum.QsCompiler.Transformations.IntrinsicResolution
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
+open Microsoft.Quantum.QsCompiler.Transformations.Targeting
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
 open Xunit.Abstractions
@@ -118,7 +117,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
     member private this.BuildReference(source: string, content) =
         let comp = this.BuildContent(new CompilationUnitManager(), content)
-        Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = DiagnosticSeverity.Error))
+        Assert.Empty(comp.Diagnostics() |> Seq.filter (fun d -> d.Severity = Nullable DiagnosticSeverity.Error))
         struct (source, comp.BuiltCompilation.Namespaces)
 
     member private this.CompileMonomorphization input =
@@ -153,7 +152,7 @@ type LinkingTests(output: ITestOutputHelper) =
             result.Namespaces
             |> Seq.find (fun ns -> ns.Name = Signatures.IntrinsicResolutionNs)
             |> (fun x -> [ x ])
-            |> SyntaxExtensions.Callables
+            |> SyntaxTreeExtensions.Callables
             |> Seq.find (fun call -> call.FullName = targetCallName)
 
         (*Check that the operation is not intrinsic*)
@@ -394,7 +393,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
 
     [<Fact>]
-    member this.``Fail on multiple entry points``() =
+    member this.``Supports multiple entry points``() =
 
         let entryPoints = LinkingTests.ReadAndChunkSourceFile "ValidEntryPoints.qs"
         Assert.True(entryPoints.Length > 1)
@@ -402,7 +401,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let fileId = getTempFile ()
         let file = getManager fileId entryPoints.[0]
         compilationManager.AddOrUpdateSourceFileAsync(file) |> ignore
-        this.CompileAndVerify compilationManager entryPoints.[1] [ Error ErrorCode.OtherEntryPointExists ]
+        this.CompileAndVerify compilationManager entryPoints.[1] []
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
 

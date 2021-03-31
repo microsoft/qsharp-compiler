@@ -393,7 +393,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// or if the specified uri is not a valid file uri.
         /// or if some parameters are unspecified (null) or inconsistent with the tracked editor state.
         /// </summary>
-        public WorkspaceEdit? Rename(RenameParams param, bool versionedChanges = false) =>
+        public WorkspaceEdit? Rename(RenameParams? param, bool versionedChanges = false) =>
             ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.Rename(param, versionedChanges) : null;
 
         /// <summary>

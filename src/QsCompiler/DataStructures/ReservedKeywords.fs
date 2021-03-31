@@ -255,6 +255,10 @@ module AssemblyConstants =
     let ToffoliSimulator = "ToffoliSimulator"
     let ResourcesEstimator = "ResourcesEstimator"
     let ExposeReferencesViaTestNames = "ExposeReferencesViaTestNames"
+    let QirOutputPath = "QirOutputPath"
+    let PerfDataOutputPath = "PerfDataOutputPath"
+    let DocsOutputPath = "DocsOutputPath"
+    let DocsPackageId = "DocsPackageId"
     let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
 
     /// The runtime capabilities supported by an execution target. The names of the capabilities here match the ones

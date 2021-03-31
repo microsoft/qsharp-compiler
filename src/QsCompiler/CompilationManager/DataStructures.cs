@@ -29,10 +29,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// lesser are considered "non-string" states.
         ///
         /// Here is an example of how these states relate to Q# text:
-        ///     let str = <NoOpenString> " <OpenString> Hello World" <NoOpenString>;
-        ///     let str2 = <NoOpenString> $" <OpenInterpolatedString> Hello
-        ///         { <OpenInterpolatedArgument> " <OpenStringInOpenInterpolatedArgument> World" <OpenInterpolatedArgument> }
-        ///         <OpenInterpolatedString> " <NoOpenString>;
+        ///     let str = [NoOpenString] " [OpenString] Hello World" [NoOpenString];
+        ///     let str2 = [NoOpenString] $" [OpenInterpolatedString] Hello
+        ///         { [OpenInterpolatedArgument] " [OpenStringInOpenInterpolatedArgument] World" [OpenInterpolatedArgument] }
+        ///         [OpenInterpolatedString] " [NoOpenString];
         /// </summary>
         internal enum StringContext
         {
