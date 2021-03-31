@@ -1169,43 +1169,43 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
 
     // deprecation warnings
 
-    @ Attribute()
-    @ Deprecated("")
+    @Attribute()
+    @Deprecated("")
     newtype DeprecatedAttribute = Unit;
 
-    @ Attribute()
-    @ Deprecated("OldAttribute")
+    @Attribute()
+    @Deprecated("OldAttribute")
     newtype RenamedAttribute = Unit;
 
-    @ Deprecated("")
+    @Deprecated("")
     newtype DeprecatedType = Unit;
 
-    @ Deprecated("NewTypeName")
+    @Deprecated("NewTypeName")
     newtype RenamedType = Unit;
 
-    @ Deprecated("")
+    @Deprecated("")
     function DeprecatedCallable() : Unit {}
 
-    @ Deprecated("NewCallableName")
+    @Deprecated("NewCallableName")
     function RenamedCallable() : Unit {}
 
-    @ Deprecated("")
-    @ Deprecated("")
+    @Deprecated("")
+    @Deprecated("")
     function DuplicateDeprecateAttribute1() : Unit {}
 
-    @ Deprecated("")
-    @ Deprecated("NewName") // will be ignored
+    @Deprecated("")
+    @Deprecated("NewName") // will be ignored
     function DuplicateDeprecateAttribute2() : Unit {}
 
 
     newtype DeprecatedItemType1 = (Unit -> DeprecatedType)[];
 
-    @ Attribute()
+    @Attribute()
     newtype DeprecatedItemType2 = DeprecatedType;
 
     newtype RenamedItemType1 = (Int, RenamedType);
 
-    @ Attribute()
+    @Attribute()
     newtype RenamedItemType2 = RenamedType;
 
 
@@ -1221,7 +1221,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         DeprecatedCallable();
     }
 
-    @ Deprecated("nested")
+    @Deprecated("nested")
     function NestedDeprecatedCallable() : Unit {
         DeprecatedCallable();
     }
@@ -1235,16 +1235,16 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
 
-    @ DeprecatedAttribute()
+    @DeprecatedAttribute()
     function UsingDeprecatedAttribute1 () : Unit {}
 
-    @ DeprecatedAttribute()
+    @DeprecatedAttribute()
     operation UsingDeprecatedAttribute2 () : Unit {}
 
-    @ DeprecatedAttribute()
+    @DeprecatedAttribute()
     newtype UsingDeprecatedAttribute3 = Unit;
 
-    @ Deprecated("")
+    @Deprecated("")
     function DeprecatedAttributeInDeprecatedCallable() : Unit {
         UsingDeprecatedAttribute1();
     }
@@ -1253,7 +1253,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         DeprecatedAttributeInDeprecatedCallable();
     }
 
-    @ Deprecated("")
+    @Deprecated("")
     function DeprecatedTypeInDeprecatedCallable() : Unit {
         let _ = DeprecatedType();
     }
@@ -1262,13 +1262,13 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         DeprecatedTypeInDeprecatedCallable();
     }
 
-    @ RenamedAttribute()
+    @RenamedAttribute()
     function UsingRenamedAttribute1 () : Unit {}
 
-    @ RenamedAttribute()
+    @RenamedAttribute()
     operation UsingRenamedAttribute2 () : Unit {}
 
-    @ RenamedAttribute()
+    @RenamedAttribute()
     newtype UsingRenamedAttribute3 = Unit;
 
 
@@ -1311,152 +1311,152 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     @Test("QuantumSimulator")
     function ValidTestAttribute1 () : Unit {}
 
-    @ Test("ResourcesEstimator")
+    @Test("ResourcesEstimator")
     function ValidTestAttribute2 () : Unit {}
 
-    @ Test("ToffoliSimulator")
+    @Test("ToffoliSimulator")
     function ValidTestAttribute3 () : Unit {}
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     operation ValidTestAttribute4 () : Unit {}
 
-    @ Test("ResourcesEstimator")
+    @Test("ResourcesEstimator")
     operation ValidTestAttribute5 () : Unit {}
 
-    @ Test("ToffoliSimulator")
+    @Test("ToffoliSimulator")
     operation ValidTestAttribute6 () : Unit {}
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     operation ValidTestAttribute7 () : Unit
     is Adj + Ctl{}
 
-    @ Test("ResourcesEstimator")
+    @Test("ResourcesEstimator")
     operation ValidTestAttribute8 () : Unit
     is Adj {}
 
-    @ Test("ToffoliSimulator")
+    @Test("ToffoliSimulator")
     operation ValidTestAttribute9 () : Unit
     is Ctl {}
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     function ValidTestAttribute10 () : ((Unit)) {}
 
-    @ Test("ResourcesEstimator")
+    @Test("ResourcesEstimator")
     function ValidTestAttribute11 (arg : Unit) : Unit { }
 
-    @ Test("ToffoliSimulator")
+    @Test("ToffoliSimulator")
     operation ValidTestAttribute12 (arg : (Unit)) : Unit { }
 
-    @ Test("QuantumSimulator")
-    @ Test("ToffoliSimulator")
-    @ Test("ResourcesEstimator")
+    @Test("QuantumSimulator")
+    @Test("ToffoliSimulator")
+    @Test("ResourcesEstimator")
     function ValidTestAttribute13 () : Unit { }
 
-    @ Test("QuantumSimulator")
-    @ Test("ToffoliSimulator")
-    @ Test("ResourcesEstimator")
+    @Test("QuantumSimulator")
+    @Test("ToffoliSimulator")
+    @Test("ResourcesEstimator")
     operation ValidTestAttribute14 () : Unit { }
 
-    @ Test("QuantumSimulator")
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     operation ValidTestAttribute15 () : Unit { }
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     operation ValidTestAttribute16 () : { }
 
-    @ Test("SomeNamespace.Target")
+    @Test("SomeNamespace.Target")
     operation ValidTestAttribute17 () : Unit { }
 
-    @ Test("SomeNamespace.Target1")
-    @ Test("_Some3_Namespace_._My45.Target2")
+    @Test("SomeNamespace.Target1")
+    @Test("_Some3_Namespace_._My45.Target2")
     function ValidTestAttribute18 () : Unit { }
 
-    @ Test("SomeNamespace.Target")
-    @ Test("SomeNamespace.Target")
+    @Test("SomeNamespace.Target")
+    @Test("SomeNamespace.Target")
     function ValidTestAttribute19 () : Unit { }
 
-    @ Test("SomeNamespace.Target")
-    @ Test("QuantumSimulator")
+    @Test("SomeNamespace.Target")
+    @Test("QuantumSimulator")
     operation ValidTestAttribute20 () : Unit { }
 
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     newtype InvalidTestAttribute1 = Unit;
 
     function InvalidTestAttribute2 () : Unit {
-        @ Test("ToffoliSimulator")
+        @Test("ToffoliSimulator")
         body (...) {}
     }
 
     operation InvalidTestAttribute3 () : Unit {
-        @ Test("ResourcesEstimator")
+        @Test("ResourcesEstimator")
         body (...) {}
     }
 
     operation InvalidTestAttribute4 () : Unit {
         body (...) { }
-        @ Test("ResourcesEstimator")
+        @Test("ResourcesEstimator")
         adjoint (...) { }
     }
 
-    @ Test("ResourcesEstimator")
+    @Test("ResourcesEstimator")
     function InvalidTestAttribute5<'T> () : Unit { }
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     operation InvalidTestAttribute6<'T> () : Unit { }
 
-    @ Test("ResourcesEstimator")
+    @Test("ResourcesEstimator")
     operation InvalidTestAttribute7 () : Int {
         return 1;
     }
 
-    @ Test("ToffoliSimulator")
+    @Test("ToffoliSimulator")
     function InvalidTestAttribute8 () : String {
         return "";
     }
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     function InvalidTestAttribute9 (a : Unit, b : Unit) : Unit { }
 
-    @ Test("ResourcesEstimator")
+    @Test("ResourcesEstimator")
     operation InvalidTestAttribute10 (a : Bool) : Unit { }
 
-    @ Test("ToffoliSimulator")
+    @Test("ToffoliSimulator")
     operation InvalidTestAttribute11 ((a : Double)) : Unit { }
 
-    @ Test("")
+    @Test("")
     operation InvalidTestAttribute12 () : Unit { }
 
-    @ Test("  ")
+    @Test("  ")
     function InvalidTestAttribute13 () : Unit { }
 
-    @ Test("Target")
+    @Test("Target")
     function InvalidTestAttribute14 () : Unit { }
 
-    @ Test("Target")
-    @ Test("ToffoliSimulator")
-    @ Test("ToffoliSimulator")
+    @Test("Target")
+    @Test("ToffoliSimulator")
+    @Test("ToffoliSimulator")
     operation InvalidTestAttribute15 () : Unit { }
 
-    @ Test("QuantumSimulator")
+    @Test("QuantumSimulator")
     operation InvalidTestAttribute16 () : NonExistent { }
 
-    @ Test ()
+    @Test ()
     operation InvalidTestAttribute17 () : Unit { }
 
-    @ Test
+    @Test
     operation InvalidTestAttribute18 () : Unit { }
 
-    @ Test("SomeNamespace.")
+    @Test("SomeNamespace.")
     operation InvalidTestAttribute19 () : Unit { }
 
-    @ Test("NS.3Qubit")
+    @Test("NS.3Qubit")
     operation InvalidTestAttribute20 () : Unit { }
 
-    @ Test("SomeNamespace .Target")
+    @Test("SomeNamespace .Target")
     function InvalidTestAttribute21 () : Unit { }
 
-    @ Test("Some Namespace.Target")
+    @Test("Some Namespace.Target")
     function InvalidTestAttribute22 () : Unit { }
 
 

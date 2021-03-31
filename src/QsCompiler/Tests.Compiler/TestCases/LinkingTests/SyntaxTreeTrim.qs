@@ -4,7 +4,7 @@
 // Trimmer Removes Unused Callables
 namespace Microsoft.Quantum.Testing.SyntaxTreeTrimming {
     
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         UsedOp();
     }
@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.Testing.SyntaxTreeTrimming {
     newtype UsedUDT = Int;
     newtype UnusedUDT = String;
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         let x = UsedUDT(3);
     }
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.Testing.SyntaxTreeTrimming {
 // Trimmer Keeps Intrinsics When Told
 namespace Microsoft.Quantum.Testing.SyntaxTreeTrimming {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         UsedIntrinsic();
     }
@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.Testing.SyntaxTreeTrimming {
 // Trimmer Removes Intrinsics When Told
 namespace Microsoft.Quantum.Testing.SyntaxTreeTrimming {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         UsedIntrinsic();
     }
