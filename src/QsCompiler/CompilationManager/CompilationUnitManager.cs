@@ -999,7 +999,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .SelectMany(d => d);
 
             /// <summary>
-            /// Get namespace comments (non-documenting).
+            /// Gets non-documentation comments for a namespace.
             /// </summary>
             /// <remarks>
             /// If file <paramref name="sourceFile"/> does not exist in the compilation, or there is not
