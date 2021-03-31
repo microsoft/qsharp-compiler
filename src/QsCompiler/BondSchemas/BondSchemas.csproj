@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <BondCodegen Remove="*.bond" />
+    <BondCodegen Remove="**\*.bond" />
   </ItemGroup>
 
   <ItemGroup>
@@ -21,6 +21,7 @@
 
   <ItemGroup>
     <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
+    <Compile Include="..\..\Common\SigningConstants.cs" Link="Properties\SigningConstants.cs" />
   </ItemGroup>
 
 </Project>

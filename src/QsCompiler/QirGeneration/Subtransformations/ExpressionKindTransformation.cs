@@ -127,6 +127,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         // static methods
 
+        /// <returns>
+        /// True if the expression is self-evaluating and
+        /// doesn't require encapsulating into its own block if it should only be evaluated conditionally.
+        /// </returns>
+        private static bool ExpressionIsSelfEvaluating(TypedExpression ex) =>
+            ex.Expression.IsIdentifier || ex.Expression.IsBoolLiteral || ex.Expression.IsDoubleLiteral
+                || ex.Expression.IsIntLiteral || ex.Expression.IsPauliLiteral || ex.Expression.IsRangeLiteral
+                || ex.Expression.IsResultLiteral || ex.Expression.IsUnitValue;
+
         /// <summary>
         /// Determines the location of the item with the given name within the tuple of type items.
         /// The returned list contains the index of the item starting from the outermost tuple
@@ -377,7 +386,321 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
+        /// <summary>
+        /// Creates a string literal that contains the given values as interpolation arguments.
+        /// The given string is expected to consist of text interspaced with integer constants between curly brackets,
+        /// e.g. "Hello, {0}!". The content between non-escaped curly brackets is parsed as integer,
+        /// and replaced with the string representation of the interpolation argument at that index.
+        /// Registers the built string with the scope manager.
+        /// </summary>
+        internal static IValue CreateStringLiteral(GenerationContext sharedState, string str, params IValue[] interpolArgs)
+        {
+            static (int, int, int) FindNextExpression(string s, int start)
+            {
+                while (true)
+                {
+                    var i = s.IndexOf('{', start);
+                    if (i == -1)
+                    {
+                        return (-1, s.Length, -1);
+                    }
+                    // if the number of backslashes before the '{' is even, then the '{' is not escapted
+                    else if (((i - start) - s.Substring(start, i - start).TrimEnd('\\').Length) % 2 == 0)
+                    {
+                        var j = s.IndexOf('}', i + 1);
+                        if (j == -1)
+                        {
+                            throw new FormatException("Missing } in interpolated string");
+                        }
+                        var n = int.Parse(s[(i + 1)..j]);
+                        return (i, j + 1, n);
+                    }
+                    start = i + 1;
+                }
+            }
+
+            // Creates a string value that needs to be queued for unreferencing.
+            Value CreateConstantString(string s)
+            {
+                // Deal with escape sequences: \{, \\, \n, \r, \t, \". This is not an efficient
+                // way to do this, but it's simple and clear, and strings are uncommon in Q#.
+                var cleanStr = s.Replace("\\{", "{").Replace("\\\\", "\\").Replace("\\n", "\n")
+                    .Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\"", "\"");
+
+                Value? constantArray = null;
+                if (cleanStr.Length > 0)
+                {
+                    var constantString = sharedState.Context.CreateConstantString(cleanStr, true);
+                    var globalConstant = sharedState.Module.AddGlobal(
+                        constantString.NativeType, true, Linkage.Internal, constantString);
+                    constantArray = sharedState.CurrentBuilder.GetElementPtr(
+                        sharedState.Context.Int8Type.CreateArrayType((uint)cleanStr.Length + 1), // +1 because zero terminated
+                        globalConstant,
+                        new[] { sharedState.Context.CreateConstant(0) });
+                }
+
+                var zeroLengthString = constantArray == null
+                    ? sharedState.Types.DataArrayPointer.GetNullValue()
+                    : sharedState.CurrentBuilder.BitCast(
+                        constantArray,
+                        sharedState.Types.DataArrayPointer);
+
+                var createString = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
+                return sharedState.CurrentBuilder.Call(createString, zeroLengthString);
+            }
+
+            // Creates a new string with reference count 1 that needs to be queued for unreferencing
+            // and contains the concatenation of both values. Both arguments are unreferenced.
+            Value DoAppend(Value? curr, Value next, bool unreferenceNext = true)
+            {
+                var refCountUpdate = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
+                var plusOne = sharedState.Context.CreateConstant(1);
+                var minusOne = sharedState.Context.CreateConstant(-1);
+
+                if (curr == null)
+                {
+                    if (!unreferenceNext)
+                    {
+                        // Since we return next instead of a new string,
+                        // we need to increase the reference count of next unless unreferenceNext is true.
+                        sharedState.CurrentBuilder.Call(refCountUpdate, next, plusOne);
+                    }
+                    return next;
+                }
+
+                // The runtime function StringConcatenate creates a new value with reference count 1.
+                var concatenate = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
+                var app = sharedState.CurrentBuilder.Call(concatenate, curr, next);
+                sharedState.CurrentBuilder.Call(refCountUpdate, curr, minusOne);
+                if (unreferenceNext)
+                {
+                    sharedState.CurrentBuilder.Call(refCountUpdate, next, minusOne);
+                }
+                return app;
+            }
+
+            // Creates a string value that needs to be queued for unreferencing.
+            Value ExpressionToString(IValue evaluated)
+            {
+                void UpdateStringRefCount(Value str, int change)
+                {
+                    var addReference = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
+                    var countChange = sharedState.Context.CreateConstant(change);
+                    sharedState.CurrentBuilder.Call(addReference, str, countChange);
+                }
+
+                // Creates a string value that needs to be queued for unreferencing.
+                Value SimpleToString(string rtFuncName)
+                {
+                    var createString = sharedState.GetOrCreateRuntimeFunction(rtFuncName);
+                    return sharedState.CurrentBuilder.Call(createString, evaluated.Value);
+                }
+
+                Value TupleToString(TupleValue tuple)
+                {
+                    var str = CreateConstantString($"{tuple.TypeName}(");
+                    var tupleElements = tuple.GetTupleElements();
+                    Value? comma = null;
+
+                    for (var idx = 0; idx < tupleElements.Length; ++idx)
+                    {
+                        str = DoAppend(str, ExpressionToString(tupleElements[idx]));
+                        if (idx == tupleElements.Length - 1)
+                        {
+                            str = DoAppend(str, CreateConstantString(")"), unreferenceNext: true);
+                        }
+                        else
+                        {
+                            comma ??= CreateConstantString(",");
+                            str = DoAppend(str, comma, unreferenceNext: false);
+                        }
+                    }
+
+                    if (comma != null)
+                    {
+                        UpdateStringRefCount(comma, -1);
+                    }
+                    return str;
+                }
+
+                var ty = evaluated.QSharpType.Resolution;
+                if (ty.IsString)
+                {
+                    UpdateStringRefCount(evaluated.Value, 1);
+                    return evaluated.Value;
+                }
+                else if (ty.IsBigInt)
+                {
+                    return SimpleToString(RuntimeLibrary.BigIntToString);
+                }
+                else if (ty.IsBool)
+                {
+                    return SimpleToString(RuntimeLibrary.BoolToString);
+                }
+                else if (ty.IsInt)
+                {
+                    return SimpleToString(RuntimeLibrary.IntToString);
+                }
+                else if (ty.IsResult)
+                {
+                    return SimpleToString(RuntimeLibrary.ResultToString);
+                }
+                else if (ty.IsPauli)
+                {
+                    return SimpleToString(RuntimeLibrary.PauliToString);
+                }
+                else if (ty.IsQubit)
+                {
+                    return SimpleToString(RuntimeLibrary.QubitToString);
+                }
+                else if (ty.IsRange)
+                {
+                    return SimpleToString(RuntimeLibrary.RangeToString);
+                }
+                else if (ty.IsDouble)
+                {
+                    return SimpleToString(RuntimeLibrary.DoubleToString);
+                }
+                else if (ty.IsFunction)
+                {
+                    return CreateConstantString("<function>");
+                }
+                else if (ty.IsOperation)
+                {
+                    return CreateConstantString("<operation>");
+                }
+                else if (ty.IsUnitType)
+                {
+                    return CreateConstantString("()");
+                }
+                else if (ty.IsArrayType)
+                {
+                    var arr = (ArrayValue)evaluated;
+                    var str = CreateConstantString("[");
+                    Value comma = CreateConstantString(",");
+                    Value closeParens = CreateConstantString("]");
+
+                    sharedState.IterateThroughArray(arr, item =>
+                    {
+                        str = DoAppend(str, ExpressionToString(item));
+                        str = DoAppend(str, comma, unreferenceNext: false);
+                    });
+
+                    str = DoAppend(str, closeParens);
+                    UpdateStringRefCount(comma, -1);
+                    return str;
+                }
+                else if (ty.IsTupleType || ty.IsUserDefinedType)
+                {
+                    var tuple = (TupleValue)evaluated;
+                    return TupleToString(tuple);
+                }
+                else
+                {
+                    throw new NotSupportedException("unkown type for expression in conversion to string");
+                }
+            }
+
+            Value? current = null;
+            if (interpolArgs.Length > 0)
+            {
+                // Compiled interpolated strings look like <text>{<int>}<text>...
+                // Our basic pattern is to scan for the next '{', append the intervening text if any
+                // as a constant string, scan for the closing '}', parse out the integer in between,
+                // evaluate the corresponding expression, append it, and keep going.
+                // We do have to be a little careful because we can't just look for '{', we have to
+                // make sure we skip escaped braces -- "\{".
+                var offset = 0;
+                while (offset < str.Length)
+                {
+                    var (end, next, index) = FindNextExpression(str, offset);
+                    if (end < 0)
+                    {
+                        var last = CreateConstantString(str[offset..]);
+                        current = DoAppend(current, last);
+                        break;
+                    }
+                    else
+                    {
+                        if (end > offset)
+                        {
+                            var last = CreateConstantString(str[offset..end]);
+                            current = DoAppend(current, last);
+                        }
+
+                        if (index >= 0)
+                        {
+                            var exString = ExpressionToString(interpolArgs[index]);
+                            current = DoAppend(current, exString);
+                        }
+
+                        offset = next;
+                    }
+                }
+            }
+
+            current ??= CreateConstantString(str);
+            var value = sharedState.Values.From(current, ResolvedType.New(ResolvedTypeKind.String));
+            sharedState.ScopeMgr.RegisterValue(value);
+            return value;
+        }
+
         // private helpers
+
+        /// <summary>
+        /// Depending on the value of the given condition, evaluates the expression given for the corresponding branch.
+        /// </summary>
+        /// <returns>
+        /// A phi node that evaluates to either the value of the expression depending on the branch that was taken,
+        /// or the value of the condition if no expression has been specified for that branch.
+        /// </returns>
+        private Value ConditionalEvaluation(Value condition, TypedExpression? onCondTrue = null, TypedExpression? onCondFalse = null)
+        {
+            var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
+            var falseBlock = onCondFalse != null
+                ? this.SharedState.AddBlockAfterCurrent("condFalse")
+                : contBlock;
+            var trueBlock = onCondTrue != null
+                ? this.SharedState.AddBlockAfterCurrent("condTrue")
+                : contBlock;
+
+            // In order to ensure the correct reference counts, it is important that we create a new scope
+            // for each branch of the conditional. When we close the scope, we list the computed value as
+            // to be returned from that scope, meaning it either won't be dereferenced or its reference
+            // count will increase by 1. The result of the expression is a phi node that we then properly
+            // register with the scope manager, such that it will be unreferenced when going out of scope.
+
+            this.SharedState.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
+            var entryBlock = this.SharedState.CurrentBlock!;
+
+            var (evaluatedOnTrue, afterTrue) = (condition, entryBlock);
+            if (onCondTrue != null)
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.SetCurrentBlock(trueBlock);
+                var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
+                this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
+                this.SharedState.CurrentBuilder.Branch(contBlock);
+                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.SharedState.CurrentBlock!);
+            }
+
+            var (evaluatedOnFalse, afterFalse) = (condition, entryBlock);
+            if (onCondFalse != null)
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                this.SharedState.SetCurrentBlock(falseBlock);
+                var onFalse = this.SharedState.EvaluateSubexpression(onCondFalse);
+                this.SharedState.ScopeMgr.CloseScope(onFalse, false); // force that the ref count is increased within the branch
+                this.SharedState.CurrentBuilder.Branch(contBlock);
+                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.SharedState.CurrentBlock!);
+            }
+
+            this.SharedState.SetCurrentBlock(contBlock);
+            var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
+            phi.AddIncoming(evaluatedOnTrue, afterTrue);
+            phi.AddIncoming(evaluatedOnFalse, afterFalse);
+            return phi;
+        }
 
         /// <summary>
         /// Handles calls to specific functor specializations of global callables.
@@ -400,7 +723,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     args = vs.Item.Select(this.SharedState.EvaluateSubexpression);
                 }
-                else if (arg.ResolvedType.Resolution.IsTupleType && arg.ResolvedType.Resolution is ResolvedTypeKind.TupleType ts)
+                else if (arg.ResolvedType.Resolution is ResolvedTypeKind.TupleType ts)
                 {
                     var evaluatedArg = (TupleValue)this.SharedState.EvaluateSubexpression(arg);
                     args = evaluatedArg.GetTupleElements();
@@ -849,11 +1172,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnConditionalExpression(TypedExpression condEx, TypedExpression ifTrueEx, TypedExpression ifFalseEx)
         {
-            static bool ExpressionIsSelfEvaluating(TypedExpression ex) =>
-                ex.Expression.IsIdentifier || ex.Expression.IsBoolLiteral || ex.Expression.IsDoubleLiteral
-                    || ex.Expression.IsIntLiteral || ex.Expression.IsPauliLiteral || ex.Expression.IsRangeLiteral
-                    || ex.Expression.IsResultLiteral || ex.Expression.IsUnitValue;
-
             var cond = this.SharedState.EvaluateSubexpression(condEx);
             var exType = this.SharedState.CurrentExpressionType();
             IValue value;
@@ -869,39 +1187,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
-                var falseBlock = this.SharedState.AddBlockAfterCurrent("condFalse");
-                var trueBlock = this.SharedState.AddBlockAfterCurrent("condTrue");
-
-                // In order to ensure the correct reference counts, it is important that we create a new scope
-                // for each branch of the conditional. When we close the scope, we list the computed value as
-                // to be returned from that scope, meaning it either won't be dereferenced or its reference
-                // count will increase by 1. The result of the expression is a phi node that we then properly
-                // register with the scope manager, such that it will be unreferenced when going out of scope.
-
-                this.SharedState.CurrentBuilder.Branch(cond.Value, trueBlock, falseBlock);
-
-                this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.SetCurrentBlock(trueBlock);
-                this.Transformation.Expressions.OnTypedExpression(ifTrueEx);
-                var ifTrue = this.SharedState.ValueStack.Pop();
-                this.SharedState.ScopeMgr.CloseScope(ifTrue, false); // force that the ref count is increased within the branch
-                BasicBlock afterTrue = this.SharedState.CurrentBlock!;
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-
-                this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.SetCurrentBlock(falseBlock);
-                this.Transformation.Expressions.OnTypedExpression(ifFalseEx);
-                var ifFalse = this.SharedState.ValueStack.Pop();
-                this.SharedState.ScopeMgr.CloseScope(ifFalse, false); // force that the ref count is increased within the branch
-                BasicBlock afterFalse = this.SharedState.CurrentBlock!;
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-
-                this.SharedState.SetCurrentBlock(contBlock);
-                var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
-                phi.AddIncoming(ifTrue.Value, afterTrue);
-                phi.AddIncoming(ifFalse.Value, afterFalse);
-                value = this.SharedState.Values.From(phi, exType);
+                var evaluated = this.ConditionalEvaluation(cond.Value, onCondTrue: ifTrueEx, onCondFalse: ifFalseEx);
+                value = this.SharedState.Values.From(evaluated, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
 
@@ -1324,11 +1611,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnLogicalAnd(TypedExpression lhsEx, TypedExpression rhsEx)
         {
-            var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
-            var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
+            Value evaluated;
             var exType = this.SharedState.CurrentExpressionType();
-            var res = this.SharedState.CurrentBuilder.And(lhs.Value, rhs.Value);
-            var value = this.SharedState.Values.FromSimpleValue(res, exType);
+
+            // Special case: if the right hand side is self-evaluating (literal or simple identifier),
+            // we can safely evaluate both expression without introducing a branching.
+            if (ExpressionIsSelfEvaluating(rhsEx))
+            {
+                var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
+                var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
+                evaluated = this.SharedState.CurrentBuilder.And(lhs.Value, rhs.Value);
+            }
+            else
+            {
+                var cond = this.SharedState.EvaluateSubexpression(lhsEx).Value;
+                evaluated = this.ConditionalEvaluation(cond, onCondTrue: rhsEx);
+            }
+
+            var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
@@ -1346,11 +1646,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnLogicalOr(TypedExpression lhsEx, TypedExpression rhsEx)
         {
-            var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
-            var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
+            Value evaluated;
             var exType = this.SharedState.CurrentExpressionType();
-            var res = this.SharedState.CurrentBuilder.Or(lhs.Value, rhs.Value);
-            var value = this.SharedState.Values.FromSimpleValue(res, exType);
+
+            // Special case: if the right hand side is self-evaluating (literal or simple identifier),
+            // we can safely evaluate both expression without introducing a branching.
+            if (ExpressionIsSelfEvaluating(rhsEx))
+            {
+                var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
+                var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
+                evaluated = this.SharedState.CurrentBuilder.Or(lhs.Value, rhs.Value);
+            }
+            else
+            {
+                var cond = this.SharedState.EvaluateSubexpression(lhsEx).Value;
+                evaluated = this.ConditionalEvaluation(cond, onCondFalse: rhsEx);
+            }
+
+            var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
@@ -1506,8 +1819,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsResult)
                 {
-                    var pointer = this.SharedState.Constants.ResultZero;
-                    var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, pointer);
+                    var getZero = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ResultGetZero);
+                    var constant = this.SharedState.CurrentBuilder.Call(getZero);
                     return this.SharedState.Values.From(constant, type);
                 }
                 else if (type.Resolution.IsQubit)
@@ -1549,7 +1862,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (type.Resolution.IsString)
                 {
                     var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Context.CreateConstant(0), this.SharedState.Types.DataArrayPointer.GetNullValue());
+                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue());
                     var built = this.SharedState.Values.From(value, type);
                     this.SharedState.ScopeMgr.RegisterValue(built);
                     return built;
@@ -1882,8 +2195,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnResultLiteral(QsResult r)
         {
-            var valuePtr = r.IsOne ? this.SharedState.Constants.ResultOne : this.SharedState.Constants.ResultZero;
-            var constant = this.SharedState.CurrentBuilder.Load(this.SharedState.Types.Result, valuePtr);
+            var getResultLiteral = this.SharedState.GetOrCreateRuntimeFunction(
+                r.IsZero ? RuntimeLibrary.ResultGetZero : RuntimeLibrary.ResultGetOne);
+            var constant = this.SharedState.CurrentBuilder.Call(getResultLiteral);
             var exType = this.SharedState.CurrentExpressionType();
             var value = this.SharedState.Values.From(constant, exType);
             this.SharedState.ValueStack.Push(value);
@@ -1921,206 +2235,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnStringLiteral(string str, ImmutableArray<TypedExpression> exs)
         {
-            static (int, int, int) FindNextExpression(string s, int start)
-            {
-                while (true)
-                {
-                    var i = s.IndexOf('{', start);
-                    if (i < 0)
-                    {
-                        return (-1, s.Length, -1);
-                    }
-                    else if ((i == start) || (s[i - 1] != '\\'))
-                    {
-                        var j = s.IndexOf('}', i + 1);
-                        if (j < 0)
-                        {
-                            throw new FormatException("Missing } in interpolated string");
-                        }
-                        var n = int.Parse(s[(i + 1)..j]);
-                        return (i, j + 1, n);
-                    }
-                    start = i + 1;
-                }
-            }
-
-            // Creates a string value that needs to be queued for unreferencing.
-            Value CreateConstantString(string s)
-            {
-                // Deal with escape sequences: \{, \\, \n, \r, \t, \". This is not an efficient
-                // way to do this, but it's simple and clear, and strings are uncommon in Q#.
-                var cleanStr = s.Replace("\\{", "{").Replace("\\\\", "\\").Replace("\\n", "\n")
-                    .Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\"", "\"");
-
-                Value? constantArray = null;
-                if (cleanStr.Length > 0)
-                {
-                    var constantString = this.SharedState.Context.CreateConstantString(cleanStr, true);
-                    var globalConstant = this.SharedState.Module.AddGlobal(
-                        constantString.NativeType, true, Linkage.Internal, constantString);
-                    constantArray = this.SharedState.CurrentBuilder.GetElementPtr(
-                        this.SharedState.Context.Int8Type.CreateArrayType((uint)cleanStr.Length + 1), // +1 because zero terminated
-                        globalConstant,
-                        new[] { this.SharedState.Context.CreateConstant(0) });
-                }
-
-                var zeroLengthString = constantArray == null
-                    ? this.SharedState.Types.DataArrayPointer.GetNullValue()
-                    : this.SharedState.CurrentBuilder.BitCast(
-                        constantArray,
-                        this.SharedState.Types.DataArrayPointer);
-
-                var createString = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                return this.SharedState.CurrentBuilder.Call(createString, this.SharedState.Context.CreateConstant(0), zeroLengthString);
-            }
-
-            // Creates a string value that needs to be queued for unreferencing.
-            Value ExpressionToString(TypedExpression ex)
-            {
-                // Creates a string value that needs to be queued for unreferencing.
-                Value SimpleToString(TypedExpression ex, string rtFuncName)
-                {
-                    var exValue = this.SharedState.EvaluateSubexpression(ex).Value;
-                    var createString = this.SharedState.GetOrCreateRuntimeFunction(rtFuncName);
-                    return this.SharedState.CurrentBuilder.Call(createString, exValue);
-                }
-
-                var ty = ex.ResolvedType.Resolution;
-                if (ty.IsString)
-                {
-                    var addReference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                    var countChange = this.SharedState.Context.CreateConstant(1L);
-                    var value = this.SharedState.EvaluateSubexpression(ex).Value;
-                    this.SharedState.CurrentBuilder.Call(addReference, value, countChange);
-                    return value;
-                }
-                else if (ty.IsBigInt)
-                {
-                    return SimpleToString(ex, RuntimeLibrary.BigIntToString);
-                }
-                else if (ty.IsBool)
-                {
-                    return SimpleToString(ex, RuntimeLibrary.BoolToString);
-                }
-                else if (ty.IsInt)
-                {
-                    return SimpleToString(ex, RuntimeLibrary.IntToString);
-                }
-                else if (ty.IsResult)
-                {
-                    return SimpleToString(ex, RuntimeLibrary.ResultToString);
-                }
-                else if (ty.IsPauli)
-                {
-                    return SimpleToString(ex, RuntimeLibrary.PauliToString);
-                }
-                else if (ty.IsQubit)
-                {
-                    return SimpleToString(ex, RuntimeLibrary.QubitToString);
-                }
-                else if (ty.IsRange)
-                {
-                    return SimpleToString(ex, RuntimeLibrary.RangeToString);
-                }
-                else if (ty.IsDouble)
-                {
-                    return SimpleToString(ex, RuntimeLibrary.DoubleToString);
-                }
-                else if (ty.IsFunction)
-                {
-                    return CreateConstantString("<function>");
-                }
-                else if (ty.IsOperation)
-                {
-                    return CreateConstantString("<operation>");
-                }
-                else if (ty.IsUnitType)
-                {
-                    return CreateConstantString("()");
-                }
-                else if (ty.IsArrayType)
-                {
-                    // TODO: Do something better for array-to-string
-                    return CreateConstantString("[...]");
-                }
-                else if (ty.IsTupleType)
-                {
-                    // TODO: Do something better for tuple-to-string
-                    return CreateConstantString("(...)");
-                }
-                else if (ty is ResolvedTypeKind.UserDefinedType udt)
-                {
-                    // TODO: Do something better for UDT-to-string
-                    var udtName = udt.Item.Name;
-                    return CreateConstantString(udtName + "(...)");
-                }
-                else
-                {
-                    throw new NotSupportedException("unkown type for expression in conversion to string");
-                }
-            }
-
-            // Creates a new string with reference count 1 that needs to be queued for unreferencing
-            // and contains the concatenation of both values. Both both arguments are unreferenced.
-            Value DoAppend(Value? curr, Value next)
-            {
-                if (curr == null)
-                {
-                    return next;
-                }
-
-                // The runtime function StringConcatenate creates a new value with reference count 1.
-                var concatenate = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringConcatenate);
-                var unreference = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringUpdateReferenceCount);
-                var countChange = this.SharedState.Context.CreateConstant(-1L);
-                var app = this.SharedState.CurrentBuilder.Call(concatenate, curr, next);
-                this.SharedState.CurrentBuilder.Call(unreference, curr, countChange);
-                this.SharedState.CurrentBuilder.Call(unreference, next, countChange);
-                return app;
-            }
-
-            Value? current = null;
-            if (!exs.IsEmpty)
-            {
-                // Compiled interpolated strings look like <text>{<int>}<text>...
-                // Our basic pattern is to scan for the next '{', append the intervening text if any
-                // as a constant string, scan for the closing '}', parse out the integer in between,
-                // evaluate the corresponding expression, append it, and keep going.
-                // We do have to be a little careful because we can't just look for '{', we have to
-                // make sure we skip escaped braces -- "\{".
-                var offset = 0;
-                while (offset < str.Length)
-                {
-                    var (end, next, index) = FindNextExpression(str, offset);
-                    if (end < 0)
-                    {
-                        var last = CreateConstantString(str[offset..]);
-                        current = DoAppend(current, last);
-                        break;
-                    }
-                    else
-                    {
-                        if (end > offset)
-                        {
-                            var last = CreateConstantString(str[offset..end]);
-                            current = DoAppend(current, last);
-                        }
-                        if (index >= 0)
-                        {
-                            var exString = ExpressionToString(exs[index]);
-                            current = DoAppend(current, exString);
-                        }
-
-                        offset = next;
-                    }
-                }
-            }
-
-            current ??= CreateConstantString(str);
-            var exType = this.SharedState.CurrentExpressionType();
-            var value = this.SharedState.Values.From(current, exType);
-            this.SharedState.ScopeMgr.RegisterValue(value);
-
+            var subexpressions = exs.Select(this.SharedState.EvaluateSubexpression).ToArray();
+            var value = CreateStringLiteral(this.SharedState, str, subexpressions);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
@@ -2180,7 +2296,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnValueTuple(ImmutableArray<TypedExpression> vs)
         {
-            var value = this.SharedState.Values.CreateTuple(vs);
+            IValue value =
+                vs.Length == 0 ? this.SharedState.Values.Unit :
+                vs.Length == 1 ? this.SharedState.EvaluateSubexpression(vs.Single()) :
+                this.SharedState.Values.CreateTuple(vs);
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
         }
