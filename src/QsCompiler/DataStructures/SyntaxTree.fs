@@ -150,6 +150,11 @@ type QsTypeParameter =
 
     override param.GetHashCode() = hash (param.Origin, param.TypeName)
 
+    /// <summary>
+    /// Returns this type parameter with the given <paramref name="origin"/>.
+    /// </summary>
+    member param.WithOrigin origin = { param with Origin = origin }
+
 /// used to represent the use of a user defined type within a fully resolved Q# type
 [<CustomEquality>]
 [<CustomComparison>]
@@ -492,7 +497,7 @@ module ResolvedType =
     /// <summary>
     /// Recursively replaces every range in <paramref name="resolvedType"/> with <paramref name="range"/>.
     /// </summary>
-    [<CompiledName "WithRangeRecurse">]
+    [<CompiledName "WithAllRanges">]
     let rec withAllRanges range (resolvedType: ResolvedType) =
         match resolvedType.Resolution with
         | ArrayType item -> withAllRanges range item |> ArrayType

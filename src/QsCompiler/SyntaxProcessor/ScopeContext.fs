@@ -1,9 +1,7 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
-
-#nowarn "44" // ScopeContext.IsInIfCondition is deprecated.
 
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.SymbolManagement
@@ -13,7 +11,6 @@ open System
 
 /// The context used for symbol resolution and type checking within the scope of a callable.
 type ScopeContext =
-    // TODO: RELEASE 2021-04: Remove IsInIfCondition and WithinIfCondition.
     {
         /// The namespace manager for global symbols.
         Globals: NamespaceManager
@@ -21,14 +18,11 @@ type ScopeContext =
         /// The symbol tracker for the parent callable.
         Symbols: SymbolTracker
 
+        /// The type inference context.
         Inference: InferenceContext
 
         /// True if the parent callable for the current scope is an operation.
         IsInOperation: bool
-
-        /// True if the current expression is contained within the condition of an if- or elif-statement.
-        [<Obsolete>]
-        IsInIfCondition: bool
 
         /// The return type of the parent callable for the current scope.
         ReturnType: ResolvedType
@@ -65,14 +59,8 @@ type ScopeContext =
                 Symbols = symbolTracker
                 Inference = InferenceContext symbolTracker
                 IsInOperation = declaration.Kind = Operation
-                IsInIfCondition = false
                 ReturnType = StripPositionInfo.Apply declaration.Signature.ReturnType
                 Capability = capability
                 ProcessorArchitecture = processorArchitecture
             }
-        | _ -> raise <| ArgumentException "The specialization's parent callable does not exist."
-
-    /// Returns a new scope context for an expression that is contained within the condition of an if- or
-    /// elif-statement.
-    [<Obsolete>]
-    member this.WithinIfCondition = { this with IsInIfCondition = true }
+        | _ -> ArgumentException "The specialization's parent callable does not exist." |> raise

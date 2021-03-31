@@ -1,4 +1,7 @@
-﻿namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace Microsoft.Quantum.QsCompiler.SyntaxProcessing
 
 open System
 open System.Collections.Generic
@@ -12,7 +15,6 @@ open Microsoft.Quantum.QsCompiler.SymbolManagement
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 /// Used to represent all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
 /// Specifically, the tracked properties are pushed and popped for each scope.

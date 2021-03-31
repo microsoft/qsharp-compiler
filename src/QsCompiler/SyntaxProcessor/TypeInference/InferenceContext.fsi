@@ -28,16 +28,15 @@ type InferenceContext =
     member internal Fresh: source:Range -> ResolvedType
 
     /// <summary>
-    /// Unifies the <paramref name="expected"/> type with the <paramref name="actual"/> type.
+    /// Unifies the <paramref name="expected"/> type with the <paramref name="actual"/> type. Fails if
+    /// <paramref name="actual"/> is not a subtype of <paramref name="expected"/>.
     /// </summary>
     member internal Unify: expected:ResolvedType * actual:ResolvedType -> QsCompilerDiagnostic list
 
     /// <summary>
-    /// The intersection of types <paramref name="left"/> and <paramref name="right"/>.
+    /// Returns a type that is a supertype of both types <paramref name="left"/> and <paramref name="right"/>, and that
+    /// has a <see cref="TypeRange.Generated"/> range.
     /// </summary>
-    /// <returns>
-    /// The intersecting type with a <see cref="TypeRange.Generated"/> range.
-    /// </returns>
     member internal Intersect: left:ResolvedType * right:ResolvedType -> ResolvedType * QsCompilerDiagnostic list
 
     /// <summary>
