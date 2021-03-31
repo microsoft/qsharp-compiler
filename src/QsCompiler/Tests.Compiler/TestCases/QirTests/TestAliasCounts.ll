@@ -1,6 +1,6 @@
 define void @Microsoft__Quantum__Testing__QIR__TestAliasCounts__ctl(%Array* %__controlQubits__, { %Array*, { %Array* }* }* %0) {
 entry:
-  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 1)
   %1 = getelementptr inbounds { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i32 0, i32 0
   %coefficients = load %Array*, %Array** %1, align 8
   %2 = call i64 @__quantum__rt__array_get_size_1d(%Array* %coefficients)
@@ -17,7 +17,7 @@ body__1:                                          ; preds = %header__1
   %7 = bitcast i8* %6 to { double, double }**
   %8 = load { double, double }*, { double, double }** %7, align 8
   %9 = bitcast { double, double }* %8 to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i32 1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
@@ -25,14 +25,14 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__array_update_alias_count(%Array* %coefficients, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %coefficients, i32 1)
   %11 = getelementptr inbounds { %Array*, { %Array* }* }, { %Array*, { %Array* }* }* %0, i32 0, i32 1
   %qubits = load { %Array* }*, { %Array* }** %11, align 8
   %12 = getelementptr inbounds { %Array* }, { %Array* }* %qubits, i32 0, i32 0
   %13 = load %Array*, %Array** %12, align 8
-  call void @__quantum__rt__array_update_alias_count(%Array* %13, i64 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %13, i32 1)
   %14 = bitcast { %Array* }* %qubits to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 1)
   %15 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, %Array*, { %Array* }* }* getelementptr ({ double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* null, i32 1) to i64))
   %16 = bitcast %Tuple* %15 to { double, %Array*, { %Array* }* }*
   %17 = getelementptr inbounds { double, %Array*, { %Array* }* }, { double, %Array*, { %Array* }* }* %16, i32 0, i32 0
@@ -42,7 +42,7 @@ exit__1:                                          ; preds = %header__1
   store %Array* %coefficients, %Array** %18, align 8
   store { %Array* }* %qubits, { %Array* }** %19, align 8
   call void @Microsoft__Quantum__Testing__QIR__ApplyOp__ctl(%Array* %__controlQubits__, { double, %Array*, { %Array* }* }* %16)
-  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 -1)
   %20 = sub i64 %2, 1
   br label %header__2
 
@@ -56,7 +56,7 @@ body__2:                                          ; preds = %header__2
   %24 = bitcast i8* %23 to { double, double }**
   %25 = load { double, double }*, { double, double }** %24, align 8
   %26 = bitcast { double, double }* %25 to %Tuple*
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %26, i64 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %26, i32 -1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
@@ -64,9 +64,9 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  call void @__quantum__rt__array_update_alias_count(%Array* %coefficients, i64 -1)
-  call void @__quantum__rt__array_update_alias_count(%Array* %13, i64 -1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i64 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %15, i64 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %coefficients, i32 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %13, i32 -1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %15, i32 -1)
   ret void
 }

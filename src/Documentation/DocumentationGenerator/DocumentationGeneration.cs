@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using Microsoft.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using QsAssemblyConstants = Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants;
 
 namespace Microsoft.Quantum.Documentation
 {
@@ -50,36 +51,42 @@ namespace Microsoft.Quantum.Documentation
         /// <inheritdoc/>
         public bool PreconditionVerification(QsCompilation compilation)
         {
-            if (this.AssemblyConstants.TryGetValue(QsCompiler.ReservedKeywords.AssemblyConstants.DocsOutputPath, out var path) && path != null)
-            {
-                this.docsOutputPath = path;
-            }
-
-            var preconditionPassed = string.IsNullOrEmpty(this.docsOutputPath);
-            if (preconditionPassed)
-            {
-                // Diagnostics with severity Info or lower usually won't be displayed to the user.
-                // If the severity is Error or Warning the diagnostic is shown to the user like any other compiler diagnostic,
-                // and if the Source property is set to the absolute path of an existing file,
-                // the user will be directed to the file when double clicking the diagnostics.
-                this.diagnostics.Add(new IRewriteStep.Diagnostic
-                {
-                    Severity = DiagnosticSeverity.Info,
-                    Message = $"Precondition for {this.Name} was satisfied.",
-                    Stage = IRewriteStep.Stage.PreconditionVerification,
-                });
-            }
-            else
+            if (!this.AssemblyConstants.TryGetValue(QsAssemblyConstants.DocsOutputPath, out var path))
             {
                 this.diagnostics.Add(new IRewriteStep.Diagnostic
                 {
                     Severity = DiagnosticSeverity.Warning,
-                    Message = $"Precondition for {this.Name} was not satisfied: Missing assembly property DocsOutputPath.",
+                    Message = $"Documentation generation was enabled, but precondition for {this.Name} was not satisfied: Missing assembly property {QsAssemblyConstants.DocsOutputPath}.",
                     Stage = IRewriteStep.Stage.PreconditionVerification,
                 });
+                return false;
             }
 
-            return preconditionPassed;
+            if (string.IsNullOrEmpty(path))
+            {
+                this.diagnostics.Add(new IRewriteStep.Diagnostic
+                {
+                    Severity = DiagnosticSeverity.Warning,
+                    Message = $"Documentation generation was enabled, but precondition for {this.Name} was not satisfied: Assembly property {QsAssemblyConstants.DocsOutputPath} was found, but was empty.",
+                    Stage = IRewriteStep.Stage.PreconditionVerification,
+                });
+                return false;
+            }
+
+            this.docsOutputPath = path;
+
+            // Diagnostics with severity Info or lower usually won't be displayed to the user.
+            // If the severity is Error or Warning the diagnostic is shown to the user like any other compiler diagnostic,
+            // and if the Source property is set to the absolute path of an existing file,
+            // the user will be directed to the file when double clicking the diagnostics.
+            this.diagnostics.Add(new IRewriteStep.Diagnostic
+            {
+                Severity = DiagnosticSeverity.Info,
+                Message = $"Documentation generation was enabled, and precondition for {this.Name} was satisfied, writing docs to {this.docsOutputPath}.",
+                Stage = IRewriteStep.Stage.PreconditionVerification,
+            });
+
+            return true;
         }
 
         /// <inheritdoc/>
@@ -87,7 +94,7 @@ namespace Microsoft.Quantum.Documentation
         {
             var docProcessor = new ProcessDocComments(
                 this.docsOutputPath,
-                this.AssemblyConstants.TryGetValue(QsCompiler.ReservedKeywords.AssemblyConstants.DocsPackageId, out var packageName)
+                this.AssemblyConstants.TryGetValue(QsAssemblyConstants.DocsPackageId, out var packageName)
                 ? packageName
                 : null);
 

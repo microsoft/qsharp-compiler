@@ -271,8 +271,8 @@ type ErrorCode =
     | UserDefinedTypeInEntryPointSignature = 6233
     | InnerTupleInEntryPointArgument = 6234
     | ArrayOfArrayInEntryPointArgument = 6235
-    | OtherEntryPointExists = 6236
-    | MultipleEntryPoints = 6237
+    | [<Obsolete("This diagnostic is no longer in use. Multiple entry points are now allowed.")>] OtherEntryPointExists = 6236
+    | [<Obsolete("This diagnostic is no longer in use. Multiple entry points are now allowed.")>] MultipleEntryPoints = 6237
     | MissingEntryPoint = 6238
     | InvalidEntryPointSpecialization = 6239
     | DuplicateEntryPointArgumentName = 6240
@@ -345,6 +345,7 @@ type ErrorCode =
     | PostconditionVerificationFailed = 7113
 
     | CsharpGenerationGeneratedError = 8001
+    | QirEmissionGeneratedError = 8002
 
     | PublishingPerfResultsFailed = 8101
     | PerformanceTrackingFailed = 8102
@@ -407,6 +408,8 @@ type WarningCode =
     | FailedToLoadRewriteStepViaReflection = 7204
 
     | CsharpGenerationGeneratedWarning = 8001
+    | QirEmissionGeneratedWarning = 8002
+
     | InvalidAssemblyProperties = 8101
     | MissingTargetInstructionName = 8102
 
@@ -427,6 +430,7 @@ type InformationCode =
     | FormattedQsCode = 7204
 
     | CsharpGenerationGeneratedInfo = 8001
+    | QirEmissionGeneratedInfo = 8002
 
 
 type DiagnosticItem =
@@ -906,6 +910,7 @@ type DiagnosticItem =
                 "The postcondition for the compilation step \"{0}\" loaded from \"{1}\" was not satisfied. The transformation has produced incorrect output and should be excluded from the compilation process."
 
             | ErrorCode.CsharpGenerationGeneratedError -> ""
+            | ErrorCode.QirEmissionGeneratedError -> ""
 
             | ErrorCode.PublishingPerfResultsFailed -> "Performance results failed to be published at \"{0}\"."
             | ErrorCode.PerformanceTrackingFailed -> "Performance tracking failed with error \"{0}\"."
@@ -1016,6 +1021,8 @@ type DiagnosticItem =
                 "A possible rewrite step has been detected in \"{0}\". The step could not be loaded and will be ignored."
 
             | WarningCode.CsharpGenerationGeneratedWarning -> ""
+            | WarningCode.QirEmissionGeneratedWarning -> ""
+
             | WarningCode.InvalidAssemblyProperties ->
                 "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
             | WarningCode.MissingTargetInstructionName ->
@@ -1044,6 +1051,7 @@ type DiagnosticItem =
             | InformationCode.FormattedQsCode -> "Q# code generated based on the built syntax tree"
 
             | InformationCode.CsharpGenerationGeneratedInfo -> ""
+            | InformationCode.QirEmissionGeneratedInfo -> ""
             | _ -> ""
 
         code |> ApplyArguments

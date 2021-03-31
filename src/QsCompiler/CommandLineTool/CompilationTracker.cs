@@ -343,23 +343,21 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var compilationProcessesForest = BuildCompilationTasksHierarchy();
             var outputPath = Path.GetFullPath(outputFolder);
             Directory.CreateDirectory(outputPath);
-            using (var file = File.CreateText(Path.Combine(outputPath, CompilationPerfDataFileName)))
+            using var file = File.CreateText(Path.Combine(outputPath, CompilationPerfDataFileName));
+            var jsonWriterOptions = new JsonWriterOptions()
             {
-                var jsonWriterOptions = new JsonWriterOptions()
-                {
-                    Indented = true
-                };
+                Indented = true
+            };
 
-                var jsonWriter = new Utf8JsonWriter(file.BaseStream, jsonWriterOptions);
-                jsonWriter.WriteStartObject();
-                foreach (var tree in compilationProcessesForest.OrderBy(t => t.Task.Name))
-                {
-                    tree.WriteToJson(jsonWriter, null);
-                }
-
-                jsonWriter.WriteEndObject();
-                jsonWriter.Flush();
+            using var jsonWriter = new Utf8JsonWriter(file.BaseStream, jsonWriterOptions);
+            jsonWriter.WriteStartObject();
+            foreach (var tree in compilationProcessesForest.OrderBy(t => t.Task.Name))
+            {
+                tree.WriteToJson(jsonWriter, null);
             }
+
+            jsonWriter.WriteEndObject();
+            jsonWriter.Flush();
         }
     }
 }
