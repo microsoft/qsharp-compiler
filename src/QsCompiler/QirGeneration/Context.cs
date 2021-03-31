@@ -1098,21 +1098,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // Contains the loop header that creates the phi-node, evaluates the condition,
             // and then branches into the body or exits the loop depending on whether the condition evaluates to true.
-            var headerName = this.BlockName("header");
-            BasicBlock headerBlock = this.FunctionContext.Function.AppendBasicBlock(headerName);
+            BasicBlock headerBlock = this.FunctionContext.AppendBlock("header");
 
             // Contains the body of the loop, which has its own naming scope.
-            var bodyName = this.BlockName("body");
-            BasicBlock bodyBlock = this.FunctionContext.Function.AppendBasicBlock(bodyName);
+            BasicBlock bodyBlock = this.FunctionContext.AppendBlock("body");
 
             // Increments the loop variable and then branches into the header block
             // which determines whether to enter the next iteration.
-            var exitingName = this.BlockName("exiting");
-            BasicBlock exitingBlock = this.FunctionContext.Function.AppendBasicBlock(exitingName);
+            BasicBlock exitingBlock = this.FunctionContext.AppendBlock("exiting");
 
             // Empty block that will be entered when the loop exits that may get populated by subsequent computations.
-            var exitName = this.BlockName("exit");
-            BasicBlock exitBlock = this.FunctionContext.Function.AppendBasicBlock(exitName);
+            BasicBlock exitBlock = this.FunctionContext.AppendBlock("exit");
 
             PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
             {
@@ -1205,8 +1201,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // The returned value evaluates to true if he given increment is positive.
             Value CreatePreheader(Value increment)
             {
-                var preheaderName = this.BlockName("preheader");
-                var preheaderBlock = this.FunctionContext.Function.AppendBasicBlock(preheaderName);
+                var preheaderBlock = this.FunctionContext.AppendBlock("preheader");
 
                 // End the current block by branching to the preheader
                 this.FunctionContext.Emit(b => b.Branch(preheaderBlock));
