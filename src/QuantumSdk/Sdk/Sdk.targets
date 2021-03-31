@@ -88,7 +88,7 @@
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">$(_NewLine)--load$(_NewLineIndent)"@(_PrioritizedResolvedQscReferences,'"$(_NewLineIndent)"')"</_QscCommandLoadFlag>
       <_QscCommandRuntimeFlag>$(_NewLine)--runtime$(_NewLineIndent)$(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag>
       <_QscCommandQirGenerationFlag Condition="$(QirGeneration)">$(_NewLine)--qir$(_NewLineIndent)$(QirOutputPath)</_QscCommandQirGenerationFlag>
-      <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">$(_NewLine)--pref$(_NewLineIndent)$(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
+      <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">$(_NewLine)--perf$(_NewLineIndent)$(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
       <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">$(_NewLine)--target-specific-decompositions$(_NewLineIndent)"@(ResolvedTargetSpecificDecompositions,'"$(_NewLineIndent)"')"</_QscCommandTargetDecompositionsFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">$(_NewLine)--package-load-fallback-folders$(_NewLineIndent)"@(ResolvedPackageLoadFallbackFolders,'"$(_NewLineIndent)"')"</_QscPackageLoadFallbackFoldersFlag>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">$(_NewLine)--load-test-names</_QscCommandTestNamesFlag>

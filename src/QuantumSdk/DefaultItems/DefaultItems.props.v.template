@@ -31,11 +31,23 @@
   <PropertyGroup>
     <QscVerbosity>Normal</QscVerbosity>
     <CSharpGeneration>true</CSharpGeneration> <!-- at some point we may want to make False the default -->
-    <IncludeQSharpCorePackages>true</IncludeQSharpCorePackages> 
-    <IncludeProviderPackages>true</IncludeProviderPackages> 
-    <QirGeneration>false</QirGeneration>
-    <QSharpDocsGeneration>false</QSharpDocsGeneration>
-    <PerfDataGeneration>false</PerfDataGeneration>
+    <IncludeQSharpCorePackages>true</IncludeQSharpCorePackages>
+    <IncludeProviderPackages>true</IncludeProviderPackages>
+    <!--
+      For generation properties, three different values are recognized:
+
+      - "true": output the corresponding files to an explicit path if given,
+            or to a default path is no path is provided.
+      - "false": never output the corresponding files.
+      - "default": output files if an explicit path is given, but do not output
+            if no explicit path is set.
+
+      Later, in DefaultItems.targets, we will refine default to either true or
+      false depending on the value of the corresponding output paths.
+    -->
+    <QirGeneration>default</QirGeneration>
+    <QSharpDocsGeneration>default</QSharpDocsGeneration>
+    <PerfDataGeneration>default</PerfDataGeneration>
     <ExposeReferencesViaTestNames>false</ExposeReferencesViaTestNames> <!-- IMPORTANT: If the name of this property is changed, the property name in the language server needs to be adapted! -->
     <DefaultQscBuildConfigExe>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.BuildConfiguration.dll"</DefaultQscBuildConfigExe>
     <QscBuildConfigExe>$(DefaultQscBuildConfigExe)</QscBuildConfigExe>

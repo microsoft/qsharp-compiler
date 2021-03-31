@@ -148,19 +148,19 @@ The command to invoke the Q# compiler. The value set by default invokes the Q# c
 Defines the verbosity of the Q# compiler. Recognized values are: Quiet, Minimal, Normal, Detailed, and Diagnostic.
 
 - `PerfDataGeneration`:    
-Specifies whether to generate performance analysis data for the compilation. The default value is "true" if `PerfDataOutputPath` is specified and "false" otherwise.
+Specifies whether to generate performance analysis data for the compilation. The default value is "true" if `PerfDataOutputPath` is specified and "false" otherwise. Note that setting this property to `"false"` will disable generating performance data, even if `PerfDataOutputPath` is also set.
 
 - `PerfDataOutputPath`:    
 Directory where the generated performance analysis data will be saved. If no directory is specified and `PerfDataGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/perf".
 
 - `QirGeneration`:    
-Specifies whether to generate QIR for the compiled Q# code. The default value is "true" if `QirOutputPath` is specified and "false" otherwise.
+Specifies whether to generate QIR for the compiled Q# code. The default value is "true" if `QirOutputPath` is specified and "false" otherwise. Note that setting this property to `"false"` will disable generating QIR, even if `QirOutputPath` is also set.
 
 - `QirOutputPath`:    
 Directory where the generated QIR will be saved. If no directory is specified and `QirGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/qir".
 
 - `QSharpDocsGeneration`:    
-Specifies whether to generate yml documentation for the compiled Q# code. The default value is "true" if `QSharpDocsOutputPath` is specified and "false" otherwise.
+Specifies whether to generate yml documentation for the compiled Q# code. The default value is "true" if `QSharpDocsOutputPath` is specified and "false" otherwise. Note that setting this property to `"false"` will disable generating docs, even if `QSharpDocsOutputPath` is also set.
 
 - `QSharpDocsOutputPath`:    
 Directory where the generated documentation will be saved. If no directory is specified and `QSharpDocsGeneration` is set to "true", it will be set to "$(MSBuildProjectDirectory)/docs".
