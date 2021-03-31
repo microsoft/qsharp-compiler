@@ -42,7 +42,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal bool IsCurrentBlockEmpty => !this.CurrentBlock.Instructions.Any();
 
         /// <summary>
-        /// Initializes a new instance of the <see cref="FunctionContext"/> class.
+        /// Construsts a function context, automatically creating a new basic block
+        /// called "entry".
         /// </summary>
         /// <param name="function">The current function that the QIR generator is processing.</param>
         /// <param name="uniqueLocalName">A function used to generate unique local names within the function.</param>
