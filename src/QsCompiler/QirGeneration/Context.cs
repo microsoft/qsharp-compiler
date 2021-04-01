@@ -743,18 +743,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.AddReturn(this.Values.Unit, returnsVoid: false);
             }
-
-            var itemTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts
-                    ? ts.Item
-                    : ImmutableArray.Create(spec.Signature.ArgumentType);
-            if (itemTypes.Length != this.FunctionContext.Function.Parameters.Count)
+            else
             {
-                throw new InvalidOperationException("number of function parameters does not match argument");
-            }
+                var itemTypes = spec.Signature.ArgumentType.Resolution is ResolvedTypeKind.TupleType ts
+                        ? ts.Item
+                        : ImmutableArray.Create(spec.Signature.ArgumentType);
+                if (itemTypes.Length != this.FunctionContext.Function.Parameters.Count)
+                {
+                    throw new InvalidOperationException("number of function parameters does not match argument");
+                }
 
-            var tupleItems = this.FunctionContext.Function.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
-            var udtTuple = this.Values.CreateTuple(tupleItems);
-            this.AddReturn(udtTuple, returnsVoid: false);
+                var tupleItems = this.FunctionContext.Function.Parameters.Select((v, i) => this.Values.From(v, itemTypes[i])).ToArray();
+                var udtTuple = this.Values.CreateTuple(tupleItems);
+                this.AddReturn(udtTuple, returnsVoid: false);
+            }
         }
 
         /// <summary>

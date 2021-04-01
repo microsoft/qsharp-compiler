@@ -1802,9 +1802,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnNewArray(ResolvedType elementType, TypedExpression lengthEx)
         {
-            return this.SharedState.FunctionContext.Emit(b =>
+            IValue DefaultValue(ResolvedType type)
             {
-                IValue DefaultValue(ResolvedType type)
+                return this.SharedState.FunctionContext.Emit(b =>
                 {
                     if (type.Resolution.IsInt)
                     {
@@ -1894,32 +1894,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         throw new NotSupportedException("no known default value for the given type");
                     }
-                }
+                });
+            }
 
-                // TODO: new multi-dimensional arrays
-                var length = this.SharedState.EvaluateSubexpression(lengthEx);
-                var array = this.SharedState.Values.CreateArray(length.Value, elementType);
-                this.SharedState.ValueStack.Push(array);
-                if (array.Length == this.SharedState.Context.CreateConstant(0L))
-                {
-                    return ResolvedExpressionKind.InvalidExpr;
-                }
-
-                // We need to populate the array
-                var start = this.SharedState.Context.CreateConstant(0L);
-                var end = b.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
-                void PopulateItem(Value index)
-                {
-                    // We need to make sure that the reference count for the built item is increased by 1.
-                    this.SharedState.ScopeMgr.OpenScope();
-                    var value = DefaultValue(elementType);
-                    this.SharedState.ScopeMgr.CloseScope(value);
-                    array.GetArrayElementPointer(index).StoreValue(value);
-                }
-
-                this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
+            // TODO: new multi-dimensional arrays
+            var length = this.SharedState.EvaluateSubexpression(lengthEx);
+            var array = this.SharedState.Values.CreateArray(length.Value, elementType);
+            this.SharedState.ValueStack.Push(array);
+            if (array.Length == this.SharedState.Context.CreateConstant(0L))
+            {
                 return ResolvedExpressionKind.InvalidExpr;
-            });
+            }
+
+            // We need to populate the array
+            var start = this.SharedState.Context.CreateConstant(0L);
+            var end = this.SharedState.FunctionContext.Emit(b => b.Sub(array.Length, this.SharedState.Context.CreateConstant(1L)));
+            void PopulateItem(Value index)
+            {
+                // We need to make sure that the reference count for the built item is increased by 1.
+                this.SharedState.ScopeMgr.OpenScope();
+                var value = DefaultValue(elementType);
+                this.SharedState.ScopeMgr.CloseScope(value);
+                array.GetArrayElementPointer(index).StoreValue(value);
+            }
+
+            this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
+            return ResolvedExpressionKind.InvalidExpr;
         }
 
         public override ResolvedExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
