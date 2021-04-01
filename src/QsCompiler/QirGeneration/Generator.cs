@@ -58,7 +58,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void Apply()
         {
-            System.Diagnostics.Debugger.Launch();
             foreach (var ns in this.Compilation.Namespaces)
             {
                 this.Namespaces.OnNamespace(ns);
