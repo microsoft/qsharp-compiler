@@ -1,8 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <NoWarn>$(NoWarn);SA1636</NoWarn> <!-- This project need to use custom header, it would be switched to use custom stylecop.json in the follow-up -->
+    <NoWarn>$(NoWarn);CS1574</NoWarn> <!-- Wrong types in comments cref, should be removed in the follow-up -->
   </PropertyGroup>
 
   <ItemGroup>

@@ -13,49 +13,49 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>Support class to provide read only list semantics to the parameters of a method</summary>
+    /// <summary>Support class to provide read only list semantics to the parameters of a method.</summary>
     internal class FunctionParameterList
         : IReadOnlyList<Argument>
     {
-        public Argument this[ int index ]
-        {
-            get
-            {
-                if( index >= Count || index < 0 )
-                {
-                    throw new ArgumentOutOfRangeException( nameof( index ) );
-                }
+        private readonly IrFunction owningFunction;
 
-                LLVMValueRef valueRef = OwningFunction.ValueHandle.GetParam( ( uint )index );
-                return Value.FromHandle<Argument>( valueRef )!;
-            }
+        internal FunctionParameterList(IrFunction owningFunction)
+        {
+            this.owningFunction = owningFunction;
         }
 
         public int Count
         {
             get
             {
-                uint count = OwningFunction.ValueHandle.ParamsCount;
-                return ( int )Math.Min( count, int.MaxValue );
+                uint count = this.owningFunction.ValueHandle.ParamsCount;
+                return (int)Math.Min(count, int.MaxValue);
             }
         }
 
-        public IEnumerator<Argument> GetEnumerator( )
+        public Argument this[int index]
         {
-            for( uint i = 0; i < Count; ++i )
+            get
             {
-                LLVMValueRef val = OwningFunction.ValueHandle.GetParam( i );
-                yield return Value.FromHandle<Argument>( val )!;
+                if (index >= this.Count || index < 0)
+                {
+                    throw new ArgumentOutOfRangeException(nameof(index));
+                }
+
+                LLVMValueRef valueRef = this.owningFunction.ValueHandle.GetParam((uint)index);
+                return Value.FromHandle<Argument>(valueRef)!;
             }
         }
 
-        IEnumerator IEnumerable.GetEnumerator( ) => GetEnumerator( );
-
-        internal FunctionParameterList( IrFunction owningFunction )
+        public IEnumerator<Argument> GetEnumerator()
         {
-            OwningFunction = owningFunction;
+            for (uint i = 0; i < this.Count; ++i)
+            {
+                LLVMValueRef val = this.owningFunction.ValueHandle.GetParam(i);
+                yield return Value.FromHandle<Argument>(val)!;
+            }
         }
 
-        private readonly IrFunction OwningFunction;
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
     }
 }
