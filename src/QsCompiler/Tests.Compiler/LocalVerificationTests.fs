@@ -30,7 +30,6 @@ type LocalVerificationTests() =
 
     [<Fact>]
     member this.``Type argument inference``() =
-        // TODO: Re-add the more specific "constrains type parameter" error?
         this.Expect "TypeArgumentsInference1" []
         this.Expect "TypeArgumentsInference2" []
         this.Expect "TypeArgumentsInference3" [ Error ErrorCode.TypeMismatch ]
