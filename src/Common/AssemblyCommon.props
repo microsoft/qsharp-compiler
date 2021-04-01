@@ -18,9 +18,6 @@
     <StyleCopJsonPath Condition="Exists('$(MSBuildProjectDirectory)\stylecop.json')" >$(MSBuildProjectDirectory)\stylecop.json</StyleCopJsonPath>
   </PropertyGroup>
 
-<!--
-  <PropertyGroup Label="Signing" Condition="$(DefineConstants.Contains('SIGNED'))">
--->
   <PropertyGroup Label="Signing" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(DefineConstants), '^(.*;)*SIGNED(;.*)*$'))">
     <SignAssembly>true</SignAssembly>
     <DelaySign>true</DelaySign>
@@ -55,7 +52,7 @@
     <WarningsAsErrors>3390</WarningsAsErrors>
   </PropertyGroup>
 
-  <ItemGroup Condition="$(IsCsProject)">
+  <ItemGroup Condition="$(IsCsProject) AND '$(UsingMicrosoftNETSdk)' == 'true'">
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.321" PrivateAssets="All" />
     <AdditionalFiles Include="$(StyleCopJsonPath)" Link="stylecop.json" />
   </ItemGroup>
