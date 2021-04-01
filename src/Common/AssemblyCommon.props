@@ -18,11 +18,7 @@
     <StyleCopJsonPath Condition="Exists('$(MSBuildProjectDirectory)\stylecop.json')" >$(MSBuildProjectDirectory)\stylecop.json</StyleCopJsonPath>
   </PropertyGroup>
 
-  <PropertyGroup Label="Signing" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(DefineConstants), '^(.*;)*SIGNED(;.*)*$'))">
-    <SignAssembly>true</SignAssembly>
-    <DelaySign>true</DelaySign>
-    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\build\267DevDivSNKey2048.snk</AssemblyOriginatorKeyFile>
-  </PropertyGroup>
+  <Import Project="$(MSBuildThisFileDirectory)\DelaySign.props" />
 
   <PropertyGroup Condition="$(IsCsProject)">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -52,7 +48,7 @@
     <WarningsAsErrors>3390</WarningsAsErrors>
   </PropertyGroup>
 
-  <ItemGroup Condition="$(IsCsProject) AND '$(UsingMicrosoftNETSdk)' == 'true'">
+  <ItemGroup Condition="$(IsCsProject) AND $(UsingMicrosoftNETSdk)">
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.321" PrivateAssets="All" />
     <AdditionalFiles Include="$(StyleCopJsonPath)" Link="stylecop.json" />
   </ItemGroup>

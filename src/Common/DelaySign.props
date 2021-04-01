@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+    Properties to enable delay sign.
+    Extracted into separate props file to simplify its usage in non-SDK projects.
+    Could be merged back when all of the projects updated or if AssemblyCommon.props adapted to use in non-SDK projects,
+    using condition '$(UsingMicrosoftNETSdk)' == 'true' for unsupported properties and PackageReferences.
+ -->
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <PropertyGroup Label="Signing" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(DefineConstants), '^(.*;)*SIGNED(;.*)*$'))">
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>true</DelaySign>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\build\267DevDivSNKey2048.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+</Project>

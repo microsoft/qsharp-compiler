@@ -46,7 +46,7 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
-  <Import Project="..\..\Common\AssemblyCommon.props" />
+  <Import Project="..\..\Common\DelaySign.props" />
   <ItemGroup>
     <Compile Include="..\..\Common\AssemblyCommon.cs">
       <Link>Properties\AssemblyCommon.cs</Link>
