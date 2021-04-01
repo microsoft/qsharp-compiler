@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Select instruction</summary>
+    /// <summary>Select instruction.</summary>
     public class SelectInstruction
         : Instruction
     {
-        internal SelectInstruction( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal SelectInstruction(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

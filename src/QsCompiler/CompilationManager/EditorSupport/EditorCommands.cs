@@ -21,9 +21,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class EditorCommands
     {
         /// <summary>
-        /// Returns an array with completion suggestions for the given file and position.
-        /// Returns null if the given uri is null or if the specified file is not listed as source file.
+        /// Returns an array of all namespace declarations, type declarations, and callable declarations in <paramref name="file"/>.
+        /// <seealso cref="SymbolInfo.NamespaceDeclarationsSymbolInfo"/>
+        /// <seealso cref="SymbolInfo.TypeDeclarationsSymbolInfo"/>
+        /// <seealso cref="SymbolInfo.CallableDeclarationsSymbolInfo"/>
         /// </summary>
+        /// <remarks>
+        /// Returns null if <paramref name="file"/> is null.
+        /// </remarks>
         public static SymbolInformation[]? DocumentSymbols(this FileContentManager file)
         {
             if (file == null)
@@ -37,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the source file and position where the item at the given position is declared at,
+        /// Returns the source file and position where the item at <paramref name="position"/> is declared at,
         /// if such a declaration exists, and returns null otherwise.
         /// </summary>
         public static Location? DefinitionLocation(this FileContentManager file, CompilationUnit compilation, Position? position)
@@ -69,11 +74,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an array with all locations where the symbol at the given position - if any - is referenced.
-        /// Returns null if some parameters are unspecified (null),
-        /// or if the specified position is not a valid position within the currently processed file content,
-        /// or if no symbol exists at the specified position at this time.
+        /// Returns an array with all locations where the symbol at <paramref name="position"/> - if any - is referenced.
         /// </summary>
+        /// <remarks>
+        /// Returns null if some parameters are unspecified (null),
+        /// or if <paramref name="position"/> is not a valid position within the currently processed file content,
+        /// or if no symbol exists at <paramref name="position"/> at this time.
+        /// </remarks>
         public static Location[]? SymbolReferences(this FileContentManager file, CompilationUnit compilation, Position? position, ReferenceContext? context)
         {
             if (file == null || position is null)
@@ -90,11 +97,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the workspace edit that describes the changes to be done if the symbol at the given position - if any - is renamed to the given name.
-        /// Returns null if no symbol exists at the specified position,
-        /// or if some parameters are unspecified (null),
-        /// or if the specified position is not a valid position within the file.
+        /// Returns the workspace edit that describes the changes to be done if the symbol at <paramref name="position"/> - if any - is renamed to <paramref name="newName"/>.
         /// </summary>
+        /// <remarks>
+        /// Returns null if no symbol exists at <paramref name="position"/>,
+        /// or if some parameters are unspecified (null),
+        /// or if <paramref name="position"/> is not a valid position within <paramref name="file"/>.
+        /// </remarks>
         public static WorkspaceEdit? Rename(this FileContentManager file, CompilationUnit compilation, Position position, string newName)
         {
             if (newName == null || file == null)
@@ -129,10 +138,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a look-up of workspace edits suggested by the compiler for the given location and context.
-        /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
-        /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
+        /// Returns a look-up of workspace edits suggested by the compiler for <paramref name="range"/> and <paramref name="context"/>.
         /// </summary>
+        /// <remarks>
+        /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
+        /// <para/>
+        /// Returns null if any of the given arguments is null or if suitable edits cannot be determined.
+        /// </remarks>
         public static ILookup<string, WorkspaceEdit>? CodeActions(this FileContentManager file, CompilationUnit compilation, Range? range, CodeActionContext? context)
         {
             if (range?.Start is null || range.End is null || !file.ContainsRange(range))
@@ -151,11 +163,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an array with all usages of the identifier at the given position (if any) as DocumentHighlights.
-        /// Returns null if some parameters are unspecified (null),
-        /// or if the specified position is not a valid position within the currently processed file content,
-        /// or if no identifier exists at the specified position at this time.
+        /// Returns an array with all usages of the identifier at <paramref name="position"/> (if any)
+        /// as a <see cref="DocumentHighlight"/> array.
         /// </summary>
+        /// <remarks>
+        /// Returns null if some parameters are unspecified (null),
+        /// or if <paramref name="position"/> is not a valid position within the currently processed file content,
+        /// or if no identifier exists at <paramref name="position"/> at this time.
+        /// </remarks>
         public static DocumentHighlight[]? DocumentHighlights(this FileContentManager file, CompilationUnit compilation, Position? position)
         {
             DocumentHighlight AsHighlight(Lsp.Range range) =>
@@ -189,11 +204,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns information about the item at the specified position as Hover information.
-        /// Returns null if some parameters are unspecified (null),
-        /// or if the specified position is not a valid position within the currently processed file content,
-        /// or if no token exists at the specified position.
+        /// Returns information about the item <paramref name="position"/> as <see cref="Hover"/> information.
         /// </summary>
+        /// <remarks>
+        /// Returns null if some parameters are unspecified (null),
+        /// or if <paramref name="position"/> is not a valid position within the currently processed file content,
+        /// or if no token exists at <paramref name="position"/>.
+        /// </remarks>
         public static Hover? HoverInformation(
             this FileContentManager file,
             CompilationUnit compilation,
@@ -237,12 +254,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the signature help information for a call expression if there is such an expression at the specified position.
-        /// Returns null if some parameters are unspecified (null),
-        /// or if the specified position is not a valid position within the currently processed file content,
-        /// or if no call expression exists at the specified position at this time,
-        /// or if no signature help information can be provided for the call expression at the specified position.
+        /// Returns the signature help information for a call expression if there is such an expression at <paramref name="position"/>.
         /// </summary>
+        /// <remarks>
+        /// Returns null if some parameters are unspecified (null),
+        /// or if <paramref name="position"/> is not a valid position within the currently processed file content,
+        /// or if no call expression exists at <paramref name="position"/> at this time,
+        /// or if no signature help information can be provided for the call expression at <paramref name="position"/>.
+        /// </remarks>
         public static SignatureHelp? SignatureHelp(
             this FileContentManager file,
             CompilationUnit compilation,

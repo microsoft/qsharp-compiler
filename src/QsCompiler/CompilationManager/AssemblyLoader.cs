@@ -27,15 +27,20 @@ namespace Microsoft.Quantum.QsCompiler
     public static class AssemblyLoader
     {
         /// <summary>
-        /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
-        /// and returns the loaded content as out parameter.
-        /// Returns false if some of the content could not be loaded successfully,
-        /// possibly because the referenced assembly has been compiled with an older compiler version.
-        /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
-        /// Throws the corresponding exceptions if the information cannot be extracted.
+        /// Loads the Q# data structures in a referenced assembly with the URI <paramref name="asm"/>,
+        /// and returns the loaded content via <paramref name="headers"/>.
         /// </summary>
+        /// <param name="asm">The uri of the referenced assembly.</param>
+        /// <param name="onDeserializationException">Called if an exception is thrown during deserialization.</param>
+        /// <returns>
+        /// False if some of the content could not be loaded successfully,
+        /// possibly because the referenced assembly has been compiled with an older compiler version.
+        /// </returns>
         /// <exception cref="FileNotFoundException"><paramref name="asm"/> does not exist.</exception>
         /// <exception cref="ArgumentException"><paramref name="asm"/> is not an absolute file URI.</exception>
+        /// <remarks>
+        /// Throws the corresponding exceptions if the information cannot be extracted.
+        /// </remarks>
         public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception>? onDeserializationException = null)
         {
             var id = CompilationUnitManager.GetFileId(asm);
@@ -64,14 +69,19 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly,
-        /// and returns the loaded content as out parameter.
-        /// Returns false if some of the content could not be loaded successfully,
-        /// possibly because the referenced assembly has been compiled with an older compiler version.
-        /// Catches any exception throw upon loading the compilation, and invokes onException with it if such an action has been specified.
-        /// Sets the out parameter to null if an exception occurred during loading.
+        /// Loads the Q# data structures in a referenced assembly with the path <paramref name="asmPath"/>,
+        /// and returns the loaded content as <paramref name="compilation"/>.
         /// </summary>
+        /// <returns>
+        /// False if some of the content could not be loaded successfully,
+        /// possibly because the referenced assembly has been compiled with an older compiler version.
+        /// </returns>
         /// <exception cref="FileNotFoundException"><paramref name="asmPath"/> does not exist.</exception>
+        /// <remarks>
+        /// Catches any exception throw upon loading the compilation, and invokes <paramref name="onException"/> with it if specified.
+        /// <para/>
+        /// Sets <paramref name="compilation"/> to null if an exception occurred during loading.
+        /// </remarks>
         public static bool LoadReferencedAssembly(
             string asmPath,
             [NotNullWhen(true)] out QsCompilation? compilation,
@@ -100,9 +110,13 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Given a binary representation of compiled Q# code, returns the corresponding Q# compilation.
-        /// Returns true if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.
-        /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
         /// </summary>
+        /// <param name="byteArray">A binary representation of compiled Q# code.</param>
+        /// <param name="compilation">The compilation deserialized from <paramref name="byteArray"/>.</param>
+        /// <param name="onDeserializationException">Called if an exception is thrown during deserialization.</param>
+        /// <returns>
+        /// True if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.
+        /// </returns>
         public static bool LoadSyntaxTree(
             byte[] byteArray,
             [NotNullWhen(true)] out QsCompilation? compilation,
@@ -126,9 +140,13 @@ namespace Microsoft.Quantum.QsCompiler
 
         /// <summary>
         /// Given a stream containing a binary representation of compiled Q# code, returns the corresponding Q# compilation.
-        /// Returns true if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.
-        /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
         /// </summary>
+        /// <param name="stream">A stream containing the binary representation of compiled Q# code.</param>
+        /// <param name="compilation">The compilation deserialized from <paramref name="stream"/>.</param>
+        /// <param name="onDeserializationException">Called if an exception is thrown during deserialization.</param>
+        /// <returns>
+        /// True if the compilation could be deserialized without throwing an exception, and it is properly instantiated. False otherwise.
+        /// </returns>
         [Obsolete("Only loads binary representations generated by compiler versions up to 0.13.20102604.")]
         public static bool LoadSyntaxTree(
             Stream stream,
@@ -158,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler
             !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
 
         /// <summary>
-        /// Creates a dictionary of all manifest resources in the given reader.
+        /// Creates a dictionary of all manifest resources in <paramref name="reader"/>.
         /// </summary>
         private static ImmutableDictionary<string, ManifestResource> Resources(this MetadataReader reader) =>
             reader.ManifestResources
@@ -168,11 +186,17 @@ namespace Microsoft.Quantum.QsCompiler
                     resource => resource);
 
         /// <summary>
-        /// Given a reader for the byte stream of a dotnet dll, loads any Q# compilation included as a resource.
-        /// Returns true as well as the loaded compilation if the given dll includes a suitable resource, and returns false otherwise.
-        /// If onDeserializationException is specified, invokes the given action on any exception thrown during deserialization.
-        /// May throw an exception if the given binary file has been compiled with a different compiler version.
+        /// Loads any Q# compilation included as a resource from <paramref name="assemblyFile"/>.
         /// </summary>
+        /// <param name="assemblyFile">The reader for the byte stream of a dotnet DLL from which to load the compilation.</param>
+        /// <param name="compilation">The Q# compilation included as a resource of <paramref name="assemblyFile"/>.</param>
+        /// <param name="onDeserializationException">Called if an exception is thrown during deserialization.</param>
+        /// <returns>
+        /// True if <paramref name="assemblyFile"/> includes a suitable resource, false otherwise.
+        /// </returns>
+        /// <remarks>
+        /// May throw an exception if <paramref name="assemblyFile"/> has been compiled with a different compiler version.
+        /// </remarks>
         private static bool FromResource(
             PEReader assemblyFile,
             [NotNullWhen(true)] out QsCompilation? compilation,
@@ -236,12 +260,18 @@ namespace Microsoft.Quantum.QsCompiler
         // tools for loading headers based on attributes in compiled C# code (early setup for shipping Q# libraries)
 
         /// <summary>
+        /// This routine extracts the namespace and type name of <paramref name="attribute"/>.
+        /// </summary>
+        /// <returns>
+        /// The tuple (namespace, name).
+        /// </returns>
+        /// <remarks>
         /// There are two possible handle kinds in use for the constructor of a custom attribute,
         /// one pointing to the MethodDef table and one to the MemberRef table, see p.216 in the ECMA standard linked above and
         /// https://github.com/dotnet/corefx/blob/master/src/System.Reflection.Metadata/src/System/Reflection/Metadata/TypeSystem/CustomAttribute.cs#L42
-        /// This routine extracts the namespace and type name of the given attribute and returns the corresponding string handles.
-        /// Returns null if the constructor handle is not a MethodDefinition or a MemberDefinition.
-        /// </summary>
+        /// <para/>
+        /// Returns null if the constructor handle of <paramref name="attribute"/> is not a <see cref="HandleKind.MethodDefinition"/> or a <see cref="HandleKind.MemberReference"/>.
+        /// </remarks>
         private static (StringHandle, StringHandle)? GetAttributeType(MetadataReader metadataReader, CustomAttribute attribute)
         {
             if (attribute.Constructor.Kind == HandleKind.MethodDefinition)
@@ -290,11 +320,16 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Given a reader for the byte stream of a dotnet dll, read its custom attributes and
-        /// returns a tuple containing the name of the attribute and the constructor argument
-        /// for all attributes defined in a Microsoft.Quantum* namespace.
-        /// Throws the corresponding exceptions if the information cannot be extracted.
+        /// Reads the custom attributes of <paramref name="assemblyFile"/>.
         /// </summary>
+        /// <param name="assemblyFile">A reader for the byte stream of the dotnet DLL.</param>
+        /// <returns>
+        /// Tuples containing the name of the attribute and the constructor argument
+        /// for all attributes defined in a Microsoft.Quantum* namespace.
+        /// </returns>
+        /// <remarks>
+        /// Throws the corresponding exceptions if the information cannot be extracted.
+        /// </remarks>
         private static IEnumerable<(string, string)> LoadHeaderAttributes(PEReader assemblyFile)
         {
             var metadataReader = assemblyFile.GetMetadataReader();
