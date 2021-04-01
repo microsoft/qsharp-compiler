@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Base class for a unary operator</summary>
+    /// <summary>Base class for a unary operator.</summary>
     public class UnaryOperator
         : Instruction
     {
-        internal UnaryOperator( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal UnaryOperator(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }
