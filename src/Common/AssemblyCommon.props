@@ -18,6 +18,15 @@
     <StyleCopJsonPath Condition="Exists('$(MSBuildProjectDirectory)\stylecop.json')" >$(MSBuildProjectDirectory)\stylecop.json</StyleCopJsonPath>
   </PropertyGroup>
 
+<!--
+  <PropertyGroup Label="Signing" Condition="$(DefineConstants.Contains('SIGNED'))">
+-->
+  <PropertyGroup Label="Signing" Condition="$([System.Text.RegularExpressions.Regex]::IsMatch($(DefineConstants), '^(.*;)*SIGNED(;.*)*$'))">
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>true</DelaySign>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)\..\..\build\267DevDivSNKey2048.snk</AssemblyOriginatorKeyFile>
+  </PropertyGroup>
+
   <PropertyGroup Condition="$(IsCsProject)">
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <Nullable>enable</Nullable>
