@@ -206,7 +206,13 @@ type LocalVerificationTests() =
         this.Expect "ItemAccess9" []
         this.Expect "ItemAccess10" []
         this.Expect "ItemAccess11" []
-        this.Expect "ItemAccess12" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
+
+        this.Expect
+            "ItemAccess12"
+            [
+                Error ErrorCode.OperationCallOutsideOfOperation
+                Error ErrorCode.OperationCallOutsideOfOperation
+            ]
 
         this.Expect
             "ItemAccess13"

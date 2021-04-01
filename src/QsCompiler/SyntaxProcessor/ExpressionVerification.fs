@@ -23,9 +23,17 @@ open System.Collections.Immutable
 /// Returns the string representation of a type.
 let private showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
-let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) =
-    let inferred = InferredExpressionInformation.New(isMutable = isMutable, quantumDep = dep)
-    TypedExpression.New(ex, ImmutableDictionary.Empty, t, inferred, range)
+/// Returns true if the type is a function type.
+let private isFunction (resolvedType: ResolvedType) =
+    match resolvedType.Resolution with
+    | QsTypeKind.Function _ -> true
+    | _ -> false
+
+/// Returns true if the type is an operation type.
+let private isOperation (resolvedType: ResolvedType) =
+    match resolvedType.Resolution with
+    | QsTypeKind.Operation _ -> true
+    | _ -> false
 
 /// <summary>
 /// Returns the range of <paramref name="expr"/>, or the empty range if <paramref name="expr"/> is an invalid expression
@@ -37,6 +45,10 @@ let internal rangeOrDefault expr =
     | _, Value range -> range
     | InvalidExpr, Null -> Range.Zero
     | _, Null -> failwith "valid expression without a range"
+
+let private ExprWithoutTypeArgs isMutable (ex, t, dep, range) =
+    let inferred = InferredExpressionInformation.New(isMutable = isMutable, quantumDep = dep)
+    TypedExpression.New(ex, ImmutableDictionary.Empty, t, inferred, range)
 
 /// <summary>
 /// Returns a warning for short-circuiting of operation calls in <paramref name="expr"/>.
@@ -750,29 +762,30 @@ type QsExpression with
 
         /// Resolves and verifies the given left hand side and right hand side of a call expression,
         /// and returns the corresponding expression as typed expression.
-        let buildCall (callable: QsExpression, arg: QsExpression) =
+        let buildCall callable arg =
             let callable = resolve callable
             let arg = resolve arg
             let callExpression = CallLikeExpression(callable, arg)
             let argType, partialType = partialArgType arg.ResolvedType
-            let isPartial = Option.isSome partialType
 
-            if not isPartial then
+            if Option.isNone partialType then
                 inference.Constrain
                     (callable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport |> CanGenerateFunctors)
                 |> List.iter diagnose
 
             let output = inference.Fresh this.RangeOrDefault
 
-            if isPartial || context.IsInOperation then
+            if Option.isSome partialType || context.IsInOperation then
                 inference.Constrain(callable.ResolvedType, Callable(argType, output)) |> List.iter diagnose
             else
-                // TODO: This error message could be improved. Calling an operation from a function is currently a type
-                // mismatch error.
-                inference.Unify
-                    (QsTypeKind.Function(argType, output) |> ResolvedType.create (TypeRange.inferred callable.Range),
-                     callable.ResolvedType)
-                |> List.iter diagnose
+                let diagnostics =
+                    inference.Unify(QsTypeKind.Function(argType, output) |> ResolvedType.New, callable.ResolvedType)
+
+                if inference.Resolve callable.ResolvedType |> isOperation then
+                    QsCompilerDiagnostic.Error (ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
+                    |> diagnose
+                else
+                    List.iter diagnose diagnostics
 
             let resultType =
                 match partialType with
@@ -785,13 +798,8 @@ type QsExpression with
                     result
                 | None -> output
 
-            let isFunction =
-                match (inference.Resolve callable.ResolvedType).Resolution with
-                | QsTypeKind.Function _ -> true
-                | _ -> false // Be pessimistic and assume the callable is an operation.
-
             let hasQuantumDependency =
-                if isPartial || isFunction then
+                if Option.isSome partialType || inference.Resolve callable.ResolvedType |> isFunction then
                     callable.InferredInformation.HasLocalQuantumDependency
                     || arg.InferredInformation.HasLocalQuantumDependency
                 else
@@ -811,7 +819,7 @@ type QsExpression with
             (UnitValue, UnitType |> ResolvedType.create (TypeRange.inferred this.Range), false, this.Range)
             |> ExprWithoutTypeArgs false
         | Identifier (sym, tArgs) -> VerifyIdentifier inference symbols sym tArgs |> takeDiagnostics
-        | CallLikeExpression (method, arg) -> buildCall (method, arg)
+        | CallLikeExpression (callable, arg) -> buildCall callable arg
         | AdjointApplication ex -> verifyAndBuildWith AdjointApplication (VerifyAdjointApplication inference) ex
         | ControlledApplication ex ->
             verifyAndBuildWith ControlledApplication (VerifyControlledApplication inference) ex
