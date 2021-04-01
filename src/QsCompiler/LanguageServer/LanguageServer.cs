@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         internal Task PublishDiagnosticsAsync(PublishDiagnosticParams diagnostics) =>
             this.NotifyClientAsync(Methods.TextDocumentPublishDiagnosticsName, diagnostics);
 
-        internal async void CheckDotNetSdkVersion()
+        internal async Task CheckDotNetSdkVersionAsync()
         {
             var isDotNet31Installed = DotNetSdkHelper.IsDotNet31Installed();
             if (isDotNet31Installed == null)
@@ -513,7 +513,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentSignatureHelpName)]
-        public Task<object?> OnSignatureHelp(JToken arg)
+        public Task<object?> OnSignatureHelpAsync(JToken arg)
         {
             if (this.waitForInit != null)
             {
@@ -572,7 +572,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         }
 
         [JsonRpcMethod(Methods.TextDocumentCompletionName)]
-        public Task<object?> OnTextDocumentCompletion(JToken arg)
+        public Task<object?> OnTextDocumentCompletionAsync(JToken arg)
         {
             if (this.waitForInit != null)
             {
