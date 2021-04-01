@@ -253,7 +253,7 @@ type TypeCheckingTests() =
         this.Expect "PartialApplication15" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication16" [ Error ErrorCode.TypeMismatch ]
         this.Expect "PartialApplication17" []
-        this.Expect "PartialApplication18" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "PartialApplication18" [ Error ErrorCode.OperationCallOutsideOfOperation ]
         this.Expect "PartialApplication19" []
         this.Expect "PartialApplication20" []
         this.Expect "PartialApplication21" []
