@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Instruction to shuffle the elements of a vector</summary>
+    /// <summary>Instruction to shuffle the elements of a vector.</summary>
     public class ShuffleVector
         : Instruction
     {
-        internal ShuffleVector( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal ShuffleVector(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

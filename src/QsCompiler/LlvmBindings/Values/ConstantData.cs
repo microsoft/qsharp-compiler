@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>Base class for constants with no operands</summary>
+    /// <summary>Base class for constants with no operands.</summary>
     public class ConstantData
         : Constant
     {
-        internal ConstantData( LLVMValueRef handle )
-            : base( handle )
+        internal ConstantData(LLVMValueRef handle)
+            : base(handle)
         {
         }
     }
