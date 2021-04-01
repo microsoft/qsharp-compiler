@@ -378,7 +378,9 @@ type WarningCode =
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
 
+    // TODO: RELEASE 2021-10: Remove TypeParameterNotResolvedByArgument.
     | [<Obsolete "This diagnostic is no longer in use.">] TypeParameterNotResolvedByArgument = 6001
+    // TODO: RELEASE 2021-10: Remove ReturnTypeNotResolvedByArgument.
     | [<Obsolete "This diagnostic is no longer in use.">] ReturnTypeNotResolvedByArgument = 6002
     | NamespaceAleadyOpen = 6003
     | NamespaceAliasIsAlreadyDefined = 6004
