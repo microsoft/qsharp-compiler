@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Base class for memory intrinsic instructions</summary>
+    /// <summary>Base class for memory intrinsic instructions.</summary>
     public class MemIntrinsic
         : Intrinsic
     {
-        internal MemIntrinsic( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal MemIntrinsic(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

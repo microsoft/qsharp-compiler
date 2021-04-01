@@ -8,11 +8,11 @@ using System.Runtime.InteropServices;
 
 namespace Ubiquity.NET.Llvm.Interop
 {
-    /// <summary>Keep alive holder to ensure native call back delegates are not destroyed while registered with native code</summary>
+    /// <summary>Keep alive holder to ensure native call back delegates are not destroyed while registered with native code.</summary>
     /// <remarks>
     /// This generates a holder for a delegate that allows a native function pointer for the delegate to remain valid until the
     /// instance of this wrapper is disposed. This is generally only necessary where the native call back must remain valid for
-    /// an extended period of time. (e.g. beyond the call that provides the callback)
+    /// an extended period of time. (e.g. beyond the call that provides the callback).
     ///
     /// <note type="note">
     /// This doesn't actually pin the delegate, but it does add
@@ -23,66 +23,66 @@ namespace Ubiquity.NET.Llvm.Interop
     public abstract class WrappedNativeCallback
         : DisposableObject
     {
-        /// <summary>Gets the raw native function pointer for the pinned delegate</summary>
-        /// <returns>Native callable function pointer</returns>
-        public IntPtr ToIntPtr( ) => NativeFuncPtr;
+        private readonly IntPtr nativeFuncPtr;
 
-        /// <summary>Converts a callback to an IntPtr suitable for passing to native code</summary>
-        /// <param name="cb">Callback to cast to an <see cref="IntPtr"/></param>
-        public static implicit operator IntPtr( WrappedNativeCallback cb ) => cb.ToIntPtr( );
+        private readonly GCHandle handle;
+
+        // keeps a live ref for the delegate around so GC won't clean it up
+        private Delegate? unpinnedDelegate;
 
         /// <summary>Initializes a new instance of the <see cref="WrappedNativeCallback"/> class.</summary>
-        /// <param name="d">Delegate</param>
-        protected internal WrappedNativeCallback( Delegate d )
+        /// <param name="d">Delegate.</param>
+        protected internal WrappedNativeCallback(Delegate d)
         {
-            if( d.GetType( ).IsGenericType )
+            if (d.GetType().IsGenericType)
             {
                 // Marshal.GetFunctionPointerForDelegate will create an exception for this but the
                 // error message is, pardon the pun, a bit too generic. Hopefully, this makes it a
                 // bit more clear.
-                throw new ArgumentException( );
+                throw new ArgumentException();
             }
 
-            if( d.GetType( ).GetCustomAttributes( typeof( UnmanagedFunctionPointerAttribute ), true ).Length == 0 )
+            if (d.GetType().GetCustomAttributes(typeof(UnmanagedFunctionPointerAttribute), true).Length == 0)
             {
-                throw new ArgumentException( );
+                throw new ArgumentException();
             }
 
-            UnpinnedDelegate = d;
-            Handle = GCHandle.Alloc( UnpinnedDelegate );
-            NativeFuncPtr = Marshal.GetFunctionPointerForDelegate( UnpinnedDelegate );
+            this.unpinnedDelegate = d;
+            this.handle = GCHandle.Alloc(this.unpinnedDelegate);
+            this.nativeFuncPtr = Marshal.GetFunctionPointerForDelegate(this.unpinnedDelegate);
         }
+
+        /// <summary>Converts a callback to an IntPtr suitable for passing to native code.</summary>
+        /// <param name="cb">Callback to cast to an <see cref="IntPtr"/>.</param>
+        public static implicit operator IntPtr(WrappedNativeCallback cb) => cb.ToIntPtr();
+
+        /// <summary>Gets the raw native function pointer for the pinned delegate.</summary>
+        /// <returns>Native callable function pointer.</returns>
+        public IntPtr ToIntPtr() => this.nativeFuncPtr;
 
         /// <inheritdoc/>
-        protected override void Dispose( bool disposing )
+        protected override void Dispose(bool disposing)
         {
-            Handle.Free( );
-            UnpinnedDelegate = default;
+            this.handle.Free();
+            this.unpinnedDelegate = default;
         }
 
-        /// <summary>Gets a delegate from the raw native callback</summary>
-        /// <typeparam name="T">Type of delegate to convert to</typeparam>
-        /// <returns>Delegate suitable for passing as an "in" parameter to native methods</returns>
-        protected T ToDelegate<T>( )
+        /// <summary>Gets a delegate from the raw native callback.</summary>
+        /// <typeparam name="T">Type of delegate to convert to.</typeparam>
+        /// <returns>Delegate suitable for passing as an "in" parameter to native methods.</returns>
+        protected T ToDelegate<T>()
             where T : Delegate
         {
-            return ( T )Marshal.GetDelegateForFunctionPointer( ToIntPtr( ), typeof( T ) );
+            return (T)Marshal.GetDelegateForFunctionPointer(this.ToIntPtr(), typeof(T));
         }
-
-        private readonly IntPtr NativeFuncPtr;
-
-        // keeps a live ref for the delegate around so GC won't clean it up
-        private Delegate UnpinnedDelegate;
-
-        private readonly GCHandle Handle;
     }
 
-    /// <summary>Keep alive holder to ensure native call back delegates are not destroyed while registered with native code</summary>
-    /// <typeparam name="T">Delegate signature of the native callback</typeparam>
+    /// <summary>Keep alive holder to ensure native call back delegates are not destroyed while registered with native code.</summary>
+    /// <typeparam name="T">Delegate signature of the native callback.</typeparam>
     /// <remarks>
     /// This generates a holder for a delegate that allows a native function pointer for the delegate to remain valid until the
     /// instance of this wrapper is disposed. This is generally only necessary where the native call back must remain valid for
-    /// an extended period of time. (e.g. beyond the call that provides the callback)
+    /// an extended period of time. (e.g. beyond the call that provides the callback).
     ///
     /// <note type="note">
     /// This doesn't actually pin the delegate, but it does add
@@ -90,26 +90,26 @@ namespace Ubiquity.NET.Llvm.Interop
     /// see: https://msdn.microsoft.com/en-us/library/367eeye0.aspx for more info.
     /// </note>
     /// </remarks>
-    [SuppressMessage( "StyleCop.CSharp.MaintainabilityRules", "SA1402:File may only contain a single type", Justification = "Simple generic variant" )]
+    [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1402:File may only contain a single type", Justification = "Simple generic variant")]
     public sealed class WrappedNativeCallback<T>
         : WrappedNativeCallback
         where T : Delegate
     {
         /// <summary>Initializes a new instance of the <see cref="WrappedNativeCallback{T}"/> class.</summary>
-        /// <param name="d">Delegate to keep alive until this instance is disposed</param>
-        public WrappedNativeCallback( T d )
-            : base( d )
+        /// <param name="d">Delegate to keep alive until this instance is disposed.</param>
+        public WrappedNativeCallback(T d)
+            : base(d)
         {
         }
 
-        /// <summary>Gets a delegate from the raw native callback</summary>
-        /// <returns>Delegate suitable for passing as an "in" parameter to native methods</returns>
-        public T ToDelegate( ) => ToDelegate<T>( );
+        /// <summary>Gets a delegate from the raw native callback.</summary>
+        /// <param name="cb">Callback to get the delegate for.</param>
+        /// <returns>Delegate suitable for passing as an "in" parameter to native methods.</returns>
+        [SuppressMessage("Usage", "CA2225:Operator overloads have named alternates", Justification = "ToDelegate serves the purpose without confusion on generic parameter name")]
+        public static implicit operator T(WrappedNativeCallback<T> cb) => cb.ToDelegate();
 
-        /// <summary>Gets a delegate from the raw native callback</summary>
-        /// <param name="cb">Callback to get the delegate for</param>
-        /// <returns>Delegate suitable for passing as an "in" parameter to native methods</returns>
-        [SuppressMessage( "Usage", "CA2225:Operator overloads have named alternates", Justification = "ToDelegate serves the purpose without confusion on generic parameter name" )]
-        public static implicit operator T( WrappedNativeCallback<T> cb ) => cb.ToDelegate( );
+        /// <summary>Gets a delegate from the raw native callback.</summary>
+        /// <returns>Delegate suitable for passing as an "in" parameter to native methods.</returns>
+        public T ToDelegate() => this.ToDelegate<T>();
     }
 }
