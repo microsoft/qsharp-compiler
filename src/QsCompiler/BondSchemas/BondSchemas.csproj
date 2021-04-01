@@ -10,6 +10,10 @@
   <ItemGroup>
     <BondCodegen Remove="**\*.bond" />
   </ItemGroup>
+  <ItemGroup>
+    <!-- Set up where gbc will look to resolve import statements. -->
+    <BondImportDirectory Include="." />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Bond.CSharp" Version="9.0.3" />

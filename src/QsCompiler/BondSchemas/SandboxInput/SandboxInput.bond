@@ -1,0 +1,16 @@
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+import "EntryPoint/EntryPoint.bond";
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.SandboxInput;
+
+struct Bytecode
+{
+    5: blob Data;
+}
+
+struct Input
+{
+    5: Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint.EntryPointOperation EntryPoint;
+    10: bonded<Bytecode> QirBytes;
+}
