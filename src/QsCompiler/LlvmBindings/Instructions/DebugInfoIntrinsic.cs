@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Base class for debug information intrinsic functions in LLVM IR</summary>
+    /// <summary>Base class for debug information intrinsic functions in LLVM IR.</summary>
     public class DebugInfoIntrinsic
         : Intrinsic
     {
-        internal DebugInfoIntrinsic( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal DebugInfoIntrinsic(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }
