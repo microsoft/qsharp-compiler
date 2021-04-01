@@ -21,15 +21,6 @@
 using namespace Microsoft::Quantum;
 using namespace std;
 
-struct InteropArray
-{
-    int64_t Size;
-    void* Data;
-
-    InteropArray(int64_t size, void* data) :
-        Size(size),
-        Data(data) {}
-};
 
 using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
@@ -50,9 +41,9 @@ struct InteropRange
 };
 
 // This is the function corresponding to the QIR entry-point.
-extern "C" void UseBoolArg(
-    char BoolArg,
-    );
+extern "C" void UseBoolArg( // NOLINT
+    char BoolArg
+);
 
 const char InteropFalseAsChar = 0x0;
 const char InteropTrueAsChar = 0x1;
@@ -134,16 +125,14 @@ int main(int argc, char* argv[])
     // N.B. This option should be present in all standalone drivers.
     string simulationOutputFile;
     CLI::Option* simulationOutputFileOpt = app.add_option(
-        "-s,--simulation-output", simulationOutputFile,
+        "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    // Option for a Q# Bool type.
-    char BoolArg = InteropFalseAsChar;
+
+    char BoolArg;
+    BoolArg = InteropFalseAsChar;
     app.add_option("--BoolArg", BoolArg, "A bool value")
-        ->required()
-        ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
-
-
+        ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
@@ -160,10 +149,10 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseBoolArg(
-        BoolArg,
-        );
+        BoolArg
+    );
 
-    FreePointerVector(rangeVector);
+
     simulatorOutputStream->flush();
     if (simulationOutputFileStream.is_open())
     {

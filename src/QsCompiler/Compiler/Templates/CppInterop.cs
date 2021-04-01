@@ -82,6 +82,12 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
+        public static List<Argument> GetSortedArguments(EntryPointOperation op)
+        {
+            op.Arguments.Sort((a, b) => a.Position.CompareTo(b.Position));
+            return op.Arguments;
+        }
+
         public static string? CppVarInitialValue(Argument arg)
         {
             return arg.Type switch

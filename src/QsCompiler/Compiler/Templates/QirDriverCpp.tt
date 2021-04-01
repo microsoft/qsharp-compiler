@@ -55,10 +55,10 @@ struct InteropRange
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void <#= entryPointOperation.Name #>( // NOLINT
-<# for (int i = 0; i < entryPointOperation.Arguments.Count; i++) {
-    var arg = entryPointOperation.Arguments[i];
+<# for (int i = 0; i < CppInterop.GetSortedArguments(entryPointOperation).Count; i++) {
+    var arg = CppInterop.GetSortedArguments(entryPointOperation)[i];
     Write($"    {CppInterop.CppType(arg)} {arg.Name}");
-    if (i < entryPointOperation.Arguments.Count-1) {
+    if (i < CppInterop.GetSortedArguments(entryPointOperation).Count-1) {
         WriteLine(",");
     }
 } #>
@@ -148,7 +148,7 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
     
-<# foreach (var arg in entryPointOperation.Arguments) {
+<# foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
     WriteLine("");
     WriteLine($"    {CppInterop.CppVarType(arg)} {arg.Name};"); 
     if (CppInterop.CppVarInitialValue(arg) != null) { WriteLine($"    {arg.Name} = {CppInterop.CppVarInitialValue(arg)};"); }
@@ -163,7 +163,7 @@ int main(int argc, char* argv[])
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
-<# foreach (var arg in entryPointOperation.Arguments) {
+<# foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
     switch (arg.Type) {
         case DataType.PauliType:
             WriteLine("    // Translate a PauliID value to its char representation.");
@@ -225,8 +225,8 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     <#= entryPointOperation.Name #>(
-<# for (int i = 0; i < entryPointOperation.Arguments.Count; i++) {
-    var arg = entryPointOperation.Arguments[i];
+<# for (int i = 0; i < CppInterop.GetSortedArguments(entryPointOperation).Count; i++) {
+    var arg = CppInterop.GetSortedArguments(entryPointOperation)[i];
     switch (arg.Type) {
         case DataType.PauliType:
             Write($"        {arg.Name}AsCharValue");
@@ -244,14 +244,14 @@ int main(int argc, char* argv[])
             Write($"        {arg.Name}");
             break;
     }
-    if (i < entryPointOperation.Arguments.Count-1 ) {
+    if (i < CppInterop.GetSortedArguments(entryPointOperation).Count-1 ) {
         WriteLine(",");
     }
 } #>
 
 );
 
-<# foreach (var arg in entryPointOperation.Arguments) {
+<# foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
         Write($"    FreePointerVector({arg.Name}Vector);");
     }
