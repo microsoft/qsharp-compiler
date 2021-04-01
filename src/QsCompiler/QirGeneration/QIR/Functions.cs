@@ -8,6 +8,7 @@ using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QIR
@@ -37,10 +38,9 @@ namespace Microsoft.Quantum.QIR
         private static readonly ResolvedType Int = ResolvedType.New(ResolvedTypeKind.Int);
         private static readonly ResolvedType BigInt = ResolvedType.New(ResolvedTypeKind.BigInt);
         private static readonly ResolvedType Double = ResolvedType.New(ResolvedTypeKind.Double);
-        private static readonly ResolvedType Range = ResolvedType.New(ResolvedTypeKind.Range);
 
         private readonly GenerationContext sharedState;
-        internal readonly ImmutableDictionary<QsQualifiedName, Func<TypedExpression, IValue>> BuiltIn;
+        private readonly ImmutableDictionary<QsQualifiedName, Func<TypedExpression, IValue>> builtIn;
 
         public Functions(GenerationContext sharedState)
         {
@@ -57,7 +57,7 @@ namespace Microsoft.Quantum.QIR
             dict.Add(QsCompiler.BuiltIn.Truncate.FullName, this.DoubleAsInt); // This redundancy needs to be eliminated in the Q# libraries.
 
             this.sharedState = sharedState;
-            this.BuiltIn = dict.ToImmutable();
+            this.builtIn = dict.ToImmutable();
         }
 
         // static methods
@@ -80,6 +80,32 @@ namespace Microsoft.Quantum.QIR
         };
 
         // public and internal methods
+
+        /// <returns>
+        /// True, if the callable with the given name is handled by QIR emission
+        /// and does not need to be declared within QIR or implemented by the runtime.
+        /// </returns>
+        public bool IsBuiltIn(QsQualifiedName name) =>
+            this.builtIn.ContainsKey(NameDecorator.OriginalNameFromMonomorphized(name));
+
+        /// <returns>
+        /// The result of the evaluation if the given name matches one of the recognized runtime functions,
+        /// and null otherwise.
+        /// </returns>
+        internal bool TryEvaluate(QsQualifiedName name, TypedExpression arg, [MaybeNullWhen(false)] out IValue evaluated)
+        {
+            var unmangledName = NameDecorator.OriginalNameFromMonomorphized(name);
+            if (this.builtIn.TryGetValue(unmangledName, out var function))
+            {
+                evaluated = function(arg);
+                return true;
+            }
+            else
+            {
+                evaluated = null;
+                return false;
+            }
+        }
 
         /// <param name="rangeEx">The range expression for which to create the access functions</param>
         /// <returns>
@@ -117,24 +143,6 @@ namespace Microsoft.Quantum.QIR
                 endValue = () => this.sharedState.CurrentBuilder.ExtractValue(range, 2u);
             }
             return (startValue, stepValue, endValue);
-        }
-
-        /// <returns>
-        /// The result of the evaluation if the given name matches one of the recognized runtime functions,
-        /// and null otherwise.
-        /// </returns>
-        internal bool TryEvaluate(QsQualifiedName name, TypedExpression arg, [MaybeNullWhen(false)] out IValue evaluated)
-        {
-            if (this.BuiltIn.TryGetValue(name, out var function))
-            {
-                evaluated = function(arg);
-                return true;
-            }
-            else
-            {
-                evaluated = null;
-                return false;
-            }
         }
 
         // private methods

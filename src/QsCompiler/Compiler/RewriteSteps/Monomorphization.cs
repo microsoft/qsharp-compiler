@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         {
             try
             {
-                ValidateMonomorphization.Apply(compilation);
+                ValidateMonomorphization.Apply(compilation, allowTypeParametersForIntrinsics: this.keepAllIntrinsics);
             }
             catch
             {
