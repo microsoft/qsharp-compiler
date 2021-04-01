@@ -162,6 +162,12 @@ type BuiltIn =
     static member EnableTestingViaName =
         { FullName = { Name = "EnableTestingViaName"; Namespace = BuiltIn.DiagnosticsNamespace }; Kind = Attribute }
 
+    static member DumpMachine =
+        {
+            FullName = { Name = "DumpMachine"; Namespace = BuiltIn.DiagnosticsNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Create "T")
+        }
+
     // dependencies in Microsoft.Quantum.Canon
 
     static member NoOp =
