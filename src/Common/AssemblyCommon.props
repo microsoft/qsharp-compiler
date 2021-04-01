@@ -48,7 +48,7 @@
     <WarningsAsErrors>3390</WarningsAsErrors>
   </PropertyGroup>
 
-  <ItemGroup Condition="$(IsCsProject) AND $(UsingMicrosoftNETSdk)">
+  <ItemGroup Condition="$(IsCsProject)">
     <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.321" PrivateAssets="All" />
     <AdditionalFiles Include="$(StyleCopJsonPath)" Link="stylecop.json" />
   </ItemGroup>
