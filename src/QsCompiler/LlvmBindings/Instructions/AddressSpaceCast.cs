@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Address space cast instruction</summary>
+    /// <summary>Address space cast instruction.</summary>
     /// <seealso href="xref:llvm_langref#addrspaceast-to-instruction">LLVM addrspacecast .. to</seealso>
     public class AddressSpaceCast : Cast
     {
-        internal AddressSpaceCast( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal AddressSpaceCast(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

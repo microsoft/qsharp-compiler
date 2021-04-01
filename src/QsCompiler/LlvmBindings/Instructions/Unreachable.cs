@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Instruction to indicate an unreachable location</summary>
+    /// <summary>Instruction to indicate an unreachable location.</summary>
     public class Unreachable
         : Terminator
     {
-        internal Unreachable( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal Unreachable(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

@@ -8,9 +8,9 @@ namespace LLVMSharp.Interop
 {
     internal static unsafe class StringExtensions
     {
-        public static MarshaledString AsMarshaledString( this string self )
+        public static MarshaledString AsMarshaledString(this string self)
         {
-            return new MarshaledString( self.AsSpan( ) );
+            return new MarshaledString(self.AsSpan());
         }
     }
 }

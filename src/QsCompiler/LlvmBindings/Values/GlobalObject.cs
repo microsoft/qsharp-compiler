@@ -7,42 +7,39 @@
 
 using System;
 using System.Collections.Generic;
-
 using LLVMSharp.Interop;
-
-
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>Base class for Global objects in an LLVM Module</summary>
+    /// <summary>Base class for Global objects in an LLVM Module.</summary>
     public unsafe class GlobalObject
         : GlobalValue
     {
-        /// <summary>Gets or sets the alignment requirements for this object</summary>
+        internal GlobalObject(LLVMValueRef valueRef)
+            : base(valueRef)
+        {
+        }
+
+        /// <summary>Gets or sets the alignment requirements for this object.</summary>
         public uint Alignment
         {
-            get => ValueHandle == default ? default : ValueHandle.Alignment;
+            get => this.ValueHandle == default ? default : this.ValueHandle.Alignment;
             set
             {
-                var val = ValueHandle;
+                var val = this.ValueHandle;
                 val.Alignment = value;
             }
         }
 
-        /// <summary>Gets or sets the linker section this object belongs to</summary>
-        public string Section
+        /// <summary>Gets or sets the linker section this object belongs to.</summary>
+        public string? Section
         {
-            get => ValueHandle == default ? default : ValueHandle.Section;
+            get => this.ValueHandle == default ? default : this.ValueHandle.Section;
             set
             {
-                var val = ValueHandle;
+                var val = this.ValueHandle;
                 val.Section = value;
             }
-        }
-
-        internal GlobalObject( LLVMValueRef valueRef )
-            : base( valueRef )
-        {
         }
     }
 }
