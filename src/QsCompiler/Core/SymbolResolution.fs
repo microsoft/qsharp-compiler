@@ -375,53 +375,25 @@ module SymbolResolution =
         let ts, errs = (inner.Select fst).ToImmutableArray(), inner.Select snd |> Array.concat
         build ts, errs
 
-    /// Helper function for ResolveCallableSignature that verifies whether the given type parameters and the given return type
-    /// are fully resolved by an argument of the given the argument type. Generates and returns suitable warnings if this is not the case.
-    let private TypeParameterResolutionWarnings (argumentType: ResolvedType)
-                                                (returnType: ResolvedType, range)
-                                                typeParams
-                                                =
-        // FIXME: this verification needs to be done for each specialization individually once type specializations are fully supported
-        let typeParamsResolvedByArg =
-            let getTypeParams (t: ResolvedType) =
-                match t.Resolution with
-                | QsTypeKind.TypeParameter (tp: QsTypeParameter) -> [ tp.TypeName ].AsEnumerable()
-                | _ -> Enumerable.Empty()
+    /// Diagnostics for type parameters that do not occur in the argument type or return type.
+    let private unusedTypeParamDiagnostics (argType: ResolvedType) (returnType: ResolvedType) =
+        let isTypeParam name =
+            function
+            | TypeParameter param when param.TypeName = name -> true
+            | _ -> false
 
-            argumentType.ExtractAll getTypeParams |> Seq.toList
+        let paramDiagnostics (symbol, range) =
+            match symbol with
+            | ValidName name ->
+                let isNamedParam = isTypeParam name
 
-        let excessTypeParamWarn =
-            let isUnresolvedByArg =
-                function
-                | (ValidName name, range) ->
-                    if typeParamsResolvedByArg.Contains name then
-                        None
-                    else
-                        range
-                        |> QsCompilerDiagnostic.Warning(WarningCode.TypeParameterNotResolvedByArgument, [])
-                        |> Some
-                | _ -> None
+                [
+                    if argType.Exists isNamedParam |> not && returnType.Exists isNamedParam |> not
+                    then QsCompilerDiagnostic.Warning (WarningCode.UnusedTypeParam, []) range
+                ]
+            | InvalidName -> []
 
-            typeParams |> List.choose isUnresolvedByArg
-
-        let unresolvableReturnType =
-            let isUnresolved =
-                function
-                | QsTypeKind.TypeParameter (tp: QsTypeParameter) ->
-                    not (typeParamsResolvedByArg |> List.contains tp.TypeName)
-                | _ -> false
-
-            returnType.Exists isUnresolved
-
-        let returnTypeErr = range |> QsCompilerDiagnostic.Warning(WarningCode.ReturnTypeNotResolvedByArgument, [])
-
-        if unresolvableReturnType
-        then returnTypeErr :: excessTypeParamWarn |> List.toArray
-        else excessTypeParamWarn |> List.toArray
-        |> ignore
-
-        // TODO: Warnings for unused type parameters?
-        Array.empty
+        List.collect paramDiagnostics
 
     /// <summary>
     /// Helper function for ResolveCallableSignature that resolves the given argument tuple
@@ -517,13 +489,8 @@ module SymbolResolution =
         let argTuple, inErr = signature.Argument |> ResolveArgumentTuple(resolveArg, resolveType)
         let argType = argTuple.ResolveWith(fun x -> x.Type.WithoutRangeInfo)
         let returnType, outErr = signature.ReturnType |> resolveType
-
-        let resolvedParams, resErrs =
-            let errs =
-                TypeParameterResolutionWarnings argType (returnType, signature.ReturnType.Range |> orDefault) typeParams
-
-            (typeParams |> Seq.map fst).ToImmutableArray(), errs
-
+        let resolvedParams = typeParams |> Seq.map fst |> ImmutableArray.CreateRange
+        let resErrs = unusedTypeParamDiagnostics argType returnType typeParams
         let callableInfo = CallableInformation.Common specBundleInfos
 
         let resolvedSig =
@@ -534,7 +501,7 @@ module SymbolResolution =
                 Information = callableInfo
             }
 
-        (resolvedSig, argTuple), [ inErr; outErr; resErrs; tpErrs ] |> Array.concat
+        (resolvedSig, argTuple), [ inErr; outErr; List.toArray resErrs; tpErrs ] |> Array.concat
 
     /// <summary>
     /// Give a routine for type resolution, fully resolves the given user defined type as well as its items.

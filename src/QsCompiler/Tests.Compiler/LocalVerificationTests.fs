@@ -424,8 +424,21 @@ type LocalVerificationTests() =
         this.Expect "InvalidTestAttribute2" [ Error ErrorCode.MisplacedDeclarationAttribute ]
         this.Expect "InvalidTestAttribute3" [ Error ErrorCode.MisplacedDeclarationAttribute ]
         this.Expect "InvalidTestAttribute4" [ Error ErrorCode.MisplacedDeclarationAttribute ]
-        this.Expect "InvalidTestAttribute5" [ Error ErrorCode.InvalidTestAttributePlacement ]
-        this.Expect "InvalidTestAttribute6" [ Error ErrorCode.InvalidTestAttributePlacement ]
+
+        this.Expect
+            "InvalidTestAttribute5"
+            [
+                Error ErrorCode.InvalidTestAttributePlacement
+                Warning WarningCode.UnusedTypeParam
+            ]
+
+        this.Expect
+            "InvalidTestAttribute6"
+            [
+                Error ErrorCode.InvalidTestAttributePlacement
+                Warning WarningCode.UnusedTypeParam
+            ]
+
         this.Expect "InvalidTestAttribute7" [ Error ErrorCode.InvalidTestAttributePlacement ]
         this.Expect "InvalidTestAttribute8" [ Error ErrorCode.InvalidTestAttributePlacement ]
         this.Expect "InvalidTestAttribute9" [ Error ErrorCode.InvalidTestAttributePlacement ]

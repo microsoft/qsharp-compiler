@@ -141,7 +141,7 @@ type TypeCheckingTests() =
         this.Expect "CommonBaseType16" [ Error ErrorCode.MissingBaseType ]
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" []
-        this.Expect "CommonBaseType19" []
+        this.Expect "CommonBaseType19" [ Warning WarningCode.UnusedTypeParam ]
         this.Expect "CommonBaseType20" [ Error ErrorCode.MissingBaseType ]
         this.Expect "CommonBaseType21" []
         this.Expect "CommonBaseType22" []
