@@ -1,14 +1,20 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.15.210324373-alpha">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.15.210324844-pull">
 
   <PropertyGroup>
     <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <CSharpGeneration>false</CSharpGeneration>
     <QirGeneration>true</QirGeneration>
+    <IncludeQSharpCorePackages>false</IncludeQSharpCorePackages>
   </PropertyGroup>
 
+  <PropertyGroup>
+    <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
+  </PropertyGroup>
+    
   <ItemGroup>
-    <None Include="qir\**" />
+    <PackageReference Update="Microsoft.Quantum.QirGeneration" Version="0.15.210324844-pull" />
   </ItemGroup>
 
   <!--

@@ -1,23 +1,22 @@
-﻿namespace Microsoft.Quantum.Qir.Emission {
+﻿namespace Microsoft.Quantum.Core {
 
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
+    @Attribute()
+    newtype Attribute = Unit;
 
-    operation Prepare(target : Qubit) : Unit {
-        H(target);
-    }
+    @Attribute()
+    newtype EntryPoint = Unit;
 
-    operation Iterate(time : Double, theta : Double, target : Qubit) : Result {
+    @Attribute()
+    newtype Inline = Unit;
+}
 
-        use aux = Qubit();
-        within {
-            H(aux);
-        } apply {
-            Rz(-theta * time, aux);
-            Controlled Rz([aux], (PI() * time, target));
-        }
-        return M(aux);
-    }
+namespace Microsoft.Quantum.Targeting {
+
+    @Attribute()
+    newtype TargetInstruction = String;
+}
+
+namespace Microsoft.Quantum.Qir.Emission {
 
     @EntryPoint()
     operation EstimatePhaseByRandomWalk(nrIter : Int) : Double {
@@ -26,18 +25,10 @@
         mutable sigma = 0.6065;
 
         use target = Qubit(); 
-        Prepare(target);
     
         for _ in 1 .. nrIter {
-    
-            let time = mu - PI() * sigma / 2.0;
-            let theta = 1.0 / sigma;
-
-            let datum = Iterate(time, theta, target);
-    
-            set mu = datum == Zero
-                ? mu - sigma * 0.6065
-                | mu + sigma * 0.6065;    
+        
+            set mu -= sigma * 0.6065;
             set sigma *= 0.7951;
         }
         return mu;
