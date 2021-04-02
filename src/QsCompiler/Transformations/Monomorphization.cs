@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         /// Performs Monomorphization on the given compilation. If the keepAllIntrinsics parameter
         /// is set to true, then unused intrinsics will not be removed from the resulting compilation.
         /// </summary>
-        public static QsCompilation Apply(QsCompilation compilation)
+        public static QsCompilation Apply(QsCompilation compilation, bool monomorphizeIntrinsics)
         {
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
@@ -103,12 +103,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
                     GetConcreteIdentifier(concreteNamesMap, globalCallable, types);
 
-            var intrinsicsToKeep = keepAllIntrinsics
-                ? globals
+            var intrinsicsToKeep = monomorphizeIntrinsics
+                ? ImmutableHashSet<QsQualifiedName>.Empty
+                : globals
                     .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
                     .Select(kvp => kvp.Key)
-                    .ToImmutableHashSet()
-                : ImmutableHashSet<QsQualifiedName>.Empty;
+                    .ToImmutableHashSet();
 
             return ReplaceTypeParamCalls.Apply(compWithImpls, getConcreteIdentifier, intrinsicsToKeep);
         }
