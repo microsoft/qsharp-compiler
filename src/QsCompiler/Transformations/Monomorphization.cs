@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         /// Performs Monomorphization on the given compilation. If the keepAllIntrinsics parameter
         /// is set to true, then unused intrinsics will not be removed from the resulting compilation.
         /// </summary>
-        public static QsCompilation Apply(QsCompilation compilation)
+        public static QsCompilation Apply(QsCompilation compilation, bool monomorphizeIntrinsics)
         {
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
@@ -103,12 +103,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
                     GetConcreteIdentifier(concreteNamesMap, globalCallable, types);
 
-            var intrinsicCallableSet = globals
-                .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
-                .Select(kvp => kvp.Key)
-                .ToImmutableHashSet();
+            var intrinsicsToKeep = monomorphizeIntrinsics
+                ? ImmutableHashSet<QsQualifiedName>.Empty
+                : globals
+                    .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
+                    .Select(kvp => kvp.Key)
+                    .ToImmutableHashSet();
 
-            return ReplaceTypeParamCalls.Apply(compWithImpls, getConcreteIdentifier, intrinsicCallableSet);
+            return ReplaceTypeParamCalls.Apply(compWithImpls, getConcreteIdentifier, intrinsicsToKeep);
         }
 
         // Rewrite Implementations
@@ -289,15 +291,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
         private class ReplaceTypeParamCalls :
             SyntaxTreeTransformation<ReplaceTypeParamCalls.TransformationState>
         {
-            public static QsCallable Apply(QsCallable current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            public static QsCallable Apply(QsCallable current, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
             {
-                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicCallableSet);
+                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicsToKeep);
                 return filter.Namespaces.OnCallableDeclaration(current);
             }
 
-            public static QsCompilation Apply(QsCompilation compilation, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+            public static QsCompilation Apply(QsCompilation compilation, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
             {
-                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicCallableSet);
+                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicsToKeep);
                 return filter.OnCompilation(compilation);
             }
 
@@ -305,18 +307,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 public readonly Stack<TypeParameterResolutions> CurrentTypeParamResolutions = new Stack<TypeParameterResolutions>();
                 public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
-                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
+                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicsToKeep;
                 public TypeParameterResolutions? LastCalculatedTypeResolutions = null;
 
-                public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
+                public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
                 {
                     this.GetConcreteIdentifier = getConcreteIdentifier;
-                    this.IntrinsicCallableSet = intrinsicCallableSet;
+                    this.IntrinsicsToKeep = intrinsicsToKeep;
                 }
             }
 
-            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
-                : base(new TransformationState(getConcreteIdentifier, intrinsicCallableSet))
+            private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
+                : base(new TransformationState(getConcreteIdentifier, intrinsicsToKeep))
             {
                 this.Namespaces = new NamespaceTransformation<TransformationState>(this);
                 this.Statements = new StatementTransformation(this);
@@ -352,8 +354,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     if (typeParams.Any())
                     {
-                        var noIntrinsicRes = typeParams.Where(kvp => !this.SharedState.IntrinsicCallableSet.Contains(kvp.Key.Item1)).ToImmutableDictionary();
-                        var intrinsicRes = typeParams.Where(kvp => this.SharedState.IntrinsicCallableSet.Contains(kvp.Key.Item1)).ToImmutableDictionary();
+                        var noIntrinsicRes = typeParams.Where(kvp => !this.SharedState.IntrinsicsToKeep.Contains(kvp.Key.Item1)).ToImmutableDictionary();
+                        var intrinsicRes = typeParams.Where(kvp => this.SharedState.IntrinsicsToKeep.Contains(kvp.Key.Item1)).ToImmutableDictionary();
 
                         this.SharedState.CurrentTypeParamResolutions.Push(noIntrinsicRes);
 
@@ -377,8 +379,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     if (sym is Identifier.GlobalCallable global)
                     {
-                        // We want to skip over intrinsic callables. They will not be monomorphized.
-                        if (!this.SharedState.IntrinsicCallableSet.Contains(global.Item))
+                        // We want to skip over callables listed in IntrinsicsToKeep; they will not be monomorphized.
+                        if (!this.SharedState.IntrinsicsToKeep.Contains(global.Item))
                         {
                             var combination = new TypeResolutionCombination(this.SharedState.CurrentTypeParamResolutions);
                             this.SharedState.LastCalculatedTypeResolutions = combination.CombinedResolutionDictionary;
