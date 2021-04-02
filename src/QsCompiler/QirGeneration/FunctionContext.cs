@@ -29,7 +29,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Gets the current block to which instructions are being emitted.
         /// </summary>
-        internal BasicBlock CurrentBlock => this.currentBuilder.InsertBlock;
+        internal BasicBlock CurrentBlock => this.currentBuilder.InsertBlock!;
 
         /// <summary>
         /// Indicates whether the current block is terminated.
