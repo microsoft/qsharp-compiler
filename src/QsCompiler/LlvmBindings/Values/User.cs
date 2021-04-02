@@ -11,7 +11,7 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>Contains an LLVM User value</summary>
+    /// <summary>Contains an LLVM User value.</summary>
     /// <remarks>
     /// A user is one role in the user->uses relationship
     /// conveyed by the LLVM value model. A User can contain
@@ -20,28 +20,28 @@ namespace Ubiquity.NET.Llvm.Values
     public class User
         : Value
     {
-        /// <summary>Gets a list of the operands for this User</summary>
+        /// <summary>Gets a list of the operands for this User.</summary>
         public ValueOperandListCollection<Value> Operands { get; }
 
-        /// <summary>Gets a collection of <see cref="Use"/>s used by this User</summary>
+        /// <summary>Gets a collection of <see cref="Use"/>s used by this User.</summary>
         public IEnumerable<Use> Uses
         {
             get
             {
-                LLVMUseRef current = ValueHandle.FirstUse;
-                while( current != default )
+                LLVMUseRef current = this.ValueHandle.FirstUse;
+                while (current != default)
                 {
                     // TODO: intern the use instances?
-                    yield return new Use( current );
-                    current = current.Next( );
+                    yield return new Use(current);
+                    current = current.Next();
                 }
             }
         }
 
-        internal User( LLVMValueRef userRef )
-            : base( userRef )
+        internal User(LLVMValueRef userRef)
+            : base(userRef)
         {
-            Operands = new ValueOperandListCollection<Value>( this );
+            this.Operands = new ValueOperandListCollection<Value>(this);
         }
     }
 }

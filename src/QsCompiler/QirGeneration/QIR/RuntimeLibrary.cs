@@ -8,7 +8,7 @@ namespace Microsoft.Quantum.QIR
     /// </summary>
     public static class RuntimeLibrary
     {
-        // Q# specific helpers
+        // Q# specific helpers (not part of QIR spec and hence to be kept internal)
         internal const string HeapAllocate = "memory_allocate";
 
         // result functions
@@ -94,5 +94,15 @@ namespace Microsoft.Quantum.QIR
         // diagnostics
         public const string Fail = "fail";
         public const string Message = "message";
+    }
+
+    /// <summary>
+    /// Static class that contains the names of runtime function that implement
+    /// callables that are part of the quantum instruction set (not part of the QIR specs)
+    /// and require special handling.
+    /// </summary>
+    internal static class QuantumInstructionSet
+    {
+        internal const string DumpMachine = "dumpmachine__body";
     }
 }

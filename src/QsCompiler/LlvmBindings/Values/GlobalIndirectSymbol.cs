@@ -9,19 +9,19 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>Global Indirect Symbol</summary>
+    /// <summary>Global Indirect Symbol.</summary>
     public class GlobalIndirectSymbol
         : GlobalValue
     {
-        /// <summary>Gets or sets the symbol this indirectly references</summary>
+        /// <summary>Gets or sets the symbol this indirectly references.</summary>
         public Constant IndirectSymbol
         {
-            get => Operands.GetOperand<Constant>( 0 )!;
-            set => Operands[ 0 ] = value;
+            get => this.Operands.GetOperand<Constant>(0)!;
+            set => this.Operands[0] = value;
         }
 
-        internal GlobalIndirectSymbol( LLVMValueRef handle )
-            : base( handle )
+        internal GlobalIndirectSymbol(LLVMValueRef handle)
+            : base(handle)
         {
         }
     }

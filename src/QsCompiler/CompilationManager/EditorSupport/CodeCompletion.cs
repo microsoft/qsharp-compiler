@@ -69,12 +69,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class CodeCompletion
     {
         /// <summary>
-        /// Returns a list of suggested completion items for the given position.
-        /// <para/>
-        /// Returns null if any argument is null or the position is invalid.
-        /// Returns an empty completion list if the given position is within a comment.
+        /// Returns a list of suggested completion items for <paramref name="position"/>.
         /// </summary>
-        /// <exception cref="FileContentException">The file content changed while processing.</exception>
+        /// <exception cref="FileContentException">The contents of <paramref name="file"/> changed while processing.</exception>
+        /// <remarks>
+        /// Returns null if any argument is null or <paramref name="position"/> is invalid.
+        /// Returns an empty completion list if <paramref name="position"/> is within a comment.
+        /// </remarks>
         public static CompletionList? Completions(
             this FileContentManager file, CompilationUnit compilation, Position? position)
         {
@@ -110,12 +111,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates the given completion item with additional information if any is available. The completion item
-        /// returned is a reference to the same completion item that was given; the given completion item is mutated
+        /// Updates <paramref name="item"/> with additional information, if any is available.
+        /// </summary>
+        /// <remarks>
+        /// The completion item returned is the same reference as <paramref name="item"/>. It is mutated
         /// with the additional information.
         /// <para/>
-        /// Returns null (and the item is not updated) if any argument is null.
-        /// </summary>
+        /// Returns null (and <paramref name="item"/> is not updated) if any argument is null.
+        /// </remarks>
         public static CompletionItem? ResolveCompletion(
             this CompilationUnit compilation, CompletionItem item, CompletionItemData? data, MarkupKind format)
         {
@@ -132,9 +135,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the completion environment at the given position in the file or null if the environment cannot be
-        /// determined. Stores the code fragment found at or before the given position into an out parameter.
+        /// Returns the completion environment at <paramref name="position"/> in <paramref name="file"/>, or
+        /// null if the environment cannot be determined.
         /// </summary>
+        /// <param name="fragment">The code fragment found at or before <paramref name="position"/>.</param>
         private static (CompletionScope?, QsFragmentKind?) GetCompletionEnvironment(
             FileContentManager file, Position position, out CodeFragment? fragment)
         {
@@ -175,7 +179,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completion items that match the given kind.
+        /// Returns completion items that match <paramref name="kind"/>.
         /// </summary>
         private static IEnumerable<CompletionItem> GetCompletionsForKind(
             FileContentManager file,
@@ -227,11 +231,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns completions meant to be used as a fallback in cases where the completion parser can't parse a code
-        /// fragment. The fallback includes all possible completions regardless of context, except when the position is
-        /// part of a qualified symbol, in which case only completions for symbols matching the namespace prefix will be
-        /// included.
+        /// fragment.
         /// </summary>
         /// <exception cref="FileContentException">The file content changed while processing.</exception>
+        /// <remarks>
+        /// The fallback includes all possible completions regardless of context, except when <paramref name="position"/> is
+        /// part of a qualified symbol, in which case only completions for symbols matching the namespace prefix will be
+        /// included.
+        /// </remarks>
         private static IEnumerable<CompletionItem> GetFallbackCompletions(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
@@ -268,9 +275,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for local variables at the given position. If <paramref name="mutableOnly"/> is true,
-        /// shows only completions for mutable local variables. Returns an empty enumerator if the position is invalid.
+        /// Returns completions for local variables at <paramref name="position"/>.
         /// </summary>
+        /// <param name="mutableOnly">Show only completions for mutable local variables.</param>
+        /// <remarks>
+        /// Returns an empty enumerator if <paramref name="position"/> is invalid.
+        /// </remarks>
         private static IEnumerable<CompletionItem> GetLocalCompletions(
             FileContentManager file, CompilationUnit compilation, Position position, bool mutableOnly = false) =>
             compilation
@@ -284,9 +294,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 });
 
         /// <summary>
-        /// Returns completions for all accessible callables given the current namespace and the list of open
-        /// namespaces, or an empty enumerable if symbols haven't been resolved yet.
+        /// Returns completions for all accessible callables.
         /// </summary>
+        /// <param name="currentNamespace">The current namespace.</param>
+        /// <param name="openNamespaces">The list of open namespaces.</param>
+        /// <remarks>
+        /// Returns an empty enumerable if symbols haven't been resolved yet.
+        /// </remarks>
         private static IEnumerable<CompletionItem> GetCallableCompletions(
             FileContentManager file,
             CompilationUnit compilation,
@@ -315,9 +329,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all accessible types given the current namespace and the list of open namespaces, or
-        /// an empty enumerable if symbols haven't been resolved yet.
+        /// Returns completions for all accessible types.
         /// </summary>
+        /// <param name="currentNamespace">The current namespace.</param>
+        /// <param name="openNamespaces">The list of open namespaces.</param>
+        /// <remarks>
+        /// Returns an empty enumerable if symbols haven't been resolved yet.
+        /// </remarks>
         private static IEnumerable<CompletionItem> GetTypeCompletions(
             FileContentManager file,
             CompilationUnit compilation,
@@ -344,9 +362,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all named items in any accessible type, or an empty enumerable if symbols haven't
-        /// been resolved yet.
+        /// Returns completions for all named items in any accessible type.
         /// </summary>
+        /// <remarks>
+        /// Returns an empty enumerable if symbols haven't been resolved yet.
+        /// </remarks>
         private static IEnumerable<CompletionItem> GetNamedItemCompletions(CompilationUnit compilation)
         {
             if (!compilation.GlobalSymbols.ContainsResolutions)
@@ -364,12 +384,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for all global namespaces with the given prefix. The completion names contain only the
-        /// word after the prefix and before the next dot.
-        /// <para/>
-        /// Note: a dot will be added after the given prefix if it is not the empty string, and doesn't already end with
-        /// a dot.
+        /// Returns completions for all global namespaces prefixed by <paramref name="prefix"/>.
         /// </summary>
+        /// <remarks>
+        /// The completion names contain only the word after <paramref name="prefix"/> and before the next dot.
+        /// <para/>
+        /// A dot will be added after <paramref name="prefix"/> if it is not the empty string, and doesn't already end with
+        /// a dot.
+        /// </remarks>
         private static IEnumerable<CompletionItem> GetGlobalNamespaceCompletions(
             CompilationUnit compilation, string prefix = "")
         {
@@ -391,12 +413,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns completions for namespace aliases with the given prefix that are accessible from the given position
-        /// in the file.
-        /// <para/>
-        /// Note: a dot will be added after the given prefix if it is not the empty string, and doesn't already end with
-        /// a dot.
+        /// Returns completions for namespace aliases prefixed by <paramref name="prefix"/>
+        /// that are accessible from <paramref name="position"/> in <paramref name="file"/>.
         /// </summary>
+        /// <remarks>
+        /// A dot will be added after <paramref name="prefix"/> if it is not the empty string, and doesn't already end with
+        /// a dot.
+        /// </remarks>
         private static IEnumerable<CompletionItem> GetNamespaceAliasCompletions(
             FileContentManager file, CompilationUnit compilation, Position position, string prefix = "")
         {
@@ -425,10 +448,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns documentation for the callable (if kind is Function or Constructor) or type (if kind is Struct) in
-        /// the compilation unit with the given qualified name. Returns null if no documentation is available or the
-        /// completion item data is missing properties.
+        /// Returns documentation for the callable (if <paramref name="kind"/> is Function or Constructor) or type
+        /// (if <paramref name="kind"/> is Struct) in <paramref name="compilation"/> with the qualified name given in <paramref name="data"/>.
+        /// <seealso cref="CompletionItemData.QualifiedName"/>
         /// </summary>
+        /// <remarks>
+        /// Returns null if no documentation is available or <paramref name="data"/> is missing properties.
+        /// </remarks>
         private static string? TryGetDocumentation(
             CompilationUnit compilation, CompletionItemData data, CompletionItemKind? kind, bool useMarkdown)
         {
@@ -464,9 +490,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the names of all namespaces that have been opened without an alias and are accessible from the given
-        /// position in the file. Returns an empty enumerator if the position is invalid.
+        /// Returns the names of all namespaces that have been opened without an alias and are accessible from
+        /// <paramref name="position"/> in <paramref name="file"/>.
         /// </summary>
+        /// <remarks>
+        /// Returns an empty enumerator if <paramref name="position"/> is invalid.
+        /// </remarks>
         private static IEnumerable<string> GetOpenNamespaces(
             FileContentManager file, CompilationUnit compilation, Position position)
         {
@@ -483,10 +512,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the namespace path for the qualified symbol at the given position, or null if there is no qualified
+        /// Returns the namespace path for the qualified symbol at <paramref name="position"/>, or null if there is no qualified
         /// symbol.
         /// </summary>
-        /// <exception cref="FileContentException">The file content changed while processing.</exception>
+        /// <exception cref="FileContentException">The contents of <paramref name="file"/> changed while processing.</exception>
         private static string? GetSymbolNamespacePath(FileContentManager file, Position position)
         {
             var fragment = file.TryGetFragmentAt(position, out _, includeEnd: true);
@@ -507,9 +536,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the index in the fragment text corresponding to the given absolute position.
+        /// Returns the index in the text of <paramref name="fragment"/> corresponding to <paramref name="position"/>.
         /// </summary>
-        /// <exception cref="FileContentException">The position is outside the fragment range.</exception>
+        /// <param name="position">An absolute position.</param>
+        /// <exception cref="FileContentException"><paramref name="position"/> is outside the range of <paramref name="fragment"/>.</exception>
         private static int GetTextIndexFromPosition(CodeFragment fragment, Position position)
         {
             var relativeLine = position.Line - fragment.Range.Start.Line;
@@ -525,9 +555,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Resolves the namespace alias and returns its full namespace name. If the alias couldn't be resolved, returns
-        /// the alias unchanged.
+        /// Resolves <paramref name="alias"/> and returns its full namespace name.
         /// </summary>
+        /// <param name="alias">The namespace alias.</param>
+        /// <remarks>
+        /// If <paramref name="alias"/> couldn't be resolved, it is returned unchanged.
+        /// </remarks>
         private static string ResolveNamespaceAlias(
             FileContentManager file, CompilationUnit compilation, Position position, string alias)
         {
@@ -540,9 +573,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the token index at, or the closest token index before, the given position. Returns null if there is
-        /// no token at or before the given position.
+        /// Returns the token index at, or the closest token index before, <paramref name="position"/>.
         /// </summary>
+        /// <remarks>
+        /// Returns null if there is no token at or before <paramref name="position"/>.
+        /// </remarks>
         private static CodeFragment.TokenIndex? GetTokenAtOrBefore(FileContentManager file, Position position)
         {
             var line = position.Line;
@@ -563,9 +598,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the position of the delimiting character that follows the given code fragment.
+        /// Returns the position of the delimiting character that follows <paramref name="fragment"/>.
         /// </summary>
-        /// <exception cref="ArgumentException">Thrown when the code fragment has a missing delimiter.</exception>
+        /// <exception cref="ArgumentException"><paramref name="fragment"/> has a missing delimiter.</exception>
         private static Position GetDelimiterPosition(FileContentManager file, CodeFragment fragment)
         {
             if (fragment.FollowedBy == CodeFragment.MissingDelimiter)
@@ -578,7 +613,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true if the fragment has a delimiting character and the given position occurs after it.
+        /// Returns true if <paramref name="fragment"/> has a delimiting character and <paramref name="position"/> occurs after it.
         /// </summary>
         private static bool IsPositionAfterDelimiter(
                 FileContentManager file, CodeFragment fragment, Position position) =>
@@ -586,13 +621,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             && GetDelimiterPosition(file, fragment) < position;
 
         /// <summary>
-        /// Returns a substring of the fragment text before the given position.
-        /// <para/>
-        /// If the fragment is null or the position is after the fragment's delimiter, returns the empty string. If the
-        /// position is after the end of the fragment text but before the delimiter, the entire text is returned with a
-        /// space character appended to it.
+        /// Returns a substring of the text of <paramref name="fragment"/> before <paramref name="position"/>.
         /// </summary>
         /// <exception cref="FileContentException">The position is outside the fragment range.</exception>
+        /// <remarks>
+        /// If <paramref name="fragment"/> is null or <paramref name="position"/> is after its delimiter, returns the empty string.
+        /// <para/>
+        /// If <paramref name="position"/> is after the end of the text of <paramref name="fragment"/> but before the delimiter, the entire text is returned with a
+        /// space character appended to it.
+        /// </remarks>
         private static string GetFragmentTextBeforePosition(
             FileContentManager file, CodeFragment? fragment, Position position)
         {
@@ -606,13 +643,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the namespace part starting at the given starting position and ending at the next dot.
+        /// Returns the namespace part starting at <paramref name="start"/> and ending at the next dot.
         /// </summary>
+        /// <param name="start">The starting position.</param>
         private static string NextNamespacePart(string @namespace, int start) =>
             string.Concat(@namespace.Substring(start).TakeWhile(c => c != '.'));
 
         /// <summary>
-        /// Converts an <see cref="IEnumerable{T}"/> of <see cref="CompletionItem"/>s to a
+        /// Converts an <see cref="IEnumerable{T}"/> of <see cref="CompletionItem"/> objects to a
         /// <see cref="CompletionList"/>.
         /// </summary>
         private static CompletionList ToCompletionList(this IEnumerable<CompletionItem> items, bool isIncomplete) =>
@@ -623,12 +661,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
 
         /// <summary>
-        /// Returns true if the declaration with the given qualified name would be accessible if it was referenced using
-        /// its unqualified name, given the current namespace and a list of open namespaces.
-        /// <para/>
-        /// Note: Names that start with "_" are treated as "private;" they are only accessible from the namespace in
-        /// which they are declared.
+        /// Returns true if the declaration with <paramref name="qualifiedName"/> would be accessible if it was referenced using
+        /// its unqualified name.
         /// </summary>
+        /// <param name="qualifiedName">The qualified name of the declaration to check.</param>
+        /// <param name="currentNamespace">The current namespace.</param>
+        /// <param name="openNamespaces">The list of open namespaces.</param>
+        /// <remarks>
+        /// Names that start with "_" are treated as "private;" they are only accessible from the namespace in
+        /// which they are declared.
+        /// </remarks>
         private static bool IsAccessibleAsUnqualifiedName(
             QsQualifiedName qualifiedName,
             string? currentNamespace,
