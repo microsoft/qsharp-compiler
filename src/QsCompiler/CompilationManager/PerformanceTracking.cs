@@ -146,8 +146,10 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
             /// <summary>
             /// Task for a specific rewrite step.
-            /// These tasks should be accompanied with details of which rewrite step it is specific to.
             /// </summary>
+            /// <remarks>
+            /// These tasks should be accompanied with details of which rewrite step it is specific to.
+            /// </remarks>
             SingleRewriteStep,
 
             /// <summary>
@@ -198,7 +200,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         }
 
         /// <summary>
-        /// Gets the parent of the specified task.
+        /// Gets the parent of <paramref name="task"/>.
         /// </summary>
         /// <exception cref="ArgumentException">When the parent is not defined.</exception>
         private static Task? GetTaskParent(Task task)
@@ -215,8 +217,10 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
 
         /// <summary>
         /// Invokes a compilation task event.
-        /// If an exception occurs when calling this method, the error message is cached and subsequent calls do nothing.
         /// </summary>
+        /// <remarks>
+        /// If an exception occurs when calling this method, the error message is cached and subsequent calls do nothing.
+        /// </remarks>
         private static void InvokeTaskEvent(CompilationTaskEventType eventType, Task task, string? leafSuffix = null)
         {
             if (FailureOccurred)

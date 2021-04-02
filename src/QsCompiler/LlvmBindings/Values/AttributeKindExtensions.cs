@@ -10,15 +10,12 @@ using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Linq;
-
 using LLVMSharp.Interop;
-
 using Ubiquity.NET.Llvm.Instructions;
-
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>Enumeration for the known LLVM attributes</summary>
+    /// <summary>Enumeration for the known LLVM attributes.</summary>
     /// <remarks>
     /// <para>It is important to note that the integer values of this enum do NOT necessarily
     /// correlate to the LLVM attribute IDs. LLVM has moved away from using an enum Flags model
@@ -36,7 +33,7 @@ namespace Ubiquity.NET.Llvm.Values
     /// <seealso href="xref:llvm_langref#parameter-attributes">LLVM Parameter Attributes</seealso>
     public enum AttributeKind
     {
-        /// <summary>No attributes</summary>
+        /// <summary>No attributes.</summary>
         None,
 
         /// <summary>This indicates that the pointer value may be assumed by the optimizer to
@@ -63,7 +60,7 @@ namespace Ubiquity.NET.Llvm.Values
         AlwaysInline,
 
         /// <summary>indicates that the only memory accesses inside function are loads and stores from
-        /// objects pointed to by its pointer-typed arguments, with arbitrary offsets</summary>
+        /// objects pointed to by its pointer-typed arguments, with arbitrary offsets.</summary>
         /// <remarks>This attribute indicates that the only memory accesses inside function are loads and
         /// stores from objects pointed to by its pointer-typed arguments, with arbitrary offsets. Or in
         /// other words, all memory operations in the function can refer to memory only using pointers
@@ -99,10 +96,10 @@ namespace Ubiquity.NET.Llvm.Values
         /// </remarks>
         Cold,
 
-        /// <summary>This attribute marks a function as convergent</summary>
+        /// <summary>This attribute marks a function as convergent.</summary>
         Convergent,
 
-        /// <summary>This indicates that the parameter or return pointer is dereferenceable</summary>
+        /// <summary>This indicates that the parameter or return pointer is dereferenceable.</summary>
         Dereferenceable,
 
         /// <summary>This indicates that the parameter or return value isn’t both non-null and non-dereferenceable (up to 'n' bytes) at the same time.</summary>
@@ -141,10 +138,10 @@ namespace Ubiquity.NET.Llvm.Values
         /// <summary>This attribute indicates that the source code contained a hint that inlining this function is desirable (such as the “inline” keyword in C/C++). It is just a hint; it imposes no requirements on the inliner.</summary>
         InlineHint,
 
-        /// <summary>This attribute indicates that the function should be added to a jump-instruction table at code-generation time,</summary>
+        /// <summary>This attribute indicates that the function should be added to a jump-instruction table at code-generation time.</summary>
         JumpTable,
 
-        /// <summary>This attribute suggests that optimization passes and code generator passes make choices that keep the code size of this function as small as possible</summary>
+        /// <summary>This attribute suggests that optimization passes and code generator passes make choices that keep the code size of this function as small as possible.</summary>
         MinSize,
 
         /// <summary>This attribute disables prologue / epilogue emission for the function. This can have very system-specific consequences.</summary>
@@ -171,10 +168,10 @@ namespace Ubiquity.NET.Llvm.Values
         /// <summary>This attribute indicates that the inliner should never inline this function in any situation.</summary>
         NoInline,
 
-        /// <summary>This function attribute indicates that the function does not call itself either directly or indirectly down any possible call path</summary>
+        /// <summary>This function attribute indicates that the function does not call itself either directly or indirectly down any possible call path.</summary>
         NoRecurse,
 
-        /// <summary>This attribute indicates that the code generator should not use a red zone, even if the target-specific ABI normally permits it</summary>
+        /// <summary>This attribute indicates that the code generator should not use a red zone, even if the target-specific ABI normally permits it.</summary>
         NoRedZone,
 
         /// <summary>This function attribute indicates that the function never returns normally.</summary>
@@ -189,16 +186,16 @@ namespace Ubiquity.NET.Llvm.Values
         /// <summary>This indicates that the parameter or return pointer is not null.</summary>
         NonNull,
 
-        /// <summary>Optimize for size</summary>
+        /// <summary>Optimize for size.</summary>
         OptimizeForSize,
 
-        /// <summary>Do not optimize</summary>
+        /// <summary>Do not optimize.</summary>
         OptimizeNone,
 
-        /// <summary>On a function, this attribute indicates that the function computes its result (or decides to unwind an exception) based strictly on its arguments, without dereferencing any pointer arguments or otherwise accessing any mutable state</summary>
+        /// <summary>On a function, this attribute indicates that the function computes its result (or decides to unwind an exception) based strictly on its arguments, without dereferencing any pointer arguments or otherwise accessing any mutable state.</summary>
         ReadNone,
 
-        /// <summary>On a function, this attribute indicates that the function does not write through any pointer arguments (including byval arguments) or otherwise modify any state (e.g. memory, control registers, etc) visible to caller functions</summary>
+        /// <summary>On a function, this attribute indicates that the function does not write through any pointer arguments (including byval arguments) or otherwise modify any state (e.g. memory, control registers, etc) visible to caller functions.</summary>
         ReadOnly,
 
         /// <summary>This indicates that the function always returns the argument as its return value.</summary>
@@ -251,7 +248,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <summary>This attribute indicates that the ABI being targeted requires that an unwind table entry be produced for this function even if we can show that no exceptions passes by it.</summary>
         UWTable,
 
-        /// <summary>This attribute indicates the item is write only</summary>
+        /// <summary>This attribute indicates the item is write only.</summary>
         /// <remarks>
         /// On a function, this attribute indicates that the function may write to but does not read from memory.
         /// On an argument, this attribute indicates that the function may write to but does not read through this pointer argument (even though it may read from the memory that the pointer points to).
@@ -260,336 +257,35 @@ namespace Ubiquity.NET.Llvm.Values
 
         /// <summary>This indicates to the code generator that the parameter or return value should be zero-extended to the extent
         /// required by the target’s ABI by the caller (for a parameter) or the callee (for a return value).</summary>
-        ZExt
+        ZExt,
     }
 
-    /// <summary>Enumeration flags to indicate which attribute set index an attribute may apply to</summary>
+    /// <summary>Enumeration flags to indicate which attribute set index an attribute may apply to.</summary>
     [Flags]
     public enum FunctionIndexKinds
     {
-        /// <summary>Invalid attributes don't apply to any index</summary>
+        /// <summary>Invalid attributes don't apply to any index.</summary>
         None = 0,
 
-        /// <summary>The attribute is applicable to a function</summary>
+        /// <summary>The attribute is applicable to a function.</summary>
         Function = 1,
 
-        /// <summary>The attribute is applicable to a function's return</summary>
+        /// <summary>The attribute is applicable to a function's return.</summary>
         Return = 2,
 
-        /// <summary>The attribute is applicable to a function's parameter</summary>
-        Parameter = 4
+        /// <summary>The attribute is applicable to a function's parameter.</summary>
+        Parameter = 4,
     }
 
-    /// <summary>Utility class to provide extension methods for validating usage of attribute kinds</summary>
+    /// <summary>Utility class to provide extension methods for validating usage of attribute kinds.</summary>
     public static class AttributeKindExtensions
     {
-        /// <summary>Gets the symbolic name of the attribute</summary>
-        /// <param name="kind"><see cref="AttributeKind"/> to get the name of</param>
-        /// <returns>Name of the attribute</returns>
-        public static string GetAttributeName( this AttributeKind kind )
-        {
-            return KnownAttributeNames[ ( int )kind ];
-        }
-
-        /// <summary>Gets a value indicating whether the attribute requires an integer parameter value</summary>
-        /// <param name="kind"><see cref="AttributeKind"/> to check</param>
-        /// <returns><see langword="true"/> if the attribute requires an integer value</returns>
-        public static bool RequiresIntValue( this AttributeKind kind )
-        {
-            switch( kind )
-            {
-            case AttributeKind.Alignment:
-            case AttributeKind.StackAlignment:
-            case AttributeKind.Dereferenceable:
-            case AttributeKind.DereferenceableOrNull:
-                return true;
-
-            default:
-                return false;
-            }
-        }
-
-        /// <summary>Looks up the <see cref="AttributeKind"/> for an LLVM attribute id</summary>
-        /// <param name="id">LLVM attribute id</param>
-        /// <returns><see cref="AttributeKind"/> that corresponds to the LLVM id</returns>
-        public static AttributeKind LookupId( uint id )
-        {
-            return AttribIdToKindMap.Value.TryGetValue( id, out AttributeKind retValue ) ? retValue : AttributeKind.None;
-        }
-
-        internal static uint GetEnumAttributeId( this AttributeKind kind )
-        {
-            return KindToAttribIdMap.Value.TryGetValue( kind, out uint retVal ) ? retVal : 0;
-        }
-
-        internal static bool CheckAttributeUsage( this AttributeKind kind, FunctionAttributeIndex index, Value value )
-        {
-            FunctionIndexKinds allowedindices = kind.GetAllowedIndexes( );
-            switch( index )
-            {
-            case FunctionAttributeIndex.Function:
-                if( !allowedindices.HasFlag( FunctionIndexKinds.Function ) )
-                {
-                    return false;
-                }
-
-                break;
-
-            case FunctionAttributeIndex.ReturnType:
-                if( !allowedindices.HasFlag( FunctionIndexKinds.Return ) )
-                {
-                    return false;
-                }
-
-                break;
-
-            // case FunctionAttributeIndex.Parameter0:
-            default:
-                {
-                    if( value == default )
-                    {
-                        throw new ArgumentNullException( nameof( value ) );
-                    }
-
-                    if( !allowedindices.HasFlag( FunctionIndexKinds.Parameter ) )
-                    {
-                        return false;
-                    }
-
-                    IrFunction function;
-                    switch( value )
-                    {
-                    case IrFunction f:
-                        function = f;
-                        break;
-
-                    case CallInstruction call:
-                        function = call.TargetFunction;
-                        break;
-
-                    case Argument arg:
-                        function = arg.ContainingFunction;
-                        break;
-
-                    default:
-                        function = default;
-                        break;
-                    }
-
-                    int paramIndex = index - FunctionAttributeIndex.Parameter0;
-                    if( paramIndex >= ( function?.Parameters.Count ?? 0 ) )
-                    {
-                        return false;
-                    }
-                }
-
-                break;
-            }
-
-            return true;
-        }
-
-        internal static void VerifyAttributeUsage( this AttributeKind kind, FunctionAttributeIndex index, Value value )
-        {
-            VerifyAttributeUsage( kind, index );
-
-            if( index >= FunctionAttributeIndex.Parameter0 )
-            {
-                IrFunction function;
-                switch( value )
-                {
-                case IrFunction f:
-                    function = f;
-                    break;
-
-                case CallInstruction call:
-                    function = call.TargetFunction;
-                    break;
-
-                case Argument arg:
-                    function = arg.ContainingFunction;
-                    break;
-
-                default:
-                    function = default;
-                    break;
-                }
-
-                int paramIndex = index - FunctionAttributeIndex.Parameter0;
-                if( paramIndex > ( ( function?.Parameters.Count ?? 0 ) - 1 ) )
-                {
-                    throw new ArgumentException( );
-                }
-            }
-        }
-
-        internal static void VerifyAttributeUsage( this AttributeKind kind, FunctionAttributeIndex index )
-        {
-            FunctionIndexKinds allowedIndexes = kind.GetAllowedIndexes( );
-            switch( index )
-            {
-            case FunctionAttributeIndex.Function:
-                if( !allowedIndexes.HasFlag( FunctionIndexKinds.Function ) )
-                {
-                    throw new ArgumentException( );
-                }
-
-                break;
-
-            case FunctionAttributeIndex.ReturnType:
-                if( !allowedIndexes.HasFlag( FunctionIndexKinds.Return ) )
-                {
-                    throw new ArgumentException( );
-                }
-
-                break;
-
-            // case FunctionAttributeIndex.Parameter0:
-            default:
-                if( !allowedIndexes.HasFlag( FunctionIndexKinds.Parameter ) )
-                {
-                    throw new ArgumentException( );
-                }
-
-                break;
-            }
-        }
-
-        // To prevent native asserts or crashes - validates parameters before passing down to native code
-        internal static void VerifyAttributeUsage( this AttributeKind kind, FunctionAttributeIndex index, ulong value )
-        {
-            kind.VerifyAttributeUsage( index );
-            kind.RangeCheckValue( value );
-        }
-
-        internal static void RangeCheckValue( this AttributeKind kind, ulong value )
-        {
-            // To prevent native asserts or crashes - validate parameters before passing down to native code
-            switch( kind )
-            {
-            case AttributeKind.Alignment:
-                if( value > UInt32.MaxValue )
-                {
-                    throw new ArgumentOutOfRangeException( );
-                }
-
-                break;
-
-            case AttributeKind.StackAlignment:
-                if( value > UInt32.MaxValue )
-                {
-                    throw new ArgumentOutOfRangeException( );
-                }
-
-                if( value != 0 && !IsPowerOfTwo( value ) )
-                {
-                    throw new ArgumentException( );
-                }
-
-                break;
-
-            case AttributeKind.Dereferenceable:
-            case AttributeKind.DereferenceableOrNull:
-                break;
-
-            default:
-                throw new ArgumentException( );
-            }
-        }
-
-        [SuppressMessage( "Maintainability", "CA1502:Avoid excessive complexity", Justification = "It's just a big switch, get over it." )]
-        internal static FunctionIndexKinds GetAllowedIndexes( this AttributeKind kind )
-        {
-            switch( kind )
-            {
-            default:
-                return FunctionIndexKinds.None;
-
-            case AttributeKind.ReadOnly:
-            case AttributeKind.WriteOnly:
-            case AttributeKind.ReadNone:
-                return FunctionIndexKinds.Function | FunctionIndexKinds.Parameter;
-
-            case AttributeKind.ByVal:
-            case AttributeKind.InAlloca:
-            case AttributeKind.StructRet:
-            case AttributeKind.Nest:
-            case AttributeKind.NoCapture:
-            case AttributeKind.Returned:
-            case AttributeKind.SwiftSelf:
-            case AttributeKind.SwiftError:
-                return FunctionIndexKinds.Parameter;
-
-            case AttributeKind.ZExt:
-            case AttributeKind.SExt:
-            case AttributeKind.InReg:
-            case AttributeKind.Alignment:
-            case AttributeKind.NoAlias:
-            case AttributeKind.NonNull:
-            case AttributeKind.Dereferenceable:
-            case AttributeKind.DereferenceableOrNull:
-                return FunctionIndexKinds.Parameter | FunctionIndexKinds.Return;
-
-            case AttributeKind.NoReturn:
-            case AttributeKind.NoUnwind:
-            case AttributeKind.NoInline:
-            case AttributeKind.AlwaysInline:
-            case AttributeKind.OptimizeForSize:
-            case AttributeKind.StackProtect:
-            case AttributeKind.StackProtectReq:
-            case AttributeKind.StackProtectStrong:
-            case AttributeKind.SafeStack:
-            case AttributeKind.NoRedZone:
-            case AttributeKind.NoImplicitFloat:
-            case AttributeKind.Naked:
-            case AttributeKind.InlineHint:
-            case AttributeKind.StackAlignment:
-            case AttributeKind.UWTable:
-            case AttributeKind.NonLazyBind:
-            case AttributeKind.ReturnsTwice:
-            case AttributeKind.SanitizeAddress:
-            case AttributeKind.SanitizeThread:
-            case AttributeKind.SanitizeMemory:
-            case AttributeKind.MinSize:
-            case AttributeKind.NoDuplicate:
-            case AttributeKind.Builtin:
-            case AttributeKind.NoBuiltin:
-            case AttributeKind.Cold:
-            case AttributeKind.OptimizeNone:
-            case AttributeKind.JumpTable:
-            case AttributeKind.Convergent:
-            case AttributeKind.ArgMemOnly:
-            case AttributeKind.NoRecurse:
-            case AttributeKind.InaccessibleMemOnly:
-            case AttributeKind.InaccessibleMemOrArgMemOnly:
-            case AttributeKind.AllocSize:
-            case AttributeKind.Speculatable:
-                return FunctionIndexKinds.Function;
-            }
-        }
-
-        // use complement and compare technique for efficiency
-        private static bool IsPowerOfTwo( ulong x ) => ( x != 0 ) && ( ( x & ( ~x + 1 ) ) == x );
-
         // Lazy initialized one time mapping of LLVM attribute Ids to AttributeKind
-        private static readonly Lazy<Dictionary<uint, AttributeKind>> AttribIdToKindMap = new Lazy<Dictionary<uint, AttributeKind>>( BuildAttribIdToKindMap );
+        private static readonly Lazy<Dictionary<uint, AttributeKind>> AttribIdToKindMap = new Lazy<Dictionary<uint, AttributeKind>>(BuildAttribIdToKindMap);
 
-        private static unsafe Dictionary<uint, AttributeKind> BuildAttribIdToKindMap( )
-        {
-            return ( from kind in Enum.GetValues( typeof( AttributeKind ) ).Cast<AttributeKind>( ).Skip( 1 )
-                     let name = kind.GetAttributeName( )
-                     select new KeyValuePair<uint, AttributeKind>( LLVM.GetEnumAttributeKindForName( name.AsMarshaledString(), (UIntPtr)name.Length ), kind )
-                   ).ToDictionary( kvp => kvp.Key, kvp => kvp.Value );
-        }
+        private static readonly Lazy<Dictionary<AttributeKind, uint>> KindToAttribIdMap = new Lazy<Dictionary<AttributeKind, uint>>(BuildKindToAttribIdMap);
 
-        private static readonly Lazy<Dictionary<AttributeKind, uint>> KindToAttribIdMap = new Lazy<Dictionary<AttributeKind, uint>>( BuildKindToAttribIdMap );
-
-        private static Dictionary<AttributeKind, uint> BuildKindToAttribIdMap( )
-        {
-            return AttribIdToKindMap.Value.ToDictionary( kvp => kvp.Value, kvp => kvp.Key );
-        }
-
-        private static readonly string[ ] KnownAttributeNames =
+        private static readonly string[] KnownAttributeNames =
         {
             string.Empty,
             "align",
@@ -644,7 +340,282 @@ namespace Ubiquity.NET.Llvm.Values
             "swiftself",
             "uwtable",
             "writeonly",
-            "zeroext"
+            "zeroext",
         };
+
+        /// <summary>Gets the symbolic name of the attribute.</summary>
+        /// <param name="kind"><see cref="AttributeKind"/> to get the name of.</param>
+        /// <returns>Name of the attribute.</returns>
+        public static string GetAttributeName(this AttributeKind kind)
+        {
+            return KnownAttributeNames[(int)kind];
+        }
+
+        /// <summary>Gets a value indicating whether the attribute requires an integer parameter value.</summary>
+        /// <param name="kind"><see cref="AttributeKind"/> to check.</param>
+        /// <returns><see langword="true"/> if the attribute requires an integer value.</returns>
+        public static bool RequiresIntValue(this AttributeKind kind)
+        {
+            switch (kind)
+            {
+                case AttributeKind.Alignment:
+                case AttributeKind.StackAlignment:
+                case AttributeKind.Dereferenceable:
+                case AttributeKind.DereferenceableOrNull:
+                    return true;
+
+                default:
+                    return false;
+            }
+        }
+
+        /// <summary>Looks up the <see cref="AttributeKind"/> for an LLVM attribute id.</summary>
+        /// <param name="id">LLVM attribute id.</param>
+        /// <returns><see cref="AttributeKind"/> that corresponds to the LLVM id.</returns>
+        public static AttributeKind LookupId(uint id)
+        {
+            return AttribIdToKindMap.Value.TryGetValue(id, out AttributeKind retValue) ? retValue : AttributeKind.None;
+        }
+
+        internal static uint GetEnumAttributeId(this AttributeKind kind)
+        {
+            return KindToAttribIdMap.Value.TryGetValue(kind, out uint retVal) ? retVal : 0;
+        }
+
+        internal static bool CheckAttributeUsage(this AttributeKind kind, FunctionAttributeIndex index, Value value)
+        {
+            FunctionIndexKinds allowedindices = kind.GetAllowedIndexes();
+            switch (index)
+            {
+                case FunctionAttributeIndex.Function:
+                    if (!allowedindices.HasFlag(FunctionIndexKinds.Function))
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                case FunctionAttributeIndex.ReturnType:
+                    if (!allowedindices.HasFlag(FunctionIndexKinds.Return))
+                    {
+                        return false;
+                    }
+
+                    break;
+
+                // case FunctionAttributeIndex.Parameter0:
+                default:
+                    {
+                        if (value == default)
+                        {
+                            throw new ArgumentNullException(nameof(value));
+                        }
+
+                        if (!allowedindices.HasFlag(FunctionIndexKinds.Parameter))
+                        {
+                            return false;
+                        }
+
+                        IrFunction? function = value switch
+                        {
+                            IrFunction f => f,
+                            CallInstruction call => call.TargetFunction,
+                            Argument arg => arg.ContainingFunction,
+                            _ => default,
+                        };
+                        int paramIndex = index - FunctionAttributeIndex.Parameter0;
+                        if (paramIndex >= (function?.Parameters.Count ?? 0))
+                        {
+                            return false;
+                        }
+                    }
+
+                    break;
+            }
+
+            return true;
+        }
+
+        internal static void VerifyAttributeUsage(this AttributeKind kind, FunctionAttributeIndex index, Value value)
+        {
+            VerifyAttributeUsage(kind, index);
+
+            if (index >= FunctionAttributeIndex.Parameter0)
+            {
+                IrFunction? function = value switch
+                {
+                    IrFunction f => f,
+                    CallInstruction call => call.TargetFunction,
+                    Argument arg => arg.ContainingFunction,
+                    _ => default,
+                };
+                int paramIndex = index - FunctionAttributeIndex.Parameter0;
+                if (paramIndex > ((function?.Parameters.Count ?? 0) - 1))
+                {
+                    throw new ArgumentException();
+                }
+            }
+        }
+
+        internal static void VerifyAttributeUsage(this AttributeKind kind, FunctionAttributeIndex index)
+        {
+            FunctionIndexKinds allowedIndexes = kind.GetAllowedIndexes();
+            switch (index)
+            {
+                case FunctionAttributeIndex.Function:
+                    if (!allowedIndexes.HasFlag(FunctionIndexKinds.Function))
+                    {
+                        throw new ArgumentException();
+                    }
+
+                    break;
+
+                case FunctionAttributeIndex.ReturnType:
+                    if (!allowedIndexes.HasFlag(FunctionIndexKinds.Return))
+                    {
+                        throw new ArgumentException();
+                    }
+
+                    break;
+
+                // case FunctionAttributeIndex.Parameter0:
+                default:
+                    if (!allowedIndexes.HasFlag(FunctionIndexKinds.Parameter))
+                    {
+                        throw new ArgumentException();
+                    }
+
+                    break;
+            }
+        }
+
+        // To prevent native asserts or crashes - validates parameters before passing down to native code
+        internal static void VerifyAttributeUsage(this AttributeKind kind, FunctionAttributeIndex index, ulong value)
+        {
+            kind.VerifyAttributeUsage(index);
+            kind.RangeCheckValue(value);
+        }
+
+        internal static void RangeCheckValue(this AttributeKind kind, ulong value)
+        {
+            // To prevent native asserts or crashes - validate parameters before passing down to native code
+            switch (kind)
+            {
+                case AttributeKind.Alignment:
+                    if (value > uint.MaxValue)
+                    {
+                        throw new ArgumentOutOfRangeException();
+                    }
+
+                    break;
+
+                case AttributeKind.StackAlignment:
+                    if (value > uint.MaxValue)
+                    {
+                        throw new ArgumentOutOfRangeException();
+                    }
+
+                    if (value != 0 && !IsPowerOfTwo(value))
+                    {
+                        throw new ArgumentException();
+                    }
+
+                    break;
+
+                case AttributeKind.Dereferenceable:
+                case AttributeKind.DereferenceableOrNull:
+                    break;
+
+                default:
+                    throw new ArgumentException();
+            }
+        }
+
+        [SuppressMessage("Maintainability", "CA1502:Avoid excessive complexity", Justification = "It's just a big switch, get over it.")]
+        internal static FunctionIndexKinds GetAllowedIndexes(this AttributeKind kind)
+        {
+            switch (kind)
+            {
+                default:
+                    return FunctionIndexKinds.None;
+
+                case AttributeKind.ReadOnly:
+                case AttributeKind.WriteOnly:
+                case AttributeKind.ReadNone:
+                    return FunctionIndexKinds.Function | FunctionIndexKinds.Parameter;
+
+                case AttributeKind.ByVal:
+                case AttributeKind.InAlloca:
+                case AttributeKind.StructRet:
+                case AttributeKind.Nest:
+                case AttributeKind.NoCapture:
+                case AttributeKind.Returned:
+                case AttributeKind.SwiftSelf:
+                case AttributeKind.SwiftError:
+                    return FunctionIndexKinds.Parameter;
+
+                case AttributeKind.ZExt:
+                case AttributeKind.SExt:
+                case AttributeKind.InReg:
+                case AttributeKind.Alignment:
+                case AttributeKind.NoAlias:
+                case AttributeKind.NonNull:
+                case AttributeKind.Dereferenceable:
+                case AttributeKind.DereferenceableOrNull:
+                    return FunctionIndexKinds.Parameter | FunctionIndexKinds.Return;
+
+                case AttributeKind.NoReturn:
+                case AttributeKind.NoUnwind:
+                case AttributeKind.NoInline:
+                case AttributeKind.AlwaysInline:
+                case AttributeKind.OptimizeForSize:
+                case AttributeKind.StackProtect:
+                case AttributeKind.StackProtectReq:
+                case AttributeKind.StackProtectStrong:
+                case AttributeKind.SafeStack:
+                case AttributeKind.NoRedZone:
+                case AttributeKind.NoImplicitFloat:
+                case AttributeKind.Naked:
+                case AttributeKind.InlineHint:
+                case AttributeKind.StackAlignment:
+                case AttributeKind.UWTable:
+                case AttributeKind.NonLazyBind:
+                case AttributeKind.ReturnsTwice:
+                case AttributeKind.SanitizeAddress:
+                case AttributeKind.SanitizeThread:
+                case AttributeKind.SanitizeMemory:
+                case AttributeKind.MinSize:
+                case AttributeKind.NoDuplicate:
+                case AttributeKind.Builtin:
+                case AttributeKind.NoBuiltin:
+                case AttributeKind.Cold:
+                case AttributeKind.OptimizeNone:
+                case AttributeKind.JumpTable:
+                case AttributeKind.Convergent:
+                case AttributeKind.ArgMemOnly:
+                case AttributeKind.NoRecurse:
+                case AttributeKind.InaccessibleMemOnly:
+                case AttributeKind.InaccessibleMemOrArgMemOnly:
+                case AttributeKind.AllocSize:
+                case AttributeKind.Speculatable:
+                    return FunctionIndexKinds.Function;
+            }
+        }
+
+        // use complement and compare technique for efficiency
+        private static bool IsPowerOfTwo(ulong x) => (x != 0) && ((x & (~x + 1)) == x);
+
+        private static unsafe Dictionary<uint, AttributeKind> BuildAttribIdToKindMap()
+        {
+            return (from kind in Enum.GetValues(typeof(AttributeKind)).Cast<AttributeKind>().Skip(1)
+                    let name = kind.GetAttributeName()
+                    select new KeyValuePair<uint, AttributeKind>(LLVM.GetEnumAttributeKindForName(name.AsMarshaledString(), (UIntPtr)name.Length), kind))
+                   .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
+        private static Dictionary<AttributeKind, uint> BuildKindToAttribIdMap()
+        {
+            return AttribIdToKindMap.Value.ToDictionary(kvp => kvp.Value, kvp => kvp.Key);
+        }
     }
 }

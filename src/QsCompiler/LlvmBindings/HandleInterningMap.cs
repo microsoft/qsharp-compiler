@@ -15,64 +15,64 @@ namespace Ubiquity.NET.Llvm
     internal abstract class HandleInterningMap<THandle, TMappedType>
         : IHandleInterning<THandle, TMappedType>
     {
+        private readonly IDictionary<THandle, TMappedType> handleMap
+            = new ConcurrentDictionary<THandle, TMappedType>(EqualityComparer<THandle>.Default);
+
+        private protected HandleInterningMap(Context context)
+        {
+            this.Context = context;
+        }
+
         public Context Context { get; }
 
-        public TMappedType GetOrCreateItem( THandle handle, Action<THandle> foundHandleRelease = default )
+        public TMappedType GetOrCreateItem(THandle handle, Action<THandle>? foundHandleRelease = default)
         {
-            if( HandleMap.TryGetValue( handle, out TMappedType retVal ) )
+            if (this.handleMap.TryGetValue(handle, out TMappedType retVal))
             {
-                foundHandleRelease?.Invoke( handle );
+                foundHandleRelease?.Invoke(handle);
                 return retVal;
             }
 
-            retVal = ItemFactory( handle );
-            HandleMap.Add( handle, retVal );
+            retVal = this.ItemFactory(handle);
+            this.handleMap.Add(handle, retVal);
 
             return retVal;
         }
 
-        public void Clear( )
+        public void Clear()
         {
-            DisposeItems( HandleMap.Values );
-            HandleMap.Clear( );
+            this.DisposeItems(this.handleMap.Values);
+            this.handleMap.Clear();
         }
 
-        public void Remove( THandle handle )
+        public void Remove(THandle handle)
         {
-            if( HandleMap.TryGetValue( handle, out TMappedType item ) )
+            if (this.handleMap.TryGetValue(handle, out TMappedType item))
             {
-                HandleMap.Remove( handle );
-                DisposeItem( item );
+                this.handleMap.Remove(handle);
+                this.DisposeItem(item);
             }
         }
 
-        public IEnumerator<TMappedType> GetEnumerator( ) => HandleMap.Values.GetEnumerator( );
+        public IEnumerator<TMappedType> GetEnumerator() => this.handleMap.Values.GetEnumerator();
 
-        IEnumerator IEnumerable.GetEnumerator( ) => GetEnumerator( );
-
-        private protected HandleInterningMap( Context context )
-        {
-            Context = context;
-        }
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
         // extension point to allow optimized dispose of all items if available
         // default will dispose individually
-        private protected virtual void DisposeItems( ICollection<TMappedType> items )
+        private protected virtual void DisposeItems(ICollection<TMappedType> items)
         {
-            foreach( var item in items )
+            foreach (var item in items)
             {
-                DisposeItem( item );
+                this.DisposeItem(item);
             }
         }
 
-        private protected virtual void DisposeItem( TMappedType item )
+        private protected virtual void DisposeItem(TMappedType item)
         {
             // intentional NOP for base implementation
         }
 
-        private protected abstract TMappedType ItemFactory( THandle handle );
-
-        private readonly IDictionary<THandle, TMappedType> HandleMap
-            = new ConcurrentDictionary<THandle, TMappedType>( EqualityComparer<THandle>.Default );
+        private protected abstract TMappedType ItemFactory(THandle handle);
     }
 }

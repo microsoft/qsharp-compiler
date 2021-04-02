@@ -59,10 +59,13 @@
   <PropertyGroup>
     <DefaultEntryPointGeneration>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation.dll"</DefaultEntryPointGeneration>
     <!-- true/false optional properties -->
-    <QirGeneration Condition="'$(QirOutputPath)' != ''">true</QirGeneration>
+    <QirGeneration Condition="'$(QirOutputPath)' != '' And '$(QirGeneration)' == 'default'">true</QirGeneration>
+    <QirGeneration Condition="'$(QirOutputPath)' == '' And '$(QirGeneration)' == 'default'">false</QirGeneration>
+    <PerfDataGeneration Condition="'$(PerfDataOutputPath)' != '' And '$(PerfDataGeneration)' == 'default'">true</PerfDataGeneration>
+    <PerfDataGeneration Condition="'$(PerfDataOutputPath)' == '' And '$(PerfDataGeneration)' == 'default'">false</PerfDataGeneration>
+    <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' != '' And '$(QSharpDocsGeneration)' == 'default'">true</QSharpDocsGeneration>
+    <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' == '' And '$(QSharpDocsGeneration)' == 'default'">false</QSharpDocsGeneration>
     <CSharpGeneration Condition="$(QirGeneration)">false</CSharpGeneration>
-    <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' != ''">true</QSharpDocsGeneration>
-    <PerfDataGeneration Condition="'$(PerfDataOutputPath)' != ''">true</PerfDataGeneration>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
