@@ -158,20 +158,17 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="context">Generation context where constants are defined and generated if needed</param>
         internal PointerValue(Value? pointer, ResolvedType type, GenerationContext context)
         {
+            void Store(IValue v) => context.FunctionContext.Emit(b => b.Store(v.Value, this.pointer));
+
+            IValue Reload() =>
+                context.Values.From(
+                    context.FunctionContext.Emit(b => b.Load(this.LlvmType, this.pointer)),
+                    this.QSharpType);
+
             this.QSharpType = type;
             this.LlvmType = context.LlvmTypeFromQsharpType(this.QSharpType);
             this.pointer = pointer ?? context.FunctionContext.Emit(b => b.Alloca(this.LlvmType));
-            this.cachedValue = context.FunctionContext.Emit(b =>
-            {
-                void Store(IValue v) => b.Store(v.Value, this.pointer);
-
-                IValue Reload() =>
-                    context.Values.From(
-                        b.Load(this.LlvmType, this.pointer),
-                        this.QSharpType);
-
-                return new IValue.Cached<IValue>(context, Reload, Store);
-            });
+            this.cachedValue = new IValue.Cached<IValue>(context, Reload, Store);
         }
 
         /// <summary>
