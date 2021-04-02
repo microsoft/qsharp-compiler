@@ -356,14 +356,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(d =>
                 {
                     var fragment = file.TryGetFragmentAt(d.Range.ToQSharp().Start, out _);
-                    if (fragment != null && fragment.Text != null && fragment.Text.TrimEnd().EndsWith(')') && (fragment.Text.StartsWith($"{Keywords.qsUsing.id} (") || fragment.Text.StartsWith($"{Keywords.qsBorrowing.id} (")))
+                    if (fragment != null)
                     {
-                        var newText = fragment.Text
-                            .Replace($"{Keywords.qsUsing.id} (", $"{Keywords.qsUse.id} ")
-                            .Replace($"{Keywords.qsBorrowing.id} (", $"{Keywords.qsBorrow.id} ");
-                        newText = newText.Remove(newText.LastIndexOf(")"));
-                        var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText };
-                        return ($"Replace with \"{edit.NewText.Trim()}\".", file.GetWorkspaceEdit(edit));
+                        var match = QubitBindingsMatcher.Match(fragment.Text);
+                        if (match.Success)
+                        {
+                            var newText = (match.Groups[1].Value == Keywords.qsUsing.id ? Keywords.qsUse.id : Keywords.qsBorrow.id) + " " + match.Groups[2].Value.Trim();
+                            var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText };
+                            return ($"Replace with \"{edit.NewText.Trim()}\".", file.GetWorkspaceEdit(edit));
+                        }
                     }
 
                     return d.Message.Contains($"\"{Keywords.qsUsing.id}\"") ? ReplaceWith(Keywords.qsUse.id, d.Range) : ReplaceWith(Keywords.qsBorrow.id, d.Range);
