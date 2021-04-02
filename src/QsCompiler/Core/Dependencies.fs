@@ -41,6 +41,54 @@ type BuiltIn =
     static member RewriteStepDependencies =
         ImmutableHashSet.Create(BuiltIn.RangeReverse.FullName, BuiltIn.Length.FullName)
 
+    /// The set of all built in callables and attributes
+    static member AllBuiltIns =
+        [|
+            // dependencies in Microsoft.Quantum.Core
+            BuiltIn.Length
+            BuiltIn.RangeStart
+            BuiltIn.RangeStep
+            BuiltIn.RangeEnd
+            BuiltIn.RangeReverse
+            BuiltIn.Attribute
+            BuiltIn.EntryPoint
+            BuiltIn.Deprecated
+            BuiltIn.Inline
+            // dependencies in Microsoft.Quantum.Targeting
+            BuiltIn.TargetInstruction
+            BuiltIn.RequiresCapability
+            // dependencies in Microsoft.Quantum.Diagnostics
+            BuiltIn.Test
+            BuiltIn.EnableTestingViaName
+            // dependencies in Microsoft.Quantum.Canon
+            BuiltIn.NoOp
+            // dependencies in Microsoft.Quantum.Convert
+            BuiltIn.IntAsDouble
+            BuiltIn.DoubleAsInt
+            BuiltIn.IntAsBigInt
+            // dependencies in Microsoft.Quantum.Math
+            BuiltIn.Truncate
+            BuiltIn.ApplyConditionally
+            BuiltIn.ApplyConditionallyA
+            BuiltIn.ApplyConditionallyC
+            BuiltIn.ApplyConditionallyCA
+            BuiltIn.ApplyIfZero
+            BuiltIn.ApplyIfZeroA
+            BuiltIn.ApplyIfZeroC
+            BuiltIn.ApplyIfZeroCA
+            BuiltIn.ApplyIfOne
+            BuiltIn.ApplyIfOneA
+            BuiltIn.ApplyIfOneC
+            BuiltIn.ApplyIfOneCA
+            BuiltIn.ApplyIfElseR
+            BuiltIn.ApplyIfElseRA
+            BuiltIn.ApplyIfElseRC
+            BuiltIn.ApplyIfElseRCA
+            // dependencies in other namespaces (e.g. things used for code actions)
+            BuiltIn.IndexRange
+        |]
+        |> ImmutableHashSet.Create<BuiltIn>
+
     /// Returns true if the given attribute marks the corresponding declaration as entry point.
     static member MarksEntryPoint(att: QsDeclarationAttribute) =
         match att.TypeId with

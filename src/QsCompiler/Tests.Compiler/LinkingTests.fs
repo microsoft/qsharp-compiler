@@ -11,6 +11,7 @@ open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
+open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -18,6 +19,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
+open Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 open Microsoft.Quantum.QsCompiler.Transformations.Targeting
 open Microsoft.VisualStudio.LanguageServer.Protocol
 open Xunit
@@ -123,10 +125,8 @@ type LinkingTests(output: ITestOutputHelper) =
     member private this.CompileMonomorphization input =
         let compilationDataStructures = this.BuildContent(compilationManager, input)
         let monomorphicCompilation = Monomorphize.Apply compilationDataStructures.BuiltCompilation
-
         Assert.NotNull monomorphicCompilation
         ValidateMonomorphization.Apply monomorphicCompilation
-
         monomorphicCompilation
 
     member private this.CompileIntrinsicResolution source environment =
@@ -141,16 +141,16 @@ type LinkingTests(output: ITestOutputHelper) =
         let result = this.CompileIntrinsicResolution srcChunks.[chunckNumber] srcChunks.[chunckNumber + 1]
 
         Signatures.SignatureCheck
-            [ Signatures.IntrinsicResolutionNs ]
+            [ Signatures.IntrinsicResolutionNS ]
             Signatures.IntrinsicResolutionSignatures.[testNumber - 1]
             result
 
         (*Find the overridden operation in the appropriate namespace*)
-        let targetCallName = QsQualifiedName.New(Signatures.IntrinsicResolutionNs, "Override")
+        let targetCallName = QsQualifiedName.New(Signatures.IntrinsicResolutionNS, "Override")
 
         let targetCallable =
             result.Namespaces
-            |> Seq.find (fun ns -> ns.Name = Signatures.IntrinsicResolutionNs)
+            |> Seq.find (fun ns -> ns.Name = Signatures.IntrinsicResolutionNS)
             |> (fun x -> [ x ])
             |> SyntaxTreeExtensions.Callables
             |> Seq.find (fun call -> call.FullName = targetCallName)
@@ -182,7 +182,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let namespaces =
             sourceCompilation.BuiltCompilation.Namespaces
-            |> Seq.filter (fun ns -> ns.Name.StartsWith Signatures.InternalRenamingNs)
+            |> Seq.filter (fun ns -> ns.Name.StartsWith Signatures.InternalRenamingNS)
 
         let references = createReferences [ "InternalRenaming.dll", namespaces ]
         let referenceCompilation = this.BuildContent(manager, "", references)
@@ -205,7 +205,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let compilation = this.CompileMonomorphization source
 
         let generated =
-            getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsInternalUsesInternal"
+            getCallablesWithSuffix compilation Signatures.MonomorphizationNS "_IsInternalUsesInternal"
             |> (fun x ->
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
@@ -213,7 +213,7 @@ type LinkingTests(output: ITestOutputHelper) =
         Assert.True(generated.Access = Internal, "Callables originally internal should remain internal.")
 
         let generated =
-            getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsInternalUsesPublic"
+            getCallablesWithSuffix compilation Signatures.MonomorphizationNS "_IsInternalUsesPublic"
             |> (fun x ->
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
@@ -221,7 +221,7 @@ type LinkingTests(output: ITestOutputHelper) =
         Assert.True(generated.Access = Internal, "Callables originally internal should remain internal.")
 
         let generated =
-            getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesInternal"
+            getCallablesWithSuffix compilation Signatures.MonomorphizationNS "_IsPublicUsesInternal"
             |> (fun x ->
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
@@ -229,7 +229,7 @@ type LinkingTests(output: ITestOutputHelper) =
         Assert.True(generated.Access = Internal, "Callables with internal arguments should be internal.")
 
         let generated =
-            getCallablesWithSuffix compilation Signatures.MonomorphizationNs "_IsPublicUsesPublic"
+            getCallablesWithSuffix compilation Signatures.MonomorphizationNS "_IsPublicUsesPublic"
             |> (fun x ->
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
@@ -237,6 +237,14 @@ type LinkingTests(output: ITestOutputHelper) =
         Assert.True
             (generated.Access = Public, "Callables originally public should remain public if all arguments are public.")
 
+    member private this.RunSyntaxTreeTrimTest testNumber keepIntrinsics =
+        let source = (LinkingTests.ReadAndChunkSourceFile "SyntaxTreeTrim.qs").[testNumber - 1]
+        let compilationDataStructures = this.BuildContent(compilationManager, source)
+
+        TrimSyntaxTree.Apply(compilationDataStructures.BuiltCompilation, keepIntrinsics)
+        |> Signatures.SignatureCheck
+            [ Signatures.SyntaxTreeTrimmingNS ]
+               Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
 
     [<Fact>]
     [<Trait("Category", "Monomorphization")>]
@@ -252,7 +260,7 @@ type LinkingTests(output: ITestOutputHelper) =
         for testCase in LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs"
                         |> Seq.zip Signatures.MonomorphizationSignatures do
             this.CompileMonomorphization(snd testCase)
-            |> Signatures.SignatureCheck [ Signatures.GenericsNs; Signatures.MonomorphizationNs ] (fst testCase)
+            |> Signatures.SignatureCheck [ Signatures.GenericsNS; Signatures.MonomorphizationNS ] (fst testCase)
 
         compilationManager.TryRemoveSourceFileAsync(fileId, false) |> ignore
 
@@ -343,6 +351,7 @@ type LinkingTests(output: ITestOutputHelper) =
                 elif lhs.Expression |> isGlobalCallable (isConcretizationOf BuiltIn.IndexRange.FullName) then
                     gotIndexRange <- true
                     Assert.Equal(0, ex.TypeParameterResolutions.Count)
+
             | _ -> ()
 
         let walker = TypedExpressionWalker(Action<_> onExpr, ())
@@ -530,16 +539,16 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Rename internal operation call references``() =
         this.RunInternalRenamingTest
             1
-            [ qualifiedName Signatures.InternalRenamingNs "Foo" ]
-            [ qualifiedName Signatures.InternalRenamingNs "Bar" ]
+            [ qualifiedName Signatures.InternalRenamingNS "Foo" ]
+            [ qualifiedName Signatures.InternalRenamingNS "Bar" ]
 
 
     [<Fact>]
     member this.``Rename internal function call references``() =
         this.RunInternalRenamingTest
             2
-            [ qualifiedName Signatures.InternalRenamingNs "Foo" ]
-            [ qualifiedName Signatures.InternalRenamingNs "Bar" ]
+            [ qualifiedName Signatures.InternalRenamingNS "Foo" ]
+            [ qualifiedName Signatures.InternalRenamingNS "Bar" ]
 
 
     [<Fact>]
@@ -547,9 +556,9 @@ type LinkingTests(output: ITestOutputHelper) =
         this.RunInternalRenamingTest
             3
             [
-                qualifiedName Signatures.InternalRenamingNs "Foo"
-                qualifiedName Signatures.InternalRenamingNs "Bar"
-                qualifiedName Signatures.InternalRenamingNs "Baz"
+                qualifiedName Signatures.InternalRenamingNS "Foo"
+                qualifiedName Signatures.InternalRenamingNS "Bar"
+                qualifiedName Signatures.InternalRenamingNS "Baz"
             ]
             []
 
@@ -559,11 +568,11 @@ type LinkingTests(output: ITestOutputHelper) =
         this.RunInternalRenamingTest
             4
             [
-                qualifiedName Signatures.InternalRenamingNs "Foo"
-                qualifiedName Signatures.InternalRenamingNs "Bar"
-                qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux"
+                qualifiedName Signatures.InternalRenamingNS "Foo"
+                qualifiedName Signatures.InternalRenamingNS "Bar"
+                qualifiedName (Signatures.InternalRenamingNS + ".Extra") "Qux"
             ]
-            [ qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Baz" ]
+            [ qualifiedName (Signatures.InternalRenamingNS + ".Extra") "Baz" ]
 
 
     [<Fact>]
@@ -571,27 +580,27 @@ type LinkingTests(output: ITestOutputHelper) =
         this.RunInternalRenamingTest
             5
             [
-                qualifiedName Signatures.InternalRenamingNs "Foo"
-                qualifiedName Signatures.InternalRenamingNs "Bar"
-                qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Qux"
+                qualifiedName Signatures.InternalRenamingNS "Foo"
+                qualifiedName Signatures.InternalRenamingNS "Bar"
+                qualifiedName (Signatures.InternalRenamingNS + ".Extra") "Qux"
             ]
-            [ qualifiedName (Signatures.InternalRenamingNs + ".Extra") "Baz" ]
+            [ qualifiedName (Signatures.InternalRenamingNS + ".Extra") "Baz" ]
 
 
     [<Fact>]
     member this.``Rename internal attribute references``() =
         this.RunInternalRenamingTest
             6
-            [ qualifiedName Signatures.InternalRenamingNs "Foo" ]
-            [ qualifiedName Signatures.InternalRenamingNs "Bar" ]
+            [ qualifiedName Signatures.InternalRenamingNS "Foo" ]
+            [ qualifiedName Signatures.InternalRenamingNS "Bar" ]
 
 
     [<Fact>]
     member this.``Rename specializations for internal operations``() =
         this.RunInternalRenamingTest
             7
-            [ qualifiedName Signatures.InternalRenamingNs "Foo" ]
-            [ qualifiedName Signatures.InternalRenamingNs "Bar" ]
+            [ qualifiedName Signatures.InternalRenamingNS "Foo" ]
+            [ qualifiedName Signatures.InternalRenamingNS "Bar" ]
 
 
     [<Fact>]
@@ -603,7 +612,7 @@ type LinkingTests(output: ITestOutputHelper) =
 
         let namespaces =
             sourceCompilation.BuiltCompilation.Namespaces
-            |> Seq.filter (fun ns -> ns.Name.StartsWith Signatures.InternalRenamingNs)
+            |> Seq.filter (fun ns -> ns.Name.StartsWith Signatures.InternalRenamingNS)
 
         let references =
             createReferences [ "InternalRenaming1.dll", namespaces
@@ -613,9 +622,8 @@ type LinkingTests(output: ITestOutputHelper) =
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
         let decorator = new NameDecorator("QsRef")
-
         for idx = 0 to references.Declarations.Count - 1 do
-            let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNs "Foo", idx)
+            let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNS "Foo", idx)
             let specializations = callables.[name].Specializations
             Assert.Equal(4, specializations.Length)
             Assert.True(specializations |> Seq.forall (fun s -> s.Source = callables.[name].Source))
@@ -750,3 +758,15 @@ type LinkingTests(output: ITestOutputHelper) =
         checkValidCombination
             (buildDict [ (source 1, (chunks.[0], declInSource1))
                          (source 2, (chunks.[6], declInSource2)) ])
+
+    [<Fact>]
+    member this.``Trimmer Removes Unused Callables``() = this.RunSyntaxTreeTrimTest 1 true
+
+    [<Fact>]
+    member this.``Trimmer Keeps UDTs``() = this.RunSyntaxTreeTrimTest 2 true
+
+    [<Fact>]
+    member this.``Trimmer Keeps Intrinsics When Told``() = this.RunSyntaxTreeTrimTest 3 true
+
+    [<Fact>]
+    member this.``Trimmer Removes Intrinsics When Told``() = this.RunSyntaxTreeTrimTest 4 false

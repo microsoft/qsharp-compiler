@@ -14,8 +14,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     /// </summary>
     internal class Monomorphization : IRewriteStep
     {
-        private readonly bool keepAllIntrinsics;
-
         public string Name => "Monomorphization";
 
         public int Priority => RewriteStepPriorities.TypeParameterElimination;
@@ -33,10 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <summary>
         /// Constructor for the Monomorphization Rewrite Step.
         /// </summary>
-        /// <param name="keepAllIntrinsics">When true, intrinsics will not be removed as part of the rewrite step.</param>
-        public Monomorphization(bool keepAllIntrinsics = true)
+        public Monomorphization()
         {
-            this.keepAllIntrinsics = keepAllIntrinsics;
             this.AssemblyConstants = new Dictionary<string, string?>();
         }
 
@@ -44,7 +40,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = Monomorphize.Apply(compilation, this.keepAllIntrinsics);
+            transformed = Monomorphize.Apply(compilation);
             return true;
         }
 

@@ -13,33 +13,33 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>PHI node instruction</summary>
+    /// <summary>PHI node instruction.</summary>
     public class PhiNode
         : Instruction
     {
-        /// <summary>Adds an incoming value and block to this <see cref="PhiNode"/></summary>
-        /// <param name="value">Value from <paramref name="srcBlock"/></param>
-        /// <param name="srcBlock">Incoming block</param>
-        public void AddIncoming( Value value, BasicBlock srcBlock )
+        /// <summary>Adds an incoming value and block to this <see cref="PhiNode"/>.</summary>
+        /// <param name="value">Value from <paramref name="srcBlock"/>.</param>
+        /// <param name="srcBlock">Incoming block.</param>
+        public void AddIncoming(Value value, BasicBlock srcBlock)
         {
-            AddIncoming( (value, srcBlock) );
+            this.AddIncoming((value, srcBlock));
         }
 
-        /// <summary>Adds incoming blocks and values to this <see cref="PhiNode"/></summary>
-        /// <param name="firstIncoming">first incoming value and block</param>
-        /// <param name="additionalIncoming">additional values and blocks</param>
-        public void AddIncoming( (Value Value, BasicBlock Block) firstIncoming, params (Value Value, BasicBlock Block)[ ] additionalIncoming )
+        /// <summary>Adds incoming blocks and values to this <see cref="PhiNode"/>.</summary>
+        /// <param name="firstIncoming">first incoming value and block.</param>
+        /// <param name="additionalIncoming">additional values and blocks.</param>
+        public void AddIncoming((Value Value, BasicBlock Block) firstIncoming, params (Value Value, BasicBlock Block)[] additionalIncoming)
         {
-            var allIncoming = additionalIncoming.Prepend( firstIncoming );
+            var allIncoming = additionalIncoming.Prepend(firstIncoming);
 
-            LLVMValueRef[ ] llvmValues = allIncoming.Select( vb => vb.Value.ValueHandle ).ToArray( );
-            LLVMBasicBlockRef[ ] llvmBlocks = allIncoming.Select( vb => vb.Block.BlockHandle ).ToArray( );
+            LLVMValueRef[] llvmValues = allIncoming.Select(vb => vb.Value.ValueHandle).ToArray();
+            LLVMBasicBlockRef[] llvmBlocks = allIncoming.Select(vb => vb.Block.BlockHandle).ToArray();
 
-            ValueHandle.AddIncoming( llvmValues, llvmBlocks, ( uint )llvmValues.Length );
+            this.ValueHandle.AddIncoming(llvmValues, llvmBlocks, (uint)llvmValues.Length);
         }
 
-        internal PhiNode( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal PhiNode(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

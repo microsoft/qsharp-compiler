@@ -18,6 +18,12 @@ namespace Microsoft.Quantum.QsCompiler
     public static class RewriteStepPriorities
     {
         /// <summary>
+        /// Priority of the built-in transformation that removes all
+        /// unused callables from the syntax tree.
+        /// </summary>
+        public const int SyntaxTreeTrimming = 1200;
+
+        /// <summary>
         /// Priority of the built-in transformation that replaces
         /// if-statements with the corresponding calls to built-in quantum operations if possible.
         /// </summary>

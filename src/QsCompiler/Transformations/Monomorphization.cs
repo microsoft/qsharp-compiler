@@ -31,56 +31,77 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
     /// </summary>
     public static class Monomorphize
     {
+        private static bool IsIntrinsic(QsCallable callable) => callable.Specializations.Any(spec => spec.Implementation.IsIntrinsic);
+
+        private static bool IsGeneric(QsCallable callable) =>
+            callable.Signature.TypeParameters.Any() || callable.Specializations.Any(spec => spec.Signature.TypeParameters.Any());
+
         /// <summary>
         /// Performs Monomorphization on the given compilation. If the keepAllIntrinsics parameter
         /// is set to true, then unused intrinsics will not be removed from the resulting compilation.
         /// </summary>
-        public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics = true)
+        public static QsCompilation Apply(QsCompilation compilation)
         {
             var globals = compilation.Namespaces.GlobalCallableResolutions();
             var concretizations = new List<QsCallable>();
-            var concreteNames = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
+            var concreteNamesMap = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
 
-            var nodes = new ConcreteCallGraph(compilation).Nodes
+            var nodesWithResolutions = new ConcreteCallGraph(compilation).Nodes
                 // Remove specialization information so that we only deal with the full callables.
                 // Note: this only works fine if for all nodes in the call graph,
                 // all existing functor specializations and their dependencies are also in the call graph.
                 .Select(n => new ConcreteCallGraphNode(n.CallableName, QsSpecializationKind.QsBody, n.ParamResolutions))
+                .Where(n => n.ParamResolutions.Any())
                 .ToImmutableHashSet();
 
             var getAccessModifiers = new GetAccessModifiers((typeName) => GetAccessModifier(compilation.Namespaces.GlobalTypeResolutions(), typeName));
 
             // Loop through the nodes, getting a list of concrete callables
-            foreach (var node in nodes)
+            foreach (var node in nodesWithResolutions)
             {
                 // If there is a call to an unknown callable, throw exception
-                if (!globals.TryGetValue(node.CallableName, out QsCallable originalGlobal))
+                if (!globals.TryGetValue(node.CallableName, out var originalGlobal))
                 {
                     throw new ArgumentException($"Couldn't find definition for callable: {node.CallableName}");
                 }
 
-                if (node.ParamResolutions.Any())
+                if (!IsIntrinsic(originalGlobal))
                 {
                     // Get concrete name
                     var concreteName = NameDecorator.PrependGuid(node.CallableName);
 
                     // Add to concrete name mapping
-                    concreteNames[node] = concreteName;
+                    concreteNamesMap[node] = concreteName;
 
                     // Generate the concrete version of the callable
-                    var concrete = ReplaceTypeParamImplementations.Apply(originalGlobal, node.ParamResolutions, getAccessModifiers);
-                    concretizations.Add(
-                        concrete.WithFullName(oldName => concreteName)
-                        .WithSpecializations(specs => specs.Select(spec => spec.WithParent(_ => concreteName)).ToImmutableArray()));
-                }
-                else
-                {
-                    concretizations.Add(originalGlobal);
+                    var concrete =
+                        ReplaceTypeParamImplementations.Apply(originalGlobal, node.ParamResolutions, getAccessModifiers)
+                        .WithFullName(oldName => concreteName)
+                        .WithSpecializations(specs => specs.Select(spec => spec.WithParent(_ => concreteName)).ToImmutableArray());
+                    concretizations.Add(concrete);
                 }
             }
 
+            var callablesByNamespace = concretizations.ToLookup(x => x.FullName.Namespace);
+            var namespacesWithImpls = compilation.Namespaces.Select(ns =>
+            {
+                var elemsToAdd = callablesByNamespace[ns.Name].Select(call => QsNamespaceElement.NewQsCallable(call));
+
+                return ns.WithElements(elems =>
+                    elems
+                    .Where(elem =>
+                        !(elem is QsNamespaceElement.QsCallable call)
+                        || !IsGeneric(call.Item)
+                        || IsIntrinsic(call.Item)
+                        || BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName))
+                    .Concat(elemsToAdd)
+                    .ToImmutableArray());
+            }).ToImmutableArray();
+
+            var compWithImpls = new QsCompilation(namespacesWithImpls, compilation.EntryPoints);
+
             GetConcreteIdentifierFunc getConcreteIdentifier = (globalCallable, types) =>
-                    GetConcreteIdentifier(concreteNames, globalCallable, types);
+                    GetConcreteIdentifier(concreteNamesMap, globalCallable, types);
 
             var intrinsicsToKeep = keepAllIntrinsics
                 ? globals
@@ -89,86 +110,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     .ToImmutableHashSet()
                 : ImmutableHashSet<QsQualifiedName>.Empty;
 
-            var final = new List<QsCallable>();
-            // Loop through concretizations, replacing all references to generics with their concrete counterparts
-            foreach (var callable in concretizations)
-            {
-                final.Add(ReplaceTypeParamCalls.Apply(callable, getConcreteIdentifier, intrinsicsToKeep));
-            }
-
-            return ResolveGenerics.Apply(compilation, final, intrinsicsToKeep);
-        }
-
-        // Resolve Generics
-
-        private class ResolveGenerics : SyntaxTreeTransformation<ResolveGenerics.TransformationState>
-        {
-            public static QsCompilation Apply(QsCompilation compilation, List<QsCallable> callables, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
-            {
-                var filter = new ResolveGenerics(
-                    callables
-                        .Where(call => !intrinsicsToKeep.Contains(call.FullName))
-                        .ToLookup(res => res.FullName.Namespace),
-                    intrinsicsToKeep);
-
-                return filter.OnCompilation(compilation);
-            }
-
-            public class TransformationState
-            {
-                public readonly ILookup<string, QsCallable> NamespaceCallables;
-                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicsToKeep;
-
-                public TransformationState(ILookup<string, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
-                {
-                    this.NamespaceCallables = namespaceCallables;
-                    this.IntrinsicsToKeep = intrinsicsToKeep;
-                }
-            }
-
-            /// <summary>
-            /// Constructor for the ResolveGenericsSyntax class. Its transform function replaces global callables in the namespace.
-            /// </summary>
-            /// <param name="namespaceCallables">Maps namespace names to an enumerable of all global callables in that namespace.</param>
-            private ResolveGenerics(ILookup<string, QsCallable> namespaceCallables, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
-                : base(new TransformationState(namespaceCallables, intrinsicsToKeep))
-            {
-                this.Namespaces = new NamespaceTransformation(this);
-                this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled);
-                this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled);
-                this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
-            }
-
-            private class NamespaceTransformation : NamespaceTransformation<TransformationState>
-            {
-                public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-                    : base(parent)
-                {
-                }
-
-                private bool NamespaceElementFilter(QsNamespaceElement elem)
-                {
-                    if (elem is QsNamespaceElement.QsCallable call)
-                    {
-                        return BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName) ||
-                            this.SharedState.IntrinsicsToKeep.Contains(call.Item.FullName);
-                    }
-                    else
-                    {
-                        return true;
-                    }
-                }
-
-                public override QsNamespace OnNamespace(QsNamespace ns)
-                {
-                    // Removes unused or generic callables from the namespace
-                    // Adds in the used concrete callables
-                    return ns.WithElements(elems => elems
-                        .Where(this.NamespaceElementFilter)
-                        .Concat(this.SharedState.NamespaceCallables[ns.Name].Select(QsNamespaceElement.NewQsCallable))
-                        .ToImmutableArray());
-                }
-            }
+            return ReplaceTypeParamCalls.Apply(compWithImpls, getConcreteIdentifier, intrinsicsToKeep);
         }
 
         // Rewrite Implementations
@@ -355,6 +297,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 return filter.Namespaces.OnCallableDeclaration(current);
             }
 
+            public static QsCompilation Apply(QsCompilation compilation, GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
+            {
+                var filter = new ReplaceTypeParamCalls(getConcreteIdentifier, intrinsicsToKeep);
+                return filter.OnCompilation(compilation);
+            }
+
             public class TransformationState
             {
                 public readonly Stack<TypeParameterResolutions> CurrentTypeParamResolutions = new Stack<TypeParameterResolutions>();
@@ -372,7 +320,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             private ReplaceTypeParamCalls(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
                 : base(new TransformationState(getConcreteIdentifier, intrinsicsToKeep))
             {
-                this.Namespaces = new NamespaceTransformation<TransformationState>(this, TransformationOptions.Disabled);
+                this.Namespaces = new NamespaceTransformation<TransformationState>(this);
                 this.Statements = new StatementTransformation(this);
                 this.StatementKinds = new StatementKindTransformation<TransformationState>(this);
                 this.Expressions = new ExpressionTransformation(this);

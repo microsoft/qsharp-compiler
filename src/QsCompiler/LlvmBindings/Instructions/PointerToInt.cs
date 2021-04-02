@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Instruction to cast a pointer to an integer value</summary>
+    /// <summary>Instruction to cast a pointer to an integer value.</summary>
     public class PointerToInt
         : Cast
     {
-        internal PointerToInt( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal PointerToInt(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

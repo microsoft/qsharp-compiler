@@ -13,8 +13,8 @@ namespace Ubiquity.NET.Llvm.Values
     public class ConstantAggregate
         : Constant
     {
-        internal ConstantAggregate( LLVMValueRef handle )
-            : base( handle )
+        internal ConstantAggregate(LLVMValueRef handle)
+            : base(handle)
         {
         }
     }

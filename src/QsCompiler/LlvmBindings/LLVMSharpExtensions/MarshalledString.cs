@@ -16,8 +16,8 @@ namespace LLVMSharp.Interop
                 var value = Marshal.AllocHGlobal(1);
                 Marshal.WriteByte(value, 0, 0);
 
-                Length = 0;
-                Value = (sbyte*)value;
+                this.Length = 0;
+                this.Value = (sbyte*)value;
             }
             else
             {
@@ -27,8 +27,8 @@ namespace LLVMSharp.Interop
                 Marshal.Copy(valueBytes, 0, value, length);
                 Marshal.WriteByte(value, length, 0);
 
-                Length = length;
-                Value = (sbyte*)value;
+                this.Length = length;
+                this.Value = (sbyte*)value;
             }
         }
 
@@ -38,11 +38,11 @@ namespace LLVMSharp.Interop
 
         public void Dispose()
         {
-            if (Value != default)
+            if (this.Value != default)
             {
-                Marshal.FreeHGlobal((IntPtr)Value);
-                Value = default;
-                Length = 0;
+                Marshal.FreeHGlobal((IntPtr)this.Value);
+                this.Value = default;
+                this.Length = 0;
             }
         }
 
@@ -53,7 +53,7 @@ namespace LLVMSharp.Interop
 
         public override string ToString()
         {
-            var span = new ReadOnlySpan<byte>(Value, Length);
+            var span = new ReadOnlySpan<byte>(this.Value, this.Length);
             return span.AsString();
         }
     }

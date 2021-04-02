@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Base class for all terminator instructions</summary>
+    /// <summary>Base class for all terminator instructions.</summary>
     public class Terminator
         : Instruction
     {
-        internal Terminator( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal Terminator(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

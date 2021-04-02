@@ -98,35 +98,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private bool isLoaded;
 
             /// <summary>
-            /// contains the path of all specified source files,
-            /// regardless of whether or not the path is valid, the file exists and could be loaded
+            /// Contains the path of all specified source files,
+            /// regardless of whether or not the path is valid, the file exists and could be loaded.
             /// </summary>
             private ImmutableHashSet<Uri> specifiedSourceFiles = ImmutableHashSet<Uri>.Empty;
 
             /// <summary>
-            /// contains the path to the dlls of all specified references,
-            /// regardless of whether or not the path is valid, the file exists and could be loaded
+            /// Contains the path to the dlls of all specified references,
+            /// regardless of whether or not the path is valid, the file exists and could be loaded.
             /// </summary>
             private ImmutableHashSet<Uri> specifiedReferences = ImmutableHashSet<Uri>.Empty;
 
             /// <summary>
-            /// contains the path to the *project* file of all specified project references,
-            /// regardless of whether or not the path is valid, and a project with the corresponding uri exists
+            /// Contains the path to the *project* file of all specified project references,
+            /// regardless of whether or not the path is valid, and a project with the corresponding uri exists.
             /// </summary>
             private ImmutableHashSet<Uri> specifiedProjectReferences = ImmutableHashSet<Uri>.Empty;
 
             /// <summary>
-            /// contains the uris to all source files that have been successfully loaded and are incorporated into the compilation
+            /// Contains the uris to all source files that have been successfully loaded and are incorporated into the compilation.
             /// </summary>
             private ImmutableHashSet<Uri> loadedSourceFiles;
 
             /// <summary>
-            /// contains the keys are the uris to all referenced dlls that have been successfully loaded and are incorporated into the compilation
+            /// Contains the keys are the uris to all referenced dlls that have been successfully loaded and are incorporated into the compilation.
             /// </summary>
             private References loadedReferences;
 
             /// <summary>
-            /// contains the keys are the uris to the *project file* of all project references that have been successfully loaded and are incorporated into the compilation
+            /// Contains the keys are the uris to the *project file* of all project references that have been successfully loaded and are incorporated into the compilation.
             /// </summary>
             private References loadedProjectReferences;
 
@@ -135,17 +135,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private readonly Action<string, MessageType> log;
 
             /// <summary>
-            /// Returns true if the file with the given uri has been specified to be a source file of this project.
-            /// IMPORTANT: This routine queries the current state of the project and does *not* wait for queued or running tasks to finish!
+            /// Returns true if the file identified by <paramref name="sourceFile"/> has been specified to be a source file of this project.
             /// </summary>
+            /// <remarks>
+            /// IMPORTANT: This routine queries the current state of the project and does *not* wait for queued or running tasks to finish!
+            /// </remarks>
             internal bool ContainsSourceFile(Uri sourceFile) =>
                 this.specifiedSourceFiles?.Contains(sourceFile) ?? false;
 
             /// <summary>
-            /// Returns true if any of the currently specified source files of this project satisfies the given criterion.
-            /// If no criterion is given, returns true if the list of specified source files is not null.
-            /// IMPORTANT: This routine queries the current state of the project and does *not* wait for queued or running tasks to finish!
+            /// Returns true if any of the currently specified source files of this project satisfies <paramref name="filter"/>.
             /// </summary>
+            /// <remarks>
+            /// If <paramref name="filter"/> is null, returns true if the list of specified source files is not null.
+            /// <para/>
+            /// IMPORTANT: This routine queries the current state of the project and does *not* wait for queued or running tasks to finish!
+            /// </remarks>
             internal bool ContainsAnySourceFiles(Func<Uri, bool>? filter = null) =>
                 this.specifiedSourceFiles?.Any(filter ?? (_ => true)) ?? false; // keep this as specified, *not* loaded!
 
@@ -158,10 +163,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private ImmutableArray<Diagnostic> projectReferenceDiagnostics;
 
             /// <summary>
-            /// Initializes the project for the given project file with the given project information.
-            /// If an Action for publishing diagnostics is given and not null,
-            /// that action is called whenever diagnostics for the project have changed and are ready for publishing.
+            /// Initializes the project for <paramref name="projectFile"/> with <paramref name="projectInfo"/>.
             /// </summary>
+            /// <param name="publishDiagnostics">
+            /// If provided, called whenever diagnostics for the project have changed and are ready for publishing.
+            /// </param>
             internal Project(
                 Uri projectFile,
                 ProjectInformation projectInfo,
@@ -199,9 +205,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             /// <summary>
             /// Sets the output path and all specified source files, references and project references
-            /// to those specified by the given project information.
-            /// Generates a suitable diagnostics if the output uri cannot be determined.
+            /// to those specified by <paramref name="projectInfo"/>.
             /// </summary>
+            /// <remarks>
+            /// Generates a suitable diagnostics if the output uri cannot be determined.
+            /// </remarks>
             private void SetProjectInformation(ProjectInformation projectInfo)
             {
                 this.Properties = projectInfo.Properties;
@@ -236,12 +244,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             /// <summary>
             /// If the project is not yet loaded, loads all specified source file, dll references and project references
-            /// using the given dictionary to resolve the dll output paths for project references.
-            /// Generates suitable load diagnostics.
-            /// Calls the given action RemoveFiles with the uris of all files that are no longer part of this project.
-            /// Calls the given function GetExistingFileManagers to get all existing managers for the files that are newly part of this project.
-            /// Does *not* update the content of already existing file managers.
+            /// using <paramref name="projectOutputPaths"/> to resolve the dll output paths for project references.
             /// </summary>
+            /// <param name="getExistingFileManagers">Called to get all existing managers for the files that are newly part of this project.</param>
+            /// <param name="removeFiles">Called with the uris of all files that are no longer part of this project.</param>
+            /// <remarks>
+            /// Generates suitable load diagnostics.
+            /// <para/>
+            /// Does *not* update the content of already existing file managers.
+            /// </remarks>
             private void LoadProject(
                 IDictionary<Uri, Uri?> projectOutputPaths,
                 Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>>? getExistingFileManagers,
@@ -270,13 +281,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             /// <summary>
             /// Loads the content of all specified source files, dll references and project references,
-            /// using the given dictionary to resolve the dll output paths for project references.
-            /// If the project information is specified, updates the project information with the given value before loading.
-            /// Generates suitable load diagnostics.
-            /// Calls the given action RemoveFiles with the uris of all files that are no longer part of this project.
-            /// Calls the given function GetExistingFileManagers to get all existing managers for the files that are newly part of this project.
-            /// Does *not* update the content of already existing file managers.
+            /// using <paramref name="projectOutputPaths"/> to resolve the dll output paths for project references.
             /// </summary>
+            /// <param name="getExistingFileManagers">Called to get all existing managers for the files that are newly part of this project.</param>
+            /// <param name="removeFiles">Called with the uris of all files that are no longer part of this project.</param>
+            /// <param name="projectInfo">If specified, used to update the project information before loading.</param>
+            /// <remarks>
+            /// Generates suitable load diagnostics.
+            /// <para/>
+            /// Does *not* update the content of already existing file managers.
+            /// </remarks>
             internal Task LoadProjectAsync(
                 IDictionary<Uri, Uri?> projectOutputPaths,
                 Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>>? getExistingFileManagers,
@@ -295,11 +309,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> need to be called from within appropriately queued routines only!
 
             /// <summary>
-            /// Helper function used to generate suitable diagnostics upon project reference loading.
             /// Returns a function that given the uri to a project files, returns the corresponding output path,
             /// if the corrsponding entry in the given dictionary indeed exist.
-            /// If no such entry exists, generates a suitable error messages and adds it to the given list of diagnostics.
             /// </summary>
+            /// <remarks>
+            /// If no such entry exists, generates a suitable error messages and adds it to <paramref name="diagnostics"/>.
+            /// <para/>
+            /// Helper function used to generate suitable diagnostics upon project reference loading.
+            /// </remarks>
             private static Func<Uri, Uri?> GetProjectOutputPath(IDictionary<Uri, Uri?> projectOutputPaths, List<Diagnostic> diagnostics) => (projFile) =>
             {
                 if (projectOutputPaths.TryGetValue(projFile, out var referencedProj))
@@ -311,13 +328,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             };
 
             /// <summary>
-            /// Loads the given project references from disk using the given mapping
+            /// Loads <paramref name="projectReferences"/> from disk using <paramref name="projectOutputPaths"/>
             /// to determine the path to the built dll for each project file,
             /// and updates the load diagnostics accordingly.
-            /// If skipVerification is set to true, does push the updated project references to the CompilationUnitManager,
-            /// but suppresses the compilation unit wide type checking that would usually ensue.
-            /// Otherwise replaces *all* project references in the CompilationUnitManager with the newly loaded ones.
             /// </summary>
+            /// <param name="skipVerification">
+            /// If true, pushes the updated project references to the <see cref="CompilationUnitManager"/>,
+            /// but suppresses the compilation unit wide type checking that would usually ensue.
+            /// Otherwise replaces *all* project references in the <see cref="CompilationUnitManager"/> with the newly loaded ones.
+            /// </param>
             private Task LoadProjectReferencesAsync(
                 IDictionary<Uri, Uri?> projectOutputPaths, IEnumerable<string> projectReferences, bool skipVerification = false)
             {
@@ -337,14 +356,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Given a dictionary mapping each project files to the corresponding output path of the built project dll,
-            /// as well as a uri to the project file of the project reference to reload, reloads that project reference
-            /// using the given dictionary, and adapting all load diagnostics accordingly.
-            /// Updates the reloaded reference in the CompilationUnitManager.
-            /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
-            /// Does nothing if the given project reference is not referenced by this project.
+            /// Reloads <paramref name="projectReference"/> using <paramref name="projectOutputPaths"/>,
+            /// adapting all load diagnostics accordingly.
             /// </summary>
+            /// <param name="projectOutputPaths">A mapping of each project file to the corresponding output path of the built project dll.</param>
+            /// <param name="projectReference">A uri to the project file of the project reference to reload.</param>
             /// <exception cref="ArgumentException"><paramref name="projectReference"/> is not an absolute file URI.</exception>
+            /// <remarks>
+            /// Updates the reloaded reference in the <see cref="CompilationUnitManager"/>.
+            /// <para/>
+            /// Publishes the updated load diagnostics using the publisher of the <see cref="CompilationUnitManager"/>.
+            /// <para/>
+            /// Does nothing if <paramref name="projectReference"/> is not referenced by this project.
+            /// </remarks>
             private void ReloadProjectReference(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference)
             {
                 if (!this.specifiedProjectReferences.Contains(projectReference) || !this.isLoaded)
@@ -379,11 +403,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Loads the given referenced dlls from disk and updates the load diagnostics accordingly.
-            /// If skipVerification is set to true, does push the updated references to the CompilationUnitManager,
-            /// but suppresses the compilation unit wide type checking that would usually ensue.
-            /// Otherwise replaces *all* references in the CompilationUnitManager with the newly loaded ones.
+            /// Loads dlls <paramref name="references"/> from disk and updates the load diagnostics accordingly.
             /// </summary>
+            /// <param name="skipVerification">
+            /// If true, pushes the updated references to the <see cref="CompilationUnitManager"/>,
+            /// but suppresses the compilation unit wide type checking that would usually ensue.
+            /// Otherwise replaces *all* references in the <see cref="CompilationUnitManager"/> with the newly loaded ones.
+            /// </param>
             private Task LoadReferencedAssembliesAsync(IEnumerable<string> references, bool skipVerification = false)
             {
                 var diagnostics = new List<Diagnostic>();
@@ -401,12 +427,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Given a uri to the assembly to reload, reloads that reference, updates all load diagnostics accordingly,
-            /// and updates the reloaded reference in the CompilationUnitManager.
-            /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
-            /// Does nothing if the given assembly is not referenced by this project.
+            /// Reloads <paramref name="reference"/>, updates all load diagnostics accordingly,
+            /// and updates the reloaded reference in the <see cref="CompilationUnitManager"/>.
             /// </summary>
+            /// <param name="reference">The uri of the assembly to reload.</param>
             /// <exception cref="ArgumentException"><paramref name="reference"/> is not an absolute file URI.</exception>
+            /// <remarks>
+            /// Publishes the updated load diagnostics using the publisher of the <see cref="CompilationUnitManager"/>.
+            /// <para/>
+            /// Does nothing if <paramref name="reference"/> is not referenced by this project.
+            /// </remarks>
             private void ReloadReferencedAssembly(Uri reference)
             {
                 if (!this.specifiedReferences.Contains(reference) || !this.isLoaded)
@@ -440,19 +470,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Loads the given source files from disk and updates the load diagnostics accordingly.
-            /// Removes all source files that are no longer specified or loaded from the CompilationUnitManager,
-            /// and calls the given action RemoveFiles with the corresponding uris.
-            /// Adds all source files that were not loaded before but are now to the CompilationUnitManager.
-            /// Calls the given function GetExistingFileManagers to get all existing managers for files that are newly part of this project.
-            /// If skipIfAlreadyLoaded is set to true, blindly adds those managers to the CompilationUnitManager without updating their content.
-            /// Otherwise adds a *new* FileContentManager initialized with the content loaded from disk.
-            /// For all other files, a new FileContentManager is initialized with the content loaded from disk.
-            /// If skipIfAlreadyLoaded is set to true, the content of the files that were loaded before and are still loaded now
-            /// is *not* updated in the CompilationUnitManager.
-            /// Otherwise the FileContentManager of all files is replaced by a new one initialized with the content from disk.
-            /// *Always* spawns a compilation unit wide type checking!
+            /// Loads <paramref name="sourceFiles"/> from disk and updates the load diagnostics accordingly.
             /// </summary>
+            /// <remarks>
+            /// Removes all source files that are no longer specified or loaded from the <see cref="CompilationUnitManager"/>,
+            /// and calls <paramref name="removeFiles"/> with the corresponding uris.
+            /// <para/>
+            /// Adds all source files that were not loaded before but are now to the <see cref="CompilationUnitManager"/>.
+            /// <para/>
+            /// Calls <paramref name="getExistingFileManagers"/> to get all existing managers for files that are newly part of this project.
+            /// If <paramref name="skipIfAlreadyLoaded"/> is set to true, blindly adds those managers to the <see cref="CompilationUnitManager"/> without updating their content.
+            /// Otherwise adds a *new* <see cref="FileContentManager"/> initialized with the content loaded from disk.
+            /// <para/>
+            /// For all other files, a new <see cref="FileContentManager"/> is initialized with the content loaded from disk.
+            /// <para/>
+            /// If <paramref name="skipIfAlreadyLoaded"/> is set to true, the content of the files that were loaded before and are still loaded now
+            /// is *not* updated in the <see cref="CompilationUnitManager"/>.
+            /// Otherwise the <see cref="FileContentManager"/> of all files is replaced by a new one initialized with the content from disk.
+            /// <para/>
+            /// *Always* spawns a compilation unit wide type checking!
+            /// </remarks>
             private Task LoadSourceFilesAsync(
                 IEnumerable<string> sourceFiles,
                 Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>>? getExistingFileManagers,
@@ -481,7 +518,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Returns a copy of all current load diagnostics as PublishDiagnosticParams for the project file of this project.
+            /// Returns a copy of all current load diagnostics as <see cref="PublishDiagnosticParams"/> for the project file of this project.
             /// </summary>
             private PublishDiagnosticParams CurrentLoadDiagnostics()
             {
@@ -503,10 +540,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             // -> i.e. asynchronous tasks that are queued into the Processing queue
 
             /// <summary>
-            /// Given a dictionary mapping each project files to the corresponding output path of the built project dll,
-            /// as well as a uri to the assembly to reload, reloads all project references with that output path, and/or any reference to that dll.
-            /// Updates the load diagnostics accordingly, and publishes them using the publisher of the CompilationUnitManager.
+            /// Reloads all project references with output path <paramref name="dllPath"/> and/or any reference to that dll.
             /// </summary>
+            /// <param name="projectOutputPaths">A dictionary mapping each project file to the corresponding output path of the built project dll.</param>
+            /// <param name="dllPath">The uri to the assembly to reload.</param>
+            /// <remarks>
+            /// Updates the load diagnostics accordingly, and publishes them using the publisher of the <see cref="CompilationUnitManager"/>.
+            /// </remarks>
             public Task ReloadAssemblyAsync(IDictionary<Uri, Uri?> projectOutputPaths, Uri dllPath)
             {
                 var projectsWithThatOutputDll = projectOutputPaths.Where(pair => pair.Value == dllPath).Select(pair => pair.Key);
@@ -522,25 +562,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// Given a dictionary mapping each project files to the corresponding output path of the built project dll,
-            /// as well as a uri to the project file of the project reference to reload, reloads that project reference
-            /// using the given dictionary, and adapting all load diagnostics accordingly.
-            /// Updates the reloaded reference in the CompilationUnitManager.
-            /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
-            /// Does nothing if the given project reference is not referenced by this project.
+            /// Reloads <paramref name="projectReference"/> using <paramref name="projectOutputPaths"/> and adapts all load diagnostics accordingly.
             /// </summary>
+            /// <param name="projectOutputPaths">A dictionary mapping each project file to the corresponding output path of the built project dll.</param>
+            /// <param name="projectReference">A uri to the project file of the project reference to reload.</param>
+            /// <remarks>
+            /// Updates the reloaded reference in the <see cref="CompilationUnitManager"/>.
+            /// <para/>
+            /// Publishes the updated load diagnostics using the publisher of the <see cref="CompilationUnitManager"/>.
+            /// <para/>
+            /// Does nothing if <paramref name="projectReference"/> is not referenced by this project.
+            /// </remarks>
             public Task ReloadProjectReferenceAsync(IDictionary<Uri, Uri?> projectOutputPaths, Uri projectReference) =>
                 this.processing.QueueForExecutionAsync(() =>
                     this.ReloadProjectReference(projectOutputPaths, projectReference));
 
             /// <summary>
-            /// Given a uri to source file to reload, reloads that source file, and updates all load diagnostics accordingly,
-            /// unless that file is open in the editor (i.e. openInEditor does not return null).
-            /// If openInEditor returns null for the given source file,
-            /// updates the content of the source file in the CompilationUnitManager.
-            /// Publishes the updated load diagnostics using the publisher of the CompilationUnitManager.
-            /// Does nothing if the given source file is open in the editor or not listed as a source file of this project.
+            /// Reloads <paramref name="sourceFile"/> and updates all load diagnostics accordingly,
+            /// unless it is open in the editor (i.e. <paramref name="openInEditor"/> does not return null).
             /// </summary>
+            /// <param name="sourceFile">The source file to reload.</param>
+            /// <remarks>
+            /// If <paramref name="openInEditor"/> returns null for <paramref name="sourceFile"/>,
+            /// updates the content of the source file in the <see cref="CompilationUnitManager"/>.
+            /// <para/>
+            /// Publishes the updated load diagnostics using the publisher of the <see cref="CompilationUnitManager"/>.
+            /// <para/>
+            /// Does nothing if <paramref name="sourceFile"/> is open in the editor or not listed as a source file of this project.
+            /// </remarks>
             public Task ReloadSourceFileAsync(Uri sourceFile, Func<Uri, FileContentManager?>? openInEditor = null)
             {
                 openInEditor ??= _ => null;
@@ -576,8 +625,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             /// <summary>
-            /// If the given file is a loaded source file of this project,
-            /// executes the given task for that file on the CompilationUnitManager.
+            /// If <paramref name="file"/> is a loaded source file of this project,
+            /// executes <paramref name="executeTask"/> for that file on the <see cref="CompilationUnitManager"/>.
             /// </summary>
             public bool ManagerTask(Uri file, Action<CompilationUnitManager> executeTask, IDictionary<Uri, Uri?> projectOutputPaths)
             {
@@ -613,8 +662,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             /// <summary>
             /// Returns all diagnostics for this project accumulated upon loading.
-            /// Note: this method waits for all currently running or queued tasks to finish before accumulating the diagnostics.
             /// </summary>
+            /// <remarks>
+            /// This method waits for all currently running or queued tasks to finish before accumulating the diagnostics.
+            /// </remarks>
             public PublishDiagnosticParams? GetLoadDiagnostics() =>
                 this.processing.QueueForExecution(
                     this.CurrentLoadDiagnostics,
@@ -627,25 +678,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly CompilationUnitManager defaultManager;
 
         /// <summary>
-        /// called whenever diagnostics within a file have changed and are ready for publishing -> may be null!
+        /// Called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
+        /// <remarks>
+        /// May be null!
+        /// </remarks>
         private readonly Action<PublishDiagnosticParams>? publishDiagnostics;
 
         /// <summary>
-        /// used to log exceptions raised during processing -> may be null!
+        /// Used to log exceptions raised during processing.
         /// </summary>
+        /// <remarks>
+        /// May be null!
+        /// </remarks>
         private readonly Action<Exception>? logException;
 
         /// <summary>
-        /// general purpose logging routine used for major loading events -> may be null!
+        /// General purpose logging routine used for major loading events.
         /// </summary>
+        /// <remarks>
+        /// May be null!
+        /// </remarks>
         private readonly Action<string, MessageType>? log;
 
-        /// <summary>
-        /// If an Action for publishing diagnostics is given and not null,
-        /// that action is called whenever diagnostics for the project have changed and are ready for publishing.
-        /// Any exceptions caught during processing are logged using the given exception logger.
-        /// </summary>
+        /// <remarks>
+        /// If <paramref name="publishDiagnostics"/> is not null,
+        /// it is called whenever diagnostics for the project have changed and are ready for publishing.
+        /// <para/>
+        /// Any exceptions caught during processing are logged using <paramref name="exceptionLogger"/>.
+        /// </remarks>
         public ProjectManager(Action<Exception>? exceptionLogger, Action<string, MessageType>? log = null, Action<PublishDiagnosticParams>? publishDiagnostics = null)
         {
             this.load = new ProcessingQueue(exceptionLogger);
@@ -668,9 +729,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns a function that given the uris of all files that have been added to a project,
-        /// queries openInEditor to determine which of those files are currently open in the editor.
-        /// Removes all such files from the default manager and returns their FileContentManagers.
+        /// queries <paramref name="openInEditor"/> to determine which of those files are currently open in the editor.
         /// </summary>
+        /// <remarks>
+        /// Removes all such files from the default manager and returns their <see cref="FileContentManager"/>.
+        /// </remarks>
         private Func<ImmutableHashSet<Uri>, Uri, IEnumerable<FileContentManager>> MigrateToProject(Func<Uri, FileContentManager?> openInEditor) =>
             (filesAddedToProject, projFile) =>
             {
@@ -691,12 +754,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns a function that given the uris of all files that have been removed from a project,
-        /// waits for the given removal task to finish before querying openInEditor
+        /// waits for the given removal task to finish before querying <paramref name="openInEditor"/>
         /// to determine which of those files are currently open in the editor.
-        /// Clears all verifications for those files and adds them to the default manager.
-        /// The returned Action does nothing if the task passed as argument has been cancelled.
-        /// The returned Action throws an ObjectDisposedException if the task passed as argument has been disposed.
         /// </summary>
+        /// <remarks>
+        /// Clears all verifications for those files and adds them to the default manager.
+        /// <para/>
+        /// The returned <see cref="Action"/> does nothing if the task passed as argument has been cancelled.
+        /// The returned <see cref="Action"/> throws an <see cref="ObjectDisposedException"/> if the task passed as argument has been disposed.
+        /// </remarks>
         private Action<ImmutableHashSet<Uri>, Task> MigrateToDefaultManager(Func<Uri, FileContentManager?> openInEditor) =>
             (filesRemovedFromProject, removal) =>
             {
@@ -719,8 +785,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Used for initial project loading.
-        /// Note that by calling this routine, all processing will be blocked until loading has finished...
         /// </summary>
+        /// <remarks>
+        /// By calling this routine, all processing will be blocked until loading has finished.
+        /// </remarks>
         public Task LoadProjectsAsync(
             IEnumerable<Uri> projectFiles,
             ProjectInformation.Loader projectLoader,
@@ -758,8 +826,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// To be used whenever a project file is added, removed or updated.
-        /// *Not* to be used to update content (will not update content unless it is new/removed content)!
         /// </summary>
+        /// <remarks>
+        /// *Not* to be used to update content (will not update content unless it is new/removed content)!
+        /// </remarks>
         public Task ProjectChangedOnDiskAsync(
             Uri projectFile,
             ProjectInformation.Loader projectLoader,
@@ -835,10 +905,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// To be called whenever a source file that may belong to one of the tracked projects has changed on disk.
-        /// For each tracked project reloads the source file from disk and updates the project accordingly,
-        /// if the modified file is a source file of that project and not open in the editor
-        /// (i.e. openInEditor is null or returns null for that file) at the time of execution.
         /// </summary>
+        /// <remarks>
+        /// For each tracked project reloads <paramref name="sourceFile"/> from disk and updates the project accordingly,
+        /// if the modified file is a source file of that project and not open in the editor
+        /// (i.e. <paramref name="openInEditor"/> is null or returns null for that file) at the time of execution.
+        /// </remarks>
         public Task SourceFileChangedOnDiskAsync(Uri sourceFile, Func<Uri, FileContentManager?>? openInEditor = null) =>
             this.load.QueueForExecutionAsync(() =>
             {
@@ -852,10 +924,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the compilation unit manager for the project
-        /// if the given file can be uniquely associated with a compilation unit.
-        /// Returns the DefaultManager otherwise.
-        /// NOTE: returns null if no CompilationUnitManager exists for the project, or if the given file is null.
+        /// if <paramref name="file"/> can be uniquely associated with a compilation unit, or <see cref="defaultManager"/> otherwise.
         /// </summary>
+        /// <remarks>
+        /// Returns null if no <see cref="CompilationUnitManager"/> exists for the project, or if <paramref name="file"/> is null.
+        /// </remarks>
         private CompilationUnitManager? Manager(Uri? file)
         {
             if (file == null)
@@ -869,9 +942,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the given file can be uniquely associated with a compilation unit,
-        /// executes the given Action on the CompilationUnitManager of that project (if one exists), passing true as second argument.
-        /// Executes the given Action on the DefaultManager otherwise, passing false as second argument.
+        /// If <paramref name="file"/> can be uniquely associated with a compilation unit,
+        /// executes <paramref name="executeTask"/> on the <see cref="CompilationUnitManager"/> of that project (if one exists), passing true as second argument.
+        /// <para/>
+        /// Executes <paramref name="executeTask"/> on the <see cref="defaultManager"/> otherwise, passing false as second argument.
         /// </summary>
         public Task ManagerTaskAsync(Uri file, Action<CompilationUnitManager, bool> executeTask) =>
             this.load.QueueForExecutionAsync(() =>
@@ -896,11 +970,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns the workspace edit that describes the changes to be done if the symbol at the given position - if any - is renamed to the given name.
+        /// </summary>
+        /// <remarks>
         /// Returns null if no symbol exists at the specified position,
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the file,
         /// or if a file affected by the rename operation belongs to several compilation units.
-        /// </summary>
+        /// </remarks>
         public WorkspaceEdit? Rename(RenameParams? param, bool versionedChanges) // versionedChanges is unused (WorkspaceEdit contains both Changes and DocumentChanges, but the version nr is null)
         {
             if (param?.TextDocument?.Uri == null)
@@ -968,95 +1044,116 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns null otherwise.
+        /// </summary>
+        /// <remarks>
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
-        /// </summary>
+        /// </remarks>
         public Location? DefinitionLocation(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.DefinitionLocation(c, param?.Position?.ToQSharp()), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns the signature help information for a call expression if there is such an expression at the specified position.
+        /// </summary>
+        /// <remarks>
         /// Returns null if the given file is listed as to be ignored,
         /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no call expression exists at the specified position at this time,
         /// or if no signature help information can be provided for the call expression at the specified position.
+        /// <para/>
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
-        /// </summary>
+        /// </remarks>
         public SignatureHelp? SignatureHelp(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.SignatureHelp(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
 
         /// <summary>
-        /// Returns information about the item at the specified position as Hover information.
+        /// Returns information about the item at the specified position as <see cref="Hover"/> information.
+        /// </summary>
+        /// <remarks>
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified file is not listed as source file,
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no token exists at the specified position.
+        /// <para/>
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
-        /// </summary>
+        /// </remarks>
         public Hover? HoverInformation(TextDocumentPositionParams? param, MarkupKind format = MarkupKind.PlainText) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.HoverInformation(c, param?.Position?.ToQSharp(), format), suppressExceptionLogging: true);
 
         /// <summary>
-        /// Returns an array with all usages of the identifier at the given position (if any) as DocumentHighlights.
+        /// Returns an array with all usages of the identifier at the given position (if any) as an array of <see cref="DocumentHighlight"/>.
+        /// </summary>
+        /// <remarks>
         /// Returns if some parameters are unspecified (null),
         /// or if the specified file is not listed as source file,
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no identifier exists at the specified position at this time.
+        /// <para/>
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
-        /// </summary>
+        /// </remarks>
         public DocumentHighlight[]? DocumentHighlights(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.DocumentHighlights(c, param?.Position?.ToQSharp()), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns an array with all locations where the symbol at the given position - if any - is referenced.
+        /// </summary>
+        /// <remarks>
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified file is not listed as source file,
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no symbol exists at the specified position at this time.
+        /// <para/>
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
-        /// </summary>
+        /// </remarks>
         public Location[]? SymbolReferences(ReferenceParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.SymbolReferences(c, param?.Position?.ToQSharp(), param?.Context), suppressExceptionLogging: true);
 
         /// <summary>
-        /// Returns the SymbolInformation for each namespace declaration,
+        /// Returns the <see cref="SymbolInformation"/> for each namespace declaration,
         /// type declaration, and function or operation declaration within the specified file.
+        /// </summary>
+        /// <remarks>
         /// Returns null if given uri is null or if the specified file is not listed as source file.
+        /// <para/>
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
-        /// </summary>
+        /// </remarks>
         public SymbolInformation[]? DocumentSymbols(DocumentSymbolParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, _) => file.DocumentSymbols(), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns a look-up of workspace edits suggested by the compiler for the given location and context.
-        /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
+        /// </summary>
+        /// <remarks>
+        /// The key of the returned look-up is a suitable title for the corresponding edits that can be presented to the user.
         /// Returns null if given uri is null or if the specified file is not listed as source file.
+        /// <para/>
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
-        /// </summary>
+        /// </remarks>
         public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context), suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns a list of suggested completion items for the given location.
-        /// <para/>
+        /// </summary>
+        /// <remarks>
         /// Returns null if given uri or position is null, or if the specified file is not listed as source file. Fails silently
         /// without logging anything if an exception occurs upon evaluating the query (occasional failures are to be
         /// expected as the evaluation is a readonly query running in parallel to the ongoing processing).
-        /// </summary>
+        /// </remarks>
         public CompletionList? Completions(TextDocumentPositionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument,
@@ -1064,15 +1161,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 suppressExceptionLogging: true);
 
         /// <summary>
-        /// Resolves additional information for the given completion item.
-        /// <para/>
-        /// Returns null if the completion item data is null, the file URI given in the data is null, or if the file is
+        /// Resolves additional information for <paramref name="item"/>.
+        /// </summary>
+        /// <remarks>
+        /// Returns null if the <paramref name="data"/> is null, the file URI given in <paramref name="data"/> is null, or if the file is
         /// not a source file.
         /// <para/>
         /// Fails silently without logging anything if an exception occurs upon evaluating the query (occasional
         /// failures are to be expected as the evaluation is a read-only query running in parallel to the ongoing
         /// processing).
-        /// </summary>
+        /// </remarks>
         public CompletionItem? ResolveCompletion(CompletionItem item, CompletionItemData? data, MarkupKind format) =>
             this.Manager(data?.TextDocument?.Uri)?.FileQuery(
                 data?.TextDocument,
@@ -1084,9 +1182,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Returns a copy of the current diagnostics generated upon loading.
-        /// Note: this method waits for all currently running or queued tasks to finish
-        /// before getting the project loading diagnostics by calling FlushAndExecute.
         /// </summary>
+        /// <remarks>
+        /// This method waits for all currently running or queued tasks to finish
+        /// before getting the project loading diagnostics.
+        /// </remarks>
         public IEnumerable<Diagnostic>? GetProjectDiagnostics(Uri projectId)
         {
             if (projectId == null)
@@ -1108,14 +1208,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the given Uri corresponds to the id of one of the managed project,
-        /// returns the diagnostics for all source files in that project, but *not* the diagnostics generated upon loading.
-        /// If the given Uri corresponds to a source file in any of the managed projects (including in the DefaultManager),
-        /// returns an array with a single item containing all current diagnostics for the given file.
-        /// If the given Uri is null, returns the diagnostics for all source files in the default manager.
-        /// Note: this method waits for all currently running or queued tasks to finish
-        /// before accumulating the diagnostics by calling FlushAndExecute.
+        /// Gets the diagnostics for a single source file, all source files in a managed project, or
+        /// all source files in the default manager, depending on the value of <paramref name="file"/>.
         /// </summary>
+        /// <param name="file">
+        /// The uri of a source file in any of the managed projects, the id of one of the managed projects, or null (for
+        /// default manager).
+        /// </param>
+        /// <remarks>
+        /// If <paramref name="file"/> corresponds to the id of one of the managed project,
+        /// returns the diagnostics for all source files in that project, but *not* the diagnostics generated upon loading.
+        /// <para/>
+        /// If <paramref name="file"/> corresponds to a source file in any of the managed projects (including in the DefaultManager),
+        /// returns an array with a single item containing all current diagnostics for the given file.
+        /// <para/>
+        /// If <paramref name="file"/> is null, returns the diagnostics for all source files in the default manager.
+        /// <para/>
+        /// This method waits for all currently running or queued tasks to finish
+        /// before accumulating the diagnostics.
+        /// </remarks>
         public PublishDiagnosticParams[]? GetDiagnostics(Uri? file)
         {
             this.load.QueueForExecution(
@@ -1140,12 +1251,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the content (text representation) of the given file,
+        /// Returns the content (text representation) of <paramref name="textDocument"/>,
         /// if it is listed as source of a project or in the default manager.
-        /// Returns null if the given file is null.
-        /// Note: this method waits for all currently running or queued tasks to finish
-        /// before getting the file content by calling FlushAndExecute.
         /// </summary>
+        /// <remarks>
+        /// Returns null if the given file is null.
+        /// <para/>
+        /// This method waits for all currently running or queued tasks to finish
+        /// before getting the file content.
+        /// </remarks>
         public string[]? FileContentInMemory(TextDocumentIdentifier textDocument)
         {
             if (textDocument?.Uri == null)
@@ -1172,15 +1286,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 : uri.AbsolutePath;
 
         /// <summary>
-        /// For the given sequence of file names verifies that a file with the corresponding full path exists,
+        /// For all <paramref name="files"/>, verifies that a file with the corresponding full path exists,
         /// and returns a sequence containing the absolute path for all files that do.
-        /// Sets the corresponding out parameter to a sequence with all duplicate file names,
-        /// and to a sequence of names for which no such file exists respectively.
-        /// Filters all file names that are null or only consist of whitespace.
-        /// Generates suitable diagnostics for duplicate and not found files, and for invalid paths.
-        /// Logs the generated diagnostics using onDiagnostics if the action has been specified and is not null.
-        /// Catches exceptions related to path errors and logs them using onException if the action has been specified and is not null.
         /// </summary>
+        /// <param name="files">The sequence of file names.</param>
+        /// <param name="duplicateFileWarning">The <see cref="Diagnostic.Code"/> value to use for warning diagnostics generated for duplicate files.</param>
+        /// <param name="fileNotFoundDiagnostic">A function used to create diagnostics generated for missing files.</param>
+        /// <param name="notFound">All file names from <paramref name="files"/> for which no such file exists.</param>
+        /// <param name="duplicates">All duplicate file names from <paramref name="files"/>.</param>
+        /// <param name="invalidPaths">All file names from <paramref name="files"/> for which an exception was thrown while creating the full path uri.</param>
+        /// <param name="onDiagnostic">Called to log generated diagnostics, if not null.</param>
+        /// <param name="onException">Called to log path errors, if not null.</param>
+        /// <remarks>
+        /// Filters all file names that are null or only consist of whitespace.
+        /// <para/>
+        /// Generates suitable diagnostics for duplicate and not found files, and for invalid paths.
+        /// </remarks>
         public static IEnumerable<Uri> FilterFiles(
             IEnumerable<string> files,
             WarningCode duplicateFileWarning,
@@ -1231,12 +1352,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Uses FilterFiles to filter the source files specified in the given options (Input), and generates the corresponding errors and warnings.
-        /// For each valid source file, generates the corrsponding TextDocumentIdentifier and reads the file content from disk.
-        /// Generates a suitable error whenever the file content could not be loaded.
-        /// Calls the given onDiagnostic action on all generated diagnostics.
-        /// Returns the uri and file content for each file that could be loaded.
+        /// For each valid source file, generates the corrsponding <see cref="TextDocumentIdentifier"/> and reads the file content from disk.
         /// </summary>
+        /// <param name="sourceFiles">The source files to load.</param>
+        /// <param name="onDiagnostic">Called on all generated diagnostics.</param>
+        /// <returns>
+        /// The uri and file content for each file that could be loaded.
+        /// </returns>
+        /// <remarks>
+        /// Uses <see cref="FilterFiles"/> to filter <paramref name="sourceFiles"/> and generates the corresponding errors and warnings.
+        /// <para/>
+        /// Generates a suitable error whenever the file content could not be loaded.
+        /// </remarks>
         public static ImmutableDictionary<Uri, string> LoadSourceFiles(
             IEnumerable<string> sourceFiles,
             Action<Diagnostic>? onDiagnostic = null,
@@ -1272,11 +1399,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Loads the Q# data structures in a referenced assembly given the Uri to that assembly.
-        /// Generates suitable diagostics if the specified assembly could not be found or its content could not be loaded,
-        /// and calls the given onDiagnostic action on all generated diagnostics.
-        /// Catches any thrown exception and calls onException on it if it is specified and not null.
+        /// Loads the Q# data structures in a referenced assembly.
         /// </summary>
+        /// <param name="asm">The Uri of the assembly to load.</param>
+        /// <param name="onDiagnostic">Called on all generated diagnostics.</param>
+        /// <param name="onException">Called with any exceptions thrown.</param>
+        /// <remarks>
+        /// Generates suitable diagostics if <paramref name="asm"/> could not be found or its content could not be loaded.
+        /// <para/>
+        /// Catches any thrown exception, and calls <paramref name="onException"/>, if not null.
+        /// </remarks>
         private static References.Headers? LoadReferencedDll(
             Uri asm,
             bool ignoreDllResources,
@@ -1324,23 +1456,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the file id used for the file with the given uri.
-        /// Raises a QsCompilerError if the id could not be determined.
+        /// Returns the file id used for the file <paramref name="uri"/>.
         /// </summary>
+        /// <remarks>
+        /// Raises a <see cref="QsCompilerError"/> if the id could not be determined.
+        /// </remarks>
         private static string GetFileId(Uri uri) =>
             QsCompilerError.RaiseOnFailure(
                 () => CompilationUnitManager.GetFileId(uri),
                 "could not determine id for valid uri");
 
         /// <summary>
-        /// Uses FilterFiles to filter the given project files, and generates the corresponding errors and warnings.
-        /// For each existing project file, calls GetOutputPath on it to obtain the path to the built dll for the project.
-        /// For any exception due to a failure of GetOutputPath the given onException action is invoked.
-        /// A failure of GetOutputPath consists of it throwing an exception, or returning a path that does exist but not correspond to a valid dll.
-        /// If no file exists at the returned path, generates a suitable error message.
-        /// Calls the given onDiagnostic action on all generated diagnostics.
-        /// Returns a dictionary that maps each project file for which the corresponding dll content could be loaded to the Q# attributes it contains.
+        /// Load project references.
         /// </summary>
+        /// <param name="getOutputPath">Called to obtain the path to the built dll for the project.</param>
+        /// <param name="onDiagnostic">Called on all generated diagnostics.</param>
+        /// <param name="onException">Called for any exception due to a failure of <paramref name="getOutputPath"/>.</param>
+        /// <returns>
+        /// A dictionary that maps each project file for which the corresponding dll content could be loaded to the Q# attributes it contains.
+        /// </returns>
+        /// <remarks>
+        /// Uses FilterFiles to filter <paramref name="refProjectFiles"/>, and generates the corresponding errors and warnings.
+        /// <para/>
+        /// For each existing project file, calls <paramref name="getOutputPath"/> on it to obtain the path to the built dll for the project.
+        /// <para/>
+        /// For any exception due to a failure of <paramref name="getOutputPath"/> the <paramref name="onException"/> is invoked.
+        /// A failure of <paramref name="getOutputPath"/> consists of it throwing an exception, or returning a path that does exist but not correspond to a valid dll.
+        /// <para/>
+        /// If no file exists at the returned path, generates a suitable error message.
+        /// </remarks>
         public static ImmutableDictionary<string, References.Headers> LoadProjectReferences(
             IEnumerable<string> refProjectFiles,
             Func<Uri, Uri?> getOutputPath,
@@ -1389,10 +1533,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a dictionary that maps each existing dll to the Q# attributes it contains.
-        /// Generates a suitable error message for each binary file that could not be loaded.
-        /// Calls the given onDiagnostic action on all generated diagnostics.
+        /// Load referenced assemblies, returning a dictionary that maps each existing dll to the Q# attributes it contains.
         /// </summary>
+        /// <param name="references">The references to filter and load.</param>
+        /// <param name="onDiagnostic">Called on all generated diagnostics.</param>
+        /// <remarks>
+        /// Generates a suitable error message for each binary file that could not be loaded.
+        /// </remarks>
         public static ImmutableDictionary<string, References.Headers> LoadReferencedAssemblies(
             IEnumerable<string> references,
             Action<Diagnostic>? onDiagnostic = null,

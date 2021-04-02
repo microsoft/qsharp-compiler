@@ -4,7 +4,7 @@
 // Basic Entry Point
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Foo();
         Bar();
@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 // Unrelated To Entry Point
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Foo();
     }
@@ -43,7 +43,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 // Not Called With Entry Point
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Foo();
     }
@@ -90,7 +90,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 // Entry Point No Descendants
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit { }
 
     operation Foo() : Unit {
@@ -105,7 +105,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 // Calls Entry Point From Entry Point
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Foo();
     }
@@ -120,7 +120,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 // Entry Point Ancestor And Descendant
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Foo();
     }
@@ -137,7 +137,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 // Concrete Graph has Concretizations
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Foo<Double>();
         Bar<String>();
@@ -155,7 +155,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 // Concrete Graph Contains All Specializations
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Adjoint FooAdj();
         using (q = Qubit()) {
