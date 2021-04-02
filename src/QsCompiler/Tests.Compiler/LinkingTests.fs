@@ -760,10 +760,10 @@ type LinkingTests(output: ITestOutputHelper) =
                          (source 2, (chunks.[6], declInSource2)) ])
 
     [<Fact>]
-    member this.``Trimmer Removes Unused Callables``() = this.RunSyntaxTreeTrimTest 1 true
+    member this.``Trimmer Removes Unused Callables``() = this.RunSyntaxTreeTrimTest 1 false
 
     [<Fact>]
-    member this.``Trimmer Keeps UDTs``() = this.RunSyntaxTreeTrimTest 2 true
+    member this.``Trimmer Keeps UDTs and Constructors``() = this.RunSyntaxTreeTrimTest 2 false
 
     [<Fact>]
     member this.``Trimmer Keeps Intrinsics When Told``() = this.RunSyntaxTreeTrimTest 3 true
