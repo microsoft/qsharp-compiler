@@ -348,6 +348,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var orSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator))
                 .Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
 
+#pragma warning disable 0618
+            var qubitBindingSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedQubitBindingKeyword))
+                .Select(d => d.Message.Contains($"\"{Keywords.qsUsing.id}\"") ? ReplaceWith(Keywords.qsUse.id, d.Range) : ReplaceWith(Keywords.qsBorrow.id, d.Range));
+#pragma warning restore 0618
+
             // update deprecated operation characteristics syntax
 
             static IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
@@ -390,7 +395,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(unitSuggestions)
                 .Concat(notSuggestions)
                 .Concat(andSuggestions)
-                .Concat(orSuggestions);
+                .Concat(orSuggestions)
+                .Concat(qubitBindingSuggestions);
         }
 
         /// <summary>
