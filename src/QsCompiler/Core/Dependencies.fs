@@ -60,6 +60,7 @@ type BuiltIn =
             // dependencies in Microsoft.Quantum.Diagnostics
             BuiltIn.Test
             BuiltIn.EnableTestingViaName
+            BuiltIn.DumpMachine
             // dependencies in Microsoft.Quantum.Canon
             BuiltIn.NoOp
             // dependencies in Microsoft.Quantum.Convert
