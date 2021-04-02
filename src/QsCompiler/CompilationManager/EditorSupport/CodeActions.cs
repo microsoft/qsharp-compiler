@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
@@ -307,6 +308,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             UnknownIdNamespaceSuggestions(file, compilation, lineNr, diagnostics)
                 .Concat(UnknownIdCaseSuggestions(file, compilation, diagnostics));
 
+        private static readonly Regex QubitBindingsMatcher = new Regex("(using|borrowing)\\s*\\((.*)\\)", RegexOptions.Compiled | RegexOptions.Singleline, TimeSpan.FromSeconds(1));
+
         /// <summary>
         /// Returns a sequence of suggestions on how deprecated syntax can be updated based on <paramref name="diagnostics"/>.
         /// </summary>
@@ -350,7 +353,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
 #pragma warning disable 0618
             var qubitBindingSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedQubitBindingKeyword))
-                .Select(d => d.Message.Contains($"\"{Keywords.qsUsing.id}\"") ? ReplaceWith(Keywords.qsUse.id, d.Range) : ReplaceWith(Keywords.qsBorrow.id, d.Range));
+                .Select(d =>
+                {
+                    var fragment = file.TryGetFragmentAt(d.Range.ToQSharp().Start, out _);
+                    if (fragment != null && fragment.Text != null && fragment.Text.TrimEnd().EndsWith(')') && (fragment.Text.StartsWith($"{Keywords.qsUsing.id} (") || fragment.Text.StartsWith($"{Keywords.qsBorrowing.id} (")))
+                    {
+                        var newText = fragment.Text
+                            .Replace($"{Keywords.qsUsing.id} (", $"{Keywords.qsUse.id} ")
+                            .Replace($"{Keywords.qsBorrowing.id} (", $"{Keywords.qsBorrow.id} ");
+                        newText = newText.Remove(newText.LastIndexOf(")"));
+                        var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText };
+                        return ($"Replace with \"{edit.NewText.Trim()}\".", file.GetWorkspaceEdit(edit));
+                    }
+
+                    return d.Message.Contains($"\"{Keywords.qsUsing.id}\"") ? ReplaceWith(Keywords.qsUse.id, d.Range) : ReplaceWith(Keywords.qsBorrow.id, d.Range);
+                });
 #pragma warning restore 0618
 
             // update deprecated operation characteristics syntax
