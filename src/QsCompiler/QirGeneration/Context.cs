@@ -11,6 +11,7 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Instructions;
@@ -1298,7 +1299,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             this.BuiltType = null;
             this.Transformation.Types.OnType(resolvedType);
-            return this.BuiltType ?? throw new NotImplementedException("Llvm type could not be constructed");
+            return this.BuiltType ?? throw new NotImplementedException($"Llvm type for {SyntaxTreeToQsharp.Default.ToCode(resolvedType)} could not be constructed");
         }
 
         /// <summary>
