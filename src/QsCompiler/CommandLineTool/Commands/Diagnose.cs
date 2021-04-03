@@ -243,6 +243,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SkipMonomorphization = options.SkipMonomorphization,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
+                SkipConjugationInlining = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 IsExecutable = options.MakeExecutable,
                 RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,

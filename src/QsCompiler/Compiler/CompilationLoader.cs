@@ -75,8 +75,12 @@ namespace Microsoft.Quantum.QsCompiler
             public bool GenerateFunctorSupport;
 
             /// <summary>
-            /// Unless this is set to true, the syntax tree rewrite step that eliminates selective abstractions is executed during compilation.
-            /// In particular, all conjugations are inlined.
+            /// Unless this is set to true, the syntax tree rewrite step that inlines conjugations is executed during compilation.
+            /// </summary>
+            public bool SkipConjugationInlining;
+
+            /// <summary>
+            /// Unless this is set to true, all unused callables are removed from the syntax tree.
             /// </summary>
             public bool SkipSyntaxTreeTrimming;
 
@@ -252,6 +256,7 @@ namespace Microsoft.Quantum.QsCompiler
             internal Status TargetSpecificReplacements = Status.NotRun;
             internal Status FunctorSupport = Status.NotRun;
             internal Status PreEvaluation = Status.NotRun;
+            internal Status ConjugationInlining = Status.NotRun;
             internal Status TreeTrimming = Status.NotRun;
             internal Status ConvertClassicalControl = Status.NotRun;
             internal Status Monomorphization = Status.NotRun;
@@ -273,8 +278,9 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 this.WasSuccessful(true, this.Validation) &&
                 this.WasSuccessful(true, this.PluginLoading) &&
+                this.WasSuccessful(options.IsExecutable && !options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 this.WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
-                this.WasSuccessful(!options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                this.WasSuccessful(!options.SkipConjugationInlining, this.ConjugationInlining) &&
                 this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
@@ -560,6 +566,16 @@ namespace Microsoft.Quantum.QsCompiler
 
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
+            var qirEmissionEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
+
+            if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
+            {
+                // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
+                // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
+                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: !qirEmissionEnabled), typeof(IRewriteStep), thisDllUri);
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
+            }
+
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
@@ -572,10 +588,10 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.FunctorSupport)));
             }
 
-            if (!this.config.SkipSyntaxTreeTrimming)
+            if (!this.config.SkipConjugationInlining)
             {
                 var rewriteStep = new LoadedStep(new ConjugationInlining(), typeof(IRewriteStep), thisDllUri);
-                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.ConjugationInlining)));
             }
 
             if (this.config.AttemptFullPreEvaluation)
@@ -586,10 +602,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
-                // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
-                // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
-                var qirEmissionEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
-                var rewriteStep = new LoadedStep(new Monomorphization(!qirEmissionEnabled), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: qirEmissionEnabled), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 

@@ -55,6 +55,7 @@ namespace Microsoft.Quantum.QIR
             dict.Add(QsCompiler.BuiltIn.RangeReverse.FullName, this.RangeReverse);
             dict.Add(QsCompiler.BuiltIn.Message.FullName, this.Message);
             dict.Add(QsCompiler.BuiltIn.Truncate.FullName, this.DoubleAsInt); // This redundancy needs to be eliminated in the Q# libraries.
+            dict.Add(QsCompiler.BuiltIn.DumpMachine.FullName, this.DumpMachine);
 
             this.sharedState = sharedState;
             this.builtIn = dict.ToImmutable();
@@ -218,6 +219,21 @@ namespace Microsoft.Quantum.QIR
             var value = this.sharedState.EvaluateSubexpression(arg);
             var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
             this.sharedState.CurrentBuilder.Call(message, value.Value);
+            return this.sharedState.Values.Unit;
+        }
+
+        private IValue DumpMachine(TypedExpression arg)
+        {
+            var value = this.sharedState.EvaluateSubexpression(arg).Value;
+            if (!value.NativeType.IsPointer)
+            {
+                var pointer = this.sharedState.CurrentBuilder.Alloca(value.NativeType);
+                this.sharedState.CurrentBuilder.Store(value, pointer);
+                value = pointer;
+            }
+
+            var dump = this.sharedState.GetOrCreateTargetInstruction(QuantumInstructionSet.DumpMachine);
+            this.sharedState.CurrentBuilder.Call(dump, value);
             return this.sharedState.Values.Unit;
         }
     }
