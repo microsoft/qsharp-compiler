@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.Testing {
         body (...) {
             Adjoint CNOT(q1, (r1!)[0]);
             
-            for (item in r1!) {
+            for item in r1! {
                 CNOT(q1, item);
                 CNOT(q1, item);
                 CNOT(q1, item);
@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.Testing {
         controlled (__controlQubits__, ...) {
             Controlled (Adjoint CNOT)(__controlQubits__, (q1, (r1!)[0]));
             
-            for (item in r1!) {
+            for item in r1! {
                 Controlled CNOT(__controlQubits__, (q1, item));
                 Controlled CNOT(__controlQubits__, (q1, item));
                 Controlled CNOT(__controlQubits__, (q1, item));
@@ -62,7 +62,7 @@ namespace Microsoft.Quantum.Testing {
         body (...) {
             Adjoint CNOT(q2, (b2!)[0]);
             
-            for (item in b2!) {
+            for item in b2! {
                 CNOT(q2, item);
                 CNOT(q2, item);
                 CNOT(q2, item);
@@ -70,10 +70,10 @@ namespace Microsoft.Quantum.Testing {
             
             let r = M(q2);
             
-            if (r == One) {
+            if r == One {
                 Adjoint CNOT(q!, (b2!)[0]);
                 
-                for (__qsVar1__item__ in b2!) {
+                for __qsVar1__item__ in b2! {
                     CNOT(q!, __qsVar1__item__);
                     CNOT(q!, __qsVar1__item__);
                     CNOT(q!, __qsVar1__item__);
@@ -81,7 +81,7 @@ namespace Microsoft.Quantum.Testing {
                 
                 Adjoint CNOT(q!, (b2!)[0]);
                 
-                for (__qsVar2__item__ in b2!) {
+                for __qsVar2__item__ in b2! {
                     CNOT(q!, __qsVar2__item__);
                     CNOT(q!, __qsVar2__item__);
                     CNOT(q!, __qsVar2__item__);
@@ -89,7 +89,7 @@ namespace Microsoft.Quantum.Testing {
                 
                 Adjoint CNOT(q!, (b2!)[0]);
                 
-                for (__qsVar3__item__ in b2!) {
+                for __qsVar3__item__ in b2! {
                     CNOT(q!, __qsVar3__item__);
                     CNOT(q!, __qsVar3__item__);
                     CNOT(q!, __qsVar3__item__);
@@ -103,7 +103,7 @@ namespace Microsoft.Quantum.Testing {
         adjoint (...) {
             Adjoint CNOT(q!, (b2!)[0]);
             
-            for (item in b2!) {
+            for item in b2! {
                 CNOT(q!, item);
                 CNOT(q!, item);
                 CNOT(q!, item);
@@ -111,7 +111,7 @@ namespace Microsoft.Quantum.Testing {
             
             Adjoint CNOT(q!, (b2!)[0]);
             
-            for (__qsVar1__item__ in b2!) {
+            for __qsVar1__item__ in b2! {
                 CNOT(q!, __qsVar1__item__);
                 CNOT(q!, __qsVar1__item__);
                 CNOT(q!, __qsVar1__item__);
@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.Testing {
             
             Adjoint CNOT(q!, (b2!)[0]);
             
-            for (__qsVar2__item__ in b2!) {
+            for __qsVar2__item__ in b2! {
                 CNOT(q!, __qsVar2__item__);
                 CNOT(q!, __qsVar2__item__);
                 CNOT(q!, __qsVar2__item__);
@@ -127,7 +127,7 @@ namespace Microsoft.Quantum.Testing {
             
             Adjoint CNOT(q!, (b2!)[0]);
             
-            for (__qsVar3__item__ in b2!) {
+            for __qsVar3__item__ in b2! {
                 CNOT(q!, __qsVar3__item__);
                 CNOT(q!, __qsVar3__item__);
                 CNOT(q!, __qsVar3__item__);
@@ -135,7 +135,7 @@ namespace Microsoft.Quantum.Testing {
             
             Adjoint CNOT(q!, (b2!)[0]);
             
-            for (__qsVar4__item__ in b2!) {
+            for __qsVar4__item__ in b2! {
                 CNOT(q!, __qsVar4__item__);
                 CNOT(q!, __qsVar4__item__);
                 CNOT(q!, __qsVar4__item__);
@@ -143,7 +143,7 @@ namespace Microsoft.Quantum.Testing {
             
             Adjoint CNOT(q!, (b2!)[0]);
             
-            for (__qsVar5__item__ in b2!) {
+            for __qsVar5__item__ in b2! {
                 CNOT(q!, __qsVar5__item__);
                 CNOT(q!, __qsVar5__item__);
                 CNOT(q!, __qsVar5__item__);
@@ -151,7 +151,7 @@ namespace Microsoft.Quantum.Testing {
             
             Adjoint CNOT(q2, (b2!)[0]);
             
-            for (__qsVar6__item__ in b2!) {
+            for __qsVar6__item__ in b2! {
                 CNOT(q2, __qsVar6__item__);
                 CNOT(q2, __qsVar6__item__);
                 CNOT(q2, __qsVar6__item__);
@@ -161,7 +161,7 @@ namespace Microsoft.Quantum.Testing {
         controlled (ctrls, ...) {
             Controlled (Adjoint CNOT)(ctrls, (q2, (b2!)[0]));
             
-            for (item in b2!) {
+            for item in b2! {
                 Controlled CNOT(ctrls, (q2, item));
                 Controlled CNOT(ctrls, (q2, item));
                 Controlled CNOT(ctrls, (q2, item));
@@ -169,10 +169,10 @@ namespace Microsoft.Quantum.Testing {
             
             let r = M(q2);
             
-            if (r == One) {
+            if r == One {
                 Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
                 
-                for (__qsVar1__item__ in b2!) {
+                for __qsVar1__item__ in b2! {
                     Controlled CNOT(ctrls, (q!, __qsVar1__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar1__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar1__item__));
@@ -180,7 +180,7 @@ namespace Microsoft.Quantum.Testing {
                 
                 Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
                 
-                for (__qsVar2__item__ in b2!) {
+                for __qsVar2__item__ in b2! {
                     Controlled CNOT(ctrls, (q!, __qsVar2__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar2__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar2__item__));
@@ -188,7 +188,7 @@ namespace Microsoft.Quantum.Testing {
                 
                 Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
                 
-                for (__qsVar3__item__ in b2!) {
+                for __qsVar3__item__ in b2! {
                     Controlled CNOT(ctrls, (q!, __qsVar3__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar3__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar3__item__));
@@ -196,7 +196,7 @@ namespace Microsoft.Quantum.Testing {
                 
                 Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
                 
-                for (__qsVar4__item__ in b2!) {
+                for __qsVar4__item__ in b2! {
                     Controlled CNOT(ctrls, (q!, __qsVar4__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar4__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar4__item__));
@@ -204,7 +204,7 @@ namespace Microsoft.Quantum.Testing {
                 
                 Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
                 
-                for (__qsVar5__item__ in b2!) {
+                for __qsVar5__item__ in b2! {
                     Controlled CNOT(ctrls, (q!, __qsVar5__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar5__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar5__item__));
@@ -212,7 +212,7 @@ namespace Microsoft.Quantum.Testing {
                 
                 Controlled (Adjoint CNOT)(ctrls, (q!, (b2!)[0]));
                 
-                for (__qsVar6__item__ in b2!) {
+                for __qsVar6__item__ in b2! {
                     Controlled CNOT(ctrls, (q!, __qsVar6__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar6__item__));
                     Controlled CNOT(ctrls, (q!, __qsVar6__item__));
@@ -223,7 +223,7 @@ namespace Microsoft.Quantum.Testing {
         controlled adjoint (ctrls, ...) {
             Controlled (Adjoint CNOT)(ctrls, (q2, (b2!)[0]));
             
-            for (item in b2!) {
+            for item in b2! {
                 Controlled CNOT(ctrls, (q2, item));
                 Controlled CNOT(ctrls, (q2, item));
                 Controlled CNOT(ctrls, (q2, item));
@@ -236,9 +236,9 @@ namespace Microsoft.Quantum.Testing {
         
         let twice = d * 2.0;
         
-        if (twice > 1.0) {
+        if twice > 1.0 {
             
-            if (p == PauliZ) {
+            if p == PauliZ {
                 return op0;
             }
         }
@@ -249,14 +249,14 @@ namespace Microsoft.Quantum.Testing {
     
     operation Test () : Unit {
         
-        using ((q1, q2, __qsItem1__qs__, __qsItem2__qs__, __qsItem3__qs__, __qsItem4__qs__) = (Qubit(), Qubit(), Qubit(), Qubit(), Qubit(), Qubit())) {
+        use (q1, q2, __qsItem1__qs__, __qsItem2__qs__, __qsItem3__qs__, __qsItem4__qs__) = (Qubit(), Qubit(), Qubit(), Qubit(), Qubit(), Qubit()) {
             CNOT(q1, __qsItem1__qs__);
             CNOT(q1, __qsItem2__qs__);
             CNOT(q1, __qsItem3__qs__);
             CNOT(q1, __qsItem4__qs__);
             let r = M(q1);
             
-            if (r == One) {
+            if r == One {
                 CNOT(q2, __qsItem1__qs__);
                 CNOT(q2, __qsItem2__qs__);
                 CNOT(q2, __qsItem3__qs__);
