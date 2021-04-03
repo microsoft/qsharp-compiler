@@ -23,9 +23,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     // NOTE: The idea throughout this whole class is that anything inside this class can *only*
     // be modified by the class itself! (not just on a shallow, but on a deep level!)
 
-    /// <summary>
-    /// Any read-only access to this class is threadsafe, however write access (currently) is not!
-    /// </summary>
+    /// <remarks>
+    /// Any read-only access to this class is thread-safe, however write access (currently) is not!
+    /// </remarks>
     public class FileContentManager : IDisposable
     {
         internal readonly Uri Uri;
@@ -35,22 +35,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly FileHeader header;
 
         /// <summary>
-        /// list of unprocessed updates that are all limited to the same (single) line
+        /// List of unprocessed updates that are all limited to the same (single) line.
         /// </summary>
         private readonly Queue<TextDocumentContentChangeEvent> unprocessedUpdates;
 
         /// <summary>
-        /// contains the line numbers in the current content that have been modified
+        /// Contains the line numbers in the current content that have been modified.
         /// </summary>
         private readonly ManagedSortedSet editedContent;
 
         /// <summary>
-        /// contains the line numbers in the current token list that have been modified
+        /// Contains the line numbers in the current token list that have been modified.
         /// </summary>
         private readonly ManagedSortedSet editedTokens;
 
         /// <summary>
-        /// contains the qualified names of the callables for which content has been modified
+        /// Contains the qualified names of the callables for which content has been modified.
         /// </summary>
         private readonly ManagedList<QsQualifiedName> editedCallables;
 
@@ -63,24 +63,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ManagedList<Diagnostic> headerDiagnostics;
 
         /// <summary>
-        /// used to store partially computed semantic diagnostics until they are ready for publishing
+        /// Used to store partially computed semantic diagnostics until they are ready for publishing.
         /// </summary>
         private readonly ManagedList<Diagnostic> updatedSemanticDiagnostics;
 
         /// <summary>
-        /// used to store partially computed header diagnostics until they are ready for publishing
+        /// Used to store partially computed header diagnostics until they are ready for publishing.
         /// </summary>
         private readonly ManagedList<Diagnostic> updatedHeaderDiagnostics;
 
         // locks and other stuff used coordinate:
 
         /// <summary>
-        /// used as sync root for all managed data structures
+        /// Used as sync root for all managed data structures.
         /// </summary>
         internal readonly ReaderWriterLockSlim SyncRoot;
 
         /// <summary>
-        /// used to periodically trigger processing the queued changes if no further editing takes place for a while
+        /// Used to periodically trigger processing the queued changes if no further editing takes place for a while.
         /// </summary>
         private readonly System.Timers.Timer timer;
 
@@ -89,14 +89,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // events and event handlers
 
         /// <summary>
-        /// publish an event to notify all subscribers when the timer for queued changes expires
+        /// Publish an event to notify all subscribers when the timer for queued changes expires.
         /// </summary>
         internal event TimerTriggeredUpdate? TimerTriggeredUpdateEvent;
 
         internal delegate Task TimerTriggeredUpdate(Uri file);
 
         /// <summary>
-        /// publish an event to notify all subscribers when the entire type checking needs to be re-run
+        /// Publish an event to notify all subscribers when the entire type checking needs to be re-run.
         /// </summary>
         internal event GlobalTypeChecking? GlobalTypeCheckingEvent;
 
@@ -144,7 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// De-registers the sync root of this FileContentManager as a dependent lock for compilation unit associated with this file.
+        /// De-registers the sync root of this <see cref="FileContentManager"/> as a dependent lock for compilation unit associated with this file.
         /// </summary>
         public void Dispose()
         {
@@ -185,10 +185,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.semanticDiagnostics.Get().Select(m => m.Copy()).ToImmutableArray();
 
         /// <summary>
-        /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
-        /// removes all diagnostics that are no longer valid due to that change, and
+        /// Removes all diagnostics that are no longer valid due to the specified change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// </summary>
+        /// <param name="diagnostics">The diagnostics to update.</param>
+        /// <param name="syntaxCheckDelimiters">The position where the syntax check starts and ends relative to the original file content before the update.</param>
+        /// <param name="lineNrChange">The line change number.</param>
         private static void InvalidateOrUpdateBySyntaxCheckDelimeters(ManagedList<Diagnostic> diagnostics, Range syntaxCheckDelimiters, int lineNrChange)
         {
             Diagnostic UpdateLineNrs(Diagnostic m) => m.SelectByStart(syntaxCheckDelimiters.End) ? m.WithLineNumOffset(lineNrChange) : m;
@@ -213,8 +215,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates the line numbers of diagnostics that start after the syntax check end delimiter in both lists of diagnostics,
-        /// and removes all diagnostics that overlap with the given range for the syntax check update in the updated diagnostics only.
+        /// Updates the line numbers of diagnostics that start after the syntax check end delimiter in both <paramref name="diagnostics"/> and <paramref name="updated"/>,
+        /// and removes all diagnostics that overlap with <paramref name="syntaxCheckDelimiters"/> for the syntax check update in <paramref name="updated"/> only.
         /// </summary>
         /// <exception cref="ArgumentException">The given start and end position do not denote a valid range.</exception>
         private static void DelayInvalidateOrUpdate(
@@ -232,22 +234,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds the given sequence of scope diagnostics to the current list.
+        /// Adds <paramref name="updates"/> to the current scope diagnostics list.
         /// </summary>
         internal void AddScopeDiagnostics(IEnumerable<Diagnostic> updates) =>
             this.scopeDiagnostics.AddRange(updates);
 
         /// <summary>
-        /// Given the change specified by start, count and lineNrChange,
+        /// Given the change specified by <paramref name="start"/>, <paramref name="count"/> and <paramref name="lineNrChange"/>,
         /// removes all diagnostics that are no longer valid due to that change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// In paricular, removes any end of file diagnostics (missing closings at the end of the file).
-        /// [start, start + count) is the content range that has been updated, resulting in lineNrChange additional lines in that range.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/>
         /// is smaller than -<paramref name="count"/> or <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
         /// </exception>
+        /// <remarks>
+        /// [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) is the content range that has been updated, resulting in <paramref name="lineNrChange"/> additional lines in that range.
+        /// </remarks>
         private void InvalidateOrUpdateScopeDiagnostics(int start, int count, int lineNrChange)
         {
             if (start < 0)
@@ -283,25 +287,27 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds the given sequence of syntax diagnostics to the current list.
+        /// Adds <paramref name="updates"/> to the current list of syntax diagnostics.
         /// </summary>
         internal void AddSyntaxDiagnostics(IEnumerable<Diagnostic> updates) =>
             this.syntaxDiagnostics.AddRange(updates);
 
         /// <summary>
-        /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
-        /// removes all diagnostics that are no longer valid due to that change, and
+        /// Removes all diagnostics that are no longer valid due to a change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// </summary>
+        /// <param name="syntaxCheckDelimiters">The position where the syntax check starts and ends relative to the original file content before the update.</param>
+        /// <param name="lineNrChange">The line number of the change.</param>
         /// <exception cref="ArgumentException">The given start and end position do not denote a valid range.</exception>
         private void InvalidateOrUpdateSyntaxDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             InvalidateOrUpdateBySyntaxCheckDelimeters(this.syntaxDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
-        /// Given the line numbers for which the context diagnostics are now obsolete,
-        /// removes all context diagnostics that start on a line marked as obsolete,
-        /// and replaces them with the given sequence of context diagnostics.
+        /// Removes all context diagnostics that start on a line marked as obsolete,
+        /// and replaces them with <paramref name="updates"/>.
         /// </summary>
+        /// <param name="obsolete">The line numbers for which the context diagnostics are now obsolete.</param>
+        /// <param name="updates">A sequence of context diagnostics to add in place of the removals.</param>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="obsolete"/> contains a value that is negative.</exception>
         internal void UpdateContextDiagnostics(HashSet<int> obsolete, IEnumerable<Diagnostic> updates)
         {
@@ -323,15 +329,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given the change specified by start, count and lineNrChange,
+        /// Given the change specified by <paramref name="start"/>, <paramref name="count"/> and <paramref name="lineNrChange"/>,
         /// removes all diagnostics that start in that range, and
         /// updates the line numbers of the remaining diagnostics if needed.
-        /// [start, start + count) is the content range that has been updated, resulting in lineNrChange additional lines in that range.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">
         /// <paramref name="start"/> or <paramref name="count"/> are negative, or <paramref name="lineNrChange"/>
         /// is smaller than -<paramref name="count"/> or <paramref name="start"/> + <paramref name="count"/> + <paramref name="lineNrChange"/> is larger than the current number of lines.
         /// </exception>
+        /// <remarks>
+        /// [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) is the content range that has been updated, resulting in <paramref name="lineNrChange"/> additional lines in that range.
+        /// </remarks>
         private void InvalidateOrUpdateContextDiagnostics(int start, int count, int lineNrChange)
         {
             if (start < 0)
@@ -366,7 +374,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Replaces the header diagnostics with the given sequence and finalizes the header diagnostics update.
+        /// Replaces the header diagnostics with <paramref name="updates"/> and finalizes the header diagnostics update.
         /// </summary>
         internal void ReplaceHeaderDiagnostics(IEnumerable<Diagnostic> updates)
         {
@@ -375,16 +383,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
-        /// removes all diagnostics that are no longer valid due to that change, and
+        /// Removes all diagnostics that are no longer valid due to a change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// </summary>
+        /// <param name="syntaxCheckDelimiters">The position where the syntax check starts and ends relative to the original file content before the update.</param>
+        /// <param name="lineNrChange">The line change number.</param>
         /// <exception cref="ArgumentException">The given start and end position do not denote a valid range.</exception>
         private void InvalidateOrUpdateHeaderDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.headerDiagnostics, this.updatedHeaderDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
-        /// Replaces the semantic diagnostics with the given sequence and finalizes the semantic diagnostics update.
+        /// Replaces the semantic diagnostics with <paramref name="updates"/> and finalizes the semantic diagnostics update.
         /// </summary>
         internal void ReplaceSemanticDiagnostics(IEnumerable<Diagnostic> updates)
         {
@@ -393,7 +402,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds the given sequence of semantic diagnostics and finalizes the semantic diagnostics update.
+        /// Adds <paramref name="updates"/> to the semantic diagnostics and finalizes the semantic diagnostics update.
         /// </summary>
         internal void AddAndFinalizeSemanticDiagnostics(IEnumerable<Diagnostic> updates)
         {
@@ -402,16 +411,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given the position where the syntax check starts and ends relative to the original file content before the update, and the lineNrChange,
-        /// removes all diagnostics that are no longer valid due to that change, and
+        /// Removes all diagnostics that are no longer valid due to a change, and
         /// updates the line numbers of the remaining diagnostics if needed.
         /// </summary>
+        /// <param name="syntaxCheckDelimiters">The position where the syntax check starts and ends relative to the original file content before the update.</param>
+        /// <param name="lineNrChange">The line change number."</param>
         /// <exception cref="ArgumentException">The given start and end position do not denote a valid range.</exception>
         private void InvalidateOrUpdateSemanticDiagnostics(Range syntaxCheckDelimiters, int lineNrChange) =>
             DelayInvalidateOrUpdate(this.semanticDiagnostics, this.updatedSemanticDiagnostics, syntaxCheckDelimiters, lineNrChange);
 
         /// <summary>
-        /// Returns all current diagnostic as PublishDiagnosticParams.
+        /// Returns all current diagnostic as <see cref="PublishDiagnosticParams"/>.
         /// </summary>
         public PublishDiagnosticParams Diagnostics()
         {
@@ -439,15 +449,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         // external access to content & routines related to content updates
 
-        /// <summary>
+        /// <remarks>
         /// Any modification to the returned elements will not be reflected in file.
-        /// </summary>
+        /// </remarks>
         internal IEnumerable<CodeLine> GetLines(int index, int count) => this.content.GetRange(index, count);
 
         internal IEnumerable<CodeLine> GetLines() => this.content.Get();
 
         /// <summary>
-        /// Gets the code line at the given index.
+        /// Gets the code line at <paramref name="index"/>.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException"><paramref name="index"/> is less than 0.</exception>
         /// <exception cref="FileContentException"><paramref name="index"/> exceeds the bounds of the file.</exception>
@@ -506,11 +516,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates the file content in the range [start, start + count) with the given replacements for that range.
-        /// Removes all diagnostics that is no longer valid (i.e. any diagnostics that overlaps with that interval), and any end-of-file diagnostics,
-        /// and updates the line numbers of the remaining diagnostics.
-        /// Marks all lines that need to be re-examined by the language processor as edited (i.e. adds them to EditedLines).
+        /// Updates the file content in the range [<paramref name="start"/>, <paramref name="start"/> + <paramref name="count"/>) with <paramref name="replacements"/> for that range.
         /// </summary>
+        /// <remarks>
+        /// Removes all diagnostics that are no longer valid (i.e. any diagnostics that overlap with that interval), and any end-of-file diagnostics,
+        /// and updates the line numbers of the remaining diagnostics.
+        /// <para/>
+        /// Marks all lines that need to be re-examined by the language processor as edited (i.e. adds them to EditedLines).
+        /// </remarks>
         internal void ContentUpdate(int start, int count, IReadOnlyList<CodeLine> replacements)
         {
             this.SyncRoot.EnterWriteLock();
@@ -567,17 +580,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all lines that have been modified since the last call to DequeueChanges.
-        /// NOTE: The changed lines are guaranteed to be returned in ascending order.
+        /// Returns all lines that have been modified since the last call to <see cref="DequeueContentChanges"/>.
         /// </summary>
+        /// <remarks>
+        /// The changed lines are guaranteed to be returned in ascending order.
+        /// </remarks>
         internal SortedSet<int> DequeueContentChanges() =>
             this.editedContent.Clear();
 
         // external access to tokens & routines related to tokens updates
 
-        /// <summary>
+        /// <remarks>
         /// Any modification to the returned elements will not be reflected in file.
-        /// </summary>
+        /// </remarks>
         internal IEnumerable<ImmutableArray<CodeFragment>> GetTokenizedLines(int index, int count) => this.tokens.GetRange(index, count);
 
         internal IEnumerable<ImmutableArray<CodeFragment>> GetTokenizedLines() => this.tokens.Get();
@@ -587,7 +602,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal int NrTokenizedLines() => this.tokens.Count();
 
         /// <summary>
-        /// For each CodeFragment in the given collection, verifies its range against the current Content,
+        /// For each <see cref="CodeFragment"/> in <paramref name="fragments"/>, verifies its range against the current Content,
         /// verifies that all fragments are ordered according to their range, and
         /// verifies that none of the fragments overlap with existing tokens.
         /// </summary>
@@ -614,14 +629,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns an Action as out parameter that replaces the tokens at lineNr
-        /// with the ones returned by UpdateTokens when called on the current tokens
-        /// (i.e. the ones after having applied Transformation) on that line.
-        /// Applies ModifiedTokens to the tokens at the given lineNr to obtain the list of tokens for which to mark all connections as edited.
-        /// Then constructs and returns an Action as out parameter
-        /// that adds lineNr as well as all lines containing connections to mark to EditedTokens.
+        /// Create <paramref name="transformation"/> and <paramref name="markEdited"/> actions.
         /// </summary>
-        /// <exception cref="ArgumentOutOfRangeException"><paramref name="lineNr"/> is not a valid index for the current Tokens.</exception>
+        /// <param name="transformation">
+        /// An action that replaces the tokens at <paramref name="lineNr"/> with the ones returned by <paramref name="updatedTokens"/>
+        /// when called on the current tokens (i.e. the ones after having applied Transform) on that line.
+        /// </param>
+        /// <param name="markEdited">
+        /// An action that adds <paramref name="lineNr"/> as well as all lines containing connections to mark to <see cref="editedTokens"/>.
+        /// The list of tokens used is determined at the time <see cref="TransformAndMarkEdited"/> is invoked.
+        /// </param>
+        /// <exception cref="ArgumentOutOfRangeException"><paramref name="lineNr"/> is not a valid index for the current tokens.</exception>
         /// <exception cref="ArgumentException">Any of the values returned by <paramref name="updatedTokens"/> or <paramref name="modifiedTokens"/> is null.</exception>
         private void TransformAndMarkEdited(
             int lineNr,
@@ -681,12 +699,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a Range, removes all tokens currently safed in file that overlap with that range, and
+        /// Removes all tokens currently saved in the file that overlap with <paramref name="range"/>, and
         /// marks the lines with the removed tokens as well as any lines that contain connected tokens as edited.
-        /// Tokens starting at range.End or ending at range.Start are *not* considered to be overlapping.
-        /// Futs a write-lock on the Tokens during the entire routine.
         /// </summary>
         /// <exception cref="ArgumentOutOfRangeException">The line number of the <paramref name="range"/> end is larger than the number of currently saved tokens.</exception>
+        /// <remarks>
+        /// Tokens starting at <see cref="Range.End"/> or ending at <see cref="Range.Start"/> are *not* considered to be overlapping.
+        /// <para/>
+        /// Puts a write-lock on the tokens during the entire routine.
+        /// </remarks>
         private void RemoveTokensInRange(Range range)
         {
             this.tokens.SyncRoot.EnterWriteLock();
@@ -758,11 +779,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Removes all Tokens that overlap with any of the given fragments, and adds the given fragments as tokens.
+        /// Removes all tokens that overlap with <paramref name="fragments"/>, and adds <paramref name="fragments"/> as tokens.
+        /// <para/>
         /// Attaches end of line comments for the lines on which fragments have been modified to suitable tokens.
-        /// Verifies the given fragments and
-        /// throws the corresponding exception if the verification fails.
         /// </summary>
+        /// <remarks>
+        /// Verifies <paramref name="fragments"/> and throws the corresponding exception if the verification fails.
+        /// </remarks>
         internal void TokensUpdate(IReadOnlyList<CodeFragment> fragments)
         {
             if (!fragments.Any())
@@ -867,8 +890,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all lines that have been modified since the last call to DequeueChanges,
-        /// or any lines that contain children of a token on a modified line.
+        /// Returns all lines that have been modified since the last call to <see cref="DequeueTokenChanges"/>,
+        /// and any lines that contain children of a token on a modified line.
         /// </summary>
         internal SortedSet<int> DequeueTokenChanges()
         {
@@ -895,9 +918,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Adds the given collection of qualified callables names to the list of callables
-        /// whose content has been edited since the last call to this routine.
-        /// Invalidates all semantic diagnostics withing the corresponding Ranges.
+        /// Adds the qualified callable names in <paramref name="edited"/> to the list of callables
+        /// whose content has been edited since the last call to this routine, and invalidates all
+        /// semantic diagnostics within each corresponding <see cref="Range"/>.
         /// </summary>
         internal void MarkCallableAsContentEdited(IEnumerable<(Range, QsQualifiedName)> edited)
         {
@@ -911,8 +934,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a collection of the fully qualified names of the callables
         /// whose content has been modified since the last call to this routine.
-        /// Note that these callable may no longer be defined in the first place.
         /// </summary>
+        /// <remarks>
+        /// These callable may no longer be defined in the first place.
+        /// </remarks>
         internal IEnumerable<QsQualifiedName> DequeueContentEditedCallables() =>
             this.editedCallables.Clear();
 
@@ -920,9 +945,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Merges all unprocessed changes computing the new text that is to replace a (single!) line based on the current line content.
-        /// Returns that line number and the text to replace that line with as out parameters.
-        /// Returns true if there is anything to replace, and false if the queue was empty.
         /// </summary>
+        /// <param name="lineNr">The line number.</param>
+        /// <param name="textToInsert">The computed text replacement.</param>
+        /// <returns>
+        /// True if there is anything to replace, and false if the queue was empty.
+        /// </returns>
         internal bool DequeueUnprocessedChanges(out int lineNr, [NotNullWhen(true)] out string? textToInsert)
         {
             if (!this.unprocessedUpdates.Any())
@@ -946,10 +974,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Calls all updating routines sequentially, wrapping each one in a QsCompilerError.RaiseOnFailure.
-        /// If no change is given or the given change is null, (only) the currently queued changes are to be processed,
-        /// otherwise the currently queued changes as well as the given change is processed.
+        /// Calls all updating routines sequentially, wrapping each one in a <see cref="QsCompilerError.RaiseOnFailure"/>.
         /// </summary>
+        /// <remarks>
+        /// If <paramref name="change"/> is null, (only) the currently queued changes are to be processed,
+        /// otherwise the currently queued changes as well as <paramref name="change"/> are processed.
+        /// </remarks>
         private void Update(TextDocumentContentChangeEvent? change = null)
         {
             this.SyncRoot.EnterUpgradeableReadLock();
@@ -970,17 +1000,20 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Does the semantic verification of everything that has not yet been verified.
-        /// Updates and all header and semantic diagnostics.
+        /// </summary>
+        /// <remarks>
+        /// Updates all header and semantic diagnostics.
         /// Pushes the updated diagnostics if no further computation is needed.
+        /// <para/>
         /// If a global type checking is needed, triggers the corresponding event
         /// and does not push updates to semantic diagnostic.
-        /// </summary>
+        /// </remarks>
         internal void Verify(CompilationUnit compilation) =>
             QsCompilerError.RaiseOnFailure(() => this.UpdateTypeChecking(compilation), "error during type checking update");
 
         /// <summary>
-        /// Clears all Header and SemanticDiagnostics,
-        /// and marks the content of all currently defined callables as edited, such that it will be verified during the next call to Verify.
+        /// Clears all header and semantic diagnostics,
+        /// and marks the content of all currently defined callables as edited, such that it will be verified during the next call to <see cref="Verify"/>.
         /// </summary>
         internal void ClearVerification()
         {
@@ -1001,13 +1034,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a TextDocumentContentChangeEvent, determines whether it is necessary to immediately update the file,
-        /// updates the file if necessary, and queues the change otherwise.
-        /// An update is considered necessary if the given change replaces more than one line of the current content,
-        /// or if the inserted text cannot be a symbol or keyword (i.e. includes any whitespace, numbers and/or special characters).
-        /// Sets the out parameter to true if diagnostics are to be published.
+        /// Determines whether it is necessary to immediately update the file,
+        /// updates the file if necessary, and queues <paramref name="change"/> otherwise.
         /// </summary>
+        /// <param name="publishDiagnostics">
+        /// Whether or not diagnostics are to be published.
+        /// </param>
         /// <exception cref="ArgumentException">The range of <paramref name="change"/> is invalid.</exception>
+        /// <remarks>
+        /// An update is considered necessary if <paramref name="change"/> replaces more than one line of the current content,
+        /// or if the inserted text cannot be a symbol or keyword (i.e. includes any whitespace, numbers and/or special characters).
+        /// </remarks>
         internal void PushChange(TextDocumentContentChangeEvent change, out bool publishDiagnostics)
         {
             // NOTE: since there may be still unprocessed changes aggregated in UnprocessedChanges we cannot verify the range of the change against the current file content,
@@ -1052,9 +1089,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Replaces the entire file content with the given text.
-        /// Forces the update to be processed rather than queued.
+        /// Replaces the entire file content with <paramref name="text"/>.
         /// </summary>
+        /// <remarks>
+        /// Forces the update to be processed rather than queued.
+        /// </remarks>
         internal void ReplaceFileContent(string text)
         {
             this.SyncRoot.EnterUpgradeableReadLock();
@@ -1080,9 +1119,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Forces the processing of all currently queued changes,
-        /// *without* calling the constructor onAutomaticUpdate argument with the update.
+        /// Forces the processing of all currently queued changes.
         /// </summary>
+        /// <remarks>
+        /// Does *NOT* call <see cref="TimerTriggeredUpdateEvent"/> with the update.
+        /// </remarks>
+        /// <!-- TODO: is this remarks change correct? -->
         internal void Flush()
         {
             this.timer.Stop();
@@ -1092,11 +1134,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // external access to the file header and other file properties
 
         /// <summary>
-        /// Given a function returning an int array of line numbers,
-        /// applies FilterBy to the tokens on any of those lines and returns the TokenIndex of the tokens for which FilterBy returned true as IEnumerable.
-        /// If FilterBy is null, returns an IEnumerable with the token indices for all tokens on the lines specified by GetLineNumbers.
-        /// Returns an empty List if GetLineNumbers is null.
+        /// Applies <paramref name="filterBy"/> to the tokens on any of the lines returned
+        /// by <paramref name="getLineNumbers"/> and returns the <see cref="CodeFragment.TokenIndex"/>
+        /// of the tokens for which <paramref name="filterBy"/> returned true.
         /// </summary>
+        /// <param name="getLineNumbers">A function returning an int array of line numbers.</param>
+        /// <remarks>
+        /// If <paramref name="filterBy"/> is null, returns the token indices for all tokens on the
+        /// lines specified by <paramref name="getLineNumbers"/>.
+        /// <para/>
+        /// Returns an empty list if <paramref name="getLineNumbers"/> is null.
+        /// </remarks>
         private List<CodeFragment.TokenIndex> FilterTokenIndices(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
         {
             if (getLineNumbers == null)
@@ -1120,12 +1168,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a function returning an int array of line numbers,
-        /// applies FilterBy to the fragments on any of those lines and returns the resulting flattened fragment sequence as IEnumerable.
-        /// Note that the range of the returned fragments is the absolute range in the file.
-        /// If FilterBy is null, returns an IEnumerable with all fragments on the lines specified by GetLineNumbers.
-        /// Returns an empty List if GetLineNumbers is null.
+        /// Applies <paramref name="filterBy"/> to the fragments on any of the lines returned by <paramref name="getLineNumbers"/> and returns the resulting flattened fragment sequence.
         /// </summary>
+        /// <param name="getLineNumbers">A function returning an int array of line numbers.</param>
+        /// <remarks>
+        /// The range of the returned fragments is the absolute range in the file.
+        /// <para/>
+        /// If <paramref name="filterBy"/> is null, returns all fragments on the lines specified by <paramref name="getLineNumbers"/>.
+        /// <para/>
+        /// Returns an empty list if <paramref name="getLineNumbers"/> is null.
+        /// </remarks>
         private List<CodeFragment> FilterFragments(Func<int[]> getLineNumbers, Func<CodeFragment, bool>? filterBy = null)
         {
             this.SyncRoot.EnterReadLock();

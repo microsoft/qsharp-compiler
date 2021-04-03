@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
@@ -26,11 +27,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class TypeChecking
     {
         /// <summary>
-        /// Given a collections of the token indices that contain the header item,
-        /// as well as function that extracts the declaration, builds the corresponding HeaderEntries,
+        /// Builds the corresponding <see cref="HeaderEntry{T}"/> objects for <paramref name="tokens"/>,
         /// throwing the corresponding exceptions if the building fails.
-        /// Returns all HeaderEntries for which the extracted name of the declaration is valid.
         /// </summary>
+        /// <param name="tokens">A collection of the token indices that contain the header item.</param>
+        /// <param name="getDeclaration">A function that extracts the declaration.</param>
+        /// <returns>
+        /// All <see cref="HeaderEntry{T}"/> objects for which the extracted name of the declaration is valid.
+        /// </returns>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<T>)> GetHeaderItems<T>(
                 this FileContentManager file,
                 IEnumerable<CodeFragment.TokenIndex> tokens,
@@ -59,12 +63,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             });
 
         /// <summary>
-        /// Extracts all documenting comments in the given file preceding the fragment at the given position,
-        /// ignoring any attribute annotations unless ignorePrecedingAttributes is set to false.
-        /// Documenting comments may be separated by an empty lines.
-        /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end.
+        /// Extracts all documenting comments in <paramref name="file"/> preceding the fragment at <paramref name="pos"/>,
+        /// ignoring any attribute annotations unless <paramref name="ignorePrecedingAttributes"/> is set to false.
         /// </summary>
         /// <exception cref="ArgumentException"><paramref name="pos"/> is not a valid position within <paramref name="file"/>.</exception>
+        /// <remarks>
+        /// Documenting comments may be separated by an empty lines.
+        /// <para/>
+        /// Strips the preceding triple-slash for the comments, as well as whitespace and the line break at the end.
+        /// </remarks>
         internal static ImmutableArray<string> DocumentingComments(this FileContentManager file, Position pos, bool ignorePrecedingAttributes = true)
         {
             if (!file.ContainsPosition(pos))
@@ -91,14 +98,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the HeaderItems corresponding to all namespaces declared in the given file, or null if the given file is null.
-        /// For namespaces with an invalid namespace name the symbol name in the header item will be set to an UnknownNamespace.
+        /// Returns the header items corresponding to all namespaces declared in <paramref name="file"/>,
+        /// or null if <paramref name="file"/> is null.
         /// </summary>
+        /// <remarks>
+        /// For namespaces with an invalid namespace name, the symbol name in the header item will be set to an UnknownNamespace.
+        /// </remarks>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<object>)> GetNamespaceHeaderItems(this FileContentManager file) =>
             file.GetHeaderItems(file.NamespaceDeclarationTokens(), frag => frag.Kind.DeclaredNamespace(), ReservedKeywords.InternalUse.UnknownNamespace);
 
         /// <summary>
-        /// Returns the HeaderItems corresponding to all open directives with a valid name in the given file, or null if the given file is null.
+        /// Returns the header items corresponding to all open directives with a valid name in <paramref name="file"/>,
+        /// or null if <paramref name="file"/> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<(string?, QsNullable<Range>)>)> GetOpenDirectivesHeaderItems(
             this FileContentManager file) => file.GetHeaderItems(
@@ -125,26 +136,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 null);
 
         /// <summary>
-        /// Returns the HeaderItems corresponding to all type declarations with a valid name in the given file, or null if the given file is null.
+        /// Returns the header items corresponding to all type declarations with a valid name in <paramref name="file"/>,
+        /// or null if <paramref name="file"/> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<TypeDefinition>)>
             GetTypeDeclarationHeaderItems(this FileContentManager file) =>
             file.GetHeaderItems(file.TypeDeclarationTokens(), frag => frag.Kind.DeclaredType(), null);
 
         /// <summary>
-        /// Returns the HeaderItems corresponding to all callable declarations with a valid name in the given file, or null if the given file is null.
+        /// Returns the header items corresponding to all callable declarations with a valid name in <paramref name="file"/>,
+        /// or null if <paramref name="file"/> is null.
         /// </summary>
         private static IEnumerable<(CodeFragment.TokenIndex, HeaderEntry<Tuple<QsCallableKind, CallableDeclaration>>)>
             GetCallableDeclarationHeaderItems(this FileContentManager file) =>
             file.GetHeaderItems(file.CallableDeclarationTokens(), frag => frag.Kind.DeclaredCallable(), null);
 
         /// <summary>
-        /// Given the HeaderEntry of the parent, defines a function that extracts the specialization declaration
-        /// for a CodeFragment that contains a specialization, that can be used to build a HeaderEntry for the specialization.
-        /// The symbol saved in that HeaderEntry then is the name of the specialized callable,
-        /// and its declaration contains the specialization kind as well as the range info for the specialization intro.
-        /// The function returns Null if the Kind of the given fragment is null.
+        /// Defines a function that extracts the specialization declaration for <paramref name="fragment"/>
+        /// that contains a specialization that can be used to build a <see cref="HeaderEntry{T}"/> for
+        /// the specialization.
         /// </summary>
+        /// <param name="parent">The <see cref="HeaderEntry{T}"/> of the parent.</param>
+        /// <remarks>
+        /// The symbol saved in that <see cref="HeaderEntry{T}"/> then is the name of the specialized callable,
+        /// and its declaration contains the specialization kind as well as the range info for the specialization intro.
+        /// <para/>
+        /// The function returns null if the <see cref="CodeFragment.Kind"/> of <paramref name="fragment"/> is null.
+        /// </remarks>
+        /// <!-- TODO: help -->
         private static QsNullable<Tuple<QsSymbol, (QsSpecializationKind, QsSpecializationGenerator, Range)>> SpecializationDeclaration(
             HeaderEntry<Tuple<QsCallableKind, CallableDeclaration>> parent, CodeFragment fragment)
         {
@@ -171,8 +190,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a collection of positioned items, returns the closest proceeding item for the given position.
+        /// Returns the closest proceeding item for <paramref name="pos"/> in <paramref name="items"/>.
         /// </summary>
+        /// <param name="items">A collection of positioned items.</param>
         /// <exception cref="ArgumentException">No item precedes <paramref name="pos"/>.</exception>
         private static T ContainingParent<T>(Position pos, IReadOnlyCollection<(Position, T)> items)
         {
@@ -183,10 +203,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Calls the given function on each of the given items to add,
-        /// and adds the returned diagnostics to the given list of diagnostics.
-        /// Returns a List of the token indices and the corresponding header items for which no errors were generated.
+        /// Calls <paramref name="add"/> on each item in <paramref name="itemsToAdd"/>,
+        /// and adds the returned diagnostics to <paramref name="diagnostics"/>.
         /// </summary>
+        /// <returns>
+        /// A list of the token indices and the corresponding header items for which no errors were generated.
+        /// </returns>
         private static List<(TItem, HeaderEntry<THeader>)> AddItems<TItem, THeader>(
             IEnumerable<(TItem, HeaderEntry<THeader>)> itemsToAdd,
             Func<Position, Tuple<string, Range>, THeader, ImmutableArray<AttributeAnnotation>, ImmutableArray<string>, QsCompilerDiagnostic[]> add,
@@ -208,12 +230,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         /// <summary>
         /// Updates <paramref name="compilation"/> with the information about all globally declared types and callables in <paramref name="file"/>.
-        /// Adds the generated diagnostics to <paramref name="diagnostics"/>.
-        /// Returns a lookup for all callables that are to be included in the compilation,
+        /// </summary>
+        /// <returns>
+        /// A lookup for all callables that are to be included in the compilation,
         /// with either a list of the token indices that contain its specializations to be included in the compilation,
         /// or a list consisting of the token index of the callable declaration, if the declaration does not contain any specializations.
-        /// Note: This routine assumes that all empty or invalid fragments have been excluded from compilation prior to calling this routine.
-        /// </summary>
+        /// </returns>
         /// <exception cref="InvalidOperationException">
         /// The lock for <paramref name="compilation"/> cannot be set because a dependent lock is the gating lock ("outermost lock").
         /// </exception>
@@ -221,6 +243,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <paramref name="file"/> is not at least read-locked, since the returned token indices will only be valid until the next write
         /// operation that affects the tokens in the file.
         /// </exception>
+        /// <remarks>
+        /// Adds the generated diagnostics to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine assumes that all empty or invalid fragments have been excluded from compilation prior to calling this routine.
+        /// </remarks>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?)> UpdateGlobalSymbols(
             this FileContentManager file, CompilationUnit compilation, List<Diagnostic> diagnostics)
         {
@@ -308,15 +335,22 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given the HeaderItem for a callable declaration, as well as the Namespace and the name of the source file it is declared in,
-        /// adds all specializations defined within the declaration body to the given namespace.
-        /// If the declaration body consists of only statements, adds the specialization corresponding to the default body.
-        /// Adds the diagnostics generated during the process to the given list of diagnostics.
-        /// If the given callable declaration contains specializations,
-        /// returns a list of the token indices that contain the specializations to be included in the compilation.
-        /// If the given callable does not contain any specializations,
-        /// returns a list of token indices containing only the token of the callable declaration.
+        /// Adds all specializations defined within the declaration body of <paramref name="parent"/> to <paramref name="ns"/>.
         /// </summary>
+        /// <param name="file">The file of the declaration.</param>
+        /// <param name="ns">The namespace of the declaration.</param>
+        /// <param name="parent">The header item for a callable declaration.</param>
+        /// <returns>
+        /// If the given callable declaration contains specializations,
+        /// a list of the token indices that contain the specializations to be included in the compilation.
+        /// If the given callable does not contain any specializations,
+        /// a list of token indices containing only the token of the callable declaration.
+        /// </returns>
+        /// <remarks>
+        /// If the declaration body consists of only statements, adds the specialization corresponding to the default body.
+        /// <para/>
+        /// Adds the diagnostics generated during the process to <paramref name="diagnostics"/>.
+        /// </remarks>
         private static List<CodeFragment.TokenIndex> AddSpecializationsToNamespace(
             FileContentManager file,
             Namespace ns,
@@ -383,12 +417,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Resolves all type declarations, callable declarations and callable specializations in the given NamespacesManager,
+        /// Resolves all type declarations, callable declarations and callable specializations in <paramref name="symbols"/>,
         /// and verifies that the type declarations do not have any cyclic dependencies.
-        /// If no fileName is given or the given fileName is null,
-        /// adds all diagnostics generated during resolution and verification to the given list of diagnostics.
-        /// If the given fileName is not null, adds only the diagnostics for the file with that name to the given list of diagnostics.
         /// </summary>
+        /// <remarks>
+        /// If <paramref name="fileName"/> is null,
+        /// adds all diagnostics generated during resolution and verification to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// If <paramref name="fileName"/> is not null, adds only the diagnostics for the file with that name to <paramref name="diagnostics"/>.
+        /// </remarks>
         internal static void ResolveGlobalSymbols(NamespaceManager symbols, List<Diagnostic> diagnostics, string? fileName = null)
         {
             var declDiagnostics = symbols.ResolveAll(BuiltIn.NamespacesToAutoOpen);
@@ -422,8 +459,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates the symbol information in the given compilation unit with all (validly placed) open directives in the given file,
-        /// and adds the generated diagnostics for the given file *only* to the given list of diagnostics.
+        /// Updates the symbol information in <paramref name="compilation"/> with all (validly placed) open directives in <paramref name="file"/>,
+        /// and adds the generated diagnostics for <paramref name="file"/> *only* to <paramref name="diagnostics"/>.
         /// </summary>
         /// <exception cref="InvalidOperationException">The lock for <paramref name="compilation"/> cannot be set because a dependent lock is the gating lock ("outermost lock").</exception>
         internal static void ImportGlobalSymbols(this FileContentManager file, CompilationUnit compilation, List<Diagnostic> diagnostics)
@@ -449,12 +486,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Builds a FragmentTree containting the given grouping of token indices for a certain parent.
-        /// Assumes that all given token indices are associated with the given file.
+        /// Builds a <see cref="FragmentTree"/> containing <paramref name="content"/> for a certain parent.
         /// </summary>
+        /// <param name="content">A grouping of token indices.</param>
         /// <exception cref="InvalidOperationException">
         /// <paramref name="file"/> is not at least read-locked, since token indices are only ever valid until the next write operation to the file they are associated with.
         /// </exception>
+        /// <remarks>
+        /// Assumes that all given token indices in <paramref name="content"/> are associated with <paramref name="file"/>.
+        /// </remarks>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> GetDeclarationTrees(
             this FileContentManager file,
             ImmutableDictionary<QsQualifiedName, (QsComments, IEnumerable<CodeFragment.TokenIndex>?)> content)
@@ -487,13 +527,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Updates and resolves all global symbols in each given file,
-        /// and modifies the given CompilationUnit accordingly in the process.
-        /// Updates and pushes all HeaderDiagnostics in the given files,
-        /// and clears all semantic diagnostics without pushing them.
-        /// If the given Action for publishing diagnostics is not null,
-        /// invokes it for the diagnostics of each given file after updating them.
+        /// Updates and resolves all global symbols in each file in <paramref name="files"/>,
+        /// and modifies <paramref name="compilation"/> accordingly in the process.
         /// </summary>
+        /// <remarks>
+        /// Updates and pushes all header diagnostics in <paramref name="files"/>,
+        /// and clears all semantic diagnostics without pushing them.
+        /// </remarks>
         internal static ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> UpdateGlobalSymbolsFor(
             this CompilationUnit compilation, IEnumerable<FileContentManager> files)
         {
@@ -542,12 +582,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // routines for building statements
 
         /// <summary>
-        /// Builds the QsScope containing the given list of tree nodes,
-        /// calling BuildStatement for each of them, and using the given scope context to verify and track all symbols.
-        /// The declarations the scope inherits from its parents are assumed to be the current declarations in the given scope context.
-        /// If a required set of functors are specified, then each operation called within the built scope needs to support these functors.
-        /// If the set of required functors is unspecified or null, then the functors to support are determined by the parent scope.
+        /// Builds the <see cref="QsScope"/> containing <paramref name="nodes"/>,
+        /// calling <see cref="BuildStatement"/> for each of them, and using <paramref name="context"/> to verify and track all symbols.
         /// </summary>
+        /// <param name="nodes">A list of tree nodes.</param>
+        /// <param name="requiredFunctors">A set of required functors.</param>
+        /// <remarks>
+        /// The declarations the scope inherits from its parents are assumed to be the current declarations in <paramref name="context"/>.
+        /// <para/>
+        /// If <paramref name="requiredFunctors"/> is specified, then each operation called within the built scope needs to support these functors.
+        /// If <paramref name="requiredFunctors"/> is null, then the functors to support are determined by the parent scope.
+        /// </remarks>
         private static QsScope BuildScope(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -581,10 +626,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Applies the given build function to the position relative to the tree root and the given scope context
+        /// Applies <paramref name="build"/> to the position relative to <paramref name="node"/> and <paramref name="context"/>
         /// to get the desired object as well as a list of diagnostics.
-        /// Adds the generated diagnostics to the given list of diagnostics, and returns the build object.
         /// </summary>
+        /// <param name="node">The tree root.</param>
+        /// <returns>
+        /// The build object.
+        /// </returns>
+        /// <remarks>
+        /// Adds the generated diagnostics to <paramref name="diagnostics"/>.
+        /// </remarks>
         private static T BuildStatement<T>(
             FragmentTree.TreeNode node,
             Func<QsLocation, ScopeContext, Tuple<T, QsCompilerDiagnostic[]>> build,
@@ -599,18 +650,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a using-block intro,
-        /// builds the corresponding using-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a using-block intro,
+        /// builds the corresponding using-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The resulting build statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildUsingStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -641,18 +698,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a borrowing-block intro,
-        /// builds the corresponding borrowing-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a borrowing-block intro,
+        /// builds the corresponding borrowing-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildBorrowStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -683,20 +746,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a repeat-until-success (RUS) intro,
-        /// builds the corresponding RUS-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a repeat-until-success (RUS) intro,
+        /// builds the corresponding RUS-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException">
         /// <paramref name="context"/> does not currently contain an open scope, or the repeat header is not followed by a until-success clause.
         /// </exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildRepeatStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -752,18 +821,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a for-loop intro,
-        /// builds the corresponding for-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a for-loop intro,
+        /// builds the corresponding for-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildForStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -795,18 +870,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a while-loop intro,
-        /// builds the corresponding while-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a while-loop intro,
+        /// builds the corresponding while-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildWhileStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -838,18 +919,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is an if-statement into,
-        /// builds the corresponding if-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is an if-statement into,
+        /// builds the corresponding if-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildIfStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -911,18 +998,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a within-block intro,
-        /// builds the corresponding conjugation updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a within-block intro,
+        /// builds the corresponding conjugation updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildConjugationStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -968,18 +1061,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a let-statement,
-        /// builds the corresponding let-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a let-statement,
+        /// builds the corresponding let-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildLetStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1007,18 +1106,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a mutable-statement,
-        /// builds the corresponding mutable-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a mutable-statement,
+        /// builds the corresponding mutable-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildMutableStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1046,18 +1151,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a set-statement,
-        /// builds the corresponding set-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a set-statement,
+        /// builds the corresponding set-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildSetStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1085,18 +1196,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a fail-statement,
-        /// builds the corresponding fail-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a fail-statement,
+        /// builds the corresponding fail-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildFailStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1124,18 +1241,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is a return-statement,
-        /// builds the corresponding return-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is a return-statement,
+        /// builds the corresponding return-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildReturnStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1163,18 +1286,24 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// If the current tree node of the given iterator is an expression-statement,
-        /// builds the corresponding expression-statement updating the given scope context in the process,
-        /// and moves the iterator to the next node.
-        /// Adds the diagnostics generated during the building to the given list of diagnostics.
-        /// Returns the built statement as out parameter, and returns true if the statement has been built.
-        /// Sets the out parameter to null and returns false otherwise.
-        /// Sets the boolean out parameter to true, if the iterator contains another node at the end of the routine -
-        /// i.e. it is set to true if either the iterator has not been moved (no statement built),
-        /// or if the last MoveNext() returned true, and is otherwise set to false.
-        /// This routine will fail if accessing the current iterator item fails.
+        /// If the current tree node of <paramref name="nodes"/> is an expression-statement,
+        /// builds the corresponding expression-statement updating <paramref name="context"/> in the process,
+        /// and moves <paramref name="nodes"/> to the next node.
         /// </summary>
+        /// <param name="proceed">True if <paramref name="nodes"/> contains another node at the end of the routine.</param>
+        /// <param name="statement">The built statement, or null if this routine returns false.</param>
+        /// <returns>
+        /// True if the statement has been built, and false otherwise.
+        /// </returns>
         /// <exception cref="ArgumentException"><paramref name="context"/> does not currently contain an open scope.</exception>
+        /// <remarks>
+        /// <paramref name="proceed"/> is set to true if either <paramref name="nodes"/> has not been moved (no statement built),
+        /// or if the last <see cref="IEnumerator.MoveNext"/> call on <paramref name="nodes"/> returned true, and is otherwise set to false.
+        /// <para/>
+        /// Adds the diagnostics generated during the building to <paramref name="diagnostics"/>.
+        /// <para/>
+        /// This routine will fail if accessing the current item of <paramref name="nodes"/> fails.
+        /// </remarks>
         private static bool TryBuildExpressionStatement(
             IEnumerator<FragmentTree.TreeNode> nodes,
             ScopeContext context,
@@ -1202,14 +1331,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a sequence of tree nodes, builds the corrsponding array of Q# statements (ignoring invalid fragments)
-        /// using and updating the given scope context and adding the generated diagnostics to the given list of diagnostics,
-        /// provided each statement consists of a suitable statement header followed by the required continuation(s), if any.
+        /// Builds the corrsponding array of Q# statements for <paramref name="nodes"/> (ignoring invalid fragments)
+        /// using and updating <paramref name="context"/> and adding the generated diagnostics to <paramref name="diagnostics"/>.
         /// </summary>
+        /// <param name="nodes">The sequence of tree nodes for which the corresponding Q# statements should be built.</param>
         /// <exception cref="ArgumentException">
         /// Any statement is missing a header or a required continuation, or <paramref name="context"/> does not currently contain an open scope,
         /// or any of the fragments in <paramref name="nodes"/> is null.
         /// </exception>
+        /// <remarks>
+        /// Each statement must have a suitable statement header followed by the required continuation(s), if any.
+        /// </remarks>
         private static ImmutableArray<QsStatement> BuildStatements(
             IEnumerator<FragmentTree.TreeNode> nodes, ScopeContext context, List<Diagnostic> diagnostics)
         {
@@ -1291,14 +1423,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Builds the user defined implementation based on the (children of the) given specialization root.
-        /// The implementation takes the given argument tuple as argument and needs to support auto-generation for the specified set of functors.
-        /// Uses the given scope context to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.
+        /// Builds the user defined implementation based on the children of <paramref name="root"/>.
+        /// </summary>
+        /// <param name="root">The specialization root.</param>
+        /// <remarks>
+        /// The implementation takes <paramref name="argTuple"/> as argument and needs to support auto-generation for <paramref name="requiredFunctorSupport"/>.
+        /// <para/>
+        /// Uses <paramref name="context"/> to resolve the symbols used within the implementation, and generates suitable diagnostics in the process.
+        /// <para/>
         /// If necessary, generates suitable diagnostics for functor arguments (only!), which are discriminated by the missing position information
         /// for argument variables defined in the callable declaration).
+        /// <para/>
         /// If the expected return type for the specialization is not Unit, verifies that all paths return a value or fail, generating suitable diagnostics.
-        /// Adds the generated diagnostics to the given list of diagnostics.
-        /// </summary>
+        /// <para/>
+        /// Adds the generated diagnostics to <paramref name="diagnostics"/>.
+        /// </remarks>
         private static SpecializationImplementation BuildUserDefinedImplementation(
             FragmentTree.TreeNode root,
             string sourceFile,
@@ -1348,9 +1487,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given a function that returns the generator directive for a given specialization kind, or null if none has been defined for that kind,
-        /// determines the necessary functor support required for each operation call within a user defined implementation of the specified specialization.
+        /// Determines the necessary functor support required for each operation call within a user defined implementation of <paramref name="spec"/>.
         /// </summary>
+        /// <param name="directives">
+        /// A function that returns the generator directive for <paramref name="spec"/>, or null if none has been defined for that kind.
+        /// </param>
         private static IEnumerable<QsFunctor> RequiredFunctorSupport(
             QsSpecializationKind spec,
             Func<QsSpecializationKind, QsGeneratorDirective?> directives)
@@ -1409,16 +1550,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Given the root of a specialization declaration, the signature of the callable it belongs to,
-        /// as well as the argument tuple of that callable, builds and returns the corresponding specialization.
-        /// If the given root is a callable declaration, a default body specialization with its children as the implementation is returned -
-        /// provided the children are exclusively valid statements. Fails with the corresponding exception otherwise.
-        /// Adds the generated diagnostics to the given list of diagnostics.
+        /// Builds and returns the specializations for <paramref name="specsRoot"/>.
         /// </summary>
+        /// <param name="specsRoot">The root of the specialization declaration.</param>
+        /// <param name="parentSignature">The signature of the callable that <paramref name="specsRoot"/> belongs to.</param>
+        /// <param name="argTuple">The argument tuple of the callable that <paramref name="specsRoot"/> belongs to.</param>
         /// <exception cref="ArgumentException">
         /// <paramref name="specsRoot"/> is neither a specialization declaration, nor a callable declaration, or the callable the specialization
         /// belongs to does not support that specialization according to the given <see cref="NamespaceManager"/>.
         /// </exception>
+        /// <remarks>
+        /// If <paramref name="specsRoot"/> is a callable declaration, a default body specialization with its children as the implementation is returned -
+        /// provided the children are exclusively valid statements. Fails with the corresponding exception otherwise.
+        /// <para/>
+        /// Adds the generated diagnostics to <paramref name="diagnostics"/>.
+        /// </remarks>
         private static ImmutableArray<QsSpecialization> BuildSpecializations(
             FragmentTree specsRoot,
             ResolvedSignature parentSignature,
@@ -1606,12 +1752,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // externally accessible routines for compilation evaluation
 
         /// <summary>
-        /// Given access to a NamespaceManager containing all global declarations and their resolutions via a CompilationUnit,
-        /// type checks each of the given FragmentTrees until the process is cancelled via the given cancellation token.
-        /// For each namespace and callable name that occurs in the given FragmentTrees builds the corresponding QsCallable.
-        /// Updates the given CompilationUnit with all built callables. Checks all types defined in the NamespaceManager for cycles.
-        /// Returns a list with all accumulated diagnostics. If the request has been cancelled, returns null.
+        /// Given access to a <see cref="NamespaceManager"/> containing all global declarations and their resolutions via <paramref name="compilation"/>,
+        /// type checks each <see cref="FragmentTree"/> from <paramref name="roots"/> until the process is cancelled via <paramref name="cancellationToken"/>.
         /// </summary>
+        /// <returns>
+        /// A list of all accumulated diagnostics, or null if the request has been cancelled.
+        /// </returns>
+        /// <remarks>
+        /// For each namespace and callable name that occurs in each <see cref="FragmentTree"/> builds the corresponding <see cref="QsCallable"/>.
+        /// Updates <paramref name="compilation"/> with all built callables. Checks all types defined in the <see cref="NamespaceManager"/> for cycles.
+        /// </remarks>
         internal static List<Diagnostic>? RunTypeChecking(
             CompilationUnit compilation,
             ImmutableDictionary<QsQualifiedName, (QsComments, FragmentTree)> roots,
@@ -1732,26 +1882,37 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// This method serves two entirely independent purposes since they require the exact same logic, despite what I would usually consider good practice.
-        /// The first purpose is the following:
-        /// Returns all locally declared symbols visible at the given relative position,
-        /// assuming that the position corresponds to a piece of code within the given scope.
-        /// If includeDeclaredAtPosition is set to true, then this includes the symbols declared within the statement at the specified position,
-        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
-        /// Note that if the given position does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
-        /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
-        /// The second purpose is the following:
-        /// Returns the statements that follow a local declaration at the given relative position,
-        /// i.e. the statements for which local variables declared at that position are defined.
-        /// Whether the given relative position is indeed within a statement that declares local variables is not verified.
-        /// It is important to note that the returned statements are *not* necessarily the set of statements
-        /// for which the returned set of local variables are valid!
-        /// The given relative position is expected to be relative to the beginning of the specialization declaration -
-        /// or rather to be consistent with the position information saved for statements.
+        /// Multipurpose:
+        /// <para/>
+        /// Get statements that follow a local declaration at <paramref name="relativePosition"/>.
+        /// <para/>
+        /// Get all locally declared symbols visible at <paramref name="relativePosition"/> (which must correspond to a piece of code in <paramref name="scope"/>).
         /// </summary>
         /// <exception cref="ArgumentException">
         /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
+        /// <remarks>
+        /// This method serves two entirely independent purposes since they require the exact same logic, despite what I would usually consider good practice.
+        /// The first purpose is the following:
+        /// <para/>
+        /// Returns all locally declared symbols visible at <paramref name="relativePosition"/>,
+        /// assuming that the position corresponds to a piece of code within <paramref name="scope"/>.
+        /// If <paramref name="includeDeclaredAtPosition"/> is set to true, then this includes the symbols declared within the statement at <paramref name="relativePosition"/>,
+        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
+        /// Note that if <paramref name="relativePosition"/> does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
+        /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
+        /// <para/>
+        /// The second purpose is the following:
+        /// <para/>
+        /// Returns the statements that follow a local declaration at <paramref name="relativePosition"/>,
+        /// i.e. the statements for which local variables declared at that position are defined.
+        /// Whether <paramref name="relativePosition"/> is indeed within a statement that declares local variables is not verified.
+        /// It is important to note that the returned statements are *not* necessarily the set of statements
+        /// for which the returned set of local variables are valid!
+        /// <para/>
+        /// <paramref name="relativePosition"/> is expected to be relative to the beginning of the specialization declaration -
+        /// or rather to be consistent with the position information saved for statements.
+        /// </remarks>
         private static (LocalDeclarations, IEnumerable<QsStatement>) StatementsAfterAndLocalDeclarationsAt(
             this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition)
         {
@@ -1823,57 +1984,72 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns the statements that follow a local declaration at the given relative position,
+        /// Returns the statements that follow a local declaration at <paramref name="relativePosition"/>,
         /// i.e. the statements for which local variables declared at that position are defined.
-        /// Whether the given relative position is indeed within a statement that declares local variables is not verified.
-        /// The given relative position is expected to be relative to the beginning of the specialization declaration -
-        /// or rather to be consistent with the position information saved for statements.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// Any of the statements contained in <paramref name="scope"/> are not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
+        /// <remarks>
+        /// Whether <paramref name="relativePosition"/> is indeed within a statement that declares local variables is not verified.
+        /// <para/>
+        /// <paramref name="relativePosition"/> is expected to be relative to the beginning of the specialization declaration -
+        /// or rather to be consistent with the position information saved for statements.
+        /// </remarks>
         internal static IEnumerable<QsStatement> StatementsAfterDeclaration(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item2;
 
         /// <summary>
-        /// Returns all locally declared symbols visible at the given relative position,
-        /// assuming that the position corresponds to a piece of code within the given scope.
-        /// If includeDeclaredAtPosition is set to true, then this includes the symbols declared within the statement at the specified position,
-        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
-        /// The given relative position is expected to be relative to the beginning of the specialization declaration -
-        /// or rather to be consistent with the position information saved for statements.
-        /// Note that if the given position does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
-        /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
+        /// Returns all locally declared symbols visible at <paramref name="relativePosition"/>,
+        /// assuming that the position corresponds to a piece of code within <paramref name="scope"/>.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or <paramref name="relativePosition"/> is not a valid position.
         /// </exception>
+        /// <remarks>
+        /// If <paramref name="includeDeclaredAtPosition"/> is set to true, then this includes the symbols declared within the statement at <paramref name="relativePosition"/>,
+        /// even if those symbols are *not* visible after the statement ends (e.g. for-loops or qubit allocations).
+        /// <para/>
+        /// <paramref name="relativePosition"/> is expected to be relative to the beginning of the specialization declaration -
+        /// or rather to be consistent with the position information saved for statements.
+        /// <para/>
+        /// Note that if <paramref name="relativePosition"/> does not correspond to a piece of code but rather to whitespace possibly after a scope ending,
+        /// the returned declarations are not necessarily accurate - they are for any actual piece of code, though.
+        /// </remarks>
         internal static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition, bool includeDeclaredAtPosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, includeDeclaredAtPosition).Item1;
 
         /// <summary>
-        /// Returns all locally declared symbols visible at the given relative position,
-        /// assuming that the position corresponds to a piece of code within the given scope.
-        /// The given relative position is expected to be relative to the beginning of the specialization declaration -
-        /// or rather to be consistent with the position information saved for statements.
-        /// If the given position lays outside a piece of code e.g. after a scope ending the returned declarations may be inaccurate.
+        /// Returns all locally declared symbols visible at <paramref name="relativePosition"/>,
+        /// assuming that the position corresponds to a piece of code within <paramref name="scope"/>.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// Any of the statements contained in <paramref name="scope"/> is not annotated with a valid position, or relativePosition is not a valid position.
         /// </exception>
+        /// <remarks>
+        /// <paramref name="relativePosition"/> is expected to be relative to the beginning of the specialization declaration -
+        /// or rather to be consistent with the position information saved for statements.
+        /// <para/>
+        /// If <paramref name="relativePosition"/> lays outside a piece of code e.g. after a scope ending the returned declarations may be inaccurate.
+        /// </remarks>
         public static LocalDeclarations LocalDeclarationsAt(this QsScope scope, Position relativePosition) =>
             StatementsAfterAndLocalDeclarationsAt(scope, relativePosition, false).Item1;
 
         /// <summary>
-        /// Recomputes the globally defined symbols within the given file and updates the Symbols in the given compilation unit accordingly.
-        /// Replaces all header diagnostics in the given file with the diagnostics generated during the symbol update.
+        /// Recomputes the globally defined symbols within <paramref name="file"/> and updates the symbols in <paramref name="compilation"/> accordingly.
+        /// </summary>
+        /// <remarks>
+        /// Replaces all header diagnostics in <paramref name="file"/> with the diagnostics generated during the symbol update.
+        /// <para/>
         /// If neither the globally declared types/callables nor the imported namespaces have changed,
         /// directly proceeds to do the type checking for the content of the callable that has been modified only.
+        /// <para/>
         /// If the globally declared types/callables have not changed, but the imported namespaces have,
         /// directly proceeds to do the type checking for the entire file content, independent on what parts have been changed.
+        /// <para/>
         /// If the globally declared types/callables have changed, a global type checking event is triggered,
         /// since the type checking for the entire compilation unit and all compilation units depending on it needs to be recomputed.
-        /// </summary>
+        /// </remarks>
         internal static void UpdateTypeChecking(this FileContentManager file, CompilationUnit compilation)
         {
             compilation.EnterWriteLock();
