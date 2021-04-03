@@ -8,7 +8,7 @@ using Microsoft.Quantum.QsCompiler.Templates;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    internal static class QirDriverGeneration
+    public static class QirDriverGeneration
     {
         public static void GenerateQirDriverCpp(EntryPointOperation entryPointOperation, Stream stream)
         {
