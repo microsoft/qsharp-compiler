@@ -64,9 +64,9 @@ type BuiltIn =
             // dependencies in Microsoft.Quantum.Canon
             BuiltIn.NoOp
             // dependencies in Microsoft.Quantum.Convert
-            BuiltIn.IntAsDouble
-            BuiltIn.DoubleAsInt
-            BuiltIn.IntAsBigInt
+            //BuiltIn.IntAsDouble
+            //BuiltIn.DoubleAsInt
+            //BuiltIn.IntAsBigInt
             // dependencies in Microsoft.Quantum.Math
             BuiltIn.Truncate
             BuiltIn.ApplyConditionally
