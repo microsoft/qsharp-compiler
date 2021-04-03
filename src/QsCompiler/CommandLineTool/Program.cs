@@ -105,7 +105,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             where T : Options
         {
             var logger = options.GetLogger();
-            logger.Verbosity = DiagnosticSeverity.Hint;
             try
             {
                 var current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;

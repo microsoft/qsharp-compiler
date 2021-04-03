@@ -4,10 +4,10 @@
 ########################################
 # When creating a package with dotnet pack, nuget changes every ProjectReference to be itself
 # a PackageReference without checking if that project has a corresponding package.
-# This is problematic because we currently don't want to create a package for every dll in the compiler.
+# This is problematic because we don't want to create a separate package the dlls in the QIR emission.
 # On the other hand, when creating a package using nuget pack, nuget does not
-# identifies PackageReferences defined in the project file, so all the dependencies (like
-# FParsec or F#) are not listed and the package doesn't work.
+# identifies PackageReferences defined in the project file, so all the dependencies need to be
+# explicitly listed for the package to work.
 #
 # We don't want to hardcode the list of dependencies on the .nuspec, as they can quickly become out-of-sync.
 # This script will find the PackageReferences recursively on the Compiler project and add them
@@ -48,6 +48,8 @@ function Add-NuGetDependencyFromCsprojToNuspec($PathToCsproj)
 
 # Find all package dependencies on QirGeneration.csproj, 
 # and add the compiler as a package dependency instead.
+# The llvm bindings need to be published before including them in the package,
+# and are hence already included by the template.
 Add-NuGetDependencyFromCsprojToNuspec "QirGeneration.csproj" $dep
 $dependency = $dep.AppendChild($nuspec.CreateElement('dependency', $nuspec.package.metadata.NamespaceURI))
 $dependency.SetAttribute('id', 'Microsoft.Quantum.Compiler')

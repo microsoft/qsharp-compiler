@@ -1300,8 +1300,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.BuiltType = null;
             this.Transformation.Types.OnType(resolvedType);
             return this.BuiltType ?? throw new NotImplementedException(
-                $"Llvm type for {SyntaxTreeToQsharp.Default.ToCode(resolvedType)} could not be constructed. " +
-                $"Current function: {this.CurrentFunction?.Name}");
+                $"Llvm type for {SyntaxTreeToQsharp.Default.ToCode(resolvedType)} could not be constructed.");
         }
 
         /// <summary>

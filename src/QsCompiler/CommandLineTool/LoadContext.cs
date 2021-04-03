@@ -50,10 +50,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             var path = this.resolver.ResolveUnmanagedDllToPath(name);
             path ??= this.ResolveFromFallbackPaths(name);
-            Console.WriteLine($"DETERMINED PATH {path} FOR UNMANAGED DLL {name}\nFALLBACK FOLDERS: {string.Join(",", this.fallbackPaths)}");
-            var loaded = path == null ? IntPtr.Zero : this.LoadUnmanagedDllFromPath(path);
-            Console.WriteLine($"DETERMINED PATH {path} FOR UNMANAGED DLL {name}\nLOADED: {loaded}\nFALLBACK FOLDERS: {string.Join(",", this.fallbackPaths)}");
-            return loaded;
+            return path == null ? IntPtr.Zero : this.LoadUnmanagedDllFromPath(path);
         }
 
         /// <summary>
