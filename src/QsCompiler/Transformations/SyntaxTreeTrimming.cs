@@ -24,9 +24,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
         {
             public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
             {
-                var namespaceNames = compilation.Namespaces.Select(ns => ns.Name).ToImmutableHashSet();
+                var globals = compilation.Namespaces.GlobalCallableResolutions();
                 var augmentedEntryPoints = BuiltIn.AllBuiltIns
-                    .Where(bi => bi.Kind != BuiltInKind.Attribute && namespaceNames.Contains(bi.FullName.Namespace))
+                    .Where(bi => bi.Kind != BuiltInKind.Attribute && globals.ContainsKey(bi.FullName))
                     .Select(bi => bi.FullName)
                     .Concat(compilation.EntryPoints)
                     .Distinct()
