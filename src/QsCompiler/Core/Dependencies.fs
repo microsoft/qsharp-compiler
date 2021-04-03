@@ -64,8 +64,9 @@ type BuiltIn =
             // dependencies in Microsoft.Quantum.Canon
             BuiltIn.NoOp
             // dependencies in Microsoft.Quantum.Convert
-            //BuiltIn.IntAsDouble
-            //BuiltIn.DoubleAsInt
+            BuiltIn.IntAsDouble
+            BuiltIn.DoubleAsInt
+            // ToDo: Uncomment once BigInts are supported in QIR
             //BuiltIn.IntAsBigInt
             // dependencies in Microsoft.Quantum.Math
             BuiltIn.Truncate

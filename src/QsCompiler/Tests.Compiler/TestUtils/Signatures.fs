@@ -570,12 +570,11 @@ let public SyntaxTreeTrimmingSignatures =
              SyntaxTreeTrimmingNS, "UsedOp", [||], "Unit"
              SyntaxTreeTrimmingNS, "UsedFunc", [||], "Unit"
          |])
-        // Trimmer Keeps UDTs and Constructors
+        // Trimmer Keeps UDTs
         (_SyntaxTreeTrimmingTypes,
          [|
              SyntaxTreeTrimmingNS, "Main", [||], "Unit"
              SyntaxTreeTrimmingNS, "UsedUDT", [| "Int" |], "UsedUDT"
-             SyntaxTreeTrimmingNS, "UnusedUDT", [| "String" |], "UnusedUDT"
          |])
         // Trimmer Keeps Intrinsics When Told
         (_DefaultTypes,

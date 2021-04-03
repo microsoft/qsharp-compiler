@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.Testing.SyntaxTreeTrimming {
 
 // =================================
 
-// Trimmer Keeps UDTs and Constructors
+// Trimmer Keeps UDTs
 namespace Microsoft.Quantum.Testing.SyntaxTreeTrimming {
 
     newtype UsedUDT = Int;

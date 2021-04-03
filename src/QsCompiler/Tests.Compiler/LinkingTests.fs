@@ -763,7 +763,7 @@ type LinkingTests(output: ITestOutputHelper) =
     member this.``Trimmer Removes Unused Callables``() = this.RunSyntaxTreeTrimTest 1 false
 
     [<Fact>]
-    member this.``Trimmer Keeps UDTs and Constructors``() = this.RunSyntaxTreeTrimTest 2 false
+    member this.``Trimmer Keeps UDTs``() = this.RunSyntaxTreeTrimTest 2 false
 
     [<Fact>]
     member this.``Trimmer Keeps Intrinsics When Told``() = this.RunSyntaxTreeTrimTest 3 true

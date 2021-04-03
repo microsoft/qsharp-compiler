@@ -48,8 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 
             private static bool FilterWithIntrinsics(QsNamespaceElement elem, ImmutableHashSet<QsQualifiedName> graphNodes)
             {
-                if (elem is QsNamespaceElement.QsCallable call
-                    && call.Item.Kind != QsCallableKind.TypeConstructor)
+                if (elem is QsNamespaceElement.QsCallable call)
                 {
                     return call.Item.Specializations.Any(spec => spec.Implementation.IsIntrinsic)
                         || graphNodes.Contains(call.Item.FullName);
@@ -62,8 +61,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 
             private static bool Filter(QsNamespaceElement elem, ImmutableHashSet<QsQualifiedName> graphNodes)
             {
-                if (elem is QsNamespaceElement.QsCallable call
-                    && call.Item.Kind != QsCallableKind.TypeConstructor)
+                if (elem is QsNamespaceElement.QsCallable call)
                 {
                     return graphNodes.Contains(call.Item.FullName);
                 }
