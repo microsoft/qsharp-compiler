@@ -616,7 +616,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
-                var rewriteStep = new LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: this.config.QirOutputFolder != null), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
