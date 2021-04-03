@@ -33,7 +33,8 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// <summary>
         /// Constructor for the Monomorphization Rewrite Step.
         /// </summary>
-        public Monomorphization(bool monomorphizeIntrinsics)
+        /// <param name="monomorphizeIntrinsics">When true, intrinsics will be monomorphized as part of the rewrite step.</param>
+        public Monomorphization(bool monomorphizeIntrinsics = false)
         {
             this.monomorphizeIntrinsics = monomorphizeIntrinsics;
             this.AssemblyConstants = new Dictionary<string, string?>();
