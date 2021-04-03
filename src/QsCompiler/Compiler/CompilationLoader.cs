@@ -584,6 +584,12 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
 
+            if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
+            {
+                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(this.config.QirOutputFolder == null), typeof(IRewriteStep), thisDllUri);
+                steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
+            }
+
             if (this.config.ConvertClassicalControl)
             {
                 var rewriteStep = new LoadedStep(new ClassicallyControlled(), typeof(IRewriteStep), thisDllUri);
@@ -610,7 +616,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
-                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: this.config.QirOutputFolder != null), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new Monomorphization(), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
