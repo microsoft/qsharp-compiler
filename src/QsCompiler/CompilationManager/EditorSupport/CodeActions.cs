@@ -359,7 +359,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (fragment != null)
                     {
                         var match = QubitBindingsMatcher.Match(fragment.Text);
-                        if (match.Success)
+                        if (match.Success && match.Groups.Count == 3)
                         {
                             var newText = (match.Groups[1].Value == Keywords.qsUsing.id ? Keywords.qsUse.id : Keywords.qsBorrow.id) + " " + match.Groups[2].Value.Trim();
                             var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText };
