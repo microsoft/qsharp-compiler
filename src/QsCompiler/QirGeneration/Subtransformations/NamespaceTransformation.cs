@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.SharedState.StartFunction();
                 this.SharedState.GenerateConstructor(currentSpec, currentCallable.ArgumentTuple);
-                this.SharedState.EndFunction();
+                this.SharedState.EndFunction(generatePending: true);
             }
         }
 
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.SharedState.StartFunction();
             this.SharedState.GenerateFunctionHeader(this.context.GetCurrentSpecialization(), argTuple);
             this.Transformation.Statements.OnScope(body);
-            this.SharedState.EndFunction();
+            this.SharedState.EndFunction(generatePending: true);
             return Tuple.Create(argTuple, body);
         }
 

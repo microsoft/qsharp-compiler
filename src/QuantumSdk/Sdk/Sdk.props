@@ -34,10 +34,14 @@
     <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'ExtendedQASM'" Include="Microsoft.Quantum.Intrinsics.ExtendedQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' /-->
   </ItemGroup>
 
-  <!-- Include the documentation generator package only if generating docs using Markdown output. -->
+  <!-- Include the qir generation and docs generation compiler extensions if needed. -->
   <ItemGroup>
     <PackageReference Condition="$(QSharpDocsGeneration)"
                       Include="Microsoft.Quantum.DocumentationGenerator" Version="0.15.2101126940"
+                      IsImplicitlyDefined="true" 
+                      IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
+    <PackageReference Condition="$(QirGeneration)"
+                      Include="Microsoft.Quantum.QirGeneration" Version="0.15.2101126940"
                       IsImplicitlyDefined="true" 
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
   </ItemGroup>
