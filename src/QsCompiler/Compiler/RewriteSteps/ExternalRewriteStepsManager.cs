@@ -52,7 +52,7 @@ namespace Microsoft.Quantum.QsCompiler
 
                 // We don't overwrite assembly properties specified by configuration.
                 var defaultOutput = assemblyConstants.TryGetValue(AssemblyConstants.OutputPath, out var path) ? path : null;
-                assemblyConstants.TryAdd(AssemblyConstants.OutputPath, loaded.OutputFolder ?? defaultOutput ?? config.BuildOutputFolder);
+                assemblyConstants[AssemblyConstants.OutputPath] = loaded.OutputFolder ?? defaultOutput ?? config.BuildOutputFolder;
                 assemblyConstants.TryAdd(AssemblyConstants.AssemblyName, config.ProjectNameWithoutPathOrExtension);
             }
 

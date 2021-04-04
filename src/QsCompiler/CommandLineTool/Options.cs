@@ -65,6 +65,20 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public IEnumerable<string>? AdditionalAssemblyProperties { get; set; }
 
         [Option(
+            "skip-monomorphization",
+            Required = false,
+            Default = false,
+            HelpText = "Specifies whether to omit monomorphizing the AST for executables.")]
+        public bool SkipMonomorphization { get; set; }
+
+        [Option(
+            "force-rewrite-step-execution",
+            Required = false,
+            Default = false,
+            HelpText = "Specifies whether to execute rewrite steps even if their precondition is not satisfied. If the parameter is set to true and the precondition is not satisfied, the transformation will be executed, its output will be ignored and the compilation fails.")]
+        public bool ForceRewriteStepExecution { get; set; }
+
+        [Option(
             "runtime",
             Required = false,
             SetName = CodeMode,

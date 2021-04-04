@@ -237,11 +237,13 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var loadOptions = new CompilationLoader.Configuration
             {
                 AssemblyConstants = assemblyConstants,
+                ForceRewriteStepExecution = options.ForceRewriteStepExecution,
                 TargetPackageAssemblies = options.TargetSpecificDecompositions ?? Enumerable.Empty<string>(),
                 RuntimeCapability = options.RuntimeCapability,
-                SkipMonomorphization = options.RuntimeCapability == RuntimeCapability.FullComputation,
+                SkipMonomorphization = options.SkipMonomorphization,
                 GenerateFunctorSupport = true,
                 SkipSyntaxTreeTrimming = options.TrimLevel == 0,
+                SkipConjugationInlining = options.TrimLevel == 0,
                 AttemptFullPreEvaluation = options.TrimLevel > 2,
                 IsExecutable = options.MakeExecutable,
                 RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
