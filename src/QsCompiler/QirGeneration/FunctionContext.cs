@@ -17,7 +17,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     internal class FunctionContext
     {
         private readonly IrFunction function;
-        private readonly Func<string, string> uniqueBlockName;
+        private readonly Func<string, string> blockNameAllocate;
+        private readonly Dictionary<string, string> unreachableToOriginalName;
+
         private InstructionBuilder currentBuilder;
         private InstructionBuilder? activelyEmittingTo = null;
 
@@ -46,12 +48,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// called "entry".
         /// </summary>
         /// <param name="function">The current function that the QIR generator is processing.</param>
-        /// <param name="uniqueLocalName">A function used to generate unique local names within the function.</param>
-        internal FunctionContext(IrFunction function, Func<string, string> uniqueLocalName)
+        /// <param name="blockNameAllocate">A function used to allocate unique local names within the function.</param>
+        internal FunctionContext(IrFunction function, Func<string, string> blockNameAllocate)
         {
             this.function = function;
-            this.uniqueBlockName = uniqueLocalName;
+            this.blockNameAllocate = blockNameAllocate;
             this.currentBuilder = new InstructionBuilder(this.function.AppendBasicBlock("entry"));
+            this.unreachableToOriginalName = new Dictionary<string, string>();
         }
 
         /// <inheritdoc cref="Emit{T}(Func{InstructionBuilder, T})"/>
@@ -93,6 +96,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return func(this.activelyEmittingTo);
             }
 
+            // Reserve a new unique name for an unreachable block based on
+            // the name of the first preceeding reachable block.
+            string ReserveUnreachableBlockName()
+            {
+                string originalBlockName;
+                if (!this.unreachableToOriginalName.TryGetValue(this.CurrentBlock.Name, out originalBlockName))
+                {
+                    originalBlockName = this.CurrentBlock.Name;
+                }
+
+                var blockNameBase = $"{originalBlockName}__unreachable";
+                var uniqueBlockName = this.blockNameAllocate(blockNameBase);
+
+                this.unreachableToOriginalName.Add(uniqueBlockName, originalBlockName);
+                return uniqueBlockName;
+            }
+
             try
             {
                 T result;
@@ -102,7 +122,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     // Current block has already been terminated.
                     // Create a new block to hold any unreachable instructions emitted.
-                    var unreachableBlock = this.AddBlockAfterCurrent($"{this.CurrentBlock.Name}__unreachable");
+                    // If no instructions are emitted by func(), we will delete this block.
+                    // For this reason, we do not reserve a unique block name until we know
+                    // we'll keep the block.
+                    var unreachableBlock = this.AddBlockAfterCurrent("temp__unreachable", blockNameAllocate: null);
                     var unreachableBuilder = new InstructionBuilder(unreachableBlock);
 
                     this.activelyEmittingTo = unreachableBuilder;
@@ -115,6 +138,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else
                     {
+                        // Keep the unreachable block, and allocate a unique name for it.
+                        unreachableBlock.Name = ReserveUnreachableBlockName();
                         this.currentBuilder = unreachableBuilder;
                     }
                 }
@@ -147,31 +172,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Creates a new basic block and adds it to the function immediately after the current block.
         /// </summary>
-        /// <param name="name">The base name for the new block; a counter will be appended to ensure uniqueness</param>
+        /// <param name="name">The base name for the new block; a counter will be appended to ensure uniqueness.</param>
         /// <returns>The new block.</returns>
         internal BasicBlock AddBlockAfterCurrent(string name)
-        {
-            var flag = false;
-            BasicBlock? next = null;
-            foreach (var block in this.function.BasicBlocks)
-            {
-                if (flag)
-                {
-                    next = block;
-                    break;
-                }
-
-                if (block == this.CurrentBlock)
-                {
-                    flag = true;
-                }
-            }
-
-            var continueName = this.uniqueBlockName(name);
-            return next == null
-                ? this.function.AppendBasicBlock(continueName)
-                : this.function.InsertBasicBlock(continueName, next);
-        }
+            => this.AddBlockAfterCurrent(name, blockNameAllocate: this.blockNameAllocate);
 
         /// <summary>
         /// Creates a new basic block and adds it to the end of the function.
@@ -180,7 +184,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The new block.</returns>
         internal BasicBlock AppendBlock(string name)
         {
-            return this.Function.AppendBasicBlock(this.uniqueBlockName(name));
+            return this.Function.AppendBasicBlock(this.blockNameAllocate(name));
         }
 
         /// <summary>
@@ -210,6 +214,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal bool RemoveBlock(BasicBlock block)
         {
             return this.function.BasicBlocks.Remove(block);
+        }
+
+        /// <summary>
+        /// Creates a new basic block and adds it to the function immediately after the current block.
+        /// </summary>
+        /// <param name="name">The base name for the new block.</param>
+        /// <param name="blockNameAllocate">
+        /// If provided, used to allocate a new unique name based on <paramref name="name"/>.
+        /// </param>
+        /// <returns>The new block.</returns>
+        private BasicBlock AddBlockAfterCurrent(string name, Func<string, string>? blockNameAllocate)
+        {
+            BasicBlock? next = this.function.BasicBlocks.SkipWhile(b => b != this.CurrentBlock).Skip(1).FirstOrDefault();
+
+            var continueName = blockNameAllocate != null ? blockNameAllocate(name) : name;
+            return next == null
+                ? this.function.AppendBasicBlock(continueName)
+                : this.function.InsertBasicBlock(continueName, next);
         }
 
         /// <summary>
