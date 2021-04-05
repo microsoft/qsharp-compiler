@@ -67,6 +67,9 @@ let ``QIR using`` () =
 let ``QIR inlined call`` () = qirTest true "TestInline"
 
 [<Fact>]
+let ``QIR unreachable`` () = qirTest false "TestUnreachable"
+
+[<Fact>]
 let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
