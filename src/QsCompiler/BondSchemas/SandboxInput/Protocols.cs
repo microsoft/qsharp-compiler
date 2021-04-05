@@ -18,6 +18,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.SandboxInput
         /// </summary>
         public static Input DeserializeFromFastBinary(Stream stream)
         {
+            stream.Flush();
+            stream.Position = 0;
             var inputStream = new InputStream(stream);
             var reader = new FastBinaryReader<InputStream>(inputStream);
             var deserializer = new Deserializer<FastBinaryReader<InputStream>>(typeof(Input));
@@ -28,12 +30,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.SandboxInput
         /// <summary>
         /// Serializes a sandbox input object to its fast binary representation.
         /// </summary>
-        public static void SerializeToJson(Input sandboxInput, Stream stream)
+        public static void SerializeToFastBinary(Input sandboxInput, Stream stream)
         {
-            var outputStream = new OutputStream(stream);
-            var writer = new FastBinaryWriter<OutputStream>(outputStream);
-            var serializer = new Serializer<FastBinaryWriter<OutputStream>>(typeof(Input));
+            var outputBuffer = new OutputBuffer();
+            var writer = new FastBinaryWriter<OutputBuffer>(outputBuffer);
+            var serializer = new Serializer<FastBinaryWriter<OutputBuffer>>(typeof(Input));
             serializer.Serialize(sandboxInput, writer);
+            stream.Write(outputBuffer.Data);
             stream.Flush();
             stream.Position = 0;
         }
