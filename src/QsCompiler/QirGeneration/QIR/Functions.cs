@@ -223,13 +223,16 @@ namespace Microsoft.Quantum.QIR
             var value = this.sharedState.EvaluateSubexpression(arg).Value;
             if (!value.NativeType.IsPointer)
             {
-                var pointer = this.sharedState.CurrentBuilder.Alloca(value.NativeType);
-                this.sharedState.CurrentBuilder.Store(value, pointer);
-                value = pointer;
+                value = this.sharedState.FunctionContext.Emit(b =>
+                {
+                    var pointer = b.Alloca(value.NativeType);
+                    b.Store(value, pointer);
+                    return pointer;
+                });
             }
 
             var dump = this.sharedState.GetOrCreateTargetInstruction(QuantumInstructionSet.DumpMachine);
-            this.sharedState.CurrentBuilder.Call(dump, value);
+            this.sharedState.FunctionContext.Emit(b => b.Call(dump, value));
             return this.sharedState.Values.Unit;
         }
     }
