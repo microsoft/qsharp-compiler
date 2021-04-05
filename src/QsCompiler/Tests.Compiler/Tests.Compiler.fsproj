@@ -17,7 +17,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="SandboxInputSchemaTests.fs" />
+    <Compile Include="QirExecutionWrapperSchemaTests.fs" />
     <Compile Include="EntryPointGenerationTests.fs" />
     <Compile Include="TestUtils\TestUtils.fs" />
     <Compile Include="TestUtils\SetupVerificationTests.fs" />

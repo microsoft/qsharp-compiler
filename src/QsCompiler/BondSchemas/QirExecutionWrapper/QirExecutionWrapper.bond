@@ -2,14 +2,14 @@
 // Licensed under the MIT License.
 
 import "EntryPoint/EntryPoint.bond";
-namespace Microsoft.Quantum.QsCompiler.BondSchemas.SandboxInput;
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper;
 
 struct Bytecode
 {
     5: blob Data;
 }
 
-struct Input
+struct QirExecutionWrapper
 {
     5: Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint.EntryPointOperation EntryPoint;
     10: bonded<Bytecode> QirBytes;
