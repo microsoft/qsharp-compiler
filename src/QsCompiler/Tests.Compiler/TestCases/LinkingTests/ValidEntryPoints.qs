@@ -6,7 +6,7 @@
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     function ValidEntryPoint1() : Unit { }
 }
 
@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint2() : Unit { }
 }
 
@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint3() : Unit {
         body (...) {}
     }
@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint4(arg : String) : Unit {}
 }
 
@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint5(arg : String[]) : Unit {}
 }
 
@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint6(a : Int, b: Double[]) : Unit {}
 }
 
@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint7(arg1 : (Int)[], arg2 : Double) : Unit {}
 }
 
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint8((b1 : Bool, b2 : Bool), r : Range) : Unit {}
 }
 
@@ -72,7 +72,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint9() : Result {
         return Default<Result>();
     }
@@ -82,7 +82,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint10() : Result[] {
         return Default<Result[]>();
     }
@@ -92,7 +92,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint11() : (Result, Result[]) {
         return Default<(Result, Result[])>();
     }
@@ -102,7 +102,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint12() : (Int, BigInt[]) {
         return Default<(Int, BigInt[])>();
     }
@@ -112,7 +112,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint13() : (Double, (Pauli, Int)[]) {
         return Default<(Double, (Pauli, Int)[])>();
     }
@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint14() : ((Bool, String)[][], (Unit, Range)) {
         return Default<((Bool, String)[][], (Unit, Range))>();
     }
@@ -132,7 +132,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint15(a : Int[], (b : Double[], c : String[])) : Unit { }
 }
 
@@ -140,7 +140,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint16(a : BigInt[]) : Unit {}
 }
 
@@ -148,7 +148,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint17(a : Range[]) : Unit {}
 }
 
@@ -156,7 +156,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint18(a : Result[]) : Unit {}
 }
 
@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation ValidEntryPoint19(a : Pauli[]) : Unit {}
 }
 

@@ -48,6 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             { Task.SourcesLoading, Task.OverallCompilation },
             { Task.ReplaceTargetSpecificImplementations, Task.Build },
             { Task.BinaryGeneration, Task.OutputGeneration },
+            { Task.BitcodeGeneration, Task.OutputGeneration },
             { Task.DllGeneration, Task.OutputGeneration },
             { Task.QirGeneration, Task.OutputGeneration },
             { Task.DocumentationGeneration, Task.OutputGeneration },
@@ -108,6 +109,11 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             /// Task that generates a binary as part of the 'OutputGeneration' task.
             /// </summary>
             BinaryGeneration,
+
+            /// <summary>
+            /// Task that generates LLVM bitcode as part of the 'OutputGeneration' task.
+            /// </summary>
+            BitcodeGeneration,
 
             /// <summary>
             /// Task that generates a DLL as part of the 'OutputGeneration' task.

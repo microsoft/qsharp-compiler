@@ -2,10 +2,10 @@ namespace Microsoft.Quantum.Testing.Optimization.Inlining {
     
     operation f (q : Qubit, n : Int) : Unit {
         
-        if (n == 0) {
+        if n == 0 {
             // Do nothing
         }
-        elif (n == 1) {
+        elif n == 1 {
             T(q);
         }
         else {

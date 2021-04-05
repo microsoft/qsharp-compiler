@@ -1514,129 +1514,129 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
 
     // valid declaration attributes
 
-    @ Attribute()
+    @Attribute()
     newtype CustomAttribute = Double;
-    @ Attribute()
+    @Attribute()
     newtype AttAsUserDefType = CustomAttribute;
-    @ Attribute()
+    @Attribute()
     newtype AttArrayAsUserDefType = CustomAttribute[];
 
-    @ Attribute()
-    @ AttType1()
+    @Attribute()
+    @AttType1()
     newtype AttType1 = Unit;
-    @ Attribute()
-    @ AttType2()
+    @Attribute()
+    @AttType2()
     newtype AttType2 = Unit;
 
 
-    @ IntAttribute(0b111)
-    @ StringAttribute("")
-    @ BigIntArrayAttribute([0xF0a00101L])
-    @ PauliResultAttribute (PauliX, Zero)
+    @IntAttribute(0b111)
+    @StringAttribute("")
+    @BigIntArrayAttribute([0xF0a00101L])
+    @PauliResultAttribute (PauliX, Zero)
     operation ValidAttributes1 () : Unit {}
 
-    @ IntAttribute(0b111)
-    @ StringAttribute("")
-    @ BigIntArrayAttribute([0xF0a00101L])
-    @ PauliResultAttribute (PauliX, Zero)
+    @IntAttribute(0b111)
+    @StringAttribute("")
+    @BigIntArrayAttribute([0xF0a00101L])
+    @PauliResultAttribute (PauliX, Zero)
     function ValidAttributes2 () : Unit {}
 
-    @ IntAttribute(0b111)
-    @ StringAttribute("")
-    @ BigIntArrayAttribute([0xF0a00101L])
-    @ PauliResultAttribute (PauliX, Zero)
+    @IntAttribute(0b111)
+    @StringAttribute("")
+    @BigIntArrayAttribute([0xF0a00101L])
+    @PauliResultAttribute (PauliX, Zero)
     newtype ValidAttributes3 = Unit;
 
-    @ BigIntArrayAttribute(new BigInt[3])
+    @BigIntArrayAttribute(new BigInt[3])
     function ValidAttributes4 () : Unit {}
 
-    @ StringAttribute($"some text")
+    @StringAttribute($"some text")
     function ValidAttributes5 () : Unit {}
 
-    @ CustomAttribute(1.)
+    @CustomAttribute(1.)
     function ValidAttributes6 () : Unit {}
 
-    @ Microsoft.Quantum.Testing.Attributes.CustomAttribute()
+    @Microsoft.Quantum.Testing.Attributes.CustomAttribute()
     function ValidAttributes7 () : Unit {}
 
-    @ Microsoft.Quantum.Core.IntTupleAttribute(1,1)
+    @Microsoft.Quantum.Core.IntTupleAttribute(1,1)
     function ValidAttributes8 () : Unit {}
 
-    @ Microsoft.Quantum.Testing.Attributes.IntTupleAttribute(1,1)
+    @Microsoft.Quantum.Testing.Attributes.IntTupleAttribute(1,1)
     function ValidAttributes9 () : Unit {}
 
-    @ AttType1()
-    @ AttType2()
+    @AttType1()
+    @AttType2()
     function ValidAttributes10 () : Unit {}
 
-    @ AttType2()
-    @ AttType1()
-    @ AttType1()
+    @AttType2()
+    @AttType1()
+    @AttType1()
     function AttributeDuplication1 () : Unit {}
 
-    @ StringAttribute("")
-    @ StringAttribute("")
-    @ AttType1()
-    @ AttType2()
+    @StringAttribute("")
+    @StringAttribute("")
+    @AttType1()
+    @AttType2()
     operation AttributeDuplication2 () : Unit {}
 
-    @ AttType1()
-    @ AttType1()
+    @AttType1()
+    @AttType1()
     newtype AttributeDuplication3 = Unit;
 
 
     // invalid declaration attributes
 
-    @ StringAttribute($"{1}")
+    @StringAttribute($"{1}")
     function InvalidAttributes1 () : Unit {}
 
-    @ IntTupleAttribute(1,1)
+    @IntTupleAttribute(1,1)
     function InvalidAttributes2 () : Unit {}
 
-    @ NonExistent()
+    @NonExistent()
     function InvalidAttributes3 () : Unit {}
 
-    @ Undefined.NonExistent()
+    @Undefined.NonExistent()
     function InvalidAttributes4 () : Unit {}
 
-    @ Microsoft.Quantum.Core.NonExistent()
+    @Microsoft.Quantum.Core.NonExistent()
     function InvalidAttributes5 () : Unit {}
 
-    @ Microsoft.Quantum.Testing.Attributes.CustomAttribute(1.)
+    @Microsoft.Quantum.Testing.Attributes.CustomAttribute(1.)
     function InvalidAttributes6 () : Unit {}
 
-    @ AttAsUserDefType(CustomAttribute(1.))
+    @AttAsUserDefType(CustomAttribute(1.))
     function InvalidAttributes7 () : Unit {}
 
-    @ AttArrayAsUserDefType(new CustomAttribute[0])
+    @AttArrayAsUserDefType(new CustomAttribute[0])
     function InvalidAttributes8 () : Unit {}
 
     operation InvalidAttributes9 () : Unit {    
-        @ IntAttribute(1)
+        @IntAttribute(1)
         body(...) {}
     }
 
     operation InvalidAttributes10 () : Unit {    
         body(...) {}
-        @ IntAttribute(1)
+        @IntAttribute(1)
         adjoint(...) {}
     }
 
     operation InvalidAttributes11 () : Unit {    
         body(...) {}
-        @ IntAttribute(1)
+        @IntAttribute(1)
         controlled (cs, ...) {}
     }
 
     operation InvalidAttributes12 () : Unit {    
-        @ IntAttribute(1)
+        @IntAttribute(1)
         controlled adjoint (cs, ...) {}
         body(...) {}
     }
 
-    @ Attribute() 
+    @Attribute() 
     operation InvalidAttributes13 () : Unit {}
 
-    @ Attribute() 
+    @Attribute() 
     function InvalidAttributes14 () : Unit {}
 }

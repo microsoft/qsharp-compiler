@@ -2,7 +2,9 @@
 // Licensed under the MIT License.
 
 using System;
+using System.IO;
 using System.Linq;
+using System.Reflection;
 using CommandLine;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
@@ -77,11 +79,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public const int MonomorphizationErrors = -12;
 
         /// <summary>
-        /// Return code indicating that generating QIR for the built compilation failed.
-        /// </summary>
-        public const int QirGenerationErrors = -13;
-
-        /// <summary>
         /// Return code indicating that an unexpected exception was thrown when executing the invoked command to the Q# command line compiler.
         /// </summary>
         public const int UnexpectedError = -1000;
@@ -96,8 +93,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             loaded.Monomorphization == CompilationLoader.Status.Failed ? MonomorphizationErrors :
             loaded.TargetSpecificReplacements == CompilationLoader.Status.Failed ? TargetingErrors :
             loaded.TargetSpecificCompilation == CompilationLoader.Status.Failed ? TargetingErrors :
-            loaded.TargetInstructionInference == CompilationLoader.Status.Failed ? TargetingErrors :
-            loaded.QirGeneration == CompilationLoader.Status.Failed ? QirGenerationErrors :
             loaded.Documentation == CompilationLoader.Status.Failed ? DocGenerationErrors :
             loaded.BinaryFormat == CompilationLoader.Status.Failed ? BinaryGenerationErrors :
             loaded.DllGeneration == CompilationLoader.Status.Failed ? DllGenerationErrors :
@@ -112,8 +107,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             var logger = options.GetLogger();
             try
             {
+                var current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+                var fallbackFolders = options.PackageLoadFallbackFolders.Prepend(current);
                 CompilationLoader.LoadAssembly = path =>
-                    LoadContext.LoadAssembly(path, options.PackageLoadFallbackFolders?.ToArray());
+                    LoadContext.LoadAssembly(path, fallbackFolders.ToArray());
 
                 var result = compile(options, logger);
                 logger.ReportSummary(result);
@@ -121,7 +118,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             }
             catch (Exception ex)
             {
-                logger.Verbosity = DiagnosticSeverity.Hint;
                 logger.Log(ErrorCode.UnexpectedCommandLineCompilerException, Enumerable.Empty<string>());
                 logger.Log(ex);
                 return ReturnCode.UnexpectedError;
