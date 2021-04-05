@@ -21,12 +21,23 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+struct InteropArray
+{
+    int64_t Size;
+    void* Data;
+
+    InteropArray(int64_t size, void* data) :
+        Size(size),
+        Data(data){}
+};
 
 
 
 // This is the function corresponding to the QIR entry-point.
-extern "C" void UseBoolArg( // NOLINT
-    char BoolArg
+extern "C" void UseMiscArgs( // NOLINT
+    char IntegerArg,
+    char PauliArg,
+    InteropArray * ResultArrayArg
 );
 
 const char InteropFalseAsChar = 0x0;
@@ -113,14 +124,27 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    char BoolArg;
-    BoolArg = InteropFalseAsChar;
-    app.add_option("--BoolArg", BoolArg, "A bool value")
+    char IntegerArg;
+    IntegerArg = InteropFalseAsChar;
+    app.add_option("--IntegerArg", IntegerArg, "A bool value")
         ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
+
+    PauliId PauliArg;
+    PauliArg = PauliId::PauliId_I;
+    app.add_option("--PauliArg", PauliArg, "A Pauli value")
+        ->required()->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
+
+    vector<char> ResultArrayArg;
+    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array")
+        ->required()->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
+    // Translate a PauliID value to its char representation.
+    char PauliArgAsCharValue = TranslatePauliToChar(PauliArg);
+    // Create an interop array of Result values.
+    unique_ptr<InteropArray> ResultArrayArgArray = CreateInteropArray(ResultArrayArg);
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -132,8 +156,10 @@ int main(int argc, char* argv[])
     }
 
     // Run simulation and write the output of the operation to the corresponding stream.
-    UseBoolArg(
-        BoolArg
+    UseMiscArgs(
+        IntegerArg,
+        PauliArgAsCharValue,
+        ResultArrayArgArray.get()
 );
 
 

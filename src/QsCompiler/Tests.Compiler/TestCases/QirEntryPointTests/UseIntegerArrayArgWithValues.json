@@ -1,0 +1,1 @@
+﻿{"Name":"UseIntegerArrayArgWithValues","Arguments":[{"Type":7,"Name":"IntegerArrayArg","ArrayType":[1],"Values":[{"Array":[{"Integer":[[999,-1,11]]}]},{"Array":[{"Integer":[[2048,-1024,4096,-8192]]}]}]}]}

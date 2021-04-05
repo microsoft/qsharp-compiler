@@ -21,12 +21,21 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+struct InteropArray
+{
+    int64_t Size;
+    void* Data;
+
+    InteropArray(int64_t size, void* data) :
+        Size(size),
+        Data(data){}
+};
 
 
 
 // This is the function corresponding to the QIR entry-point.
-extern "C" void UseBoolArg( // NOLINT
-    char BoolArg
+extern "C" void UsePauliArrayArgWithValues( // NOLINT
+    InteropArray * PauliArrayArg
 );
 
 const char InteropFalseAsChar = 0x0;
@@ -113,14 +122,17 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    char BoolArg;
-    BoolArg = InteropFalseAsChar;
-    app.add_option("--BoolArg", BoolArg, "A bool value")
-        ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
+    std::vector<PauliId> PauliArrayArg;
+    app.add_option("--PauliArrayArg", PauliArrayArg, "A Pauli array")
+        ->required()->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
+    // Create an interop array of Pauli values represented as chars.
+    vector<char> PauliArrayArgAsCharVector;
+    TranslateVector<PauliId, char>(PauliArrayArg, PauliArrayArgAsCharVector, TranslatePauliToChar);
+    unique_ptr<InteropArray> PauliArrayArgArray = CreateInteropArray(PauliArrayArgAsCharVector);
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -132,8 +144,8 @@ int main(int argc, char* argv[])
     }
 
     // Run simulation and write the output of the operation to the corresponding stream.
-    UseBoolArg(
-        BoolArg
+    UsePauliArrayArgWithValues(
+        PauliArrayArgArray.get()
 );
 
 

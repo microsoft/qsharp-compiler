@@ -21,12 +21,21 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+struct InteropArray
+{
+    int64_t Size;
+    void* Data;
+
+    InteropArray(int64_t size, void* data) :
+        Size(size),
+        Data(data){}
+};
 
 
 
 // This is the function corresponding to the QIR entry-point.
-extern "C" void UseBoolArg( // NOLINT
-    char BoolArg
+extern "C" void UseIntegerArrayArgWithValues( // NOLINT
+    InteropArray * IntegerArrayArg
 );
 
 const char InteropFalseAsChar = 0x0;
@@ -113,14 +122,16 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    char BoolArg;
-    BoolArg = InteropFalseAsChar;
-    app.add_option("--BoolArg", BoolArg, "A bool value")
-        ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
+    vector<int64_t> IntegerArrayArg;
+    app.add_option("--IntegerArrayArg", IntegerArrayArg, "An integer array")
+        ->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
+    // Translate values to its final form after parsing.
+    // Create an interop array of integer values.
+    unique_ptr<InteropArray> IntegerArrayArgArray = CreateInteropArray(IntegerArrayArg);
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -132,8 +143,8 @@ int main(int argc, char* argv[])
     }
 
     // Run simulation and write the output of the operation to the corresponding stream.
-    UseBoolArg(
-        BoolArg
+    UseIntegerArrayArgWithValues(
+        IntegerArrayArgArray.get()
 );
 
 

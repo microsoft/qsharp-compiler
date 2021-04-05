@@ -23,10 +23,27 @@ using namespace std;
     
 
 
+using RangeTuple = tuple<int64_t, int64_t, int64_t>;
+struct InteropRange
+{
+    int64_t Start;
+    int64_t Step;
+    int64_t End;
+
+    InteropRange() :
+        Start(0),
+        Step(0),
+        End(0){}
+
+    InteropRange(RangeTuple rangeTuple) :
+        Start(get<0>(rangeTuple)),
+        Step(get<1>(rangeTuple)),
+        End(get<2>(rangeTuple)){}
+};
 
 // This is the function corresponding to the QIR entry-point.
-extern "C" void UseBoolArg( // NOLINT
-    char BoolArg
+extern "C" void UseRangeArgWithValues( // NOLINT
+    InteropRange* RangeArg
 );
 
 const char InteropFalseAsChar = 0x0;
@@ -113,14 +130,15 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    char BoolArg;
-    BoolArg = InteropFalseAsChar;
-    app.add_option("--BoolArg", BoolArg, "A bool value")
-        ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
+    RangeTuple RangeArg;
+    app.add_option("--RangeArg", RangeArg, "A Range value (start, step, end)")
+        ->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
+    // Create an interop range.
+    unique_ptr<InteropRange> RangeArgValue = CreateInteropRange(RangeArg);
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -132,8 +150,8 @@ int main(int argc, char* argv[])
     }
 
     // Run simulation and write the output of the operation to the corresponding stream.
-    UseBoolArg(
-        BoolArg
+    UseRangeArgWithValues(
+        RangeArgValue
 );
 
 

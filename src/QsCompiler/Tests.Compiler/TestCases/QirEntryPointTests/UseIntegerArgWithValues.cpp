@@ -25,8 +25,8 @@ using namespace std;
 
 
 // This is the function corresponding to the QIR entry-point.
-extern "C" void UseBoolArg( // NOLINT
-    char BoolArg
+extern "C" void UseIntegerArgWithValues( // NOLINT
+    int64_t IntegerArg
 );
 
 const char InteropFalseAsChar = 0x0;
@@ -113,10 +113,10 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    char BoolArg;
-    BoolArg = InteropFalseAsChar;
-    app.add_option("--BoolArg", BoolArg, "A bool value")
-        ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
+    int64_t IntegerArg;
+    IntegerArg = 0;
+    app.add_option("--IntegerArg", IntegerArg, "An integer value")
+        ->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
@@ -132,8 +132,8 @@ int main(int argc, char* argv[])
     }
 
     // Run simulation and write the output of the operation to the corresponding stream.
-    UseBoolArg(
-        BoolArg
+    UseIntegerArgWithValues(
+        IntegerArg
 );
 
 

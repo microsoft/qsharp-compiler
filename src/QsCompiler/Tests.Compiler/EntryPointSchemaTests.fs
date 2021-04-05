@@ -13,6 +13,8 @@ open Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
 
 type EntryPointSchemaTests(output: ITestOutputHelper) =
 
+    let testCasesDirectory = Path.Combine("TestCases", "QirEntryPointTests")
+
     let createRangeValueFromTuple (tuple: (int64 * int64 * int64)) =
         let rstart, rstep, rend = tuple
         RangeValue(Start = rstart, Step = rstep, End = rend)
@@ -77,10 +79,10 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     let sampleEntryPointOperations =
         Map
             .empty
-            .Add("UseNoArgs", (new EntryPointOperation(Name = "UseNoArgs"), "{\"Name\":\"UseNoArgs\"}"))
+            .Add("UseNoArgs", (new EntryPointOperation(Name = "UseNoArgs"), Path.Join(testCasesDirectory, "UseNoArgs.json") |> File.ReadAllText))
             .Add("UseBoolArg",
                  (createEntryPointOperation ("UseBoolArg", [ createArgument ("BoolArg", DataType.BoolType, 0, []) ]),
-                  "{\"Name\":\"UseBoolArg\",\"Arguments\":[{\"Name\":\"BoolArg\"}]}"))
+                  Path.Join(testCasesDirectory, "TestUnitReceivesBool.json") |> File.ReadAllText))
             .Add("UseBoolArgWithValues",
                  (createEntryPointOperation
                      ("UseBoolArgWithValues",
@@ -94,11 +96,11 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Bool = System.Nullable(false))
                                ])
                       ]),
-                  "{\"Name\":\"UseBoolArgWithValues\",\"Arguments\":[{\"Name\":\"BoolArg\",\"Values\":[{\"Bool\":[true]},{\"Bool\":[false]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseBoolArgWithValues.json") |> File.ReadAllText))
             .Add("UseIntegerArg",
                  (createEntryPointOperation
                      ("UseIntegerArg", [ createArgument ("IntegerArg", DataType.IntegerType, 0, []) ]),
-                  "{\"Name\":\"UseIntegerArg\",\"Arguments\":[{\"Type\":1,\"Name\":\"IntegerArg\"}]}"))
+                  Path.Join(testCasesDirectory, "UseIntegerArg.json") |> File.ReadAllText))
             .Add("UseIntegerArgWithValues",
                  (createEntryPointOperation
                      ("UseIntegerArgWithValues",
@@ -112,11 +114,11 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Integer = System.Nullable(int64 (999)))
                                ])
                       ]),
-                  "{\"Name\":\"UseIntegerArgWithValues\",\"Arguments\":[{\"Type\":1,\"Name\":\"IntegerArg\",\"Values\":[{\"Integer\":[11]},{\"Integer\":[999]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseIntegerArgWithValues.json") |> File.ReadAllText))
             .Add("UseDoubleArg",
                  (createEntryPointOperation
                      ("UseDoubleArg", [ createArgument ("DoubleArg", DataType.DoubleType, 0, []) ]),
-                  "{\"Name\":\"UseDoubleArg\",\"Arguments\":[{\"Type\":2,\"Name\":\"DoubleArg\"}]}"))
+                  Path.Join(testCasesDirectory, "UseDoubleArg.json") |> File.ReadAllText))
             .Add("UseDoubleArgWithValues",
                  (createEntryPointOperation
                      ("UseDoubleArgWithValues",
@@ -130,10 +132,10 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Double = System.Nullable(0.2))
                                ])
                       ]),
-                  "{\"Name\":\"UseDoubleArgWithValues\",\"Arguments\":[{\"Type\":2,\"Name\":\"DoubleArg\",\"Values\":[{\"Double\":[0.1]},{\"Double\":[0.2]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseDoubleArgWithValues.json") |> File.ReadAllText))
             .Add("UsePauliArg",
                  (createEntryPointOperation ("UsePauliArg", [ createArgument ("PauliArg", DataType.PauliType, 0, []) ]),
-                  "{\"Name\":\"UsePauliArg\",\"Arguments\":[{\"Type\":3,\"Name\":\"PauliArg\"}]}"))
+                  Path.Join(testCasesDirectory, "UsePauliArg.json") |> File.ReadAllText))
             .Add("UsePauliArgWithValues",
                  (createEntryPointOperation
                      ("UsePauliArgWithValues",
@@ -148,10 +150,10 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliZ))
                                ])
                       ]),
-                  "{\"Name\":\"UsePauliArgWithValues\",\"Arguments\":[{\"Type\":3,\"Name\":\"PauliArg\",\"Values\":[{\"Pauli\":[1]},{\"Pauli\":[2]},{\"Pauli\":[3]}]}]}"))
+                  Path.Join(testCasesDirectory, "UsePauliArgWithValues.json") |> File.ReadAllText))
             .Add("UseRangeArg",
                  (createEntryPointOperation ("UseRangeArg", [ createArgument ("RangeArg", DataType.RangeType, 0, []) ]),
-                  "{\"Name\":\"UseRangeArg\",\"Arguments\":[{\"Type\":4,\"Name\":\"RangeArg\"}]}"))
+                  Path.Join(testCasesDirectory, "UseRangeArg.json") |> File.ReadAllText))
             .Add("UseRangeArgWithValues",
                  (createEntryPointOperation
                      ("UseRangeArgWithValues",
@@ -165,11 +167,11 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createRangeArgumentValue (int64 (10), int64 (5), int64 (100))
                                ])
                       ]),
-                  "{\"Name\":\"UseRangeArgWithValues\",\"Arguments\":[{\"Type\":4,\"Name\":\"RangeArg\",\"Values\":[{\"Range\":[{\"Start\":1,\"Step\":1,\"End\":10}]},{\"Range\":[{\"Start\":10,\"Step\":5,\"End\":100}]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseRangeArgWithValues.json") |> File.ReadAllText))
             .Add("UseResultArg",
                  (createEntryPointOperation
                      ("UseResultArg", [ createArgument ("ResultArg", DataType.ResultType, 0, []) ]),
-                  "{\"Name\":\"UseResultArg\",\"Arguments\":[{\"Type\":5,\"Name\":\"ResultArg\"}]}"))
+                  Path.Join(testCasesDirectory, "UseResultArg.json") |> File.ReadAllText))
             .Add("UseResultArgWithValues",
                  (createEntryPointOperation
                      ("UseResultArgWithValues",
@@ -183,11 +185,11 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Result = System.Nullable(ResultValue.One))
                                ])
                       ]),
-                  "{\"Name\":\"UseResultArgWithValues\",\"Arguments\":[{\"Type\":5,\"Name\":\"ResultArg\",\"Values\":[{\"Result\":[0]},{\"Result\":[1]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseResultArgWithValues.json") |> File.ReadAllText))
             .Add("UseStringArg",
                  (createEntryPointOperation
                      ("UseStringArg", [ createArgument ("StringArg", DataType.StringType, 0, []) ]),
-                  "{\"Name\":\"UseStringArg\",\"Arguments\":[{\"Type\":6,\"Name\":\"StringArg\"}]}"))
+                  Path.Join(testCasesDirectory, "UseStringArg.json") |> File.ReadAllText))
             .Add("UseStringArgWithValues",
                  (createEntryPointOperation
                      ("UseStringArgWithValues",
@@ -198,7 +200,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                0,
                                [ new ArgumentValue(String = "StringA"); new ArgumentValue(String = "StringB") ])
                       ]),
-                  "{\"Name\":\"UseStringArgWithValues\",\"Arguments\":[{\"Type\":6,\"Name\":\"StringArg\",\"Values\":[{\"String\":[\"StringA\"]},{\"String\":[\"StringB\"]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseStringArgWithValues.json") |> File.ReadAllText))
             .Add("UseBoolArrayArg",
                  (createEntryPointOperation
                      ("UseBoolArrayArg",
@@ -206,7 +208,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                           createArrayArgument
                               ("BoolArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.BoolType), [])
                       ]),
-                  "{\"Name\":\"UseBoolArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"BoolArrayArg\",\"ArrayType\":[0]}]}"))
+                  Path.Join(testCasesDirectory, "UseBoolArrayArg.json") |> File.ReadAllText))
             .Add("UseBoolArrayArgWithValues",
                  (createEntryPointOperation
                      ("UseBoolArrayArgWithValues",
@@ -221,7 +223,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createBoolArrayArgumentValue ([ false; true; false ])
                                ])
                       ]),
-                  "{\"Name\":\"UseBoolArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"BoolArrayArg\",\"ArrayType\":[0],\"Values\":[{\"Array\":[{\"Bool\":[[true,false,true]]}]},{\"Array\":[{\"Bool\":[[false,true,false]]}]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseBoolArrayArgWithValues.json") |> File.ReadAllText))
             .Add("UseIntegerArrayArg",
                  (createEntryPointOperation
                      ("UseIntegerArrayArg",
@@ -229,7 +231,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                           createArrayArgument
                               ("IntegerArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.IntegerType), [])
                       ]),
-                  "{\"Name\":\"UseIntegerArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"IntegerArrayArg\",\"ArrayType\":[1]}]}"))
+                  Path.Join(testCasesDirectory, "UseIntegerArrayArg.json") |> File.ReadAllText))
             .Add("UseIntegerArrayArgWithValues",
                  (createEntryPointOperation
                      ("UseIntegerArrayArgWithValues",
@@ -245,7 +247,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                        ([ int64 (2048); int64 (-1024); int64 (4096); int64 (-8192) ])
                                ])
                       ]),
-                  "{\"Name\":\"UseIntegerArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"IntegerArrayArg\",\"ArrayType\":[1],\"Values\":[{\"Array\":[{\"Integer\":[[999,-1,11]]}]},{\"Array\":[{\"Integer\":[[2048,-1024,4096,-8192]]}]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseIntegerArrayArgWithValues.json") |> File.ReadAllText))
             .Add("UseDoubleArrayArg",
                  (createEntryPointOperation
                      ("UseDoubleArrayArg",
@@ -253,7 +255,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                           createArrayArgument
                               ("DoubleArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.DoubleType), [])
                       ]),
-                  "{\"Name\":\"UseDoubleArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"DoubleArrayArg\",\"ArrayType\":[2]}]}"))
+                  Path.Join(testCasesDirectory, "UseDoubleArrayArg.json") |> File.ReadAllText))
             .Add("UseDoubleArrayArgWithValues",
                  (createEntryPointOperation
                      ("UseDoubleArrayArgWithValues",
@@ -268,7 +270,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createDoubleArrayArgumentValue ([ 999.999; -101010.10; 0.0001 ])
                                ])
                       ]),
-                  "{\"Name\":\"UseDoubleArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"DoubleArrayArg\",\"ArrayType\":[2],\"Values\":[{\"Array\":[{\"Double\":[[3.14159,0.55,1024.333,-8192.667]]}]},{\"Array\":[{\"Double\":[[999.999,-101010.1,0.0001]]}]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseDoubleArrayArgWithValues.json") |> File.ReadAllText))
             .Add("UsePauliArrayArg",
                  (createEntryPointOperation
                      ("UsePauliArrayArg",
@@ -276,7 +278,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                           createArrayArgument
                               ("PauliArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.PauliType), [])
                       ]),
-                  "{\"Name\":\"UsePauliArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"PauliArrayArg\",\"ArrayType\":[3]}]}"))
+                  Path.Join(testCasesDirectory, "UsePauliArrayArg.json") |> File.ReadAllText))
             .Add("UsePauliArrayArgWithValues",
                  (createEntryPointOperation
                      ("UsePauliArrayArgWithValues",
@@ -292,7 +294,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createPauliArrayArgumentValue ([ PauliValue.PauliI; PauliValue.PauliZ ])
                                ])
                       ]),
-                  "{\"Name\":\"UsePauliArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"PauliArrayArg\",\"ArrayType\":[3],\"Values\":[{\"Array\":[{\"Pauli\":[[1,2,3]]}]},{\"Array\":[{\"Pauli\":[[0,3]]}]}]}]}"))
+                  Path.Join(testCasesDirectory, "UsePauliArrayArgWithValues.json") |> File.ReadAllText))
             .Add("UseRangeArrayArg",
                  (createEntryPointOperation
                      ("UseRangeArrayArg",
@@ -300,7 +302,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                           createArrayArgument
                               ("RangeArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.RangeType), [])
                       ]),
-                  "{\"Name\":\"UseRangeArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"RangeArrayArg\",\"ArrayType\":[4]}]}"))
+                  Path.Join(testCasesDirectory, "UseRangeArrayArg.json") |> File.ReadAllText))
             .Add("UseRangeArrayArgWithValues",
                  (createEntryPointOperation
                      ("UseRangeArrayArgWithValues",
@@ -316,7 +318,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createRangeArrayArgumentValue ([ (int64 (1), int64 (2), int64 (10)) ])
                                ])
                       ]),
-                  "{\"Name\":\"UseRangeArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"RangeArrayArg\",\"ArrayType\":[4],\"Values\":[{\"Array\":[{\"Range\":[[{\"Start\":1,\"Step\":1,\"End\":10},{\"Start\":10,\"Step\":5,\"End\":100}]]}]},{\"Array\":[{\"Range\":[[{\"Start\":1,\"Step\":2,\"End\":10}]]}]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseRangeArrayArgWithValues.json") |> File.ReadAllText))
             .Add("UseResultArrayArg",
                  (createEntryPointOperation
                      ("UseResultArrayArg",
@@ -324,7 +326,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                           createArrayArgument
                               ("ResultArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.ResultType), [])
                       ]),
-                  "{\"Name\":\"UseResultArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"ResultArrayArg\",\"ArrayType\":[5]}]}"))
+                  Path.Join(testCasesDirectory, "UseResultArrayArg.json") |> File.ReadAllText))
             .Add("UseResultArrayArgWithValues",
                  (createEntryPointOperation
                      ("UseResultArrayArgWithValues",
@@ -339,7 +341,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createResultArrayArgumentValue ([ ResultValue.One; ResultValue.Zero ])
                                ])
                       ]),
-                  "{\"Name\":\"UseResultArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"ResultArrayArg\",\"ArrayType\":[5],\"Values\":[{\"Array\":[{\"Result\":[[0,1]]}]},{\"Array\":[{\"Result\":[[1,0]]}]}]}]}"))
+                  Path.Join(testCasesDirectory, "UseResultArrayArgWithValues.json") |> File.ReadAllText))
             .Add("UseMiscArgs",
                  (createEntryPointOperation
                      ("UseMiscArgs",
@@ -349,7 +351,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                           createArrayArgument
                               ("ResultArrayArg", DataType.ArrayType, 2, System.Nullable(DataType.ResultType), [])
                       ]),
-                  "{\"Name\":\"UseMiscArgs\",\"Arguments\":[{\"Name\":\"IntegerArg\"},{\"Type\":3,\"Name\":\"PauliArg\",\"Position\":1},{\"Type\":7,\"Name\":\"ResultArrayArg\",\"Position\":2,\"ArrayType\":[5]}]}"))
+                  Path.Join(testCasesDirectory, "UseMiscArgs.json") |> File.ReadAllText))
 
     [<Theory>]
     [<InlineData("UseNoArgs")>]

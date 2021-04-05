@@ -1,6 +1,1 @@
-﻿{
-  "Name": "UseBoolArg",
-  "Arguments": [
-    { "Name": "BoolArg" }
-  ]
-}
+﻿{"Name":"UseBoolArg","Arguments":[{"Name":"BoolArg"}]}

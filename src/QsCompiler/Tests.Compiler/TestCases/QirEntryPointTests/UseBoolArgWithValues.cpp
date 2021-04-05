@@ -25,7 +25,7 @@ using namespace std;
 
 
 // This is the function corresponding to the QIR entry-point.
-extern "C" void UseBoolArg( // NOLINT
+extern "C" void UseBoolArgWithValues( // NOLINT
     char BoolArg
 );
 
@@ -132,7 +132,7 @@ int main(int argc, char* argv[])
     }
 
     // Run simulation and write the output of the operation to the corresponding stream.
-    UseBoolArg(
+    UseBoolArgWithValues(
         BoolArg
 );
 

@@ -147,5 +147,17 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             }
             return false;
         }
+
+        public static bool AtLeastOneRangeArgument(EntryPointOperation op)
+        {
+            foreach (Argument arg in op.Arguments)
+            {
+                if (arg.Type == DataType.RangeType)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

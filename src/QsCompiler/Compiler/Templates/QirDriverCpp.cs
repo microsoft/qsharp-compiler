@@ -15,13 +15,12 @@ namespace Microsoft.Quantum.QsCompiler.Templates
     /// <summary>
     /// Class to produce the template output
     /// </summary>
-
     
     #line 1 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
-
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.TextTemplating", "16.0.0.0")]
     public partial class QirDriverCpp : QirDriverCppBase
     {
+#line hidden
         /// <summary>
         /// Create the template output
         /// </summary>
@@ -65,8 +64,14 @@ using namespace std;
             
             #line default
             #line hidden
-            this.Write(@"
-using RangeTuple = tuple<int64_t, int64_t, int64_t>;
+            this.Write("\r\n\r\n");
+            
+            #line 39 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ if (CppInterop.AtLeastOneRangeArgument(entryPointOperation)) { 
+            
+            #line default
+            #line hidden
+            this.Write(@"using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
     int64_t Start;
@@ -83,19 +88,24 @@ struct InteropRange
         Step(get<1>(rangeTuple)),
         End(get<2>(rangeTuple)){}
 };
-
-// This is the function corresponding to the QIR entry-point.
-extern ""C"" void ");
-
+");
             
             #line 57 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+ } 
+            
+            #line default
+            #line hidden
+            this.Write("\r\n// This is the function corresponding to the QIR entry-point.\r\nextern \"C\" void " +
+                    "");
+            
+            #line 60 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             
             #line default
             #line hidden
             this.Write("( // NOLINT\r\n");
             
-            #line 58 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 61 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  for (int i = 0; i < CppInterop.GetSortedArguments(entryPointOperation).Count; i++) {
     var arg = CppInterop.GetSortedArguments(entryPointOperation)[i];
     Write($"    {CppInterop.CppType(arg)} {arg.Name}");
@@ -138,7 +148,7 @@ extern ""C"" void ");
                     "    \"--simulation-output\", simulationOutputFile,\r\n        \"File where the output" +
                     " produced during the simulation is written\");\r\n    \r\n");
             
-            #line 151 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 154 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
     WriteLine("");
     WriteLine($"    {CppInterop.CppVarType(arg)} {arg.Name};"); 
@@ -156,7 +166,7 @@ extern ""C"" void ");
             this.Write("\r\n    // With all the options added, parse arguments from the command line.\r\n    " +
                     "CLI11_PARSE(app, argc, argv);\r\n\r\n");
             
-            #line 166 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 169 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
     switch (arg.Type) {
         case DataType.PauliType:
@@ -223,14 +233,14 @@ extern ""C"" void ");
     // Run simulation and write the output of the operation to the corresponding stream.
     ");
             
-            #line 227 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 230 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             
             #line default
             #line hidden
             this.Write("(\r\n");
             
-            #line 228 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 231 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  for (int i = 0; i < CppInterop.GetSortedArguments(entryPointOperation).Count; i++) {
     var arg = CppInterop.GetSortedArguments(entryPointOperation)[i];
     switch (arg.Type) {
@@ -259,7 +269,7 @@ extern ""C"" void ");
             #line hidden
             this.Write("\r\n);\r\n\r\n");
             
-            #line 254 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
+            #line 257 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
         Write($"    FreePointerVector({arg.Name}Vector);");
@@ -273,6 +283,9 @@ extern ""C"" void ");
             return this.GenerationEnvironment.ToString();
         }
     }
+    
+    #line default
+    #line hidden
     #region Base class
     /// <summary>
     /// Base class for this transformation

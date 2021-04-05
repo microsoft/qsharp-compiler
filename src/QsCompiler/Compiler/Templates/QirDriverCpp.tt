@@ -35,6 +35,8 @@ struct InteropArray
 };
 <# } #>
 
+
+<# if (CppInterop.AtLeastOneRangeArgument(entryPointOperation)) { #>
 using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
@@ -52,6 +54,7 @@ struct InteropRange
         Step(get<1>(rangeTuple)),
         End(get<2>(rangeTuple)){}
 };
+<# } #>
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void <#= entryPointOperation.Name #>( // NOLINT
