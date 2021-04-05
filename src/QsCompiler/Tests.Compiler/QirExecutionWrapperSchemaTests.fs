@@ -13,7 +13,7 @@ open Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
 
 type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
 
-    let createEntryPointOperation() =
+    let createEntryPointOperation () =
         let expectedEntryPointOperation = new EntryPointOperation()
         let argument = new Argument()
         argument.Name <- "argument name"
@@ -24,8 +24,8 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
         expectedEntryPointOperation.Name <- "operation name"
         expectedEntryPointOperation
 
-    let createBytecode() =
-        let bytes = Array.init 10 (fun i -> byte(i*i))
+    let createBytecode () =
+        let bytes = Array.init 10 (fun i -> byte (i * i))
         let bytecode = new Bytecode()
         bytecode.Data <- new System.ArraySegment<byte>(bytes)
         bytecode
@@ -33,8 +33,8 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
     [<Fact>]
     member this.SerializeAndDeserializeInFastBinary() =
         let qirWrapper = new QirExecutionWrapper()
-        let bytecode = createBytecode()
-        let entryPoint = createEntryPointOperation()
+        let bytecode = createBytecode ()
+        let entryPoint = createEntryPointOperation ()
         qirWrapper.EntryPoint <- entryPoint
         qirWrapper.QirBytes <- Bonded<Bytecode>(bytecode)
         let memoryStream = new MemoryStream()
