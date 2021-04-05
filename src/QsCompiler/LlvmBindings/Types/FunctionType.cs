@@ -15,53 +15,53 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Types
 {
-    /// <summary>Interface to represent the LLVM type of a function (e.g. a signature)</summary>
+    /// <summary>Interface to represent the LLVM type of a function (e.g. a signature).</summary>
     public interface IFunctionType
         : ITypeRef
     {
-        /// <summary>Gets a value indicating whether this signature is for a variadic function</summary>
+        /// <summary>Gets a value indicating whether this signature is for a variadic function.</summary>
         bool IsVarArg { get; }
 
-        /// <summary>Gets the return type of the function</summary>
+        /// <summary>Gets the return type of the function.</summary>
         ITypeRef ReturnType { get; }
 
-        /// <summary>Gets the types of the parameters for the function</summary>
+        /// <summary>Gets the types of the parameters for the function.</summary>
         IReadOnlyList<ITypeRef> ParameterTypes { get; }
     }
 
-    /// <summary>Class to represent the LLVM type of a function (e.g. a signature)</summary>
+    /// <summary>Class to represent the LLVM type of a function (e.g. a signature).</summary>
     internal class FunctionType
-        : TypeRef
-        , IFunctionType
+        : TypeRef,
+        IFunctionType
     {
-        /// <inheritdoc/>
-        public bool IsVarArg => TypeRefHandle.IsFunctionVarArg;
+        internal FunctionType(LLVMTypeRef typeRef)
+            : base(typeRef)
+        {
+        }
 
         /// <inheritdoc/>
-        public ITypeRef ReturnType => FromHandle<ITypeRef>( TypeRefHandle.ReturnType );
+        public bool IsVarArg => this.TypeRefHandle.IsFunctionVarArg;
+
+        /// <inheritdoc/>
+        public ITypeRef ReturnType => FromHandle<ITypeRef>(this.TypeRefHandle.ReturnType);
 
         /// <inheritdoc/>
         public IReadOnlyList<ITypeRef> ParameterTypes
         {
             get
             {
-                uint paramCount = TypeRefHandle.ParamTypesCount;
-                if( paramCount == 0 )
+                uint paramCount = this.TypeRefHandle.ParamTypesCount;
+                if (paramCount == 0)
                 {
-                    return new List<TypeRef>( ).AsReadOnly( );
+                    return new List<TypeRef>().AsReadOnly();
                 }
 
-                var paramTypes = TypeRefHandle.ParamTypes;
-                return ( from p in paramTypes
-                         select FromHandle<TypeRef>( p )
-                       ).ToList( )
-                        .AsReadOnly( );
+                var paramTypes = this.TypeRefHandle.ParamTypes;
+                return (from p in paramTypes
+                        select FromHandle<TypeRef>(p))
+                       .ToList()
+                        .AsReadOnly();
             }
-        }
-
-        internal FunctionType( LLVMTypeRef typeRef )
-            : base( typeRef )
-        {
         }
     }
 }

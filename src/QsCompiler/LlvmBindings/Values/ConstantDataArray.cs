@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>Array of constant data</summary>
+    /// <summary>Array of constant data.</summary>
     public class ConstantDataArray
         : ConstantDataSequential
     {
-        internal ConstantDataArray( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal ConstantDataArray(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     internal static class SuggestedEdits
     {
         /// <summary>
-        /// Returns the given edit for the specified file as WorkspaceEdit.
+        /// Returns <paramref name="edits"/> for <paramref name="file"/> as a <see cref="WorkspaceEdit"/>.
         /// </summary>
         private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits)
         {
@@ -38,14 +38,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all namespaces in which a callable with the name of the symbol at the given position in the given
-        /// file belongs to.
-        ///
-        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at that
-        /// location, or if the position is not part of a namespace.
-        ///
-        /// Returns the name of the identifier as an out parameter if an unqualified symbol exists at that location.
+        /// Returns all namespaces in which a callable with the name of the symbol at <paramref name="pos"/> in
+        /// <paramref name="file"/> belongs to.
         /// </summary>
+        /// <param name="idName">The name of the identifier if an unqualified symbol exists at <paramref name="pos"/>.</param>
+        /// <remarks>
+        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at
+        /// <paramref name="pos"/>, or if <paramref name="pos"/> is not part of a namespace.
+        /// </remarks>
         private static IEnumerable<string> IdNamespaceSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? idName)
         {
@@ -57,14 +57,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all namespaces in which a type with the name of the symbol at the given position in the given file
-        /// belongs to.
-        ///
-        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at that
-        /// location, or if the position is not part of a namespace.
-        ///
-        /// Returns the name of the type as an out parameter if an unqualified symbol exists at that location.
+        /// Returns all namespaces in which a type with the name of the symbol at <paramref name="pos"/> in
+        /// <paramref name="file"/> belongs to.
         /// </summary>
+        /// <param name="typeName">The name of the type if an unqualified symbol exists at <paramref name="pos"/>.</param>
+        /// <remarks>
+        /// Returns an empty collection if any of the arguments is null, if no unqualified symbol exists at
+        /// <paramref name="pos"/>, or if <paramref name="pos"/> is not part of a namespace.
+        /// </remarks>
         private static IEnumerable<string> TypeNamespaceSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation, out string? typeName)
         {
@@ -78,9 +78,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns names that match an alternative casing of the identifier at the given position in the file, or the
-        /// empty enumerable if there is no valid identifier at the given position.
+        /// Returns names that match an alternative casing of the identifier at <paramref name="pos"/> in <paramref name="file"/>.
         /// </summary>
+        /// <remarks>
+        /// Returns the empty enumerable if there is no valid identifier at <paramref name="pos"/>.
+        /// </remarks>
         private static IEnumerable<string> IdCaseSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
@@ -95,9 +97,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns names that match an alternative casing of the type name at the given position in the file, or the
-        /// empty enumerable if there is no valid type name at the given position.
+        /// Returns names that match an alternative casing of the type name at <paramref name="pos"/> in <paramref name="file"/>.
         /// </summary>
+        /// <remarks>
+        /// Returns the empty enumerable if there is no valid type name at <paramref name="pos"/>.
+        /// </remarks>
         private static IEnumerable<string> TypeCaseSuggestions(
             this FileContentManager file, Position pos, CompilationUnit compilation)
         {
@@ -113,9 +117,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns all code fragments in the specified file that overlap with the given range.
-        /// Returns an empty sequence if any of the given arguments is null.
+        /// Returns all code fragments in <paramref name="file"/> that overlap with <paramref name="range"/>.
         /// </summary>
+        /// <remarks>
+        /// Returns an empty sequence if any of the given arguments is null.
+        /// </remarks>
         private static IEnumerable<CodeFragment> FragmentsOverlappingWithRange(this FileContentManager file, Range range)
         {
             if (file is null || range is null)
@@ -141,10 +147,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Return an enumerable of suitable edits to add open directives for all given namespaces for which no open directive already exists.
-        /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace.
-        /// Returns an empty enumerable if suitable edits could not be determined.
+        /// Return an enumerable of suitable edits to add open directives for each namespace in <paramref name="namespaces"/>
+        /// for which no open directive already exists.
         /// </summary>
+        /// <remarks>
+        /// Returns an edit for opening a given namespace even if an alias is already defined for that namespace.
+        /// <para/>
+        /// Returns an empty enumerable if suitable edits could not be determined.
+        /// </remarks>
         private static IEnumerable<TextEdit> OpenDirectiveSuggestions(this FileContentManager file, int lineNr, IEnumerable<string> namespaces)
         {
             // determine the first fragment in the containing namespace
@@ -186,10 +196,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions on how errors for ambiguous types and callable in the given diagnostics can be fixed,
-        /// given the file for which those diagnostics were generated and the corresponding compilation.
-        /// Returns an empty enumerable if any of the given arguments is null.
+        /// Returns a sequence of suggestions on how errors for ambiguous types and callable in <paramref name="diagnostics"/> can be fixed.
         /// </summary>
+        /// <param name="file">The file for which <paramref name="diagnostics"/> were generated.</param>
+        /// <param name="compilation">The compilation corresponding to <paramref name="file"/>.</param>
+        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
+        /// <remarks>
+        /// Returns an empty enumerable if any of the given arguments is null.
+        /// </remarks>
         internal static IEnumerable<(string, WorkspaceEdit)> AmbiguousIdSuggestions(
             this FileContentManager file, CompilationUnit compilation, IEnumerable<Diagnostic> diagnostics)
         {
@@ -275,11 +289,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions on how errors for unknown types and callable in the given diagnostics can be fixed,
-        /// given the file for which those diagnostics were generated and the corresponding compilation.
-        /// The given line number is used to determine the containing namespace.
-        /// Returns an empty enumerable if any of the given arguments is null.
+        /// Returns a sequence of suggestions on how errors for unknown types and callable in <paramref name="diagnostics"/> can be fixed.
         /// </summary>
+        /// <param name="file">The file for which <paramref name="diagnostics"/> were generated.</param>
+        /// <param name="compilation">The compilation corresponding to <paramref name="file"/>.</param>
+        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
+        /// <remarks>
+        /// Line number <paramref name="lineNr"/> is used to determine the containing namespace.
+        /// <para/>
+        /// Returns an empty enumerable if any of the given arguments is null.
+        /// </remarks>
         internal static IEnumerable<(string, WorkspaceEdit)> UnknownIdSuggestions(
             this FileContentManager file,
             CompilationUnit compilation,
@@ -289,10 +308,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(UnknownIdCaseSuggestions(file, compilation, diagnostics));
 
         /// <summary>
-        /// Returns a sequence of suggestions on how deprecated syntax can be updated based on the generated diagnostics,
-        /// and given the file for which those diagnostics were generated.
-        /// Returns an empty enumerable if any of the given arguments is null.
+        /// Returns a sequence of suggestions on how deprecated syntax can be updated based on <paramref name="diagnostics"/>.
         /// </summary>
+        /// <param name="file">The file for which <paramref name="diagnostics"/> were generated.</param>
+        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
+        /// <remarks>
+        /// Returns an empty enumerable if any of the given arguments is null.
+        /// </remarks>
         internal static IEnumerable<(string, WorkspaceEdit)> DeprecatedSyntaxSuggestions(
             this FileContentManager file, IReadOnlyCollection<Diagnostic> diagnostics)
         {
@@ -372,10 +394,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions for update-and-reassign statements based on the generated diagnostics,
-        /// and given the file for which those diagnostics were generated.
-        /// Returns an empty enumerable if any of the given arguments is null.
+        /// Returns a sequence of suggestions for update-and-reassign statements based on <paramref name="diagnostics"/>.
         /// </summary>
+        /// <param name="file">The file for which <paramref name="diagnostics"/> were generated.</param>
+        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
+        /// <remarks>
+        /// Returns an empty enumerable if any of the given arguments is null.
+        /// </remarks>
         internal static IEnumerable<(string, WorkspaceEdit)> UpdateReassignStatementSuggestions(
             this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
         {
@@ -404,9 +429,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns true the given expression is of the form "0 .. Length(args) - 1",
-        /// as well as the range of the entire expression and the argument tuple "(args)" as out parameters.
+        /// Returns true if <paramref name="iterExpr"/> is of the form "0 .. Length(args) - 1".
         /// </summary>
+        /// <param name="exprRange">The range of the entire expression.</param>
+        /// <param name="argRange">The range of the argument tuple "(args)".</param>
         private static bool IsIndexRange(
             QsExpression iterExpr,
             Position offset,
@@ -443,8 +469,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns a sequence of suggestions for replacing ranges over array indices with the corresponding library call,
         /// provided the corresponding library is referenced.
-        /// Returns an empty enumerable if this is not the case or any of the given arguments is null.
         /// </summary>
+        /// <remarks>
+        /// Returns an empty enumerable if the corresponding library is not referenced, or if any of the given arguments is null.
+        /// </remarks>
         internal static IEnumerable<(string, WorkspaceEdit)> IndexRangeSuggestions(
             this FileContentManager file, CompilationUnit compilation, Range range)
         {
@@ -498,10 +526,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions for removing code that is never executed based on the generated diagnostics,
-        /// and given the file for which those diagnostics were generated.
-        /// Returns an empty enumerable if any of the given arguments is null.
+        /// Returns a sequence of suggestions for removing code that is never executed based on <paramref name="diagnostics"/>.
         /// </summary>
+        /// <param name="file">The file for which <paramref name="diagnostics"/> were generated.</param>
+        /// <param name="diagnostics">The diagnostics for which suggestions should be made.</param>
+        /// <remarks>
+        /// Returns an empty enumerable if any of the given arguments is null.
+        /// </remarks>
         internal static IEnumerable<(string, WorkspaceEdit)> UnreachableCodeSuggestions(
             this FileContentManager file, IEnumerable<Diagnostic> diagnostics)
         {
@@ -553,13 +584,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         }
 
         /// <summary>
-        /// Returns a sequence of suggestions to insert doc comments for an undocumented declaration that overlap with the given range in the given file.
-        /// Returns an empty enumerable if more than one code fragment overlaps with the given range,
+        /// Returns a sequence of suggestions to insert doc comments for an undocumented declaration that overlap with <paramref name="range"/> in <paramref name="file"/>.
+        /// </summary>
+        /// <exception cref="FileContentException">The contents of <paramref name="file"/> changed while processing.</exception>
+        /// <remarks>
+        /// Returns an empty enumerable if more than one code fragment overlaps with <paramref name="range"/>,
         /// or the overlapping fragment does not contain a declaration,
         /// or the overlapping fragment contains a declaration that is already documented,
         /// or if any of the given arguments is null.
-        /// </summary>
-        /// <exception cref="FileContentException">The file content changed while processing.</exception>
+        /// </remarks>
         internal static IEnumerable<(string, WorkspaceEdit)> DocCommentSuggestions(
             this FileContentManager file, Range range)
         {

@@ -9,12 +9,12 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Integer truncate instruction</summary>
+    /// <summary>Integer truncate instruction.</summary>
     public class Trunc
         : Cast
     {
-        internal Trunc( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal Trunc(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }
