@@ -34,6 +34,33 @@ let private isOperation (resolvedType: ResolvedType) =
     | _ -> false
 
 /// <summary>
+/// Instantiates fresh type parameters for each missing type in <paramref name="argType"/>.
+/// </summary>
+/// <returns>
+/// <list>
+/// <item><paramref name="argType"/> with every missing type replaced with a fresh type parameter.</item>
+/// <item>The type of the partially applied argument containing only those fresh type parameters, if any exist.</item>
+/// </list>
+/// </returns>
+let rec private partialArgType (inference: InferenceContext) (argType: ResolvedType) =
+    match argType.Resolution with
+    | MissingType ->
+        let param = inference.Fresh(argType.Range |> TypeRange.tryRange |> QsNullable.defaultValue Range.Zero)
+        param, Some param
+    | TupleType items ->
+        let items, missing =
+            (items |> Seq.map (partialArgType inference), ([], []))
+            ||> Seq.foldBack (fun (item, params1) (items, params2) -> item :: items, Option.toList params1 @ params2)
+
+        let missing =
+            if List.isEmpty missing
+            then None
+            else ImmutableArray.CreateRange missing |> TupleType |> ResolvedType.New |> Some
+
+        argType |> ResolvedType.withKind (ImmutableArray.CreateRange items |> TupleType), missing
+    | _ -> argType, None
+
+/// <summary>
 /// Returns the range of <paramref name="expr"/>, or the empty range if <paramref name="expr"/> is an invalid expression
 /// without a range.
 /// </summary>
@@ -709,32 +736,13 @@ type QsExpression with
             (UnwrapApplication ex, exType, ex.InferredInformation.HasLocalQuantumDependency, this.Range)
             |> ExprWithoutTypeArgs false
 
-        let rec partialArgType (argType: ResolvedType) =
-            match argType.Resolution with
-            | MissingType ->
-                let param = inference.Fresh this.RangeOrDefault
-                param, Some param
-            | TupleType items ->
-                let items, missing =
-                    (items |> Seq.map partialArgType, ([], []))
-                    ||> Seq.foldBack (fun (item, params1) (items, params2) ->
-                            item :: items, Option.toList params1 @ params2)
-
-                let missing =
-                    if List.isEmpty missing
-                    then None
-                    else ImmutableArray.CreateRange missing |> TupleType |> ResolvedType.New |> Some
-
-                argType |> ResolvedType.withKind (ImmutableArray.CreateRange items |> TupleType), missing
-            | _ -> argType, None
-
         /// Resolves and verifies the given left hand side and right hand side of a call expression,
         /// and returns the corresponding expression as typed expression.
         let buildCall callable arg =
             let callable = resolve callable
             let arg = resolve arg
             let callExpression = CallLikeExpression(callable, arg)
-            let argType, partialType = partialArgType arg.ResolvedType
+            let argType, partialType = partialArgType inference arg.ResolvedType
 
             if Option.isNone partialType then
                 inference.Constrain
