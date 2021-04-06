@@ -185,10 +185,10 @@
     <Content Include="TestCases\QirEntryPointTests\UseBoolArgWithValues.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.json">
+    <Content Include="TestCases\QirEntryPointTests\UseBoolArg.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.cpp">
+    <Content Include="TestCases\QirEntryPointTests\UseBoolArg.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\QirCore.qs">

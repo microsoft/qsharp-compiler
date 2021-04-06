@@ -16,7 +16,7 @@ type EntryPointGenerationTests(output: ITestOutputHelper) =
 
     [<Theory>]
     [<InlineData("UseNoArgs")>]
-    [<InlineData("TestUnitReceivesBool")>]
+    [<InlineData("UseBoolArg")>]
     [<InlineData("UseBoolArgWithValues")>]
     [<InlineData("UseIntegerArg")>]
     [<InlineData("UseIntegerArgWithValues")>]
