@@ -165,27 +165,17 @@ let private VerifyEqualityComparison (inference: InferenceContext) range lhs rhs
 /// </summary>
 /// <returns>The type of the array and the diagnostics.</returns>
 let private VerifyValueArray (inference: InferenceContext) range exprs =
-    let diagnostics = ResizeArray()
+    let types = exprs |> Seq.map (fun expr -> expr.ResolvedType)
 
-    for expr in exprs do
-        if expr.ResolvedType.isMissing then
-            QsCompilerDiagnostic.Error (ErrorCode.MissingExprInArray, []) (rangeOrDefault expr)
-            |> diagnostics.Add
-
-    let types =
-        exprs
-        |> Seq.map (fun e -> e.ResolvedType)
-        |> Seq.filter (fun t -> not t.isInvalid && not t.isMissing)
-
-    if Seq.isEmpty types && Seq.isEmpty exprs then
-        inference.Fresh range |> ArrayType |> ResolvedType.create (Inferred range), Seq.toList diagnostics
-    elif Seq.isEmpty types then
-        ResolvedType.New InvalidType |> ArrayType |> ResolvedType.create (Inferred range), Seq.toList diagnostics
+    if Seq.isEmpty types then
+        inference.Fresh range |> ArrayType |> ResolvedType.create (Inferred range), []
     else
+        let diagnostics = ResizeArray()
+
         types
         |> Seq.reduce (fun left right ->
             let intersectionType, intersectionDiagnostics = inference.Intersect(left, right)
-            List.iter diagnostics.Add intersectionDiagnostics
+            intersectionDiagnostics |> List.iter diagnostics.Add
             intersectionType |> ResolvedType.withAllRanges right.Range)
         |> ResolvedType.withAllRanges (Inferred range)
         |> ArrayType

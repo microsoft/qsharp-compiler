@@ -152,7 +152,8 @@ type ErrorCode =
     | ControlledAdjointGenArgMismatch = 4114
     | MisplacedDeclarationAttribute = 4115
 
-    | MissingExprInArray = 5001
+    // TODO: RELEASE 2021-10: Remove MissingExprInArray.
+    | [<Obsolete "This diagnostic is no longer in use.">] MissingExprInArray = 5001
     // TODO: RELEASE 2021-10: Remove MultipleTypesInArray.
     | [<Obsolete "This diagnostic is no longer in use.">] MultipleTypesInArray = 5002
     | InvalidArrayItemIndex = 5003
