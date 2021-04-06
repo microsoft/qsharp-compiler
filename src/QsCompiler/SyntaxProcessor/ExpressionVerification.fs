@@ -219,19 +219,6 @@ let private VerifyControlledApplication (inference: InferenceContext) expr =
 // utils for verifying identifiers, call expressions, and resolving type parameters
 
 /// <summary>
-/// A type transformation that replaces each type parameter (as an origin and parameter name pair) in the
-/// <paramref name="resolutions"/> dictionary with its corresponding resolved type.
-/// </summary>
-let private replaceTypeParams (resolutions: ImmutableDictionary<_, ResolvedType>) =
-    { new TypeTransformation() with
-        member this.OnTypeParameter param =
-            resolutions.TryGetValue((param.Origin, param.TypeName))
-            |> tryOption
-            |> Option.map (fun resolvedType -> resolvedType.Resolution)
-            |> Option.defaultValue (TypeParameter param)
-    }
-
-/// <summary>
 /// Verifies that <paramref name="symbol"/> and its associated <paramref name="typeArgs"/> form a valid identifier.
 /// </summary>
 /// <returns>The resolved identifier expression and the diagnostics.</returns>
@@ -296,9 +283,8 @@ let private VerifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
             then identifier
             else Identifier(GlobalCallable name, ImmutableArray.CreateRange resolutions.Values |> Value)
 
-        let resolvedType = (replaceTypeParams resolutions).OnType resId.Type |> inference.Resolve
         let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
-        TypedExpression.New(identifier, resolutions, resolvedType, exInfo, symbol.Range), Seq.toList diagnostics
+        TypedExpression.New(identifier, resolutions, resId.Type, exInfo, symbol.Range), Seq.toList diagnostics
 
 /// Verifies that an expression of the given rhsType, used within the given parent (i.e. specialization declaration),
 /// can be used when an expression of expectedType is expected by callaing TypeMatchArgument.
