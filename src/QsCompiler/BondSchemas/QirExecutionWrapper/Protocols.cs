@@ -9,17 +9,15 @@ using Bond.Protocols;
 namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
 {
     /// <summary>
-    /// This class provides methods for serialization/deserialization of objects in the Microsoft.Quantum.QsCompiler.BondSchemas.SandboxInput namespace.
+    /// This class provides methods for serialization/deserialization of objects in the Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper namespace.
     /// </summary>
     internal static class Protocols
     {
         /// <summary>
-        /// Deserializes a sandbox input object from its fast binary representation.
+        /// Deserializes a QirExecutionWrapper object from its fast binary representation.
         /// </summary>
         public static QirExecutionWrapper DeserializeFromFastBinary(Stream stream)
         {
-            stream.Flush();
-            stream.Position = 0;
             var inputStream = new InputStream(stream);
             var reader = new FastBinaryReader<InputStream>(inputStream);
             var deserializer = new Deserializer<FastBinaryReader<InputStream>>(typeof(QirExecutionWrapper));
@@ -28,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
         }
 
         /// <summary>
-        /// Serializes a sandbox input object to its fast binary representation.
+        /// Serializes a QirExecutionWrapper object to its fast binary representation.
         /// </summary>
         public static void SerializeToFastBinary(QirExecutionWrapper sandboxInput, Stream stream)
         {

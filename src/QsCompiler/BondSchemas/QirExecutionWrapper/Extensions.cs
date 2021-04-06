@@ -17,12 +17,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
         /// </summary>
         public static bool ValueEquals(this QirExecutionWrapper executionWrapperA, QirExecutionWrapper executionWrapperB)
         {
-            if (executionWrapperA == null && executionWrapperB == null)
-            {
-                return true;
-            }
-
-            if (executionWrapperA == null || executionWrapperB == null)
+            if (executionWrapperB == null)
             {
                 return false;
             }
@@ -32,11 +27,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
                 return false;
             }
 
-            var bytesA = executionWrapperA.QirBytes.Deserialize();
-            var bytesB = executionWrapperB.QirBytes.Deserialize();
-            return bytesA.Data.Array
-                .Skip(bytesA.Data.Offset).Take(bytesA.Data.Count)
-                .SequenceEqual(bytesB.Data.Array.Skip(bytesB.Data.Offset).Take(bytesB.Data.Count));
+            return executionWrapperA.QirBytecode.Array
+                .Skip(executionWrapperA.QirBytecode.Offset).Take(executionWrapperA.QirBytecode.Count)
+                .SequenceEqual(executionWrapperB.QirBytecode.Array.Skip(executionWrapperB.QirBytecode.Offset).Take(executionWrapperB.QirBytecode.Count));
         }
     }
 }

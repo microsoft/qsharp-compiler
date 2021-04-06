@@ -27,25 +27,6 @@
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
 {
-    using System.Collections.Generic;
-
-    [global::Bond.Schema]
-    [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
-    public partial class Bytecode
-    {
-        [global::Bond.Id(5)]
-        public System.ArraySegment<byte> Data { get; set; }
-
-        public Bytecode()
-            : this("Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper.Bytecode", "Bytecode")
-        {}
-
-        protected Bytecode(string fullName, string name)
-        {
-            Data = new System.ArraySegment<byte>();
-        }
-    }
-
     [global::Bond.Schema]
     [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
     public partial class QirExecutionWrapper
@@ -54,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
         public global::Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint.EntryPointOperation EntryPoint { get; set; }
 
         [global::Bond.Id(10)]
-        public global::Bond.IBonded<Bytecode> QirBytes { get; set; }
+        public System.ArraySegment<byte> QirBytecode { get; set; }
 
         public QirExecutionWrapper()
             : this("Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper.QirExecutionWrapper", "QirExecutionWrapper")
@@ -63,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
         protected QirExecutionWrapper(string fullName, string name)
         {
             EntryPoint = new global::Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint.EntryPointOperation();
-            QirBytes = global::Bond.Bonded<Bytecode>.Empty;
+            QirBytecode = new System.ArraySegment<byte>();
         }
     }
 } // Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper

@@ -26,9 +26,7 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
 
     let createBytecode () =
         let bytes = Array.init 10 (fun i -> byte (i * i))
-        let bytecode = new Bytecode()
-        bytecode.Data <- new System.ArraySegment<byte>(bytes)
-        bytecode
+        new System.ArraySegment<byte>(bytes)
 
     [<Fact>]
     member this.SerializeAndDeserializeInFastBinary() =
@@ -36,7 +34,7 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
         let bytecode = createBytecode ()
         let entryPoint = createEntryPointOperation ()
         qirWrapper.EntryPoint <- entryPoint
-        qirWrapper.QirBytes <- Bonded<Bytecode>(bytecode)
+        qirWrapper.QirBytecode <- bytecode
         let memoryStream = new MemoryStream()
 
         // Serialize input.
