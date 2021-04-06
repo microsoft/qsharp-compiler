@@ -1,4 +1,4 @@
-﻿// Copyright (c) Microsoft Corporation. All rights reserved.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 module Microsoft.Quantum.QsCompiler.SyntaxProcessing.Expressions
@@ -12,9 +12,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
-open Microsoft.Quantum.QsCompiler.Utils
 open System.Collections.Generic
 open System.Collections.Immutable
 
@@ -183,14 +181,14 @@ let private VerifyValueArray (inference: InferenceContext) range exprs =
         Seq.toList diagnostics
 
 /// <summary>
-/// Verifies that <paramref name="array"/> has a type that can be indexed by a value of type
+/// Verifies that <paramref name="container"/> has a type that can be indexed by a value of type
 /// <paramref name="indexType"/>.
 /// </summary>
 /// <returns>The item type and the diagnostics.</returns>
-let private VerifyArrayItem (inference: InferenceContext) array indexType =
-    let range = rangeOrDefault array
+let private VerifyIndexedItem (inference: InferenceContext) container indexType =
+    let range = rangeOrDefault container
     let itemType = inference.Fresh range
-    itemType, inference.Constrain(array.ResolvedType, Indexed(indexType, itemType))
+    itemType, inference.Constrain(container.ResolvedType, Indexed(indexType, itemType))
 
 /// <summary>
 /// Verifies that <paramref name="expr"/> has an adjointable type.
@@ -456,10 +454,10 @@ type QsExpression with
             match resolveSlicing array index with
             | None ->
                 { array with
-                    ResolvedType = VerifyArrayItem inference array (ResolvedType.New Range) |> takeDiagnostics
+                    ResolvedType = VerifyIndexedItem inference array (ResolvedType.New Range) |> takeDiagnostics
                 }
             | Some index ->
-                let resolvedType = VerifyArrayItem inference array index.ResolvedType |> takeDiagnostics
+                let resolvedType = VerifyIndexedItem inference array index.ResolvedType |> takeDiagnostics
 
                 let localQdependency =
                     array.InferredInformation.HasLocalQuantumDependency
@@ -523,14 +521,14 @@ type QsExpression with
             | _ -> // by default, assume that the update expression is supposed to be for an array
                 match resolveSlicing lhs accEx with
                 | None -> // indicates a trivial slicing of the form "..." resulting in a complete replacement
-                    let expectedRhs = VerifyArrayItem inference lhs (ResolvedType.New Range) |> takeDiagnostics
+                    let expectedRhs = VerifyIndexedItem inference lhs (ResolvedType.New Range) |> takeDiagnostics
 
                     VerifyAssignment inference expectedRhs ErrorCode.TypeMismatchInCopyAndUpdateExpr rhs
                     |> List.iter diagnose
 
                     { rhs with ResolvedType = expectedRhs }
                 | Some resAccEx -> // indicates either a index or index range to update
-                    let expectedRhs = VerifyArrayItem inference lhs resAccEx.ResolvedType |> takeDiagnostics
+                    let expectedRhs = VerifyIndexedItem inference lhs resAccEx.ResolvedType |> takeDiagnostics
 
                     VerifyAssignment inference expectedRhs ErrorCode.TypeMismatchInCopyAndUpdateExpr rhs
                     |> List.iter diagnose
