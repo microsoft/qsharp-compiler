@@ -183,22 +183,14 @@ let private VerifyValueArray (inference: InferenceContext) range exprs =
         Seq.toList diagnostics
 
 /// <summary>
-/// Verifies that <paramref name="expr"/> has a type that can be indexed by an expression of type Range.
+/// Verifies that <paramref name="array"/> has a type that can be indexed by a value of type
+/// <paramref name="indexType"/>.
 /// </summary>
 /// <returns>The item type and the diagnostics.</returns>
-let internal VerifyNumberedItemAccess (inference: InferenceContext) expr =
-    let range = rangeOrDefault expr
-    let itemType = inference.Fresh range
-    itemType, inference.Constrain(expr.ResolvedType, Indexed(ResolvedType.New Range, itemType))
-
-/// <summary>
-/// Verifies that <paramref name="array"/> has a type that can be indexed by the <paramref name="index"/> expression.
-/// </summary>
-/// <returns>The item type and the diagnostics.</returns>
-let private VerifyArrayItem (inference: InferenceContext) array index =
+let private VerifyArrayItem (inference: InferenceContext) array indexType =
     let range = rangeOrDefault array
     let itemType = inference.Fresh range
-    itemType, inference.Constrain(array.ResolvedType, Indexed(index.ResolvedType, itemType))
+    itemType, inference.Constrain(array.ResolvedType, Indexed(indexType, itemType))
 
 /// <summary>
 /// Verifies that <paramref name="expr"/> has an adjointable type.
@@ -458,20 +450,22 @@ type QsExpression with
 
         /// Resolves and verifies the given array expression and index expression of an array item access expression,
         /// and returns the corresponding ArrayItem expression as typed expression.
-        let buildArrayItem (arr, idx: QsExpression) =
-            let arr = resolve arr
+        let buildArrayItem (array, index: QsExpression) =
+            let array = resolve array
 
-            match resolveSlicing arr idx with
-            | None -> { arr with ResolvedType = VerifyNumberedItemAccess inference arr |> takeDiagnostics }
-            | Some resolvedIdx ->
-                let resolvedType = VerifyArrayItem inference arr resolvedIdx |> takeDiagnostics
+            match resolveSlicing array index with
+            | None ->
+                { array with
+                    ResolvedType = VerifyArrayItem inference array (ResolvedType.New Range) |> takeDiagnostics
+                }
+            | Some index ->
+                let resolvedType = VerifyArrayItem inference array index.ResolvedType |> takeDiagnostics
 
                 let localQdependency =
-                    arr.InferredInformation.HasLocalQuantumDependency
-                    || resolvedIdx.InferredInformation.HasLocalQuantumDependency
+                    array.InferredInformation.HasLocalQuantumDependency
+                    || index.InferredInformation.HasLocalQuantumDependency
 
-                (ArrayItem(arr, resolvedIdx), resolvedType, localQdependency, this.Range)
-                |> ExprWithoutTypeArgs false
+                (ArrayItem(array, index), resolvedType, localQdependency, this.Range) |> ExprWithoutTypeArgs false
 
         /// Given a symbol used to represent an item name in an item access or update expression,
         /// returns the an identifier that can be used to represent the corresponding item name.
@@ -529,14 +523,14 @@ type QsExpression with
             | _ -> // by default, assume that the update expression is supposed to be for an array
                 match resolveSlicing lhs accEx with
                 | None -> // indicates a trivial slicing of the form "..." resulting in a complete replacement
-                    let expectedRhs = VerifyNumberedItemAccess inference lhs |> takeDiagnostics
+                    let expectedRhs = VerifyArrayItem inference lhs (ResolvedType.New Range) |> takeDiagnostics
 
                     VerifyAssignment inference expectedRhs ErrorCode.TypeMismatchInCopyAndUpdateExpr rhs
                     |> List.iter diagnose
 
                     { rhs with ResolvedType = expectedRhs }
                 | Some resAccEx -> // indicates either a index or index range to update
-                    let expectedRhs = VerifyArrayItem inference lhs resAccEx |> takeDiagnostics
+                    let expectedRhs = VerifyArrayItem inference lhs resAccEx.ResolvedType |> takeDiagnostics
 
                     VerifyAssignment inference expectedRhs ErrorCode.TypeMismatchInCopyAndUpdateExpr rhs
                     |> List.iter diagnose
