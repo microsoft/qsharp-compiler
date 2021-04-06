@@ -66,9 +66,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             /// </summary>
             public static void PopulateTrimmedGraph(GraphBuilder graph, QsCompilation compilation)
             {
+                var globals = compilation.Namespaces.GlobalCallableResolutions();
                 var walker = new BuildGraph(graph);
-                var entryPointNodes = compilation.EntryPoints.Select(name => new CallGraphNode(name));
                 walker.SharedState.WithTrimming = true;
+
+                var entryPointNodes = compilation.EntryPoints.Select(name => new CallGraphNode(name));
                 foreach (var entryPoint in entryPointNodes)
                 {
                     // Make sure all the entry points are added to the graph
@@ -76,7 +78,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     walker.SharedState.RequestStack.Push(entryPoint);
                 }
 
-                var globals = compilation.Namespaces.GlobalCallableResolutions();
+                var unitTests = globals
+                    .Where(kvp => kvp.Value.Attributes.Any(BuiltIn.MarksTestOperation))
+                    .Select(kvp => new CallGraphNode(kvp.Key));
+                foreach (var unitTest in unitTests)
+                {
+                    // Make sure all the unit tests are added to the graph
+                    walker.SharedState.Graph.AddNode(unitTest);
+                    walker.SharedState.RequestStack.Push(unitTest);
+                }
+
                 while (walker.SharedState.RequestStack.TryPop(out var currentRequest))
                 {
                     // If there is a call to an unknown callable, throw exception
