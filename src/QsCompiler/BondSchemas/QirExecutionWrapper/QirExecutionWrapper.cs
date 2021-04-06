@@ -27,6 +27,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
 {
+    using System.Collections.Generic;
+
     [global::Bond.Schema]
     [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
     public partial class QirExecutionWrapper
@@ -39,7 +41,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
 
         public QirExecutionWrapper()
             : this("Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper.QirExecutionWrapper", "QirExecutionWrapper")
-        {}
+        { }
 
         protected QirExecutionWrapper(string fullName, string name)
         {
