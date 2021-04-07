@@ -745,7 +745,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 var typeId = attribute.TypeId.IsValue
                     ? QsNullable<UserDefinedType>.NewValue(this.state.RenameUdt(attribute.TypeId.Item))
                     : attribute.TypeId;
-                return new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments);
+
+                return new QsDeclarationAttribute(
+                    typeId, attribute.TypeIdRange, argument, attribute.Offset, attribute.Comments);
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable callable) =>

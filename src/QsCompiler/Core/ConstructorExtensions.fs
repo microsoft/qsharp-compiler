@@ -248,11 +248,17 @@ type QsCustomType with
         }
 
 type QsDeclarationAttribute with
+    // TODO: RELEASE 2021-10: Remove member.
+    [<Obsolete "Use the overload of New with 5 parameters.">]
     static member New(typeId, arg, pos, comments) =
+        QsDeclarationAttribute.New(typeId, Null, arg, pos, comments)
+
+    static member New(typeId, typeIdRange, argument, offset, comments) =
         {
             TypeId = typeId
-            Argument = arg
-            Offset = pos
+            TypeIdRange = typeIdRange
+            Argument = argument
+            Offset = offset
             Comments = comments
         }
 

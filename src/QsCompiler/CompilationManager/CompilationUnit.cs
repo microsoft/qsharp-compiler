@@ -112,8 +112,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var attArg = SyntaxGenerator.StringLiteral(
                     originalName.ToString(),
                     ImmutableArray<TypedExpression>.Empty);
+
                 return new QsDeclarationAttribute(
                     QsNullable<UserDefinedType>.NewValue(attName),
+                    QsNullable<Range>.Null,
                     attArg,
                     declLocation,
                     QsComments.Empty);

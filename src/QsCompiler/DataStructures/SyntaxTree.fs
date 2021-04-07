@@ -871,13 +871,20 @@ type QsLocalSymbol =
 type QsDeclarationAttribute =
     {
         /// Identifies the user defined type that the attribute instantiates.
-        /// The range information describes the range occupied by the attribute identifier relative to the attribute offset.
         /// Is Null only if the correct attribute could not be determined. Attributes set to Null should be ignored.
         TypeId: QsNullable<UserDefinedType>
+
+        /// <summary>
+        /// The range of <see cref="TypeId"/> relative to <see cref="Offset"/>.
+        /// </summary>
+        TypeIdRange: QsNullable<Range>
+
         /// Contains the argument with which the attribute is instantiated.
         Argument: TypedExpression
+
         /// Represents the position in the source file where the attribute is used.
         Offset: Position
+
         /// contains comments in the code associated with the attached attribute
         Comments: QsComments
     }
