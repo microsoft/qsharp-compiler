@@ -1,0 +1,11 @@
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+import "EntryPoint/EntryPoint.bond";
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper;
+
+struct QirExecutionWrapper
+{
+    5: Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint.EntryPointOperation EntryPoint;
+    10: blob QirBytecode;
+}
