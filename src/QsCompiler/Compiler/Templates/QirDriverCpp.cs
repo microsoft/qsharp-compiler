@@ -52,7 +52,7 @@ using namespace std;
 ");
             
             #line 26 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- if (CppInterop.AtLeastOneArrayArgument(entryPointOperation)) { 
+ if (CppInterop.ContainsArgumentType(entryPointOperation, DataType.ArrayType)) { 
             
             #line default
             #line hidden
@@ -67,7 +67,7 @@ using namespace std;
             this.Write("\r\n\r\n");
             
             #line 39 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- if (CppInterop.AtLeastOneRangeArgument(entryPointOperation)) { 
+ if (CppInterop.ContainsArgumentType(entryPointOperation, DataType.RangeType)) { 
             
             #line default
             #line hidden

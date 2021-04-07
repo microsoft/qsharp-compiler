@@ -136,23 +136,11 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static bool AtLeastOneArrayArgument(EntryPointOperation op)
+        public static bool ContainsArgumentType(EntryPointOperation op, DataType type)
         {
             foreach (Argument arg in op.Arguments)
             {
-                if (arg.Type == DataType.ArrayType)
-                {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        public static bool AtLeastOneRangeArgument(EntryPointOperation op)
-        {
-            foreach (Argument arg in op.Arguments)
-            {
-                if (arg.Type == DataType.RangeType)
+                if (arg.Type == type)
                 {
                     return true;
                 }
