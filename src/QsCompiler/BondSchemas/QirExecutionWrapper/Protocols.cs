@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
         /// <summary>
         /// Serializes a QirExecutionWrapper object to its fast binary representation.
         /// </summary>
-        internal static void SerializeToFastBinary(QirExecutionWrapper sandboxInput, Stream stream)
+        public static void SerializeToFastBinary(QirExecutionWrapper sandboxInput, Stream stream)
         {
             var outputBuffer = new OutputBuffer();
             var writer = new FastBinaryWriter<OutputBuffer>(outputBuffer);
