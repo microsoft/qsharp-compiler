@@ -175,7 +175,7 @@ let internal verifyIsIterable (inference: InferenceContext) expr =
 /// Verifies that <paramref name="lhs"/> and <paramref name="rhs"/> have an intersecting semigroup type.
 /// </summary>
 /// <returns>The intersection type and the diagnostics.</returns>
-let private verifyConcatenation (inference: InferenceContext) range lhs rhs =
+let private verifySemigroup (inference: InferenceContext) range lhs rhs =
     let exType, intersectDiagnostics = inference.Intersect(lhs.ResolvedType, rhs.ResolvedType)
     let exType = exType |> ResolvedType.withAllRanges (TypeRange.inferred range)
     let constrainDiagnostics = inference.Constrain(exType, Semigroup)
@@ -628,7 +628,7 @@ type QsExpression with
         let buildAddition (lhs, rhs) =
             let lhs = resolve lhs
             let rhs = resolve rhs
-            let resolvedType = verifyConcatenation inference this.Range lhs rhs |> takeDiagnostics
+            let resolvedType = verifySemigroup inference this.Range lhs rhs |> takeDiagnostics
 
             let localQdependency =
                 lhs.InferredInformation.HasLocalQuantumDependency
