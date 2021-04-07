@@ -11,7 +11,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
     /// <summary>
     /// This class provides methods for serialization/deserialization of objects in the Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper namespace.
     /// </summary>
-    internal static class Protocols
+    public static class Protocols
     {
         /// <summary>
         /// Deserializes a QirExecutionWrapper object from its fast binary representation.
@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
         /// <summary>
         /// Serializes a QirExecutionWrapper object to its fast binary representation.
         /// </summary>
-        public static void SerializeToFastBinary(QirExecutionWrapper sandboxInput, Stream stream)
+        internal static void SerializeToFastBinary(QirExecutionWrapper sandboxInput, Stream stream)
         {
             var outputBuffer = new OutputBuffer();
             var writer = new FastBinaryWriter<OutputBuffer>(outputBuffer);
