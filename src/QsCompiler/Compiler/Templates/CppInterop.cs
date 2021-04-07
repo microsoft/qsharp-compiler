@@ -48,22 +48,22 @@ namespace Microsoft.Quantum.QsCompiler.Templates
         {
             return this.Type switch
             {
-                DataType.BoolType => "A bool value",
-                DataType.IntegerType => "An integer value",
-                DataType.DoubleType => "A double value",
-                DataType.PauliType => "A Pauli value",
-                DataType.RangeType => "A Range value (start, step, end)",
-                DataType.ResultType => "A Result value",
-                DataType.StringType => "A String value",
+                DataType.BoolType => $"A bool value for the {this.Name} argument",
+                DataType.IntegerType => $"An integer value for the {this.Name} argument",
+                DataType.DoubleType => $"A double value for the {this.Name} argument",
+                DataType.PauliType => $"A Pauli value for the {this.Name} argument",
+                DataType.RangeType => $"A Range value (start, step, end) for the {this.Name} argument",
+                DataType.ResultType => $"A Result value for the {this.Name} argument",
+                DataType.StringType => $"A String value for the {this.Name} argument",
                 DataType.ArrayType => this.ArrayType switch
                 {
-                    DataType.BoolType => "A bool array",
-                    DataType.IntegerType => "An integer array",
-                    DataType.DoubleType => "A double array",
-                    DataType.PauliType => "A Pauli array",
-                    DataType.RangeType => "A Range array",
-                    DataType.ResultType => "A Result array",
-                    DataType.StringType => "A String array",
+                    DataType.BoolType => $"A bool array for the {this.Name} argument",
+                    DataType.IntegerType => $"An integer array for the {this.Name} argument",
+                    DataType.DoubleType => $"A double array for the {this.Name} argument",
+                    DataType.PauliType => $"A Pauli array for the {this.Name} argument",
+                    DataType.RangeType => $"A Range array for the {this.Name} argument",
+                    DataType.ResultType => $"A Result array for the {this.Name} argument",
+                    DataType.StringType => $"A String array for the {this.Name} argument",
                 },
             };
         }
