@@ -1,6 +1,8 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#nullable enable
+
 using System;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
@@ -17,11 +19,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
         /// </summary>
         public static bool ValueEquals(this QirExecutionWrapper executionWrapperA, QirExecutionWrapper executionWrapperB)
         {
-            if (executionWrapperB == null)
-            {
-                return false;
-            }
-
             if (!executionWrapperA.EntryPoint.ValueEquals(executionWrapperB.EntryPoint))
             {
                 return false;
