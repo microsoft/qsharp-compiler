@@ -101,6 +101,11 @@ let private verifyConditionalExecution (expr: TypedExpression) =
 /// <summary>
 /// Verifies that <paramref name="resolvedType"/> is a user-defined type.
 /// </summary>
+/// <param name="processUdt">
+/// Given a function to add diagnostics, and a user-defined type, extracts a resolved type from the user-defined type.
+/// </param>
+/// <param name="resolvedType">The resolved type to verify.</param>
+/// <param name="range">The diagnostic range.</param>
 /// <returns>The result of applying <paramref name="processUdt"/> to the UDT and the diagnostics.</returns>
 let private verifyUdtWith processUdt (resolvedType: ResolvedType) range =
     match resolvedType.Resolution with
