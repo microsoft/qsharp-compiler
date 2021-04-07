@@ -52,7 +52,7 @@ using namespace std;
 ");
             
             #line 26 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- if (CppInterop.ContainsArgumentType(entryPointOperation, DataType.ArrayType)) { 
+ if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
             
             #line default
             #line hidden
@@ -67,7 +67,7 @@ using namespace std;
             this.Write("\r\n\r\n");
             
             #line 39 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- if (CppInterop.ContainsArgumentType(entryPointOperation, DataType.RangeType)) { 
+ if (entryPointOperation.ContainsArgumentType(DataType.RangeType)) { 
             
             #line default
             #line hidden
@@ -106,10 +106,10 @@ struct InteropRange
             this.Write("( // NOLINT\r\n");
             
             #line 61 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- for (int i = 0; i < CppInterop.GetSortedArguments(entryPointOperation).Count; i++) {
-    var arg = CppInterop.GetSortedArguments(entryPointOperation)[i];
-    Write($"    {CppInterop.CppType(arg)} {arg.Name}");
-    if (i < CppInterop.GetSortedArguments(entryPointOperation).Count-1) {
+ for (int i = 0; i < entryPointOperation.InteropArguments.Count; i++) {
+    var arg = entryPointOperation.InteropArguments[i];
+    Write($"    {arg.CppType()} {arg.Name}");
+    if (i < entryPointOperation.InteropArguments.Count-1) {
         WriteLine(",");
     }
 } 
@@ -149,15 +149,15 @@ struct InteropRange
                     " produced during the simulation is written\");\r\n    \r\n");
             
             #line 154 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
+ foreach (var arg in entryPointOperation.InteropArguments) {
     WriteLine("");
-    WriteLine($"    {CppInterop.CppVarType(arg)} {arg.Name};"); 
-    if (CppInterop.CppVarInitialValue(arg) != null) { WriteLine($"    {arg.Name} = {CppInterop.CppVarInitialValue(arg)};"); }
-    WriteLine($"    app.add_option(\"{CppInterop.CliOptionString(arg)}\", {arg.Name}, \"{CppInterop.CliDescription(arg)}\")");
-    if (CppInterop.TransformationType(arg) == null) {
+    WriteLine($"    {arg.CppVarType()} {arg.Name};"); 
+    if (arg.CppVarInitialValue() != null) { WriteLine($"    {arg.Name} = {arg.CppVarInitialValue()};"); }
+    WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")");
+    if (arg.TransformationType() == null) {
         WriteLine("        ->required();");
     } else {
-        WriteLine($"        ->required()->transform(CLI::CheckedTransformer({CppInterop.TransformationType(arg)}, CLI::ignore_case));");
+        WriteLine($"        ->required()->transform(CLI::CheckedTransformer({arg.TransformationType()}, CLI::ignore_case));");
     }
 } 
             
@@ -167,7 +167,7 @@ struct InteropRange
                     "CLI11_PARSE(app, argc, argv);\r\n\r\n");
             
             #line 169 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
+ foreach (var arg in entryPointOperation.InteropArguments) {
     switch (arg.Type) {
         case DataType.PauliType:
             WriteLine("    // Translate a PauliID value to its char representation.");
@@ -241,8 +241,8 @@ struct InteropRange
             this.Write("(\r\n");
             
             #line 231 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- for (int i = 0; i < CppInterop.GetSortedArguments(entryPointOperation).Count; i++) {
-    var arg = CppInterop.GetSortedArguments(entryPointOperation)[i];
+ for (int i = 0; i < entryPointOperation.InteropArguments.Count; i++) {
+    var arg = entryPointOperation.InteropArguments[i];
     switch (arg.Type) {
         case DataType.PauliType:
             Write($"        {arg.Name}AsCharValue");
@@ -260,7 +260,7 @@ struct InteropRange
             Write($"        {arg.Name}");
             break;
     }
-    if (i < CppInterop.GetSortedArguments(entryPointOperation).Count-1 ) {
+    if (i < entryPointOperation.InteropArguments.Count-1 ) {
         WriteLine(",");
     }
 } 
@@ -270,7 +270,7 @@ struct InteropRange
             this.Write("\r\n);\r\n\r\n");
             
             #line 257 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
- foreach (var arg in CppInterop.GetSortedArguments(entryPointOperation)) {
+ foreach (var arg in entryPointOperation.InteropArguments) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
         Write($"    FreePointerVector({arg.Name}Vector);");
     }

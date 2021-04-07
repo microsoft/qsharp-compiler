@@ -1,16 +1,25 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Text;
 using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
 
 namespace Microsoft.Quantum.QsCompiler.Templates
 {
-    public static class CppInterop
+    public class ArgumentCpp : Argument
     {
-
-        public static string CppType(Argument arg)
+        public ArgumentCpp(Argument argument)
         {
-            return arg.Type switch
+            this.Name = argument.Name;
+            this.Position = argument.Position;
+            this.Type = argument.Type;
+            this.ArrayType = argument.ArrayType;
+            this.Values = argument.Values.ToList();
+        }
+
+        public string CppType()
+        {
+            return this.Type switch
             {
                 DataType.BoolType => "char",
                 DataType.IntegerType => "int64_t",
@@ -23,20 +32,21 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static string CliOptionString(Argument arg)
+        public string CliOptionString()
         {
-            if (arg.Name.Length == 1)
+            if (this.Name.Length == 1)
             {
-                return $"-{arg.Name}";
-            } else
+                return $"-{this.Name}";
+            }
+            else
             {
-                return $"--{arg.Name}";
+                return $"--{this.Name}";
             }
         }
 
-        public static string? CliDescription(Argument arg)
+        public string? CliDescription()
         {
-            return arg.Type switch
+            return this.Type switch
             {
                 DataType.BoolType => "A bool value",
                 DataType.IntegerType => "An integer value",
@@ -45,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => "A Range value (start, step, end)",
                 DataType.ResultType => "A Result value",
                 DataType.StringType => "A String value",
-                DataType.ArrayType => arg.ArrayType switch
+                DataType.ArrayType => this.ArrayType switch
                 {
                     DataType.BoolType => "A bool array",
                     DataType.IntegerType => "An integer array",
@@ -58,9 +68,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static string? CppVarType(Argument arg)
+        public string? CppVarType()
         {
-            return arg.Type switch
+            return this.Type switch
             {
                 DataType.BoolType => "char",
                 DataType.IntegerType => "int64_t",
@@ -69,7 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => "RangeTuple",
                 DataType.ResultType => "char",
                 DataType.StringType => "string",
-                DataType.ArrayType => arg.ArrayType switch
+                DataType.ArrayType => this.ArrayType switch
                 {
                     DataType.BoolType => "vector<char>",
                     DataType.IntegerType => "vector<int64_t>",
@@ -82,15 +92,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static List<Argument> GetSortedArguments(EntryPointOperation op)
+        public string? CppVarInitialValue()
         {
-            op.Arguments.Sort((a, b) => a.Position.CompareTo(b.Position));
-            return op.Arguments;
-        }
-
-        public static string? CppVarInitialValue(Argument arg)
-        {
-            return arg.Type switch
+            return this.Type switch
             {
                 DataType.BoolType => "InteropFalseAsChar",
                 DataType.IntegerType => "0",
@@ -99,7 +103,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => null,
                 DataType.ResultType => "InteropResultZeroAsChar",
                 DataType.StringType => null,
-                DataType.ArrayType => arg.ArrayType switch
+                DataType.ArrayType => this.ArrayType switch
                 {
                     DataType.BoolType => null,
                     DataType.IntegerType => null,
@@ -112,9 +116,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static string? TransformationType(Argument arg)
+        public string? TransformationType()
         {
-            return arg.Type switch
+            return this.Type switch
             {
                 DataType.BoolType => "BoolAsCharMap",
                 DataType.IntegerType => null,
@@ -123,7 +127,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => null,
                 DataType.ResultType => "ResultAsCharMap",
                 DataType.StringType => null,
-                DataType.ArrayType => arg.ArrayType switch
+                DataType.ArrayType => this.ArrayType switch
                 {
                     DataType.BoolType => "BoolAsCharMap",
                     DataType.IntegerType => null,
@@ -135,10 +139,23 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 },
             };
         }
+    }
 
-        public static bool ContainsArgumentType(EntryPointOperation op, DataType type)
+    public class EntryPointOperationCpp : EntryPointOperation
+    {
+        public List<ArgumentCpp> InteropArguments;
+
+        public EntryPointOperationCpp(EntryPointOperation entryPointOperation)
         {
-            foreach (Argument arg in op.Arguments)
+            this.Name = entryPointOperation.Name;
+            this.Arguments = entryPointOperation.Arguments.ToList();
+            this.Arguments.Sort((a, b) => a.Position.CompareTo(b.Position));
+            this.InteropArguments = entryPointOperation.Arguments.Select(arg => new ArgumentCpp(arg)).ToList();
+        }
+
+        public bool ContainsArgumentType(DataType type)
+        {
+            foreach (Argument arg in this.Arguments)
             {
                 if (arg.Type == type)
                 {
