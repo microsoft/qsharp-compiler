@@ -1,7 +1,9 @@
-﻿using System;
+﻿// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Text;
 using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
 
 namespace Microsoft.Quantum.QsCompiler.Templates
@@ -29,6 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.ResultType => "char",
                 DataType.StringType => "const char*",
                 DataType.ArrayType => "InteropArray *",
+                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
         }
 
