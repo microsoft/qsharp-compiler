@@ -537,6 +537,10 @@ type GlobalVerificationTests() =
         this.Expect "ValidAttributes8" []
         this.Expect "ValidAttributes9" []
         this.Expect "ValidAttributes10" []
+        this.Expect "ValidAttributes11" []
+        this.Expect "ValidAttributes12" []
+        // TODO: Support empty arrays.
+        // this.Expect "ValidAttributes13" []
 
         this.Expect "AttributeDuplication1" [ Warning WarningCode.DuplicateAttribute ]
         this.Expect "AttributeDuplication2" [ Warning WarningCode.DuplicateAttribute ]
