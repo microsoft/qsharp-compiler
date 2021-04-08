@@ -177,5 +177,17 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             }
             return false;
         }
+
+        public bool ContainsArrayType(DataType type)
+        {
+            foreach (Argument arg in this.Arguments)
+            {
+                if (arg.ArrayType == type)
+                {
+                    return true;
+                }
+            }
+            return false;
+        }
     }
 }

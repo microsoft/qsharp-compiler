@@ -70,20 +70,7 @@ unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
     return array;
 }
 
-unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)
-{
-    unique_ptr<InteropRange> range(new InteropRange(rangeTuple));
-    return range;
-}
 
-template<typename T>
-void FreePointerVector(vector<T*>& v)
-{
-    for (auto p : v)
-    {
-        delete p;
-    }
-}
 
 char TranslatePauliToChar(PauliId& pauli)
 {
@@ -97,16 +84,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 }
 
-InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
-{
-    InteropRange* range = new InteropRange(rangeTuple);
-    return range;
-}
 
-const char* TranslateStringToCharBuffer(string& s)
-{
-    return s.c_str();
-}
 
 int main(int argc, char* argv[])
 {

@@ -38,28 +38,8 @@ extern "C" void UseDoubleArrayArg( // NOLINT
     InteropArray * DoubleArrayArg
 );
 
-const char InteropFalseAsChar = 0x0;
-const char InteropTrueAsChar = 0x1;
-map<string, bool> BoolAsCharMap{
-    {"0", InteropFalseAsChar},
-    {"false", InteropFalseAsChar},
-    {"1", InteropTrueAsChar},
-    {"true", InteropTrueAsChar}};
 
-map<string, PauliId> PauliMap{
-    {"PauliI", PauliId::PauliId_I},
-    {"PauliX", PauliId::PauliId_X},
-    {"PauliY", PauliId::PauliId_Y},
-    {"PauliZ", PauliId::PauliId_Z}};
 
-const char InteropResultZeroAsChar = 0x0;
-const char InteropResultOneAsChar = 0x1;
-map<string, char> ResultAsCharMap{
-    {"0", InteropResultZeroAsChar},
-    {"Zero", InteropResultZeroAsChar},
-    {"1", InteropResultOneAsChar},
-    {"One", InteropResultOneAsChar}
-};
 
 template<typename T>
 unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
@@ -68,25 +48,8 @@ unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
     return array;
 }
 
-unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)
-{
-    unique_ptr<InteropRange> range(new InteropRange(rangeTuple));
-    return range;
-}
 
-template<typename T>
-void FreePointerVector(vector<T*>& v)
-{
-    for (auto p : v)
-    {
-        delete p;
-    }
-}
 
-char TranslatePauliToChar(PauliId& pauli)
-{
-    return static_cast<char>(pauli);
-}
 
 template<typename S, typename D>
 void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
@@ -95,16 +58,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 }
 
-InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
-{
-    InteropRange* range = new InteropRange(rangeTuple);
-    return range;
-}
 
-const char* TranslateStringToCharBuffer(string& s)
-{
-    return s.c_str();
-}
 
 int main(int argc, char* argv[])
 {

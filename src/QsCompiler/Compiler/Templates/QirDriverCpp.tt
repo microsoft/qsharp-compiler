@@ -68,6 +68,7 @@ extern "C" void <#= entryPointOperation.Name #>( // NOLINT
 
 );
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { #>
 const char InteropFalseAsChar = 0x0;
 const char InteropTrueAsChar = 0x1;
 map<string, bool> BoolAsCharMap{
@@ -75,13 +76,17 @@ map<string, bool> BoolAsCharMap{
     {"false", InteropFalseAsChar},
     {"1", InteropTrueAsChar},
     {"true", InteropTrueAsChar}};
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { #>
 map<string, PauliId> PauliMap{
     {"PauliI", PauliId::PauliId_I},
     {"PauliX", PauliId::PauliId_X},
     {"PauliY", PauliId::PauliId_Y},
     {"PauliZ", PauliId::PauliId_Z}};
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { #>
 const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
 map<string, char> ResultAsCharMap{
@@ -90,20 +95,26 @@ map<string, char> ResultAsCharMap{
     {"1", InteropResultOneAsChar},
     {"One", InteropResultOneAsChar}
 };
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { #>
 template<typename T>
 unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
 {
     unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));
     return array;
 }
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { #>
 unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)
 {
     unique_ptr<InteropRange> range(new InteropRange(rangeTuple));
     return range;
 }
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.RangeType)) { #>
 template<typename T>
 void FreePointerVector(vector<T*>& v)
 {
@@ -112,29 +123,38 @@ void FreePointerVector(vector<T*>& v)
         delete p;
     }
 }
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { #>
 char TranslatePauliToChar(PauliId& pauli)
 {
     return static_cast<char>(pauli);
 }
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { #>
 template<typename S, typename D>
 void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 }
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { #>
 InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
 {
     InteropRange* range = new InteropRange(rangeTuple);
     return range;
 }
+<# } #>
 
+<# if (entryPointOperation.ContainsArgumentType(DataType.StringType) || entryPointOperation.ContainsArrayType(DataType.StringType)) { #>
 const char* TranslateStringToCharBuffer(string& s)
 {
     return s.c_str();
 }
+<# } #>
 
 int main(int argc, char* argv[])
 {

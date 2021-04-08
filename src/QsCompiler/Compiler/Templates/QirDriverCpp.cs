@@ -83,37 +83,90 @@ struct InteropRange
         WriteLine(",");
     }
 } 
-            this.Write("\r\n);\r\n\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;" +
-                    "\r\nmap<string, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\"" +
-                    ", InteropFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueA" +
-                    "sChar}};\r\n\r\nmap<string, PauliId> PauliMap{\r\n    {\"PauliI\", PauliId::PauliId_I},\r" +
-                    "\n    {\"PauliX\", PauliId::PauliId_X},\r\n    {\"PauliY\", PauliId::PauliId_Y},\r\n    {" +
-                    "\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\nconst char InteropResultZeroAsChar = 0x0;\r\nco" +
-                    "nst char InteropResultOneAsChar = 0x1;\r\nmap<string, char> ResultAsCharMap{\r\n    " +
-                    "{\"0\", InteropResultZeroAsChar},\r\n    {\"Zero\", InteropResultZeroAsChar},\r\n    {\"1" +
-                    "\", InteropResultOneAsChar},\r\n    {\"One\", InteropResultOneAsChar}\r\n};\r\n\r\ntemplate" +
-                    "<typename T>\r\nunique_ptr<InteropArray> CreateInteropArray(vector<T>& v)\r\n{\r\n    " +
-                    "unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));\r\n    retur" +
-                    "n array;\r\n}\r\n\r\nunique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple" +
-                    ")\r\n{\r\n    unique_ptr<InteropRange> range(new InteropRange(rangeTuple));\r\n    ret" +
-                    "urn range;\r\n}\r\n\r\ntemplate<typename T>\r\nvoid FreePointerVector(vector<T*>& v)\r\n{\r" +
-                    "\n    for (auto p : v)\r\n    {\r\n        delete p;\r\n    }\r\n}\r\n\r\nchar TranslatePauli" +
-                    "ToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli);\r\n}\r\n\r\ntemplate<t" +
-                    "ypename S, typename D>\r\nvoid TranslateVector(vector<S>& sourceVector, vector<D>&" +
-                    " destinationVector, function<D(S&)> translationFunction)\r\n{\r\n    destinationVect" +
-                    "or.resize(sourceVector.size());\r\n    transform(sourceVector.begin(), sourceVecto" +
-                    "r.end(), destinationVector.begin(), translationFunction);\r\n}\r\n\r\nInteropRange* Tr" +
-                    "anslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)\r\n{\r\n    InteropRa" +
-                    "nge* range = new InteropRange(rangeTuple);\r\n    return range;\r\n}\r\n\r\nconst char* " +
-                    "TranslateStringToCharBuffer(string& s)\r\n{\r\n    return s.c_str();\r\n}\r\n\r\nint main(" +
-                    "int argc, char* argv[])\r\n{\r\n    CLI::App app(\"QIR Standalone Entry Point Inputs " +
-                    "Reference\");\r\n\r\n    // Initialize simulator.\r\n    unique_ptr<IRuntimeDriver> sim" +
-                    " = CreateFullstateSimulator();\r\n    QirContextScope qirctx(sim.get(), false /*tr" +
-                    "ackAllocatedObjects*/);\r\n\r\n    // Add the --simulation-output options.\r\n    // N" +
-                    ".B. This option should be present in all standalone drivers.\r\n    string simulat" +
-                    "ionOutputFile;\r\n    CLI::Option* simulationOutputFileOpt = app.add_option(\r\n    " +
-                    "    \"--simulation-output\", simulationOutputFile,\r\n        \"File where the output" +
-                    " produced during the simulation is written\");\r\n    \r\n");
+            this.Write("\r\n);\r\n\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { 
+            this.Write("const char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\nmap<st" +
+                    "ring, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", Intero" +
+                    "pFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}};" +
+                    "\r\n");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
+            this.Write("map<string, PauliId> PauliMap{\r\n    {\"PauliI\", PauliId::PauliId_I},\r\n    {\"PauliX" +
+                    "\", PauliId::PauliId_X},\r\n    {\"PauliY\", PauliId::PauliId_Y},\r\n    {\"PauliZ\", Pau" +
+                    "liId::PauliId_Z}};\r\n");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { 
+            this.Write(@"const char InteropResultZeroAsChar = 0x0;
+const char InteropResultOneAsChar = 0x1;
+map<string, char> ResultAsCharMap{
+    {""0"", InteropResultZeroAsChar},
+    {""Zero"", InteropResultZeroAsChar},
+    {""1"", InteropResultOneAsChar},
+    {""One"", InteropResultOneAsChar}
+};
+");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
+            this.Write("template<typename T>\r\nunique_ptr<InteropArray> CreateInteropArray(vector<T>& v)\r\n" +
+                    "{\r\n    unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));\r\n  " +
+                    "  return array;\r\n}\r\n");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
+            this.Write("unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)\r\n{\r\n    unique" +
+                    "_ptr<InteropRange> range(new InteropRange(rangeTuple));\r\n    return range;\r\n}\r\n");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.RangeType)) { 
+            this.Write("template<typename T>\r\nvoid FreePointerVector(vector<T*>& v)\r\n{\r\n    for (auto p :" +
+                    " v)\r\n    {\r\n        delete p;\r\n    }\r\n}\r\n");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
+            this.Write("char TranslatePauliToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli)" +
+                    ";\r\n}\r\n");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
+            this.Write(@"template<typename S, typename D>
+void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
+{
+    destinationVector.resize(sourceVector.size());
+    transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+}
+");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
+            this.Write("InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)\r\n{" +
+                    "\r\n    InteropRange* range = new InteropRange(rangeTuple);\r\n    return range;\r\n}\r" +
+                    "\n");
+ } 
+            this.Write("\r\n");
+ if (entryPointOperation.ContainsArgumentType(DataType.StringType) || entryPointOperation.ContainsArrayType(DataType.StringType)) { 
+            this.Write("const char* TranslateStringToCharBuffer(string& s)\r\n{\r\n    return s.c_str();\r\n}\r\n" +
+                    "");
+ } 
+            this.Write(@"
+int main(int argc, char* argv[])
+{
+    CLI::App app(""QIR Standalone Entry Point Inputs Reference"");
+
+    // Initialize simulator.
+    unique_ptr<IRuntimeDriver> sim = CreateFullstateSimulator();
+    QirContextScope qirctx(sim.get(), false /*trackAllocatedObjects*/);
+
+    // Add the --simulation-output options.
+    // N.B. This option should be present in all standalone drivers.
+    string simulationOutputFile;
+    CLI::Option* simulationOutputFileOpt = app.add_option(
+        ""--simulation-output"", simulationOutputFile,
+        ""File where the output produced during the simulation is written"");
+    
+");
  foreach (var arg in entryPointOperation.InteropArguments) {
     WriteLine("");
     WriteLine($"    {arg.CppVarType()} {arg.Name};"); 
