@@ -2,7 +2,7 @@ namespace Microsoft.Quantum.Arrays {
     
     function IndexRange<'T> (array : 'T[]) : Range {
         
-        return 0 .. Length(array) - 1;
+        return 0 .. Length<'T>(array) - 1;
     }
     
     
