@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => $"Range array",
                     DataType.ResultType => $"Result array",
                     DataType.StringType => $"String array",
-                    _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
+                    _ => throw new NotSupportedException($"Unsupported array type {this.Type}")
                 },
                 _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
@@ -95,7 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => "vector<RangeTuple>",
                     DataType.ResultType => "vector<char>",
                     DataType.StringType => "vector<string>",
-                    _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
+                    _ => throw new NotSupportedException($"Unsupported array type {this.Type}")
                 },
                 _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => null,
                     DataType.ResultType => null,
                     DataType.StringType => null,
-                    _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
+                    _ => throw new NotSupportedException($"Unsupported array type {this.Type}")
                 },
                 _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
@@ -147,7 +147,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => null,
                     DataType.ResultType => "ResultAsCharMap",
                     DataType.StringType => null,
-                    _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
+                    _ => throw new NotSupportedException($"Unsupported array type {this.Type}")
                 },
                 _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
