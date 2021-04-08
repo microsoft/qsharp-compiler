@@ -79,7 +79,9 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     let sampleEntryPointOperations =
         Map
             .empty
-            .Add("UseNoArgs", (new EntryPointOperation(Name = "UseNoArgs"), Path.Join(testCasesDirectory, "UseNoArgs.json") |> File.ReadAllText))
+            .Add("UseNoArgs",
+                 (new EntryPointOperation(Name = "UseNoArgs"),
+                  Path.Join(testCasesDirectory, "UseNoArgs.json") |> File.ReadAllText))
             .Add("UseBoolArg",
                  (createEntryPointOperation ("UseBoolArg", [ createArgument ("BoolArg", DataType.BoolType, 0, []) ]),
                   Path.Join(testCasesDirectory, "UseBoolArg.json") |> File.ReadAllText))
