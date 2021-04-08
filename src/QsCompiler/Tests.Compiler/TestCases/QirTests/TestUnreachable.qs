@@ -3,7 +3,7 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
-    function TestUnreachable (a : Int, b : Int) : Int
+    function TestUnreachable1 (a : Int, b : Int) : Int
     {
         let c = a + b;
 
@@ -26,5 +26,32 @@ namespace Microsoft.Quantum.Testing.QIR
         let f = c + b;
         return f;
         return c;
+    }
+
+    function TestUnreachable2 (a : Int, b : Int) : Int
+    {
+        let c = a + b;
+        return c;
+
+        if (c == 5)
+        {
+            return a;
+        }
+        else
+        {
+            return b;
+        }
+    }
+
+    function TestUnreachable3 (a : Int) : Int
+    {
+        mutable results = new Int[0];
+        return a;
+        
+        for index in 0 .. a - 1 {
+            set results += [index];
+        }
+
+        return a;
     }
 }

@@ -1,4 +1,4 @@
-﻿define i64 @Microsoft__Quantum__Testing__QIR__TestUnreachable__body(i64 %a, i64 %b) {
+﻿define i64 @Microsoft__Quantum__Testing__QIR__TestUnreachable1__body(i64 %a, i64 %b) {
 entry:
   %c = add i64 %a, %b
   %0 = icmp eq i64 %c, 5

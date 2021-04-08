@@ -28,7 +28,13 @@
     <Content Include="TestCases\QirEntryPointTests\TestUnitReceivesBool.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <None Include="TestCases\QirTests\TestUnreachable.ll">
+    <None Include="TestCases\QirTests\TestUnreachable2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirTests\TestUnreachable3.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirTests\TestUnreachable1.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\QirTests\TestUnreachable.qs">
