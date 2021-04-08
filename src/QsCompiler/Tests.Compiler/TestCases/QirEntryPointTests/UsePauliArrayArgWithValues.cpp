@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
     
 
     std::vector<PauliId> PauliArrayArg;
-    app.add_option("--PauliArrayArg", PauliArrayArg, "A Pauli array for the PauliArrayArg argument")
+    app.add_option("--PauliArrayArg", PauliArrayArg, "A Pauli array value for the PauliArrayArg argument")
         ->required()->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.

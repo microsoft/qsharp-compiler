@@ -131,7 +131,7 @@ int main(int argc, char* argv[])
     
 
     RangeTuple RangeArg;
-    app.add_option("--RangeArg", RangeArg, "A Range value (start, step, end) for the RangeArg argument")
+    app.add_option("--RangeArg", RangeArg, "A Range (start, step, end) value for the RangeArg argument")
         ->required();
 
     // With all the options added, parse arguments from the command line.

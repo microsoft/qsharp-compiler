@@ -44,29 +44,33 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             }
         }
 
-        public string? CliDescription()
+        public string CliTypeDescription()
         {
             return this.Type switch
             {
-                DataType.BoolType => $"A bool value for the {this.Name} argument",
-                DataType.IntegerType => $"An integer value for the {this.Name} argument",
-                DataType.DoubleType => $"A double value for the {this.Name} argument",
-                DataType.PauliType => $"A Pauli value for the {this.Name} argument",
-                DataType.RangeType => $"A Range value (start, step, end) for the {this.Name} argument",
-                DataType.ResultType => $"A Result value for the {this.Name} argument",
-                DataType.StringType => $"A String value for the {this.Name} argument",
+                DataType.BoolType => $"bool",
+                DataType.IntegerType => $"integer",
+                DataType.DoubleType => $"double",
+                DataType.PauliType => $"Pauli",
+                DataType.RangeType => $"Range (start, step, end)",
+                DataType.ResultType => $"Result",
+                DataType.StringType => $"String",
                 DataType.ArrayType => this.ArrayType switch
                 {
-                    DataType.BoolType => $"A bool array for the {this.Name} argument",
-                    DataType.IntegerType => $"An integer array for the {this.Name} argument",
-                    DataType.DoubleType => $"A double array for the {this.Name} argument",
-                    DataType.PauliType => $"A Pauli array for the {this.Name} argument",
-                    DataType.RangeType => $"A Range array for the {this.Name} argument",
-                    DataType.ResultType => $"A Result array for the {this.Name} argument",
-                    DataType.StringType => $"A String array for the {this.Name} argument",
+                    DataType.BoolType => $"bool array",
+                    DataType.IntegerType => $"integer array",
+                    DataType.DoubleType => $"double array",
+                    DataType.PauliType => $"Pauli array",
+                    DataType.RangeType => $"Range array",
+                    DataType.ResultType => $"Result array",
+                    DataType.StringType => $"String array",
+                    _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
                 },
+                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
         }
+
+        public string CliDescription() => $"A {this.CliTypeDescription()} value for the {this.Name} argument";
 
         public string? CppVarType()
         {
@@ -88,7 +92,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => "vector<RangeTuple>",
                     DataType.ResultType => "vector<char>",
                     DataType.StringType => "vector<string>",
+                    _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
                 },
+                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
         }
 
@@ -112,7 +118,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => null,
                     DataType.ResultType => null,
                     DataType.StringType => null,
+                    _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
                 },
+                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
         }
 
@@ -136,7 +144,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => null,
                     DataType.ResultType => "ResultAsCharMap",
                     DataType.StringType => null,
+                    _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
                 },
+                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
         }
     }

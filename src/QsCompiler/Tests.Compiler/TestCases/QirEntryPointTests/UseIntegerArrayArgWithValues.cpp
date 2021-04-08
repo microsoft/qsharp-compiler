@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
     
 
     vector<int64_t> IntegerArrayArg;
-    app.add_option("--IntegerArrayArg", IntegerArrayArg, "An integer array for the IntegerArrayArg argument")
+    app.add_option("--IntegerArrayArg", IntegerArrayArg, "A integer array value for the IntegerArrayArg argument")
         ->required();
 
     // With all the options added, parse arguments from the command line.

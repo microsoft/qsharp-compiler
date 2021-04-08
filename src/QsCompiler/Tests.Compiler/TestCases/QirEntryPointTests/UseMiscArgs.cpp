@@ -135,7 +135,7 @@ int main(int argc, char* argv[])
         ->required()->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
     vector<char> ResultArrayArg;
-    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array for the ResultArrayArg argument")
+    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array value for the ResultArrayArg argument")
         ->required()->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.

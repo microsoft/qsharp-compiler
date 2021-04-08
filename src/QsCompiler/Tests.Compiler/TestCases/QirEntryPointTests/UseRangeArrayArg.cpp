@@ -123,7 +123,7 @@ int main(int argc, char* argv[])
     
 
     vector<RangeTuple> RangeArrayArg;
-    app.add_option("--RangeArrayArg", RangeArrayArg, "A Range array for the RangeArrayArg argument")
+    app.add_option("--RangeArrayArg", RangeArrayArg, "A Range array value for the RangeArrayArg argument")
         ->required();
 
     // With all the options added, parse arguments from the command line.
