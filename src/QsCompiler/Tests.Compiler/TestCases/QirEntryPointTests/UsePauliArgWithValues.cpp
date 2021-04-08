@@ -22,13 +22,10 @@ using namespace Microsoft::Quantum;
 using namespace std;
     
 
-
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UsePauliArgWithValues( // NOLINT
     char PauliArg
 );
-
 
 map<string, PauliId> PauliMap{
     {"PauliI", PauliId::PauliId_I},
@@ -36,17 +33,10 @@ map<string, PauliId> PauliMap{
     {"PauliY", PauliId::PauliId_Y},
     {"PauliZ", PauliId::PauliId_Z}};
 
-
-
-
-
 char TranslatePauliToChar(PauliId& pauli)
 {
     return static_cast<char>(pauli);
 }
-
-
-
 
 int main(int argc, char* argv[])
 {

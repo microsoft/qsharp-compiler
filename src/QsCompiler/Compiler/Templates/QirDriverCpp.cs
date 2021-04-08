@@ -48,11 +48,32 @@ using namespace std;
     
 ");
  if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
-            this.Write("struct InteropArray\r\n{\r\n    int64_t Size;\r\n    void* Data;\r\n\r\n    InteropArray(in" +
-                    "t64_t size, void* data) :\r\n        Size(size),\r\n        Data(data){}\r\n};\r\n");
+            this.Write(@"struct InteropArray
+{
+    int64_t Size;
+    void* Data;
+
+    InteropArray(int64_t size, void* data) :
+        Size(size),
+        Data(data){}
+};
+
+template<typename T>
+unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
+{
+    unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));
+    return array;
+}
+
+template<typename S, typename D>
+void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
+{
+    destinationVector.resize(sourceVector.size());
+    transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+
+");
  } 
-            this.Write("\r\n\r\n");
- if (entryPointOperation.ContainsArgumentType(DataType.RangeType)) { 
+ if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
             this.Write(@"using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
@@ -70,7 +91,24 @@ struct InteropRange
         Step(get<1>(rangeTuple)),
         End(get<2>(rangeTuple)){}
 };
+
+unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)
+{
+    unique_ptr<InteropRange> range(new InteropRange(rangeTuple));
+    return range;
+}
+
+InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
+{
+    InteropRange* range = new InteropRange(rangeTuple);
+    return range;
+}
+
 ");
+ } 
+ if (entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
+            this.Write("template<typename T>\r\nvoid FreePointerVector(vector<T*>& v)\r\n{\r\n    for (auto p :" +
+                    " v)\r\n    {\r\n        delete p;\r\n    }\r\n}\r\n");
  } 
             this.Write("\r\n// This is the function corresponding to the QIR entry-point.\r\nextern \"C\" void " +
                     "");
@@ -88,15 +126,13 @@ struct InteropRange
             this.Write("const char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\nmap<st" +
                     "ring, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", Intero" +
                     "pFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}};" +
-                    "\r\n");
+                    "\r\n\r\n");
  } 
-            this.Write("\r\n");
  if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
             this.Write("map<string, PauliId> PauliMap{\r\n    {\"PauliI\", PauliId::PauliId_I},\r\n    {\"PauliX" +
                     "\", PauliId::PauliId_X},\r\n    {\"PauliY\", PauliId::PauliId_Y},\r\n    {\"PauliZ\", Pau" +
-                    "liId::PauliId_Z}};\r\n");
+                    "liId::PauliId_Z}};\r\n\r\n");
  } 
-            this.Write("\r\n");
  if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { 
             this.Write(@"const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
@@ -106,52 +142,18 @@ map<string, char> ResultAsCharMap{
     {""1"", InteropResultOneAsChar},
     {""One"", InteropResultOneAsChar}
 };
+
 ");
  } 
-            this.Write("\r\n");
- if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
-            this.Write("template<typename T>\r\nunique_ptr<InteropArray> CreateInteropArray(vector<T>& v)\r\n" +
-                    "{\r\n    unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));\r\n  " +
-                    "  return array;\r\n}\r\n");
- } 
-            this.Write("\r\n");
- if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
-            this.Write("unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)\r\n{\r\n    unique" +
-                    "_ptr<InteropRange> range(new InteropRange(rangeTuple));\r\n    return range;\r\n}\r\n");
- } 
-            this.Write("\r\n");
- if (entryPointOperation.ContainsArgumentType(DataType.RangeType)) { 
-            this.Write("template<typename T>\r\nvoid FreePointerVector(vector<T*>& v)\r\n{\r\n    for (auto p :" +
-                    " v)\r\n    {\r\n        delete p;\r\n    }\r\n}\r\n");
- } 
-            this.Write("\r\n");
  if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
             this.Write("char TranslatePauliToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli)" +
-                    ";\r\n}\r\n");
+                    ";\r\n}\r\n\r\n");
  } 
-            this.Write("\r\n");
- if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
-            this.Write(@"template<typename S, typename D>
-void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
-{
-    destinationVector.resize(sourceVector.size());
-    transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
-}
-");
- } 
-            this.Write("\r\n");
- if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
-            this.Write("InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)\r\n{" +
-                    "\r\n    InteropRange* range = new InteropRange(rangeTuple);\r\n    return range;\r\n}\r" +
-                    "\n");
- } 
-            this.Write("\r\n");
  if (entryPointOperation.ContainsArgumentType(DataType.StringType) || entryPointOperation.ContainsArrayType(DataType.StringType)) { 
             this.Write("const char* TranslateStringToCharBuffer(string& s)\r\n{\r\n    return s.c_str();\r\n}\r\n" +
-                    "");
+                    "\r\n");
  } 
-            this.Write(@"
-int main(int argc, char* argv[])
+            this.Write(@"int main(int argc, char* argv[])
 {
     CLI::App app(""QIR Standalone Entry Point Inputs Reference"");
 

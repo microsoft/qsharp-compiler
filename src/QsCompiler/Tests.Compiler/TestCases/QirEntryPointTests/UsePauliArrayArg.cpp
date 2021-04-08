@@ -31,21 +31,6 @@ struct InteropArray
         Data(data){}
 };
 
-
-
-// This is the function corresponding to the QIR entry-point.
-extern "C" void UsePauliArrayArg( // NOLINT
-    InteropArray * PauliArrayArg
-);
-
-
-map<string, PauliId> PauliMap{
-    {"PauliI", PauliId::PauliId_I},
-    {"PauliX", PauliId::PauliId_X},
-    {"PauliY", PauliId::PauliId_Y},
-    {"PauliZ", PauliId::PauliId_Z}};
-
-
 template<typename T>
 unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
 {
@@ -53,21 +38,28 @@ unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
     return array;
 }
 
-
-
-char TranslatePauliToChar(PauliId& pauli)
-{
-    return static_cast<char>(pauli);
-}
-
 template<typename S, typename D>
 void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+
+
+// This is the function corresponding to the QIR entry-point.
+extern "C" void UsePauliArrayArg( // NOLINT
+    InteropArray * PauliArrayArg
+);
+
+map<string, PauliId> PauliMap{
+    {"PauliI", PauliId::PauliId_I},
+    {"PauliX", PauliId::PauliId_X},
+    {"PauliY", PauliId::PauliId_Y},
+    {"PauliZ", PauliId::PauliId_Z}};
+
+char TranslatePauliToChar(PauliId& pauli)
+{
+    return static_cast<char>(pauli);
 }
-
-
 
 int main(int argc, char* argv[])
 {

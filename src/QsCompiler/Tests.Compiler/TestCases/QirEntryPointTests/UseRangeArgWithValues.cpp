@@ -21,8 +21,6 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
-
-
 using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
@@ -41,31 +39,11 @@ struct InteropRange
         End(get<2>(rangeTuple)){}
 };
 
-// This is the function corresponding to the QIR entry-point.
-extern "C" void UseRangeArgWithValues( // NOLINT
-    InteropRange* RangeArg
-);
-
-
-
-
-
 unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)
 {
     unique_ptr<InteropRange> range(new InteropRange(rangeTuple));
     return range;
 }
-
-template<typename T>
-void FreePointerVector(vector<T*>& v)
-{
-    for (auto p : v)
-    {
-        delete p;
-    }
-}
-
-
 
 InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
 {
@@ -73,6 +51,11 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     return range;
 }
 
+
+// This is the function corresponding to the QIR entry-point.
+extern "C" void UseRangeArgWithValues( // NOLINT
+    InteropRange* RangeArg
+);
 
 int main(int argc, char* argv[])
 {

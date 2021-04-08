@@ -31,16 +31,6 @@ struct InteropArray
         Data(data){}
 };
 
-
-
-// This is the function corresponding to the QIR entry-point.
-extern "C" void UseRangeArrayArgWithValues( // NOLINT
-    InteropArray * RangeArrayArg
-);
-
-
-
-
 template<typename T>
 unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
 {
@@ -48,19 +38,34 @@ unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
     return array;
 }
 
-unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)
-{
-    unique_ptr<InteropRange> range(new InteropRange(rangeTuple));
-    return range;
-}
-
-
-
 template<typename S, typename D>
 void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+
+using RangeTuple = tuple<int64_t, int64_t, int64_t>;
+struct InteropRange
+{
+    int64_t Start;
+    int64_t Step;
+    int64_t End;
+
+    InteropRange() :
+        Start(0),
+        Step(0),
+        End(0){}
+
+    InteropRange(RangeTuple rangeTuple) :
+        Start(get<0>(rangeTuple)),
+        Step(get<1>(rangeTuple)),
+        End(get<2>(rangeTuple)){}
+};
+
+unique_ptr<InteropRange> CreateInteropRange(RangeTuple rangeTuple)
+{
+    unique_ptr<InteropRange> range(new InteropRange(rangeTuple));
+    return range;
 }
 
 InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
@@ -69,6 +74,19 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     return range;
 }
 
+template<typename T>
+void FreePointerVector(vector<T*>& v)
+{
+    for (auto p : v)
+    {
+        delete p;
+    }
+}
+
+// This is the function corresponding to the QIR entry-point.
+extern "C" void UseRangeArrayArgWithValues( // NOLINT
+    InteropArray * RangeArrayArg
+);
 
 int main(int argc, char* argv[])
 {

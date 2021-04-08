@@ -22,22 +22,10 @@ using namespace Microsoft::Quantum;
 using namespace std;
     
 
-
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseDoubleArg( // NOLINT
     double DoubleArg
 );
-
-
-
-
-
-
-
-
-
-
 
 int main(int argc, char* argv[])
 {

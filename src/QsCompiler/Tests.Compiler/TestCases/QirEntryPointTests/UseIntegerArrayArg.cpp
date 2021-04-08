@@ -31,16 +31,6 @@ struct InteropArray
         Data(data){}
 };
 
-
-
-// This is the function corresponding to the QIR entry-point.
-extern "C" void UseIntegerArrayArg( // NOLINT
-    InteropArray * IntegerArrayArg
-);
-
-
-
-
 template<typename T>
 unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
 {
@@ -48,17 +38,17 @@ unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
     return array;
 }
 
-
-
-
 template<typename S, typename D>
 void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
-}
 
 
+// This is the function corresponding to the QIR entry-point.
+extern "C" void UseIntegerArrayArg( // NOLINT
+    InteropArray * IntegerArrayArg
+);
 
 int main(int argc, char* argv[])
 {

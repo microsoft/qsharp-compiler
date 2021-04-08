@@ -22,8 +22,6 @@ using namespace Microsoft::Quantum;
 using namespace std;
     
 
-
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseBoolArgWithValues( // NOLINT
     char BoolArg
@@ -36,15 +34,6 @@ map<string, bool> BoolAsCharMap{
     {"false", InteropFalseAsChar},
     {"1", InteropTrueAsChar},
     {"true", InteropTrueAsChar}};
-
-
-
-
-
-
-
-
-
 
 int main(int argc, char* argv[])
 {

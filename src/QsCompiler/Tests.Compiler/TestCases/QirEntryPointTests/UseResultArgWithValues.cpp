@@ -22,14 +22,10 @@ using namespace Microsoft::Quantum;
 using namespace std;
     
 
-
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseResultArgWithValues( // NOLINT
     char ResultArg
 );
-
-
 
 const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
@@ -39,13 +35,6 @@ map<string, char> ResultAsCharMap{
     {"1", InteropResultOneAsChar},
     {"One", InteropResultOneAsChar}
 };
-
-
-
-
-
-
-
 
 int main(int argc, char* argv[])
 {

@@ -31,14 +31,24 @@ struct InteropArray
         Data(data){}
 };
 
+template<typename T>
+unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
+{
+    unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));
+    return array;
+}
+
+template<typename S, typename D>
+void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
+{
+    destinationVector.resize(sourceVector.size());
+    transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseResultArrayArg( // NOLINT
     InteropArray * ResultArrayArg
 );
-
-
 
 const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
@@ -48,25 +58,6 @@ map<string, char> ResultAsCharMap{
     {"1", InteropResultOneAsChar},
     {"One", InteropResultOneAsChar}
 };
-
-template<typename T>
-unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
-{
-    unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));
-    return array;
-}
-
-
-
-
-template<typename S, typename D>
-void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
-{
-    destinationVector.resize(sourceVector.size());
-    transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
-}
-
-
 
 int main(int argc, char* argv[])
 {

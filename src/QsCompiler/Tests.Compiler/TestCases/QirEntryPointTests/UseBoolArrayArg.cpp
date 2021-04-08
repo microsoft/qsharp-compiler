@@ -31,6 +31,18 @@ struct InteropArray
         Data(data){}
 };
 
+template<typename T>
+unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
+{
+    unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));
+    return array;
+}
+
+template<typename S, typename D>
+void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
+{
+    destinationVector.resize(sourceVector.size());
+    transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 
 
 // This is the function corresponding to the QIR entry-point.
@@ -45,27 +57,6 @@ map<string, bool> BoolAsCharMap{
     {"false", InteropFalseAsChar},
     {"1", InteropTrueAsChar},
     {"true", InteropTrueAsChar}};
-
-
-
-template<typename T>
-unique_ptr<InteropArray> CreateInteropArray(vector<T>& v)
-{
-    unique_ptr<InteropArray> array(new InteropArray(v.size(), v.data()));
-    return array;
-}
-
-
-
-
-template<typename S, typename D>
-void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, function<D(S&)> translationFunction)
-{
-    destinationVector.resize(sourceVector.size());
-    transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
-}
-
-
 
 int main(int argc, char* argv[])
 {
