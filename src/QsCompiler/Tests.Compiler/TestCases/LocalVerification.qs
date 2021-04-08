@@ -266,7 +266,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation VariableDeclaration11<'T>(cnt: Int, arg : 'T) : Unit {
-        let recur = VariableDeclaration11; // not allowed
+        let recur = VariableDeclaration11;
         recur(cnt - 1, arg);
     }
 
@@ -1507,7 +1507,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         repeat {
         } until 1 != 2;
     }
-    
+
     operation ParensUntilFixup() : Unit {
         repeat {
         } until (1 != 2) fixup {

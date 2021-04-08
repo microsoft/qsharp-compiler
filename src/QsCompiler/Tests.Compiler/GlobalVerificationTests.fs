@@ -34,11 +34,7 @@ type GlobalVerificationTests() =
         this.Expect "LocalNamespaceShortNames3" [ Error ErrorCode.UnknownType ]
         this.Expect "LocalNamespaceShortNames4" [ Error ErrorCode.UnknownType ]
         this.Expect "LocalNamespaceShortNames5" [ Error ErrorCode.UnknownIdentifier ]
-
-        this.Expect
-            "LocalNamespaceShortNames6"
-            [ Error ErrorCode.ArgumentTypeMismatch; Error ErrorCode.ArgumentTypeMismatch ]
-
+        this.Expect "LocalNamespaceShortNames6" [ Error ErrorCode.TypeMismatch; Error ErrorCode.TypeMismatch ]
         this.Expect "LocalNamespaceShortNames7" [ Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames8" []
         this.Expect "LocalNamespaceShortNames9" []
@@ -46,7 +42,7 @@ type GlobalVerificationTests() =
         this.Expect "LocalNamespaceShortNames11" [ Error ErrorCode.UnknownType; Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames12" [ Error ErrorCode.UnknownIdentifier ]
         this.Expect "LocalNamespaceShortNames13" [ Error ErrorCode.UnknownType ]
-        this.Expect "LocalNamespaceShortNames14" [ Error ErrorCode.TypeMismatchInReturn ] // todo: could be more descriptive...
+        this.Expect "LocalNamespaceShortNames14" []
         this.Expect "LocalNamespaceShortNames15" []
         this.Expect "LocalNamespaceShortNames16" [ Error ErrorCode.UnknownType; Error ErrorCode.UnknownType ]
         this.Expect "LocalNamespaceShortNames17" [ Error ErrorCode.UnknownType ]
