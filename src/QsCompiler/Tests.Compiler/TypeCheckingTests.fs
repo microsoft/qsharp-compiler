@@ -77,12 +77,12 @@ type TypeCheckingTests() =
 
     [<Fact>]
     member this.Variance() =
-        this.Expect "Variance1" []
-        this.Expect "Variance2" [ Error ErrorCode.TypeMismatch ]
-        this.Expect "Variance3" [ Error ErrorCode.TypeMismatch ]
-        this.Expect "Variance4" [ Error ErrorCode.TypeMismatch ]
-        this.Expect "Variance5" [ Error ErrorCode.TypeMismatch ]
-        this.Expect "Variance6" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "Variance1" (Warning WarningCode.DeprecatedNewArray |> List.replicate 5)
+        this.Expect "Variance2" [ Error ErrorCode.TypeMismatch; Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "Variance3" [ Error ErrorCode.TypeMismatch; Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "Variance4" [ Error ErrorCode.TypeMismatch; Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "Variance5" [ Error ErrorCode.TypeMismatch; Warning WarningCode.DeprecatedNewArray ]
+        this.Expect "Variance6" [ Error ErrorCode.TypeMismatch; Warning WarningCode.DeprecatedNewArray ]
 
         this.Expect
             "Variance7"
@@ -123,10 +123,32 @@ type TypeCheckingTests() =
 
     [<Fact>]
     member this.``Common base type``() =
-        this.Expect "CommonBaseType1" []
-        this.Expect "CommonBaseType2" [ Error ErrorCode.TypeIntersectionMismatch ]
-        this.Expect "CommonBaseType3" [ Error ErrorCode.TypeIntersectionMismatch ]
-        this.Expect "CommonBaseType4" [ Error ErrorCode.TypeMismatchInReturn ]
+        this.Expect "CommonBaseType1" (Warning WarningCode.DeprecatedNewArray |> List.replicate 2)
+
+        this.Expect
+            "CommonBaseType2"
+            [
+                ErrorCode.TypeIntersectionMismatch
+                Warning WarningCode.DeprecatedNewArray
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
+        this.Expect
+            "CommonBaseType3"
+            [
+                ErrorCode.TypeIntersectionMismatch
+                Warning WarningCode.DeprecatedNewArray
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
+        this.Expect
+            "CommonBaseType4"
+            [
+                ErrorCode.TypeIntersectionMismatch
+                Warning WarningCode.DeprecatedNewArray
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
         this.Expect "CommonBaseType5" []
         this.Expect "CommonBaseType6" []
         this.Expect "CommonBaseType7" []
@@ -141,9 +163,30 @@ type TypeCheckingTests() =
         this.Expect "CommonBaseType16" [ Error ErrorCode.TypeIntersectionMismatch ]
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" []
-        this.Expect "CommonBaseType19" [ Warning WarningCode.UnusedTypeParam ]
-        this.Expect "CommonBaseType20" [ Error ErrorCode.TypeIntersectionMismatch ]
-        this.Expect "CommonBaseType21" []
+
+        this.Expect
+            "CommonBaseType19"
+            [
+                Warning WarningCode.UnusedTypeParam
+                Warning WarningCode.DeprecatedNewArray
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
+        this.Expect
+            "CommonBaseType20"
+            [
+                ErrorCode.TypeIntersectionMismatch
+                Warning WarningCode.DeprecatedNewArray
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
+        this.Expect
+            "CommonBaseType21"
+            [
+                Warning WarningCode.DeprecatedNewArray
+                Warning WarningCode.DeprecatedNewArray
+            ]
+
         this.Expect "CommonBaseType22" []
         this.Expect "CommonBaseType23" []
         this.Expect "CommonBaseType24" []
@@ -207,7 +250,7 @@ type TypeCheckingTests() =
     member this.``Argument matching``() =
         this.Expect "MatchArgument1" []
         this.Expect "MatchArgument2" []
-        this.Expect "MatchArgument3" []
+        this.Expect "MatchArgument3" (Warning WarningCode.DeprecatedNewArray |> List.replicate 2)
         this.Expect "MatchArgument4" []
         this.Expect "MatchArgument5" []
         this.Expect "MatchArgument6" []

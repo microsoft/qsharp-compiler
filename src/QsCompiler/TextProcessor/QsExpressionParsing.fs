@@ -482,7 +482,12 @@ let private newArray =
             ErrorCode.InvalidConstructorExpression
         >>% unknownExpr
 
-    arrayDecl.parse >>. (term body |>> QsExpression.New <|> (term invalid |>> fst))
+    let withWarning (expr: QsExpression) =
+        // TODO: Diagnostic range doesn't cover the entire expression.
+        let range = expr.Range |> QsNullable.defaultValue Range.Zero
+        QsCompilerDiagnostic.Warning (WarningCode.DeprecatedNewArray, []) range |> pushDiagnostic >>% expr
+
+    arrayDecl.parse >>. (term body |>> QsExpression.New <|> (term invalid |>> fst)) >>= withWarning
 
 /// used to temporarily store item accessors for both array item and named item access expressions
 type private ItemAccessor =

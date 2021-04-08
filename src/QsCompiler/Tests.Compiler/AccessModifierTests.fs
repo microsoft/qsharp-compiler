@@ -27,8 +27,12 @@ type AccessModifierTests() =
 
     [<Fact>]
     member this.Types() =
-        this.Expect "TypeUseOK" []
-        this.Expect "TypeReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleType ]
+        this.Expect "TypeUseOK" (Warning WarningCode.DeprecatedNewArray |> List.replicate 3)
+
+        this.Expect
+            "TypeReferenceInternalInaccessible"
+            [ Error ErrorCode.InaccessibleType; Warning WarningCode.DeprecatedNewArray ]
+
         this.Expect "TypeConstructorReferenceInternalInaccessible" [ Error ErrorCode.InaccessibleCallable ]
 
     [<Fact>]
