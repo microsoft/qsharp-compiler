@@ -15,12 +15,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
     /// <summary>
     /// Class to produce the template output
     /// </summary>
-    
-    #line 1 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
     [global::System.CodeDom.Compiler.GeneratedCodeAttribute("Microsoft.VisualStudio.TextTemplating", "16.0.0.0")]
     public partial class QirDriverCpp : QirDriverCppBase
     {
-#line hidden
         /// <summary>
         /// Create the template output
         /// </summary>
@@ -50,27 +47,12 @@ using namespace Microsoft::Quantum;
 using namespace std;
     
 ");
-            
-            #line 26 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
-            
-            #line default
-            #line hidden
             this.Write("struct InteropArray\r\n{\r\n    int64_t Size;\r\n    void* Data;\r\n\r\n    InteropArray(in" +
                     "t64_t size, void* data) :\r\n        Size(size),\r\n        Data(data){}\r\n};\r\n");
-            
-            #line 36 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } 
-            
-            #line default
-            #line hidden
             this.Write("\r\n\r\n");
-            
-            #line 39 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  if (entryPointOperation.ContainsArgumentType(DataType.RangeType)) { 
-            
-            #line default
-            #line hidden
             this.Write(@"using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
@@ -89,23 +71,11 @@ struct InteropRange
         End(get<2>(rangeTuple)){}
 };
 ");
-            
-            #line 57 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  } 
-            
-            #line default
-            #line hidden
             this.Write("\r\n// This is the function corresponding to the QIR entry-point.\r\nextern \"C\" void " +
                     "");
-            
-            #line 60 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
-            
-            #line default
-            #line hidden
             this.Write("( // NOLINT\r\n");
-            
-            #line 61 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  for (int i = 0; i < entryPointOperation.InteropArguments.Count; i++) {
     var arg = entryPointOperation.InteropArguments[i];
     Write($"    {arg.CppType()} {arg.Name}");
@@ -113,9 +83,6 @@ struct InteropRange
         WriteLine(",");
     }
 } 
-            
-            #line default
-            #line hidden
             this.Write("\r\n);\r\n\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;" +
                     "\r\nmap<string, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\"" +
                     ", InteropFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueA" +
@@ -147,8 +114,6 @@ struct InteropRange
                     "ionOutputFile;\r\n    CLI::Option* simulationOutputFileOpt = app.add_option(\r\n    " +
                     "    \"--simulation-output\", simulationOutputFile,\r\n        \"File where the output" +
                     " produced during the simulation is written\");\r\n    \r\n");
-            
-            #line 154 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  foreach (var arg in entryPointOperation.InteropArguments) {
     WriteLine("");
     WriteLine($"    {arg.CppVarType()} {arg.Name};"); 
@@ -160,13 +125,8 @@ struct InteropRange
         WriteLine($"        ->required()->transform(CLI::CheckedTransformer({arg.TransformationType()}, CLI::ignore_case));");
     }
 } 
-            
-            #line default
-            #line hidden
             this.Write("\r\n    // With all the options added, parse arguments from the command line.\r\n    " +
                     "CLI11_PARSE(app, argc, argv);\r\n\r\n");
-            
-            #line 169 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  foreach (var arg in entryPointOperation.InteropArguments) {
     switch (arg.Type) {
         case DataType.PauliType:
@@ -217,9 +177,6 @@ struct InteropRange
             break;
     }
 } 
-            
-            #line default
-            #line hidden
             this.Write(@"    // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -232,15 +189,8 @@ struct InteropRange
 
     // Run simulation and write the output of the operation to the corresponding stream.
     ");
-            
-            #line 230 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
-            
-            #line default
-            #line hidden
             this.Write("(\r\n");
-            
-            #line 231 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  for (int i = 0; i < entryPointOperation.InteropArguments.Count; i++) {
     var arg = entryPointOperation.InteropArguments[i];
     switch (arg.Type) {
@@ -264,28 +214,17 @@ struct InteropRange
         WriteLine(",");
     }
 } 
-            
-            #line default
-            #line hidden
             this.Write("\r\n);\r\n\r\n");
-            
-            #line 257 "C:\Users\sabannin\source\repos\qsharp-compiler\src\QsCompiler\Compiler\Templates\QirDriverCpp.tt"
  foreach (var arg in entryPointOperation.InteropArguments) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
         Write($"    FreePointerVector({arg.Name}Vector);");
     }
 } 
-            
-            #line default
-            #line hidden
             this.Write("\r\n    simulatorOutputStream->flush();\r\n    if (simulationOutputFileStream.is_open" +
                     "())\r\n    {\r\n        simulationOutputFileStream.close();\r\n    }\r\n}\r\n");
             return this.GenerationEnvironment.ToString();
         }
     }
-    
-    #line default
-    #line hidden
     #region Base class
     /// <summary>
     /// Base class for this transformation

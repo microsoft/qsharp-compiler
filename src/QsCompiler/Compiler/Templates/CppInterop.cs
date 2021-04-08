@@ -160,7 +160,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             this.Name = entryPointOperation.Name;
             this.Arguments = entryPointOperation.Arguments.ToList();
             this.Arguments.Sort((a, b) => a.Position.CompareTo(b.Position));
-            this.InteropArguments = entryPointOperation.Arguments.Select(arg => new ArgumentCpp(arg)).ToList();
+            this.InteropArguments = this.Arguments.Select(arg => new ArgumentCpp(arg)).ToList();
         }
 
         public bool ContainsArgumentType(DataType type)
