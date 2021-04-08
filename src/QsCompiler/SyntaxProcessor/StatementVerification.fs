@@ -78,7 +78,7 @@ let NewFailStatement comments location context expr =
 let NewReturnStatement comments (location: QsLocation) context expr =
     let expr, diagnostics = resolveExpr context expr
 
-    VerifyAssignment context.Inference context.ReturnType ErrorCode.TypeMismatchInReturn expr
+    verifyAssignment context.Inference context.ReturnType ErrorCode.TypeMismatchInReturn expr
     |> diagnostics.AddRange
 
     onAutoInvertGenerateError ((ErrorCode.ReturnStatementWithinAutoInversion, []), location.Range) context.Symbols
@@ -150,7 +150,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
     let localQdep = rhs.InferredInformation.HasLocalQuantumDependency
     diagnostics.AddRange rhsDiagnostics
 
-    VerifyAssignment context.Inference lhs.ResolvedType ErrorCode.TypeMismatchInValueUpdate rhs
+    verifyAssignment context.Inference lhs.ResolvedType ErrorCode.TypeMismatchInValueUpdate rhs
     |> diagnostics.AddRange
 
     let rec verifyMutability: TypedExpression -> _ =
@@ -236,7 +236,7 @@ type BlockStatement<'T> = delegate of QsScope -> 'T
 /// NOTE: the declared loop variables are *not* visible after the statements ends, hence they are *not* attaches as local declarations to the statement!
 let NewForStatement comments (location: QsLocation) context (symbol, expr) =
     let expr, diagnostics = resolveExpr context expr
-    let itemType, iterableDiagnostics = VerifyIsIterable context.Inference expr
+    let itemType, iterableDiagnostics = verifyIsIterable context.Inference expr
     diagnostics.AddRange iterableDiagnostics
 
     let symbolTuple, _, bindingDiagnostics =
