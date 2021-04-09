@@ -20,6 +20,8 @@ type QsKeyword = { parse: Parser<Range, QsCompilerDiagnostic list>; id: string }
 
 /// contains all Q# keywords that cannot be used as a symbol name
 let private _ReservedKeywords = new HashSet<string>()
+/// contains all Q# keywords that are Q# literals
+let private _KeywordLiterals = new HashSet<string>()
 /// contains all Q# keywords that cannot be used within an expression (strict subset of QsReservedKeywords, since it does not contain e.g. Q# literals)
 let private _LanguageKeywords = new HashSet<string>()
 /// contains all Q# keywords that denote the Q# fragment headers used as re-entry points upon parsing failures (strict subset of QsLanguageKeywords)
@@ -30,6 +32,12 @@ let private qsKeyword word = { parse = keyword word; id = word }
 /// adds the given word to the list of QsReservedKeywords, and returns the corresponding keyword
 let private addKeyword word =
     _ReservedKeywords.Add word |> ignore
+    qsKeyword word
+
+/// adds the given word to the list of QsReservedKeywords as a Q# literal, and returns the corresponding keyword
+let private addKeywordLiteral word =
+    _ReservedKeywords.Add word |> ignore
+    _KeywordLiterals.Add word |> ignore
     qsKeyword word
 
 /// adds the given word to the list of QsReservedKeywords and QsLanguageKeywords, and returns the corresponding keyword
@@ -89,23 +97,23 @@ let qsString = addLanguageKeyword Types.String
 // Qs literals
 
 /// keyword for a Q# literal (QsReserverKeyword)
-let qsPauliX = addKeyword Literals.PauliX
+let qsPauliX = addKeywordLiteral Literals.PauliX
 /// keyword for a Q# literal (QsReserverKeyword)
-let qsPauliY = addKeyword Literals.PauliY
+let qsPauliY = addKeywordLiteral Literals.PauliY
 /// keyword for a Q# literal (QsReserverKeyword)
-let qsPauliZ = addKeyword Literals.PauliZ
+let qsPauliZ = addKeywordLiteral Literals.PauliZ
 /// keyword for a Q# literal (QsReserverKeyword)
-let qsPauliI = addKeyword Literals.PauliI
+let qsPauliI = addKeywordLiteral Literals.PauliI
 
 /// keyword for a Q# literal (QsReserverKeyword)
-let qsZero = addKeyword Literals.Zero
+let qsZero = addKeywordLiteral Literals.Zero
 /// keyword for a Q# literal (QsReserverKeyword)
-let qsOne = addKeyword Literals.One
+let qsOne = addKeywordLiteral Literals.One
 
 /// keyword for a Q# literal (QsReserverKeyword)
-let qsTrue = addKeyword Literals.True
+let qsTrue = addKeywordLiteral Literals.True
 /// keyword for a Q# literal (QsReserverKeyword)
-let qsFalse = addKeyword Literals.False
+let qsFalse = addKeywordLiteral Literals.False
 
 // Qs functors
 
@@ -230,6 +238,7 @@ let distributeFunctorGenDirective = addLanguageKeyword Directives.Distribute
 
 /// contains all Q# keywords that cannot be used as a symbol name
 let public ReservedKeywords = _ReservedKeywords.ToImmutableHashSet()
+let public KeywordLiterals = _KeywordLiterals.ToImmutableHashSet()
 /// contains all Q# keywords that cannot be used within an expression (strict subset of QsReservedKeywords, since it does not contain e.g. Q# literals)
 let internal LanguageKeywords = _LanguageKeywords.ToImmutableHashSet()
 /// contains all Q# keywords that denote the Q# fragment headers used as re-entry points upon parsing failures (strict subset of QsLanguageKeywords)
