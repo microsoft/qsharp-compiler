@@ -986,7 +986,9 @@ type DiagnosticItem =
             | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration ->
                 "A body specification for this callable is missing. The callable is assumed to be intrinsic."
-            | WarningCode.UnusedTypeParam -> "The type parameter {0} is not used in the argument or return types."
+            | WarningCode.UnusedTypeParam ->
+                "The type parameter {0} is not used in the argument or return types. "
+                + "It is always ambiguous unless provided as an explicit type argument."
             | WarningCode.DuplicateAttribute -> "The attribute {0} is a duplication and will be ignored."
             | WarningCode.MissingEntryPoint ->
                 "The project is an executable Q# project but no entry point has been found. The project should be a library, and any C# driver code should be defined in a separate project."
