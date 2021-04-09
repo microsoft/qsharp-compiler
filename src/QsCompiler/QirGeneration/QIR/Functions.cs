@@ -233,6 +233,7 @@ namespace Microsoft.Quantum.QIR
             }
 
             var dump = this.sharedState.GetOrCreateTargetInstruction(QuantumInstructionSet.DumpMachine);
+            value = this.sharedState.CastToType(value, this.sharedState.Context.Int8Type.CreatePointerType());
             this.sharedState.CurrentBuilder.Call(dump, value);
             return this.sharedState.Values.Unit;
         }
