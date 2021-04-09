@@ -162,6 +162,16 @@ type QsTypeParameter =
             Range = defaultArg range param.Range
         }
 
+    /// <summary>
+    /// Creates a new <see cref="QsTypeParameter"/>.
+    /// </summary>
+    static member New(origin, name) =
+        {
+            Origin = origin
+            TypeName = name
+            Range = Null
+        }
+
 /// used to represent the use of a user defined type within a fully resolved Q# type
 [<CustomEquality>]
 [<CustomComparison>]
@@ -206,6 +216,16 @@ type UserDefinedType =
             Namespace = defaultArg ns udt.Namespace
             Name = defaultArg name udt.Name
             Range = defaultArg range udt.Range
+        }
+
+    /// <summary>
+    /// Creates a new <see cref="UserDefinedType"/>.
+    /// </summary>
+    static member New(ns, name) =
+        {
+            Namespace = ns
+            Name = name
+            Range = Null
         }
 
 /// Fully resolved operation characteristics used to describe the properties of a Q# callable.
@@ -913,6 +933,17 @@ type QsDeclarationAttribute =
         Comments: QsComments
     }
 
+    /// <summary>
+    /// Creates a new <see cref="QsDeclarationAttribute"/>.
+    /// </summary>
+    static member New(typeId, typeIdRange, argument, offset, comments) =
+        {
+            TypeId = typeId
+            TypeIdRange = typeIdRange
+            Argument = argument
+            Offset = offset
+            Comments = comments
+        }
 
 /// Fully resolved Q# callable signature
 type ResolvedSignature =

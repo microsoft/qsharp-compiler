@@ -19,13 +19,7 @@ type QsQualifiedName with
     static member New(nsName, cName) = { Namespace = nsName; Name = cName }
 
 type UserDefinedType with
-    static member New(ns, name) =
-        {
-            Namespace = ns
-            Name = name
-            Range = Null
-        }
-
+    // TODO: RELEASE 2021-10: Remove member.
     [<Obsolete "Use UserDefinedType.New(string, string) instead.">]
     static member New(nsName, tName, range) =
         {
@@ -35,13 +29,7 @@ type UserDefinedType with
         }
 
 type QsTypeParameter with
-    static member New(origin, name) =
-        {
-            Origin = origin
-            TypeName = name
-            Range = Null
-        }
-
+    // TODO: RELEASE 2021-10: Remove member.
     [<Obsolete "Use QsTypeParameter.New(string, string) instead.">]
     static member New(origin, tName, range) =
         {
@@ -251,14 +239,11 @@ type QsDeclarationAttribute with
     // TODO: RELEASE 2021-10: Remove member.
     [<Obsolete "Use the overload of New with 5 parameters.">]
     static member New(typeId, arg, pos, comments) =
-        QsDeclarationAttribute.New(typeId, Null, arg, pos, comments)
-
-    static member New(typeId, typeIdRange, argument, offset, comments) =
         {
             TypeId = typeId
-            TypeIdRange = typeIdRange
-            Argument = argument
-            Offset = offset
+            TypeIdRange = Null
+            Argument = arg
+            Offset = pos
             Comments = comments
         }
 
