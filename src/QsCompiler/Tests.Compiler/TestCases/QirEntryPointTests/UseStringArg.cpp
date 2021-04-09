@@ -27,11 +27,12 @@ extern "C" void UseStringArg( // NOLINT
     const char* StringArg
 );
 
+
+
 const char* TranslateStringToCharBuffer(string& s)
 {
     return s.c_str();
 }
-
 int main(int argc, char* argv[])
 {
     CLI::App app("QIR Standalone Entry Point Inputs Reference");
@@ -49,8 +50,8 @@ int main(int argc, char* argv[])
     
 
     string StringArg;
-    app.add_option("--StringArg", StringArg, "A String value for the StringArg argument")
-        ->required();
+    app.add_option("--StringArg", StringArg, "A String value for the StringArg argument")->required()
+;
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

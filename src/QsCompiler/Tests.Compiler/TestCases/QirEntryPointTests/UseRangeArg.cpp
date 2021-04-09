@@ -21,6 +21,7 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+
 using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
@@ -51,11 +52,11 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     return range;
 }
 
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseRangeArg( // NOLINT
     InteropRange* RangeArg
 );
+
 
 int main(int argc, char* argv[])
 {
@@ -74,8 +75,8 @@ int main(int argc, char* argv[])
     
 
     RangeTuple RangeArg;
-    app.add_option("--RangeArg", RangeArg, "A Range (start, step, end) value for the RangeArg argument")
-        ->required();
+    app.add_option("--RangeArg", RangeArg, "A Range (start, step, end) value for the RangeArg argument")->required()
+;
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

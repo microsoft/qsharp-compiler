@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 
         public string CliDescription() => $"A {this.CliTypeDescription()} value for the {this.Name} argument";
 
-        public string? CppVarType()
+        public string CppCliValueType()
         {
             return this.Type switch
             {
@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public string? CppVarInitialValue()
+        public string? CppCliVariableInitialValue()
         {
             return this.Type switch
             {
@@ -154,7 +154,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
         }
     }
 
-    public class EntryPointOperationCpp : EntryPointOperation
+    internal class EntryPointOperationCpp : EntryPointOperation
     {
         public List<ArgumentCpp> InteropArguments;
 

@@ -27,6 +27,7 @@ extern "C" void UseResultArgWithValues( // NOLINT
     char ResultArg
 );
 
+
 const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
 map<string, char> ResultAsCharMap{
@@ -54,8 +55,8 @@ int main(int argc, char* argv[])
 
     char ResultArg;
     ResultArg = InteropResultZeroAsChar;
-    app.add_option("--ResultArg", ResultArg, "A Result value for the ResultArg argument")
-        ->required()->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
+    app.add_option("--ResultArg", ResultArg, "A Result value for the ResultArg argument")->required()
+        ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

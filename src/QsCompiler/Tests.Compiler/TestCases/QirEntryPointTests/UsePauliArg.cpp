@@ -27,11 +27,13 @@ extern "C" void UsePauliArg( // NOLINT
     char PauliArg
 );
 
+
 map<string, PauliId> PauliMap{
     {"PauliI", PauliId::PauliId_I},
     {"PauliX", PauliId::PauliId_X},
     {"PauliY", PauliId::PauliId_Y},
     {"PauliZ", PauliId::PauliId_Z}};
+
 
 char TranslatePauliToChar(PauliId& pauli)
 {
@@ -56,8 +58,8 @@ int main(int argc, char* argv[])
 
     PauliId PauliArg;
     PauliArg = PauliId::PauliId_I;
-    app.add_option("--PauliArg", PauliArg, "A Pauli value for the PauliArg argument")
-        ->required()->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
+    app.add_option("--PauliArg", PauliArg, "A Pauli value for the PauliArg argument")->required()
+        ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

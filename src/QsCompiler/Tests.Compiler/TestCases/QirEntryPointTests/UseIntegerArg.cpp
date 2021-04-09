@@ -27,6 +27,7 @@ extern "C" void UseIntegerArg( // NOLINT
     int64_t IntegerArg
 );
 
+
 int main(int argc, char* argv[])
 {
     CLI::App app("QIR Standalone Entry Point Inputs Reference");
@@ -45,8 +46,8 @@ int main(int argc, char* argv[])
 
     int64_t IntegerArg;
     IntegerArg = 0;
-    app.add_option("--IntegerArg", IntegerArg, "A integer value for the IntegerArg argument")
-        ->required();
+    app.add_option("--IntegerArg", IntegerArg, "A integer value for the IntegerArg argument")->required()
+;
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

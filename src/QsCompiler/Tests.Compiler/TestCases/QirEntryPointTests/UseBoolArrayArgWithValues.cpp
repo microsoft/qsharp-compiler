@@ -21,6 +21,7 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+
 struct InteropArray
 {
     int64_t Size;
@@ -44,11 +45,11 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseBoolArrayArgWithValues( // NOLINT
     InteropArray * BoolArrayArg
 );
+
 
 const char InteropFalseAsChar = 0x0;
 const char InteropTrueAsChar = 0x1;
@@ -75,8 +76,8 @@ int main(int argc, char* argv[])
     
 
     vector<char> BoolArrayArg;
-    app.add_option("--BoolArrayArg", BoolArrayArg, "A bool array value for the BoolArrayArg argument")
-        ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
+    app.add_option("--BoolArrayArg", BoolArrayArg, "A bool array value for the BoolArrayArg argument")->required()
+        ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

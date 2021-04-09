@@ -27,6 +27,7 @@ extern "C" void UseNoArgs( // NOLINT
 
 );
 
+
 int main(int argc, char* argv[])
 {
     CLI::App app("QIR Standalone Entry Point Inputs Reference");

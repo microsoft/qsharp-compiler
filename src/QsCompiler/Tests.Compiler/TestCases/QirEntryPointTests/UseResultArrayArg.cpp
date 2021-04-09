@@ -21,6 +21,7 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+
 struct InteropArray
 {
     int64_t Size;
@@ -44,11 +45,11 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseResultArrayArg( // NOLINT
     InteropArray * ResultArrayArg
 );
+
 
 const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
@@ -76,8 +77,8 @@ int main(int argc, char* argv[])
     
 
     vector<char> ResultArrayArg;
-    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array value for the ResultArrayArg argument")
-        ->required()->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
+    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array value for the ResultArrayArg argument")->required()
+        ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

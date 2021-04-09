@@ -21,6 +21,7 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+
 struct InteropArray
 {
     int64_t Size;
@@ -44,13 +45,13 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseMiscArgs( // NOLINT
     char IntegerArg,
     char PauliArg,
     InteropArray * ResultArrayArg
 );
+
 
 const char InteropFalseAsChar = 0x0;
 const char InteropTrueAsChar = 0x1;
@@ -66,6 +67,12 @@ map<string, PauliId> PauliMap{
     {"PauliY", PauliId::PauliId_Y},
     {"PauliZ", PauliId::PauliId_Z}};
 
+
+char TranslatePauliToChar(PauliId& pauli)
+{
+    return static_cast<char>(pauli);
+}
+
 const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
 map<string, char> ResultAsCharMap{
@@ -74,11 +81,6 @@ map<string, char> ResultAsCharMap{
     {"1", InteropResultOneAsChar},
     {"One", InteropResultOneAsChar}
 };
-
-char TranslatePauliToChar(PauliId& pauli)
-{
-    return static_cast<char>(pauli);
-}
 
 int main(int argc, char* argv[])
 {
@@ -98,17 +100,17 @@ int main(int argc, char* argv[])
 
     char IntegerArg;
     IntegerArg = InteropFalseAsChar;
-    app.add_option("--IntegerArg", IntegerArg, "A bool value for the IntegerArg argument")
-        ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
+    app.add_option("--IntegerArg", IntegerArg, "A bool value for the IntegerArg argument")->required()
+        ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     PauliId PauliArg;
     PauliArg = PauliId::PauliId_I;
-    app.add_option("--PauliArg", PauliArg, "A Pauli value for the PauliArg argument")
-        ->required()->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
+    app.add_option("--PauliArg", PauliArg, "A Pauli value for the PauliArg argument")->required()
+        ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
     vector<char> ResultArrayArg;
-    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array value for the ResultArrayArg argument")
-        ->required()->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
+    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array value for the ResultArrayArg argument")->required()
+        ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

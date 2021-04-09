@@ -48,7 +48,8 @@ using namespace std;
     
 ");
  if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
-            this.Write(@"struct InteropArray
+            this.Write(@"
+struct InteropArray
 {
     int64_t Size;
     void* Data;
@@ -70,11 +71,11 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
-
 ");
  } 
  if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
-            this.Write(@"using RangeTuple = tuple<int64_t, int64_t, int64_t>;
+            this.Write(@"
+using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
     int64_t Start;
@@ -103,12 +104,11 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     InteropRange* range = new InteropRange(rangeTuple);
     return range;
 }
-
 ");
  } 
  if (entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
-            this.Write("template<typename T>\r\nvoid FreePointerVector(vector<T*>& v)\r\n{\r\n    for (auto p :" +
-                    " v)\r\n    {\r\n        delete p;\r\n    }\r\n}\r\n");
+            this.Write("\r\ntemplate<typename T>\r\nvoid FreePointerVector(vector<T*>& v)\r\n{\r\n    for (auto p" +
+                    " : v)\r\n    {\r\n        delete p;\r\n    }\r\n}\r\n");
  } 
             this.Write("\r\n// This is the function corresponding to the QIR entry-point.\r\nextern \"C\" void " +
                     "");
@@ -123,18 +123,29 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
 } 
             this.Write("\r\n);\r\n\r\n");
  if (entryPointOperation.ContainsArgumentType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { 
-            this.Write("const char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\nmap<st" +
-                    "ring, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", Intero" +
-                    "pFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}};" +
-                    "\r\n\r\n");
+            this.Write("\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\nmap<" +
+                    "string, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", Inte" +
+                    "ropFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}" +
+                    "};\r\n");
  } 
  if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
-            this.Write("map<string, PauliId> PauliMap{\r\n    {\"PauliI\", PauliId::PauliId_I},\r\n    {\"PauliX" +
-                    "\", PauliId::PauliId_X},\r\n    {\"PauliY\", PauliId::PauliId_Y},\r\n    {\"PauliZ\", Pau" +
-                    "liId::PauliId_Z}};\r\n\r\n");
+            this.Write(@"
+map<string, PauliId> PauliMap{
+    {""PauliI"", PauliId::PauliId_I},
+    {""PauliX"", PauliId::PauliId_X},
+    {""PauliY"", PauliId::PauliId_Y},
+    {""PauliZ"", PauliId::PauliId_Z}};
+
+
+char TranslatePauliToChar(PauliId& pauli)
+{
+    return static_cast<char>(pauli);
+}
+");
  } 
  if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { 
-            this.Write(@"const char InteropResultZeroAsChar = 0x0;
+            this.Write(@"
+const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
 map<string, char> ResultAsCharMap{
     {""0"", InteropResultZeroAsChar},
@@ -142,15 +153,11 @@ map<string, char> ResultAsCharMap{
     {""1"", InteropResultOneAsChar},
     {""One"", InteropResultOneAsChar}
 };
-
 ");
  } 
- if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
-            this.Write("char TranslatePauliToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli)" +
-                    ";\r\n}\r\n\r\n");
- } 
+            this.Write("\r\n");
  if (entryPointOperation.ContainsArgumentType(DataType.StringType) || entryPointOperation.ContainsArrayType(DataType.StringType)) { 
-            this.Write("const char* TranslateStringToCharBuffer(string& s)\r\n{\r\n    return s.c_str();\r\n}\r\n" +
+            this.Write("\r\nconst char* TranslateStringToCharBuffer(string& s)\r\n{\r\n    return s.c_str();\r\n}" +
                     "\r\n");
  } 
             this.Write(@"int main(int argc, char* argv[])
@@ -171,14 +178,16 @@ map<string, char> ResultAsCharMap{
 ");
  foreach (var arg in entryPointOperation.InteropArguments) {
     WriteLine("");
-    WriteLine($"    {arg.CppVarType()} {arg.Name};"); 
-    if (arg.CppVarInitialValue() != null) { WriteLine($"    {arg.Name} = {arg.CppVarInitialValue()};"); }
-    WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")");
-    if (arg.TransformationType() == null) {
-        WriteLine("        ->required();");
-    } else {
-        WriteLine($"        ->required()->transform(CLI::CheckedTransformer({arg.TransformationType()}, CLI::ignore_case));");
+    WriteLine($"    {arg.CppCliValueType()} {arg.Name};"); 
+    if (arg.CppCliVariableInitialValue() != null) {
+        WriteLine($"    {arg.Name} = {arg.CppCliVariableInitialValue()};");
     }
+    WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")->required()");
+    if (arg.TransformationType() != null) {
+        Write($"        ->transform(CLI::CheckedTransformer({arg.TransformationType()}, CLI::ignore_case))");
+    }
+    WriteLine(";");
+    
 } 
             this.Write("\r\n    // With all the options added, parse arguments from the command line.\r\n    " +
                     "CLI11_PARSE(app, argc, argv);\r\n\r\n");

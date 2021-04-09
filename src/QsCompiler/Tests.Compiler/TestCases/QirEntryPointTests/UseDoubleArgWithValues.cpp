@@ -27,6 +27,7 @@ extern "C" void UseDoubleArgWithValues( // NOLINT
     double DoubleArg
 );
 
+
 int main(int argc, char* argv[])
 {
     CLI::App app("QIR Standalone Entry Point Inputs Reference");
@@ -45,8 +46,8 @@ int main(int argc, char* argv[])
 
     double_t DoubleArg;
     DoubleArg = 0.0;
-    app.add_option("--DoubleArg", DoubleArg, "A double value for the DoubleArg argument")
-        ->required();
+    app.add_option("--DoubleArg", DoubleArg, "A double value for the DoubleArg argument")->required()
+;
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

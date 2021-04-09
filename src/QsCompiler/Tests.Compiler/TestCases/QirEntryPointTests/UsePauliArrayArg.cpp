@@ -21,6 +21,7 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+
 struct InteropArray
 {
     int64_t Size;
@@ -44,17 +45,18 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
 
-
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UsePauliArrayArg( // NOLINT
     InteropArray * PauliArrayArg
 );
+
 
 map<string, PauliId> PauliMap{
     {"PauliI", PauliId::PauliId_I},
     {"PauliX", PauliId::PauliId_X},
     {"PauliY", PauliId::PauliId_Y},
     {"PauliZ", PauliId::PauliId_Z}};
+
 
 char TranslatePauliToChar(PauliId& pauli)
 {
@@ -78,8 +80,8 @@ int main(int argc, char* argv[])
     
 
     std::vector<PauliId> PauliArrayArg;
-    app.add_option("--PauliArrayArg", PauliArrayArg, "A Pauli array value for the PauliArrayArg argument")
-        ->required()->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
+    app.add_option("--PauliArrayArg", PauliArrayArg, "A Pauli array value for the PauliArrayArg argument")->required()
+        ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

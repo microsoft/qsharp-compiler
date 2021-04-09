@@ -24,6 +24,7 @@ using namespace Microsoft::Quantum;
 using namespace std;
     
 <# if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { #>
+
 struct InteropArray
 {
     int64_t Size;
@@ -46,9 +47,9 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
-
 <# } #>
 <# if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { #>
+
 using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
 {
@@ -78,9 +79,9 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     InteropRange* range = new InteropRange(rangeTuple);
     return range;
 }
-
 <# } #>
 <# if (entryPointOperation.ContainsArrayType(DataType.RangeType)) { #>
+
 template<typename T>
 void FreePointerVector(vector<T*>& v)
 {
@@ -104,6 +105,7 @@ extern "C" void <#= entryPointOperation.Name #>( // NOLINT
 );
 
 <# if (entryPointOperation.ContainsArgumentType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { #>
+
 const char InteropFalseAsChar = 0x0;
 const char InteropTrueAsChar = 0x1;
 map<string, bool> BoolAsCharMap{
@@ -111,17 +113,23 @@ map<string, bool> BoolAsCharMap{
     {"false", InteropFalseAsChar},
     {"1", InteropTrueAsChar},
     {"true", InteropTrueAsChar}};
-
 <# } #>
 <# if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { #>
+
 map<string, PauliId> PauliMap{
     {"PauliI", PauliId::PauliId_I},
     {"PauliX", PauliId::PauliId_X},
     {"PauliY", PauliId::PauliId_Y},
     {"PauliZ", PauliId::PauliId_Z}};
 
+
+char TranslatePauliToChar(PauliId& pauli)
+{
+    return static_cast<char>(pauli);
+}
 <# } #>
 <# if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { #>
+
 const char InteropResultZeroAsChar = 0x0;
 const char InteropResultOneAsChar = 0x1;
 map<string, char> ResultAsCharMap{
@@ -130,21 +138,14 @@ map<string, char> ResultAsCharMap{
     {"1", InteropResultOneAsChar},
     {"One", InteropResultOneAsChar}
 };
-
 <# } #>
-<# if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { #>
-char TranslatePauliToChar(PauliId& pauli)
-{
-    return static_cast<char>(pauli);
-}
 
-<# } #>
 <# if (entryPointOperation.ContainsArgumentType(DataType.StringType) || entryPointOperation.ContainsArrayType(DataType.StringType)) { #>
+
 const char* TranslateStringToCharBuffer(string& s)
 {
     return s.c_str();
 }
-
 <# } #>
 int main(int argc, char* argv[])
 {
@@ -163,14 +164,16 @@ int main(int argc, char* argv[])
     
 <# foreach (var arg in entryPointOperation.InteropArguments) {
     WriteLine("");
-    WriteLine($"    {arg.CppVarType()} {arg.Name};"); 
-    if (arg.CppVarInitialValue() != null) { WriteLine($"    {arg.Name} = {arg.CppVarInitialValue()};"); }
-    WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")");
-    if (arg.TransformationType() == null) {
-        WriteLine("        ->required();");
-    } else {
-        WriteLine($"        ->required()->transform(CLI::CheckedTransformer({arg.TransformationType()}, CLI::ignore_case));");
+    WriteLine($"    {arg.CppCliValueType()} {arg.Name};"); 
+    if (arg.CppCliVariableInitialValue() != null) {
+        WriteLine($"    {arg.Name} = {arg.CppCliVariableInitialValue()};");
     }
+    WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")->required()");
+    if (arg.TransformationType() != null) {
+        Write($"        ->transform(CLI::CheckedTransformer({arg.TransformationType()}, CLI::ignore_case))");
+    }
+    WriteLine(";");
+    
 } #>
 
     // With all the options added, parse arguments from the command line.
@@ -262,7 +265,7 @@ int main(int argc, char* argv[])
     }
 } #>
 
-);
+    );
 
 <# foreach (var arg in entryPointOperation.InteropArguments) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {

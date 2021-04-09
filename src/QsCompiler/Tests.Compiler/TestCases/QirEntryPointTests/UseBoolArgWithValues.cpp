@@ -27,6 +27,7 @@ extern "C" void UseBoolArgWithValues( // NOLINT
     char BoolArg
 );
 
+
 const char InteropFalseAsChar = 0x0;
 const char InteropTrueAsChar = 0x1;
 map<string, bool> BoolAsCharMap{
@@ -53,8 +54,8 @@ int main(int argc, char* argv[])
 
     char BoolArg;
     BoolArg = InteropFalseAsChar;
-    app.add_option("--BoolArg", BoolArg, "A bool value for the BoolArg argument")
-        ->required()->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
+    app.add_option("--BoolArg", BoolArg, "A bool value for the BoolArg argument")->required()
+        ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);

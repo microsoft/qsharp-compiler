@@ -21,6 +21,7 @@
 using namespace Microsoft::Quantum;
 using namespace std;
     
+
 struct InteropArray
 {
     int64_t Size;
@@ -88,6 +89,7 @@ extern "C" void UseRangeArrayArg( // NOLINT
     InteropArray * RangeArrayArg
 );
 
+
 int main(int argc, char* argv[])
 {
     CLI::App app("QIR Standalone Entry Point Inputs Reference");
@@ -105,8 +107,8 @@ int main(int argc, char* argv[])
     
 
     vector<RangeTuple> RangeArrayArg;
-    app.add_option("--RangeArrayArg", RangeArrayArg, "A Range array value for the RangeArrayArg argument")
-        ->required();
+    app.add_option("--RangeArrayArg", RangeArrayArg, "A Range array value for the RangeArrayArg argument")->required()
+;
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
