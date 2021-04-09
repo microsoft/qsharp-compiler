@@ -124,36 +124,25 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
             this.Write("\r\n);\r\n\r\n");
  if (entryPointOperation.ContainsArgumentType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { 
             this.Write("\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\nmap<" +
-                    "string, bool> BoolAsCharMap{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", Inte" +
-                    "ropFalseAsChar},\r\n    {\"1\", InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}" +
-                    "};\r\n");
+                    "string, bool> ");
+            this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.TransformationType()));
+            this.Write("{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", InteropFalseAsChar},\r\n    {\"1\", " +
+                    "InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}};\r\n");
  } 
  if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
-            this.Write(@"
-map<string, PauliId> PauliMap{
-    {""PauliI"", PauliId::PauliId_I},
-    {""PauliX"", PauliId::PauliId_X},
-    {""PauliY"", PauliId::PauliId_Y},
-    {""PauliZ"", PauliId::PauliId_Z}};
-
-
-char TranslatePauliToChar(PauliId& pauli)
-{
-    return static_cast<char>(pauli);
-}
-");
+            this.Write("\r\nmap<string, PauliId> ");
+            this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.TransformationType()));
+            this.Write("{\r\n    {\"PauliI\", PauliId::PauliId_I},\r\n    {\"PauliX\", PauliId::PauliId_X},\r\n    " +
+                    "{\"PauliY\", PauliId::PauliId_Y},\r\n    {\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\n\r\nchar " +
+                    "TranslatePauliToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli);\r\n}" +
+                    "\r\n");
  } 
  if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { 
-            this.Write(@"
-const char InteropResultZeroAsChar = 0x0;
-const char InteropResultOneAsChar = 0x1;
-map<string, char> ResultAsCharMap{
-    {""0"", InteropResultZeroAsChar},
-    {""Zero"", InteropResultZeroAsChar},
-    {""1"", InteropResultOneAsChar},
-    {""One"", InteropResultOneAsChar}
-};
-");
+            this.Write("\r\nconst char InteropResultZeroAsChar = 0x0;\r\nconst char InteropResultOneAsChar = " +
+                    "0x1;\r\nmap<string, char> ");
+            this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.TransformationType()));
+            this.Write("{\r\n    {\"0\", InteropResultZeroAsChar},\r\n    {\"Zero\", InteropResultZeroAsChar},\r\n " +
+                    "   {\"1\", InteropResultOneAsChar},\r\n    {\"One\", InteropResultOneAsChar}\r\n};\r\n");
  } 
             this.Write("\r\n");
  if (entryPointOperation.ContainsArgumentType(DataType.StringType) || entryPointOperation.ContainsArrayType(DataType.StringType)) { 
@@ -278,7 +267,7 @@ map<string, char> ResultAsCharMap{
         WriteLine(",");
     }
 } 
-            this.Write("\r\n);\r\n\r\n");
+            this.Write("\r\n    );\r\n\r\n");
  foreach (var arg in entryPointOperation.InteropArguments) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
         Write($"    FreePointerVector({arg.Name}Vector);");
