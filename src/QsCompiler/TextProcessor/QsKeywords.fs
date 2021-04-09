@@ -96,30 +96,30 @@ let qsString = addLanguageKeyword Types.String
 
 // Qs literals
 
-/// keyword for a Q# literal (QsReserverKeyword)
+/// keyword for a Q# literal (QsReservedKeyword)
 let qsPauliX = addKeywordLiteral Literals.PauliX
-/// keyword for a Q# literal (QsReserverKeyword)
+/// keyword for a Q# literal (QsReservedKeyword)
 let qsPauliY = addKeywordLiteral Literals.PauliY
-/// keyword for a Q# literal (QsReserverKeyword)
+/// keyword for a Q# literal (QsReservedKeyword)
 let qsPauliZ = addKeywordLiteral Literals.PauliZ
-/// keyword for a Q# literal (QsReserverKeyword)
+/// keyword for a Q# literal (QsReservedKeyword)
 let qsPauliI = addKeywordLiteral Literals.PauliI
 
-/// keyword for a Q# literal (QsReserverKeyword)
+/// keyword for a Q# literal (QsReservedKeyword)
 let qsZero = addKeywordLiteral Literals.Zero
-/// keyword for a Q# literal (QsReserverKeyword)
+/// keyword for a Q# literal (QsReservedKeyword)
 let qsOne = addKeywordLiteral Literals.One
 
-/// keyword for a Q# literal (QsReserverKeyword)
-let qsTrue = addKeywordLiteral Literals.True
-/// keyword for a Q# literal (QsReserverKeyword)
-let qsFalse = addKeywordLiteral Literals.False
+/// keyword for a Q# literal (QsReservedKeyword)
+let qsTrue = addKeyword Literals.True
+/// keyword for a Q# literal (QsReservedKeyword)
+let qsFalse = addKeyword Literals.False
 
 // Qs functors
 
-/// keyword for a Q# functor application (QsReserverKeyword)
+/// keyword for a Q# functor application (QsReservedKeyword)
 let qsAdjointFunctor = addKeyword Functors.Adjoint
-/// keyword for a Q# functor application (QsReserverKeyword)
+/// keyword for a Q# functor application (QsReservedKeyword)
 let qsControlledFunctor = addKeyword Functors.Controlled
 
 // statements
