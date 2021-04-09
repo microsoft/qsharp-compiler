@@ -127,7 +127,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public string? TransformationType()
+        public static string? DataTypeTransformerMapName(DataType type)
         {
             return this.Type switch
             {
@@ -138,19 +138,18 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => null,
                 DataType.ResultType => "ResultAsCharMap",
                 DataType.StringType => null,
-                DataType.ArrayType => this.ArrayType switch
-                {
-                    DataType.BoolType => "BoolAsCharMap",
-                    DataType.IntegerType => null,
-                    DataType.DoubleType => null,
-                    DataType.PauliType => "PauliMap",
-                    DataType.RangeType => null,
-                    DataType.ResultType => "ResultAsCharMap",
-                    DataType.StringType => null,
-                    _ => throw new NotSupportedException($"Unsupported array type {this.Type}")
-                },
+                DataType.ArrayType => throw new NotSupportedException($"function does not support array type."),
                 _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
+        }
+
+        public string? TransformerMapName()
+        {
+            if (self.Type == DataType.ArrayType) {
+                DataTypeTransformerMapName(self.ArrayType)
+            } else {
+                DataTypeTransformerMapName(self.Type)
+            }
         }
     }
 

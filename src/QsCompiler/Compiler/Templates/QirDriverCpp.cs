@@ -125,13 +125,13 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
  if (entryPointOperation.ContainsArgumentType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { 
             this.Write("\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\nmap<" +
                     "string, bool> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.TransformationType()));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCpp.DataTypeTransformerMapName(DataType.BoolType)));
             this.Write("{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", InteropFalseAsChar},\r\n    {\"1\", " +
                     "InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}};\r\n");
  } 
  if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
             this.Write("\r\nmap<string, PauliId> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.TransformationType()));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCpp.DataTypeTransformerMapName(DataType.PauliType)));
             this.Write("{\r\n    {\"PauliI\", PauliId::PauliId_I},\r\n    {\"PauliX\", PauliId::PauliId_X},\r\n    " +
                     "{\"PauliY\", PauliId::PauliId_Y},\r\n    {\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\n\r\nchar " +
                     "TranslatePauliToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli);\r\n}" +
@@ -140,7 +140,7 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
  if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { 
             this.Write("\r\nconst char InteropResultZeroAsChar = 0x0;\r\nconst char InteropResultOneAsChar = " +
                     "0x1;\r\nmap<string, char> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.TransformationType()));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCpp.DataTypeTransformerMapName(DataType.ResultType)));
             this.Write("{\r\n    {\"0\", InteropResultZeroAsChar},\r\n    {\"Zero\", InteropResultZeroAsChar},\r\n " +
                     "   {\"1\", InteropResultOneAsChar},\r\n    {\"One\", InteropResultOneAsChar}\r\n};\r\n");
  } 
@@ -172,8 +172,8 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
         WriteLine($"    {arg.Name} = {arg.CppCliVariableInitialValue()};");
     }
     WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")->required()");
-    if (arg.TransformationType() != null) {
-        Write($"        ->transform(CLI::CheckedTransformer({arg.TransformationType()}, CLI::ignore_case))");
+    if (arg.TransformationMapName() != null) {
+        Write($"        ->transform(CLI::CheckedTransformer({arg.TransformationMapName()}, CLI::ignore_case))");
     }
     WriteLine(";");
     
