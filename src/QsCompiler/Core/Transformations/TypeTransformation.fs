@@ -126,7 +126,8 @@ type TypeTransformationBase(options: TransformationOptions) =
 
     // transformation root called on each node
 
-    member this.OnType(t: ResolvedType) =
+    abstract OnType: ResolvedType -> ResolvedType
+    default this.OnType(t: ResolvedType) =
         if not options.Enable then
             t
         else

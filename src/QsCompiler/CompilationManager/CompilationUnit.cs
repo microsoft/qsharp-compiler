@@ -105,15 +105,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             static QsDeclarationAttribute Renamed(QsQualifiedName originalName, Position declLocation)
             {
-                var attName = new UserDefinedType(
-                    GeneratedAttributes.Namespace,
-                    GeneratedAttributes.LoadedViaTestNameInsteadOf,
-                    QsNullable<Range>.Null);
-                var attArg = SyntaxGenerator.StringLiteral(
-                    originalName.ToString(),
-                    ImmutableArray<TypedExpression>.Empty);
+                var attName =
+                    UserDefinedType.New(GeneratedAttributes.Namespace, GeneratedAttributes.LoadedViaTestNameInsteadOf);
+                var attArg =
+                    SyntaxGenerator.StringLiteral(originalName.ToString(), ImmutableArray<TypedExpression>.Empty);
+
                 return new QsDeclarationAttribute(
                     QsNullable<UserDefinedType>.NewValue(attName),
+                    QsNullable<Range>.Null,
                     attArg,
                     declLocation,
                     QsComments.Empty);

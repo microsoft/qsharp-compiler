@@ -250,6 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 typeId: bondQsDeclarationAttribute.TypeId != null ?
                     bondQsDeclarationAttribute.TypeId.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.UserDefinedType>.Null,
+                typeIdRange: QsNullable<DataTypes.Range>.Null,
                 argument: bondQsDeclarationAttribute.Argument.ToCompilerObject(),
                 offset: bondQsDeclarationAttribute.Offset.ToCompilerObject(),
                 comments: bondQsDeclarationAttribute.Comments.ToCompilerObject());
