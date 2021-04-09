@@ -3,9 +3,137 @@
 
 /// This namespace contains test cases for type checking
 namespace Microsoft.Quantum.Testing.TypeChecking {
-
     open Microsoft.Quantum.Testing.General;
 
+    // Integral operators
+
+    function Integral1() : Unit {
+        let _ = 1 &&& 2;
+        let _ = 1 ||| 2;
+        let _ = 1 ^^^ 2;
+        let _ = 1 % 2;
+    }
+
+    function Integral2() : Unit {
+        let _ = 1L &&& 2L;
+        let _ = 1L ||| 2L;
+        let _ = 1L ^^^ 2L;
+        let _ = 1L % 2L;
+    }
+
+    function IntegralInvalid1() : Unit {
+        let _ = "1" &&& "2";
+        let _ = "1" ||| "2";
+        let _ = "1" ^^^ "2";
+        let _ = "1" % "2";
+    }
+
+    function IntegralInvalid2() : Unit {
+        let _ = 1 &&& 2L;
+        let _ = 1 ||| 2L;
+        let _ = 1 ^^^ 2L;
+        let _ = 1 % 2L;
+    }
+
+    // Iterable types
+
+    function Iterable1() : Unit {
+        let xs = [1, 2, 3];
+        for x in xs {}
+    }
+
+    function Iterable2() : Unit {
+        for i in 0 .. 10 {}
+    }
+
+    function IterableInvalid1() : Unit {
+        for c in "foo" {}
+    }
+
+    function IterableInvalid2() : Unit {
+        for d in 123 {}
+    }
+
+    // Numeric operators
+
+    function Numeric1() : Unit {
+        let _ = -1;
+        let _ = 1 - 2;
+        let _ = 1 * 2;
+        let _ = 1 / 2;
+    }
+
+    function Numeric2() : Unit {
+        let _ = -1.0;
+        let _ = 1.0 - 2.0;
+        let _ = 1.0 * 2.0;
+        let _ = 1.0 / 2.0;
+    }
+
+    function Numeric3() : Unit {
+        let _ = -1L;
+        let _ = 1L - 2L;
+        let _ = 1L * 2L;
+        let _ = 1L / 2L;
+    }
+
+    function NumericInvalid1() : Unit {
+        let _ = -One;
+        let _ = Zero - One;
+        let _ = Zero * One;
+        let _ = Zero / One;
+    }
+
+    function NumericInvalid2() : Unit {
+        let _ = -"1";
+        let _ = "1" - "2";
+        let _ = "1" * "2";
+        let _ = "1" / "2";
+    }
+
+    // Semigroup operator
+
+    function Semigroup1() : Unit {
+        let _ = 1 + 2;
+    }
+
+    function Semigroup2() : Unit {
+        let _ = 1.0 + 2.0;
+    }
+
+    function Semigroup3() : Unit {
+        let _ = 1L + 2L;
+    }
+
+    function Semigroup4() : Unit {
+        let _ = "foo" + "bar";
+    }
+
+    function Semigroup5() : Unit {
+        let _ = [()] + [()];
+    }
+
+    function SemigroupInvalid1() : Unit {
+        let _ = Zero + One;
+    }
+
+    function SemigroupInvalid2() : Unit {
+        let _ = () + ();
+    }
+
+    // Unwrap operator
+
+    function Unwrap1(x : BigEndian) : Unit {
+        let _ = x!;
+    }
+
+    function UnwrapInvalid1(x : Int) : Unit {
+        let _ = x!;
+    }
+
+    function UnwrapInvalid2(x : Int[]) : Unit {
+        let _ = x!;
+    }
 
     // utils for testing variance behavior 
 

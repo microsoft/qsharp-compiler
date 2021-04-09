@@ -464,17 +464,10 @@ let private valueTuple item = // allows something like (a,(),b)
 /// Uses commaSep1 to generate suitable errors for invalid or missing expressions within the array.
 let private valueArray =
     let sized = expr .>>. (comma >>. size.parse >>. equal >>. expectedExpr rArray) |>> SizedArray
+    let items = commaSep expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof |>> ValueArray
 
-    // This disallows [].
-    let items =
-        commaSep1 expr ErrorCode.InvalidExpression ErrorCode.MissingExpression unknownExpr eof
-        |>> ValueArray
-
-    // The error message should be adapted if [] is allowed.
-    let content =
-        expected (attempt sized <|> items) ErrorCode.InvalidValueArray ErrorCode.EmptyValueArray InvalidExpr eof
-
-    arrayBrackets content |>> QsExpression.New <|> bracketDefinedCommaSepExpr (lArray, rArray)
+    arrayBrackets (attempt sized <|> items) |>> QsExpression.New
+    <|> bracketDefinedCommaSepExpr (lArray, rArray)
 
 /// Parses a Q# array declaration as QsExpression.
 /// Raises an InvalidContructorExpression if the array declaration keyword is not followed by a valid array constructor,

@@ -379,11 +379,14 @@ type WarningCode =
     | SetInResultConditionedBlock = 5026
     | UnsupportedCallableCapability = 5027
 
-    | TypeParameterNotResolvedByArgument = 6001
-    | ReturnTypeNotResolvedByArgument = 6002
+    // TODO: RELEASE 2021-10: Remove TypeParameterNotResolvedByArgument.
+    | [<Obsolete "This diagnostic is no longer in use.">] TypeParameterNotResolvedByArgument = 6001
+    // TODO: RELEASE 2021-10: Remove ReturnTypeNotResolvedByArgument.
+    | [<Obsolete "This diagnostic is no longer in use.">] ReturnTypeNotResolvedByArgument = 6002
     | NamespaceAleadyOpen = 6003
     | NamespaceAliasIsAlreadyDefined = 6004
     | MissingBodyDeclaration = 6005
+    | UnusedTypeParam = 6006
     | DuplicateAttribute = 6201
     | MissingEntryPoint = 6202
     | IgnoredEntryPoint = 6203
@@ -983,6 +986,9 @@ type DiagnosticItem =
             | WarningCode.NamespaceAliasIsAlreadyDefined -> "A short name for this namespace is already defined."
             | WarningCode.MissingBodyDeclaration ->
                 "A body specification for this callable is missing. The callable is assumed to be intrinsic."
+            | WarningCode.UnusedTypeParam ->
+                "The type parameter {0} is not used in the argument or return types. "
+                + "It is always ambiguous unless provided as an explicit type argument."
             | WarningCode.DuplicateAttribute -> "The attribute {0} is a duplication and will be ignored."
             | WarningCode.MissingEntryPoint ->
                 "The project is an executable Q# project but no entry point has been found. The project should be a library, and any C# driver code should be defined in a separate project."

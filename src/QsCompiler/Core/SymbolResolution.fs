@@ -375,49 +375,25 @@ module SymbolResolution =
         let ts, errs = (inner.Select fst).ToImmutableArray(), inner.Select snd |> Array.concat
         build ts, errs
 
-    /// Helper function for ResolveCallableSignature that verifies whether the given type parameters and the given return type
-    /// are fully resolved by an argument of the given the argument type. Generates and returns suitable warnings if this is not the case.
-    let private TypeParameterResolutionWarnings (argumentType: ResolvedType)
-                                                (returnType: ResolvedType, range)
-                                                typeParams
-                                                =
-        // FIXME: this verification needs to be done for each specialization individually once type specializations are fully supported
-        let typeParamsResolvedByArg =
-            let getTypeParams (t: ResolvedType) =
-                match t.Resolution with
-                | QsTypeKind.TypeParameter (tp: QsTypeParameter) -> [ tp.TypeName ].AsEnumerable()
-                | _ -> Enumerable.Empty()
+    /// Diagnostics for type parameters that do not occur in the argument type or return type.
+    let private unusedTypeParamDiagnostics (argType: ResolvedType) (returnType: ResolvedType) =
+        let isTypeParam name =
+            function
+            | TypeParameter param when param.TypeName = name -> true
+            | _ -> false
 
-            argumentType.ExtractAll getTypeParams |> Seq.toList
+        let paramDiagnostics (symbol, range) =
+            match symbol with
+            | ValidName name ->
+                let isNamedParam = isTypeParam name
 
-        let excessTypeParamWarn =
-            let isUnresolvedByArg =
-                function
-                | (ValidName name, range) ->
-                    if typeParamsResolvedByArg.Contains name then
-                        None
-                    else
-                        range
-                        |> QsCompilerDiagnostic.Warning(WarningCode.TypeParameterNotResolvedByArgument, [])
-                        |> Some
-                | _ -> None
+                [
+                    if argType.Exists isNamedParam |> not && returnType.Exists isNamedParam |> not
+                    then QsCompilerDiagnostic.Warning (WarningCode.UnusedTypeParam, [ "'" + name ]) range
+                ]
+            | InvalidName -> []
 
-            typeParams |> List.choose isUnresolvedByArg
-
-        let unresolvableReturnType =
-            let isUnresolved =
-                function
-                | QsTypeKind.TypeParameter (tp: QsTypeParameter) ->
-                    not (typeParamsResolvedByArg |> List.contains tp.TypeName)
-                | _ -> false
-
-            returnType.Exists isUnresolved
-
-        let returnTypeErr = range |> QsCompilerDiagnostic.Warning(WarningCode.ReturnTypeNotResolvedByArgument, [])
-
-        if unresolvableReturnType
-        then returnTypeErr :: excessTypeParamWarn |> List.toArray
-        else excessTypeParamWarn |> List.toArray
+        List.collect paramDiagnostics
 
     /// <summary>
     /// Helper function for ResolveCallableSignature that resolves the given argument tuple
@@ -513,13 +489,8 @@ module SymbolResolution =
         let argTuple, inErr = signature.Argument |> ResolveArgumentTuple(resolveArg, resolveType)
         let argType = argTuple.ResolveWith(fun x -> x.Type.WithoutRangeInfo)
         let returnType, outErr = signature.ReturnType |> resolveType
-
-        let resolvedParams, resErrs =
-            let errs =
-                TypeParameterResolutionWarnings argType (returnType, signature.ReturnType.Range |> orDefault) typeParams
-
-            (typeParams |> Seq.map fst).ToImmutableArray(), errs
-
+        let resolvedParams = typeParams |> Seq.map fst |> ImmutableArray.CreateRange
+        let resErrs = unusedTypeParamDiagnostics argType returnType typeParams
         let callableInfo = CallableInformation.Common specBundleInfos
 
         let resolvedSig =
@@ -530,7 +501,7 @@ module SymbolResolution =
                 Information = callableInfo
             }
 
-        (resolvedSig, argTuple), [ inErr; outErr; resErrs; tpErrs ] |> Array.concat
+        (resolvedSig, argTuple), [ inErr; outErr; List.toArray resErrs; tpErrs ] |> Array.concat
 
     /// <summary>
     /// Give a routine for type resolution, fully resolves the given user defined type as well as its items.
@@ -661,7 +632,7 @@ module SymbolResolution =
     /// </summary>
     /// <exception cref="ArgumentException">A tuple-valued attribute argument does not contain at least one item.</exception>
     let internal ResolveAttribute getAttribute (attribute: AttributeAnnotation) =
-        let asTypedExression range (exKind, exType) =
+        let asTypedExpression range (exKind, exType) =
             {
                 Expression = exKind
                 TypeArguments = ImmutableArray.Empty
@@ -671,37 +642,38 @@ module SymbolResolution =
             }
 
         let invalidExpr range =
-            (InvalidExpr, InvalidType) |> asTypedExression range
+            (InvalidExpr, InvalidType) |> asTypedExpression range
 
         let orDefault (range: QsNullable<_>) = range.ValueOr Range.Zero
 
         // We may in the future decide to support arbitary expressions as long as they can be evaluated at compile time.
         // At that point it may make sense to replace this with the standard resolution routine for typed expressions.
         // For now we support only a restrictive set of valid arguments.
-        let rec ArgExression (ex: QsExpression): TypedExpression * QsCompilerDiagnostic [] =
+        let rec argExpression (ex: QsExpression) =
             let diagnostic code range =
                 range |> orDefault |> QsCompilerDiagnostic.Error(code, [])
+
             // NOTE: if this is adapted, adapt the header hash as well
             match ex.Expression with
-            | UnitValue -> (UnitValue, UnitType) |> asTypedExression ex.Range, [||]
-            | DoubleLiteral d -> (DoubleLiteral d, Double) |> asTypedExression ex.Range, [||]
-            | IntLiteral i -> (IntLiteral i, Int) |> asTypedExression ex.Range, [||]
-            | BigIntLiteral l -> (BigIntLiteral l, BigInt) |> asTypedExression ex.Range, [||]
-            | BoolLiteral b -> (BoolLiteral b, Bool) |> asTypedExression ex.Range, [||]
-            | ResultLiteral r -> (ResultLiteral r, Result) |> asTypedExression ex.Range, [||]
-            | PauliLiteral p -> (PauliLiteral p, Pauli) |> asTypedExression ex.Range, [||]
+            | UnitValue -> (UnitValue, UnitType) |> asTypedExpression ex.Range, [||]
+            | DoubleLiteral d -> (DoubleLiteral d, Double) |> asTypedExpression ex.Range, [||]
+            | IntLiteral i -> (IntLiteral i, Int) |> asTypedExpression ex.Range, [||]
+            | BigIntLiteral l -> (BigIntLiteral l, BigInt) |> asTypedExpression ex.Range, [||]
+            | BoolLiteral b -> (BoolLiteral b, Bool) |> asTypedExpression ex.Range, [||]
+            | ResultLiteral r -> (ResultLiteral r, Result) |> asTypedExpression ex.Range, [||]
+            | PauliLiteral p -> (PauliLiteral p, Pauli) |> asTypedExpression ex.Range, [||]
             | StringLiteral (s, exs) ->
                 if exs.Length <> 0
                 then invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InterpolatedStringInAttribute |]
-                else (StringLiteral(s, ImmutableArray.Empty), String) |> asTypedExression ex.Range, [||]
-            | ValueTuple vs when vs.Length = 1 -> ArgExression(vs.First())
+                else (StringLiteral(s, ImmutableArray.Empty), String) |> asTypedExpression ex.Range, [||]
+            | ValueTuple vs when vs.Length = 1 -> argExpression (vs.First())
             | ValueTuple vs ->
                 if vs.Length = 0
                 then ArgumentException "tuple valued attribute argument requires at least one tuple item" |> raise
 
                 let innerExs, errs = aggregateInner vs
                 let types = (innerExs |> Seq.map (fun ex -> ex.ResolvedType)).ToImmutableArray()
-                (ValueTuple innerExs, TupleType types) |> asTypedExression ex.Range, errs
+                (ValueTuple innerExs, TupleType types) |> asTypedExpression ex.Range, errs
             | ValueArray vs ->
                 let innerExs, errs = aggregateInner vs
                 // we can make the following simple check since / as long as there is no variance behavior
@@ -712,14 +684,21 @@ module SymbolResolution =
                     | _ -> Some ex.ResolvedType
 
                 match innerExs |> Seq.choose typeIfValid |> Seq.distinct |> Seq.toList with
-                | [ bt ] -> (ValueArray innerExs, ArrayType bt) |> asTypedExression ex.Range, errs
+                | [ bt ] -> (ValueArray innerExs, ArrayType bt) |> asTypedExpression ex.Range, errs
                 | [] when innerExs.Length <> 0 ->
-                    (ValueArray innerExs, ResolvedType.New InvalidType |> ArrayType) |> asTypedExression ex.Range, errs
+                    (ValueArray innerExs, ResolvedType.New InvalidType |> ArrayType) |> asTypedExpression ex.Range, errs
                 | [] ->
+                    // TODO: Support empty arrays.
                     invalidExpr ex.Range, errs |> Array.append [| ex.Range |> diagnostic ErrorCode.EmptyValueArray |]
                 | _ ->
                     invalidExpr ex.Range,
                     errs |> Array.append [| ex.Range |> diagnostic ErrorCode.ArrayBaseTypeMismatch |]
+            | SizedArray (value, size) ->
+                let value, valueDiagnostics = argExpression value
+                let size, sizeDiagnostics = argExpression size
+
+                (SizedArray(value, size), ArrayType value.ResolvedType) |> asTypedExpression ex.Range,
+                Array.append valueDiagnostics sizeDiagnostics
             | NewArray (bt, idx) ->
                 let onUdt (_, udtRange) =
                     InvalidType, [| udtRange |> diagnostic ErrorCode.ArgumentOfUserDefinedTypeInAttribute |]
@@ -728,21 +707,21 @@ module SymbolResolution =
                     InvalidType, [| tpRange |> diagnostic ErrorCode.TypeParameterizedArgumentInAttribute |]
 
                 let resBaseType, typeErrs = ResolveType (onUdt, onTypeParam) bt
-                let resIdx, idxErrs = ArgExression idx
+                let resIdx, idxErrs = argExpression idx
 
-                (NewArray(resBaseType, resIdx), ArrayType resBaseType) |> asTypedExression ex.Range,
+                (NewArray(resBaseType, resIdx), ArrayType resBaseType) |> asTypedExpression ex.Range,
                 Array.concat [ typeErrs; idxErrs ]
             // TODO: detect constructor calls
             | InvalidExpr -> invalidExpr ex.Range, [||]
             | _ -> invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InvalidAttributeArgument |]
 
         and aggregateInner vs =
-            let innerExs, errs = vs |> Seq.map ArgExression |> Seq.toList |> List.unzip
+            let innerExs, errs = vs |> Seq.map argExpression |> Seq.toList |> List.unzip
             innerExs.ToImmutableArray(), Array.concat errs
 
         // Any user defined type that has been decorated with the attribute
         // "Attribute" defined in Microsoft.Quantum.Core may be used as attribute.
-        let resArg, argErrs = ArgExression attribute.Argument
+        let resArg, argErrs = argExpression attribute.Argument
 
         let buildAttribute id =
             {

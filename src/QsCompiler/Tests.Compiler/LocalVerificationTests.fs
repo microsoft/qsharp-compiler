@@ -435,14 +435,14 @@ type LocalVerificationTests() =
             "InvalidTestAttribute5"
             [
                 Error ErrorCode.InvalidTestAttributePlacement
-                Warning WarningCode.TypeParameterNotResolvedByArgument
+                Warning WarningCode.UnusedTypeParam
             ]
 
         this.Expect
             "InvalidTestAttribute6"
             [
                 Error ErrorCode.InvalidTestAttributePlacement
-                Warning WarningCode.TypeParameterNotResolvedByArgument
+                Warning WarningCode.UnusedTypeParam
             ]
 
         this.Expect "InvalidTestAttribute7" [ Error ErrorCode.InvalidTestAttributePlacement ]

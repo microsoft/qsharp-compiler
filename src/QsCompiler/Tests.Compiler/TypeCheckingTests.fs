@@ -23,27 +23,51 @@ module TypeCheckingTests =
         tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
 
     [<Fact>]
-    let ``Integer size in array constructor`` () = expect "SizedArray1" []
+    let ``Supports integral operators`` () =
+        expect "Integral1" []
+        expect "Integral2" []
+        expect "IntegralInvalid1" (Error ErrorCode.ExpectingIntegralExpr |> List.replicate 4)
+        expect "IntegralInvalid2" (Error ErrorCode.MissingBaseType |> List.replicate 4)
 
     [<Fact>]
-    let ``Zero size in array constructor`` () = expect "SizedArray2" []
+    let ``Supports iteration`` () =
+        expect "Iterable1" []
+        expect "Iterable2" []
+        expect "IterableInvalid1" [ Error ErrorCode.ExpectingIterableExpr ]
+        expect "IterableInvalid2" [ Error ErrorCode.ExpectingIterableExpr ]
 
     [<Fact>]
-    let ``Negative integer size in array constructor`` () = expect "SizedArray3" []
+    let ``Supports numeric operators`` () =
+        expect "Numeric1" []
+        expect "Numeric2" []
+        expect "Numeric3" []
+        expect "NumericInvalid1" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
+        expect "NumericInvalid2" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
 
     [<Fact>]
-    let ``Type variable in array constructor`` () = expect "SizedArray4" []
+    let ``Supports the semigroup operator`` () =
+        expect "Semigroup1" []
+        expect "Semigroup2" []
+        expect "Semigroup3" []
+        expect "Semigroup4" []
+        expect "Semigroup5" []
+        expect "SemigroupInvalid1" [ Error ErrorCode.InvalidTypeForConcatenation ]
+        expect "SemigroupInvalid2" [ Error ErrorCode.InvalidTypeForConcatenation ]
 
     [<Fact>]
-    let ``Double size in array constructor`` () =
+    let ``Supports the unwrap operator`` () =
+        expect "Unwrap1" []
+        expect "UnwrapInvalid1" [ Error ErrorCode.ExpectingUserDefinedType ]
+        expect "UnwrapInvalid2" [ Error ErrorCode.ExpectingUserDefinedType ]
+
+    [<Fact>]
+    let ``Supports sized array literals`` () =
+        expect "SizedArray1" []
+        expect "SizedArray2" []
+        expect "SizedArray3" []
+        expect "SizedArray4" []
         expect "SizedArrayInvalid1" [ Error ErrorCode.TypeMismatch ]
-
-    [<Fact>]
-    let ``String size in array constructor`` () =
         expect "SizedArrayInvalid2" [ Error ErrorCode.TypeMismatch ]
-
-    [<Fact>]
-    let ``Tuple size in array constructor`` () =
         expect "SizedArrayInvalid3" [ Error ErrorCode.TypeMismatch ]
 
 type TypeCheckingTests() =
@@ -117,15 +141,7 @@ type TypeCheckingTests() =
         this.Expect "CommonBaseType16" [ Error ErrorCode.MissingBaseType ]
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" []
-
-        this.Expect
-            "CommonBaseType19"
-            [
-                Warning WarningCode.TypeParameterNotResolvedByArgument
-                Warning WarningCode.TypeParameterNotResolvedByArgument
-                Warning WarningCode.ReturnTypeNotResolvedByArgument
-            ]
-
+        this.Expect "CommonBaseType19" [ Warning WarningCode.UnusedTypeParam ]
         this.Expect "CommonBaseType20" [ Error ErrorCode.MissingBaseType ]
         this.Expect "CommonBaseType21" []
         this.Expect "CommonBaseType22" []
