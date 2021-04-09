@@ -726,6 +726,7 @@ module SymbolResolution =
         let buildAttribute id =
             {
                 TypeId = id
+                TypeIdRange = attribute.Id.Range
                 Argument = resArg
                 Offset = attribute.Position
                 Comments = attribute.Comments

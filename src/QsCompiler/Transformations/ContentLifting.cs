@@ -437,7 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp) =>
                     // Reroute a type parameter's origin to the newly generated operation
                     !this.SharedState.IsRecursiveIdentifier && this.SharedState.OldName.Equals(tp.Origin)
-                        ? base.OnTypeParameter(tp.WithOrigin(this.SharedState.NewName))
+                        ? base.OnTypeParameter(tp.With(this.SharedState.NewName))
                         : base.OnTypeParameter(tp);
             }
         }
