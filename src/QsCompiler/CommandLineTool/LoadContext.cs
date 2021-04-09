@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 
 namespace Microsoft.Quantum.QsCompiler
@@ -68,9 +69,24 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 try
                 {
-                    found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName));
-                    found.AddRange(Directory.GetFiles(dir, "*.dylib", SearchOption.AllDirectories).Where(MatchByName));
-                    found.AddRange(Directory.GetFiles(dir, "*.so", SearchOption.AllDirectories).Where(MatchByName));
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dylib", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.so", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName));
+                        found.AddRange(Directory.GetFiles(dir, "*.dylib", SearchOption.AllDirectories).Where(MatchByName));
+                        found.AddRange(Directory.GetFiles(dir, "*.so", SearchOption.AllDirectories).Where(MatchByName));
+                    }
                 }
                 catch
                 {
