@@ -60,7 +60,7 @@ int main(int argc, char* argv[])
     // Run simulation and write the output of the operation to the corresponding stream.
     UseNoArgs(
 
-);
+    );
 
 
     simulatorOutputStream->flush();

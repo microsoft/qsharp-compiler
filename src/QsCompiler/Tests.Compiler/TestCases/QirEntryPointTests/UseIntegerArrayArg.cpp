@@ -90,7 +90,7 @@ int main(int argc, char* argv[])
     // Run simulation and write the output of the operation to the corresponding stream.
     UseIntegerArrayArg(
         IntegerArrayArgArray.get()
-);
+    );
 
 
     simulatorOutputStream->flush();

@@ -172,8 +172,8 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
         WriteLine($"    {arg.Name} = {arg.CppCliVariableInitialValue()};");
     }
     WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")->required()");
-    if (arg.TransformationMapName() != null) {
-        Write($"        ->transform(CLI::CheckedTransformer({arg.TransformationMapName()}, CLI::ignore_case))");
+    if (arg.TransformerMapName() != null) {
+        Write($"        ->transform(CLI::CheckedTransformer({arg.TransformerMapName()}, CLI::ignore_case))");
     }
     WriteLine(";");
     

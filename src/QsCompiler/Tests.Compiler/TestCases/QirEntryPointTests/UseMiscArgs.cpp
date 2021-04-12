@@ -134,7 +134,7 @@ int main(int argc, char* argv[])
         IntegerArg,
         PauliArgAsCharValue,
         ResultArrayArgArray.get()
-);
+    );
 
 
     simulatorOutputStream->flush();

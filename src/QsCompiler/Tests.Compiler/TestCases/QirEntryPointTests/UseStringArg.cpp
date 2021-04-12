@@ -69,7 +69,7 @@ int main(int argc, char* argv[])
     // Run simulation and write the output of the operation to the corresponding stream.
     UseStringArg(
         StringArg.c_str()
-);
+    );
 
 
     simulatorOutputStream->flush();
