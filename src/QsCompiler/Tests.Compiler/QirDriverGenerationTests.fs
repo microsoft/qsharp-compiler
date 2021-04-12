@@ -12,11 +12,11 @@ type QirDriverGenerationTests(output: ITestOutputHelper) =
 
     [<Fact>]
     member this.GenerateCommandLineArguments() =
-        let expectedArguments = "--int-value 1 --integer-array 1 2 3 4 5 --double-value 0.5 --double-array 0.1 0.2 0.3 0.4 0.5 --bool-value true --bool-array true true false --pauli-value paulii --pauli-array paulix paulyi paulyy pauliz --range-value 1 2 10 --range-array 1 2 10 5 5 50 10 1 20 --result-value 1 --result-array 1 0 1 1 --string-value \"a sample string\" --string-array \"String A\" \"String B\" \"StringC\""
+        let expectedArguments = "--int-value 1 --integer-array 1 2 3 4 5 --double-value 0.5 --double-array 0.1 0.2 0.3 0.4 0.5 --bool-value true --bool-array true true false --pauli-value paulii --pauli-array paulix paulii pauliy pauliz --range-value 1 2 10 --range-array 1 2 10 5 5 50 10 1 20 --result-value 1 --result-array 1 0 1 1 --string-value \"a sample string\" --string-array \"String A\" \"String B\" \"StringC\""
 
         // Initialize arguments array
         let argList = new ResizeArray<Argument>()
-        let numArguments = 14
+        let numArguments = 13
         for i=0 to numArguments do
             let arg = new Argument()
             arg.Position <- i
@@ -132,5 +132,10 @@ type QirDriverGenerationTests(output: ITestOutputHelper) =
         array13.String <- [|"String A"; "String B"; "StringC"|] |> ResizeArray
         argList.Item(13).Values.Item(0).Array <- array13
 
+        let actualArguments = QirDriverGeneration.GenerateCommandLineArguments(argList)
+        Assert.Equal(expectedArguments, actualArguments)
+
+        // Now reverse values in the argument list and ensure that the same result is obtained.
+        argList.Reverse()
         let actualArguments = QirDriverGeneration.GenerateCommandLineArguments(argList)
         Assert.Equal(expectedArguments, actualArguments)
