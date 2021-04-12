@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System.Collections.Generic;
 using System.IO;
 using System.Text;
 using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
@@ -17,6 +18,11 @@ namespace Microsoft.Quantum.QsCompiler
             stream.Write(Encoding.UTF8.GetBytes(cppSource));
             stream.Flush();
             stream.Position = 0;
+        }
+
+        public static string GenerateCommandLineArguments(IList<Argument> arguments)
+        {
+            throw new System.NotImplementedException();
         }
     }
 }

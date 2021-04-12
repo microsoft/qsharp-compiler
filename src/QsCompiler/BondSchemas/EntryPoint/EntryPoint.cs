@@ -103,6 +103,9 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
         [global::Bond.Id(35), global::Bond.Type(typeof(global::Bond.Tag.nullable<List<ResultValue>>))]
         public List<ResultValue> Result { get; set; }
 
+        [global::Bond.Id(40), global::Bond.Type(typeof(global::Bond.Tag.nullable<List<string>>))]
+        public List<string> String { get; set; }
+
         public ArrayValue()
             : this("Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint.ArrayValue", "ArrayValue")
         {}
