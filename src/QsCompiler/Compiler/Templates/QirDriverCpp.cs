@@ -171,7 +171,7 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     if (arg.CppCliVariableInitialValue() != null) {
         WriteLine($"    {arg.CliValueVariableName()} = {arg.CppCliVariableInitialValue()};");
     }
-    WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")->required()");
+    WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.CliValueVariableName()}, \"{arg.CliDescription()}\")->required()");
     if (arg.TransformerMapName() != null) {
         Write($"        ->transform(CLI::CheckedTransformer({arg.TransformerMapName()}, CLI::ignore_case))");
     }
@@ -218,6 +218,9 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
                     WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.IntermediateVariableName()});");
                     break;
             }
+            break;
+        default:
+            WriteLine($"    {arg.CppCliValueType()} {arg.InteropVariableName()} = {arg.CliValueVariableName()};");
             break;
     }
 } 

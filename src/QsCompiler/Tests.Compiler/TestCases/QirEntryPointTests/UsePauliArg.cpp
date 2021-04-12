@@ -58,7 +58,7 @@ int main(int argc, char* argv[])
 
     PauliId PauliArgCliValue;
     PauliArgCliValue = PauliId::PauliId_I;
-    app.add_option("--PauliArg", PauliArg, "A Pauli value for the PauliArg argument")->required()
+    app.add_option("--PauliArg", PauliArgCliValue, "A Pauli value for the PauliArg argument")->required()
         ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.

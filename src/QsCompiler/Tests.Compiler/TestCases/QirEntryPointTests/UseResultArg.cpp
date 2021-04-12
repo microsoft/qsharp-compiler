@@ -55,12 +55,13 @@ int main(int argc, char* argv[])
 
     char ResultArgCliValue;
     ResultArgCliValue = InteropResultZeroAsChar;
-    app.add_option("--ResultArg", ResultArg, "A Result value for the ResultArg argument")->required()
+    app.add_option("--ResultArg", ResultArgCliValue, "A Result value for the ResultArg argument")->required()
         ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
+    char ResultArgInteropValue = ResultArgCliValue;
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;

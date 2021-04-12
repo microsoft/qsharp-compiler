@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
     
 
     vector<int64_t> IntegerArrayArgCliValue;
-    app.add_option("--IntegerArrayArg", IntegerArrayArg, "A integer array value for the IntegerArrayArg argument")->required()
+    app.add_option("--IntegerArrayArg", IntegerArrayArgCliValue, "A integer array value for the IntegerArrayArg argument")->required()
 ;
 
     // With all the options added, parse arguments from the command line.

@@ -54,12 +54,13 @@ int main(int argc, char* argv[])
 
     char BoolArgCliValue;
     BoolArgCliValue = InteropFalseAsChar;
-    app.add_option("--BoolArg", BoolArg, "A bool value for the BoolArg argument")->required()
+    app.add_option("--BoolArg", BoolArgCliValue, "A bool value for the BoolArg argument")->required()
         ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
+    char BoolArgInteropValue = BoolArgCliValue;
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;

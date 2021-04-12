@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
     
 
     vector<double_t> DoubleArrayArgCliValue;
-    app.add_option("--DoubleArrayArg", DoubleArrayArg, "A double array value for the DoubleArrayArg argument")->required()
+    app.add_option("--DoubleArrayArg", DoubleArrayArgCliValue, "A double array value for the DoubleArrayArg argument")->required()
 ;
 
     // With all the options added, parse arguments from the command line.

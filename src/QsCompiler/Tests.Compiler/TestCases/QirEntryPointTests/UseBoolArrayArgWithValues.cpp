@@ -76,7 +76,7 @@ int main(int argc, char* argv[])
     
 
     vector<char> BoolArrayArgCliValue;
-    app.add_option("--BoolArrayArg", BoolArrayArg, "A bool array value for the BoolArrayArg argument")->required()
+    app.add_option("--BoolArrayArg", BoolArrayArgCliValue, "A bool array value for the BoolArrayArg argument")->required()
         ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.

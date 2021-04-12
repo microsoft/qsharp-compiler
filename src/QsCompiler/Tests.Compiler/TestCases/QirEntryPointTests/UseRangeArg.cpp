@@ -75,7 +75,7 @@ int main(int argc, char* argv[])
     
 
     RangeTuple RangeArgCliValue;
-    app.add_option("--RangeArg", RangeArg, "A Range (start, step, end) value for the RangeArg argument")->required()
+    app.add_option("--RangeArg", RangeArgCliValue, "A Range (start, step, end) value for the RangeArg argument")->required()
 ;
 
     // With all the options added, parse arguments from the command line.

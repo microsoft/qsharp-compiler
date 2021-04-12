@@ -100,21 +100,22 @@ int main(int argc, char* argv[])
 
     char IntegerArgCliValue;
     IntegerArgCliValue = InteropFalseAsChar;
-    app.add_option("--IntegerArg", IntegerArg, "A bool value for the IntegerArg argument")->required()
+    app.add_option("--IntegerArg", IntegerArgCliValue, "A bool value for the IntegerArg argument")->required()
         ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     PauliId PauliArgCliValue;
     PauliArgCliValue = PauliId::PauliId_I;
-    app.add_option("--PauliArg", PauliArg, "A Pauli value for the PauliArg argument")->required()
+    app.add_option("--PauliArg", PauliArgCliValue, "A Pauli value for the PauliArg argument")->required()
         ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
     vector<char> ResultArrayArgCliValue;
-    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array value for the ResultArrayArg argument")->required()
+    app.add_option("--ResultArrayArg", ResultArrayArgCliValue, "A Result array value for the ResultArrayArg argument")->required()
         ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
+    char IntegerArgInteropValue = IntegerArgCliValue;
     // Translate a PauliID value to its char representation.
     char PauliArgInteropValue = TranslatePauliToChar(PauliArgCliValue);
     // Translate values to its final form after parsing.

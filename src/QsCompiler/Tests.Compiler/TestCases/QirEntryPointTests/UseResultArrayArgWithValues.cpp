@@ -77,7 +77,7 @@ int main(int argc, char* argv[])
     
 
     vector<char> ResultArrayArgCliValue;
-    app.add_option("--ResultArrayArg", ResultArrayArg, "A Result array value for the ResultArrayArg argument")->required()
+    app.add_option("--ResultArrayArg", ResultArrayArgCliValue, "A Result array value for the ResultArrayArg argument")->required()
         ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
