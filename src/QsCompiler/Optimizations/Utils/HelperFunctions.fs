@@ -228,10 +228,12 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
     QsStatement.New QsComments.Empty Null (stmt, LocalDeclarations.New symbolDecl)
 
 
-/// Returns a new array of the given type and length.
+/// <summary>
+/// Returns a new array containing the given value repeated <paramref name="length"/> times.
 /// Returns None if the type doesn't have a default value as an expression.
-let rec internal constructArray length value =
-    List.replicate length value |> ImmutableArray.CreateRange |> ValueArray
+/// </summary>
+let internal constructArray length =
+    List.replicate length >> ImmutableArray.CreateRange >> ValueArray
 
 /// Returns the default value for a given type (from Q# documentation).
 /// Returns None for types whose default values are not representable as expressions.
