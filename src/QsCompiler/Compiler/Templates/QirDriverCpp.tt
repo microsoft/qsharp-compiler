@@ -96,7 +96,7 @@ void FreePointerVector(vector<T*>& v)
 extern "C" void <#= entryPointOperation.Name #>( // NOLINT
 <# for (int i = 0; i < entryPointOperation.InteropArguments.Count; i++) {
     var arg = entryPointOperation.InteropArguments[i];
-    Write($"    {arg.CppType()} {arg.Name}");
+    Write($"    {arg.CppType()} {arg.InteropVariableName()}");
     if (i < entryPointOperation.InteropArguments.Count-1) {
         WriteLine(",");
     }
@@ -164,9 +164,9 @@ int main(int argc, char* argv[])
     
 <# foreach (var arg in entryPointOperation.InteropArguments) {
     WriteLine("");
-    WriteLine($"    {arg.CppCliValueType()} {arg.Name};"); 
+    WriteLine($"    {arg.CppCliValueType()} {arg.CliValueVariableName()};"); 
     if (arg.CppCliVariableInitialValue() != null) {
-        WriteLine($"    {arg.Name} = {arg.CppCliVariableInitialValue()};");
+        WriteLine($"    {arg.CliValueVariableName()} = {arg.CppCliVariableInitialValue()};");
     }
     WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.Name}, \"{arg.CliDescription()}\")->required()");
     if (arg.TransformerMapName() != null) {
@@ -183,47 +183,38 @@ int main(int argc, char* argv[])
     switch (arg.Type) {
         case DataType.PauliType:
             WriteLine("    // Translate a PauliID value to its char representation.");
-            WriteLine($"    char {arg.Name}AsCharValue = TranslatePauliToChar({arg.Name});");
+            WriteLine($"    char {arg.InteropVariableName()} = TranslatePauliToChar({arg.CliValueVariableName()});");
             break;
         case DataType.RangeType:
             WriteLine("    // Create an interop range.");
-            WriteLine($"    unique_ptr<InteropRange> {arg.Name}Value = CreateInteropRange({arg.Name});");
+            WriteLine($"    unique_ptr<InteropRange> {arg.InteropVariableName()} = CreateInteropRange({arg.CliValueVariableName()});");
             break;
         case DataType.ArrayType:
             switch (arg.ArrayType) {
                 case DataType.IntegerType:
-                    WriteLine("    // Translate values to its final form after parsing.");
-                    WriteLine("    // Create an interop array of integer values.");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name});");
-                    break;
                 case DataType.DoubleType:
-                    WriteLine("    // Create an interop array of double values.");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name});");
-                    break;
                 case DataType.BoolType:
-                    WriteLine("    // Create an interop array of bool values.");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name});");
+                case DataType.ResultType:
+                    WriteLine("    // Translate values to its final form after parsing.");
+                    WriteLine("    // Create an interop array of values.");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.CliValueVariableName()});");
                     break;
                 case DataType.PauliType:
                     WriteLine("    // Create an interop array of Pauli values represented as chars.");
-                    WriteLine($"    vector<char> {arg.Name}AsCharVector;");
-                    WriteLine($"    TranslateVector<PauliId, char>({arg.Name}, {arg.Name}AsCharVector, TranslatePauliToChar);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name}AsCharVector);");
+                    WriteLine($"    vector<char> {IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<PauliId, char>({arg.CliValueVariableName()}, {IntermediateVariableName()}, TranslatePauliToChar);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({IntermediateVariableName()});");
                     break;
                 case DataType.RangeType:
-                    WriteLine($"    vector<InteropRange*> {arg.Name}Vector;");
-                    WriteLine($"    TranslateVector<RangeTuple, InteropRange*>({arg.Name}, {arg.Name}Vector, TranslateRangeTupleToInteropRangePointer);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name}Vector);");
-                    break;
-                case DataType.ResultType:
-                    WriteLine("    // Create an interop array of Result values.");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name});");
+                    WriteLine($"    vector<InteropRange*> {IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<RangeTuple, InteropRange*>({arg.CliValueVariableName()}, {IntermediateVariableName()}, TranslateRangeTupleToInteropRangePointer);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({IntermediateVariableName()});");
                     break;
                 case DataType.StringType:
                     WriteLine("    // Create an interop array of String values.");
-                    WriteLine($"    vector<const char *> {arg.Name}BufferVector;");
-                    WriteLine($"    TranslateVector<string, const char*>({arg.Name}, {arg.Name}BufferVector, TranslateStringToCharBuffer);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.Name}Array = CreateInteropArray({arg.Name}BufferVector);");
+                    WriteLine($"    vector<const char *> {IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<string, const char*>({arg.CliValueVariableName()}, {IntermediateVariableName()}, TranslateStringToCharBuffer);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({IntermediateVariableName()});");
                     break;
             }
             break;
@@ -244,20 +235,14 @@ int main(int argc, char* argv[])
 <# for (int i = 0; i < entryPointOperation.InteropArguments.Count; i++) {
     var arg = entryPointOperation.InteropArguments[i];
     switch (arg.Type) {
-        case DataType.PauliType:
-            Write($"        {arg.Name}AsCharValue");
-            break;
-        case DataType.RangeType:
-            Write($"        {arg.Name}Value");
-            break;
         case DataType.StringType:
-            Write($"        {arg.Name}.c_str()");
+            Write($"        {arg.InteropVariableName()}.c_str()");
             break;
         case DataType.ArrayType:
-            Write($"        {arg.Name}Array.get()");
+            Write($"        {arg.InteropVariableName()}.get()");
             break;
         default:
-            Write($"        {arg.Name}");
+            Write($"        {arg.InteropVariableName()}");
             break;
     }
     if (i < entryPointOperation.InteropArguments.Count-1 ) {
@@ -269,7 +254,7 @@ int main(int argc, char* argv[])
 
 <# foreach (var arg in entryPointOperation.InteropArguments) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
-        Write($"    FreePointerVector({arg.Name}Vector);");
+        Write($"    FreePointerVector({IntermediateVariableName()});");
     }
 } #>
 

@@ -153,6 +153,21 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 return DataTypeTransformerMapName(this.Type);
             }
         }
+
+        public string CliValueVariableName()
+        {
+            return this.Name + "CliValue";
+        }
+
+        public string InteropVariableName()
+        {
+            return this.Name + "InteropValue";
+        }
+
+        public string IntermediateVariableName()
+        {
+            return this.Name + "IntermediateValue";
+        }
     }
 
     internal class EntryPointOperationCpp : EntryPointOperation
