@@ -47,13 +47,46 @@ let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>)
         | Identifier (GlobalCallable _, _)
         | ValueTuple _
         | ValueArray _
+        | SizedArray _
         | RangeLiteral _
         | NewArray _ -> true
         | Identifier _ when ex.ResolvedType.Resolution = Qubit -> true
-        | CallLikeExpression ({ Expression = Identifier (GlobalCallable qualName, _) }, _) when (callables.[qualName])
-            .Kind = TypeConstructor -> true
-        | a when TypedExpression.IsPartialApplication a -> true
-        | _ -> false
+        | CallLikeExpression ({ Expression = Identifier (GlobalCallable name, _) }, _) when callables.[name].Kind = TypeConstructor ->
+            true
+        | _ when TypedExpression.IsPartialApplication ex.Expression -> true
+        | Identifier _
+        | ArrayItem _
+        | NamedItem _
+        | NEG _
+        | NOT _
+        | BNOT _
+        | ADD _
+        | SUB _
+        | MUL _
+        | DIV _
+        | MOD _
+        | POW _
+        | EQ _
+        | NEQ _
+        | LT _
+        | LTE _
+        | GT _
+        | GTE _
+        | AND _
+        | OR _
+        | BOR _
+        | BAND _
+        | BXOR _
+        | LSHIFT _
+        | RSHIFT _
+        | CONDITIONAL _
+        | CopyAndUpdate _
+        | UnwrapApplication _
+        | AdjointApplication _
+        | ControlledApplication _
+        | CallLikeExpression _
+        | MissingExpr
+        | InvalidExpr -> false
         && Seq.forall id sub
 
     expr.Fold folder
@@ -197,14 +230,13 @@ let internal wrapStmt (stmt: QsStatementKind): QsStatement =
 
 /// Returns a new array of the given type and length.
 /// Returns None if the type doesn't have a default value as an expression.
-let rec internal constructNewArray (bt: TypeKind) (length: int): ExprKind option =
-    defaultValue bt
-    |> Option.map (fun x -> ImmutableArray.CreateRange(List.replicate length (wrapExpr bt x)) |> ValueArray)
+let rec internal constructArray length value =
+    List.replicate length value |> ImmutableArray.CreateRange |> ValueArray
 
 /// Returns the default value for a given type (from Q# documentation).
 /// Returns None for types whose default values are not representable as expressions.
-and internal defaultValue (bt: TypeKind): ExprKind option =
-    match bt with
+let rec internal defaultValue (typeKind: TypeKind) =
+    match typeKind with
     | UnitType -> UnitValue |> Some
     | Int -> IntLiteral 0L |> Some
     | BigInt -> BigIntLiteral BigInteger.Zero |> Some
@@ -213,9 +245,10 @@ and internal defaultValue (bt: TypeKind): ExprKind option =
     | String -> StringLiteral("", ImmutableArray.Empty) |> Some
     | Pauli -> PauliLiteral PauliI |> Some
     | Result -> ResultLiteral Zero |> Some
-    | Range -> RangeLiteral(wrapExpr Int (IntLiteral 1L), wrapExpr Int (IntLiteral 0L)) |> Some
-    | ArrayType t -> constructNewArray t.Resolution 0
+    | Range -> RangeLiteral(IntLiteral 1L |> wrapExpr Int, IntLiteral 0L |> wrapExpr Int) |> Some
+    | ArrayType item -> defaultValue item.Resolution |> Option.map (constructArray 0)
     | _ -> None
+    |> Option.map (wrapExpr typeKind)
 
 
 /// Returns true if the expression contains missing expressions.

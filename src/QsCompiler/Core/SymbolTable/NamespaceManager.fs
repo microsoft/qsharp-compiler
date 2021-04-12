@@ -1524,8 +1524,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         | StringLiteral (s, _) -> hash (6, s)
         | ValueTuple vs -> hash (7, (vs |> Seq.map NamespaceManager.ExpressionHash |> Seq.toList))
         | ValueArray vs -> hash (8, (vs |> Seq.map NamespaceManager.ExpressionHash |> Seq.toList))
-        | NewArray (bt, idx) -> hash (9, NamespaceManager.TypeHash bt, NamespaceManager.ExpressionHash idx)
-        | Identifier (GlobalCallable c, _) -> hash (10, c.Namespace, c.Name)
+        | SizedArray (value, size) ->
+            hash (9, NamespaceManager.ExpressionHash value, NamespaceManager.ExpressionHash size)
+        | NewArray (bt, idx) -> hash (10, NamespaceManager.TypeHash bt, NamespaceManager.ExpressionHash idx)
+        | Identifier (GlobalCallable c, _) -> hash (11, c.Namespace, c.Name)
         | kind -> JsonConvert.SerializeObject kind |> hash
 
     /// <summary>

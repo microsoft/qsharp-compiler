@@ -138,7 +138,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let bt, idx = this.Types.OnType bt, this.Expressions.OnTypedExpression idx
         NewArray |> Node.BuildOr InvalidExpr (bt, idx)
 
-    abstract OnSizedArray: TypedExpression * TypedExpression -> ExpressionKind
+    abstract OnSizedArray: value:TypedExpression * size:TypedExpression -> ExpressionKind
 
     default this.OnSizedArray(value, size) =
         let value = this.Expressions.OnTypedExpression value
