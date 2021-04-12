@@ -8,7 +8,7 @@ using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
 
 namespace Microsoft.Quantum.QsCompiler.Templates
 {
-    public class ArgumentCpp : Argument
+    internal class ArgumentCpp : Argument
     {
         public ArgumentCpp(Argument argument)
         {
