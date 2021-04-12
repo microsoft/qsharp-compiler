@@ -5,7 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
@@ -383,6 +382,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         public void RegisterQuantumInstructionSet()
         {
+            this.quantumInstructionSet.AddFunction(QuantumInstructionSet.DumpMachine, this.Context.VoidType, this.Context.Int8Type.CreatePointerType());
+            this.quantumInstructionSet.AddFunction(QuantumInstructionSet.DumpRegister, this.Context.VoidType, this.Context.Int8Type.CreatePointerType(), this.Types.Array);
+
             foreach (var c in this.globalCallables.Values)
             {
                 if (TryGetTargetInstructionName(c, out var name))
@@ -1280,6 +1282,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #endregion
 
         #region Type helpers
+
+        /// <summary>
+        /// Bitcasts the given value to the expected type if needed.
+        /// Does nothing if the native type of the value already matches the expected type.
+        /// </summary>
+        internal Value CastToType(Value value, ITypeRef expectedType) =>
+            value.NativeType.Equals(expectedType)
+            ? value
+            : this.CurrentBuilder.BitCast(value, expectedType);
 
         /// <returns>The kind of the Q# type on top of the expression type stack</returns>
         internal ResolvedType CurrentExpressionType() =>
