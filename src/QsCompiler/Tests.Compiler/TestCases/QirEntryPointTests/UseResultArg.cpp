@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseResultArg( // NOLINT
-    char ResultArg
+    char ResultArgInteropValue
 );
 
 
@@ -53,8 +53,8 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    char ResultArg;
-    ResultArg = InteropResultZeroAsChar;
+    char ResultArgCliValue;
+    ResultArgCliValue = InteropResultZeroAsChar;
     app.add_option("--ResultArg", ResultArg, "A Result value for the ResultArg argument")->required()
         ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseResultArg(
-        ResultArg
+        ResultArgInteropValue
     );
 
 

@@ -47,7 +47,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseIntegerArrayArgWithValues( // NOLINT
-    InteropArray * IntegerArrayArg
+    InteropArray * IntegerArrayArgInteropValue
 );
 
 
@@ -67,7 +67,7 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    vector<int64_t> IntegerArrayArg;
+    vector<int64_t> IntegerArrayArgCliValue;
     app.add_option("--IntegerArrayArg", IntegerArrayArg, "A integer array value for the IntegerArrayArg argument")->required()
 ;
 
@@ -75,8 +75,8 @@ int main(int argc, char* argv[])
     CLI11_PARSE(app, argc, argv);
 
     // Translate values to its final form after parsing.
-    // Create an interop array of integer values.
-    unique_ptr<InteropArray> IntegerArrayArgArray = CreateInteropArray(IntegerArrayArg);
+    // Create an interop array of values.
+    unique_ptr<InteropArray> IntegerArrayArgInteropValue = CreateInteropArray(IntegerArrayArgCliValue);
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -89,7 +89,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseIntegerArrayArgWithValues(
-        IntegerArrayArgArray.get()
+        IntegerArrayArgInteropValue.get()
     );
 
 

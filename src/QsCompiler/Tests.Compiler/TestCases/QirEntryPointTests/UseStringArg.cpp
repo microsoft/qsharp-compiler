@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseStringArg( // NOLINT
-    const char* StringArg
+    const char* StringArgInteropValue
 );
 
 
@@ -49,7 +49,7 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    string StringArg;
+    string StringArgCliValue;
     app.add_option("--StringArg", StringArg, "A String value for the StringArg argument")->required()
 ;
 
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseStringArg(
-        StringArg.c_str()
+        StringArgInteropValue.c_str()
     );
 
 

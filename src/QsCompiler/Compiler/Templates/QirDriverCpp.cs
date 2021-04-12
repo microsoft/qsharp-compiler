@@ -202,20 +202,20 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
                     break;
                 case DataType.PauliType:
                     WriteLine("    // Create an interop array of Pauli values represented as chars.");
-                    WriteLine($"    vector<char> {IntermediateVariableName()};");
-                    WriteLine($"    TranslateVector<PauliId, char>({arg.CliValueVariableName()}, {IntermediateVariableName()}, TranslatePauliToChar);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({IntermediateVariableName()});");
+                    WriteLine($"    vector<char> {arg.IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<PauliId, char>({arg.CliValueVariableName()}, {arg.IntermediateVariableName()}, TranslatePauliToChar);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.IntermediateVariableName()});");
                     break;
                 case DataType.RangeType:
-                    WriteLine($"    vector<InteropRange*> {IntermediateVariableName()};");
-                    WriteLine($"    TranslateVector<RangeTuple, InteropRange*>({arg.CliValueVariableName()}, {IntermediateVariableName()}, TranslateRangeTupleToInteropRangePointer);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({IntermediateVariableName()});");
+                    WriteLine($"    vector<InteropRange*> {arg.IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<RangeTuple, InteropRange*>({arg.CliValueVariableName()}, {arg.IntermediateVariableName()}, TranslateRangeTupleToInteropRangePointer);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.IntermediateVariableName()});");
                     break;
                 case DataType.StringType:
                     WriteLine("    // Create an interop array of String values.");
-                    WriteLine($"    vector<const char *> {IntermediateVariableName()};");
-                    WriteLine($"    TranslateVector<string, const char*>({arg.CliValueVariableName()}, {IntermediateVariableName()}, TranslateStringToCharBuffer);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({IntermediateVariableName()});");
+                    WriteLine($"    vector<const char *> {arg.IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<string, const char*>({arg.CliValueVariableName()}, {arg.IntermediateVariableName()}, TranslateStringToCharBuffer);");
+                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.IntermediateVariableName()});");
                     break;
             }
             break;
@@ -255,7 +255,7 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
             this.Write("\r\n    );\r\n\r\n");
  foreach (var arg in entryPointOperation.InteropArguments) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
-        Write($"    FreePointerVector({IntermediateVariableName()});");
+        Write($"    FreePointerVector({arg.IntermediateVariableName()});");
     }
 } 
             this.Write("\r\n    simulatorOutputStream->flush();\r\n    if (simulationOutputFileStream.is_open" +

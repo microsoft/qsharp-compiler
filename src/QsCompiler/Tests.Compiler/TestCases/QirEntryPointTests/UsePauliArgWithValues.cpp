@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UsePauliArgWithValues( // NOLINT
-    char PauliArg
+    char PauliArgInteropValue
 );
 
 
@@ -56,8 +56,8 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    PauliId PauliArg;
-    PauliArg = PauliId::PauliId_I;
+    PauliId PauliArgCliValue;
+    PauliArgCliValue = PauliId::PauliId_I;
     app.add_option("--PauliArg", PauliArg, "A Pauli value for the PauliArg argument")->required()
         ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
@@ -65,7 +65,7 @@ int main(int argc, char* argv[])
     CLI11_PARSE(app, argc, argv);
 
     // Translate a PauliID value to its char representation.
-    char PauliArgAsCharValue = TranslatePauliToChar(PauliArg);
+    char PauliArgInteropValue = TranslatePauliToChar(PauliArgCliValue);
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -78,7 +78,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UsePauliArgWithValues(
-        PauliArgAsCharValue
+        PauliArgInteropValue
     );
 
 

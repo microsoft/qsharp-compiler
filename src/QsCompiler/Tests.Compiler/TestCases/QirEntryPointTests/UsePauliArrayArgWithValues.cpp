@@ -47,7 +47,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UsePauliArrayArgWithValues( // NOLINT
-    InteropArray * PauliArrayArg
+    InteropArray * PauliArrayArgInteropValue
 );
 
 
@@ -79,7 +79,7 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    std::vector<PauliId> PauliArrayArg;
+    std::vector<PauliId> PauliArrayArgCliValue;
     app.add_option("--PauliArrayArg", PauliArrayArg, "A Pauli array value for the PauliArrayArg argument")->required()
         ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
@@ -87,9 +87,9 @@ int main(int argc, char* argv[])
     CLI11_PARSE(app, argc, argv);
 
     // Create an interop array of Pauli values represented as chars.
-    vector<char> PauliArrayArgAsCharVector;
-    TranslateVector<PauliId, char>(PauliArrayArg, PauliArrayArgAsCharVector, TranslatePauliToChar);
-    unique_ptr<InteropArray> PauliArrayArgArray = CreateInteropArray(PauliArrayArgAsCharVector);
+    vector<char> PauliArrayArgIntermediateValue;
+    TranslateVector<PauliId, char>(PauliArrayArgCliValue, PauliArrayArgIntermediateValue, TranslatePauliToChar);
+    unique_ptr<InteropArray> PauliArrayArgInteropValue = CreateInteropArray(PauliArrayArgIntermediateValue);
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -102,7 +102,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UsePauliArrayArgWithValues(
-        PauliArrayArgArray.get()
+        PauliArrayArgInteropValue.get()
     );
 
 

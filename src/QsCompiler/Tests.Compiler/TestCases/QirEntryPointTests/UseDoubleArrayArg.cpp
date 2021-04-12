@@ -47,7 +47,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseDoubleArrayArg( // NOLINT
-    InteropArray * DoubleArrayArg
+    InteropArray * DoubleArrayArgInteropValue
 );
 
 
@@ -67,15 +67,16 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    vector<double_t> DoubleArrayArg;
+    vector<double_t> DoubleArrayArgCliValue;
     app.add_option("--DoubleArrayArg", DoubleArrayArg, "A double array value for the DoubleArrayArg argument")->required()
 ;
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
-    // Create an interop array of double values.
-    unique_ptr<InteropArray> DoubleArrayArgArray = CreateInteropArray(DoubleArrayArg);
+    // Translate values to its final form after parsing.
+    // Create an interop array of values.
+    unique_ptr<InteropArray> DoubleArrayArgInteropValue = CreateInteropArray(DoubleArrayArgCliValue);
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -88,7 +89,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseDoubleArrayArg(
-        DoubleArrayArgArray.get()
+        DoubleArrayArgInteropValue.get()
     );
 
 

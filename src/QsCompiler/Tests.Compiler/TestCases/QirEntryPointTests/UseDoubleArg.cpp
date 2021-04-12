@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseDoubleArg( // NOLINT
-    double DoubleArg
+    double DoubleArgInteropValue
 );
 
 
@@ -44,8 +44,8 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    double_t DoubleArg;
-    DoubleArg = 0.0;
+    double_t DoubleArgCliValue;
+    DoubleArgCliValue = 0.0;
     app.add_option("--DoubleArg", DoubleArg, "A double value for the DoubleArg argument")->required()
 ;
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseDoubleArg(
-        DoubleArg
+        DoubleArgInteropValue
     );
 
 

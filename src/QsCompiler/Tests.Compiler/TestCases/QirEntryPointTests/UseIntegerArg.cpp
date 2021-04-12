@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseIntegerArg( // NOLINT
-    int64_t IntegerArg
+    int64_t IntegerArgInteropValue
 );
 
 
@@ -44,8 +44,8 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
     
 
-    int64_t IntegerArg;
-    IntegerArg = 0;
+    int64_t IntegerArgCliValue;
+    IntegerArgCliValue = 0;
     app.add_option("--IntegerArg", IntegerArg, "A integer value for the IntegerArg argument")->required()
 ;
 
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseIntegerArg(
-        IntegerArg
+        IntegerArgInteropValue
     );
 
 
