@@ -83,8 +83,8 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
             .Add("UseBoolArg",
                  createEntryPointOperation ("UseBoolArg", [ createArgument ("BoolArg", DataType.BoolType, 0, []) ]))
             .Add("UseBoolArgWithValues",
-                 createEntryPointOperation(
-                     "UseBoolArgWithValues",
+                 createEntryPointOperation
+                     ("UseBoolArgWithValues",
                       [
                           createArgument
                               ("BoolArg",
@@ -144,7 +144,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                ])
                       ]))
             .Add("UseRangeArg",
-                 createEntryPointOperation("UseRangeArg", [ createArgument ("RangeArg", DataType.RangeType, 0, []) ]))
+                 createEntryPointOperation ("UseRangeArg", [ createArgument ("RangeArg", DataType.RangeType, 0, []) ]))
             .Add("UseRangeArgWithValues",
                  createEntryPointOperation
                      ("UseRangeArgWithValues",
@@ -159,8 +159,8 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                ])
                       ]))
             .Add("UseResultArg",
-                 createEntryPointOperation(
-                     "UseResultArg", [ createArgument ("ResultArg", DataType.ResultType, 0, []) ]))
+                 createEntryPointOperation
+                     ("UseResultArg", [ createArgument ("ResultArg", DataType.ResultType, 0, []) ]))
             .Add("UseResultArgWithValues",
                  createEntryPointOperation
                      ("UseResultArgWithValues",
