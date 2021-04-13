@@ -182,6 +182,11 @@ let ``QIR declarations`` () =
 let ``QIR functors`` () = qirTest true "TestFunctors"
 
 [<Fact>]
+let ``QIR built-in generics`` () =
+    qirMultiTest false "TestGenerics" [ "TestGenerics1"; "TestGenerics2"; "TestGenerics3"; "TestGenerics4" ]
+
+
+[<Fact>]
 let ``QIR paulis`` () = qirTest false "TestPaulis"
 
 [<Fact>]

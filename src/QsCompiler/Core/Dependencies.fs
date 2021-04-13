@@ -61,6 +61,7 @@ type BuiltIn =
             BuiltIn.Test
             BuiltIn.EnableTestingViaName
             BuiltIn.DumpMachine
+            BuiltIn.DumpRegister
             // dependencies in Microsoft.Quantum.Canon
             BuiltIn.NoOp
             // dependencies in Microsoft.Quantum.Convert
@@ -215,6 +216,12 @@ type BuiltIn =
     static member DumpMachine =
         {
             FullName = { Name = "DumpMachine"; Namespace = BuiltIn.DiagnosticsNamespace }
+            Kind = Function(TypeParameters = ImmutableArray.Create "T")
+        }
+
+    static member DumpRegister =
+        {
+            FullName = { Name = "DumpRegister"; Namespace = BuiltIn.DiagnosticsNamespace }
             Kind = Function(TypeParameters = ImmutableArray.Create "T")
         }
 
