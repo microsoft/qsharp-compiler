@@ -134,6 +134,81 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // =================================
 
+// Multiple Entry Points
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
+    @EntryPoint()
+    operation Main1() : Unit {
+        Foo();
+    }
+
+    @EntryPoint()
+    operation Main2() : Unit {
+        Bar();
+    }
+
+    operation Foo() : Unit { }
+
+    operation Bar() : Unit { }
+}
+
+// =================================
+
+// Unit Test as Starting Point
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
+    open Microsoft.Quantum.Diagnostics;
+
+    @Test("QuantumSimulator")
+    operation Test() : Unit {
+        Foo();
+    }
+
+    operation Foo() : Unit { }
+
+    operation Bar() : Unit { }
+}
+
+// =================================
+
+// Entry Points and Unit Tests
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
+    open Microsoft.Quantum.Diagnostics;
+
+    @EntryPoint()
+    operation Main1() : Unit {
+        Foo();
+    }
+
+    @EntryPoint()
+    operation Main2() : Unit {
+        Bar();
+    }
+
+    @Test("QuantumSimulator")
+    operation Test1() : Unit {
+        Zip();
+    }
+
+    @Test("QuantumSimulator")
+    operation Test2() : Unit {
+        Zap();
+    }
+
+    operation Foo() : Unit { }
+
+    operation Bar() : Unit { }
+
+    operation Zip() : Unit { }
+
+    operation Zap() : Unit { }
+
+    operation Unused() : Unit { }
+}
+
+// =================================
+
 // Concrete Graph has Concretizations
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
@@ -212,6 +287,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // Concrete Graph Double Reference Resolution
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
     function Foo<'A>(x : 'A) : 'A {
         return x;
     }
@@ -226,6 +302,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // Concrete Graph Non-Call Reference Only Body
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
     operation Foo() : Unit { }
 
     @EntryPoint()
@@ -238,6 +315,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // Concrete Graph Non-Call Reference With Adjoint
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
     operation Foo() : Unit is Adj {
         body(...) { }
         adjoint(...) { }
@@ -253,6 +331,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // Concrete Graph Non-Call Reference With All
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
     operation Foo() : Unit is Ctl+Adj {
         body(...) { }
         controlled(ctl, ...) { }
@@ -270,6 +349,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // Concrete Graph Call Self-Adjoint Reference
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
     operation Foo() : Unit is Ctl+Adj {
         body(...) { }
         controlled distribute;
@@ -290,6 +370,7 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
 
 // Concrete Graph Clears Type Param Resolutions After Statements
 namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
     @EntryPoint()
     operation Main () : Unit {
         using (qs = Qubit[1]) {
@@ -306,4 +387,76 @@ namespace Microsoft.Quantum.Testing.PopulateCallGraph {
     operation Baz(x : Int) : Unit is Adj + Ctl {
         Bar(Foo, x);
     }
+}
+
+// =================================
+
+// Concrete Graph Multiple Entry Points
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
+    @EntryPoint()
+    operation Main1() : Unit {
+        Foo<Double>();
+    }
+
+    @EntryPoint()
+    operation Main2() : Unit {
+        Foo<String>();
+    }
+
+    operation Foo<'A>() : Unit { }
+}
+
+// =================================
+
+// Concrete Graph Unit Tests
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
+    open Microsoft.Quantum.Diagnostics;
+
+    @Test("QuantumSimulator")
+    operation Test1() : Unit {
+        Foo<Double>();
+    }
+
+    @Test("QuantumSimulator")
+    operation Test2() : Unit {
+        Foo<String>();
+    }
+
+    operation Foo<'A>() : Unit { }
+}
+
+// =================================
+
+// Concrete Graph Entry Points and Unit Tests
+namespace Microsoft.Quantum.Testing.PopulateCallGraph {
+
+    open Microsoft.Quantum.Diagnostics;
+
+    @EntryPoint()
+    operation Main1() : Unit {
+        Foo<String>();
+    }
+
+    @EntryPoint()
+    operation Main2() : Unit {
+        Foo<Double>();
+    }
+
+    @Test("QuantumSimulator")
+    operation Test1() : Unit {
+        Bar<String>();
+    }
+
+    @Test("QuantumSimulator")
+    operation Test2() : Unit {
+        Bar<Double>();
+    }
+
+    operation Foo<'A>() : Unit { }
+    
+    operation Bar<'A>() : Unit { }
+
+    operation Unused() : Unit { }
 }
