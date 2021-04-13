@@ -24,6 +24,11 @@ namespace Microsoft.Quantum.QsCompiler
             stream.Position = 0;
         }
 
+        /// <summary>
+        /// Converts a list of arguments to a string that can be passed to the driver.
+        /// </summary>
+        /// <param name="arguments">List of arguments to the driver entry point.</param>
+        /// <returns>String representation of arguments.</returns>
         public static string GenerateCommandLineArguments(IList<Argument> arguments)
         {
             // Sort arguments by position.
@@ -62,17 +67,8 @@ namespace Microsoft.Quantum.QsCompiler
 
         private static string GetArrayValueString(DataType? arrayType, ArrayValue arrayValue)
         {
-            static string ConvertArray<T>(IList<T> list, StringConversion conversion)
-            {
-                return list.Aggregate<T, string>(string.Empty, (aggregation, val) =>
-                {
-                    if (aggregation != string.Empty)
-                    {
-                        aggregation += ' ';
-                    }
-                    return aggregation + conversion.Invoke(val);
-                });
-            }
+            static string ConvertArray<T>(IList<T> list, StringConversion conversion) =>
+                string.Join(' ', list.Select(item => conversion.Invoke(item)));
 
             return arrayType switch
             {
