@@ -65,7 +65,6 @@ int main(int argc, char* argv[])
     CLI::Option* simulationOutputFileOpt = app.add_option(
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
-    
 
     vector<int64_t> IntegerArrayArgCliValue;
     app.add_option("--IntegerArrayArg", IntegerArrayArgCliValue, "A integer array value for the IntegerArrayArg argument")->required()

@@ -163,7 +163,6 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     CLI::Option* simulationOutputFileOpt = app.add_option(
         ""--simulation-output"", simulationOutputFile,
         ""File where the output produced during the simulation is written"");
-    
 ");
  foreach (var arg in entryPointOperation.InteropArguments) {
     WriteLine("");

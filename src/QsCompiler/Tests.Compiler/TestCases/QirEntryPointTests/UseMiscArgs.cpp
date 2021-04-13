@@ -96,7 +96,6 @@ int main(int argc, char* argv[])
     CLI::Option* simulationOutputFileOpt = app.add_option(
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
-    
 
     char IntegerArgCliValue;
     IntegerArgCliValue = InteropFalseAsChar;

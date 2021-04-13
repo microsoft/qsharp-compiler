@@ -73,7 +73,6 @@ int main(int argc, char* argv[])
     CLI::Option* simulationOutputFileOpt = app.add_option(
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
-    
 
     vector<char> BoolArrayArgCliValue;
     app.add_option("--BoolArrayArg", BoolArrayArgCliValue, "A bool array value for the BoolArrayArg argument")->required()

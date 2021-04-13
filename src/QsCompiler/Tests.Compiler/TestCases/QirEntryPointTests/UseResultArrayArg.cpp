@@ -74,7 +74,6 @@ int main(int argc, char* argv[])
     CLI::Option* simulationOutputFileOpt = app.add_option(
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
-    
 
     vector<char> ResultArrayArgCliValue;
     app.add_option("--ResultArrayArg", ResultArrayArgCliValue, "A Result array value for the ResultArrayArg argument")->required()
