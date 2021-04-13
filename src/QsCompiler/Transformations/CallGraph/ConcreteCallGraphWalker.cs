@@ -41,6 +41,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             {
                 var globals = compilation.Namespaces.GlobalCallableResolutions();
                 var walker = new BuildGraph(graph);
+
                 var entryPointNodes = compilation.EntryPoints.SelectMany(name =>
                     GetSpecializationKinds(globals, name).Select(kind =>
                         new ConcreteCallGraphNode(name, kind, TypeParameterResolutions.Empty)));
@@ -49,6 +50,16 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     // Make sure all the entry points are added to the graph
                     walker.SharedState.Graph.AddNode(entryPoint);
                     walker.SharedState.RequestStack.Push(entryPoint);
+                }
+
+                var unitTests = globals
+                    .Where(kvp => kvp.Value.Attributes.Any(BuiltIn.MarksTestOperation))
+                    .SelectMany(kvp => kvp.Value.Specializations.Select(spec => new ConcreteCallGraphNode(kvp.Key, spec.Kind, TypeParameterResolutions.Empty)));
+                foreach (var unitTest in unitTests)
+                {
+                    // Make sure all the unit tests are added to the graph
+                    walker.SharedState.Graph.AddNode(unitTest);
+                    walker.SharedState.RequestStack.Push(unitTest);
                 }
 
                 while (walker.SharedState.RequestStack.TryPop(out var currentRequest))

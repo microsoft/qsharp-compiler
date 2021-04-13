@@ -90,8 +90,8 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
 
             private static QsCallable AddComments(QsCallable c, params string[] comments) =>
                 new QsCallable(
-                    c.Kind, c.FullName, c.Attributes, c.Modifiers,
-                    c.SourceFile, c.Location,
+                    c.Kind, c.FullName, c.Attributes, c.Access,
+                    c.Source, c.Location,
                     c.Signature, c.ArgumentTuple, c.Specializations,
                     c.Documentation, new QsComments(c.Comments.OpeningComments.AddRange(comments), c.Comments.ClosingComments));
 

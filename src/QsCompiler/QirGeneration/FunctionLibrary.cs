@@ -23,10 +23,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Func<string, string> nameMapper;
 
         /// <summary>
+        /// Initializes a new instance of the <see cref="FunctionLibrary"/> class.
         /// Constructs a new function library.
         /// </summary>
-        /// <param name="mod">The LLVM module in which the functions will be declared and/or defined</param>
-        /// <param name="mapper">A function that maps the short name of the function into a mangled name</param>
+        /// <param name="mod">The LLVM module in which the functions will be declared and/or defined.</param>
+        /// <param name="mapper">A function that maps the short name of the function into a mangled name.</param>
         public FunctionLibrary(BitcodeModule mod, Func<string, string> mapper)
         {
             this.module = mod;
@@ -38,12 +39,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// This doesn't actually create a declaration for the function; instead, it records all of the
         /// required information so that the declaration can be created on demand.
         /// </summary>
-        /// <param name="name">The simple, unmangled name of the function</param>
-        /// <param name="returnType">The return type of the function</param>
-        /// <param name="argTypes">The types of the function's arguments, as an array</param>
+        /// <param name="name">The simple, unmangled name of the function.</param>
+        /// <param name="returnType">The return type of the function.</param>
+        /// <param name="argTypes">The types of the function's arguments, as an array.</param>
         public void AddFunction(string name, ITypeRef returnType, params ITypeRef[] argTypes)
         {
-            this.runtimeFunctions[name] = this.module.Context.GetFunctionType(returnType, argTypes);
+            this.runtimeFunctions.Add(name, this.module.Context.GetFunctionType(returnType, argTypes));
         }
 
         /// <summary>
@@ -51,20 +52,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// This doesn't actually create a declaration for the function; instead, it records all of the
         /// required information so that the declaration can be created on demand.
         /// </summary>
-        /// <param name="name">The simple, unmangled name of the function</param>
-        /// <param name="returnType">The return type of the function</param>
-        /// <param name="argTypes">The types of the function's fixed arguments, as an array</param>
+        /// <param name="name">The simple, unmangled name of the function.</param>
+        /// <param name="returnType">The return type of the function.</param>
+        /// <param name="argTypes">The types of the function's fixed arguments, as an array.</param>
         public void AddVarArgsFunction(string name, ITypeRef returnType, params ITypeRef[] argTypes)
         {
-            this.runtimeFunctions[name] = this.module.Context.GetFunctionType(returnType, argTypes, true);
+            this.runtimeFunctions.Add(name, this.module.Context.GetFunctionType(returnType, argTypes, true));
         }
 
         /// <summary>
         /// Gets a reference to a function.
         /// If the function has not already been declared, a new declaration is generated for it.
         /// </summary>
-        /// <param name="name">The simple, unmangled name of the function</param>
-        /// <returns>The object that represents the function</returns>
+        /// <param name="name">The simple, unmangled name of the function.</param>
+        /// <returns>The object that represents the function.</returns>
         public IrFunction GetOrCreateFunction(string name)
         {
             var mappedName = this.nameMapper(name);
@@ -119,7 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The enumerator returns KeyValuePairs with the base name of the function as
         /// key and the actual LLVM function object as the value.
         /// </summary>
-        /// <returns>The enumerator</returns>
+        /// <returns>The enumerator.</returns>
         public IEnumerator<KeyValuePair<string, IrFunction>> GetEnumerator() =>
             new LibEnumerator(this.usedRuntimeFunctions);
 
@@ -129,7 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The enumerator returns KeyValuePairs with the base name of the function as
         /// key and the actual LLVM function object as the value.
         /// </summary>
-        /// <returns>The enumerator</returns>
+        /// <returns>The enumerator.</returns>
         IEnumerator IEnumerable.GetEnumerator() => new LibEnumerator(this.usedRuntimeFunctions);
     }
 }

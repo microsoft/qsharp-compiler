@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
         return (isDivisibleByThree, isDivisibleByFive, isDivisibleByEleven);
     }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         let (isDivisibleByThree, _, _) = IsDivisibleByThreeOrFiveOrSeven(3);
         let (_, isDivisibleByFive, _) = IsDivisibleByThreeOrFiveOrSeven(5);
@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
 // --- Declarations
 
 namespace Microsoft.Quantum.Testing.CompilationLoader {
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         let zeros = new Int[10];
         let emptyRegister = new Qubit[0];
@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
 // --- Functions
 
 namespace Microsoft.Quantum.Testing.CompilationLoader {
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Foo();
         Bar();
@@ -84,7 +84,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
         }
     }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         ForLoop();
         WhileLoop();
@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
 // --- Mutable
 
 namespace Microsoft.Quantum.Testing.CompilationLoader {
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         mutable aMutableBoolean = false;
         set aMutableBoolean = true;
@@ -104,7 +104,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
 // --- Operations
 
 namespace Microsoft.Quantum.Testing.CompilationLoader {
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         Foo();
         Bar();
@@ -122,7 +122,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
 // --- Qubit Usage
 
 namespace Microsoft.Quantum.Testing.CompilationLoader {
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         using (qubit = Qubit()) {}
     }
@@ -131,7 +131,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
 // --- Tuple Deconstruction
 
 namespace Microsoft.Quantum.Testing.CompilationLoader {
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         let (i, f) = (5, 0.1); // i is bound to 5 and f to 0.1
         mutable (a, (_, b)) = (1, (2, 3)); // a is bound to 1, b is bound to 3
@@ -157,7 +157,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
         return res;
     }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         let reals = [10.0, 0.0, 11.0];
         let imaginaries = [0.0, 10.0, 11.0];
@@ -174,7 +174,7 @@ namespace Microsoft.Quantum.Testing.CompilationLoader {
         return Complex(c1::Re + c2::Re, c1::Im + c2::Im);
     }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Main() : Unit {
         let realUnit = Complex(1.0, 0.0);
         let imaginaryUnit = Complex(0.0, 1.0);

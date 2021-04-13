@@ -13,12 +13,9 @@
 
     <releaseNotes>See: https://docs.microsoft.com/azure/quantum/qdk-relnotes/</releaseNotes>
     <projectUrl>https://github.com/microsoft/qsharp-compiler</projectUrl>
-    <icon>images\qdk-nuget-icon.png</icon>
+    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
 
     <copyright>$copyright$</copyright>
     <tags>Quantum Q# QSharp</tags>
   </metadata>
-  <files>
-    <file src="..\..\..\build\assets\qdk-nuget-icon.png" target="images" />
-  </files>
 </package>
