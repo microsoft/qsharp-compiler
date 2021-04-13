@@ -1102,13 +1102,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 var symbols = this.SymbolTuple(stm.Binding.Lhs);
                 var initializers = this.InitializerTuple(stm.Binding.Rhs);
                 var header =
-#pragma warning disable 618 // qsBorrowing and qsUsing are obsolete.
-                    stm.Kind.IsBorrow ? Keywords.qsBorrowing.id
-                    : stm.Kind.IsAllocate ? Keywords.qsUsing.id
-#pragma warning restore 618
+                    stm.Kind.IsBorrow ? Keywords.qsBorrow.id
+                    : stm.Kind.IsAllocate ? Keywords.qsUse.id
                     : throw new NotImplementedException("unknown qubit scope");
 
-                var intro = $"{header} ({symbols} = {initializers})";
+                var intro = $"{header} {symbols} = {initializers}";
                 this.AddBlockStatement(intro, stm.Body);
                 return QsStatementKind.NewQsQubitScope(stm);
             }
@@ -1117,7 +1115,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             public override QsStatementKind OnForStatement(QsForStatement stm)
             {
                 var symbols = this.SymbolTuple(stm.LoopItem.Item1);
-                var intro = $"{Keywords.qsFor.id} ({symbols} {Keywords.qsRangeIter.id} {this.expressionToQs(stm.IterationValues)})";
+                var intro = $"{Keywords.qsFor.id} {symbols} {Keywords.qsRangeIter.id} {this.expressionToQs(stm.IterationValues)}";
                 this.AddBlockStatement(intro, stm.Body);
                 return QsStatementKind.NewQsForStatement(stm);
             }
@@ -1125,7 +1123,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             /// <inheritdoc/>
             public override QsStatementKind OnWhileStatement(QsWhileStatement stm)
             {
-                var intro = $"{Keywords.qsWhile.id} ({this.expressionToQs(stm.Condition)})";
+                var intro = $"{Keywords.qsWhile.id} {this.expressionToQs(stm.Condition)}";
                 this.AddBlockStatement(intro, stm.Body);
                 return QsStatementKind.NewQsWhileStatement(stm);
             }
@@ -1136,7 +1134,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 this.SharedState.StatementComments = stm.RepeatBlock.Comments;
                 this.AddBlockStatement(Keywords.qsRepeat.id, stm.RepeatBlock.Body);
                 this.SharedState.StatementComments = stm.FixupBlock.Comments;
-                this.AddToOutput($"{Keywords.qsUntil.id} ({this.expressionToQs(stm.SuccessCondition)})");
+                this.AddToOutput($"{Keywords.qsUntil.id} {this.expressionToQs(stm.SuccessCondition)}");
                 this.AddBlockStatement(Keywords.qsRUSfixup.id, stm.FixupBlock.Body, false);
                 return QsStatementKind.NewQsRepeatStatement(stm);
             }
@@ -1152,7 +1150,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 foreach (var clause in stm.ConditionalBlocks)
                 {
                     this.SharedState.StatementComments = clause.Item2.Comments;
-                    var intro = $"{header} ({this.expressionToQs(clause.Item1)})";
+                    var intro = $"{header} {this.expressionToQs(clause.Item1)}";
                     this.AddBlockStatement(intro, clause.Item2.Body, false);
                     header = Keywords.qsElif.id;
                 }

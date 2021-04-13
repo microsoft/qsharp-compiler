@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 
 namespace Microsoft.Quantum.QsCompiler
@@ -46,22 +47,66 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <inheritdoc/>
+        protected override IntPtr LoadUnmanagedDll(string name)
+        {
+            var path = this.resolver.ResolveUnmanagedDllToPath(name);
+            path ??= this.ResolveFromFallbackPaths(name);
+            return path == null ? IntPtr.Zero : this.LoadUnmanagedDllFromPath(path);
+        }
+
+        /// <summary>
+        /// Search all fallback paths for a suitable .dll, .dylib, or .so file, ignoring all exceptions.
+        /// Returns the full path to the file if such a file was found.
+        /// </summary>
+        private string? ResolveFromFallbackPaths(string name)
+        {
+            bool MatchByName(string file) =>
+                Path.GetFileNameWithoutExtension(file)
+                .Equals(name, StringComparison.InvariantCultureIgnoreCase);
+
+            var found = new List<string>();
+            foreach (var dir in this.fallbackPaths)
+            {
+                try
+                {
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dylib", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.so", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName));
+                        found.AddRange(Directory.GetFiles(dir, "*.dylib", SearchOption.AllDirectories).Where(MatchByName));
+                        found.AddRange(Directory.GetFiles(dir, "*.so", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                }
+                catch
+                {
+                    continue;
+                }
+            }
+
+            return found.FirstOrDefault();
+        }
+
+        /// <inheritdoc/>
         protected override Assembly? Load(AssemblyName name)
         {
             var path = this.resolver.ResolveAssemblyToPath(name);
             return path == null ? null : this.LoadFromAssemblyPath(path);
         }
 
-        /// <inheritdoc/>
-        protected override IntPtr LoadUnmanagedDll(string name)
-        {
-            var path = this.resolver.ResolveUnmanagedDllToPath(name);
-            return path == null ? IntPtr.Zero : this.LoadUnmanagedDllFromPath(path);
-        }
-
         /// <summary>
         /// Search all fallback paths for a suitable .dll ignoring all exceptions.
-        /// Returns the full path to the dll if a suitable assembly could was found.
+        /// Returns the full path to the dll if a suitable assembly was found.
         /// </summary>
         private string? ResolveFromFallbackPaths(AssemblyName name)
         {
@@ -81,6 +126,7 @@ namespace Microsoft.Quantum.QsCompiler
                     continue;
                 }
             }
+
             if (found.Count <= 1 || name.Version == null)
             {
                 return found.FirstOrDefault();

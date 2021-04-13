@@ -57,6 +57,9 @@ struct ArrayValue
 
     // Not null when Type is ResultType.
     35: nullable<vector<ResultValue>> Result;
+
+    // Not null when Type is StringType.
+    40: nullable<vector<string>> String;
 }
 
 struct ArgumentValue

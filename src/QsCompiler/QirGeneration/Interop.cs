@@ -61,15 +61,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             where TOut : class =>
             items.Select(map).Where(i => i != null).Select(i => i!).ToArray();
 
-        /// <summary>
-        /// Bitcasts the given value to the expected type if needed.
-        /// Does nothing if the native type of the value already matches the expected type.
-        /// </summary>
-        private Value CastToType(Value value, ITypeRef expectedType) =>
-            value.NativeType.Equals(expectedType)
-            ? value
-            : this.sharedState.CurrentBuilder.BitCast(value, expectedType);
-
         /// <inheritdoc cref="MapToInteropType(ITypeRef)"/>
         private ITypeRef? MapToInteropType(ResolvedType type) =>
             this.MapToInteropType(this.sharedState.LlvmTypeFromQsharpType(type));
@@ -263,7 +254,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     // bitcast to the correct type and return
                     var expectedArgType = this.sharedState.LlvmTypeFromQsharpType(type);
-                    var argValue = this.CastToType(givenValue, expectedArgType);
+                    var argValue = this.sharedState.CastToType(givenValue, expectedArgType);
                     return this.sharedState.Values.From(argValue, type);
                 }
             }
@@ -328,7 +319,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 for (var itemIdx = 0; itemIdx < mappedStructType.Members.Count; ++itemIdx)
                 {
                     var itemPtr = this.sharedState.CurrentBuilder.GetElementPtr(mappedStructType, mappedTuple, this.PointerIndex(itemIdx));
-                    var tupleItem = this.CastToType(tupleItems[itemIdx], mappedStructType.Members[itemIdx]);
+                    var tupleItem = this.sharedState.CastToType(tupleItems[itemIdx], mappedStructType.Members[itemIdx]);
                     this.sharedState.CurrentBuilder.Store(tupleItem, itemPtr);
                 }
                 return mappedTuple;
@@ -433,7 +424,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // callables and qubits
                 var expectedType = this.MapToInteropType(res.LlvmType)!;
                 this.sharedState.ScopeMgr.IncreaseReferenceCount(res);
-                return this.CastToType(res.Value, expectedType);
+                return this.sharedState.CastToType(res.Value, expectedType);
             }
         }
 

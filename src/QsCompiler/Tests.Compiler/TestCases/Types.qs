@@ -8,28 +8,28 @@
 // needs to be available to test attributes
 namespace Microsoft.Quantum.Core {
 
-    @ Attribute()
+    @Attribute()
     newtype IntTupleAttribute = (Int, Int);
 }
 
 namespace Microsoft.Quantum.Testing.Attributes {
 
-    @ Attribute()
+    @Attribute()
     newtype IntAttribute = Int;
 
-    @ Attribute()
+    @Attribute()
     newtype IntTupleAttribute = (Int, Int);
 
-    @ Attribute()
+    @Attribute()
     newtype StringAttribute = String;
 
-    @ Attribute()
+    @Attribute()
     newtype BigIntArrayAttribute = BigInt[];
 
-    @ Attribute()
+    @Attribute()
     newtype PauliResultAttribute = (Pauli, Result);
 
-    @ Attribute()
+    @Attribute()
     newtype CustomAttribute = Unit;
 }
 

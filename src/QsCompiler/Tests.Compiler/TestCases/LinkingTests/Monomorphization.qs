@@ -4,7 +4,7 @@
 namespace Microsoft.Quantum.Testing.Monomorphization {
     open Microsoft.Quantum.Testing.Generics;
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Test1() : Unit {
         Test1Main();
     }
@@ -15,7 +15,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
 namespace Microsoft.Quantum.Testing.Monomorphization {
     open Microsoft.Quantum.Testing.Generics;
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Test2() : Unit {
         Test2Main();
     }
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
 namespace Microsoft.Quantum.Testing.Monomorphization {
     open Microsoft.Quantum.Testing.Generics;
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Test3() : Unit {
         Test3Main();
     }
@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
 namespace Microsoft.Quantum.Testing.Monomorphization {
     open Microsoft.Quantum.Testing.Generics;
 
-    @ EntryPoint()
+    @EntryPoint()
     operation Test4() : Unit {
         Test4Main();
     }
@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
     operation IsPublicUsesInternal<'A>(x : 'A) : Unit { }
     operation IsPublicUsesPublic<'A>(x : 'A) : Unit { }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestAccessModifiers() : Unit {
         IsInternalUsesInternal(MyInternalUDT(12));
         IsInternalUsesPublic(MyPublicUDT("Yes"));
@@ -76,7 +76,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
     operation IsPublicUsesInternal<'A>() : 'A { return Default<'A>(); }
     operation IsPublicUsesPublic<'A>() : 'A { return Default<'A>(); }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestAccessModifiers() : Unit {
         let temp1 = IsInternalUsesInternal<MyInternalUDT>();
         let temp2 = IsInternalUsesPublic<MyPublicUDT>();
@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
     operation IsPublicUsesInternal<'A>(x : 'A) : Unit { }
     operation IsPublicUsesPublic<'A>(x : 'A) : Unit { }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestAccessModifiers() : Unit {
         IsInternalUsesInternal(new MyInternalUDT[1]);
         IsInternalUsesPublic(new MyPublicUDT[1]);
@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
     operation IsPublicUsesInternal<'A>() : 'A { return Default<'A>(); }
     operation IsPublicUsesPublic<'A>() : 'A { return Default<'A>(); }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestAccessModifiers() : Unit {
         let temp1 = IsInternalUsesInternal<MyInternalUDT[]>();
         let temp2 = IsInternalUsesPublic<MyPublicUDT[]>();
@@ -139,7 +139,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
     operation IsPublicUsesInternal<'A>(x : 'A) : Unit { }
     operation IsPublicUsesPublic<'A>(x : 'A) : Unit { }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestAccessModifiers() : Unit {
         IsInternalUsesInternal((MyInternalUDT(12), 0));
         IsInternalUsesPublic((MyPublicUDT("Yes"), 0));
@@ -160,7 +160,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
     operation IsPublicUsesInternal<'A>() : 'A { return Default<'A>(); }
     operation IsPublicUsesPublic<'A>() : 'A { return Default<'A>(); }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestAccessModifiers() : Unit {
         let temp1 = IsInternalUsesInternal<(MyInternalUDT, Int)>();
         let temp2 = IsInternalUsesPublic<(MyPublicUDT, Int)>();
@@ -184,7 +184,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
     internal operation InternalFoo(x : MyInternalUDT) : Unit { }
     operation PublicFoo(x : MyPublicUDT) : Unit { }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestAccessModifiers() : Unit {
         IsInternalUsesInternal(InternalFoo);
         IsInternalUsesPublic(PublicFoo);
@@ -208,7 +208,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
     internal operation InternalFoo(x : MyInternalUDT) : Unit { }
     operation PublicFoo(x : MyPublicUDT) : Unit { }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestAccessModifiers() : Unit {
         let temp1 = IsInternalUsesInternal<(MyInternalUDT => Unit)>();
         let temp2 = IsInternalUsesPublic<(MyPublicUDT => Unit)>();
@@ -222,7 +222,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
 namespace Microsoft.Quantum.Testing.Monomorphization {
     open Microsoft.Quantum.Arrays;
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestTypeParameterResolutions(qs : Int[]) : Unit {
         let res = new Result[Length(qs)];
         let idx = IndexRange(qs);
@@ -238,7 +238,7 @@ namespace Microsoft.Quantum.Testing.Monomorphization {
         body intrinsic;
     }
 
-    @ EntryPoint()
+    @EntryPoint()
     operation TestDuplicateIntrinsic() : Unit {
         CustomIntrinsic();
     }
