@@ -122,5 +122,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             return QsResolvedTypeKind.InvalidType;
         }
+
+        public override QsResolvedTypeKind OnTypeParameter(QsTypeParameter tp)
+        {
+            this.SharedState.BuiltType = this.SharedState.Context.Int8Type.CreatePointerType();
+            return base.OnTypeParameter(tp);
+        }
     }
 }
