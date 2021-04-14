@@ -6,7 +6,7 @@
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation InvalidEntryPointSpec1() : Unit
     is Adj { }
 
@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation InvalidEntryPointSpec2() : Unit
     is Ctl { }
 }
@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation InvalidEntryPointSpec3() : Unit
     is Ctl + Adj { }
 
@@ -35,7 +35,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation InvalidEntryPointSpec4() : Unit {
         body (...) {}
         adjoint self;
@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation InvalidEntryPointSpec5() : Unit {
         body (...) {}
         controlled auto;
@@ -58,7 +58,7 @@ namespace Microsoft.Quantum.Testing.EntryPoints {
 
 namespace Microsoft.Quantum.Testing.EntryPoints {
 
-    @ EntryPoint()
+    @EntryPoint()
     operation InvalidEntryPointSpec6() : Unit {
         body (...) {}
         controlled adjoint (cs, ...) {}

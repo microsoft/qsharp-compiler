@@ -12,12 +12,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 {
     public class ValidateMonomorphization : SyntaxTreeTransformation<ValidateMonomorphization.TransformationState>
     {
-        public static void Apply(QsCompilation compilation)
+        public static void Apply(QsCompilation compilation, bool allowTypeParametersForIntrinsics = true)
         {
-            var intrinsicCallableSet = compilation.Namespaces.GlobalCallableResolutions()
-                .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
-                .Select(kvp => kvp.Key)
-                .ToImmutableHashSet();
+            var intrinsicCallableSet = allowTypeParametersForIntrinsics
+                ? compilation.Namespaces.GlobalCallableResolutions()
+                    .Where(kvp => kvp.Value.Specializations.Any(spec => spec.Implementation.IsIntrinsic))
+                    .Select(kvp => kvp.Key)
+                    .ToImmutableHashSet()
+                : ImmutableHashSet<QsQualifiedName>.Empty;
 
             new ValidateMonomorphization(intrinsicCallableSet).OnCompilation(compilation);
         }
