@@ -75,14 +75,7 @@ let ``QIR inlined call`` () = qirTest true "TestInline"
 
 [<Fact>]
 let ``QIR unreachable`` () =
-    qirMultiTest
-        false
-        "TestUnreachable"
-        [
-            "TestUnreachable1"
-            "TestUnreachable2"
-            "TestUnreachable3"
-        ]
+    qirMultiTest false "TestUnreachable" [ "TestUnreachable1"; "TestUnreachable2"; "TestUnreachable3" ]
 
 [<Fact>]
 let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
