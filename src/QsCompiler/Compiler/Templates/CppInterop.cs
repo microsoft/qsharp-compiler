@@ -145,11 +145,14 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 
         public string? TransformerMapName()
         {
-            if (this.Type == DataType.ArrayType) {
+            if (this.Type == DataType.ArrayType)
+            {
 #pragma warning disable CS8629 // Nullable value type may be null.
                 return DataTypeTransformerMapName((DataType)this.ArrayType);
 #pragma warning restore CS8629 // Nullable value type may be null.
-            } else {
+            }
+            else
+            {
                 return DataTypeTransformerMapName(this.Type);
             }
         }
