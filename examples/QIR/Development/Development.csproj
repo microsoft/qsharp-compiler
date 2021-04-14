@@ -3,6 +3,7 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
+    <QirLocalDevelopment>true</QirLocalDevelopment>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,9 +16,6 @@
     <Compile Remove="Main.cs" />
   </ItemGroup>
     
-  <ItemGroup>
-    <PackageReference Include="LLVMSharp" Version="11.0.0-beta" />
-  </ItemGroup>
     
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\QsCompiler\CommandLineTool\CommandLineTool.csproj">
@@ -48,7 +46,7 @@
 
   <Target Name="BeforeCSharpCompile">
     <ItemGroup>
-      <Compile Include="Main.cs" >
+      <Compile Include="Main.cs">
         <Visible>false</Visible>
       </Compile>
     </ItemGroup>
