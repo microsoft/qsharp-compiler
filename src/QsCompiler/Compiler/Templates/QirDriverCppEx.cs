@@ -7,11 +7,11 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 {
     public partial class QirDriverCpp
     {
-        private EntryPointOperation entryPointOperation;
+        private EntryPointOperationCpp entryPointOperation;
 
         public QirDriverCpp(EntryPointOperation entryPoint)
         {
-            this.entryPointOperation = entryPoint;
+            this.entryPointOperation = new EntryPointOperationCpp(entryPoint);
         }
     }
 }

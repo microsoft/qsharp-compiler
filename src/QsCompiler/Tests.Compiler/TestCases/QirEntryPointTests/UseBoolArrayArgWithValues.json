@@ -1,0 +1,1 @@
+﻿{"Name":"UseBoolArrayArgWithValues","Arguments":[{"Type":7,"Name":"BoolArrayArg","ArrayType":[0],"Values":[{"Array":[{"Bool":[[true,false,true]]}]},{"Array":[{"Bool":[[false,true,false]]}]}]}]}
