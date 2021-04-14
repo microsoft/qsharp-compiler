@@ -256,14 +256,17 @@ namespace Microsoft.Quantum.QIR
 
             if (!arg1.NativeType.IsPointer)
             {
-                var pointer = this.sharedState.CurrentBuilder.Alloca(arg1.NativeType);
-                this.sharedState.CurrentBuilder.Store(arg1, pointer);
-                arg1 = pointer;
+                arg1 = this.sharedState.FunctionContext.Emit(b =>
+                {
+                    var pointer = b.Alloca(arg1.NativeType);
+                    b.Store(arg1, pointer);
+                    return pointer;
+                });
             }
 
             var dump = this.sharedState.GetOrCreateTargetInstruction(QuantumInstructionSet.DumpRegister);
             arg1 = this.sharedState.CastToType(arg1, this.sharedState.Context.Int8Type.CreatePointerType());
-            this.sharedState.CurrentBuilder.Call(dump, arg1, arg2);
+            this.sharedState.FunctionContext.Emit(b => b.Call(dump, arg1, arg2));
             return this.sharedState.Values.Unit;
         }
     }

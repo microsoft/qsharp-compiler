@@ -1274,7 +1274,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal Value CastToType(Value value, ITypeRef expectedType) =>
             value.NativeType.Equals(expectedType)
             ? value
-            : this.CurrentBuilder.BitCast(value, expectedType);
+            : this.FunctionContext.Emit(b => b.BitCast(value, expectedType));
 
         /// <returns>The kind of the Q# type on top of the expression type stack</returns>
         internal ResolvedType CurrentExpressionType() =>
