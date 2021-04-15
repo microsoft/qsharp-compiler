@@ -159,7 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 
         public string CliValueVariableName()
         {
-            return + "v" + this.Name + "CliValue";
+            return "v" + this.Name + "CliValue";
         }
 
         public string InteropVariableName()
