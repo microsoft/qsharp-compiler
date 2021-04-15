@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => "InteropRange*",
                 DataType.ResultType => "char",
                 DataType.StringType => "const char*",
-                DataType.ArrayType => "InteropArray *",
+                DataType.ArrayType => "InteropArray*",
                 _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
             };
         }
