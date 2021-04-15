@@ -47,6 +47,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+}
 <# } #>
 <# if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { #>
 
@@ -167,8 +168,9 @@ int main(int argc, char* argv[])
     if (arg.CppCliVariableInitialValue() != null) {
         WriteLine($"    {arg.CliValueVariableName()} = {arg.CppCliVariableInitialValue()};");
     }
-    WriteLine($"    app.add_option(\"{arg.CliOptionString()}\", {arg.CliValueVariableName()}, \"{arg.CliDescription()}\")->required()");
+    Write($"    app.add_option(\"{arg.CliOptionString()}\", {arg.CliValueVariableName()}, \"{arg.CliDescription()}\")->required()");
     if (arg.TransformerMapName() != null) {
+    WriteLine("");
         Write($"        ->transform(CLI::CheckedTransformer({arg.TransformerMapName()}, CLI::ignore_case))");
     }
     WriteLine(";");
@@ -221,6 +223,7 @@ int main(int argc, char* argv[])
             WriteLine($"    {arg.CppCliValueType()} {arg.InteropVariableName()} = {arg.CliValueVariableName()};");
             break;
     }
+    WriteLine("");
 } #>
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -241,6 +244,7 @@ int main(int argc, char* argv[])
             Write($"        {arg.InteropVariableName()}.c_str()");
             break;
         case DataType.ArrayType:
+        case DataType.RangeType:
             Write($"        {arg.InteropVariableName()}.get()");
             break;
         default:
