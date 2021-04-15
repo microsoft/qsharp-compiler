@@ -130,12 +130,9 @@ namespace Microsoft.Quantum.QsCompiler
                 var loadedSteps = new List<LoadedStep>();
                 foreach (var type in relevantTypes)
                 {
-                    Console.WriteLine($"creating step {type.FullName}");
                     var initializedStep = this.CreateStep(type, target, outputFolder);
-                    Console.WriteLine($"done creating step {type.FullName}");
                     if (initializedStep != null)
                     {
-                        Console.WriteLine($"added step {type.FullName}");
                         loadedSteps.Add(initializedStep);
                     }
                 }
