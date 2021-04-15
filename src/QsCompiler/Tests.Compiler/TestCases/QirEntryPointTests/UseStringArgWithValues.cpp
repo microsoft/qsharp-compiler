@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseStringArgWithValues( // NOLINT
-    const char* vStringArgInteropValue
+    const char* StringArgInteropValue
 );
 
 
@@ -48,13 +48,13 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    string vStringArgCliValue;
-    app.add_option("--StringArg", vStringArgCliValue, "A String value for the StringArg argument")->required();
+    string StringArgCliValue;
+    app.add_option("--StringArg", StringArgCliValue, "A String value for the StringArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
-    string vStringArgInteropValue = vStringArgCliValue;
+    string StringArgInteropValue = StringArgCliValue;
 
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -68,7 +68,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseStringArgWithValues(
-        vStringArgInteropValue.c_str()
+        StringArgInteropValue.c_str()
     );
 
 

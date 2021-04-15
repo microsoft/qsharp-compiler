@@ -48,7 +48,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseResultArrayArg( // NOLINT
-    InteropArray* vResultArrayArgInteropValue
+    InteropArray* ResultArrayArgInteropValue
 );
 
 
@@ -76,8 +76,8 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    vector<char> vResultArrayArgCliValue;
-    app.add_option("--ResultArrayArg", vResultArrayArgCliValue, "A Result array value for the ResultArrayArg argument")->required()
+    vector<char> ResultArrayArgCliValue;
+    app.add_option("--ResultArrayArg", ResultArrayArgCliValue, "A Result array value for the ResultArrayArg argument")->required()
         ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
@@ -85,7 +85,7 @@ int main(int argc, char* argv[])
 
     // Translate values to its final form after parsing.
     // Create an interop array of values.
-    unique_ptr<InteropArray> vResultArrayArgInteropValue = CreateInteropArray(vResultArrayArgCliValue);
+    unique_ptr<InteropArray> ResultArrayArgInteropValue = CreateInteropArray(ResultArrayArgCliValue);
 
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -99,7 +99,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseResultArrayArg(
-        vResultArrayArgInteropValue.get()
+        ResultArrayArgInteropValue.get()
     );
 
 

@@ -48,7 +48,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseBoolArrayArgWithValues( // NOLINT
-    InteropArray* vBoolArrayArgInteropValue
+    InteropArray* BoolArrayArgInteropValue
 );
 
 
@@ -75,8 +75,8 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    vector<char> vBoolArrayArgCliValue;
-    app.add_option("--BoolArrayArg", vBoolArrayArgCliValue, "A bool array value for the BoolArrayArg argument")->required()
+    vector<char> BoolArrayArgCliValue;
+    app.add_option("--BoolArrayArg", BoolArrayArgCliValue, "A bool array value for the BoolArrayArg argument")->required()
         ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
@@ -84,7 +84,7 @@ int main(int argc, char* argv[])
 
     // Translate values to its final form after parsing.
     // Create an interop array of values.
-    unique_ptr<InteropArray> vBoolArrayArgInteropValue = CreateInteropArray(vBoolArrayArgCliValue);
+    unique_ptr<InteropArray> BoolArrayArgInteropValue = CreateInteropArray(BoolArrayArgCliValue);
 
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -98,7 +98,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseBoolArrayArgWithValues(
-        vBoolArrayArgInteropValue.get()
+        BoolArrayArgInteropValue.get()
     );
 
 
