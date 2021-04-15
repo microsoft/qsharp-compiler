@@ -65,6 +65,7 @@ int main(int argc, char* argv[])
 
     // Translate a PauliID value to its char representation.
     char PauliArgInteropValue = TranslatePauliToChar(PauliArgCliValue);
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;

@@ -44,10 +44,11 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+}
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseResultArrayArgWithValues( // NOLINT
-    InteropArray * ResultArrayArgInteropValue
+    InteropArray* ResultArrayArgInteropValue
 );
 
 
@@ -85,6 +86,7 @@ int main(int argc, char* argv[])
     // Translate values to its final form after parsing.
     // Create an interop array of values.
     unique_ptr<InteropArray> ResultArrayArgInteropValue = CreateInteropArray(ResultArrayArgCliValue);
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;

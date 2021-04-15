@@ -44,10 +44,11 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+}
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UsePauliArrayArgWithValues( // NOLINT
-    InteropArray * PauliArrayArgInteropValue
+    InteropArray* PauliArrayArgInteropValue
 );
 
 
@@ -89,6 +90,7 @@ int main(int argc, char* argv[])
     vector<char> PauliArrayArgIntermediateValue;
     TranslateVector<PauliId, char>(PauliArrayArgCliValue, PauliArrayArgIntermediateValue, TranslatePauliToChar);
     unique_ptr<InteropArray> PauliArrayArgInteropValue = CreateInteropArray(PauliArrayArgIntermediateValue);
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;

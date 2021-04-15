@@ -45,13 +45,13 @@ int main(int argc, char* argv[])
 
     double_t DoubleArgCliValue;
     DoubleArgCliValue = 0.0;
-    app.add_option("--DoubleArg", DoubleArgCliValue, "A double value for the DoubleArg argument")->required()
-;
+    app.add_option("--DoubleArg", DoubleArgCliValue, "A double value for the DoubleArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
     double_t DoubleArgInteropValue = DoubleArgCliValue;
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
