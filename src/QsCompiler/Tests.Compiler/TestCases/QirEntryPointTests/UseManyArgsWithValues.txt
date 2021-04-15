@@ -1,0 +1,1 @@
+--intValue 42 --intArray 9223372036854775807 4 4 2 3 --doubleValue 3.14 --doubleArray 0.6 0.4 43.2 --boolValue true --boolArray true false true true false --pauliValue pauliz --pauliArray paulix paulii pauliy pauliy pauliz --rangeValue 3 12 27 --rangeArray 3 12 27 --resultValue 1 --resultArray 1 1 0 1 --stringValue "string value" --stringArray " String A" "String B" "String C"

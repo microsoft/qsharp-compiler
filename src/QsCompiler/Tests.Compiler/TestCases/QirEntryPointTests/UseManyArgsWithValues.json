@@ -1,0 +1,122 @@
+{
+  "Name": "UseManyArgsWithValues",
+  "Arguments": [
+    {
+      "Type": 1,
+      "Name": "intValue",
+      "Position": 0,
+      "Values": [ { "Integer": [ 42 ] } ]
+    },
+    {
+      "Type": 7,
+      "Name": "intArray",
+      "Position": 1,
+      "ArrayType": [ 1 ],
+      "Values": [ { "Array": [ { "Integer": [ [ 9223372036854775807, 4, 4, 2, 3 ] ] } ] } ]
+    },
+    {
+      "Type": 2,
+      "Name": "doubleValue",
+      "Position": 1,
+      "Values": [ { "Double": [ 3.14 ] } ]
+    },
+    {
+      "Type": 7,
+      "Name": "doubleArray",
+      "Position": 2,
+      "ArrayType": [ 2 ],
+      "Values": [ { "Array": [ { "Double": [ [ 0.6, 0.4, 43.2 ] ] } ] } ]
+    },
+    {
+      "Type": 0,
+      "Name": "boolValue",
+      "Position": 3,
+      "Values": [ { "Bool": [ true ] } ]
+    },
+    {
+      "Type": 7,
+      "Name": "boolArray",
+      "Position": 4,
+      "ArrayType": [ 0 ],
+      "Values": [ { "Array": [ { "Bool": [ [ true, false, true, true, false ] ] } ] } ]
+    },
+    {
+      "Type": 3,
+      "Name": "pauliValue",
+      "Position": 5,
+      "Values": [ { "Pauli": [ 3 ] } ]
+    },
+    {
+      "Type": 7,
+      "Name": "pauliArray",
+      "Position": 6,
+      "ArrayType": [ 3 ],
+      "Values": [ { "Array": [ { "Pauli": [ [ 1, 0, 2, 2, 3 ] ] } ] } ]
+    },
+    {
+      "Type": 4,
+      "Name": "rangeValue",
+      "Position": 7,
+      "Values": [
+        {
+          "Range": [
+            {
+              "Start": 3,
+              "Step": 12,
+              "End": 27
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Type": 7,
+      "Name": "rangeArray",
+      "Position": 8,
+      "ArrayType": [ 4 ],
+      "Values": [
+        {
+          "Array": [
+            {
+              "Range": [
+                [
+                  {
+                    "Start": 3,
+                    "Step": 12,
+                    "End": 27
+                  }
+                ]
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "Type": 5,
+      "Name": "resultValue",
+      "Position": 9,
+      "Values": [ { "Result": [ 1 ] } ]
+    },
+    {
+      "Type": 7,
+      "Name": "resultArray",
+      "Position": 10,
+      "ArrayType": [ 5 ],
+      "Values": [ { "Array": [ { "Result": [ [ 1, 1, 0, 1 ] ] } ] } ]
+    },
+    {
+      "Type": 6,
+      "Name": "stringValue",
+      "Position": 11,
+      "Values": [ { "String": [ "string value" ] } ]
+    },
+    {
+      "Type": 7,
+      "Name": "stringArray",
+      "Position": 12,
+      "ArrayType": [ 6 ],
+      "Values": [ { "Array": [ { "String": [ [ " String A", "String B", "String C" ] ] } ] } ]
+    }
+  ]
+}

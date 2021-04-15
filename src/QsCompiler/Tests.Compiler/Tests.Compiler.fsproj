@@ -24,6 +24,48 @@
     <Compile Include="TestUtils\SetupVerificationTests.fs" />
     <Compile Include="TestUtils\Signatures.fs" />
     <Compile Include="TestUtils\Transformations.fs" />
+    <None Include="TestCases\QirEntryPointTests\UseManyArgsWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseBoolArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseBoolArrayArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseDoubleArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseDoubleArrayArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseIntegerArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseIntegerArrayArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UsePauliArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UsePauliArrayArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseRangeArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseRangeArrayArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseResultArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseResultArrayArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="TestCases\QirEntryPointTests\UseStringArgWithValues.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\QirEntryPointTests\UseBoolArrayArgWithValues.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -48,10 +90,10 @@
     <None Include="TestCases\QirEntryPointTests\UseDoubleArgWithValues.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\QirEntryPointTests\UseDoubleArg.cpp">
+    <None Include="TestCases\QirEntryPointTests\UseIntegerArgWithValues.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\QirEntryPointTests\UseIntegerArgWithValues.cpp">
+    <None Include="TestCases\QirEntryPointTests\UseDoubleArg.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
     <None Include="TestCases\QirEntryPointTests\UseIntegerArg.cpp">
@@ -105,6 +147,9 @@
     <None Include="TestCases\QirEntryPointTests\UseNoArgs.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <Content Include="TestCases\QirEntryPointTests\UseManyArgsWithValues.json">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirEntryPointTests\UseNoArgs.json">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
