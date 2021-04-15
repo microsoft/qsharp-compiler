@@ -87,7 +87,7 @@ void FreePointerVector(vector<T*>& v)
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseRangeArrayArgWithValues( // NOLINT
-    InteropArray* RangeArrayArgInteropValue
+    InteropArray* vRangeArrayArgInteropValue
 );
 
 
@@ -106,15 +106,15 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    vector<RangeTuple> RangeArrayArgCliValue;
-    app.add_option("--RangeArrayArg", RangeArrayArgCliValue, "A Range array value for the RangeArrayArg argument")->required();
+    vector<RangeTuple> vRangeArrayArgCliValue;
+    app.add_option("--RangeArrayArg", vRangeArrayArgCliValue, "A Range array value for the RangeArrayArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
-    vector<InteropRange*> RangeArrayArgIntermediateValue;
-    TranslateVector<RangeTuple, InteropRange*>(RangeArrayArgCliValue, RangeArrayArgIntermediateValue, TranslateRangeTupleToInteropRangePointer);
-    unique_ptr<InteropArray> RangeArrayArgInteropValue = CreateInteropArray(RangeArrayArgIntermediateValue);
+    vector<InteropRange*> vRangeArrayArgIntermediateValue;
+    TranslateVector<RangeTuple, InteropRange*>(vRangeArrayArgCliValue, vRangeArrayArgIntermediateValue, TranslateRangeTupleToInteropRangePointer);
+    unique_ptr<InteropArray> vRangeArrayArgInteropValue = CreateInteropArray(vRangeArrayArgIntermediateValue);
 
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -128,7 +128,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseRangeArrayArgWithValues(
-        RangeArrayArgInteropValue.get()
+        vRangeArrayArgInteropValue.get()
     );
 
 

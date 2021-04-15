@@ -54,7 +54,7 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseRangeArg( // NOLINT
-    InteropRange* RangeArgInteropValue
+    InteropRange* vRangeArgInteropValue
 );
 
 
@@ -73,14 +73,14 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    RangeTuple RangeArgCliValue;
-    app.add_option("--RangeArg", RangeArgCliValue, "A Range (start, step, end) value for the RangeArg argument")->required();
+    RangeTuple vRangeArgCliValue;
+    app.add_option("--RangeArg", vRangeArgCliValue, "A Range (start, step, end) value for the RangeArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
     // Create an interop range.
-    unique_ptr<InteropRange> RangeArgInteropValue = CreateInteropRange(RangeArgCliValue);
+    unique_ptr<InteropRange> vRangeArgInteropValue = CreateInteropRange(vRangeArgCliValue);
 
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseRangeArg(
-        RangeArgInteropValue.get()
+        vRangeArgInteropValue.get()
     );
 
 

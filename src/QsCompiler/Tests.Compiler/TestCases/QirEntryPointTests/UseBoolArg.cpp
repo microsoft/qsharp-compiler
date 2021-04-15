@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseBoolArg( // NOLINT
-    char BoolArgInteropValue
+    char vBoolArgInteropValue
 );
 
 
@@ -51,15 +51,15 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    char BoolArgCliValue;
-    BoolArgCliValue = InteropFalseAsChar;
-    app.add_option("--BoolArg", BoolArgCliValue, "A bool value for the BoolArg argument")->required()
+    char vBoolArgCliValue;
+    vBoolArgCliValue = InteropFalseAsChar;
+    app.add_option("--BoolArg", vBoolArgCliValue, "A bool value for the BoolArg argument")->required()
         ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
-    char BoolArgInteropValue = BoolArgCliValue;
+    char vBoolArgInteropValue = vBoolArgCliValue;
 
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -73,7 +73,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseBoolArg(
-        BoolArgInteropValue
+        vBoolArgInteropValue
     );
 
 

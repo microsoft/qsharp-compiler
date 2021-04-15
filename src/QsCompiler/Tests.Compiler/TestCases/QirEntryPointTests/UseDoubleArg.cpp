@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseDoubleArg( // NOLINT
-    double DoubleArgInteropValue
+    double vDoubleArgInteropValue
 );
 
 
@@ -43,14 +43,14 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    double_t DoubleArgCliValue;
-    DoubleArgCliValue = 0.0;
-    app.add_option("--DoubleArg", DoubleArgCliValue, "A double value for the DoubleArg argument")->required();
+    double_t vDoubleArgCliValue;
+    vDoubleArgCliValue = 0.0;
+    app.add_option("--DoubleArg", vDoubleArgCliValue, "A double value for the DoubleArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
-    double_t DoubleArgInteropValue = DoubleArgCliValue;
+    double_t vDoubleArgInteropValue = vDoubleArgCliValue;
 
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseDoubleArg(
-        DoubleArgInteropValue
+        vDoubleArgInteropValue
     );
 
 

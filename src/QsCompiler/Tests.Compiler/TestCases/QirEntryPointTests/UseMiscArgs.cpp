@@ -44,12 +44,13 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+}
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseMiscArgs( // NOLINT
-    char IntegerArgInteropValue,
-    char PauliArgInteropValue,
-    InteropArray * ResultArrayArgInteropValue
+    char vIntegerArgInteropValue,
+    char vPauliArgInteropValue,
+    InteropArray* vResultArrayArgInteropValue
 );
 
 
@@ -97,29 +98,32 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    char IntegerArgCliValue;
-    IntegerArgCliValue = InteropFalseAsChar;
-    app.add_option("--IntegerArg", IntegerArgCliValue, "A bool value for the IntegerArg argument")->required()
+    char vIntegerArgCliValue;
+    vIntegerArgCliValue = InteropFalseAsChar;
+    app.add_option("--IntegerArg", vIntegerArgCliValue, "A bool value for the IntegerArg argument")->required()
         ->transform(CLI::CheckedTransformer(BoolAsCharMap, CLI::ignore_case));
 
-    PauliId PauliArgCliValue;
-    PauliArgCliValue = PauliId::PauliId_I;
-    app.add_option("--PauliArg", PauliArgCliValue, "A Pauli value for the PauliArg argument")->required()
+    PauliId vPauliArgCliValue;
+    vPauliArgCliValue = PauliId::PauliId_I;
+    app.add_option("--PauliArg", vPauliArgCliValue, "A Pauli value for the PauliArg argument")->required()
         ->transform(CLI::CheckedTransformer(PauliMap, CLI::ignore_case));
 
-    vector<char> ResultArrayArgCliValue;
-    app.add_option("--ResultArrayArg", ResultArrayArgCliValue, "A Result array value for the ResultArrayArg argument")->required()
+    vector<char> vResultArrayArgCliValue;
+    app.add_option("--ResultArrayArg", vResultArrayArgCliValue, "A Result array value for the ResultArrayArg argument")->required()
         ->transform(CLI::CheckedTransformer(ResultAsCharMap, CLI::ignore_case));
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
-    char IntegerArgInteropValue = IntegerArgCliValue;
+    char vIntegerArgInteropValue = vIntegerArgCliValue;
+
     // Translate a PauliID value to its char representation.
-    char PauliArgInteropValue = TranslatePauliToChar(PauliArgCliValue);
+    char vPauliArgInteropValue = TranslatePauliToChar(vPauliArgCliValue);
+
     // Translate values to its final form after parsing.
     // Create an interop array of values.
-    unique_ptr<InteropArray> ResultArrayArgInteropValue = CreateInteropArray(ResultArrayArgCliValue);
+    unique_ptr<InteropArray> vResultArrayArgInteropValue = CreateInteropArray(vResultArrayArgCliValue);
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -132,9 +136,9 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseMiscArgs(
-        IntegerArgInteropValue,
-        PauliArgInteropValue,
-        ResultArrayArgInteropValue.get()
+        vIntegerArgInteropValue,
+        vPauliArgInteropValue,
+        vResultArrayArgInteropValue.get()
     );
 
 

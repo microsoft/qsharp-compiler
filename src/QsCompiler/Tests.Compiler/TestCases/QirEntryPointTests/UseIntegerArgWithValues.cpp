@@ -24,7 +24,7 @@ using namespace std;
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseIntegerArgWithValues( // NOLINT
-    int64_t IntegerArgInteropValue
+    int64_t vIntegerArgInteropValue
 );
 
 
@@ -43,14 +43,14 @@ int main(int argc, char* argv[])
         "--simulation-output", simulationOutputFile,
         "File where the output produced during the simulation is written");
 
-    int64_t IntegerArgCliValue;
-    IntegerArgCliValue = 0;
-    app.add_option("--IntegerArg", IntegerArgCliValue, "A integer value for the IntegerArg argument")->required();
+    int64_t vIntegerArgCliValue;
+    vIntegerArgCliValue = 0;
+    app.add_option("--IntegerArg", vIntegerArgCliValue, "A integer value for the IntegerArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
-    int64_t IntegerArgInteropValue = IntegerArgCliValue;
+    int64_t vIntegerArgInteropValue = vIntegerArgCliValue;
 
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
@@ -64,7 +64,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseIntegerArgWithValues(
-        IntegerArgInteropValue
+        vIntegerArgInteropValue
     );
 
 
