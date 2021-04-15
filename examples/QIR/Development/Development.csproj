@@ -3,7 +3,6 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
-    <QirLocalDevelopment>true</QirLocalDevelopment>
   </PropertyGroup>
 
   <PropertyGroup>
@@ -15,7 +14,6 @@
     <None Include="qir\**" />
     <Compile Remove="Main.cs" />
   </ItemGroup>
-    
     
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\QsCompiler\CommandLineTool\CommandLineTool.csproj">

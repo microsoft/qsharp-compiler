@@ -5,6 +5,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <RootNamespace>Microsoft.Quantum.QsCompiler.QirGeneration</RootNamespace>
     <AssemblyName>Microsoft.Quantum.QirGeneration</AssemblyName>
+    <!-- needed for local development when loading the source code version of the QIR generation as extension -->
+    <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
   <ItemGroup>
