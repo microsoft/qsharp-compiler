@@ -127,9 +127,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static string? DataTypeTransformerMapName(DataType what)
+        public static string? DataTypeTransformerMapName(DataType? type)
         {
-            return what switch
+            return type switch
             {
                 DataType.BoolType => "BoolAsCharMap",
                 DataType.IntegerType => null,
@@ -139,23 +139,15 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.ResultType => "ResultAsCharMap",
                 DataType.StringType => null,
                 DataType.ArrayType => null,
-                _ => throw new NotSupportedException($"Unsupported argument type {what}")
+                _ => throw new NotSupportedException($"Unsupported argument type {type}")
             };
         }
 
-        public string? TransformerMapName()
-        {
-            if (this.Type == DataType.ArrayType)
-            {
-#pragma warning disable CS8629 // Nullable value type may be null.
-                return DataTypeTransformerMapName((DataType)this.ArrayType);
-#pragma warning restore CS8629 // Nullable value type may be null.
-            }
-            else
-            {
-                return DataTypeTransformerMapName(this.Type);
-            }
-        }
+        public string? TransformerMapName() =>
+            this.Type switch {
+                DataType.ArrayType => DataTypeTransformerMapName(this.ArrayType),
+                _ => DataTypeTransformerMapName(this.Type)
+            };
 
         public string CliValueVariableName()
         {
