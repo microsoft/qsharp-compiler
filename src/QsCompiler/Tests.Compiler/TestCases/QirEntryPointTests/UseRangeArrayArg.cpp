@@ -44,6 +44,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 {
     destinationVector.resize(sourceVector.size());
     transform(sourceVector.begin(), sourceVector.end(), destinationVector.begin(), translationFunction);
+}
 
 using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
@@ -86,7 +87,7 @@ void FreePointerVector(vector<T*>& v)
 
 // This is the function corresponding to the QIR entry-point.
 extern "C" void UseRangeArrayArg( // NOLINT
-    InteropArray * RangeArrayArgInteropValue
+    InteropArray* RangeArrayArgInteropValue
 );
 
 
@@ -106,8 +107,7 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
 
     vector<RangeTuple> RangeArrayArgCliValue;
-    app.add_option("--RangeArrayArg", RangeArrayArgCliValue, "A Range array value for the RangeArrayArg argument")->required()
-;
+    app.add_option("--RangeArrayArg", RangeArrayArgCliValue, "A Range array value for the RangeArrayArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
@@ -115,6 +115,7 @@ int main(int argc, char* argv[])
     vector<InteropRange*> RangeArrayArgIntermediateValue;
     TranslateVector<RangeTuple, InteropRange*>(RangeArrayArgCliValue, RangeArrayArgIntermediateValue, TranslateRangeTupleToInteropRangePointer);
     unique_ptr<InteropArray> RangeArrayArgInteropValue = CreateInteropArray(RangeArrayArgIntermediateValue);
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;

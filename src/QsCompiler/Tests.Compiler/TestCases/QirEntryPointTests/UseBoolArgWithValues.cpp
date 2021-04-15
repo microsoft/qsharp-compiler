@@ -60,6 +60,7 @@ int main(int argc, char* argv[])
     CLI11_PARSE(app, argc, argv);
 
     char BoolArgInteropValue = BoolArgCliValue;
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
