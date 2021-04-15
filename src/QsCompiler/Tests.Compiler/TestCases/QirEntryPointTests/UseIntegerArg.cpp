@@ -45,13 +45,13 @@ int main(int argc, char* argv[])
 
     int64_t IntegerArgCliValue;
     IntegerArgCliValue = 0;
-    app.add_option("--IntegerArg", IntegerArgCliValue, "A integer value for the IntegerArg argument")->required()
-;
+    app.add_option("--IntegerArg", IntegerArgCliValue, "A integer value for the IntegerArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
     int64_t IntegerArgInteropValue = IntegerArgCliValue;
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;

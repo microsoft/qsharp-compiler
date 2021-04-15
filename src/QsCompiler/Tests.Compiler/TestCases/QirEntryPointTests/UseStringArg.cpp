@@ -49,13 +49,13 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
 
     string StringArgCliValue;
-    app.add_option("--StringArg", StringArgCliValue, "A String value for the StringArg argument")->required()
-;
+    app.add_option("--StringArg", StringArgCliValue, "A String value for the StringArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
     string StringArgInteropValue = StringArgCliValue;
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;

@@ -74,14 +74,14 @@ int main(int argc, char* argv[])
         "File where the output produced during the simulation is written");
 
     RangeTuple RangeArgCliValue;
-    app.add_option("--RangeArg", RangeArgCliValue, "A Range (start, step, end) value for the RangeArg argument")->required()
-;
+    app.add_option("--RangeArg", RangeArgCliValue, "A Range (start, step, end) value for the RangeArg argument")->required();
 
     // With all the options added, parse arguments from the command line.
     CLI11_PARSE(app, argc, argv);
 
     // Create an interop range.
     unique_ptr<InteropRange> RangeArgInteropValue = CreateInteropRange(RangeArgCliValue);
+
     // Redirect the simulator output from std::cout if the --simulation-output option is present.
     ostream* simulatorOutputStream = &cout;
     ofstream simulationOutputFileStream;
@@ -94,7 +94,7 @@ int main(int argc, char* argv[])
 
     // Run simulation and write the output of the operation to the corresponding stream.
     UseRangeArgWithValues(
-        RangeArgInteropValue
+        RangeArgInteropValue.get()
     );
 
 
