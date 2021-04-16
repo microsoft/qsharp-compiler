@@ -143,12 +143,6 @@ module private Inference =
     /// Shows the type as a string.
     let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
-    /// Shows the functor as a string.
-    let showFunctor =
-        function
-        | Adjoint -> Keywords.qsAdjointFunctor.id
-        | Controlled -> Keywords.qsControlledFunctor.id
-
     /// <summary>
     /// Combines information from two callables such that the resulting callable information satisfies the given
     /// <paramref name="ordering"/> with respect to both <paramref name="info1"/> and <paramref name="info2"/>.
@@ -456,7 +450,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 let missing = Set.difference functors (Set.ofSeq supported)
 
                 let error =
-                    ErrorCode.MissingFunctorForAutoGeneration, [ missing |> Seq.map showFunctor |> String.concat "," ]
+                    ErrorCode.MissingFunctorForAutoGeneration, [ missing |> Seq.map string |> String.concat "," ]
 
                 [
                     if not info.Characteristics.AreInvalid && Set.isEmpty missing |> not
