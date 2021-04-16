@@ -38,10 +38,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <Content Include="..\..\..\NOTICE.txt" Link="NOTICE.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

@@ -13,12 +13,12 @@ namespace Ubiquity.NET.Llvm.Values
     public class Argument
         : Value
     {
-        /// <summary>Gets the function this argument belongs to.</summary>
-        public IrFunction ContainingFunction => FromHandle<IrFunction>(this.ValueHandle.ParamParent)!;
-
         internal Argument(LLVMValueRef valueRef)
             : base(valueRef)
         {
         }
+
+        /// <summary>Gets the function this argument belongs to.</summary>
+        public IrFunction ContainingFunction => FromHandle<IrFunction>(this.ValueHandle.ParamParent)!;
     }
 }
