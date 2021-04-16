@@ -56,6 +56,7 @@ namespace Microsoft.Quantum.QIR
             dict.Add(QsCompiler.BuiltIn.Message.FullName, this.Message);
             dict.Add(QsCompiler.BuiltIn.Truncate.FullName, this.DoubleAsInt); // This redundancy needs to be eliminated in the Q# libraries.
             dict.Add(QsCompiler.BuiltIn.DumpMachine.FullName, this.DumpMachine);
+            dict.Add(QsCompiler.BuiltIn.DumpRegister.FullName, this.DumpRegister);
 
             this.sharedState = sharedState;
             this.builtIn = dict.ToImmutable();
@@ -233,7 +234,37 @@ namespace Microsoft.Quantum.QIR
             }
 
             var dump = this.sharedState.GetOrCreateTargetInstruction(QuantumInstructionSet.DumpMachine);
+            value = this.sharedState.CastToType(value, this.sharedState.Context.Int8Type.CreatePointerType());
             this.sharedState.CurrentBuilder.Call(dump, value);
+            return this.sharedState.Values.Unit;
+        }
+
+        private IValue DumpRegister(TypedExpression arg)
+        {
+            Value arg1;
+            Value arg2;
+            if (arg.Expression is ResolvedExpressionKind.ValueTuple vs)
+            {
+                arg1 = this.sharedState.EvaluateSubexpression(vs.Item[0]).Value;
+                arg2 = this.sharedState.EvaluateSubexpression(vs.Item[1]).Value;
+            }
+            else
+            {
+                var argTuple = (TupleValue)this.sharedState.EvaluateSubexpression(arg);
+                arg1 = argTuple.GetTupleElement(1).Value;
+                arg2 = argTuple.GetTupleElement(2).Value;
+            }
+
+            if (!arg1.NativeType.IsPointer)
+            {
+                var pointer = this.sharedState.CurrentBuilder.Alloca(arg1.NativeType);
+                this.sharedState.CurrentBuilder.Store(arg1, pointer);
+                arg1 = pointer;
+            }
+
+            var dump = this.sharedState.GetOrCreateTargetInstruction(QuantumInstructionSet.DumpRegister);
+            arg1 = this.sharedState.CastToType(arg1, this.sharedState.Context.Int8Type.CreatePointerType());
+            this.sharedState.CurrentBuilder.Call(dump, arg1, arg2);
             return this.sharedState.Values.Unit;
         }
     }
