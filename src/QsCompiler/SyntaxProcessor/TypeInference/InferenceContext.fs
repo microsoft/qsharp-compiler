@@ -272,6 +272,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         if Option.isSome variable.Substitution
         then failwith "Type parameter is already bound."
+
         variables.[param] <- { variable with Substitution = Some substitution }
 
     let rememberErrors types diagnostics =
@@ -284,11 +285,19 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         diagnostics
 
     member context.AmbiguousDiagnostics =
-        [
-            for variable in variables do
-                if not variable.Value.HasError && Option.isNone variable.Value.Substitution
-                then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, []) variable.Value.Source
-        ]
+        let diagnostic param variable =
+            let args =
+                [
+                    TypeParameter param |> ResolvedType.New |> showType
+                    variable.Constraints |> List.map Constraint.pretty |> String.concat ", "
+                ]
+
+            QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, args) variable.Source
+
+        variables
+        |> Seq.filter (fun item -> not item.Value.HasError && Option.isNone item.Value.Substitution)
+        |> Seq.map (fun item -> diagnostic item.Key item.Value)
+        |> Seq.toList
 
     member context.UseStatementPosition position = statementPosition <- position
 

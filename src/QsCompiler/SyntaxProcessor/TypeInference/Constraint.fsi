@@ -65,3 +65,6 @@ type internal Constraint =
 module internal Constraint =
     /// The list of types contained in a constraint.
     val types: Constraint -> ResolvedType list
+
+    /// Pretty prints a constraint.
+    val pretty: Constraint -> string
