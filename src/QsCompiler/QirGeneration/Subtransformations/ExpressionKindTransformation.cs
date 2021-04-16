@@ -956,9 +956,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromArray(res, elementType.Item);
-                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
-                // todo: are these really necessary?
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
@@ -999,9 +996,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
                 this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
-                // todo: are these really necessary?
-                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
-                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
