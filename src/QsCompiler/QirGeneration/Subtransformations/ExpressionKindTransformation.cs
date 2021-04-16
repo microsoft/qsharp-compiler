@@ -206,6 +206,80 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
                     sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
                 }
+
+                // Somewhat longer explanation of why inserting the conditional logic below is needed
+                // - and I would love to avoid it; its not nice, but overall it still seems to be the solution
+                // that keeps the QIR spec and the runtime implementation as clean and simple as possible,
+                // while allowing for compiler-side perf opimizations.
+
+                // Consider the following example:
+                //
+                //     function TestRefCounts(cond : Bool) : Unit {
+                //         mutable ops = new Int[][5];
+                //         if cond {
+                //             set ops w /= 0 <- new Int[3];
+                //         }
+                //     }
+                //
+                // The first line gets translated into first creating and then populating the Int[][].
+                // After creation and populating it, the array and all its items have ref count 1.
+                // Then that array is assigned to the mutable variable.
+                // This assignment leads to the array and all its items having ref count 2, and an alias count 1.
+                // An example for why the ref count is 2 and can't remain 1, can be found further blow, marked with (*).
+                //
+                // Continuing into the if-branch, we create a new array that has ref count 1.
+                // Upon assigning it to item 0 in the array, its alias count and ref count are increased.
+                // At the same time, the alias count and ref count of the old item are decreased.
+                // The ops array and all its items now have an alias count 1 and a ref count 2.
+                // The alias count of the old item is now 0, and its ref count is 1.
+                //
+                // Now we exit the scope. When we exit the scope, the array value created inside the if-branch goes out of scope.
+                // Its ref count is hence decreased by 1. This now causes a problem when we exit TestRefCounts;
+                // upon exiting, we decrease the alias count and the ref count of ops and all its items by 1.
+                // The alias count of ops and all its items is then 0(ok), and the ref count of all items except item 0 is 1,
+                // while the ref count of item 0 is 0. And here is where things go wrong;
+                // we also release the initially created array (variable % 0), which is correct, since the value goes out of scope.
+                // However, the original item at index 0 is no longer accessible by getting the 0 - element pointer of % 0 -
+                // instead of getting the old item that still has a ref count 1 that needs to be set to 0,
+                // we get the new item that has a ref count 0 already.
+                //
+                // Now why is it relevant whether the ops array has been copied inside the if-branch or not?
+                // Suppose after the first line there is another variable defined that is bound to ops,
+                // such that the if-branch actually does create the copy. In that case when we exit TestRefCounts,
+                // accessing the item at index 0 of % 0 indeed still accesses the old item, and everything works fine.
+                //
+                // Whatever scheme we pursue to resolve the issue,
+                // it ultimately boils down to that we need to ensure that when % 0 goes out of scope,
+                // we have a way to access all its items at the time of declaration.
+                // Thinking of queuing the unreferencing for each item separately when we increase the ref count
+                // for the array and all its items upon the initial assignment to ops,
+                // the problem is that iterating over the array means that the items are loaded inside a loop body,
+                // and I no longer have access to them when we exit the function.
+                // Hence, the simplest and I think cleanest solution I can come up with is that I inject an additional ref count increase
+                // for the new item and ref count decrease for the old item when an array item is modified in place.
+                //
+                // The additional count change has to be exactly 1 because I don't see a way for the array to be unreferenced
+                // more than once at the end of the scope while also not being copied;
+                // I believe the only way it would be unreferenced multiple times is if there is another alias for it,
+                // in which case the copy would get executed and everything should work.
+
+                // (*) Elaborating more on why the ref count needs to be 2 and can't remain 1,
+                // think of the case where the array assigned to the mutable variable has been passed in as an argument:
+                //
+                //    function TestRefCounts(cond : Bool, arr: Int[][]) : Unit {
+                //        mutable ops = arr;
+                //        if (cond)
+                //        {
+                //            set ops w /= 0 <- new Int[3];
+                //        }
+                //        // do something
+                //    }
+                //
+                // Suppose that argument arr initially has ref count 1 and is "owned" by the calling function.
+                // Then if we kept the ref count at 1, and updated an item in ops, the old item's ref count would drop to 0, releasing it.
+                // Hence (assuming we can't know which items will be updated), we increase both the alias and the ref count
+                // when assigning to mutable variables for the array and all its item.
+
                 if (sharedState.ScopeMgr.RequiresReferenceCount(value.LlvmType) && !unreferenceOriginal)
                 {
                     var contBlock = sharedState.AddBlockAfterCurrent("condContinue");
