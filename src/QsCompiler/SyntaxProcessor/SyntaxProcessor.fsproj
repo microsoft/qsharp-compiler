@@ -9,9 +9,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\Common\DelaySign.fs">
-      <Link>DelaySign.fs</Link>
-    </Compile>
     <Compile Include="VerificationTools.fs" />
     <Compile Include="ScopeTools.fs" />
     <Compile Include="CapabilityInference.fs" />
