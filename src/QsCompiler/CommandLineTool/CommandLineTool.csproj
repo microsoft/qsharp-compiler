@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <AssemblyName>qsc</AssemblyName>
@@ -30,7 +29,7 @@
     <PackageReference Include="libLLVM.runtime.win-x64" Version="11.0.0" />
     <PackageReference Include="libLLVM.runtime.osx-x64" Version="11.0.0" />
     <PackageReference Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0" />
-    <PackageReference Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" />      
+    <PackageReference Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" />
   </ItemGroup>
 
   <ItemGroup>

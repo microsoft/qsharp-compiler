@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <OutputType>Library</OutputType>
@@ -9,7 +8,6 @@
 
 
   <ItemGroup>
-    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="SyntaxExtensions.fs" />
     <Compile Include="ParsingPrimitives.fs" />
     <Compile Include="QsKeywords.fs" />
