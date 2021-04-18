@@ -30,6 +30,11 @@
   </Target>
 
   <ItemGroup>
+    <!-- Disable StyleCop since code in this projecs automatically generated -->
+    <PackageReference Remove="StyleCop.Analyzers" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="Antlr4.Runtime.Standard" Version="$(AntlrVersion)" />
   </ItemGroup>
 </Project>
