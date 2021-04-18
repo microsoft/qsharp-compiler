@@ -40,6 +40,11 @@
   </ItemGroup>
 
   <ItemGroup>
+    <!-- Temporary disable StyleCop for this project, since it require a lot of changes -->
+    <PackageReference Remove="StyleCop.Analyzers" />
+  </ItemGroup>
+
+  <ItemGroup>
     <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
       <_Parameter1>Tests.Microsoft.Quantum.QsLanguageServer$(PublicKeySuffix)</_Parameter1>
     </AssemblyAttribute>
