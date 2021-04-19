@@ -33,7 +33,5 @@
 
   <ItemGroup>
     <PackageReference Include="Antlr4.Runtime.Standard" Version="$(AntlrVersion)" />
-    <!-- Disable StyleCop since code in this project is generated -->
-    <PackageReference Remove="StyleCop.Analyzers" />
   </ItemGroup>
 </Project>
