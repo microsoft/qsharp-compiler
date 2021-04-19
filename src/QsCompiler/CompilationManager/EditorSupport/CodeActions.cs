@@ -351,7 +351,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var orSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator))
                 .Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
 
-#pragma warning disable 0618
             var qubitBindingSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedQubitBindingKeyword))
                 .Select(d =>
                 {
@@ -361,15 +360,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         var match = QubitBindingsMatcher.Match(fragment.Text);
                         if (match.Success && match.Groups.Count == 3)
                         {
+#pragma warning disable 0618
                             var newText = (match.Groups[1].Value == Keywords.qsUsing.id ? Keywords.qsUse.id : Keywords.qsBorrow.id) + " " + match.Groups[2].Value.Trim();
+#pragma warning restore 0618
                             var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText };
                             return ($"Replace with \"{edit.NewText.Trim()}\".", file.GetWorkspaceEdit(edit));
                         }
                     }
 
+#pragma warning disable 0618
                     return d.Message.Contains($"\"{Keywords.qsUsing.id}\"") ? ReplaceWith(Keywords.qsUse.id, d.Range) : ReplaceWith(Keywords.qsBorrow.id, d.Range);
-                });
 #pragma warning restore 0618
+                });
 
             // update deprecated operation characteristics syntax
 
