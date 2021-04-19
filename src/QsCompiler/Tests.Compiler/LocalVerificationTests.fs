@@ -92,6 +92,11 @@ type LocalVerificationTests() =
         this.Expect "TypeArgumentsInference40" []
         this.Expect "TypeArgumentsInference41" [ Error ErrorCode.TypeMismatch ]
         this.Expect "TypeArgumentsInference42" [ Error ErrorCode.TypeMismatch ]
+        this.Expect "TypeArgumentsInference43" []
+        this.Expect "TypeArgumentsInference44" [ Error ErrorCode.AmbiguousTypeParameterResolution ]
+        this.Expect "TypeArgumentsInference45" [ Error ErrorCode.AmbiguousTypeParameterResolution ]
+        this.Expect "TypeArgumentsInference46" [ Error ErrorCode.AmbiguousTypeParameterResolution ]
+        this.Expect "TypeArgumentsInference47" []
 
 
     [<Fact>]
