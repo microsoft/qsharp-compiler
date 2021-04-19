@@ -201,12 +201,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var (originalValue, accEx, updated) = copyAndUpdate;
             void StoreElement(PointerValue pointer, IValue value, Value wasCopied, bool shallow = false)
             {
-                if (updateItemAliasCount)
-                {
-                    sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
-                    sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
-                }
-
                 // To better understand the logic in this function, consider the following example for an array of arrays
                 // (the same logic applies to tuples/udts):
                 //
@@ -256,22 +250,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Hence (assuming we can't know which items will be updated), we increase both the alias and the ref count
                 // when assigning to mutable variables for the array and all its item.
 
-                // FIXME: I THINK THIS ENTIRE THING CAN NOW BE REMOVED!
-                if (sharedState.ScopeMgr.RequiresReferenceCount(value.LlvmType) && !unreferenceOriginal)
+                if (updateItemAliasCount)
                 {
-                    var contBlock = sharedState.AddBlockAfterCurrent("condContinue");
-                    var falseBlock = sharedState.AddBlockAfterCurrent("condFalse");
-
-                    sharedState.CurrentBuilder.Branch(wasCopied, contBlock, falseBlock);
-                    sharedState.ScopeMgr.OpenScope();
-                    sharedState.SetCurrentBlock(falseBlock);
-
-                    sharedState.ScopeMgr.IncreaseReferenceCount(value, shallow);
-                    sharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow);
-
-                    sharedState.ScopeMgr.CloseScope(false);
-                    sharedState.CurrentBuilder.Branch(contBlock);
-                    sharedState.SetCurrentBlock(contBlock);
+                    sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
+                    sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
                 }
                 pointer.StoreValue(value);
             }

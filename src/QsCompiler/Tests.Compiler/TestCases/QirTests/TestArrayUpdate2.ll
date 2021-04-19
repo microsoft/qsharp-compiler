@@ -56,14 +56,6 @@ condContinue__1:                                  ; preds = %condFalse__1, %cond
   %16 = bitcast i8* %15 to %String**
   call void @__quantum__rt__string_update_reference_count(%String* %str, i32 1)
   %17 = load %String*, %String** %16, align 8
-  br i1 %14, label %condContinue__2, label %condFalse__2
-
-condFalse__2:                                     ; preds = %condContinue__1
-  call void @__quantum__rt__string_update_reference_count(%String* %str, i32 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %17, i32 -1)
-  br label %condContinue__2
-
-condContinue__2:                                  ; preds = %condFalse__2, %condContinue__1
   store %String* %str, %String** %16, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %13, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %13, i32 1)
@@ -74,7 +66,7 @@ condContinue__2:                                  ; preds = %condFalse__2, %cond
   call void @__quantum__rt__array_update_reference_count(%Array* %13, i32 -1)
   br label %exiting__2
 
-exiting__2:                                       ; preds = %condContinue__2
+exiting__2:                                       ; preds = %condContinue__1
   %18 = add i64 %i, 1
   br label %header__2
 

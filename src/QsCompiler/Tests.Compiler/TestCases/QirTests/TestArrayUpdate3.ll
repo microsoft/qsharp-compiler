@@ -33,14 +33,6 @@ exit__1:                                          ; preds = %header__1
   %11 = bitcast i8* %10 to %String**
   call void @__quantum__rt__string_update_reference_count(%String* %b, i32 1)
   %12 = load %String*, %String** %11, align 8
-  br i1 %9, label %condContinue__1, label %condFalse__1
-
-condFalse__1:                                     ; preds = %exit__1
-  call void @__quantum__rt__string_update_reference_count(%String* %b, i32 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %12, i32 -1)
-  br label %condContinue__1
-
-condContinue__1:                                  ; preds = %condFalse__1, %exit__1
   store %String* %b, %String** %11, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %8, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %8, i32 1)
@@ -53,14 +45,6 @@ condContinue__1:                                  ; preds = %condFalse__1, %exit
   %17 = bitcast i8* %16 to %String**
   call void @__quantum__rt__string_update_reference_count(%String* %15, i32 1)
   %18 = load %String*, %String** %17, align 8
-  br i1 %14, label %condContinue__2, label %condFalse__2
-
-condFalse__2:                                     ; preds = %condContinue__1
-  call void @__quantum__rt__string_update_reference_count(%String* %15, i32 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %18, i32 -1)
-  br label %condContinue__2
-
-condContinue__2:                                  ; preds = %condFalse__2, %condContinue__1
   store %String* %15, %String** %17, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %13, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %13, i32 1)
@@ -74,8 +58,8 @@ condContinue__2:                                  ; preds = %condFalse__2, %cond
   store i64 0, i64* %23, align 4
   br label %header__2
 
-header__2:                                        ; preds = %exiting__2, %condContinue__2
-  %24 = phi i64 [ 0, %condContinue__2 ], [ %28, %exiting__2 ]
+header__2:                                        ; preds = %exiting__2, %exit__1
+  %24 = phi i64 [ 0, %exit__1 ], [ %28, %exiting__2 ]
   %25 = icmp sle i64 %24, 9
   br i1 %25, label %body__2, label %exit__2
 
@@ -160,14 +144,6 @@ body__5:                                          ; preds = %header__5
   %54 = load { i64, i64 }*, { i64, i64 }** %53, align 8
   %55 = bitcast { i64, i64 }* %54 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %55, i32 -1)
-  br i1 %46, label %condContinue__3, label %condFalse__3
-
-condFalse__3:                                     ; preds = %body__5
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %47, i32 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %55, i32 -1)
-  br label %condContinue__3
-
-condContinue__3:                                  ; preds = %condFalse__3, %body__5
   store { i64, i64 }* %48, { i64, i64 }** %53, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %45, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %45, i32 1)
@@ -178,7 +154,7 @@ condContinue__3:                                  ; preds = %condFalse__3, %body
   call void @__quantum__rt__array_update_reference_count(%Array* %45, i32 -1)
   br label %exiting__5
 
-exiting__5:                                       ; preds = %condContinue__3
+exiting__5:                                       ; preds = %body__5
   %56 = add i64 %i, 1
   br label %header__5
 

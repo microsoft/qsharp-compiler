@@ -71,7 +71,7 @@ then0__1:                                         ; preds = %exit__3
   %21 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 3)
   br label %header__4
 
-continue__1:                                      ; preds = %condContinue__1, %exit__3
+continue__1:                                      ; preds = %exit__4, %exit__3
   %22 = load %Array*, %Array** %ops, align 8
   %23 = call i64 @__quantum__rt__array_get_size_1d(%Array* %22)
   %24 = sub i64 %23, 1
@@ -99,14 +99,6 @@ exit__4:                                          ; preds = %header__4
   call void @__quantum__rt__array_update_alias_count(%Array* %21, i32 1)
   %32 = load %Array*, %Array** %31, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %32, i32 -1)
-  br i1 %20, label %condContinue__1, label %condFalse__1
-
-condFalse__1:                                     ; preds = %exit__4
-  call void @__quantum__rt__array_update_reference_count(%Array* %21, i32 1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %32, i32 -1)
-  br label %condContinue__1
-
-condContinue__1:                                  ; preds = %condFalse__1, %exit__4
   store %Array* %21, %Array** %31, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %19, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %19, i32 1)

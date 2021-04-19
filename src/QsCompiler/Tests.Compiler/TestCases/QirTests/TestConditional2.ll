@@ -25,63 +25,54 @@ condFalse__1:                                     ; preds = %entry
   %11 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @2, i32 0, i32 0))
   %12 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %9, i64 2)
   %13 = bitcast i8* %12 to %String**
-  br i1 %10, label %condContinue__2, label %condFalse__2
-
-condFalse__2:                                     ; preds = %condFalse__1
-  %14 = load %String*, %String** %13, align 8
-  call void @__quantum__rt__string_update_reference_count(%String* %11, i32 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %14, i32 -1)
-  br label %condContinue__2
-
-condContinue__2:                                  ; preds = %condFalse__2, %condFalse__1
   store %String* %11, %String** %13, align 8
-  %15 = call i64 @__quantum__rt__array_get_size_1d(%Array* %9)
-  %16 = sub i64 %15, 1
+  %14 = call i64 @__quantum__rt__array_get_size_1d(%Array* %9)
+  %15 = sub i64 %14, 1
   br label %header__2
 
 condContinue__1:                                  ; preds = %exit__2, %exit__1
-  %17 = phi %Array* [ %arr, %exit__1 ], [ %9, %exit__2 ]
+  %16 = phi %Array* [ %arr, %exit__1 ], [ %9, %exit__2 ]
   call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %arr, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %6, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %7, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %8, i32 -1)
-  ret %Array* %17
+  ret %Array* %16
 
 header__1:                                        ; preds = %exiting__1, %condTrue__1
-  %18 = phi i64 [ 0, %condTrue__1 ], [ %23, %exiting__1 ]
-  %19 = icmp sle i64 %18, 2
-  br i1 %19, label %body__1, label %exit__1
+  %17 = phi i64 [ 0, %condTrue__1 ], [ %22, %exiting__1 ]
+  %18 = icmp sle i64 %17, 2
+  br i1 %18, label %body__1, label %exit__1
 
 body__1:                                          ; preds = %header__1
-  %20 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 %18)
-  %21 = bitcast i8* %20 to %String**
-  %22 = load %String*, %String** %21, align 8
-  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 1)
+  %19 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 %17)
+  %20 = bitcast i8* %19 to %String**
+  %21 = load %String*, %String** %20, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %21, i32 1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
-  %23 = add i64 %18, 1
+  %22 = add i64 %17, 1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__array_update_reference_count(%Array* %arr, i32 1)
   br label %condContinue__1
 
-header__2:                                        ; preds = %exiting__2, %condContinue__2
-  %24 = phi i64 [ 0, %condContinue__2 ], [ %29, %exiting__2 ]
-  %25 = icmp sle i64 %24, %16
-  br i1 %25, label %body__2, label %exit__2
+header__2:                                        ; preds = %exiting__2, %condFalse__1
+  %23 = phi i64 [ 0, %condFalse__1 ], [ %28, %exiting__2 ]
+  %24 = icmp sle i64 %23, %15
+  br i1 %24, label %body__2, label %exit__2
 
 body__2:                                          ; preds = %header__2
-  %26 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %9, i64 %24)
-  %27 = bitcast i8* %26 to %String**
-  %28 = load %String*, %String** %27, align 8
-  call void @__quantum__rt__string_update_reference_count(%String* %28, i32 1)
+  %25 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %9, i64 %23)
+  %26 = bitcast i8* %25 to %String**
+  %27 = load %String*, %String** %26, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %27, i32 1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
-  %29 = add i64 %24, 1
+  %28 = add i64 %23, 1
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
