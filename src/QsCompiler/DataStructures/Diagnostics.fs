@@ -461,9 +461,9 @@ type DiagnosticItem =
             DiagnosticItem.ApplyArguments args
             << function
             | ErrorCode.TypeMismatch ->
-                "The type {1} does not match the type {0}. Actual type: {3}. Expected type: {2}."
+                "The type {1} does not match the type {0}.\nActual type:   {3}\nExpected type: {2}"
             | ErrorCode.MissingBaseType ->
-                "The type {1} does not {0} the type {2}. Left-hand type: {3}. Right-hand type: {4}."
+                "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
