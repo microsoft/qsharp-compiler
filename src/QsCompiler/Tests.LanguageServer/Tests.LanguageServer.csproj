@@ -38,8 +38,4 @@
     </Content>
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\..\Common\DelaySign.cs" Link="DelaySign.cs" />
-  </ItemGroup>
-
 </Project>
