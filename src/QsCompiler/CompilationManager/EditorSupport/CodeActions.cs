@@ -320,7 +320,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                     if (refs && declarationLocation != null)
                     {
-                        var overlappingFragments = file.FragmentsOverlappingWithRange(declarationLocation.Range.ToQSharp()).Where(f => f.Text != null && f.Text.TrimStart().StartsWith(Keywords.qsImmutableBinding.id));
+                        var overlappingFragments = file
+                            .FragmentsOverlappingWithRange(declarationLocation.Range.ToQSharp())
+                            .Where(f => f.Text != null && f.Text.TrimStart()
+                            .StartsWith(Keywords.qsImmutableBinding.id));
                         foreach (var fragment in overlappingFragments)
                         {
                             var newText = Keywords.qsMutableBinding.id + fragment.Text.TrimStart()[Keywords.qsImmutableBinding.id.Length..];
