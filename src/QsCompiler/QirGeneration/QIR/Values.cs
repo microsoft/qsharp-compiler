@@ -117,7 +117,7 @@ namespace Microsoft.Quantum.QIR.Emission
             TupleValue tuple = new TupleValue(elementTypes, this.sharedState, registerWithScopeManager);
             PointerValue[] itemPointers = tuple.GetTupleElementPointers();
 
-            var elements = tupleElements.Select(this.sharedState.BuildSubitem).ToArray();
+            var elements = tupleElements.Select(this.sharedState.EvaluateSubexpression).ToArray();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 itemPointers[i].StoreValue(elements[i]);
@@ -144,7 +144,6 @@ namespace Microsoft.Quantum.QIR.Emission
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 itemPointers[i].StoreValue(tupleElements[i]);
-                this.sharedState.ScopeMgr.IncreaseReferenceCount(tupleElements[i]);
             }
 
             return tuple;
@@ -209,7 +208,7 @@ namespace Microsoft.Quantum.QIR.Emission
             var array = new ArrayValue((uint)arrayElements.Length, elementType, this.sharedState, registerWithScopeManager);
             var itemPointers = array.GetArrayElementPointers();
 
-            var elements = arrayElements.Select(this.sharedState.BuildSubitem).ToArray();
+            var elements = arrayElements.Select(this.sharedState.EvaluateSubexpression).ToArray();
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 itemPointers[i].StoreValue(elements[i]);
@@ -234,7 +233,6 @@ namespace Microsoft.Quantum.QIR.Emission
             for (var i = 0; i < itemPointers.Length; ++i)
             {
                 itemPointers[i].StoreValue(arrayElements[i]);
-                this.sharedState.ScopeMgr.IncreaseReferenceCount(arrayElements[i]);
             }
 
             return array;
@@ -248,5 +246,16 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="arrayElements">The elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, params IValue[] arrayElements) =>
             this.CreateArray(elementType, true, arrayElements);
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="captured">All captured values.</param>
+        internal CallableValue CreateCallable(ResolvedType callableType, GlobalVariable table, ImmutableArray<TypedExpression>? captured = null) =>
+            new CallableValue(callableType, table, this.sharedState, captured);
     }
 }

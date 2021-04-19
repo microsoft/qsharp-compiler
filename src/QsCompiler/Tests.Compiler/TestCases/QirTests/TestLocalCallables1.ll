@@ -74,6 +74,7 @@ exit__1:                                          ; preds = %header__1
   %38 = getelementptr inbounds { %String*, double }, { %String*, double }* %36, i32 0, i32 1
   store %String* %str, %String** %37, align 8
   store double %val, double* %38, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %str, i32 1)
   br label %header__2
 
 header__2:                                        ; preds = %exiting__2, %exit__1
@@ -97,39 +98,17 @@ exit__2:                                          ; preds = %header__2
   call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 -1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %fct, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %fct, i32 -1)
-  br label %header__3
-
-header__3:                                        ; preds = %exiting__3, %exit__2
-  %45 = phi i64 [ 0, %exit__2 ], [ %50, %exiting__3 ]
-  %46 = icmp sle i64 %45, 0
-  br i1 %46, label %body__3, label %exit__3
-
-body__3:                                          ; preds = %header__3
-  %47 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 %45)
-  %48 = bitcast i8* %47 to %Callable**
-  %49 = load %Callable*, %Callable** %48, align 8
-  call void @__quantum__rt__capture_update_reference_count(%Callable* %49, i32 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %49, i32 -1)
-  br label %exiting__3
-
-exiting__3:                                       ; preds = %body__3
-  %50 = add i64 %45, 1
-  br label %header__3
-
-exit__3:                                          ; preds = %header__3
   call void @__quantum__rt__array_update_reference_count(%Array* %arr, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %2, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %12, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %12, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %16, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %16, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %21, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i32 -1)
-  call void @__quantum__rt__capture_update_reference_count(%Callable* %fct, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %21, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %fct, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %25, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %26, i32 -1)
-  %51 = bitcast { i64, double }* %33 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %51, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %29, i32 -1)
   ret { %String*, double }* %36
 }

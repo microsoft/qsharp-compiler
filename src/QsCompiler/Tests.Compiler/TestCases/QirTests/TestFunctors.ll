@@ -232,12 +232,12 @@ continue__7:                                      ; preds = %then0__7, %else__6
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %74, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %77, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %77, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %82, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %89, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %96, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %92, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %85, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %78, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %82, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %85, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %89, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %92, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %96, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %99, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %q4)
   br label %continue__6
@@ -245,28 +245,28 @@ continue__7:                                      ; preds = %then0__7, %else__6
 continue__6:                                      ; preds = %continue__7, %then0__6
   call void @__quantum__rt__capture_update_reference_count(%Callable* %59, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %59, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %64, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %60, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %64, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %69, i32 -1)
   br label %continue__5
 
 continue__5:                                      ; preds = %continue__6, %then0__5
-  call void @__quantum__rt__array_update_reference_count(%Array* %45, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %52, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %41, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %45, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %52, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %55, i32 -1)
   br label %continue__4
 
 continue__4:                                      ; preds = %continue__5, %then0__4
-  call void @__quantum__rt__array_update_reference_count(%Array* %34, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %30, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %34, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %37, i32 -1)
   br label %continue__3
 
 continue__3:                                      ; preds = %continue__4, %then0__3
-  call void @__quantum__rt__array_update_reference_count(%Array* %23, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %23, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %26, i32 -1)
   br label %continue__2
 
@@ -292,7 +292,8 @@ continue__1:                                      ; preds = %continue__2, %then0
   call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_ctl_qop, i32 -1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %ctl_ctl_qop, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_ctl_qop, i32 -1)
-  call void @__quantum__rt__capture_update_reference_count(%Callable* %qop, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %4, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %qop, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %adj_qop, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %adj_qop, i32 -1)

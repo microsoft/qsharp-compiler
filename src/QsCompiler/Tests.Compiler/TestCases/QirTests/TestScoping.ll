@@ -73,7 +73,8 @@ exit__2:                                          ; preds = %header__2
   %25 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__3, [2 x void (%Tuple*, i32)*]* @MemoryManagement__3, %Tuple* %20)
   %26 = load i64, i64* %sum, align 4
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 -1)
-  call void @__quantum__rt__capture_update_reference_count(%Callable* %25, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %20, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %24, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %25, i32 -1)
   ret i64 %26
 }

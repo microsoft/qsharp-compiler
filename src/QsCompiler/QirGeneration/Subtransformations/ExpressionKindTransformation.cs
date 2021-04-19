@@ -207,12 +207,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
                 }
 
-                // Somewhat longer explanation of why inserting the conditional logic below is needed
-                // - and I would love to avoid it; its not nice, but overall it still seems to be the solution
-                // that keeps the QIR spec and the runtime implementation as clean and simple as possible,
-                // while allowing for compiler-side perf opimizations.
-
-                // Consider the following example:
+                // To better understand the logic in this function, consider the following example for an array of arrays
+                // (the same logic applies to tuples/udts):
                 //
                 //     function TestRefCounts(cond : Bool) : Unit {
                 //         mutable ops = new Int[][5];
@@ -222,48 +218,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 //     }
                 //
                 // The first line gets translated into first creating and then populating the Int[][].
-                // After creation and populating it, the array and all its items have ref count 1.
+                // After creation and populating, the array has a ref count 1, and each item points to the default value for Int[].
+                // That default value has a ref count 1 and is queued separately for release at the end of TestRefCounts.
+                //
+                // It is not necessary to reflect that several pointers (each item) within the outer array point to it,
+                // since there is no way for the default value to be freed before the outer array is, unless it is assigned to
+                // a mutable variable. We hence apply ref count changes recursively only when assigning to mutable variables
+                // and not for the initial construction of the array. An example for why the ref count needs to be increased
+                // recursively for assignments to mutable variables can be found further blow, marked with (*).
+                //
                 // Then that array is assigned to the mutable variable.
-                // This assignment leads to the array and all its items having ref count 2, and an alias count 1.
-                // An example for why the ref count is 2 and can't remain 1, can be found further blow, marked with (*).
+                // Upon assignement to a mutable variable, we increase the ref count of array and all its items by 1,
+                // meaning the array has ref count 2, and the default value has a ref count of 1 + Length(ops) = 6.
                 //
                 // Continuing into the if-branch, we create a new array that has ref count 1.
                 // Upon assigning it to item 0 in the array, its alias count and ref count are increased.
                 // At the same time, the alias count and ref count of the old item are decreased.
-                // The ops array and all its items now have an alias count 1 and a ref count 2.
-                // The alias count of the old item is now 0, and its ref count is 1.
                 //
                 // Now we exit the scope. When we exit the scope, the array value created inside the if-branch goes out of scope.
-                // Its ref count is hence decreased by 1. This now causes a problem when we exit TestRefCounts;
-                // upon exiting, we decrease the alias count and the ref count of ops and all its items by 1.
-                // The alias count of ops and all its items is then 0(ok), and the ref count of all items except item 0 is 1,
-                // while the ref count of item 0 is 0. And here is where things go wrong;
-                // we also release the initially created array (variable % 0), which is correct, since the value goes out of scope.
-                // However, the original item at index 0 is no longer accessible by getting the 0 - element pointer of % 0 -
-                // instead of getting the old item that still has a ref count 1 that needs to be set to 0,
-                // we get the new item that has a ref count 0 already.
-                //
-                // Now why is it relevant whether the ops array has been copied inside the if-branch or not?
-                // Suppose after the first line there is another variable defined that is bound to ops,
-                // such that the if-branch actually does create the copy. In that case when we exit TestRefCounts,
-                // accessing the item at index 0 of % 0 indeed still accesses the old item, and everything works fine.
-                //
-                // Whatever scheme we pursue to resolve the issue,
-                // it ultimately boils down to that we need to ensure that when % 0 goes out of scope,
-                // we have a way to access all its items at the time of declaration.
-                // Thinking of queuing the unreferencing for each item separately when we increase the ref count
-                // for the array and all its items upon the initial assignment to ops,
-                // the problem is that iterating over the array means that the items are loaded inside a loop body,
-                // and I no longer have access to them when we exit the function.
-                // Hence, the simplest and I think cleanest solution I can come up with is that I inject an additional ref count increase
-                // for the new item and ref count decrease for the old item when an array item is modified in place.
-                //
-                // The additional count change has to be exactly 1 because I don't see a way for the array to be unreferenced
-                // more than once at the end of the scope while also not being copied;
-                // I believe the only way it would be unreferenced multiple times is if there is another alias for it,
-                // in which case the copy would get executed and everything should work.
+                // Its ref count is hence decreased by 1. Upon exiting, we decrease the alias count and the ref count of ops
+                // and all its items by 1, since the mutable ops variable goes out of scope.
 
-                // (*) Elaborating more on why the ref count needs to be 2 and can't remain 1,
+                // (*) To understand why the ref count needs to be increased recursively for assignments to mutable variables
                 // think of the case where the array assigned to the mutable variable has been passed in as an argument:
                 //
                 //    function TestRefCounts(cond : Bool, arr: Int[][]) : Unit {
@@ -280,6 +256,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Hence (assuming we can't know which items will be updated), we increase both the alias and the ref count
                 // when assigning to mutable variables for the array and all its item.
 
+                // FIXME: I THINK THIS ENTIRE THING CAN NOW BE REMOVED!
                 if (sharedState.ScopeMgr.RequiresReferenceCount(value.LlvmType) && !unreferenceOriginal)
                 {
                     var contBlock = sharedState.AddBlockAfterCurrent("condContinue");
@@ -750,8 +727,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var (evaluatedOnTrue, afterTrue) = (condition, entryBlock);
             if (onCondTrue != null)
             {
-                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.SetCurrentBlock(trueBlock);
+                this.SharedState.ScopeMgr.OpenScope();
                 var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
                 this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
@@ -761,8 +738,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var (evaluatedOnFalse, afterFalse) = (condition, entryBlock);
             if (onCondFalse != null)
             {
-                this.SharedState.ScopeMgr.OpenScope();
                 this.SharedState.SetCurrentBlock(falseBlock);
+                this.SharedState.ScopeMgr.OpenScope();
                 var onFalse = this.SharedState.EvaluateSubexpression(onCondFalse);
                 this.SharedState.ScopeMgr.CloseScope(onFalse, false); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
@@ -968,27 +945,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return callable;
         }
 
-        /// <summary>
-        /// Creates a callable value of the given type and registers it with the scope manager.
-        /// The necessary functions to invoke the callable are defined by the callable table;
-        /// i.e. the globally defined array of function pointers accessible via the given global variable.
-        /// The given capture, if any, is expected to be a tuple that contains all captured values.
-        /// Does *not* increase the reference count of the capture tuple.
-        /// </summary>
-        /// <param name="callableType">The Q# type of the callable value</param>
-        /// <param name="table">The global variable that contains the array of function pointers defining the callable</param>
-        /// <param name="capture">A tuple containing all captured values</param>
-        private CallableValue CreateCallableValue(ResolvedType callableType, GlobalVariable table, TupleValue? capture = null)
-        {
-            // The runtime function CallableCreate creates a new value with reference count 1.
-            var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var memoryManagementTable = this.SharedState.GetOrCreateCallableMemoryManagementTable(capture);
-            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? this.SharedState.Constants.UnitValue);
-            var value = this.SharedState.Values.FromCallable(res, callableType);
-            this.SharedState.ScopeMgr.RegisterValue(value);
-            return value;
-        }
-
         // public overrides
 
         public override ResolvedExpressionKind OnAddition(TypedExpression lhsEx, TypedExpression rhsEx)
@@ -1030,7 +986,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromArray(res, elementType.Item);
-                this.SharedState.ScopeMgr.RegisterValue(value);
+                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
             }
             else
             {
@@ -1520,7 +1476,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
             {
                 var table = this.SharedState.GetOrCreateCallableTable(callable);
-                value = this.CreateCallableValue(exType, table);
+                value = this.SharedState.Values.CreateCallable(exType, table);
             }
             else
             {
@@ -1972,16 +1928,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // We need to populate the array
             var start = this.SharedState.Context.CreateConstant(0L);
             var end = this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
-            void PopulateItem(Value index)
-            {
-                // We need to make sure that the reference count for the built item is increased by 1.
-                this.SharedState.ScopeMgr.OpenScope();
-                var value = DefaultValue(elementType);
-                this.SharedState.ScopeMgr.CloseScope(value);
-                array.GetArrayElementPointer(index).StoreValue(value);
-            }
+            var defaultValue = DefaultValue(elementType);
 
-            this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
+            this.SharedState.IterateThroughRange(start, null, end, index => array.GetArrayElementPointer(index).StoreValue(defaultValue));
             return ResolvedExpressionKind.InvalidExpr;
         }
 
@@ -2181,7 +2130,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var captured = ImmutableArray.CreateBuilder<TypedExpression>();
             captured.Add(method);
             var rebuild = BuildPartialArgList(innerArgType, arg, new List<ResolvedType>(), captured);
-            var capture = this.SharedState.Values.CreateTuple(captured.ToImmutable(), registerWithScopeManager: false);
+            var captureElementTypes = captured.Select(element => element.ResolvedType).ToImmutableArray();
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
@@ -2201,10 +2150,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IrFunction? BuildSpec(QsSpecializationKind kind) =>
                 SupportsNecessaryFunctors(kind)
-                    ? BuildLiftedSpecialization(liftedName, kind, capture.ElementTypes, paArgsTypes, rebuild)
+                    ? BuildLiftedSpecialization(liftedName, kind, captureElementTypes, paArgsTypes, rebuild)
                     : null;
             var table = this.SharedState.GetOrCreateCallableTable(liftedName, BuildSpec);
-            var value = this.CreateCallableValue(exType, table, capture);
+            var value = this.SharedState.Values.CreateCallable(exType, table, captured.ToImmutable());
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;

@@ -162,7 +162,16 @@ let ``QIR entry points`` () =
 
 [<Fact>]
 let ``QIR partial applications`` () =
-    qirMultiTest true "TestPartials" [ "TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4" ]
+    qirMultiTest
+        true
+        "TestPartials"
+        [
+            "TestPartials1"
+            "TestPartials2"
+            "TestPartials3"
+            "TestPartials4"
+            "TestPartials5"
+        ]
 
 [<Fact>]
 let ``QIR declarations`` () =

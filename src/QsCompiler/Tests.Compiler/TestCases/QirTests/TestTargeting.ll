@@ -11,9 +11,8 @@ entry:
   store %Qubit* %q, %Qubit** %4, align 8
   call void @Microsoft__Quantum__Simulation__QuantumProcessor__Extensions_____GUID___ApplyIfOne__body(%Result* %0, { %Callable*, %Qubit* }* %2)
   call void @__quantum__rt__result_update_reference_count(%Result* %0, i32 -1)
-  call void @__quantum__rt__capture_update_reference_count(%Callable* %5, i32 -1)
-  call void @__quantum__rt__callable_update_reference_count(%Callable* %5, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %1, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %5, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %q)
   ret void
 }
