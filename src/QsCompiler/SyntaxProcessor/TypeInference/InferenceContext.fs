@@ -15,7 +15,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
@@ -111,10 +110,6 @@ module private TypeContext =
             OriginalRight = context.OriginalLeft
         }
 
-    /// The list of types in the context, in order: left, right, original left, original right.
-    let toList context =
-        [ context.Left; context.Right; context.OriginalLeft; context.OriginalRight ]
-
 /// Tools to help with type inference.
 module private Inference =
     /// <summary>
@@ -142,6 +137,30 @@ module private Inference =
 
     /// Shows the type as a string.
     let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
+
+    /// <summary>
+    /// Describes a type with additional information.
+    /// </summary>
+    /// <remarks>
+    /// For most types, this is the same as <see cref="showType"/>. For type parameters, the origin is included in the
+    /// description.
+    /// </remarks>
+    let private describeType (resolvedType: ResolvedType) =
+        match resolvedType.Resolution with
+        | TypeParameter param -> sprintf "parameter %s (bound by %s)" (showType resolvedType) param.Origin.Name
+        | _ -> showType resolvedType
+
+    /// <summary>
+    /// The list of strings from applying <see cref="describeType"/> to the left and right types, and
+    /// <see cref="showType"/> to the original left and right types, in order.
+    /// </summary>
+    let describeTypeContext context =
+        [
+            describeType context.Left
+            describeType context.Right
+            showType context.OriginalLeft
+            showType context.OriginalRight
+        ]
 
     /// <summary>
     /// Combines information from two callables such that the resulting callable information satisfies the given
@@ -185,7 +204,7 @@ module private Inference =
 
         let error =
             QsCompilerDiagnostic.Error
-                (ErrorCode.MissingBaseType, relation :: (TypeContext.toList types |> List.map showType))
+                (ErrorCode.MissingBaseType, relation :: describeTypeContext types)
                 (range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
@@ -266,7 +285,6 @@ type InferenceContext(symbolTracker: SymbolTracker) =
 
         if Option.isSome variable.Substitution
         then failwith "Type parameter is already bound."
-
         variables.[param] <- { variable with Substitution = Some substitution }
 
     let rememberErrors types diagnostics =
@@ -372,7 +390,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.UnifyByOrdering(ordering, types) =
         let error =
             QsCompilerDiagnostic.Error
-                (ErrorCode.TypeMismatch, TypeContext.toList types |> List.map showType)
+                (ErrorCode.TypeMismatch, describeTypeContext types)
                 (TypeRange.tryRange types.Right.Range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
