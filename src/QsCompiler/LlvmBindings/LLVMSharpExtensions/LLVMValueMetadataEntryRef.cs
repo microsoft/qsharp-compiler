@@ -1,5 +1,7 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
+// <copyright file="LLVMValueMetadataEntryRef.cs" company="Ubiquity.NET Contributors">
+// Copyright (c) Ubiquity.NET Contributors. All rights reserved.
+// Portions Copyright (c) Microsoft Corporation
+// </copyright>
 
 using System;
 
@@ -11,7 +13,7 @@ namespace LLVMSharp.Interop
         /// <summary>Pointer to the underlying native type.</summary>
         public IntPtr Handle;
 
-        /// <summary>Contstructor.</summary>
+        /// <summary>Initializes a new instance of the <see cref="LLVMValueMetadataEntryRef"/> struct.</summary>
         public LLVMValueMetadataEntryRef(IntPtr handle)
         {
             this.Handle = handle;
