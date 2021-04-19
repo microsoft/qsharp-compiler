@@ -475,7 +475,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return null;
                     }
-                    var signature = callable.Item.PrintSignature();
+                    var signature = useMarkdown ? $"```qsharp\n{callable.Item.PrintSignature()}\n```" : callable.Item.PrintSignature();
                     var documentation = callable.Item.Documentation.PrintSummary(useMarkdown);
                     return signature.Trim() + "\n\n" + documentation.Trim();
                 case CompletionItemKind.Struct:
