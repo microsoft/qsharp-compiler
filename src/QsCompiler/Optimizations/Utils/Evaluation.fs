@@ -317,12 +317,21 @@ and private ExpressionKindEvaluator(parent,
             |> ValueArray
         | _ -> ArrayItem(arr, idx)
 
-    override this.OnNewArray(bt, idx) =
-        let idx = this.simplify idx
+    override this.OnSizedArray(value, size) =
+        let value = this.simplify value
+        let size = this.simplify size
 
-        match idx.Expression with
-        | IntLiteral i -> constructNewArray bt.Resolution (safeCastInt64 i) |? NewArray(bt, idx)
-        | _ -> NewArray(bt, idx)
+        match size.Expression with
+        | IntLiteral i when isLiteral callables value -> constructArray (safeCastInt64 i) value
+        | _ -> SizedArray(value, size)
+
+    override this.OnNewArray(itemType, length) =
+        let length = this.simplify length
+
+        match length.Expression with
+        | IntLiteral i -> defaultValue itemType.Resolution |> Option.map (safeCastInt64 i |> constructArray)
+        | _ -> None
+        |> Option.defaultValue (NewArray(itemType, length))
 
     override this.OnCopyAndUpdateExpression(lhs, accEx, rhs) =
         let lhs, accEx, rhs = this.simplify (lhs, accEx, rhs)
