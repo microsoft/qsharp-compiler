@@ -802,6 +802,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             }
 
             /// <inheritdoc/>
+            public override QsExpressionKind OnSizedArray(TypedExpression value, TypedExpression size)
+            {
+                var valueOutput = this.Recur(int.MinValue, value);
+                var sizeOutput = this.Recur(int.MinValue, size);
+                this.Output = $"[{valueOutput}, size = {sizeOutput}]";
+
+                this.currentPrecedence = int.MaxValue;
+                return QsExpressionKind.NewSizedArray(value, size);
+            }
+
+            /// <inheritdoc/>
             public override QsExpressionKind OnNewArray(ResolvedType bt, TypedExpression idx)
             {
                 this.Output = $"{Keywords.arrayDecl.id} {this.typeToQs(bt)}[{this.Recur(int.MinValue, idx)}]";
