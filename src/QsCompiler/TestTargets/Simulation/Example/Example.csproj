@@ -10,7 +10,6 @@
       QS6202; <!-- Q# executable has no entry point. -->
       CS0219; <!-- Suppress C# warning for unused variables. -->
     </NoWarn>
-    <QscVerbosity>D</QscVerbosity>
   </PropertyGroup>
 
   <PropertyGroup>
