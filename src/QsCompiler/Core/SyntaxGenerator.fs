@@ -18,6 +18,9 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type private StripPositionInfoFromType(parent: StripPositionInfo) =
     inherit TypeTransformation(parent)
+
+    override this.OnTypeRange _ = TypeRange.Generated
+
     override this.OnRangeInformation _ = Null
 
 and private StripPositionInfoFromExpression(parent: StripPositionInfo) =

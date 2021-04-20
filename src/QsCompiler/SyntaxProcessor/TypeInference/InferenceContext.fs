@@ -15,7 +15,6 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-open Microsoft.Quantum.QsCompiler.TextProcessing
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open Microsoft.Quantum.QsCompiler.Utils
@@ -111,10 +110,6 @@ module private TypeContext =
             OriginalRight = context.OriginalLeft
         }
 
-    /// The list of types in the context, in order: left, right, original left, original right.
-    let toList context =
-        [ context.Left; context.Right; context.OriginalLeft; context.OriginalRight ]
-
 /// Tools to help with type inference.
 module private Inference =
     /// <summary>
@@ -143,11 +138,29 @@ module private Inference =
     /// Shows the type as a string.
     let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
-    /// Shows the functor as a string.
-    let showFunctor =
-        function
-        | Adjoint -> Keywords.qsAdjointFunctor.id
-        | Controlled -> Keywords.qsControlledFunctor.id
+    /// <summary>
+    /// Describes a type with additional information.
+    /// </summary>
+    /// <remarks>
+    /// For most types, this is the same as <see cref="showType"/>. For type parameters, the origin is included in the
+    /// description.
+    /// </remarks>
+    let private describeType (resolvedType: ResolvedType) =
+        match resolvedType.Resolution with
+        | TypeParameter param -> sprintf "parameter %s (bound by %s)" (showType resolvedType) param.Origin.Name
+        | _ -> showType resolvedType
+
+    /// <summary>
+    /// The list of strings from applying <see cref="describeType"/> to the left and right types, and
+    /// <see cref="showType"/> to the original left and right types, in order.
+    /// </summary>
+    let describeTypeContext context =
+        [
+            describeType context.Left
+            describeType context.Right
+            showType context.OriginalLeft
+            showType context.OriginalRight
+        ]
 
     /// <summary>
     /// Combines information from two callables such that the resulting callable information satisfies the given
@@ -191,7 +204,7 @@ module private Inference =
 
         let error =
             QsCompilerDiagnostic.Error
-                (ErrorCode.MissingBaseType, relation :: (TypeContext.toList types |> List.map showType))
+                (ErrorCode.MissingBaseType, relation :: describeTypeContext types)
                 (range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
@@ -284,11 +297,19 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         diagnostics
 
     member context.AmbiguousDiagnostics =
-        [
-            for variable in variables do
-                if not variable.Value.HasError && Option.isNone variable.Value.Substitution
-                then QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, []) variable.Value.Source
-        ]
+        let diagnostic param variable =
+            let args =
+                [
+                    TypeParameter param |> ResolvedType.New |> showType
+                    variable.Constraints |> List.map Constraint.pretty |> String.concat ", "
+                ]
+
+            QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, args) variable.Source
+
+        variables
+        |> Seq.filter (fun item -> not item.Value.HasError && Option.isNone item.Value.Substitution)
+        |> Seq.map (fun item -> diagnostic item.Key item.Value)
+        |> Seq.toList
 
     member context.UseStatementPosition position = statementPosition <- position
 
@@ -369,7 +390,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     member private context.UnifyByOrdering(ordering, types) =
         let error =
             QsCompilerDiagnostic.Error
-                (ErrorCode.TypeMismatch, TypeContext.toList types |> List.map showType)
+                (ErrorCode.TypeMismatch, describeTypeContext types)
                 (TypeRange.tryRange types.Right.Range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with
@@ -447,7 +468,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 let missing = Set.difference functors (Set.ofSeq supported)
 
                 let error =
-                    ErrorCode.MissingFunctorForAutoGeneration, [ missing |> Seq.map showFunctor |> String.concat "," ]
+                    ErrorCode.MissingFunctorForAutoGeneration, [ missing |> Seq.map string |> String.concat "," ]
 
                 [
                     if not info.Characteristics.AreInvalid && Set.isEmpty missing |> not

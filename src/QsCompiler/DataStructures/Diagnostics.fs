@@ -461,9 +461,9 @@ type DiagnosticItem =
             DiagnosticItem.ApplyArguments args
             << function
             | ErrorCode.TypeMismatch ->
-                "The expected type {0} does not match the actual type {1}.\nExpected type: {2}\n  Actual type: {3}"
+                "The type {1} does not match the type {0}.\nActual type:   {3}\nExpected type: {2}"
             | ErrorCode.MissingBaseType ->
-                "The type {3} cannot be used with the type {4}, because {1} does not {0} {2}."
+                "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
@@ -769,7 +769,10 @@ type DiagnosticItem =
                 "The type of the given argument does not match the expected type. Got an argument of type {0}, expecting one of type {1} instead."
             | ErrorCode.UnexpectedTupleArgument -> "Unexpected argument tuple. Expecting an argument of type {0}."
             | ErrorCode.AmbiguousTypeParameterResolution ->
-                "The type parameter resolution for the expression is ambiguous. Please provide explicit type arguments, e.g. Op<Int, Double>(arg)."
+                "The type parameter {0} is ambiguous. More type annotations or usage context may be necessary."
+                + if Seq.item 1 args |> String.IsNullOrWhiteSpace
+                  then ""
+                  else " Note: {0} has constraints {1}."
             | ErrorCode.ConstrainsTypeParameter -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.GlobalTypeAlreadyExists -> "A type with the name \"{0}\" already exists."
             | ErrorCode.GlobalCallableAlreadyExists -> "A callable with the name \"{0}\" already exists."
