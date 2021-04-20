@@ -536,22 +536,8 @@ let public ClassicalControlSignatures =
     |> _MakeSignatures
 
 let private _SyntaxTreeTrimmingTypes =
-    let UsedUDT =
-        "UsedUDT",
-        {
-            Namespace = SyntaxTreeTrimmingNS
-            Name = "UsedUDT"
-            Range = Null
-        }
-        |> UserDefinedType
-    let UnusedUDT =
-        "UnusedUDT",
-        {
-            Namespace = SyntaxTreeTrimmingNS
-            Name = "UnusedUDT"
-            Range = Null
-        }
-        |> UserDefinedType
+    let UsedUDT = "UsedUDT", UserDefinedType.New(SyntaxTreeTrimmingNS, "UsedUDT") |> UserDefinedType
+    let UnusedUDT = "UnusedUDT", UserDefinedType.New(SyntaxTreeTrimmingNS, "UnusedUDT") |> UserDefinedType
     _MakeTypeMap [| UsedUDT; UnusedUDT |]
 
 let public SyntaxTreeTrimmingSignatures =
