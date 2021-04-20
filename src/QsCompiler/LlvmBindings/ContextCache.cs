@@ -14,7 +14,7 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm
 {
-    /// <summary>Maintains a global cache of <see cref="LLVMContextRef"/> to <see cref="Context"/> mappings</summary>
+    /// <summary>Maintains a global cache of <see cref="LLVMContextRef"/> to <see cref="Context"/> mappings.</summary>
     /// <remarks>
     /// The public constructor <see cref="Context()"/> will add itself to the cache, since it is a new instance
     /// that is a safe operation. In all other cases a lookup in the cache based on the underlying LLVM handle is
@@ -22,30 +22,30 @@ namespace Ubiquity.NET.Llvm
     /// </remarks>
     internal static class ContextCache
     {
-        internal static bool TryRemove( LLVMContextRef h )
+        internal static bool TryRemove(LLVMContextRef h)
         {
-            return Instance.Value.TryRemove( h, out Context _ );
+            return Instance.Value.TryRemove(h, out Context _);
         }
 
-        internal static void Add( Context context )
+        internal static void Add(Context context)
         {
-            if( !Instance.Value.TryAdd( context.ContextHandle, context ) )
+            if (!Instance.Value.TryAdd(context.ContextHandle, context))
             {
-                throw new InternalCodeGeneratorException( "Internal Error: Can't add context to Cache as it already exists!" );
+                throw new InternalCodeGeneratorException("Internal Error: Can't add context to Cache as it already exists!");
             }
         }
 
-        internal static Context GetContextFor( LLVMContextRef contextRef )
+        internal static Context GetContextFor(LLVMContextRef contextRef)
         {
-            return Instance.Value.GetOrAdd( contextRef, h => new Context( h ) );
+            return Instance.Value.GetOrAdd(contextRef, h => new Context(h));
         }
 
-        private static ConcurrentDictionary<LLVMContextRef, Context> CreateInstance( )
+        private static ConcurrentDictionary<LLVMContextRef, Context> CreateInstance()
         {
-            return new ConcurrentDictionary<LLVMContextRef, Context>( EqualityComparer<LLVMContextRef>.Default );
+            return new ConcurrentDictionary<LLVMContextRef, Context>(EqualityComparer<LLVMContextRef>.Default);
         }
 
         private static readonly Lazy<ConcurrentDictionary<LLVMContextRef, Context>> Instance
-            = new Lazy<ConcurrentDictionary<LLVMContextRef, Context>>( CreateInstance, LazyThreadSafetyMode.ExecutionAndPublication);
+            = new Lazy<ConcurrentDictionary<LLVMContextRef, Context>>(CreateInstance, LazyThreadSafetyMode.ExecutionAndPublication);
     }
 }

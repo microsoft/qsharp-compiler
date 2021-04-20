@@ -9,19 +9,19 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>LLVM Global Alias for a function or global value</summary>
+    /// <summary>LLVM Global Alias for a function or global value.</summary>
     public class GlobalAlias
         : GlobalIndirectSymbol
     {
-        /// <summary>Gets or sets the aliasee that this Alias refers to</summary>
+        /// <summary>Gets or sets the aliasee that this Alias refers to.</summary>
         public Constant Aliasee
         {
-            get => IndirectSymbol!;
-            set => IndirectSymbol = value;
+            get => this.IndirectSymbol!;
+            set => this.IndirectSymbol = value;
         }
 
-        internal GlobalAlias( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal GlobalAlias(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
     }

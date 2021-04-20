@@ -19,10 +19,10 @@ namespace Ubiquity.NET.Llvm
     {
         Context Context { get; }
 
-        TMappedType GetOrCreateItem( THandle handle, Action<THandle> foundHandleRelease = default );
+        TMappedType GetOrCreateItem(THandle handle, Action<THandle>? foundHandleRelease = default);
 
-        void Remove( THandle handle );
+        void Remove(THandle handle);
 
-        void Clear( );
+        void Clear();
     }
 }

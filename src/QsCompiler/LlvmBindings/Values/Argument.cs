@@ -9,16 +9,16 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.Values
 {
-    /// <summary>An LLVM Value representing an Argument to a function</summary>
+    /// <summary>An LLVM Value representing an Argument to a function.</summary>
     public class Argument
         : Value
     {
-        /// <summary>Gets the function this argument belongs to</summary>
-        public IrFunction ContainingFunction => FromHandle<IrFunction>( ValueHandle.ParamParent )!;
-
-        internal Argument( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal Argument(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
+
+        /// <summary>Gets the function this argument belongs to.</summary>
+        public IrFunction ContainingFunction => FromHandle<IrFunction>(this.ValueHandle.ParamParent)!;
     }
 }

@@ -11,19 +11,19 @@ using Ubiquity.NET.Llvm.Values;
 
 namespace Ubiquity.NET.Llvm.Instructions
 {
-    /// <summary>Base class for cast instructions</summary>
+    /// <summary>Base class for cast instructions.</summary>
     public class Cast
         : UnaryInstruction
     {
-        /// <summary>Gets the source type of the cast</summary>
-        public ITypeRef FromType => Operands.GetOperand<Value>( 0 )!.NativeType;
-
-        /// <summary>Gets the destination type of the cast</summary>
-        public ITypeRef ToType => NativeType;
-
-        internal Cast( LLVMValueRef valueRef )
-            : base( valueRef )
+        internal Cast(LLVMValueRef valueRef)
+            : base(valueRef)
         {
         }
+
+        /// <summary>Gets the source type of the cast.</summary>
+        public ITypeRef FromType => this.Operands.GetOperand<Value>(0)!.NativeType;
+
+        /// <summary>Gets the destination type of the cast.</summary>
+        public ITypeRef ToType => this.NativeType;
     }
 }

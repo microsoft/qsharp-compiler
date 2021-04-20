@@ -7,7 +7,7 @@
 
 namespace Ubiquity.NET.Llvm
 {
-    /// <summary>Interface for a <see cref="BitcodeModule"/> factory</summary>
+    /// <summary>Interface for a <see cref="BitcodeModule"/> factory.</summary>
     /// <remarks>
     /// Modules are owned by the context and thus not created freestanding.
     /// This interface provides factory methods for constructing modules. It
@@ -17,13 +17,13 @@ namespace Ubiquity.NET.Llvm
     /// </remarks>
     public interface IBitcodeModuleFactory
     {
-        /// <summary>Creates a new instance of the <see cref="BitcodeModule"/> class in this context</summary>
-        /// <returns><see cref="BitcodeModule"/></returns>
-        BitcodeModule CreateBitcodeModule( );
+        /// <summary>Creates a new instance of the <see cref="BitcodeModule"/> class in this context.</summary>
+        /// <returns><see cref="BitcodeModule"/>.</returns>
+        BitcodeModule CreateBitcodeModule();
 
-        /// <summary>Creates a new instance of the <see cref="BitcodeModule"/> class in a given context</summary>
-        /// <param name="moduleId">Module's ID</param>
-        /// <returns><see cref="BitcodeModule"/></returns>
-        BitcodeModule CreateBitcodeModule( string moduleId );
+        /// <summary>Creates a new instance of the <see cref="BitcodeModule"/> class in a given context.</summary>
+        /// <param name="moduleId">Module's ID.</param>
+        /// <returns><see cref="BitcodeModule"/>.</returns>
+        BitcodeModule CreateBitcodeModule(string moduleId);
     }
 }

@@ -2,7 +2,7 @@
 
 This file contains directions for using the preview feature integrated into the Q# compiler to emit QIR.
 QIR is a convention for how to represent quantum programs in LLVM. Its specification can be found [here](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR#quantum-intermediate-representation-qir). 
-We aim to ultimately move the Q# compiler to be fully LLVM-based. While the emission is supported starting with the March 2021 release, it is as of this time not yet connected to the runtime. The QIR runtime and instructions for how to execute the emitted QIR can be found [here](https://github.com/microsoft/qsharp-runtime/tree/main/src/QirRuntime#the-native-qir-runtime). We are working on a full integration in the future.
+We aim to ultimately move the Q# compiler to be fully LLVM-based. While the emission is supported starting with the March 2021 release, it is as of this time not yet connected to the runtime. The QIR runtime and instructions for how to execute the emitted QIR can be found [here](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#the-native-qir-runtime). We are working on a full integration in the future.
 
 ## Using the Q# Compiler to Emit QIR
 

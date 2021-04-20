@@ -22,6 +22,27 @@ namespace Microsoft.Quantum.Testing.Generics {
         let bar = (ReturnGeneric<String, _, _>("Yes", (ReturnGeneric<Double, _, _>(12.0, "No", _))(4), _))("Maybe");
     }
 
+    operation Test2Main () : Unit {
+        using (q = Qubit()) {
+            GenericCallsGeneric(q, 12);
+            let temp = ArrayGeneric(q, ArrayGeneric(q, "twelve"));
+            let temp2 = ArrayGeneric(q, 12);
+        }
+    }
+
+    operation Test3Main () : Unit {
+        GenericCallsSpecializations("First", 12, ());
+        Adjoint GenericCallsSpecializations(12.0, "Second", 4.0);
+        using (q = Qubit[4]) {
+            Controlled GenericCallsSpecializations(q[0..1], (12.0, "Third", q[2..3]));
+        }
+    }
+
+    operation Test4Main () : Unit {
+        GenericCallsSelf<Double>();
+        GenericCallsSelf2(0.0);
+    }
+
     // Tests that unused generics are removed
     operation NotUsed<'A, 'B>(a: 'A, b: 'B) : Int {
         using (q = Qubit()) {
@@ -52,14 +73,6 @@ namespace Microsoft.Quantum.Testing.Generics {
         return temp;
     }
 
-    operation Test2Main () : Unit {
-        using (q = Qubit()) {
-            GenericCallsGeneric(q, 12);
-            let temp = ArrayGeneric(q, ArrayGeneric(q, "twelve"));
-            let temp2 = ArrayGeneric(q, 12);
-        }
-    }
-
     operation ArrayGeneric<'Q>(q : Qubit, bar : 'Q) : Int {
         mutable temp = new 'Q[3];
         set temp w/= 0 <- bar;
@@ -72,14 +85,6 @@ namespace Microsoft.Quantum.Testing.Generics {
     operation GenericCallsGeneric<'T>(q : Qubit, bar : 'T) : Unit {
         let temp = bar;
         let thing = ArrayGeneric(q, bar);
-    }
-
-    operation Test3Main () : Unit {
-        GenericCallsSpecializations("First", 12, ());
-        Adjoint GenericCallsSpecializations(12.0, "Second", 4.0);
-        using (q = Qubit[4]) {
-            Controlled GenericCallsSpecializations(q[0..1], (12.0, "Third", q[2..3]));
-        }
     }
 
     operation GenericCallsSpecializations<'A,'B,'C>(a : 'A, b : 'B, c : 'C) : Unit is Adj+Ctl {
@@ -108,10 +113,5 @@ namespace Microsoft.Quantum.Testing.Generics {
 
     operation GenericCallsSelf2<'A>(x : 'A) : Unit {
         GenericCallsSelf2(x);
-    }
-
-    operation Test4Main () : Unit {
-        GenericCallsSelf<Double>();
-        GenericCallsSelf2(0.0);
     }
 }
