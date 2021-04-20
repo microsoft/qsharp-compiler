@@ -1,4 +1,5 @@
 namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.EstimateEnergy {
+    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Chemistry.JordanWigner;
@@ -27,7 +28,7 @@ namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.EstimateEnergy {
     /// The energy associated to the Jordan-Wigner term.
     operation SumTermExpectation(inputState: (Int, JordanWignerInputState[]), ops : Pauli[][], coeffs : Double[], nQubits : Int,  nSamples : Int) : Double {
         mutable jwTermEnergy = 0.;
-        for (i in 0..Length(coeffs)-1) {
+        for i in IndexRange(coeffs) {
             let coeff = coeffs[i];
             let op = ops[i];
             // Only perform computation if the coefficient is significant enough
@@ -43,37 +44,34 @@ namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.EstimateEnergy {
 
     operation JointMeasure(ops : Pauli[], qbs : Qubit[]) : Result
     {
-        using (aux = Qubit())
+        use aux = Qubit();
+        for i in IndexRange(qbs)
         {
-            // aux starts in the Z=|0> state
-            for (i in 0..Length(qbs)-1)
+            let op = ops[i];
+            let qb = qbs[i];
+            if (op == PauliX)
             {
-                let op = ops[i];
-                let qb = qbs[i];
-                if (op == PauliX)
-                {
-                    H(qb);
-                    CNOT(qb, aux);
-                    H(qb);
-                }
-                elif (op == PauliY)
-                {
-                    S(qb);
-                    H(qb);
-                    CNOT(qb, aux);
-                    H(qb);
-                    S(qb);
-                    Z(qb);
-                }
-                elif (op == PauliZ)
-                {
-                    CNOT(qb, aux);
-                }
-                // Ignore PauliI
+                H(qb);
+                CNOT(qb, aux);
+                H(qb);
             }
-
-            return M(aux);
+            elif (op == PauliY)
+            {
+                S(qb);
+                H(qb);
+                CNOT(qb, aux);
+                H(qb);
+                S(qb);
+                Z(qb);
+            }
+            elif (op == PauliZ)
+            {
+                CNOT(qb, aux);
+            }
+            // Ignore PauliI
         }
+
+        return M(aux);
     }
 
     /// # Summary
@@ -109,18 +107,14 @@ namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.EstimateEnergy {
         nSamples: Int
     ) : Double {
         mutable nUp = 0;
-        for (idxMeasurement in 0 .. nSamples - 1) {
-            using (register = Qubit[nQubits]) {
-                PrepareTrialState(inputState, register);
-                let result = JointMeasure(measOp, register);
-                if (result == Zero) {
-                    set nUp += 1;
-                }
-                for (q in register)
-                {
-                    let r = M(q);
-                }
+        for _ in 1 .. nSamples {
+            use register = Qubit[nQubits];
+            PrepareTrialState(inputState, register);
+            let result = JointMeasure(measOp, register);
+            if (result == Zero) {
+                set nUp += 1;
             }
+            ResetAll(register);
         }
         return IntAsDouble(nUp) / IntAsDouble(nSamples);
     }

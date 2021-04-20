@@ -1,4 +1,5 @@
 namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.Utils {
+    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Intrinsic;
 
 
@@ -29,7 +30,7 @@ namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.Utils {
             set coeffs w/= 0 <- coeff[0];
         }
         elif ((termType == 2) or (termType == 3)) {
-            for (i in 0..nCoeffs-1) {
+            for i in 0 .. nCoeffs - 1 {
                 set coeffs w/= i <- coeff[i/2];
             }
         }
@@ -66,7 +67,7 @@ namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.Utils {
         // Z and ZZ terms
         if ((termType == 0) or (termType == 1)) {
             mutable op = new Pauli[nQubits];
-            for (idx in indices) {
+            for idx in indices {
                 set op w/= idx <- PauliZ;
             }
             set ops w/= 0 <- op;
@@ -79,19 +80,19 @@ namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.Utils {
                               [PauliX, PauliY, PauliX, PauliY], [PauliY, PauliX, PauliY, PauliX],
                               [PauliY, PauliX, PauliX, PauliY], [PauliX, PauliY, PauliY, PauliX]];
 			      
-            for (iOp in 0..7) {
+            for iOp in 0..7 {
                 mutable compactOp = compactOps[iOp];
 
                 mutable op = new Pauli[nQubits];
-                for (i in 0..Length(indices)-1) {
+                for i in IndexRange(indices) {
                     let idx = indices[i];
                     let pauli = compactOp[i];
                     set op w/= idx <- pauli;
                 }
-                for (i in indices[0]+1..indices[1]-1) {
+                for i in indices[0] + 1 .. indices[1] - 1 {
                     set op w/= i <- PauliZ;
                 }
-                for (i in indices[2]+1..indices[3]-1) {
+                for i in indices[2] + 1 .. indices[3] - 1 {
                     set op w/= i <- PauliZ;
                 }
 		        set ops w/= iOp <- op; 
@@ -102,7 +103,7 @@ namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.Utils {
         elif (termType == 2) {
             let compactOps = [[PauliX, PauliX], [PauliY, PauliY]];
 
-            for (iOp in 0..1) {
+            for iOp in 0..1 {
                 mutable compactOp = compactOps[iOp];
 
                 mutable op = new Pauli[nQubits];
@@ -110,7 +111,7 @@ namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE.Utils {
                 let nIndices = Length(indices);
                 set op w/= indices[0] <- compactOp[0];
                 set op w/= indices[nIndices-1] <- compactOp[1];
-                for (i in indices[0]+1..indices[nIndices-1]-1) {
+                for i in indices[0] + 1 .. indices[nIndices-1] - 1 {
                     set op w/= i <- PauliZ;
                 }
 

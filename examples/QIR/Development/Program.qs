@@ -1,9 +1,14 @@
 ﻿namespace Microsoft.Quantum.Qir.Emission {
+    open Microsoft.Quantum.Arrays;
     open Microsoft.Quantum.Samples.Chemistry.SimpleVQE;
 
     @EntryPoint()
-    operation RunExample() : Double {
-        return GetEnergyHydrogenVQE(0.1, 0.1, 0.1, 10);
+    operation RunExample() : Double[] {
+        mutable res = new Double[0];
+        for i in 1 .. 10 {
+            set res += [GetEnergyHydrogenVQE(0.1, 0.1, 0.1, 10)];
+        }
+        return res;
     }
 }
 
