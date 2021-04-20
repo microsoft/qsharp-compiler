@@ -229,8 +229,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Upon assigning it to item 0 in the array, its alias count and ref count are increased.
                 // At the same time, the alias count and ref count of the old item are decreased.
                 //
-                // Now we exit the scope. When we exit the scope, the array value created inside the if-branch goes out of scope.
-                // Its ref count is hence decreased by 1. Upon exiting, we decrease the alias count and the ref count of ops
+                // Now we exit the conditional scope. When we exit that scope, the array value created inside the if-branch goes out of scope.
+                // Its ref count is hence decreased by 1. Upon exiting the function, we decrease the alias count and the ref count of ops
                 // and all its items by 1, since the mutable ops variable goes out of scope.
 
                 // (*) To understand why the ref count needs to be increased recursively for assignments to mutable variables
