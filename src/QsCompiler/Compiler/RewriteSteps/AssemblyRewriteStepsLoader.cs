@@ -76,6 +76,20 @@ namespace Microsoft.Quantum.QsCompiler
                         var possibleInterfaceMatches = typesInAssembly.Where(IsPossibleMatch);
                         if (possibleInterfaceMatches.Any())
                         {
+                            // When we load via reflection into the current app domain, any dependencies by default are resolved by looking for dlls
+                            // relative to the root of the current application rather than relative to the root of the rewrite step dll, causing dependencies.
+                            // We hence add a custom handler to search the directory where the rewrite step is located if an assembly cannot be found otherwise.
+                            AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler((sender, args) =>
+                            {
+                                var dllName = args.Name.Split(",").FirstOrDefault();
+                                bool MatchByName(string file) =>
+                                    Path.GetFileNameWithoutExtension(file)
+                                    .Equals(dllName, StringComparison.InvariantCultureIgnoreCase);
+
+                                var location = Path.GetDirectoryName(args.RequestingAssembly.Location);
+                                var found = Directory.GetFiles(location, "*.dll", SearchOption.AllDirectories).Where(MatchByName).FirstOrDefault();
+                                return found == null ? null : Assembly.LoadFrom(found);
+                            });
                             var reloadedTypes = Assembly.LoadFrom(target.LocalPath).GetTypes();
                             relevantTypes.AddRange(reloadedTypes.Where(IsPossibleMatch));
                         }
