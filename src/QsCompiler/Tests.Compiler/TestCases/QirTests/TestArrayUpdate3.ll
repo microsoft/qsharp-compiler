@@ -130,26 +130,26 @@ body__5:                                          ; preds = %header__5
   call void @__quantum__rt__array_update_alias_count(%Array* %44, i32 -1)
   %45 = call %Array* @__quantum__rt__array_copy(%Array* %44, i1 false)
   %46 = icmp ne %Array* %44, %45
-  %47 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
-  %48 = bitcast %Tuple* %47 to { i64, i64 }*
-  %49 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %48, i32 0, i32 0
-  %50 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %48, i32 0, i32 1
-  %51 = add i64 %i, 1
-  store i64 %i, i64* %49, align 4
-  store i64 %51, i64* %50, align 4
+  %47 = add i64 %i, 1
+  %48 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
+  %49 = bitcast %Tuple* %48 to { i64, i64 }*
+  %50 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %49, i32 0, i32 0
+  %51 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %49, i32 0, i32 1
+  store i64 %i, i64* %50, align 4
+  store i64 %47, i64* %51, align 4
   %52 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %45, i64 %i)
   %53 = bitcast i8* %52 to { i64, i64 }**
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %47, i32 1)
-  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %47, i32 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i32 1)
+  call void @__quantum__rt__tuple_update_alias_count(%Tuple* %48, i32 1)
   %54 = load { i64, i64 }*, { i64, i64 }** %53, align 8
   %55 = bitcast { i64, i64 }* %54 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %55, i32 -1)
-  store { i64, i64 }* %48, { i64, i64 }** %53, align 8
+  store { i64, i64 }* %49, { i64, i64 }** %53, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %45, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %45, i32 1)
   store %Array* %45, %Array** %arr, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %44, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %47, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %55, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %45, i32 -1)
   br label %exiting__5
