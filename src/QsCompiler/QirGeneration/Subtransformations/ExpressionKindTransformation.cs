@@ -550,12 +550,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         str = DoAppend(str, ExpressionToString(tupleElements[idx]));
                     }
 
+                    str = DoAppend(str, CreateConstantString(")"), unreferenceNext: true);
                     if (comma != null)
                     {
                         UpdateStringRefCount(comma, -1);
                     }
 
-                    str = DoAppend(str, CreateConstantString(")"), unreferenceNext: true);
                     return str;
                 }
 
