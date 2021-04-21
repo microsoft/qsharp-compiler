@@ -1099,7 +1099,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("a default value is required if either onCondTrue or onCondFalse is null");
             }
 
-            var defaultRequiresRefCount = increaseReferenceCount && defaultValue != null && this.ScopeMgr.RequiresReferenceCount(defaultValue.LlvmType);
+            var defaultRequiresRefCount = increaseReferenceCount && defaultValue != null && ScopeManager.RequiresReferenceCount(defaultValue.LlvmType);
             var requiresTrueBlock = onCondTrue != null || defaultRequiresRefCount;
             var requiresFalseBlock = onCondFalse != null || defaultRequiresRefCount;
 
@@ -1126,7 +1126,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.ScopeMgr.OpenScope();
                     var evaluated = evaluate?.Invoke() ?? defaultValue!;
-                    this.ScopeMgr.CloseScope(evaluated, false); // force that the ref count is increased within the branch
+                    this.ScopeMgr.CloseScope(evaluated); // forces that the ref count is increased within the branch
                     return evaluated;
                 }
                 else

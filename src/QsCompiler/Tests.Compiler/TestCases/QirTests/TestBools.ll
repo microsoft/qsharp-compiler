@@ -12,4 +12,9 @@ then0__1:                                         ; preds = %entry
 
 else__1:                                          ; preds = %entry
   ret i1 %e
+
+continue__1:                                      ; No predecessors!
+  %1 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @0, i32 0, i32 0))
+  call void @__quantum__rt__fail(%String* %1)
+  unreachable
 }
