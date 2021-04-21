@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.QIR
         {
             Value arg1;
             Value arg2;
-            if (arg.Expression is ResolvedExpressionKind.ValueTuple vs)
+            if (arg.Expression is ResolvedExpressionKind.ValueTuple vs && vs.Item.Length == 2)
             {
                 arg1 = this.sharedState.EvaluateSubexpression(vs.Item[0]).Value;
                 arg2 = this.sharedState.EvaluateSubexpression(vs.Item[1]).Value;
