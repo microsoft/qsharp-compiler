@@ -78,7 +78,7 @@ let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
 let ``QIR reference counts`` () =
-    qirMultiTest false "TestReferenceCounts" ["TestReferenceCounts1"; "TestReferenceCounts2"]
+    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
