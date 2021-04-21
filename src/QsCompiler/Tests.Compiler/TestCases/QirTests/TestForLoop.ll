@@ -18,14 +18,6 @@ entry:
   %8 = getelementptr inbounds { double, %String* }, { double, %String* }* %7, i32 0, i32 1
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 1)
   %9 = load %String*, %String** %8, align 8
-  br i1 %6, label %condContinue__1, label %condFalse__1
-
-condFalse__1:                                     ; preds = %entry
-  call void @__quantum__rt__string_update_reference_count(%String* %name, i32 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %9, i32 -1)
-  br label %condContinue__1
-
-condContinue__1:                                  ; preds = %condFalse__1, %entry
   store %String* %name, %String** %8, align 8
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %5, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %5, i32 1)
@@ -34,8 +26,8 @@ condContinue__1:                                  ; preds = %condFalse__1, %entr
   store double 0.000000e+00, double* %energy, align 8
   br label %header__1
 
-header__1:                                        ; preds = %exiting__1, %condContinue__1
-  %10 = phi i64 [ 0, %condContinue__1 ], [ %12, %exiting__1 ]
+header__1:                                        ; preds = %exiting__1, %entry
+  %10 = phi i64 [ 0, %entry ], [ %12, %exiting__1 ]
   %11 = icmp sle i64 %10, 10
   br i1 %11, label %body__1, label %exit__1
 

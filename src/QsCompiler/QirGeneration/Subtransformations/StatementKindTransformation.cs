@@ -330,6 +330,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("current function is set to null");
             }
 
+            Action<T> LoopBody<T>(Action<T> execute) => loopVariable =>
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                execute(loopVariable);
+                var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+                this.SharedState.ScopeMgr.CloseScope(isTerminated);
+            };
+
             if (stm.IterationValues.ResolvedType.Resolution.IsRange)
             {
                 void ExecuteBody(Value loopVariable)
@@ -347,7 +355,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(stm.IterationValues);
-                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), ExecuteBody);
+                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), LoopBody<Value>(ExecuteBody));
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
             {
@@ -359,7 +367,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var array = (ArrayValue)this.SharedState.EvaluateSubexpression(stm.IterationValues);
-                this.SharedState.IterateThroughArray(array, ExecuteBody);
+                this.SharedState.IterateThroughArray(array, LoopBody<IValue>(ExecuteBody));
             }
             else
             {

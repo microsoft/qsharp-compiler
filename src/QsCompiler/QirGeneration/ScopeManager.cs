@@ -468,6 +468,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Opens a new scope and pushes it on top of the scope stack.
+        /// IMPORTANT:
+        /// This function is meant to be used only for opening Q# scopes, and *not* for blocks that have been inserted
+        /// only as part of QIR generation such as e.g. for-loops to modify reference and alias counts.
+        /// The reason is that for optimization purposes we omit increasing (and subsequently decreasing) counts when possible.
+        /// Some of these optimizations rely on the restrictions enforced by the Q# language.
         /// </summary>
         public void OpenScope()
         {
@@ -478,6 +483,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Closes the current scope by popping it off of the stack.
         /// Emits the queued calls to unreference, release, and/or decrease the alias counts for values going out of scope.
         /// If the current basic block is already terminated, presumably by a return, the calls are not generated.
+        /// IMPORTANT:
+        /// This function is meant to be used only for closing Q# scopes, and *not* for blocks that have been inserted
+        /// only as part of QIR generation such as e.g. for-loops to modify reference and alias counts.
+        /// The reason is that for optimization purposes we omit increasing (and subsequently decreasing) counts when possible.
+        /// Some of these optimizations rely on the restrictions enforced by the Q# language.
         /// </summary>
         /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
         public void CloseScope(bool isTerminated)
@@ -500,6 +510,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Emits the queued calls to unreference, release, and/or decrease the alias counts for values going out of scope.
         /// Increases the reference count of the returned value by 1, either by omitting to unreference it or by explicitly increasing it.
         /// Delays applying pending calls to increase reference counts if no values are unreferenced unless allowDelayReferencing is set to false.
+        /// IMPORTANT:
+        /// This function is meant to be used only for closing Q# scopes, and *not* for blocks that have been inserted
+        /// only as part of QIR generation such as e.g. for-loops to modify reference and alias counts.
+        /// The reason is that for optimization purposes we omit increasing (and subsequently decreasing) counts when possible.
+        /// Some of these optimizations rely on the restrictions enforced by the Q# language.
         /// </summary>
         public void CloseScope(IValue returned, bool allowDelayReferencing = true)
         {
@@ -527,6 +542,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Exiting the current scope does *not* close the scope.
         /// All pending calls to increase reference counts for values need to be applied
         /// using <see cref="ApplyPendingReferences"/> before exiting the scope.
+        /// IMPORTANT:
+        /// This function is meant to be used only for exiting Q# scopes, and *not* for blocks that have been inserted
+        /// only as part of QIR generation such as e.g. for-loops to modify reference and alias counts.
+        /// The reason is that for optimization purposes we omit increasing (and subsequently decreasing) counts when possible.
+        /// Some of these optimizations rely on the restrictions enforced by the Q# language.
         /// </summary>
         /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
         public void ExitScope(bool isTerminated)

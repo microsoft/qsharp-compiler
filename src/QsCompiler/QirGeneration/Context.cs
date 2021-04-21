@@ -1090,13 +1090,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Creates a for-loop that breaks based on a condition.
+        /// Note that <paramref name="evaluateCondition"/> - in contrast to <paramref name="executeBody"/> - is executed within its own scope,
+        /// meaning anything allocated within the condition will be unreferenced at the end of the condition evaluation.
+        /// The expectation for <paramref name="executeBody"/> on the other hand is that it takes care of all necessary handling itself.
         /// </summary>
-        /// <param name="startValue">The value to which the loop variable will be instantiated</param>
-        /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered</param>
-        /// <param name="increment">The value that is added to the loop variable after each iteration </param>
-        /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop</param>
+        /// <param name="startValue">The value to which the loop variable will be instantiated.</param>
+        /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered.</param>
+        /// <param name="increment">The value that is added to the loop variable after each iteration.</param>
+        /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop.</param>
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
-        internal void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
+        private void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
         {
             if (this.CurrentFunction == null || this.CurrentBlock == null)
             {
@@ -1140,24 +1143,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
 
                 this.CurrentBuilder.Branch(condition, bodyBlock, exitBlock);
+                this.SetCurrentBlock(bodyBlock);
                 return loopVariable;
             }
 
-            bool PopulateLoopBody(Action executeBody)
-            {
-                this.ScopeMgr.OpenScope();
-                this.SetCurrentBlock(bodyBlock);
-                executeBody();
-                var isTerminated = this.CurrentBlock?.Terminator != null;
-                this.ScopeMgr.CloseScope(isTerminated);
-                return isTerminated;
-            }
-
-            void ContinueOrExitLoop(PhiNode loopVariable, Value increment, bool bodyWasTerminated = false)
+            void ContinueOrExitLoop(PhiNode loopVariable, Value increment)
             {
                 // Unless there was a terminating statement in the loop body (such as return or fail),
                 // continue into the exiting block, which updates the loop variable and enters the next iteration.
-                if (!bodyWasTerminated)
+                if (this.CurrentBlock?.Terminator == null)
                 {
                     this.CurrentBuilder.Branch(exitingBlock);
                 }
@@ -1172,8 +1166,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.ExecuteLoop(exitBlock, () =>
             {
                 var loopVariable = PopulateLoopHeader(startValue, evaluateCondition);
-                var bodyWasTerminated = PopulateLoopBody(() => executeBody(loopVariable));
-                ContinueOrExitLoop(loopVariable, increment, bodyWasTerminated);
+                executeBody(loopVariable);
+                ContinueOrExitLoop(loopVariable, increment);
             });
         }
 
@@ -1198,12 +1192,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Iterates through the range defined by start, step, and end, and executes the given action on each iteration value.
-        /// The action is executed within its own scope.
+        /// Note that <paramref name="executeBody"/> is expected takes care of all necessary scope/memory management itself.
         /// </summary>
-        /// <param name="start">The start of the range and first iteration value</param>
-        /// <param name="step">The optional step of the range that will be added to the iteration value in each iteration, where the default value is 1L</param>
-        /// <param name="end">The end of the range after which the iteration terminates</param>
-        /// <param name="executeBody">The action to perform on each item</param>
+        /// <param name="start">The start of the range and first iteration value.</param>
+        /// <param name="step">The optional step of the range that will be added to the iteration value in each iteration, where the default value is 1L.</param>
+        /// <param name="end">The end of the range after which the iteration terminates.</param>
+        /// <param name="executeBody">The action to perform on each item (needs to include the scope management).</param>
         /// <exception cref="InvalidOperationException">The current block is set to null.</exception>
         internal void IterateThroughRange(Value start, Value? step, Value end, Action<Value> executeBody)
         {
@@ -1255,10 +1249,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Iterates through the given array and executes the given action on each element.
-        /// The action is executed within its own scope.
+        /// Note that <paramref name="executeBody"/> is expected takes care of all necessary scope/memory management itself.
         /// </summary>
-        /// <param name="array">The array to iterate over</param>
-        /// <param name="executeBody">The action to perform on each item</param>
+        /// <param name="array">The array to iterate over.</param>
+        /// <param name="executeBody">The action to perform on each item (needs to include the scope management).</param>
         internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)
         {
             var startValue = this.Context.CreateConstant(0L);
@@ -1273,10 +1267,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value EvaluateCondition(Value loopVariable) =>
                 this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
 
-            void ExecuteBody(Value loopVariable) =>
-                executeBody(array.GetArrayElement(loopVariable));
-
-            this.CreateForLoop(startValue, EvaluateCondition, increment, ExecuteBody);
+            this.CreateForLoop(startValue, EvaluateCondition, increment, loopVar => executeBody(array.GetArrayElement(loopVar)));
         }
 
         #endregion
@@ -1481,21 +1472,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             this.Transformation.Expressions.OnTypedExpression(ex);
             return this.ValueStack.Pop();
-        }
-
-        /// <summary>
-        /// Evaluates the given expression and increases its reference count by 1,
-        /// either by not registering a newly constructed item with the scope manager,
-        /// or by explicitly increasing its reference count.
-        /// Note that increasing the reference count may be delayed until needed.
-        /// </summary>
-        internal IValue BuildSubitem(TypedExpression ex)
-        {
-            this.ScopeMgr.OpenScope();
-            this.Transformation.Expressions.OnTypedExpression(ex);
-            var value = this.ValueStack.Pop();
-            this.ScopeMgr.CloseScope(value);
-            return value;
         }
 
         #endregion
