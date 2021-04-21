@@ -59,14 +59,14 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  %22 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
-  %23 = bitcast %Tuple* %22 to { i64, i64 }*
-  %24 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 0
-  %25 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 1
-  %26 = load i64, i64* %x, align 4
-  %27 = load i64, i64* %y, align 4
-  store i64 %26, i64* %24, align 4
-  store i64 %27, i64* %25, align 4
+  %22 = load i64, i64* %x, align 4
+  %23 = load i64, i64* %y, align 4
+  %24 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
+  %25 = bitcast %Tuple* %24 to { i64, i64 }*
+  %26 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %25, i32 0, i32 0
+  %27 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %25, i32 0, i32 1
+  store i64 %22, i64* %26, align 4
+  store i64 %23, i64* %27, align 4
   %28 = sub i64 %0, 1
   br label %header__3
 
@@ -89,5 +89,5 @@ exiting__3:                                       ; preds = %body__3
 
 exit__3:                                          ; preds = %header__3
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 -1)
-  ret { i64, i64 }* %23
+  ret { i64, i64 }* %25
 }

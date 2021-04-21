@@ -102,21 +102,13 @@ body__4:                                          ; preds = %header__4
   %40 = load { double, double }*, { double, double }** %38, align 8
   %41 = bitcast { double, double }* %40 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %41, i32 -1)
-  br i1 %32, label %condContinue__1, label %condFalse__1
-
-condFalse__1:                                     ; preds = %body__4
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %39, i32 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %41, i32 -1)
-  br label %condContinue__1
-
-condContinue__1:                                  ; preds = %condFalse__1, %body__4
   store { double, double }* %36, { double, double }** %38, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %31, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %31, i32 1)
   store %Array* %31, %Array** %arr, align 8
   br i1 %cond, label %then0__1, label %continue__1
 
-then0__1:                                         ; preds = %condContinue__1
+then0__1:                                         ; preds = %body__4
   %42 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %42, i32 -1)
   %43 = call %Array* @__quantum__rt__array_copy(%Array* %42, i1 false)
@@ -129,14 +121,6 @@ then0__1:                                         ; preds = %condContinue__1
   %48 = load { double, double }*, { double, double }** %47, align 8
   %49 = bitcast { double, double }* %48 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %49, i32 -1)
-  br i1 %44, label %condContinue__2, label %condFalse__2
-
-condFalse__2:                                     ; preds = %then0__1
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i32 1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %49, i32 -1)
-  br label %condContinue__2
-
-condContinue__2:                                  ; preds = %condFalse__2, %then0__1
   store { double, double }* %item, { double, double }** %47, align 8
   call void @__quantum__rt__array_update_reference_count(%Array* %43, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %43, i32 1)
@@ -146,7 +130,7 @@ condContinue__2:                                  ; preds = %condFalse__2, %then
   call void @__quantum__rt__array_update_reference_count(%Array* %43, i32 -1)
   br label %continue__1
 
-continue__1:                                      ; preds = %condContinue__2, %condContinue__1
+continue__1:                                      ; preds = %then0__1, %body__4
   call void @__quantum__rt__array_update_reference_count(%Array* %30, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %41, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %31, i32 -1)
