@@ -9,7 +9,7 @@
 
     <license type="expression">MIT</license>
     <projectUrl>https://docs.microsoft.com/azure/quantum</projectUrl>
-    <iconUrl>https://secure.gravatar.com/avatar/bd1f02955b2853ba0a3b1cdc2434e8ec.png</iconUrl>
+    <icon>images\qdk-nuget-icon.png</icon>
 
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
     <description>.NET Core templates pack for Q#, part of the Microsoft Quantum Development Kit.</description>
@@ -26,6 +26,7 @@
 
   <files>
     <file src="**" target="content" exclude="**\bin\**;**\obj\**;**\*.v.template;*.nuspec;*.png" />
+    <file src="..\..\build\assets\qdk-nuget-icon.png" target="images" />
   </files>
 
 </package>
