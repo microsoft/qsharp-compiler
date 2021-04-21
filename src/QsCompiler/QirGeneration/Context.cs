@@ -1076,7 +1076,109 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #endregion
 
-        #region Iteration
+        #region Control flow
+
+        /// <summary>
+        /// Depending on the value of the given condition, evaluates the corresponding function.
+        /// If no function is specified for one of the branches, then a <paramref name="defaultValue"/> needs to be specified
+        /// that the branch should evaluate to instead.
+        /// Increases the reference count of the value the conditional execution evaluates to 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </summary>
+        /// <returns>
+        /// A phi node that evaluates to either the value of the expression depending on the branch that was taken,
+        /// or the <paramref name="defaultValue"/> if no function has been specified for that branch.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Either <paramref name="onCondTrue"/> or <paramref name="onCondFalse"/> is null but no <paramref name="defaultValue"/> was specified.
+        /// </exception>
+        private Value ConditionalEvaluation(Value condition, Func<IValue>? onCondTrue = null, Func<IValue>? onCondFalse = null, IValue? defaultValue = null, bool increaseReferenceCount = true)
+        {
+            if (defaultValue == null && (onCondTrue == null || onCondFalse == null))
+            {
+                throw new InvalidOperationException("a default value is required if either onCondTrue or onCondFalse is null");
+            }
+
+            var defaultRequiresRefCount = increaseReferenceCount && defaultValue != null && this.ScopeMgr.RequiresReferenceCount(defaultValue.LlvmType);
+            var requiresTrueBlock = onCondTrue != null || defaultRequiresRefCount;
+            var requiresFalseBlock = onCondFalse != null || defaultRequiresRefCount;
+
+            var contBlock = this.AddBlockAfterCurrent("condContinue");
+            var falseBlock = requiresFalseBlock
+                ? this.AddBlockAfterCurrent("condFalse")
+                : contBlock;
+            var trueBlock = requiresTrueBlock
+                ? this.AddBlockAfterCurrent("condTrue")
+                : contBlock;
+
+            // In order to ensure the correct reference counts, it is important that we create a new scope
+            // for each branch of the conditional. When we close the scope, we list the computed value as
+            // to be returned from that scope, meaning it either won't be dereferenced or its reference
+            // count will increase by 1. The result of the expression is a phi node that we then properly
+            // register with the scope manager, such that it will be unreferenced when going out of scope.
+
+            this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
+            var entryBlock = this.CurrentBlock!;
+
+            IValue ProcessBlock(Func<IValue>? evaluate)
+            {
+                if (increaseReferenceCount)
+                {
+                    this.ScopeMgr.OpenScope();
+                    var evaluated = evaluate?.Invoke() ?? defaultValue!;
+                    this.ScopeMgr.CloseScope(evaluated, false); // force that the ref count is increased within the branch
+                    return evaluated;
+                }
+                else
+                {
+                    return evaluate?.Invoke() ?? defaultValue!;
+                }
+            }
+
+            var (evaluatedOnTrue, afterTrue) = (defaultValue?.Value, entryBlock);
+            if (requiresTrueBlock)
+            {
+                this.SetCurrentBlock(trueBlock);
+                var onTrue = ProcessBlock(onCondTrue);
+                this.CurrentBuilder.Branch(contBlock);
+                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.CurrentBlock!);
+            }
+
+            var (evaluatedOnFalse, afterFalse) = (defaultValue?.Value, entryBlock);
+            if (requiresFalseBlock)
+            {
+                this.SetCurrentBlock(falseBlock);
+                var onFalse = ProcessBlock(onCondFalse);
+                this.CurrentBuilder.Branch(contBlock);
+                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.CurrentBlock!);
+            }
+
+            this.SetCurrentBlock(contBlock);
+            var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
+            phi.AddIncoming(evaluatedOnTrue!, afterTrue);
+            phi.AddIncoming(evaluatedOnFalse!, afterFalse);
+            return phi;
+        }
+
+        /// <summary>
+        /// Depending on the value of the given condition, evaluates the corresponding function.
+        /// Increases the reference count of the value the conditional execution evaluates to 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </summary>
+        /// <returns>
+        /// A phi node that evaluates to either the value of the expression depending on the branch that was taken.
+        /// </returns>
+        internal Value ConditionalEvaluation(Value condition, Func<IValue> onCondTrue, Func<IValue> onCondFalse, bool increaseReferenceCount = true) =>
+            this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: onCondFalse, null, increaseReferenceCount);
+
+        /// <returns>
+        /// Returns a value that when executed either evaluates to the value defined by <paramref name="onCondTrue"/>,
+        /// if the condition is true, or to the given <paramref name="defaultValueForCondFalse"/> if it is not.
+        /// Increases the reference count of the evaluated value by 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </returns>
+        internal Value ConditionalEvaluation(Value condition, Func<IValue> onCondTrue, IValue defaultValueForCondFalse, bool increaseReferenceCount = true) =>
+            this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: null, defaultValueForCondFalse, increaseReferenceCount);
 
         /// <returns>A range with the given start, step and end.</returns>
         internal IValue CreateRange(Value start, Value step, Value end)
@@ -1089,17 +1191,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Creates a for-loop that breaks based on a condition.
-        /// Note that <paramref name="evaluateCondition"/> - in contrast to <paramref name="executeBody"/> - is executed within its own scope,
-        /// meaning anything allocated within the condition will be unreferenced at the end of the condition evaluation.
-        /// The expectation for <paramref name="executeBody"/> on the other hand is that it takes care of all necessary handling itself.
+        /// <inheritdoc cref="CreateForLoop(Value, Func{Value, Value}, Value, Action{Value})"/>
+        /// The loop may optionally compute an output value. If an <paramref name="initialOutputValue"/> is given,
+        /// then a suitable phi node to hold the computed output will be instantiated and updated as part of the loop.
         /// </summary>
+        /// <returns>The final value of the computed output, if <paramref name="initialOutputValue"/> and the value returned by <paramref name="executeBody"/> are non-null, and null otherwise.</returns>
         /// <param name="startValue">The value to which the loop variable will be instantiated.</param>
         /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered.</param>
         /// <param name="increment">The value that is added to the loop variable after each iteration.</param>
-        /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop.</param>
+        /// <param name="initialOutputValue">The initial value for the output that will be computed by the loop.</param>
+        /// <param name="executeBody">Given the current value of the loop variable and the current output value, executes the body of the loop and returns the updated output value.</param>
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
-        private void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
+        private Value? CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Value? initialOutputValue, Func<Value, Value?, Value?> executeBody)
         {
             if (this.CurrentFunction == null || this.CurrentBlock == null)
             {
@@ -1124,7 +1227,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var exitName = this.BlockName("exit");
             BasicBlock exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
 
-            PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
+            (PhiNode, PhiNode?) PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
             {
                 // End the current block by branching into the header of the loop
                 BasicBlock precedingBlock = this.CurrentBlock ?? throw new InvalidOperationException("no preceding block");
@@ -1134,8 +1237,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.ScopeMgr.OpenScope();
                 this.CurrentBuilder.Branch(headerBlock);
 
-                // Header block: create/update phi node representing the iteration variable and evaluate the condition
+                // Header block:
+                // create a phi node for a loop output value if needed,
+                // create a phi node representing the iteration variable and evaluate the condition
+
                 this.SetCurrentBlock(headerBlock);
+                var outputValue = initialOutputValue == null ? null : this.CurrentBuilder.PhiNode(initialOutputValue.NativeType);
+                outputValue?.AddIncoming(initialOutputValue!, precedingBlock);
+
                 var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
                 loopVariable.AddIncoming(startValue, precedingBlock);
 
@@ -1144,10 +1253,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 this.CurrentBuilder.Branch(condition, bodyBlock, exitBlock);
                 this.SetCurrentBlock(bodyBlock);
-                return loopVariable;
+                return (loopVariable, outputValue);
             }
 
-            void ContinueOrExitLoop(PhiNode loopVariable, Value increment)
+            void ContinueOrExitLoop((PhiNode LoopVariable, Value Increment) loopUpdate, (PhiNode PhiNode, Value NewValue)? outputUpdate)
             {
                 // Unless there was a terminating statement in the loop body (such as return or fail),
                 // continue into the exiting block, which updates the loop variable and enters the next iteration.
@@ -1158,17 +1267,43 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // Update the iteration value (phi node) and enter the next iteration
                 this.SetCurrentBlock(exitingBlock);
-                var nextValue = this.CurrentBuilder.Add(loopVariable, increment);
-                loopVariable.AddIncoming(nextValue, exitingBlock);
+                var nextValue = this.CurrentBuilder.Add(loopUpdate.LoopVariable, loopUpdate.Increment);
+                loopUpdate.LoopVariable.AddIncoming(nextValue, exitingBlock);
+                outputUpdate?.PhiNode.AddIncoming(outputUpdate.Value.NewValue, exitingBlock);
                 this.CurrentBuilder.Branch(headerBlock);
             }
 
+            Value? output = null;
             this.ExecuteLoop(exitBlock, () =>
             {
-                var loopVariable = PopulateLoopHeader(startValue, evaluateCondition);
-                executeBody(loopVariable);
-                ContinueOrExitLoop(loopVariable, increment);
+                var (loopVariable, outputValue) = PopulateLoopHeader(startValue, evaluateCondition);
+                var newOutputValue = executeBody(loopVariable, outputValue);
+                var outputUpdate = outputValue == null || newOutputValue == null ? ((PhiNode, Value)?)null : (outputValue!, newOutputValue!);
+                ContinueOrExitLoop((loopVariable, increment), outputUpdate);
+                output = outputUpdate?.Item1;
             });
+            return output;
+        }
+
+        /// <summary>
+        /// Creates a for-loop that breaks based on a condition.
+        /// Note that <paramref name="evaluateCondition"/> - in contrast to <paramref name="executeBody"/> - is executed within its own scope,
+        /// meaning anything allocated within the condition will be unreferenced at the end of the condition evaluation.
+        /// The expectation for <paramref name="executeBody"/> on the other hand is that it takes care of all necessary handling itself.
+        /// </summary>
+        /// <param name="startValue">The value to which the loop variable will be instantiated.</param>
+        /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered.</param>
+        /// <param name="increment">The value that is added to the loop variable after each iteration.</param>
+        /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop.</param>
+        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
+        private void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
+        {
+            Value? ExecuteBody(Value loopVar, Value? currentOutputValue)
+            {
+                executeBody(loopVar);
+                return null;
+            }
+            this.CreateForLoop(startValue, evaluateCondition, increment, null, ExecuteBody);
         }
 
         /// <summary>
@@ -1248,17 +1383,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Iterates through the given array and executes the given action on each element.
-        /// Note that <paramref name="executeBody"/> is expected takes care of all necessary scope/memory management itself.
+        /// <inheritdoc cref=" IterateThroughArray(ArrayValue, Action{IValue})"/>
+        /// The iteration may optionally compute an output value. If an <paramref name="initialOutputValue"/> is given,
+        /// then a suitable phi node to hold the computed output will be instantiated and updated as part of the loop.
         /// </summary>
+        /// <returns>The final value of the computed output, if <paramref name="initialOutputValue"/> and the value returned by <paramref name="executeBody"/> are non-null, and null otherwise.</returns>
         /// <param name="array">The array to iterate over.</param>
-        /// <param name="executeBody">The action to perform on each item (needs to include the scope management).</param>
-        internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)
+        /// <param name="initialOutputValue">The initial value for the output that will be computed by the loop.</param>
+        /// <param name="executeBody">Given the array element and the current output value, executes the body of the loop and returns the updated output value.</param>
+        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
+        internal Value? IterateThroughArray(ArrayValue array, Value? initialOutputValue, Func<IValue, Value?, Value?> executeBody)
         {
             var startValue = this.Context.CreateConstant(0L);
             if (array.Length == startValue)
             {
-                return;
+                return initialOutputValue;
             }
 
             var increment = this.Context.CreateConstant(1L);
@@ -1267,7 +1406,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value EvaluateCondition(Value loopVariable) =>
                 this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
 
-            this.CreateForLoop(startValue, EvaluateCondition, increment, loopVar => executeBody(array.GetArrayElement(loopVar)));
+            Value? ExecuteBody(Value iterationIndex, Value? currentOutputValue) =>
+                executeBody(array.GetArrayElement(iterationIndex), currentOutputValue);
+
+            return this.CreateForLoop(startValue, EvaluateCondition, increment, initialOutputValue, ExecuteBody);
+        }
+
+        /// <summary>
+        /// Iterates through the given array and executes the specifed body.
+        /// Note that <paramref name="executeBody"/> is expected takes care of all necessary scope/memory management itself.
+        /// </summary>
+        /// <param name="array">The array to iterate over.</param>
+        /// <param name="executeBody">The action to perform on each item (needs to include the scope management).</param>
+        internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)
+        {
+            Value? ExecuteBody(IValue arrayItem, Value? currentOutputValue)
+            {
+                executeBody(arrayItem);
+                return null;
+            }
+            this.IterateThroughArray(array, null, ExecuteBody);
         }
 
         #endregion

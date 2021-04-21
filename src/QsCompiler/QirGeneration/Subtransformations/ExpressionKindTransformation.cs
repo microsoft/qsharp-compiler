@@ -452,6 +452,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
+            IValue CreateStringValue(Value str) =>
+                sharedState.Values.From(str, ResolvedType.New(ResolvedTypeKind.String));
+
             // Creates a string value that needs to be queued for unreferencing.
             Value CreateConstantString(string s)
             {
@@ -529,6 +532,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return sharedState.CurrentBuilder.Call(createString, evaluated.Value);
                 }
 
+                // Creates a string value that needs to be queued for unreferencing.
                 Value TupleToString(TupleValue tuple)
                 {
                     var str = CreateConstantString($"{tuple.TypeName}(");
@@ -544,7 +548,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         }
                         else
                         {
-                            comma ??= CreateConstantString(",");
+                            comma ??= CreateConstantString(", ");
                             str = DoAppend(str, comma, unreferenceNext: false);
                         }
                     }
@@ -554,6 +558,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         UpdateStringRefCount(comma, -1);
                     }
                     return str;
+                }
+
+                // Creates a string value that needs to be queued for unreferencing.
+                Value ArrayToString(ArrayValue array)
+                {
+                    Value comma = CreateConstantString(", ");
+                    var openParens = CreateConstantString("[");
+                    var outputStr = sharedState.IterateThroughArray(array, openParens, (item, str) =>
+                    {
+                        var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens);
+                        var updatedStr = sharedState.ConditionalEvaluation(
+                            cond,
+                            onCondTrue: () => CreateStringValue(DoAppend(str!, comma, unreferenceNext: false)),
+                            defaultValueForCondFalse: CreateStringValue(str!),
+                            increaseReferenceCount: false);
+                        return DoAppend(updatedStr, ExpressionToString(item));
+                    });
+
+                    outputStr = DoAppend(outputStr, CreateConstantString("]"));
+                    UpdateStringRefCount(comma, -1);
+                    return outputStr;
                 }
 
                 var ty = evaluated.QSharpType.Resolution;
@@ -608,20 +633,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (ty.IsArrayType)
                 {
-                    var arr = (ArrayValue)evaluated;
-                    var str = CreateConstantString("[");
-                    Value comma = CreateConstantString(",");
-                    Value closeParens = CreateConstantString("]");
-
-                    sharedState.IterateThroughArray(arr, item =>
-                    {
-                        str = DoAppend(str, ExpressionToString(item));
-                        str = DoAppend(str, comma, unreferenceNext: false);
-                    });
-
-                    str = DoAppend(str, closeParens);
-                    UpdateStringRefCount(comma, -1);
-                    return str;
+                    var array = (ArrayValue)evaluated;
+                    return ArrayToString(array);
                 }
                 else if (ty.IsTupleType || ty.IsUserDefinedType)
                 {
@@ -673,67 +686,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             current ??= CreateConstantString(str);
-            var value = sharedState.Values.From(current, ResolvedType.New(ResolvedTypeKind.String));
+            var value = CreateStringValue(current);
             sharedState.ScopeMgr.RegisterValue(value);
             return value;
         }
 
         // private helpers
-
-        /// <summary>
-        /// Depending on the value of the given condition, evaluates the expression given for the corresponding branch.
-        /// </summary>
-        /// <returns>
-        /// A phi node that evaluates to either the value of the expression depending on the branch that was taken,
-        /// or the value of the condition if no expression has been specified for that branch.
-        /// </returns>
-        private Value ConditionalEvaluation(Value condition, TypedExpression? onCondTrue = null, TypedExpression? onCondFalse = null)
-        {
-            var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
-            var falseBlock = onCondFalse != null
-                ? this.SharedState.AddBlockAfterCurrent("condFalse")
-                : contBlock;
-            var trueBlock = onCondTrue != null
-                ? this.SharedState.AddBlockAfterCurrent("condTrue")
-                : contBlock;
-
-            // In order to ensure the correct reference counts, it is important that we create a new scope
-            // for each branch of the conditional. When we close the scope, we list the computed value as
-            // to be returned from that scope, meaning it either won't be dereferenced or its reference
-            // count will increase by 1. The result of the expression is a phi node that we then properly
-            // register with the scope manager, such that it will be unreferenced when going out of scope.
-
-            this.SharedState.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
-            var entryBlock = this.SharedState.CurrentBlock!;
-
-            var (evaluatedOnTrue, afterTrue) = (condition, entryBlock);
-            if (onCondTrue != null)
-            {
-                this.SharedState.SetCurrentBlock(trueBlock);
-                this.SharedState.ScopeMgr.OpenScope();
-                var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
-                this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.SharedState.CurrentBlock!);
-            }
-
-            var (evaluatedOnFalse, afterFalse) = (condition, entryBlock);
-            if (onCondFalse != null)
-            {
-                this.SharedState.SetCurrentBlock(falseBlock);
-                this.SharedState.ScopeMgr.OpenScope();
-                var onFalse = this.SharedState.EvaluateSubexpression(onCondFalse);
-                this.SharedState.ScopeMgr.CloseScope(onFalse, false); // force that the ref count is increased within the branch
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.SharedState.CurrentBlock!);
-            }
-
-            this.SharedState.SetCurrentBlock(contBlock);
-            var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
-            phi.AddIncoming(evaluatedOnTrue, afterTrue);
-            phi.AddIncoming(evaluatedOnFalse, afterFalse);
-            return phi;
-        }
 
         /// <summary>
         /// Handles calls to specific functor specializations of global callables.
@@ -1199,7 +1157,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var evaluated = this.ConditionalEvaluation(cond.Value, onCondTrue: ifTrueEx, onCondFalse: ifFalseEx);
+                var evaluated = this.SharedState.ConditionalEvaluation(
+                    cond.Value,
+                    onCondTrue: () => this.SharedState.EvaluateSubexpression(ifTrueEx),
+                    onCondFalse: () => this.SharedState.EvaluateSubexpression(ifFalseEx));
                 value = this.SharedState.Values.From(evaluated, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1636,8 +1597,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var cond = this.SharedState.EvaluateSubexpression(lhsEx).Value;
-                evaluated = this.ConditionalEvaluation(cond, onCondTrue: rhsEx);
+                var evaluatedLhs = this.SharedState.EvaluateSubexpression(lhsEx);
+                evaluated = this.SharedState.ConditionalEvaluation(
+                    evaluatedLhs.Value,
+                    onCondTrue: () => this.SharedState.EvaluateSubexpression(rhsEx),
+                    defaultValueForCondFalse: evaluatedLhs);
             }
 
             var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
@@ -1671,8 +1635,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var cond = this.SharedState.EvaluateSubexpression(lhsEx).Value;
-                evaluated = this.ConditionalEvaluation(cond, onCondFalse: rhsEx);
+                var evaluatedLhs = this.SharedState.EvaluateSubexpression(lhsEx);
+                evaluated = this.SharedState.ConditionalEvaluation(
+                    this.SharedState.CurrentBuilder.Not(evaluatedLhs.Value),
+                    onCondTrue: () => this.SharedState.EvaluateSubexpression(rhsEx),
+                    defaultValueForCondFalse: evaluatedLhs);
             }
 
             var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
