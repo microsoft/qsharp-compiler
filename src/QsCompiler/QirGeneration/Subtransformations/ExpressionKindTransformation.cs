@@ -712,7 +712,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.SetCurrentBlock(trueBlock);
                 this.SharedState.ScopeMgr.OpenScope();
                 var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
-                this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
+                this.SharedState.ScopeMgr.CloseScope(onTrue); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
                 (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.SharedState.CurrentBlock!);
             }
@@ -723,7 +723,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.SetCurrentBlock(falseBlock);
                 this.SharedState.ScopeMgr.OpenScope();
                 var onFalse = this.SharedState.EvaluateSubexpression(onCondFalse);
-                this.SharedState.ScopeMgr.CloseScope(onFalse, false); // force that the ref count is increased within the branch
+                this.SharedState.ScopeMgr.CloseScope(onFalse); // force that the ref count is increased within the branch
                 this.SharedState.CurrentBuilder.Branch(contBlock);
                 (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.SharedState.CurrentBlock!);
             }
