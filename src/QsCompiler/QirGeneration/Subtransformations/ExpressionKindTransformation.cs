@@ -539,12 +539,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     for (var idx = 0; idx < tupleElements.Length; ++idx)
                     {
-                        if (idx == 0)
+                        if (idx > 0)
                         {
-                            comma = CreateConstantString(", ");
-                        }
-                        else
-                        {
+                            comma ??= CreateConstantString(", ");
                             str = DoAppend(str, comma!, unreferenceNext: false);
                         }
                         str = DoAppend(str, ExpressionToString(tupleElements[idx]));
