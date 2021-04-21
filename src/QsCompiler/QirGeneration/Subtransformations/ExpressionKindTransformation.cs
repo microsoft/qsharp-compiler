@@ -199,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             bool unreferenceOriginal = false)
         {
             var (originalValue, accEx, updated) = copyAndUpdate;
-            void StoreElement(PointerValue pointer, IValue value, Value wasCopied, bool shallow = false)
+            void StoreElement(PointerValue pointer, IValue value, bool shallow = false)
             {
                 // To better understand the logic in this function, consider the following example for an array of arrays
                 // (the same logic applies to tuples/udts):
@@ -267,7 +267,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var forceCopy = sharedState.Context.CreateConstant(false);
                 var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
                 var array = sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
-                var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, originalArray.OpaquePointer, array.OpaquePointer);
                 sharedState.ScopeMgr.RegisterValue(array);
 
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
@@ -279,7 +278,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var newElement = getNewItemForIndex(index);
-                    StoreElement(elementPtr, newElement, wasCopied);
+                    StoreElement(elementPtr, newElement);
                 }
 
                 if (accEx.ResolvedType.Resolution.IsInt)
@@ -325,7 +324,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateUdt(TupleValue originalValue)
             {
-                (Value, TupleValue) GetTupleCopy(TupleValue original)
+                TupleValue GetTupleCopy(TupleValue original)
                 {
                     // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
                     // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
@@ -336,11 +335,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var tuple = original.TypeName == null
                         ? sharedState.Values.FromTuple(copy, original.ElementTypes)
                         : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
-                    var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, original.OpaquePointer, tuple.OpaquePointer);
-                    return (wasCopied, tuple);
+                    return tuple;
                 }
 
-                var (wasCopied, value) = GetTupleCopy(originalValue);
+                var value = GetTupleCopy(originalValue);
                 sharedState.ScopeMgr.RegisterValue(value);
 
                 var udtName = originalValue.TypeName;
@@ -361,7 +359,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         if (depth == location.Count - 1)
                         {
                             var newItemValue = sharedState.EvaluateSubexpression(updated);
-                            StoreElement(itemPointer, newItemValue, wasCopied);
+                            StoreElement(itemPointer, newItemValue);
                         }
                         else
                         {
@@ -370,8 +368,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             // such that we can then proceed to modify that copy (the next inner tuple).
                             var originalItem = (TupleValue)itemPointer.LoadValue();
                             var copyReturn = GetTupleCopy(originalItem);
-                            copies.Push(copyReturn.Item2);
-                            StoreElement(itemPointer, copies.Peek(), copyReturn.Item1, shallow: true);
+                            copies.Push(copyReturn);
+                            StoreElement(itemPointer, copies.Peek(), shallow: true);
                         }
                     }
 
