@@ -77,8 +77,7 @@ let ``QIR inlined call`` () = qirTest true "TestInline"
 let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
-let ``QIR reference counts`` () =
-    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
+let ``QIR reference counts`` () = qirTest false "TestReferenceCounts"
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
