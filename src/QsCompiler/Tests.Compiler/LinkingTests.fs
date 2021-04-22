@@ -3,18 +3,13 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System
-open System.Collections.Generic
-open System.Collections.Immutable
-open System.IO
 open Microsoft.Quantum.QsCompiler
 open Microsoft.Quantum.QsCompiler.CompilationBuilder
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
-open Microsoft.Quantum.QsCompiler.ReservedKeywords.AssemblyConstants
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
-open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
+open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 open Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
@@ -22,15 +17,14 @@ open Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 open Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 open Microsoft.Quantum.QsCompiler.Transformations.Targeting
 open Microsoft.VisualStudio.LanguageServer.Protocol
+open System
+open System.Collections.Generic
+open System.Collections.Immutable
+open System.IO
 open Xunit
-open Xunit.Abstractions
 
-
-type LinkingTests(output: ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile(
-        Path.Combine("TestCases", "LinkingTests"),
-        [ "Core.qs"; "InvalidEntryPoints.qs" ]
-    ))
+type LinkingTests() =
+    inherit CompilerTests(LinkingTests.Compile())
 
     let compilationManager =
         new CompilationUnitManager(new Action<Exception>(fun ex -> failwith ex.Message), isExecutable = true)
@@ -79,6 +73,9 @@ type LinkingTests(output: ITestOutputHelper) =
             |> ignore
 
         Path.Combine("TestCases", "LinkingTests", "Core.qs") |> Path.GetFullPath |> addOrUpdateSourceFile
+
+    static member private Compile() =
+        CompilerTests.Compile(Path.Combine("TestCases", "LinkingTests"), [ "Core.qs"; "InvalidEntryPoints.qs" ])
 
     static member private ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine("TestCases", "LinkingTests", fileName) |> File.ReadAllText
