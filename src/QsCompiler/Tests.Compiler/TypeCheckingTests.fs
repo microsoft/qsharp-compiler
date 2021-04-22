@@ -128,7 +128,7 @@ type TypeCheckingTests() =
         this.Expect
             "CommonBaseType2"
             [
-                ErrorCode.TypeIntersectionMismatch
+                Error ErrorCode.TypeIntersectionMismatch
                 Warning WarningCode.DeprecatedNewArray
                 Warning WarningCode.DeprecatedNewArray
             ]
@@ -136,7 +136,7 @@ type TypeCheckingTests() =
         this.Expect
             "CommonBaseType3"
             [
-                ErrorCode.TypeIntersectionMismatch
+                Error ErrorCode.TypeIntersectionMismatch
                 Warning WarningCode.DeprecatedNewArray
                 Warning WarningCode.DeprecatedNewArray
             ]
@@ -144,7 +144,7 @@ type TypeCheckingTests() =
         this.Expect
             "CommonBaseType4"
             [
-                ErrorCode.TypeIntersectionMismatch
+                Error ErrorCode.TypeIntersectionMismatch
                 Warning WarningCode.DeprecatedNewArray
                 Warning WarningCode.DeprecatedNewArray
             ]
@@ -175,7 +175,7 @@ type TypeCheckingTests() =
         this.Expect
             "CommonBaseType20"
             [
-                ErrorCode.TypeIntersectionMismatch
+                Error ErrorCode.TypeIntersectionMismatch
                 Warning WarningCode.DeprecatedNewArray
                 Warning WarningCode.DeprecatedNewArray
             ]
