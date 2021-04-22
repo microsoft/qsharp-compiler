@@ -840,8 +840,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal GlobalVariable GetOrCreateCallableTable(QsCallable callable)
         {
-            var key = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
-            if (this.callableTables.TryGetValue(key, out (QsCallable, GlobalVariable) item))
+            var tableName = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
+            if (this.callableTables.TryGetValue(tableName, out (QsCallable, GlobalVariable) item))
             {
                 return item.Item2;
             }
@@ -849,12 +849,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 IrFunction? BuildSpec(QsSpecializationKind kind) =>
                     callable.Specializations.Any(spec => spec.Kind == kind &&
-                    (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic))
-                        ? this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
-                        : null;
-                var table = this.CreateCallableTable(key, BuildSpec);
-                this.callableTables.Add(key, (callable, table));
-                this.pendingCallableTables.Add(key);
+                        (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic))
+                            ? this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
+                            : null;
+
+                var table = this.CreateCallableTable(tableName, BuildSpec);
+                this.callableTables.Add(tableName, (callable, table));
+                this.pendingCallableTables.Add(tableName);
                 return table;
             }
         }
@@ -898,6 +899,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Given the value passed to a function that implements a Q# callable specialization with the given argument type,
+        /// constructs a TupleValue of suitable type.
+        /// </summary>
+        internal TupleValue AsArgumentTuple(ResolvedType argType, Value argTuple)
+        {
+            if (argType.Resolution is ResolvedTypeKind.UserDefinedType udt)
+            {
+                return this.Values.FromCustomType(argTuple, udt.Item);
+            }
+            else
+            {
+                var itemTypes =
+                    argType.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
+                    argType.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
+                    ImmutableArray.Create(argType);
+                return this.Values.FromTuple(argTuple, itemTypes);
+            }
+        }
+
+        /// <summary>
         /// Sets the current function to the given one and sets the parameter names to the given names.
         /// Populates the body of the given function by invoking the given action with the function parameters.
         /// If the current block after the invokation is not terminated, adds a void return.
@@ -930,47 +951,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Callables within QIR are bundles of four functions. When callables are assigned to variable or
-        /// passed around, which one of these functions is ultimately invoked is strictly runtime information.
-        /// For each declared callable, a constant array with four IrFunction values represents the bundle.
-        /// All functions have the same type (accessible via Types.FunctionSignature), namely they take three
-        /// opaque tuples and return void.
-        /// <br/>
-        /// A callable value is then created by specifying the global constant with the bundle as well as the
-        /// capture tuple (which is the first of the three tuples that is passed to a function upon invokation).
-        /// It can be invoked by providing the remaining two tuples; the argument tuple and the output tuple.
-        /// In order to invoke the concrete implementation of a function, the argument tuple first needs to be
-        /// cast to its concrete type and its item need to be assigned to the corresponding variables if need.
-        /// Similarly, the output tuple needs to be populated with the computed value before exiting.
-        /// We create a separate "wrapper" function to do just that; it casts and deconstructs the argument
-        /// tuple, invokes the concrete implementation, and populates the output tuple.
-        /// <br/>
-        /// In cases where it is clear at generation time which concreate implementation needs to be invoked,
-        /// we directly invoke that function. The global constant for the bundle and the wrapper functions
-        /// hence only need to be created when callable values are assigned or passed around. Callables for
-        /// which this is the case are hence accumulated during the sytnax tree transformation, and the
-        /// corresponding wrappers are generated only upon emission by invoking this method.
-        /// Additionally, this method generates all necessary partial applications and all necessary functions
-        /// for managing reference counts for capture tuples.
+        /// Creates a function wrapper that takes three tuples as arguments, and returns void. The wrapper
+        /// takes a tuple with the captured values, one with the function arguments, and one to store the function return values.
+        /// It extracts the function arguments from the corresponding tuple, calls into the given implementation with them,
+        /// and populates the third tuple with the returned values.
         /// </summary>
-        internal void GenerateRequiredFunctions()
+        private void GenerateFunctionWrapper(IrFunction func, ResolvedSignature signature, Func<TupleValue, Value> implementation)
         {
-            TupleValue GetArgumentTuple(ResolvedType type, Value argTuple)
-            {
-                if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
-                {
-                    return this.Values.FromCustomType(argTuple, udt.Item);
-                }
-                else
-                {
-                    var itemTypes =
-                        type.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
-                        type.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
-                        ImmutableArray.Create(type);
-                    return this.Values.FromTuple(argTuple, itemTypes);
-                }
-            }
-
             // result value contains the return value, and output tuple is the tuple where that value should be stored
             void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value outputTuple)
             {
@@ -997,6 +984,40 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
+            this.GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, parameters =>
+            {
+                var argTuple = this.AsArgumentTuple(signature.ArgumentType, parameters[1]);
+                var result = implementation(argTuple);
+                PopulateResultTuple(signature.ReturnType, result, parameters[2]);
+            });
+        }
+
+        /// <summary>
+        /// Callables within QIR are bundles of four functions. When callables are assigned to variable or
+        /// passed around, which one of these functions is ultimately invoked is strictly runtime information.
+        /// For each declared callable, a constant array with four IrFunction values represents the bundle.
+        /// All functions have the same type (accessible via Types.FunctionSignature), namely they take three
+        /// opaque tuples and return void.
+        /// <br/>
+        /// A callable value is then created by specifying the global constant with the bundle as well as the
+        /// capture tuple (which is the first of the three tuples that is passed to a function upon invokation).
+        /// It can be invoked by providing the remaining two tuples; the argument tuple and the output tuple.
+        /// In order to invoke the concrete implementation of a function, the argument tuple first needs to be
+        /// cast to its concrete type and its item need to be assigned to the corresponding variables if need.
+        /// Similarly, the output tuple needs to be populated with the computed value before exiting.
+        /// We create a separate "wrapper" function to do just that; it casts and deconstructs the argument
+        /// tuple, invokes the concrete implementation, and populates the output tuple.
+        /// <br/>
+        /// In cases where it is clear at generation time which concreate implementation needs to be invoked,
+        /// we directly invoke that function. The global constant for the bundle and the wrapper functions
+        /// hence only need to be created when callable values are assigned or passed around. Callables for
+        /// which this is the case are hence accumulated during the sytnax tree transformation, and the
+        /// corresponding wrappers are generated only upon emission by invoking this method.
+        /// Additionally, this method generates all necessary partial applications and all necessary functions
+        /// for managing reference counts for capture tuples.
+        /// </summary>
+        internal void GenerateRequiredFunctions()
+        {
             Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
             {
                 if (TryGetTargetInstructionName(callable, out var name))
@@ -1013,23 +1034,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            foreach (var key in this.pendingCallableTables)
+            foreach (var tableName in this.pendingCallableTables)
             {
-                var (callable, _) = this.callableTables[key];
+                var (callable, _) = this.callableTables[tableName];
                 foreach (var spec in callable.Specializations)
                 {
                     var fullName = FunctionWrapperName(callable.FullName, spec.Kind);
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
                         && this.Module.TryGetFunction(fullName, out IrFunction? func))
                     {
-                        this.GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, parameters =>
+                        this.GenerateFunctionWrapper(func, spec.Signature, argTuple =>
                         {
-                            var argTuple = GetArgumentTuple(spec.Signature.ArgumentType, parameters[1]);
-                            var args = spec.Signature.ArgumentType.Resolution.IsUserDefinedType
-                                ? new[] { argTuple.TypedPointer }
-                                : argTuple.GetTupleElements().Select(qirValue => qirValue.Value).ToArray();
-                            var result = GenerateBaseMethodCall(callable, spec.Kind, args);
-                            PopulateResultTuple(callable.Signature.ReturnType, result, parameters[2]);
+                            if (spec.Kind == QsSpecializationKind.QsBody &&
+                                this.Functions.TryGetBuiltInImplementation(callable.FullName, out var implementation))
+                            {
+                                var arg =
+                                    spec.Signature.ArgumentType.Resolution.IsUserDefinedType ? argTuple :
+                                    argTuple.ElementTypes.Length > 1 ? argTuple :
+                                    argTuple.ElementTypes.Length == 1 ? argTuple.GetTupleElement(0) :
+                                    this.Values.Unit;
+                                return implementation(arg).Value;
+                            }
+                            else
+                            {
+                                var args = spec.Signature.ArgumentType.Resolution.IsUserDefinedType
+                                    ? new[] { argTuple.TypedPointer }
+                                    : argTuple.GetTupleElements().Select(qirValue => qirValue.Value).ToArray();
+                                return GenerateBaseMethodCall(callable, spec.Kind, args);
+                            }
                         });
                     }
                     else
@@ -1061,7 +1093,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.GenerateFunction(func, new[] { "capture-tuple", "count-change" }, parameters =>
                         {
-                            var capture = GetArgumentTuple(type, parameters[0]);
+                            var capture = this.AsArgumentTuple(type, parameters[0]);
                             updateCounts(parameters[1], capture);
                         });
                     }

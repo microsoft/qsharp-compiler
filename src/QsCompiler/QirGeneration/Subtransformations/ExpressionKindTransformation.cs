@@ -1995,13 +1995,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
 
-                ImmutableArray<ResolvedType> GetItemTypes(ResolvedType type) =>
-                    type.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item :
-                    ImmutableArray.Create(type);
-
                 void BuildPartialApplicationBody(IReadOnlyList<Argument> parameters)
                 {
-                    var captureTuple = this.SharedState.Values.FromTuple(parameters[0], GetItemTypes(captureType));
+                    var captureTuple = this.SharedState.AsArgumentTuple(captureType, parameters[0]);
                     TupleValue BuildControlledInnerArgument()
                     {
                         // The argument tuple given to the controlled version of the partial application consists of the array of control qubits
@@ -2026,9 +2022,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else
                     {
-                        var parArgsTuple = paArgsType.Resolution is ResolvedTypeKind.UserDefinedType udt
-                            ? this.SharedState.Values.FromCustomType(parameters[1], udt.Item)
-                            : this.SharedState.Values.FromTuple(parameters[1], GetItemTypes(paArgsType));
+                        var parArgsTuple = this.SharedState.AsArgumentTuple(paArgsType, parameters[1]);
                         var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
                         innerArg = typedInnerArg is TupleValue innerArgTuple
                             ? innerArgTuple
