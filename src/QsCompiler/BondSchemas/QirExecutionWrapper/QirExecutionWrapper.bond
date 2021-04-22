@@ -13,6 +13,7 @@ struct EntryPointOperation
 
 struct QirExecutionWrapper
 {
-    5: vector<EntryPointOperation>;
+    5: vector<EntryPointOperation> EntryPoints;
+
     10: blob QirBytecode;
 }
