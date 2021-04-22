@@ -172,6 +172,7 @@ let ``QIR partial applications`` () =
             "TestPartials3"
             "TestPartials4"
             "TestPartials5"
+            "TestPartials6"
         ]
 
 [<Fact>]

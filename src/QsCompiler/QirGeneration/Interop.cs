@@ -533,9 +533,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.sharedState.ScopeMgr.RegisterValue(result);
 
                 // print the return value
-                var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
-                var outputStr = QirExpressionKindTransformation.CreateStringLiteral(this.sharedState, "{0}", result);
-                this.sharedState.CurrentBuilder.Call(message, outputStr.Value);
+                if (!returnType.Resolution.IsUnitType)
+                {
+                    var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
+                    var outputStr = QirExpressionKindTransformation.CreateStringLiteral(this.sharedState, "{0}", result);
+                    this.sharedState.CurrentBuilder.Call(message, outputStr.Value);
+                }
 
                 this.sharedState.AddReturn(this.sharedState.Values.Unit, true);
             });

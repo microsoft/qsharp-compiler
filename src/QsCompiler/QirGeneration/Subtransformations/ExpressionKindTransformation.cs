@@ -2017,7 +2017,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ImmutableArray<ResolvedType> captureType, ImmutableArray<ResolvedType> paArgsTypes, PartialApplicationArgument partialArgs)
+            IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ResolvedType captureType, ResolvedType paArgsType, PartialApplicationArgument partialArgs)
             {
                 IValue ApplyFunctors(CallableValue innerCallable)
                 {
@@ -2046,13 +2046,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 void BuildPartialApplicationBody(IReadOnlyList<Argument> parameters)
                 {
-                    var captureTuple = this.SharedState.Values.FromTuple(parameters[0], captureType);
-                    TupleValue BuildControlledInnerArgument(ResolvedType paArgType)
+                    var captureTuple = this.SharedState.AsArgumentTuple(captureType, parameters[0]);
+                    TupleValue BuildControlledInnerArgument()
                     {
                         // The argument tuple given to the controlled version of the partial application consists of the array of control qubits
                         // as well as a tuple with the remaining arguments for the partial application.
                         // We need to cast the corresponding function parameter to the appropriate type and load both of these items.
-                        var ctlPaArgsTypes = ImmutableArray.Create(SyntaxGenerator.QubitArrayType, paArgType);
+                        var ctlPaArgsTypes = ImmutableArray.Create(SyntaxGenerator.QubitArrayType, paArgsType);
                         var ctlPaArgsTuple = this.SharedState.Values.FromTuple(parameters[1], ctlPaArgsTypes);
                         var ctlPaArgItems = ctlPaArgsTuple.GetTupleElements();
 
@@ -2067,14 +2067,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         // Deal with the extra control qubit arg for controlled and controlled-adjoint
                         // We special case if the base specialization only takes a single parameter and don't create the sub-tuple in this case.
-                        innerArg = BuildControlledInnerArgument(
-                            paArgsTypes.Length == 1
-                            ? paArgsTypes[0]
-                            : ResolvedType.New(ResolvedTypeKind.NewTupleType(paArgsTypes)));
+                        innerArg = BuildControlledInnerArgument();
                     }
                     else
                     {
-                        var parArgsTuple = this.SharedState.Values.FromTuple(parameters[1], paArgsTypes);
+                        var parArgsTuple = this.SharedState.AsArgumentTuple(paArgsType, parameters[1]);
                         var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
                         innerArg = typedInnerArg is TupleValue innerArgTuple
                             ? innerArgTuple
@@ -2108,10 +2105,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Figure out the inputs to the resulting callable based on the signature of the partial application expression
             var exType = this.SharedState.CurrentExpressionType();
             var callableArgType = CallableArgumentType(exType);
-            var paArgsTypes = callableArgType.Resolution is ResolvedTypeKind.TupleType itemTypes
-                ? itemTypes.Item
-                : ImmutableArray.Create(callableArgType);
-
             // Argument type of the callable that is partially applied
             var innerArgType = CallableArgumentType(method.ResolvedType);
 
@@ -2124,7 +2117,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var captured = ImmutableArray.CreateBuilder<TypedExpression>();
             captured.Add(method);
             var rebuild = BuildPartialArgList(innerArgType, arg, new List<ResolvedType>(), captured);
-            var captureElementTypes = captured.Select(element => element.ResolvedType).ToImmutableArray();
+            var captureType = ResolvedType.New(ResolvedTypeKind.NewTupleType(captured.Select(element => element.ResolvedType).ToImmutableArray()));
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
@@ -2144,7 +2137,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IrFunction? BuildSpec(QsSpecializationKind kind) =>
                 SupportsNecessaryFunctors(kind)
-                    ? BuildLiftedSpecialization(liftedName, kind, captureElementTypes, paArgsTypes, rebuild)
+                    ? BuildLiftedSpecialization(liftedName, kind, captureType, callableArgType, rebuild)
                     : null;
             var table = this.SharedState.GetOrCreateCallableTable(liftedName, BuildSpec);
             var value = this.SharedState.Values.CreateCallable(exType, table, captured.ToImmutable());
