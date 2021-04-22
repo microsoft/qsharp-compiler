@@ -323,11 +323,7 @@ let public PrintSummary (doc: string seq) markdown =
 
     if docComment <> null then
         let info = if markdown then docComment.FullSummary else docComment.ShortSummary
-
-        if String.IsNullOrWhiteSpace info then
-            ""
-        else
-            sprintf "%s%s%s" newLine newLine info
+        if String.IsNullOrWhiteSpace info then "" else sprintf "%s%s%s" newLine newLine info
     else
         ""
 
@@ -369,11 +365,7 @@ let private TypeName = TypeString.Apply
 
 let private CharacteristicsAnnotation (ex, format) =
     let charEx = SyntaxTreeToQsharp.CharacteristicsExpression ex
-
-    if String.IsNullOrWhiteSpace charEx then
-        ""
-    else
-        sprintf "is %s" charEx |> format
+    if String.IsNullOrWhiteSpace charEx then "" else sprintf "is %s" charEx |> format
 
 [<Extension>]
 let public TypeInfo (symbolTable: NamespaceManager) (currentNS, source) (qsType: QsType) markdown =

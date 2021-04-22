@@ -67,8 +67,7 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression) : (Circ
         let existing = Seq.indexed l |> Seq.tryPick (fun (i, ex) -> if expr = ex then Some(l, i) else None)
         let newList, index = existing |? (l.Add expr, l.Length)
 
-        if index > (1 <<< 29) then
-            ArgumentException "Trying to create too large of a circuit" |> raise
+        if index > (1 <<< 29) then ArgumentException "Trying to create too large of a circuit" |> raise
 
         newList, index
 

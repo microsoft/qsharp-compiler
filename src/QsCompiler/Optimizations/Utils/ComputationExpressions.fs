@@ -44,10 +44,7 @@ type internal MaybeBuilder() =
         )
 
     member this.While(guard, f) =
-        if not (guard ()) then
-            this.Zero()
-        else
-            this.Bind(f (), (fun () -> this.While(guard, f)))
+        if not (guard ()) then this.Zero() else this.Bind(f (), (fun () -> this.While(guard, f)))
 
     member this.For(sequence: seq<_>, body) =
         this.Using(

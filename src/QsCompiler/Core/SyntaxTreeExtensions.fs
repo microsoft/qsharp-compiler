@@ -18,12 +18,9 @@ open System.Linq
 
 
 let private OnTupleItems onSingle tupleName (items: ImmutableArray<'a>) =
-    if items.Length = 0 then
-        failwith (sprintf "empty tuple in %s instance" tupleName)
-    elif items.Length = 1 then
-        items.[0] |> onSingle
-    else
-        Some(items |> Seq.toList)
+    if items.Length = 0 then failwith (sprintf "empty tuple in %s instance" tupleName)
+    elif items.Length = 1 then items.[0] |> onSingle
+    else Some(items |> Seq.toList)
 
 
 type QsInitializer with

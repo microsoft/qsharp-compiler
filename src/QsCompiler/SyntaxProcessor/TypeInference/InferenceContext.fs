@@ -178,10 +178,7 @@ module private Inference =
             |> Some
         | Equal when characteristicsEqual info1 info2 ->
             let characteristics =
-                if info1.Characteristics.AreInvalid then
-                    info2.Characteristics
-                else
-                    info1.Characteristics
+                if info1.Characteristics.AreInvalid then info2.Characteristics else info1.Characteristics
 
             let inferred =
                 [ info1.InferredInformation; info2.InferredInformation ] |> InferredCallableInformation.Common
@@ -292,9 +289,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         if occursCheck param substitution |> not then failwith "Occurs check failed."
         let variable = variables.[param]
 
-        if Option.isSome variable.Substitution then
-            failwith "Type parameter is already bound."
-
+        if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
         variables.[param] <- { variable with Substitution = Some substitution }
 
     let rememberErrors types diagnostics =

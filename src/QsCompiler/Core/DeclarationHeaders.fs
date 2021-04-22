@@ -59,11 +59,7 @@ module DeclarationHeader =
             ) =
             if reader.ValueType <> typeof<String> || (string) reader.Value <> "Undefined" then
                 let offset = serializer.Deserialize<Position>(reader)
-
-                if Object.ReferenceEquals(offset, null) then
-                    Offset.Undefined
-                else
-                    Offset.Defined offset
+                if Object.ReferenceEquals(offset, null) then Offset.Undefined else Offset.Defined offset
             else
                 Offset.Undefined
 
@@ -85,11 +81,7 @@ module DeclarationHeader =
             ) =
             if reader.ValueType <> typeof<String> || (string) reader.Value <> "Undefined" then
                 let range = serializer.Deserialize<DataTypes.Range>(reader)
-
-                if Object.ReferenceEquals(range, null) then
-                    Range.Undefined
-                else
-                    Range.Defined range
+                if Object.ReferenceEquals(range, null) then Range.Undefined else Range.Defined range
             else
                 Range.Undefined
 
@@ -216,11 +208,7 @@ type TypeDeclarationHeader =
         let header = TypeDeclarationHeader.OfSchema schema
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
-        let header =
-            if attributesAreNullOrDefault then
-                { header with Attributes = ImmutableArray.Empty }
-            else
-                header // no reason to raise an error
+        let header = if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
 
         if not (Object.ReferenceEquals(header.TypeItems, null)) then
             success, header
@@ -351,11 +339,7 @@ type CallableDeclarationHeader =
         let header = CallableDeclarationHeader.OfSchema schema
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
-        let header =
-            if attributesAreNullOrDefault then
-                { header with Attributes = ImmutableArray.Empty }
-            else
-                header // no reason to raise an error
+        let header = if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
 
         let header = { header with ArgumentTuple = header.ArgumentTuple |> setInferredInfo }
 
@@ -479,11 +463,7 @@ type SpecializationDeclarationHeader =
         let typeArgsAreNull = Object.ReferenceEquals(header.TypeArguments, null)
         let attributesAreNullOrDefault = Object.ReferenceEquals(header.Attributes, null) || header.Attributes.IsDefault
 
-        let header =
-            if attributesAreNullOrDefault then
-                { header with Attributes = ImmutableArray.Empty }
-            else
-                header // no reason to raise an error
+        let header = if attributesAreNullOrDefault then { header with Attributes = ImmutableArray.Empty } else header // no reason to raise an error
 
         if not (infoIsNull || typeArgsAreNull) then
             success, header

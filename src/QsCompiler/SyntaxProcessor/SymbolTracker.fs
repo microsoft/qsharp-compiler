@@ -170,8 +170,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
 
     /// pops the most recent scope from the stack, thus closing it
     member this.EndScope() =
-        if pushedScopes.Length = 0 then
-            InvalidOperationException "no scope is currently open" |> raise
+        if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
 
         pushedScopes <- pushedScopes.Tail
 
@@ -186,8 +185,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// </summary>
     /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     member this.TryAddVariableDeclartion(decl: LocalVariableDeclaration<string>) =
-        if pushedScopes.Length = 0 then
-            InvalidOperationException "no scope is currently open" |> raise
+        if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
 
         if (globalTypeWithName (None, decl.VariableName)) <> NotFound then
             false,
@@ -222,8 +220,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// </summary>
     /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     member this.TryAddVariableDeclartion(decl: LocalVariableDeclaration<QsLocalSymbol>) =
-        if pushedScopes.Length = 0 then
-            InvalidOperationException "no scope is currently open" |> raise
+        if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
 
         match decl.VariableName with
         | InvalidName -> false, [||]
@@ -240,8 +237,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     /// <exception cref="InvalidOperationException"><paramref name="varName"/> is immutable.</exception>
     member internal this.UpdateQuantumDependency varName localQdep =
-        if pushedScopes.Length = 0 then
-            InvalidOperationException "no scope is currently open" |> raise
+        if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
 
         match localVariableWithName varName with
         | Value dict ->

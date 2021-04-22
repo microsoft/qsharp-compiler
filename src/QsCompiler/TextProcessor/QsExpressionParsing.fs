@@ -315,11 +315,7 @@ let internal numericLiteral =
 
         let str =
             let trimmed = nl.String.TrimStart '+'
-
-            if format = 10 || format = 0 then
-                trimmed
-            else
-                trimmed.Substring 2 |> sprintf "0%s" // leading 0 is required to keep numbers positive
+            if format = 10 || format = 0 then trimmed else trimmed.Substring 2 |> sprintf "0%s" // leading 0 is required to keep numbers positive
 
         let isInt = nl.IsInteger && format <> 0 && nl.SuffixLength = 0 // any format is fine here
 

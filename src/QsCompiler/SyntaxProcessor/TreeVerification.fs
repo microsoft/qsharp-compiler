@@ -166,11 +166,9 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
             | None -> [ header |> (fun header -> header.Type) ]
             | Some parent ->
                 if typeIndex <> parent then
-                    if not (containedTypes.[parent].Contains typeIndex) then
-                        containedTypes.[parent].Add typeIndex
+                    if not (containedTypes.[parent].Contains typeIndex) then containedTypes.[parent].Add typeIndex
 
-                    if not (containedIn.[typeIndex].Contains parent) then
-                        containedIn.[typeIndex].Add parent
+                    if not (containedIn.[typeIndex].Contains parent) then containedIn.[typeIndex].Add parent
                 else
                     (source,
                      (getLocation header).Range |> QsCompilerDiagnostic.Error(ErrorCode.TypeCannotContainItself, []))

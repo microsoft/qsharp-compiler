@@ -146,8 +146,7 @@ let ``attaching attributes to callables`` () =
         spec
 
     let checkType (customType: QsCustomType) =
-        if customType |> QsCustomType |> WithinNamespace attGenNs then
-            Assert.Empty customType.Attributes
+        if customType |> QsCustomType |> WithinNamespace attGenNs then Assert.Empty customType.Attributes
 
         customType
 

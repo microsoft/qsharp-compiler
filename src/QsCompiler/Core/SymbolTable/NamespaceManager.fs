@@ -512,12 +512,9 @@ type NamespaceManager
             // known attribute
             | Value tId ->
                 let attributeHash =
-                    if tId |> isBuiltIn BuiltIn.Deprecated then
-                        hash (tId.Namespace, tId.Name)
-                    elif tId |> isBuiltIn BuiltIn.EnableTestingViaName then
-                        hash (tId.Namespace, tId.Name)
-                    else
-                        hash (tId.Namespace, tId.Name, NamespaceManager.ExpressionHash att.Argument)
+                    if tId |> isBuiltIn BuiltIn.Deprecated then hash (tId.Namespace, tId.Name)
+                    elif tId |> isBuiltIn BuiltIn.EnableTestingViaName then hash (tId.Namespace, tId.Name)
+                    else hash (tId.Namespace, tId.Name, NamespaceManager.ExpressionHash att.Argument)
 
                 // the attribute is a duplication of another attribute on this declaration
                 if alreadyDefined.Contains attributeHash then
@@ -1338,10 +1335,7 @@ type NamespaceManager
             ns.CallablesInReferencedAssemblies.[callableName.Name]
             |> Seq.map
                 (fun callable ->
-                    if callable.Access |> Access.isAccessibleFrom OtherAssembly then
-                        Found callable
-                    else
-                        Inaccessible)
+                    if callable.Access |> Access.isAccessibleFrom OtherAssembly then Found callable else Inaccessible)
             |> ResolutionResult.AtMostOne
 
         let findInSources (ns: Namespace) =

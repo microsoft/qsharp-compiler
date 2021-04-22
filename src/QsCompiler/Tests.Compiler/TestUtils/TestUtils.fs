@@ -360,12 +360,9 @@ let testOne parser (str, succExp, resExp, diagsExp) =
         sprintf
             "String %s: %s"
             str
-            (if not succOk then
-                 sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
-             elif not resOk then
-                 sprintf "expected result %A but received %A" resExp res.Value
-             else
-                 sprintf "expected errors %A but received %A" diagsExp diags)
+            (if not succOk then sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
+             elif not resOk then sprintf "expected result %A but received %A" resExp res.Value
+             else sprintf "expected errors %A but received %A" diagsExp diags)
     )
 
 let internal testType (str, result, diagnostics) =
@@ -393,10 +390,7 @@ let testExpr (str, succExp, resExp, diagsExp) =
         sprintf
             "Expression %s: %s"
             str
-            (if not succOk then
-                 sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
-             elif not resOk then
-                 sprintf "expected result %A but received %A" resExp res.Value
-             else
-                 sprintf "expected errors %A but received %A" diagsExp diags)
+            (if not succOk then sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
+             elif not resOk then sprintf "expected result %A but received %A" resExp res.Value
+             else sprintf "expected errors %A but received %A" diagsExp diags)
     )

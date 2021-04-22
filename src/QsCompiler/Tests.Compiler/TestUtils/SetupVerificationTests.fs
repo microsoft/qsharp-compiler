@@ -142,8 +142,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 | Error _ -> None
                 | item -> Some item)
 
-        if other.Any() then
-            NotImplementedException "unknown diagnostics item to verify" |> raise
+        if other.Any() then NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
     static member Compile(srcFolder, fileNames, ?references, ?capability) =
@@ -166,7 +165,6 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         let compilation = manager.Build()
 
-        if not <| List.isEmpty exceptions then
-            exceptions |> List.rev |> AggregateException |> raise
+        if not <| List.isEmpty exceptions then exceptions |> List.rev |> AggregateException |> raise
 
         compilation

@@ -161,13 +161,7 @@ type Position =
     /// </exception>
     static member (-)(position: Position, offset: Position) =
         let line = position.Line - offset.Line
-
-        let column =
-            if position.Line = offset.Line then
-                position.Column - offset.Column
-            else
-                position.Column
-
+        let column = if position.Line = offset.Line then position.Column - offset.Column else position.Column
         Position(line, column)
 
     /// Returns true if the positions have the same line and column numbers.
@@ -243,8 +237,7 @@ type Range =
     /// Thrown if <paramref name="start"/> occurs after <paramref name="end"/>.
     /// </exception>
     static member Create start ``end`` =
-        if start > ``end`` then
-            ArgumentException "Range start cannot occur after range end." |> raise
+        if start > ``end`` then ArgumentException "Range start cannot occur after range end." |> raise
 
         Range(start, ``end``)
 

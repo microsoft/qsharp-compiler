@@ -164,8 +164,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
     member internal this.EvaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (stmtsLeft: int) =
         let callable = callables.[name]
 
-        if callable.Kind = Operation then
-            ArgumentException "Input is not a function" |> raise
+        if callable.Kind = Operation then ArgumentException "Input is not a function" |> raise
 
         if callable.Specializations.Length <> 1 then
             ArgumentException "Functions must have exactly one specialization" |> raise

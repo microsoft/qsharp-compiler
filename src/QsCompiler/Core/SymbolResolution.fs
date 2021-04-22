@@ -246,10 +246,7 @@ module SymbolResolution =
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute.
     let internal TryFindRedirectInUnresolved checkQualification attributes =
         let getRedirect (att: AttributeAnnotation) =
-            if att |> IndicatesDeprecation checkQualification then
-                Some att.Argument
-            else
-                None
+            if att |> IndicatesDeprecation checkQualification then Some att.Argument else None
 
         StringArgument(getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
@@ -276,10 +273,7 @@ module SymbolResolution =
             let pieces = str.Split '.'
             { Namespace = String.Join('.', pieces.Take(pieces.Length - 1)); Name = pieces.Last() }
 
-        if matchQualifiedName.Success then
-            Some(matchQualifiedName.Value |> asQualifiedName)
-        else
-            None
+        if matchQualifiedName.Success then Some(matchQualifiedName.Value |> asQualifiedName) else None
 
     /// Checks whether the given attributes define an alternative name that may be used when loading a type or callable for testing purposes.
     /// Returns the qualified name to use as Value if such a name is defined, or Null otherwise.
@@ -298,10 +292,7 @@ module SymbolResolution =
     /// The returned Value is based on the first attribute that indicates the original name.
     let TryGetOriginalName attributes =
         let loadedViaTestName (att: QsDeclarationAttribute) =
-            if att |> BuiltIn.DefinesLoadedViaTestNameInsteadOf then
-                Some att.Argument
-            else
-                None
+            if att |> BuiltIn.DefinesLoadedViaTestNameInsteadOf then Some att.Argument else None
 
         StringArgument(loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead

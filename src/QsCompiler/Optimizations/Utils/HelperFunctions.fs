@@ -292,8 +292,7 @@ let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpressi
 
 /// Computes exponentiation for 64-bit integers
 let internal longPow (a: int64) (b: int64) : int64 =
-    if b < 0L then
-        failwithf "Negative power %d not supported for integer exponentiation." b
+    if b < 0L then failwithf "Negative power %d not supported for integer exponentiation." b
 
     let mutable x = a
     let mutable power = b

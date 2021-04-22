@@ -124,10 +124,7 @@ type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
             serializer.Deserialize<CharacteristicsKind<ResolvedCharacteristics>>(reader)
             |> ResolvedCharacteristics.New
         with :? JsonSerializationException as ex ->
-            if ignoreSerializationException then
-                ResolvedCharacteristics.New InvalidSetExpr
-            else
-                raise ex
+            if ignoreSerializationException then ResolvedCharacteristics.New InvalidSetExpr else raise ex
 
     override this.WriteJson(writer: JsonWriter, value: ResolvedCharacteristics, serializer: JsonSerializer) =
         serializer.Serialize(writer, value.Expression)

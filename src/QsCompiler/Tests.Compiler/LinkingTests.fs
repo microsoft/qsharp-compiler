@@ -61,11 +61,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let references = IdentifierReferences(name, defaultOffset)
         Seq.iter (references.Namespaces.OnNamespace >> ignore) namespaces
 
-        let declaration =
-            if obj.ReferenceEquals(references.SharedState.DeclarationLocation, null) then
-                0
-            else
-                1
+        let declaration = if obj.ReferenceEquals(references.SharedState.DeclarationLocation, null) then 0 else 1
 
         references.SharedState.Locations.Count + declaration
 

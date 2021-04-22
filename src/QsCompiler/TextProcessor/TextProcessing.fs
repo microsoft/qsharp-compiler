@@ -110,10 +110,7 @@ let HeaderDelimiters nrHeaders =
 
     splitHeaders
     |>> fun (following, range) ->
-            if nrHeaders <= following.Length then
-                Range.Create range.Start following.[nrHeaders - 1]
-            else
-                range
+            if nrHeaders <= following.Length then Range.Create range.Start following.[nrHeaders - 1] else range
     |> GetDelimiters
 
 /// Parse an illegal array item update set statement for use by the copy-and-update recommendation code action.
