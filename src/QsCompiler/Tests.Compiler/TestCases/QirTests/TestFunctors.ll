@@ -1,13 +1,13 @@
 define i64 @Microsoft__Quantum__Testing__QIR__TestControlled__body() #0 {
 entry:
-  %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
-  %1 = bitcast %Tuple* %0 to { %Callable*, i64 }*
-  %2 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %1, i32 0, i32 0
-  %3 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %1, i32 0, i32 1
-  %4 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
-  store %Callable* %4, %Callable** %2, align 8
-  store i64 1, i64* %3, align 4
-  %qop = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, [2 x void (%Tuple*, i32)*]* @MemoryManagement__1, %Tuple* %0)
+  %0 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__Qop, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ %Callable*, i64 }* getelementptr ({ %Callable*, i64 }, { %Callable*, i64 }* null, i32 1) to i64))
+  %2 = bitcast %Tuple* %1 to { %Callable*, i64 }*
+  %3 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %2, i32 0, i32 0
+  %4 = getelementptr inbounds { %Callable*, i64 }, { %Callable*, i64 }* %2, i32 0, i32 1
+  store %Callable* %0, %Callable** %3, align 8
+  store i64 1, i64* %4, align 4
+  %qop = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, [2 x void (%Tuple*, i32)*]* @MemoryManagement__1, %Tuple* %1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %qop, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %qop, i32 1)
   %adj_qop = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 false)
@@ -68,17 +68,17 @@ then0__2:                                         ; preds = %else__1
   br label %continue__2
 
 else__2:                                          ; preds = %else__1
-  %19 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %20 = bitcast %Tuple* %19 to { %Array*, %Qubit* }*
-  %21 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %20, i32 0, i32 0
-  %22 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %20, i32 0, i32 1
-  %23 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %24 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %23, i64 0)
-  %25 = bitcast i8* %24 to %Qubit**
-  store %Qubit* %q1, %Qubit** %25, align 8
-  store %Array* %23, %Array** %21, align 8
-  store %Qubit* %q3, %Qubit** %22, align 8
-  call void @__quantum__rt__callable_invoke(%Callable* %ctl_qop, %Tuple* %19, %Tuple* null)
+  %19 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %20 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %19, i64 0)
+  %21 = bitcast i8* %20 to %Qubit**
+  store %Qubit* %q1, %Qubit** %21, align 8
+  %22 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %23 = bitcast %Tuple* %22 to { %Array*, %Qubit* }*
+  %24 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %23, i32 0, i32 0
+  %25 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %23, i32 0, i32 1
+  store %Array* %19, %Array** %24, align 8
+  store %Qubit* %q3, %Qubit** %25, align 8
+  call void @__quantum__rt__callable_invoke(%Callable* %ctl_qop, %Tuple* %22, %Tuple* null)
   %26 = call %Result* @__quantum__qis__mz(%Qubit* %q3)
   %27 = call %Result* @__quantum__rt__result_get_one()
   %28 = call i1 @__quantum__rt__result_equal(%Result* %26, %Result* %27)
@@ -90,17 +90,17 @@ then0__3:                                         ; preds = %else__2
   br label %continue__3
 
 else__3:                                          ; preds = %else__2
-  %30 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %31 = bitcast %Tuple* %30 to { %Array*, %Qubit* }*
-  %32 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %31, i32 0, i32 0
-  %33 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %31, i32 0, i32 1
-  %34 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %35 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %34, i64 0)
-  %36 = bitcast i8* %35 to %Qubit**
-  store %Qubit* %q2, %Qubit** %36, align 8
-  store %Array* %34, %Array** %32, align 8
-  store %Qubit* %q3, %Qubit** %33, align 8
-  call void @__quantum__rt__callable_invoke(%Callable* %adj_ctl_qop, %Tuple* %30, %Tuple* null)
+  %30 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %31 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %30, i64 0)
+  %32 = bitcast i8* %31 to %Qubit**
+  store %Qubit* %q2, %Qubit** %32, align 8
+  %33 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %34 = bitcast %Tuple* %33 to { %Array*, %Qubit* }*
+  %35 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %34, i32 0, i32 0
+  %36 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %34, i32 0, i32 1
+  store %Array* %30, %Array** %35, align 8
+  store %Qubit* %q3, %Qubit** %36, align 8
+  call void @__quantum__rt__callable_invoke(%Callable* %adj_ctl_qop, %Tuple* %33, %Tuple* null)
   %37 = call %Result* @__quantum__qis__mz(%Qubit* %q3)
   %38 = call %Result* @__quantum__rt__result_get_zero()
   %39 = call i1 @__quantum__rt__result_equal(%Result* %37, %Result* %38)
@@ -112,27 +112,27 @@ then0__4:                                         ; preds = %else__3
   br label %continue__4
 
 else__4:                                          ; preds = %else__3
-  %41 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %42 = bitcast %Tuple* %41 to { %Array*, { %Array*, %Qubit* }* }*
-  %43 = getelementptr inbounds { %Array*, { %Array*, %Qubit* }* }, { %Array*, { %Array*, %Qubit* }* }* %42, i32 0, i32 0
-  %44 = getelementptr inbounds { %Array*, { %Array*, %Qubit* }* }, { %Array*, { %Array*, %Qubit* }* }* %42, i32 0, i32 1
-  %45 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %46 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %45, i64 0)
-  %47 = bitcast i8* %46 to %Qubit**
-  store %Qubit* %q1, %Qubit** %47, align 8
-  %48 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %49 = bitcast %Tuple* %48 to { %Array*, %Qubit* }*
-  %50 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %49, i32 0, i32 0
-  %51 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %49, i32 0, i32 1
-  %52 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %53 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %52, i64 0)
-  %54 = bitcast i8* %53 to %Qubit**
-  store %Qubit* %q2, %Qubit** %54, align 8
-  store %Array* %52, %Array** %50, align 8
-  store %Qubit* %q3, %Qubit** %51, align 8
-  store %Array* %45, %Array** %43, align 8
-  store { %Array*, %Qubit* }* %49, { %Array*, %Qubit* }** %44, align 8
-  call void @__quantum__rt__callable_invoke(%Callable* %ctl_ctl_qop, %Tuple* %41, %Tuple* null)
+  %41 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %42 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %41, i64 0)
+  %43 = bitcast i8* %42 to %Qubit**
+  store %Qubit* %q1, %Qubit** %43, align 8
+  %44 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %45 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %44, i64 0)
+  %46 = bitcast i8* %45 to %Qubit**
+  store %Qubit* %q2, %Qubit** %46, align 8
+  %47 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %48 = bitcast %Tuple* %47 to { %Array*, %Qubit* }*
+  %49 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %48, i32 0, i32 0
+  %50 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %48, i32 0, i32 1
+  store %Array* %44, %Array** %49, align 8
+  store %Qubit* %q3, %Qubit** %50, align 8
+  %51 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %52 = bitcast %Tuple* %51 to { %Array*, { %Array*, %Qubit* }* }*
+  %53 = getelementptr inbounds { %Array*, { %Array*, %Qubit* }* }, { %Array*, { %Array*, %Qubit* }* }* %52, i32 0, i32 0
+  %54 = getelementptr inbounds { %Array*, { %Array*, %Qubit* }* }, { %Array*, { %Array*, %Qubit* }* }* %52, i32 0, i32 1
+  store %Array* %41, %Array** %53, align 8
+  store { %Array*, %Qubit* }* %48, { %Array*, %Qubit* }** %54, align 8
+  call void @__quantum__rt__callable_invoke(%Callable* %ctl_ctl_qop, %Tuple* %51, %Tuple* null)
   %55 = call %Result* @__quantum__qis__mz(%Qubit* %q3)
   %56 = call %Result* @__quantum__rt__result_get_one()
   %57 = call i1 @__quantum__rt__result_equal(%Result* %55, %Result* %56)
@@ -147,20 +147,20 @@ else__5:                                          ; preds = %else__4
   %59 = call %Callable* @__quantum__rt__callable_copy(%Callable* %qop, i1 false)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %59, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %59)
-  %60 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %61 = bitcast %Tuple* %60 to { %Array*, %Qubit* }*
-  %62 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %61, i32 0, i32 0
-  %63 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %61, i32 0, i32 1
-  %64 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 2)
-  %65 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %64, i64 0)
-  %66 = bitcast i8* %65 to %Qubit**
-  %67 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %64, i64 1)
-  %68 = bitcast i8* %67 to %Qubit**
-  store %Qubit* %q1, %Qubit** %66, align 8
-  store %Qubit* %q2, %Qubit** %68, align 8
-  store %Array* %64, %Array** %62, align 8
-  store %Qubit* %q3, %Qubit** %63, align 8
-  call void @__quantum__rt__callable_invoke(%Callable* %59, %Tuple* %60, %Tuple* null)
+  %60 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 2)
+  %61 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %60, i64 0)
+  %62 = bitcast i8* %61 to %Qubit**
+  %63 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %60, i64 1)
+  %64 = bitcast i8* %63 to %Qubit**
+  store %Qubit* %q1, %Qubit** %62, align 8
+  store %Qubit* %q2, %Qubit** %64, align 8
+  %65 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %66 = bitcast %Tuple* %65 to { %Array*, %Qubit* }*
+  %67 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %66, i32 0, i32 0
+  %68 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %66, i32 0, i32 1
+  store %Array* %60, %Array** %67, align 8
+  store %Qubit* %q3, %Qubit** %68, align 8
+  call void @__quantum__rt__callable_invoke(%Callable* %59, %Tuple* %65, %Tuple* null)
   %69 = call %Result* @__quantum__qis__mz(%Qubit* %q3)
   %70 = call %Result* @__quantum__rt__result_get_zero()
   %71 = call i1 @__quantum__rt__result_equal(%Result* %69, %Result* %70)
@@ -185,37 +185,37 @@ else__6:                                          ; preds = %else__5
   call void @__quantum__rt__capture_update_reference_count(%Callable* %77, i32 1)
   call void @__quantum__rt__callable_make_controlled(%Callable* %77)
   call void @__quantum__rt__callable_make_adjoint(%Callable* %77)
-  %78 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %79 = bitcast %Tuple* %78 to { %Array*, { %Array*, { %Array*, %Qubit* }* }* }*
-  %80 = getelementptr inbounds { %Array*, { %Array*, { %Array*, %Qubit* }* }* }, { %Array*, { %Array*, { %Array*, %Qubit* }* }* }* %79, i32 0, i32 0
-  %81 = getelementptr inbounds { %Array*, { %Array*, { %Array*, %Qubit* }* }* }, { %Array*, { %Array*, { %Array*, %Qubit* }* }* }* %79, i32 0, i32 1
-  %82 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %83 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %82, i64 0)
-  %84 = bitcast i8* %83 to %Qubit**
-  store %Qubit* %q1, %Qubit** %84, align 8
-  %85 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %86 = bitcast %Tuple* %85 to { %Array*, { %Array*, %Qubit* }* }*
-  %87 = getelementptr inbounds { %Array*, { %Array*, %Qubit* }* }, { %Array*, { %Array*, %Qubit* }* }* %86, i32 0, i32 0
-  %88 = getelementptr inbounds { %Array*, { %Array*, %Qubit* }* }, { %Array*, { %Array*, %Qubit* }* }* %86, i32 0, i32 1
-  %89 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %90 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %89, i64 0)
-  %91 = bitcast i8* %90 to %Qubit**
-  store %Qubit* %q2, %Qubit** %91, align 8
-  %92 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
-  %93 = bitcast %Tuple* %92 to { %Array*, %Qubit* }*
-  %94 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %93, i32 0, i32 0
-  %95 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %93, i32 0, i32 1
-  %96 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
-  %97 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %96, i64 0)
-  %98 = bitcast i8* %97 to %Qubit**
-  store %Qubit* %q3, %Qubit** %98, align 8
-  store %Array* %96, %Array** %94, align 8
-  store %Qubit* %q4, %Qubit** %95, align 8
-  store %Array* %89, %Array** %87, align 8
-  store { %Array*, %Qubit* }* %93, { %Array*, %Qubit* }** %88, align 8
-  store %Array* %82, %Array** %80, align 8
-  store { %Array*, { %Array*, %Qubit* }* }* %86, { %Array*, { %Array*, %Qubit* }* }** %81, align 8
-  call void @__quantum__rt__callable_invoke(%Callable* %77, %Tuple* %78, %Tuple* null)
+  %78 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %79 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %78, i64 0)
+  %80 = bitcast i8* %79 to %Qubit**
+  store %Qubit* %q1, %Qubit** %80, align 8
+  %81 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %82 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %81, i64 0)
+  %83 = bitcast i8* %82 to %Qubit**
+  store %Qubit* %q2, %Qubit** %83, align 8
+  %84 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  %85 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %84, i64 0)
+  %86 = bitcast i8* %85 to %Qubit**
+  store %Qubit* %q3, %Qubit** %86, align 8
+  %87 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %88 = bitcast %Tuple* %87 to { %Array*, %Qubit* }*
+  %89 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %88, i32 0, i32 0
+  %90 = getelementptr inbounds { %Array*, %Qubit* }, { %Array*, %Qubit* }* %88, i32 0, i32 1
+  store %Array* %84, %Array** %89, align 8
+  store %Qubit* %q4, %Qubit** %90, align 8
+  %91 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %92 = bitcast %Tuple* %91 to { %Array*, { %Array*, %Qubit* }* }*
+  %93 = getelementptr inbounds { %Array*, { %Array*, %Qubit* }* }, { %Array*, { %Array*, %Qubit* }* }* %92, i32 0, i32 0
+  %94 = getelementptr inbounds { %Array*, { %Array*, %Qubit* }* }, { %Array*, { %Array*, %Qubit* }* }* %92, i32 0, i32 1
+  store %Array* %81, %Array** %93, align 8
+  store { %Array*, %Qubit* }* %88, { %Array*, %Qubit* }** %94, align 8
+  %95 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
+  %96 = bitcast %Tuple* %95 to { %Array*, { %Array*, { %Array*, %Qubit* }* }* }*
+  %97 = getelementptr inbounds { %Array*, { %Array*, { %Array*, %Qubit* }* }* }, { %Array*, { %Array*, { %Array*, %Qubit* }* }* }* %96, i32 0, i32 0
+  %98 = getelementptr inbounds { %Array*, { %Array*, { %Array*, %Qubit* }* }* }, { %Array*, { %Array*, { %Array*, %Qubit* }* }* }* %96, i32 0, i32 1
+  store %Array* %78, %Array** %97, align 8
+  store { %Array*, { %Array*, %Qubit* }* }* %92, { %Array*, { %Array*, %Qubit* }* }** %98, align 8
+  call void @__quantum__rt__callable_invoke(%Callable* %77, %Tuple* %95, %Tuple* null)
   %99 = call %Result* @__quantum__qis__mz(%Qubit* %q4)
   %100 = call %Result* @__quantum__rt__result_get_one()
   %101 = call i1 @__quantum__rt__result_equal(%Result* %99, %Result* %100)
@@ -232,12 +232,12 @@ continue__7:                                      ; preds = %then0__7, %else__6
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %74, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %77, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %77, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %82, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %89, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %96, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %92, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %85, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %78, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %78, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %81, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %84, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %87, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %91, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %95, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %99, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %q4)
   br label %continue__6
@@ -245,28 +245,28 @@ continue__7:                                      ; preds = %then0__7, %else__6
 continue__6:                                      ; preds = %continue__7, %then0__6
   call void @__quantum__rt__capture_update_reference_count(%Callable* %59, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %59, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %64, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %60, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %60, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %65, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %69, i32 -1)
   br label %continue__5
 
 continue__5:                                      ; preds = %continue__6, %then0__5
-  call void @__quantum__rt__array_update_reference_count(%Array* %45, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %52, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %48, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %41, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %41, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %44, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %47, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %51, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %55, i32 -1)
   br label %continue__4
 
 continue__4:                                      ; preds = %continue__5, %then0__4
-  call void @__quantum__rt__array_update_reference_count(%Array* %34, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %30, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %30, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %33, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %37, i32 -1)
   br label %continue__3
 
 continue__3:                                      ; preds = %continue__4, %then0__3
-  call void @__quantum__rt__array_update_reference_count(%Array* %23, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %19, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %26, i32 -1)
   br label %continue__2
 
@@ -292,7 +292,8 @@ continue__1:                                      ; preds = %continue__2, %then0
   call void @__quantum__rt__callable_update_alias_count(%Callable* %adj_ctl_qop, i32 -1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %ctl_ctl_qop, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %ctl_ctl_qop, i32 -1)
-  call void @__quantum__rt__capture_update_reference_count(%Callable* %qop, i32 -1)
+  call void @__quantum__rt__callable_update_reference_count(%Callable* %0, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %1, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %qop, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %adj_qop, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %adj_qop, i32 -1)
