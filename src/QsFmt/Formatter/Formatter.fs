@@ -34,12 +34,13 @@ let parse (source: string) =
 [<CompiledName "Format">]
 let format source =
     parse source
-    |> Result.map
-        (curry collapsedSpaces.Document ()
-         >> curry operatorSpacing.Document ()
-         >> curry newLines.Document ()
-         >> curry indentation.Document 0
-         >> printer.Document)
+    |> Result.map (
+        curry collapsedSpaces.Document ()
+        >> curry operatorSpacing.Document ()
+        >> curry newLines.Document ()
+        >> curry indentation.Document 0
+        >> printer.Document
+    )
 
 [<CompiledName "Identity">]
 let identity source =

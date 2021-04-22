@@ -13,8 +13,11 @@ open Xunit
 
 
 type AccessModifierTests() =
-    inherit CompilerTests(CompilerTests.Compile
-                              ("TestCases", [ "AccessModifiers.qs" ], [ File.ReadAllLines("ReferenceTargets.txt").[1] ]))
+    inherit CompilerTests(CompilerTests.Compile(
+        "TestCases",
+        [ "AccessModifiers.qs" ],
+        [ File.ReadAllLines("ReferenceTargets.txt").[1] ]
+    ))
 
     member private this.Expect name (diagnostics: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers"

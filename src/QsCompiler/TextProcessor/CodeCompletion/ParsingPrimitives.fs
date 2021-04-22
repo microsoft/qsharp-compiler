@@ -140,8 +140,8 @@ let manyR p shouldBacktrack stream =
         let consumedEot = (previousCharSatisfies ((<>) '\u0004') stream).Status = Ok
         stream.BacktrackTo(fst last.Result)
 
-        if ((notFollowedBy shouldBacktrack >>. notFollowedBy eot) stream).Status = Ok || consumedEot
-        then stream.BacktrackTo after
+        if ((notFollowedBy shouldBacktrack >>. notFollowedBy eot) stream).Status = Ok || consumedEot then
+            stream.BacktrackTo after
 
         Reply(snd last.Result)
 
@@ -179,7 +179,7 @@ let tuple1 p =
 let omittedSymbols = { parse = keyword "..."; id = "..." }
 
 /// Parses the unit value. The right bracket is optional if EOT occurs first.
-let unitValue: Parser<CompletionKind list, _> = term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
+let unitValue : Parser<CompletionKind list, _> = term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
 
 /// Creates an expression parser using the given prefix operator, infix operator, postfix operator, and term parsers.
 let createExpressionParser prefixOp infixOp postfixOp expTerm =

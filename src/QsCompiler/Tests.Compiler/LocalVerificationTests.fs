@@ -12,16 +12,17 @@ open Xunit
 
 
 type LocalVerificationTests() =
-    inherit CompilerTests(CompilerTests.Compile
-                              ("TestCases",
-                               [
-                                   "General.qs"
-                                   "LocalVerification.qs"
-                                   "Types.qs"
-                                   Path.Combine("LinkingTests", "Core.qs")
-                                   Path.Combine("StringParsingTests", "StringParsing.qs")
-                                   Path.Combine("StringParsingTests", "StringInterpolation.qs")
-                               ]))
+    inherit CompilerTests(CompilerTests.Compile(
+        "TestCases",
+        [
+            "General.qs"
+            "LocalVerification.qs"
+            "Types.qs"
+            Path.Combine("LinkingTests", "Core.qs")
+            Path.Combine("StringParsingTests", "StringParsing.qs")
+            Path.Combine("StringParsingTests", "StringInterpolation.qs")
+        ]
+    ))
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.LocalVerification"

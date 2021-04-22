@@ -59,124 +59,165 @@ let private deprecatedOp warning (parsedOp: string) =
 
     buildWarning (getPosition |>> precedingRange) warning
 
-qsExpression.AddOperator
-    (TernaryOperator
-        (qsCopyAndUpdateOp.op,
-         emptySpace,
-         qsCopyAndUpdateOp.cont,
-         emptySpace,
-         qsCopyAndUpdateOp.prec,
-         qsCopyAndUpdateOp.Associativity,
-         applyTerinary CopyAndUpdate))
+qsExpression.AddOperator(
+    TernaryOperator(
+        qsCopyAndUpdateOp.op,
+        emptySpace,
+        qsCopyAndUpdateOp.cont,
+        emptySpace,
+        qsCopyAndUpdateOp.prec,
+        qsCopyAndUpdateOp.Associativity,
+        applyTerinary CopyAndUpdate
+    )
+)
 
-qsExpression.AddOperator
-    (TernaryOperator
-        (qsConditionalOp.op,
-         emptySpace,
-         qsConditionalOp.cont,
-         emptySpace,
-         qsConditionalOp.prec,
-         qsConditionalOp.Associativity,
-         applyTerinary CONDITIONAL))
+qsExpression.AddOperator(
+    TernaryOperator(
+        qsConditionalOp.op,
+        emptySpace,
+        qsConditionalOp.cont,
+        emptySpace,
+        qsConditionalOp.prec,
+        qsConditionalOp.Associativity,
+        applyTerinary CONDITIONAL
+    )
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsRangeOp.op, emptySpace, qsRangeOp.prec, qsRangeOp.Associativity, (), applyBinary RangeLiteral))
+qsExpression.AddOperator(
+    InfixOperator(qsRangeOp.op, emptySpace, qsRangeOp.prec, qsRangeOp.Associativity, (), applyBinary RangeLiteral)
+)
 
 qsExpression.AddOperator(InfixOperator(qsORop.op, emptySpace, qsORop.prec, qsORop.Associativity, (), applyBinary OR))
 
-qsExpression.AddOperator
-    (InfixOperator(qsANDop.op, emptySpace, qsANDop.prec, qsANDop.Associativity, (), applyBinary AND))
+qsExpression.AddOperator(
+    InfixOperator(qsANDop.op, emptySpace, qsANDop.prec, qsANDop.Associativity, (), applyBinary AND)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsBORop.op, emptySpace, qsBORop.prec, qsBORop.Associativity, (), applyBinary BOR))
+qsExpression.AddOperator(
+    InfixOperator(qsBORop.op, emptySpace, qsBORop.prec, qsBORop.Associativity, (), applyBinary BOR)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsBXORop.op, emptySpace, qsBXORop.prec, qsBXORop.Associativity, (), applyBinary BXOR))
+qsExpression.AddOperator(
+    InfixOperator(qsBXORop.op, emptySpace, qsBXORop.prec, qsBXORop.Associativity, (), applyBinary BXOR)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsBANDop.op, emptySpace, qsBANDop.prec, qsBANDop.Associativity, (), applyBinary BAND))
+qsExpression.AddOperator(
+    InfixOperator(qsBANDop.op, emptySpace, qsBANDop.prec, qsBANDop.Associativity, (), applyBinary BAND)
+)
 
 qsExpression.AddOperator(InfixOperator(qsEQop.op, emptySpace, qsEQop.prec, qsEQop.Associativity, (), applyBinary EQ))
 
-qsExpression.AddOperator
-    (InfixOperator(qsNEQop.op, emptySpace, qsNEQop.prec, qsNEQop.Associativity, (), applyBinary NEQ))
+qsExpression.AddOperator(
+    InfixOperator(qsNEQop.op, emptySpace, qsNEQop.prec, qsNEQop.Associativity, (), applyBinary NEQ)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsLTEop.op, emptySpace, qsLTEop.prec, qsLTEop.Associativity, (), applyBinary LTE))
+qsExpression.AddOperator(
+    InfixOperator(qsLTEop.op, emptySpace, qsLTEop.prec, qsLTEop.Associativity, (), applyBinary LTE)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsGTEop.op, emptySpace, qsGTEop.prec, qsGTEop.Associativity, (), applyBinary GTE))
+qsExpression.AddOperator(
+    InfixOperator(qsGTEop.op, emptySpace, qsGTEop.prec, qsGTEop.Associativity, (), applyBinary GTE)
+)
 
-qsExpression.AddOperator
-    (InfixOperator
-        (qsLTop.op, notFollowedBy (pchar '-') >>. emptySpace, qsLTop.prec, qsLTop.Associativity, (), applyBinary LT))
+qsExpression.AddOperator(
+    InfixOperator(
+        qsLTop.op,
+        notFollowedBy (pchar '-') >>. emptySpace,
+        qsLTop.prec,
+        qsLTop.Associativity,
+        (),
+        applyBinary LT
+    )
+)
 
 qsExpression.AddOperator(InfixOperator(qsGTop.op, emptySpace, qsGTop.prec, qsGTop.Associativity, (), applyBinary GT))
 
-qsExpression.AddOperator
-    (InfixOperator(qsRSHIFTop.op, emptySpace, qsRSHIFTop.prec, qsRSHIFTop.Associativity, (), applyBinary RSHIFT))
+qsExpression.AddOperator(
+    InfixOperator(qsRSHIFTop.op, emptySpace, qsRSHIFTop.prec, qsRSHIFTop.Associativity, (), applyBinary RSHIFT)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsLSHIFTop.op, emptySpace, qsLSHIFTop.prec, qsLSHIFTop.Associativity, (), applyBinary LSHIFT))
+qsExpression.AddOperator(
+    InfixOperator(qsLSHIFTop.op, emptySpace, qsLSHIFTop.prec, qsLSHIFTop.Associativity, (), applyBinary LSHIFT)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsADDop.op, emptySpace, qsADDop.prec, qsADDop.Associativity, (), applyBinary ADD))
+qsExpression.AddOperator(
+    InfixOperator(qsADDop.op, emptySpace, qsADDop.prec, qsADDop.Associativity, (), applyBinary ADD)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsSUBop.op, emptySpace, qsSUBop.prec, qsSUBop.Associativity, (), applyBinary SUB))
+qsExpression.AddOperator(
+    InfixOperator(qsSUBop.op, emptySpace, qsSUBop.prec, qsSUBop.Associativity, (), applyBinary SUB)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsMULop.op, emptySpace, qsMULop.prec, qsMULop.Associativity, (), applyBinary MUL))
+qsExpression.AddOperator(
+    InfixOperator(qsMULop.op, emptySpace, qsMULop.prec, qsMULop.Associativity, (), applyBinary MUL)
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsMODop.op, emptySpace, qsMODop.prec, qsMODop.Associativity, (), applyBinary MOD))
+qsExpression.AddOperator(
+    InfixOperator(qsMODop.op, emptySpace, qsMODop.prec, qsMODop.Associativity, (), applyBinary MOD)
+)
 
-qsExpression.AddOperator
-    (InfixOperator
-        (qsDIVop.op, notFollowedBy (pchar '/') >>. emptySpace, qsDIVop.prec, qsDIVop.Associativity, (), applyBinary DIV))
+qsExpression.AddOperator(
+    InfixOperator(
+        qsDIVop.op,
+        notFollowedBy (pchar '/') >>. emptySpace,
+        qsDIVop.prec,
+        qsDIVop.Associativity,
+        (),
+        applyBinary DIV
+    )
+)
 
-qsExpression.AddOperator
-    (InfixOperator(qsPOWop.op, emptySpace, qsPOWop.prec, qsPOWop.Associativity, (), applyBinary POW))
+qsExpression.AddOperator(
+    InfixOperator(qsPOWop.op, emptySpace, qsPOWop.prec, qsPOWop.Associativity, (), applyBinary POW)
+)
 
 qsExpression.AddOperator(PrefixOperator(qsBNOTop.op, emptySpace, qsBNOTop.prec, true, (), applyUnary BNOT))
 
-qsExpression.AddOperator
-    (PrefixOperator
-        (qsNOTop.op,
-         notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
-         qsNOTop.prec,
-         true,
-         (),
-         applyUnary NOT))
+qsExpression.AddOperator(
+    PrefixOperator(
+        qsNOTop.op,
+        notFollowedBy (many1Satisfy isSymbolContinuation) >>. emptySpace,
+        qsNOTop.prec,
+        true,
+        (),
+        applyUnary NOT
+    )
+)
 
 qsExpression.AddOperator(PrefixOperator(qsNEGop.op, emptySpace, qsNEGop.prec, true, (), applyUnary NEG))
 
-qsExpression.AddOperator
-    (PrefixOperator
-        ("!",
-         "!" |> deprecatedOp WarningCode.DeprecatedNOToperator >>. emptySpace,
-         qsNOTop.prec,
-         true,
-         (),
-         applyUnary NOT))
+qsExpression.AddOperator(
+    PrefixOperator(
+        "!",
+        "!" |> deprecatedOp WarningCode.DeprecatedNOToperator >>. emptySpace,
+        qsNOTop.prec,
+        true,
+        (),
+        applyUnary NOT
+    )
+)
 
-qsExpression.AddOperator
-    (InfixOperator
-        ("||",
-         "||" |> deprecatedOp WarningCode.DeprecatedORoperator >>. emptySpace,
-         qsORop.prec,
-         qsORop.Associativity,
-         (),
-         applyBinary OR))
+qsExpression.AddOperator(
+    InfixOperator(
+        "||",
+        "||" |> deprecatedOp WarningCode.DeprecatedORoperator >>. emptySpace,
+        qsORop.prec,
+        qsORop.Associativity,
+        (),
+        applyBinary OR
+    )
+)
 
-qsExpression.AddOperator
-    (InfixOperator
-        ("&&",
-         "&&" |> deprecatedOp WarningCode.DeprecatedANDoperator >>. emptySpace,
-         qsANDop.prec,
-         qsANDop.Associativity,
-         (),
-         applyBinary AND))
+qsExpression.AddOperator(
+    InfixOperator(
+        "&&",
+        "&&" |> deprecatedOp WarningCode.DeprecatedANDoperator >>. emptySpace,
+        qsANDop.prec,
+        qsANDop.Associativity,
+        (),
+        applyBinary AND
+    )
+)
 
 for op in qsExpression.Operators do
     qsArgument.AddOperator op
@@ -274,7 +315,11 @@ let internal numericLiteral =
 
         let str =
             let trimmed = nl.String.TrimStart '+'
-            if format = 10 || format = 0 then trimmed else trimmed.Substring 2 |> sprintf "0%s" // leading 0 is required to keep numbers positive
+
+            if format = 10 || format = 0 then
+                trimmed
+            else
+                trimmed.Substring 2 |> sprintf "0%s" // leading 0 is required to keep numbers positive
 
         let isInt = nl.IsInteger && format <> 0 && nl.SuffixLength = 0 // any format is fine here
 
@@ -313,8 +358,11 @@ let internal numericLiteral =
                     |> BigIntLiteral
                     |> returnWithRange
                 elif format = 2 || format = 8 then
-                    BigInteger.Parse
-                        (baseToHex (format, str), NumberStyles.AllowHexSpecifier, CultureInfo.InvariantCulture)
+                    BigInteger.Parse(
+                        baseToHex (format, str),
+                        NumberStyles.AllowHexSpecifier,
+                        CultureInfo.InvariantCulture
+                    )
                     |> BigIntLiteral
                     |> returnWithRange
                 else
@@ -351,14 +399,13 @@ let internal numericLiteral =
         // re-parse making sure to not process fractions ...
         let number omitFraction =
             numberLiteral
-                (if omitFraction
-                 then format - NumberLiteralOptions.AllowFraction
-                 else format)
+                (if omitFraction then format - NumberLiteralOptions.AllowFraction else format)
                 "number literal"
             >>= fun nl ->
-                    if nl.String.Chars(nl.String.Length - 1) <> '.'
-                    then preturn nl
-                    else notFollowedBy (pchar '.') >>. preturn nl
+                    if nl.String.Chars(nl.String.Length - 1) <> '.' then
+                        preturn nl
+                    else
+                        notFollowedBy (pchar '.') >>. preturn nl
         // note that on a first pass, all options *need* to be parsed together -> don't split into double and int!!
         attempt (number false) <|> attempt (number true)
 

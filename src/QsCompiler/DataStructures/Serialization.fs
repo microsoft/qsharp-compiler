@@ -44,8 +44,8 @@ type RangeConverter() =
         let start, end' = serializer.Deserialize<RangePosition * RangePosition> reader
         // For backwards compatibility, convert the serialized one-based positions to zero-based positions.
         Range.Create
-            (Position.Create (start.Line - 1) (start.Column - 1))
-            (Position.Create (end'.Line - 1) (end'.Column - 1))
+            (Position.Create(start.Line - 1) (start.Column - 1))
+            (Position.Create(end'.Line - 1) (end'.Column - 1))
 
     override this.WriteJson(writer: JsonWriter, range: Range, serializer: JsonSerializer) =
         // For backwards compatibility, convert the zero-based positions to one-based serialized positions.
@@ -58,11 +58,14 @@ type QsNullableLocationConverter(?ignoreSerializationException) =
     inherit JsonConverter<QsNullable<QsLocation>>()
     let ignoreSerializationException = defaultArg ignoreSerializationException false
 
-    override this.ReadJson(reader: JsonReader,
-                           objectType: Type,
-                           existingValue: QsNullable<QsLocation>,
-                           hasExistingValue: bool,
-                           serializer: JsonSerializer) =
+    override this.ReadJson
+        (
+            reader: JsonReader,
+            objectType: Type,
+            existingValue: QsNullable<QsLocation>,
+            hasExistingValue: bool,
+            serializer: JsonSerializer
+        ) =
         try
             if reader.ValueType <> typeof<String> || (string) reader.Value <> "Null" then
                 let token = JObject.Load(reader)
@@ -109,18 +112,22 @@ type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
     let ignoreSerializationException = defaultArg ignoreSerializationException false
 
     /// Returns an invalid expression if the deserialization fails and ignoreSerializationException was set to true upon initialization
-    override this.ReadJson(reader: JsonReader,
-                           objectType: Type,
-                           existingValue: ResolvedCharacteristics,
-                           hasExistingValue: bool,
-                           serializer: JsonSerializer) =
+    override this.ReadJson
+        (
+            reader: JsonReader,
+            objectType: Type,
+            existingValue: ResolvedCharacteristics,
+            hasExistingValue: bool,
+            serializer: JsonSerializer
+        ) =
         try
             serializer.Deserialize<CharacteristicsKind<ResolvedCharacteristics>>(reader)
             |> ResolvedCharacteristics.New
         with :? JsonSerializationException as ex ->
-            if ignoreSerializationException
-            then ResolvedCharacteristics.New InvalidSetExpr
-            else raise ex
+            if ignoreSerializationException then
+                ResolvedCharacteristics.New InvalidSetExpr
+            else
+                raise ex
 
     override this.WriteJson(writer: JsonWriter, value: ResolvedCharacteristics, serializer: JsonSerializer) =
         serializer.Serialize(writer, value.Expression)
@@ -129,11 +136,14 @@ type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
 type ResolvedInitializerConverter() =
     inherit JsonConverter<ResolvedInitializer>()
 
-    override this.ReadJson(reader: JsonReader,
-                           objectType: Type,
-                           existingValue: ResolvedInitializer,
-                           hasExistingValue: bool,
-                           serializer: JsonSerializer) =
+    override this.ReadJson
+        (
+            reader: JsonReader,
+            objectType: Type,
+            existingValue: ResolvedInitializer,
+            hasExistingValue: bool,
+            serializer: JsonSerializer
+        ) =
         serializer.Deserialize<QsInitializerKind<ResolvedInitializer, TypedExpression>>(reader)
         |> ResolvedInitializer.New
 
@@ -144,11 +154,14 @@ type ResolvedInitializerConverter() =
 type TypedExpressionConverter() =
     inherit JsonConverter<TypedExpression>()
 
-    override this.ReadJson(reader: JsonReader,
-                           objectType: Type,
-                           existingValue: TypedExpression,
-                           hasExistingValue: bool,
-                           serializer: JsonSerializer) =
+    override this.ReadJson
+        (
+            reader: JsonReader,
+            objectType: Type,
+            existingValue: TypedExpression,
+            hasExistingValue: bool,
+            serializer: JsonSerializer
+        ) =
         let (ex, paramRes, t, info, range) =
             serializer.Deserialize<QsExpressionKind<TypedExpression, Identifier, ResolvedType> * IEnumerable<QsQualifiedName * string * ResolvedType> * ResolvedType * InferredExpressionInformation * QsNullable<Range>>
                 reader
@@ -162,8 +175,10 @@ type TypedExpressionConverter() =
         }
 
     override this.WriteJson(writer: JsonWriter, value: TypedExpression, serializer: JsonSerializer) =
-        serializer.Serialize
-            (writer, (value.Expression, value.TypeArguments, value.ResolvedType, value.InferredInformation, value.Range))
+        serializer.Serialize(
+            writer,
+            (value.Expression, value.TypeArguments, value.ResolvedType, value.InferredInformation, value.Range)
+        )
 
 
 /// <summary>
@@ -366,11 +381,14 @@ type private QsCustomTypeConverter() =
 type QsNamespaceConverter() =
     inherit JsonConverter<QsNamespace>()
 
-    override this.ReadJson(reader: JsonReader,
-                           objectType: Type,
-                           existingValue: QsNamespace,
-                           hasExistingValue: bool,
-                           serializer: JsonSerializer) =
+    override this.ReadJson
+        (
+            reader: JsonReader,
+            objectType: Type,
+            existingValue: QsNamespace,
+            hasExistingValue: bool,
+            serializer: JsonSerializer
+        ) =
         let (nsName, elements) = serializer.Deserialize<string * IEnumerable<QsNamespaceElement>>(reader)
 
         {
@@ -390,16 +408,17 @@ type DictionaryAsArrayResolver() =
         let isDictionary (t: Type) =
             t = typedefof<IDictionary<_, _>>
             || (t.IsGenericType
-                && t.GetGenericTypeDefinition() = typeof<IDictionary<_, _>>.GetGenericTypeDefinition())
+                && t.GetGenericTypeDefinition() = typeof<IDictionary<_, _>>.GetGenericTypeDefinition ())
 
-        if objectType.GetInterfaces().Any(new Func<_, _>(isDictionary))
-        then base.CreateArrayContract(objectType) :> JsonContract
-        else base.CreateContract(objectType)
+        if objectType.GetInterfaces().Any(new Func<_, _>(isDictionary)) then
+            base.CreateArrayContract(objectType) :> JsonContract
+        else
+            base.CreateContract(objectType)
 
 
 module Json =
 
-    let Converters ignoreSerializationException: JsonConverter [] =
+    let Converters ignoreSerializationException : JsonConverter [] =
         [|
             PositionConverter()
             RangeConverter()

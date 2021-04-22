@@ -31,10 +31,13 @@ let ``Simple punctuation tests`` () =
     Assert.True(simpleParseString unitValue "()", "Unit value positive")
     Assert.True(simpleParseString unitValue "(   )", "Unit value positive 2")
 
-    Assert.True
-        (simpleParseString unitValue @"(
+    Assert.True(
+        simpleParseString
+            unitValue
+            @"(
     )",
-         "Unit value positive 3")
+        "Unit value positive 3"
+    )
 
     Assert.False(simpleParseString unitValue "unit", "Unit value negative")
 

@@ -149,8 +149,8 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
     let diagnostics = List<_>()
 
     let getLocation (header: TypeDeclarationHeader) =
-        header.Location.ValueOrApply(fun _ ->
-            ArgumentException "The given type header contains no location information." |> raise)
+        header.Location.ValueOrApply
+            (fun _ -> ArgumentException "The given type header contains no location information." |> raise)
 
     // for each defined type build a list of all user defined types it contains, and one with all types it is contained in (convenient for sorting later)
     let containedTypes = List.init definitions.Length (fun _ -> List<int>())
@@ -166,15 +166,16 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
             | None -> [ header |> (fun header -> header.Type) ]
             | Some parent ->
                 if typeIndex <> parent then
-                    if not (containedTypes.[parent].Contains typeIndex)
-                    then containedTypes.[parent].Add typeIndex
+                    if not (containedTypes.[parent].Contains typeIndex) then
+                        containedTypes.[parent].Add typeIndex
 
-                    if not (containedIn.[typeIndex].Contains parent)
-                    then containedIn.[typeIndex].Add parent
+                    if not (containedIn.[typeIndex].Contains parent) then
+                        containedIn.[typeIndex].Add parent
                 else
                     (source,
                      (getLocation header).Range |> QsCompilerDiagnostic.Error(ErrorCode.TypeCannotContainItself, []))
                     |> diagnostics.Add
+
                 []
 
     let getTypes location (vtype: ResolvedType) (rootIndex: int option) =
@@ -189,31 +190,32 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
 
     let walk_udts () = // builds up containedTypes and containedIn
         definitions
-        |> Seq.iteri (fun typeIndex header ->
-            let queue = Queue()
+        |> Seq.iteri
+            (fun typeIndex header ->
+                let queue = Queue()
 
-            let parent =
-                UserDefinedType.New(header.QualifiedName.Namespace, header.QualifiedName.Name)
-                |> UserDefinedType
-                |> ResolvedType.New
+                let parent =
+                    UserDefinedType.New(header.QualifiedName.Namespace, header.QualifiedName.Name)
+                    |> UserDefinedType
+                    |> ResolvedType.New
 
-            for entry in getTypes ((getLocation header).Offset, Source.assemblyOrCodeFile header.Source) parent None do
-                queue.Enqueue entry
+                for entry in getTypes ((getLocation header).Offset, Source.assemblyOrCodeFile header.Source) parent None do
+                    queue.Enqueue entry
 
-            let rec search () =
-                if queue.Count <> 0 then
-                    let ctypes =
-                        getTypes
-                            ((getLocation header).Offset, Source.assemblyOrCodeFile header.Source)
-                            (queue.Dequeue())
-                            (Some typeIndex)
+                let rec search () =
+                    if queue.Count <> 0 then
+                        let ctypes =
+                            getTypes
+                                ((getLocation header).Offset, Source.assemblyOrCodeFile header.Source)
+                                (queue.Dequeue())
+                                (Some typeIndex)
 
-                    for entry in ctypes do
-                        queue.Enqueue entry
+                        for entry in ctypes do
+                            queue.Enqueue entry
 
-                    search ()
+                        search ()
 
-            search ())
+                search ())
 
     walk_udts ()
 
@@ -245,7 +247,8 @@ let CheckDefinedTypesForCycles (definitions: ImmutableArray<TypeDeclarationHeade
              loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.TypeIsPartOfCyclicDeclaration, []))
             |> diagnostics.Add
 
-    diagnostics.ToLookup
-        (fst >> snd,
-         (fun ((position, _), diagnostic) ->
-             { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range }))
+    diagnostics.ToLookup(
+        fst >> snd,
+        (fun ((position, _), diagnostic) ->
+            { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range })
+    )

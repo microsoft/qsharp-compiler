@@ -34,7 +34,7 @@ and private NamespaceTransformationBase(parent: TransformationBase) =
     override this.OnNamespace x =
         let newX = base.OnNamespace x
 
-        if (x.Elements, x.Name) <> (newX.Elements, newX.Name)
-        then parent.Changed <- true
+        if (x.Elements, x.Name) <> (newX.Elements, newX.Name) then
+            parent.Changed <- true
 
         newX

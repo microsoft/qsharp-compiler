@@ -146,8 +146,8 @@ let ``attaching attributes to callables`` () =
         spec
 
     let checkType (customType: QsCustomType) =
-        if customType |> QsCustomType |> WithinNamespace attGenNs
-        then Assert.Empty customType.Attributes
+        if customType |> QsCustomType |> WithinNamespace attGenNs then
+            Assert.Empty customType.Attributes
 
         customType
 
@@ -175,10 +175,11 @@ let ``attaching attributes to callables`` () =
     checker.OnCompilation transformed |> ignore
 
     let transformed =
-        AttributeUtils.AddToCallables
-            (compilation,
-             struct (testAttribute, new Func<_, _>(predicate)),
-             struct (testAttribute, new Func<_, _>(predicate)))
+        AttributeUtils.AddToCallables(
+            compilation,
+            struct (testAttribute, new Func<_, _>(predicate)),
+            struct (testAttribute, new Func<_, _>(predicate))
+        )
 
     let checker = new CheckDeclarations(checkType, checkCallable attGenNs 2, checkSpec)
     checker.OnCompilation transformed |> ignore
@@ -191,12 +192,14 @@ let ``attaching attributes to callables`` () =
 [<Fact>]
 let ``generation of open statements`` () =
     let compilation =
-        buildSyntaxTree @"
+        buildSyntaxTree
+            @"
         namespace Microsoft.Quantum.Testing {
             operation emptyOperation () : Unit {}
         }"
 
     let ns = compilation.Namespaces |> Seq.head
+
     let source =
         match ns.Elements.Single() with
         | QsCallable callable -> Source.assemblyOrCodeFile callable.Source

@@ -22,7 +22,8 @@ module Trivia =
         | NewLine -> NewLine
         | Comment comment -> Comment comment
 
-    let spaces count = String.replicate count " " |> Whitespace
+    let spaces count =
+        String.replicate count " " |> Whitespace
 
     let newLine = NewLine
 
@@ -41,9 +42,7 @@ module Trivia =
     let (|Prefix|_|) (pattern: string) (input: string) =
         let result = Regex.Match(input, "^" + pattern)
 
-        if result.Success
-        then Some(result.Value, input.[result.Length..])
-        else None
+        if result.Success then Some(result.Value, input.[result.Length..]) else None
 
     let rec ofString =
         function

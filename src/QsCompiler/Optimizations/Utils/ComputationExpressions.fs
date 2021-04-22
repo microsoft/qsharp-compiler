@@ -35,21 +35,25 @@ type internal MaybeBuilder() =
             compensation ()
 
     member this.Using(res: #IDisposable, body) =
-        this.TryFinally
-            (body res,
-             (fun () ->
-                 match res with
-                 | null -> ()
-                 | disp -> disp.Dispose()))
+        this.TryFinally(
+            body res,
+            (fun () ->
+                match res with
+                | null -> ()
+                | disp -> disp.Dispose())
+        )
 
     member this.While(guard, f) =
-        if not (guard ())
-        then this.Zero()
-        else this.Bind(f (), (fun () -> this.While(guard, f)))
+        if not (guard ()) then
+            this.Zero()
+        else
+            this.Bind(f (), (fun () -> this.While(guard, f)))
 
     member this.For(sequence: seq<_>, body) =
-        this.Using
-            (sequence.GetEnumerator(), (fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current))))
+        this.Using(
+            sequence.GetEnumerator(),
+            (fun enum -> this.While(enum.MoveNext, this.Delay(fun () -> body enum.Current)))
+        )
 
 
 /// Represents the result of an imperative computation.
@@ -73,11 +77,11 @@ type Imperative<'a, 'b, 'c> = ('a -> ImperativeResult<'a, 'b, 'c>)
 /// A computation expression used to evaluate imperative, stateful code.
 type internal ImperativeBuilder() =
 
-    member this.Return(x: 'b): Imperative<'a, 'b, 'c> = (fun s -> Normal(x, s))
-    member this.ReturnFrom(m: Imperative<'a, 'b, 'c>): Imperative<'a, 'b, 'c> = m
+    member this.Return(x: 'b) : Imperative<'a, 'b, 'c> = (fun s -> Normal(x, s))
+    member this.ReturnFrom(m: Imperative<'a, 'b, 'c>) : Imperative<'a, 'b, 'c> = m
 
-    member this.Yield(x: 'c): Imperative<'a, 'b, 'c> = (fun _ -> Interrupt x)
-    member this.YieldFrom(m: Imperative<'a, 'b, 'c>): Imperative<'a, 'b, 'c> = m
+    member this.Yield(x: 'c) : Imperative<'a, 'b, 'c> = (fun _ -> Interrupt x)
+    member this.YieldFrom(m: Imperative<'a, 'b, 'c>) : Imperative<'a, 'b, 'c> = m
 
     member this.Bind(m: Imperative<'a, 'b, 'c>, f: 'b -> Imperative<'a, 'b2, 'c>) =
         fun s1 ->
@@ -86,7 +90,7 @@ type internal ImperativeBuilder() =
             | Break s2 -> Break s2
             | Interrupt x -> Interrupt x
 
-    member this.Zero(): Imperative<'a, Unit, 'c> = (fun s -> Normal((), s))
+    member this.Zero() : Imperative<'a, Unit, 'c> = (fun s -> Normal((), s))
 
     member this.Combine(m1: Imperative<'a, Unit, 'c>, m2: Imperative<'a, 'b, 'c>) =
         fun s1 ->
@@ -102,12 +106,12 @@ type internal ImperativeBuilder() =
             | Break s2 -> Normal((), s2)
             | Interrupt x -> Interrupt x
 
-    member this.Delay(f: Unit -> Imperative<'a, 'b, 'c>): Imperative<'a, 'b, 'c> = f ()
+    member this.Delay(f: Unit -> Imperative<'a, 'b, 'c>) : Imperative<'a, 'b, 'c> = f ()
 
     member this.While(guard: Unit -> Imperative<'a, bool, 'c>, f: Imperative<'a, Unit, 'c>) =
         fun s1 ->
             match guard () s1 with
-            | Normal (true, s2) -> this.CombineLoopIters (f, this.While(guard, f)) s2
+            | Normal (true, s2) -> this.CombineLoopIters(f, this.While(guard, f)) s2
             | Normal (false, s2) -> Normal((), s2)
             | Break _ -> Exception "Cannot break in condition of while loop" |> raise
             | Interrupt x -> Interrupt x
@@ -118,7 +122,7 @@ type internal ImperativeBuilder() =
         fun s1 ->
             match sequence with
             | [] -> Normal((), s1)
-            | head :: tail -> this.CombineLoopIters (body head, this.For(tail, body)) s1
+            | head :: tail -> this.CombineLoopIters(body head, this.For(tail, body)) s1
 
     member this.For(sequence: seq<'d>, body: 'd -> Imperative<'a, Unit, 'c>) = this.For(List.ofSeq sequence, body)
 
@@ -126,11 +130,11 @@ type internal ImperativeBuilder() =
 let internal imperative = ImperativeBuilder()
 
 /// Returns the current state of an imperative computation
-let internal getState: Imperative<'a, 'a, 'c> = fun s -> Normal(s, s)
+let internal getState : Imperative<'a, 'a, 'c> = fun s -> Normal(s, s)
 /// Sets the current state of an imperative computation to the given value
-let internal putState s: Imperative<'a, Unit, 'c> = fun _ -> Normal((), s)
+let internal putState s : Imperative<'a, Unit, 'c> = fun _ -> Normal((), s)
 /// Updates the current state of an imperative computation using the given function
-let internal updateState f: Imperative<'a, Unit, 'c> = fun s -> Normal((), f s)
+let internal updateState f : Imperative<'a, Unit, 'c> = fun s -> Normal((), f s)
 
 /// The monadic Bind() function as an infix operator
 let inline internal (>>=) m f = imperative.Bind(m, f)

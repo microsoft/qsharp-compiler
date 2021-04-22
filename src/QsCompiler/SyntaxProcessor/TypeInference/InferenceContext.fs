@@ -90,16 +90,18 @@ module private TypeContext =
     /// Descends into the respective children of each type, preserving the original types if the range of both the left
     /// and the right types do not change.
     let into (leftChild: ResolvedType) (rightChild: ResolvedType) context =
-        if leftChild.Range = context.Left.Range || rightChild.Range = context.Right.Range
-        then { context with Left = leftChild; Right = rightChild }
-        else create leftChild rightChild
+        if leftChild.Range = context.Left.Range || rightChild.Range = context.Right.Range then
+            { context with Left = leftChild; Right = rightChild }
+        else
+            create leftChild rightChild
 
     /// Descends into the respective children of each type, preserving the original types if the range of the right type
     /// does not change.
     let intoRight leftChild (rightChild: ResolvedType) context =
-        if rightChild.Range = context.Right.Range
-        then { context with Left = leftChild; Right = rightChild }
-        else create leftChild rightChild
+        if rightChild.Range = context.Right.Range then
+            { context with Left = leftChild; Right = rightChild }
+        else
+            create leftChild rightChild
 
     /// Swaps the left and right types.
     let swap context =
@@ -136,7 +138,7 @@ module private Inference =
         |> fun functors -> functors.Contains functor
 
     /// Shows the type as a string.
-    let showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
+    let showType : ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
     /// <summary>
     /// Describes a type with additional information.
@@ -176,7 +178,10 @@ module private Inference =
             |> Some
         | Equal when characteristicsEqual info1 info2 ->
             let characteristics =
-                if info1.Characteristics.AreInvalid then info2.Characteristics else info1.Characteristics
+                if info1.Characteristics.AreInvalid then
+                    info2.Characteristics
+                else
+                    info1.Characteristics
 
             let inferred =
                 [ info1.InferredInformation; info2.InferredInformation ] |> InferredCallableInformation.Common
@@ -227,8 +232,10 @@ module private Inference =
                 match combineCallableInfo ordering info1 info2 with
                 | Some info -> info, []
                 | None ->
-                    CallableInformation.New
-                        (ResolvedCharacteristics.New InvalidSetExpr, InferredCallableInformation.NoInformation),
+                    CallableInformation.New(
+                        ResolvedCharacteristics.New InvalidSetExpr,
+                        InferredCallableInformation.NoInformation
+                    ),
                     [ error ]
 
             QsTypeKind.Operation((input, output), info) |> ResolvedType.New,
@@ -251,11 +258,12 @@ module private Inference =
     /// An infinite sequence of alphabetic strings of increasing length in alphabetical order.
     let letters =
         Seq.initInfinite ((+) 1)
-        |> Seq.collect (fun length ->
-            seq { 'a' .. 'z' }
-            |> Seq.map string
-            |> Seq.replicate length
-            |> Seq.reduce (fun strings -> Seq.allPairs strings >> Seq.map String.Concat))
+        |> Seq.collect
+            (fun length ->
+                seq { 'a' .. 'z' }
+                |> Seq.map string
+                |> Seq.replicate length
+                |> Seq.reduce (fun strings -> Seq.allPairs strings >> Seq.map String.Concat))
 
     /// <summary>
     /// The set of type parameters contained in the given <paramref name="resolvedType"/>.
@@ -267,7 +275,8 @@ module private Inference =
             member this.OnTypeParameter param =
                 parameters <- parameters |> Set.add param
                 TypeParameter param
-        }.OnType resolvedType
+        }
+            .OnType resolvedType
         |> ignore
 
         parameters
@@ -283,8 +292,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         if occursCheck param substitution |> not then failwith "Occurs check failed."
         let variable = variables.[param]
 
-        if Option.isSome variable.Substitution
-        then failwith "Type parameter is already bound."
+        if Option.isSome variable.Substitution then
+            failwith "Type parameter is already bound."
+
         variables.[param] <- { variable with Substitution = Some substitution }
 
     let rememberErrors types diagnostics =
@@ -304,7 +314,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     variable.Constraints |> List.map Constraint.pretty |> String.concat ", "
                 ]
 
-            QsCompilerDiagnostic.Error (ErrorCode.AmbiguousTypeParameterResolution, args) variable.Source
+            QsCompilerDiagnostic.Error(ErrorCode.AmbiguousTypeParameterResolution, args) variable.Source
 
         variables
         |> Seq.filter (fun item -> not item.Value.HasError && Option.isNone item.Value.Substitution)
@@ -319,8 +329,9 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let param =
             Seq.initInfinite (fun i -> if i = 0 then name else name + string (i - 1))
             |> Seq.map (fun name -> QsTypeParameter.New(symbolTracker.Parent, name))
-            |> Seq.skipWhile (fun param ->
-                variables.ContainsKey param || symbolTracker.DefinedTypeParameters.Contains param.TypeName)
+            |> Seq.skipWhile
+                (fun param ->
+                    variables.ContainsKey param || symbolTracker.DefinedTypeParameters.Contains param.TypeName)
             |> Seq.head
 
         let variable =
@@ -419,19 +430,25 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     []
 
             context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
-            @ context.UnifyByOrdering
-                (ordering, types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2))
+            @ context.UnifyByOrdering(
+                ordering,
+                types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
+              )
               @ errors
         | QsTypeKind.Function (in1, out1), QsTypeKind.Function (in2, out2) ->
             context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
-            @ context.UnifyByOrdering
-                (ordering, types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2))
+            @ context.UnifyByOrdering(
+                ordering,
+                types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
+            )
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
             error
             :: context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
-            @ context.UnifyByOrdering
-                (ordering, types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2))
+            @ context.UnifyByOrdering(
+                ordering,
+                types |> TypeContext.intoRight (context.Resolve out1) (context.Resolve out2)
+            )
         | InvalidType, _
         | MissingType, _
         | _, InvalidType
@@ -449,7 +466,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | Constraint.Adjointable ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, info) when hasFunctor Adjoint info -> []
-            | _ -> [ QsCompilerDiagnostic.Error (ErrorCode.InvalidAdjointApplication, []) range ]
+            | _ -> [ QsCompilerDiagnostic.Error(ErrorCode.InvalidAdjointApplication, []) range ]
         | Callable (input, output) ->
             match resolvedType.Resolution with
             | QsTypeKind.Operation _ ->
@@ -459,7 +476,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 context.Unify(QsTypeKind.Function(input, output) |> ResolvedType.New, resolvedType)
             | _ ->
                 [
-                    QsCompilerDiagnostic.Error (ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
+                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
                 ]
         | CanGenerateFunctors functors ->
             match resolvedType.Resolution with
@@ -471,12 +488,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                     ErrorCode.MissingFunctorForAutoGeneration, [ missing |> Seq.map string |> String.concat "," ]
 
                 [
-                    if not info.Characteristics.AreInvalid && Set.isEmpty missing |> not
-                    then QsCompilerDiagnostic.Error error range
+                    if not info.Characteristics.AreInvalid && Set.isEmpty missing |> not then
+                        QsCompilerDiagnostic.Error error range
                 ]
             | _ -> []
         | Constraint.Controllable controlled ->
-            let error = QsCompilerDiagnostic.Error (ErrorCode.InvalidControlledApplication, []) range
+            let error = QsCompilerDiagnostic.Error(ErrorCode.InvalidControlledApplication, []) range
 
             match resolvedType.Resolution with
             | QsTypeKind.Operation ((input, output), info) ->
@@ -496,10 +513,10 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             | _ -> [ error ]
         | Equatable ->
             [
-                if Option.isNone resolvedType.supportsEqualityComparison
-                then QsCompilerDiagnostic.Error
-                         (ErrorCode.InvalidTypeInEqualityComparison, [ showType resolvedType ])
-                         range
+                if Option.isNone resolvedType.supportsEqualityComparison then
+                    QsCompilerDiagnostic.Error
+                        (ErrorCode.InvalidTypeInEqualityComparison, [ showType resolvedType ])
+                        range
             ]
         | HasPartialApplication (missing, result) ->
             match resolvedType.Resolution with
@@ -509,7 +526,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 context.Unify(result, QsTypeKind.Operation((missing, output), info) |> ResolvedType.New)
             | _ ->
                 [
-                    QsCompilerDiagnostic.Error (ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
+                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingCallableExpr, [ showType resolvedType ]) range
                 ]
         | Indexed (index, item) ->
             let index = context.Resolve index
@@ -525,38 +542,38 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 ]
             | _ ->
                 [
-                    QsCompilerDiagnostic.Error (ErrorCode.ItemAccessForNonArray, [ showType resolvedType ]) range
+                    QsCompilerDiagnostic.Error(ErrorCode.ItemAccessForNonArray, [ showType resolvedType ]) range
                 ]
         | Integral ->
             [
-                if resolvedType.Resolution <> Int && resolvedType.Resolution <> BigInt
-                then QsCompilerDiagnostic.Error (ErrorCode.ExpectingIntegralExpr, [ showType resolvedType ]) range
+                if resolvedType.Resolution <> Int && resolvedType.Resolution <> BigInt then
+                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingIntegralExpr, [ showType resolvedType ]) range
             ]
         | Iterable item ->
             match resolvedType.supportsIteration with
             | Some actualItem -> context.Unify(item, actualItem)
             | None ->
                 [
-                    QsCompilerDiagnostic.Error (ErrorCode.ExpectingIterableExpr, [ showType resolvedType ]) range
+                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingIterableExpr, [ showType resolvedType ]) range
                 ]
         | Numeric ->
             [
-                if Option.isNone resolvedType.supportsArithmetic
-                then QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeInArithmeticExpr, [ showType resolvedType ]) range
+                if Option.isNone resolvedType.supportsArithmetic then
+                    QsCompilerDiagnostic.Error(ErrorCode.InvalidTypeInArithmeticExpr, [ showType resolvedType ]) range
             ]
         | Semigroup ->
             [
-                if Option.isNone resolvedType.supportsConcatenation && Option.isNone resolvedType.supportsArithmetic
-                then QsCompilerDiagnostic.Error (ErrorCode.InvalidTypeForConcatenation, [ showType resolvedType ]) range
+                if Option.isNone resolvedType.supportsConcatenation && Option.isNone resolvedType.supportsArithmetic then
+                    QsCompilerDiagnostic.Error(ErrorCode.InvalidTypeForConcatenation, [ showType resolvedType ]) range
             ]
         | Wrapped item ->
             match resolvedType.Resolution with
             | UserDefinedType udt ->
-                let actualItem = symbolTracker.GetUnderlyingType (fun _ -> ()) udt
+                let actualItem = symbolTracker.GetUnderlyingType(fun _ -> ()) udt
                 context.Unify(item, actualItem)
             | _ ->
                 [
-                    QsCompilerDiagnostic.Error (ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
+                    QsCompilerDiagnostic.Error(ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
                 ]
 
     /// <summary>

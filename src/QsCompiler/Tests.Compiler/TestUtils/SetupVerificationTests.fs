@@ -34,15 +34,16 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
                 | TypeConstructor -> types.[c.FullName].Attributes
                 | _ -> c.Attributes
 
-            if attributes.Length = 0
-            then (c.Location.ValueOrApply(fun _ -> failwith "missing position information")).Offset
-            else attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
+            if attributes.Length = 0 then
+                (c.Location.ValueOrApply(fun _ -> failwith "missing position information")).Offset
+            else
+                attributes |> Seq.map (fun att -> att.Offset) |> Seq.sort |> Seq.head
 
         [
             for file in compilation.SourceFiles do
                 let containedCallables =
-                    callables.Where(fun kv ->
-                        Source.assemblyOrCodeFile kv.Value.Source = file && kv.Value.Location <> Null)
+                    callables.Where
+                        (fun kv -> Source.assemblyOrCodeFile kv.Value.Source = file && kv.Value.Location <> Null)
 
                 let locations =
                     containedCallables.Select(fun kv -> kv.Key, kv.Value |> getCallableStart)
@@ -72,50 +73,60 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         let got =
             diag.Where(fun d -> d.Severity = severity)
-            |> Seq.choose (fun d ->
-                match Diagnostics.TryGetCode d.Code with
-                | true, code -> Some code
-                | false, _ -> None)
+            |> Seq.choose
+                (fun d ->
+                    match Diagnostics.TryGetCode d.Code with
+                    | true, code -> Some code
+                    | false, _ -> None)
 
         let codeMismatch = expected.ToImmutableHashSet().SymmetricExcept got
         let gotLookup = got.ToLookup(new Func<_, _>(id))
         let expectedLookup = expected.ToLookup(new Func<_, _>(id))
         let nrMismatch = gotLookup.Where(fun g -> g.Count() <> expectedLookup.[g.Key].Count())
 
-        Assert.False
-            (codeMismatch.Any() || nrMismatch.Any(),
-             sprintf "%A code mismatch for %s.%s \nexpected: %s\ngot: %s" severity name.Namespace name.Name
-                 (String.Join(", ", expected)) (String.Join(", ", got)))
+        Assert.False(
+            codeMismatch.Any() || nrMismatch.Any(),
+            sprintf
+                "%A code mismatch for %s.%s \nexpected: %s\ngot: %s"
+                severity
+                name.Namespace
+                name.Name
+                (String.Join(", ", expected))
+                (String.Join(", ", got))
+        )
 
 
     member this.Verify(name, expected: IEnumerable<ErrorCode>) =
         let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Error) name expected
+        VerifyDiagnosticsOfSeverity(Nullable DiagnosticSeverity.Error) name expected
 
     member this.Verify(name, expected: IEnumerable<WarningCode>) =
         let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Warning) name expected
+        VerifyDiagnosticsOfSeverity(Nullable DiagnosticSeverity.Warning) name expected
 
     member this.Verify(name, expected: IEnumerable<InformationCode>) =
         let expected = expected.Select(fun code -> int code)
-        VerifyDiagnosticsOfSeverity (Nullable DiagnosticSeverity.Information) name expected
+        VerifyDiagnosticsOfSeverity(Nullable DiagnosticSeverity.Information) name expected
 
     member this.VerifyDiagnostics(name, expected: IEnumerable<DiagnosticItem>) =
         let errs =
             expected
-            |> Seq.choose (function
+            |> Seq.choose
+                (function
                 | Error err -> Some err
                 | _ -> None)
 
         let wrns =
             expected
-            |> Seq.choose (function
+            |> Seq.choose
+                (function
                 | Warning wrn -> Some wrn
                 | _ -> None)
 
         let infs =
             expected
-            |> Seq.choose (function
+            |> Seq.choose
+                (function
                 | Information inf -> Some inf
                 | _ -> None)
 
@@ -125,13 +136,14 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         let other =
             expected
-            |> Seq.choose (function
+            |> Seq.choose
+                (function
                 | Warning _
                 | Error _ -> None
                 | item -> Some item)
 
-        if other.Any()
-        then NotImplementedException "unknown diagnostics item to verify" |> raise
+        if other.Any() then
+            NotImplementedException "unknown diagnostics item to verify" |> raise
 
 
     static member Compile(srcFolder, fileNames, ?references, ?capability) =
@@ -154,7 +166,7 @@ type CompilerTests(compilation: CompilationUnitManager.Compilation) =
 
         let compilation = manager.Build()
 
-        if not <| List.isEmpty exceptions
-        then exceptions |> List.rev |> AggregateException |> raise
+        if not <| List.isEmpty exceptions then
+            exceptions |> List.rev |> AggregateException |> raise
 
         compilation

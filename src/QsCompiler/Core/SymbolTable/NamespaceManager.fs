@@ -28,12 +28,15 @@ open Newtonsoft.Json
 /// The namespace manager takes access modifiers into consideration when resolving symbols. Some methods bypass this
 /// (e.g., when returning a list of all declarations). Individual methods document whether they follow or ignore access
 /// modifiers.
-type NamespaceManager(syncRoot: IReaderWriterLock,
-                      callablesInRefs: IEnumerable<CallableDeclarationHeader>,
-                      specializationsInRefs: IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
-                      typesInRefs: IEnumerable<TypeDeclarationHeader>,
-                      runtimeCapability,
-                      isExecutable) =
+type NamespaceManager
+    (
+        syncRoot: IReaderWriterLock,
+        callablesInRefs: IEnumerable<CallableDeclarationHeader>,
+        specializationsInRefs: IEnumerable<SpecializationDeclarationHeader * SpecializationImplementation>,
+        typesInRefs: IEnumerable<TypeDeclarationHeader>,
+        runtimeCapability,
+        isExecutable
+    ) =
     // This class itself does not use any concurrency,
     // so anything that is accessible within the class only does not apply any locks.
     // IMPORTANT: the syncRoot is intentionally not exposed externally, since with this class supporting mutation
@@ -58,8 +61,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let namespacesInRefs = (getKeys callables).Concat(getKeys specializations).Concat(getKeys types) |> Seq.distinct
 
         for nsName in namespacesInRefs do
-            namespaces.Add
-                (nsName, new Namespace(nsName, [], callables.[nsName], specializations.[nsName], types.[nsName]))
+            namespaces.Add(
+                nsName,
+                new Namespace(nsName, [], callables.[nsName], specializations.[nsName], types.[nsName])
+            )
 
         namespaces
 
@@ -67,14 +72,17 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     let GetEntryPoints () =
         let entryPoints =
             Namespaces.Values
-            |> Seq.collect (fun ns ->
-                ns.CallablesDefinedInAllSources()
-                |> Seq.choose (fun kvPair ->
-                    let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
+            |> Seq.collect
+                (fun ns ->
+                    ns.CallablesDefinedInAllSources()
+                    |> Seq.choose
+                        (fun kvPair ->
+                            let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
 
-                    if decl.ResolvedAttributes |> Seq.exists BuiltIn.MarksEntryPoint
-                    then Some({ Namespace = ns.Name; Name = cName }, source)
-                    else None))
+                            if decl.ResolvedAttributes |> Seq.exists BuiltIn.MarksEntryPoint then
+                                Some({ Namespace = ns.Name; Name = cName }, source)
+                            else
+                                None))
 
         entryPoints.ToImmutableArray()
 
@@ -125,20 +133,22 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let parentNs () =
             Namespaces.TryGetValue nsName
             |> tryOption
-            |> Option.defaultWith (fun () ->
-                SymbolNotFoundException "The namespace with the given name was not found." |> raise)
+            |> Option.defaultWith
+                (fun () -> SymbolNotFoundException "The namespace with the given name was not found." |> raise)
 
         let nsAlias =
             Namespaces.TryGetValue
             >> tryOption
-            >> Option.orElseWith (fun () ->
-                QsCompilerError.Raise "The corresponding namespace for a namespace short name could not be found."
-                None)
+            >> Option.orElseWith
+                (fun () ->
+                    QsCompilerError.Raise "The corresponding namespace for a namespace short name could not be found."
+                    None)
 
         Namespaces.TryGetValue qualifier
         |> tryOption
-        |> Option.orElseWith (fun () ->
-            (parentNs().NamespaceShortNames source).TryGetValue qualifier |> tryOption |> Option.bind nsAlias)
+        |> Option.orElseWith
+            (fun () ->
+                (parentNs().NamespaceShortNames source).TryGetValue qualifier |> tryOption |> Option.bind nsAlias)
 
     /// <summary>
     /// Returns the possible qualifications for the built-in type or callable used in the given namespace and source.
@@ -151,8 +161,9 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         match Namespaces.TryGetValue nsName with
         | true, ns when ns.Sources.Contains source ->
             match (ns.ImportedNamespaces source).TryGetValue builtIn.FullName.Namespace with
-            | true, null when not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.IsAccessible)
-                              || nsName = builtIn.FullName.Namespace -> [ ""; builtIn.FullName.Namespace ]
+            | true, null when
+                not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.IsAccessible)
+                || nsName = builtIn.FullName.Namespace -> [ ""; builtIn.FullName.Namespace ]
             | true, null -> [ builtIn.FullName.Namespace ] // the built-in type or callable is shadowed
             | true, alias -> [ alias; builtIn.FullName.Namespace ]
             | false, _ -> [ builtIn.FullName.Namespace ]
@@ -181,21 +192,23 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     ({ Namespace = ns; Name = symName }, symRange.ValueOr Range.Zero)
                     deprecation
 
-            Some
-                ({
-                     Namespace = ns
-                     Name = symName
-                     Range = symRange
-                 },
-                 declSource,
-                 access),
+            Some(
+                {
+                    Namespace = ns
+                    Name = symName
+                    Range = symRange
+                },
+                declSource,
+                access
+            ),
             Array.append errs warnings
 
         let error code args =
-            None, [| QsCompilerDiagnostic.Error (code, args) (symRange.ValueOr Range.Zero) |]
+            None, [| QsCompilerDiagnostic.Error(code, args) (symRange.ValueOr Range.Zero) |]
 
         let findUnqualified () =
-            match resolveInOpenNamespaces (fun ns -> ns.TryFindType(symName, checkQualificationForDeprecation))
+            match resolveInOpenNamespaces
+                      (fun ns -> ns.TryFindType(symName, checkQualificationForDeprecation))
                       (parentNS, source) with
             | Found (nsName, (declSource, deprecation, access)) -> success nsName declSource deprecation access [||]
             | Ambiguous namespaces ->
@@ -266,7 +279,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         syncRoot.EnterReadLock()
 
         try
-            SymbolResolution.ResolveType (processUDT, processTP) qsType
+            SymbolResolution.ResolveType(processUDT, processTP) qsType
         finally
             syncRoot.ExitReadLock()
 
@@ -277,8 +290,8 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let udtRange = udtRange |> QsNullable.defaultValue Range.Zero
 
         [|
-            if udtAccess < parentAccess
-            then yield QsCompilerDiagnostic.Error (code, [ udt.Name; parent ]) udtRange
+            if udtAccess < parentAccess then
+                yield QsCompilerDiagnostic.Error(code, [ udt.Name; parent ]) udtRange
         |]
 
     /// <summary>
@@ -310,10 +323,11 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 let specializations = ns.SpecializationsDefinedInAllSources parent.Name
 
                 if hasCharacteristics || specializations.Any(fst >> (<>) QsBody) then
-                    errs.Add
-                        (decl.Position,
-                         signature.Characteristics.Range.ValueOr decl.Range
-                         |> QsCompilerDiagnostic.Error(ErrorCode.InvalidEntryPointSpecialization, []))
+                    errs.Add(
+                        decl.Position,
+                        signature.Characteristics.Range.ValueOr decl.Range
+                        |> QsCompilerDiagnostic.Error(ErrorCode.InvalidEntryPointSpecialization, [])
+                    )
 
             // validate entry point argument and return type
             let rec validateArgAndReturnTypes (isArg, inArray) (t: QsType) =
@@ -348,7 +362,9 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 | ArrayType bt -> validateArgAndReturnTypes (isArg, true) bt
                 | _ -> Seq.empty
 
-            let validateArgAndReturnTypes isArg = validateArgAndReturnTypes (isArg, false)
+            let validateArgAndReturnTypes isArg =
+                validateArgAndReturnTypes (isArg, false)
+
             let inErrs = signature.Argument.Items.Select snd |> Seq.collect (validateArgAndReturnTypes true)
             let outErrs = signature.ReturnType |> validateArgAndReturnTypes false
             let signatureErrs = inErrs.Concat outErrs
@@ -357,20 +373,22 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             // currently, only return values of type Result, Result[], and tuples thereof are supported on quantum processors
             if runtimeCapability <> FullComputation then
                 let invalid =
-                    signature.ReturnType.ExtractAll(fun t ->
-                        match t.Type with
-                        | Result
-                        | ArrayType _
-                        | TupleType _
-                        | InvalidType -> Seq.empty
-                        | _ -> Seq.singleton t)
+                    signature.ReturnType.ExtractAll
+                        (fun t ->
+                            match t.Type with
+                            | Result
+                            | ArrayType _
+                            | TupleType _
+                            | InvalidType -> Seq.empty
+                            | _ -> Seq.singleton t)
 
                 if invalid.Any() then
-                    errs.Add
-                        (decl.Position,
-                         signature.ReturnType.Range
-                         |> orDefault
-                         |> QsCompilerDiagnostic.Warning(WarningCode.NonResultTypeReturnedInEntryPoint, []))
+                    errs.Add(
+                        decl.Position,
+                        signature.ReturnType.Range
+                        |> orDefault
+                        |> QsCompilerDiagnostic.Warning(WarningCode.NonResultTypeReturnedInEntryPoint, [])
+                    )
 
             // validate entry point argument names
             let asCommandLineArg (str: string) =
@@ -390,15 +408,17 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             let verifyArgument i (arg, range: QsNullable<_>) =
                 if i > 0 && simplifiedArgNames.[..i - 1] |> Seq.map fst |> Seq.contains arg then
-                    errs.Add
-                        (decl.Position,
-                         range.ValueOr decl.Range
-                         |> QsCompilerDiagnostic.Error(ErrorCode.DuplicateEntryPointArgumentName, []))
+                    errs.Add(
+                        decl.Position,
+                        range.ValueOr decl.Range
+                        |> QsCompilerDiagnostic.Error(ErrorCode.DuplicateEntryPointArgumentName, [])
+                    )
                 elif reservedCommandLineArgs.Contains arg then
-                    errs.Add
-                        (decl.Position,
-                         range.ValueOr decl.Range
-                         |> QsCompilerDiagnostic.Warning(WarningCode.ReservedEntryPointArgumentName, []))
+                    errs.Add(
+                        decl.Position,
+                        range.ValueOr decl.Range
+                        |> QsCompilerDiagnostic.Warning(WarningCode.ReservedEntryPointArgumentName, [])
+                    )
 
             simplifiedArgNames |> List.iteri verifyArgument
 
@@ -406,8 +426,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             if signatureErrs.Any() then
                 false, errs
             elif not isExecutable then
-                errs.Add
-                    (offset, range |> orDefault |> QsCompilerDiagnostic.Warning(WarningCode.EntryPointInLibrary, []))
+                errs.Add(
+                    offset,
+                    range |> orDefault |> QsCompilerDiagnostic.Warning(WarningCode.EntryPointInLibrary, [])
+                )
 
                 false, errs
             else
@@ -490,11 +512,12 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             // known attribute
             | Value tId ->
                 let attributeHash =
-                    if tId |> isBuiltIn BuiltIn.Deprecated
-                    then hash (tId.Namespace, tId.Name)
-                    elif tId |> isBuiltIn BuiltIn.EnableTestingViaName
-                    then hash (tId.Namespace, tId.Name)
-                    else hash (tId.Namespace, tId.Name, NamespaceManager.ExpressionHash att.Argument)
+                    if tId |> isBuiltIn BuiltIn.Deprecated then
+                        hash (tId.Namespace, tId.Name)
+                    elif tId |> isBuiltIn BuiltIn.EnableTestingViaName then
+                        hash (tId.Namespace, tId.Name)
+                    else
+                        hash (tId.Namespace, tId.Name, NamespaceManager.ExpressionHash att.Argument)
 
                 // the attribute is a duplication of another attribute on this declaration
                 if alreadyDefined.Contains attributeHash then
@@ -510,9 +533,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     let register, msgs = validateEntryPoint parent (att.Offset, att.TypeIdRange) decl
                     errs.AddRange msgs
 
-                    if register
-                    then attributeHash :: alreadyDefined, att :: resAttr
-                    else alreadyDefined, { att with TypeId = Null } :: resAttr
+                    if register then
+                        attributeHash :: alreadyDefined, att :: resAttr
+                    else
+                        alreadyDefined, { att with TypeId = Null } :: resAttr
 
                 // the attribute marks a unit test
                 elif tId |> isBuiltIn BuiltIn.Test then
@@ -530,8 +554,8 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                         | _ -> false
 
                     match box decl.Defined with
-                    | :? CallableSignature as signature when signature |> isUnitToUnit
-                                                             && not (signature.TypeParameters.Any()) ->
+                    | :? CallableSignature as signature when
+                        signature |> isUnitToUnit && not (signature.TypeParameters.Any()) ->
                         let arg =
                             att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument(fun ex -> ex.Expression)
 
@@ -682,34 +706,38 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// May throw an exception if the given parent and/or source file is inconsistent with the defined callables.
     /// </summary>
     /// <exception cref="ArgumentException"><paramref name="specBundleCharacteristics"/> is empty.</exception>
-    member private this.ResolveCallableSignature (parentKind, parentName: QsQualifiedName, source, access)
-                                                 (signature, specBundleCharacteristics)
-                                                 =
+    member private this.ResolveCallableSignature
+        (parentKind, parentName: QsQualifiedName, source, access)
+        (signature, specBundleCharacteristics)
+        =
         let checkAccess = checkUdtAccess ErrorCode.TypeLessAccessibleThanParentCallable (parentName.Name, access)
 
         let resolveType tpNames qsType =
             let res, errs = resolveType (parentName, tpNames, source) qsType checkAccess
             if parentKind <> TypeConstructor then res, errs else res.WithoutRangeInfo, errs // strip positional info for auto-generated type constructors
 
-        SymbolResolution.ResolveCallableSignature (resolveType, specBundleCharacteristics) signature
+        SymbolResolution.ResolveCallableSignature(resolveType, specBundleCharacteristics) signature
 
 
     /// Sets the Resolved property for all type and callable declarations to Null, and the ResolvedAttributes to an empty array.
     /// Unless the clearing is forced, does nothing if the symbols are not currently resolved.
-    member private this.ClearResolutions ?force =
+    member private this.ClearResolutions?force =
         let force = defaultArg force false
 
         if this.ContainsResolutions || force then
             for ns in Namespaces.Values do
                 for kvPair in ns.TypesDefinedInAllSources() do
-                    ns.SetTypeResolution (fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
+                    ns.SetTypeResolution(fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
 
                 for kvPair in ns.CallablesDefinedInAllSources() do
-                    ns.SetSpecializationResolutions
-                        (kvPair.Key, (fun _ _ -> Null, [||]), (fun _ _ -> ImmutableArray.Empty, [||]))
+                    ns.SetSpecializationResolutions(
+                        kvPair.Key,
+                        (fun _ _ -> Null, [||]),
+                        (fun _ _ -> ImmutableArray.Empty, [||])
+                    )
                     |> ignore
 
-                    ns.SetCallableResolution (fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
+                    ns.SetCallableResolution(fst kvPair.Value) (kvPair.Key, Null, ImmutableArray.Empty)
 
             this.ContainsResolutions <- false
 
@@ -720,38 +748,44 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         // Since attributes are declared as types, we first need to resolve all types ...
         let resolutionDiagnostics =
             sortedNamespaces
-            |> Seq.collect (fun ns ->
-                ns.TypesDefinedInAllSources()
-                |> Seq.collect (fun kvPair ->
-                    let tName, (source, qsType) = kvPair.Key, kvPair.Value
-                    let fullName = { Namespace = ns.Name; Name = tName }
+            |> Seq.collect
+                (fun ns ->
+                    ns.TypesDefinedInAllSources()
+                    |> Seq.collect
+                        (fun kvPair ->
+                            let tName, (source, qsType) = kvPair.Key, kvPair.Value
+                            let fullName = { Namespace = ns.Name; Name = tName }
 
-                    let resolved, resErrs =
-                        qsType.Defined |> this.ResolveTypeDeclaration(fullName, source, qsType.Access)
+                            let resolved, resErrs =
+                                qsType.Defined |> this.ResolveTypeDeclaration(fullName, source, qsType.Access)
 
-                    ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty)
+                            ns.SetTypeResolution source (tName, resolved |> Value, ImmutableArray.Empty)
 
-                    if fullName.ToString() |> (not << nsNames.Contains) then
-                        resErrs
-                    else
-                        [|
-                            qsType.Range
-                            |> QsCompilerDiagnostic.New
-                                (Error ErrorCode.FullNameConflictsWithNamespace, [ fullName.ToString() ])
-                        |]
-                        |> Array.append resErrs
-                    |> Array.map (fun msg -> source, (qsType.Position, msg))))
+                            (if fullName.ToString() |> (not << nsNames.Contains) then
+                                 resErrs
+                             else
+                                 [|
+                                     qsType.Range
+                                     |> QsCompilerDiagnostic.New(
+                                         Error ErrorCode.FullNameConflictsWithNamespace,
+                                         [ fullName.ToString() ]
+                                     )
+                                 |]
+                                 |> Array.append resErrs)
+                            |> Array.map (fun msg -> source, (qsType.Position, msg))))
         // ... before we can resolve the corresponding attributes.
         let attributeDiagnostics =
             sortedNamespaces
-            |> Seq.collect (fun ns ->
-                ns.TypesDefinedInAllSources()
-                |> Seq.collect (fun kvPair ->
-                    let tName, (source, qsType) = kvPair.Key, kvPair.Value
-                    let parentName = { Namespace = ns.Name; Name = tName }
-                    let resolvedAttributes, msgs = this.ResolveAttributes (parentName, source) qsType
-                    ns.SetTypeResolution source (tName, qsType.Resolved, resolvedAttributes)
-                    msgs |> Array.map (fun msg -> source, msg)))
+            |> Seq.collect
+                (fun ns ->
+                    ns.TypesDefinedInAllSources()
+                    |> Seq.collect
+                        (fun kvPair ->
+                            let tName, (source, qsType) = kvPair.Key, kvPair.Value
+                            let parentName = { Namespace = ns.Name; Name = tName }
+                            let resolvedAttributes, msgs = this.ResolveAttributes(parentName, source) qsType
+                            ns.SetTypeResolution source (tName, qsType.Resolved, resolvedAttributes)
+                            msgs |> Array.map (fun msg -> source, msg)))
 
         resolutionDiagnostics.Concat(attributeDiagnostics).ToArray()
 
@@ -768,89 +802,109 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         let diagnostics =
             Namespaces.Values
             |> Seq.sortBy (fun ns -> ns.Name)
-            |> Seq.collect (fun ns ->
-                ns.CallablesDefinedInAllSources()
-                |> Seq.sortBy (fun kv -> kv.Key)
-                |> Seq.collect (fun kvPair ->
-                    let source, (kind, signature) = kvPair.Value
-                    let parent = { Namespace = ns.Name; Name = kvPair.Key }
+            |> Seq.collect
+                (fun ns ->
+                    ns.CallablesDefinedInAllSources()
+                    |> Seq.sortBy (fun kv -> kv.Key)
+                    |> Seq.collect
+                        (fun kvPair ->
+                            let source, (kind, signature) = kvPair.Value
+                            let parent = { Namespace = ns.Name; Name = kvPair.Key }
 
-                    // we first need to resolve the type arguments to determine the right sets of specializations to consider
-                    let typeArgsResolution specSource =
-                        let typeResolution = this.ResolveType(parent, ImmutableArray.Empty, specSource) // do not allow using type parameters within type specializations!
-                        SymbolResolution.ResolveTypeArgument typeResolution
+                            // we first need to resolve the type arguments to determine the right sets of specializations to consider
+                            let typeArgsResolution specSource =
+                                let typeResolution = this.ResolveType(parent, ImmutableArray.Empty, specSource) // do not allow using type parameters within type specializations!
+                                SymbolResolution.ResolveTypeArgument typeResolution
 
-                    let mutable errs =
-                        ns.SetSpecializationResolutions
-                            (parent.Name, typeArgsResolution, (fun _ _ -> ImmutableArray.Empty, [||]))
+                            let mutable errs =
+                                ns.SetSpecializationResolutions(
+                                    parent.Name,
+                                    typeArgsResolution,
+                                    (fun _ _ -> ImmutableArray.Empty, [||])
+                                )
 
-                    // we then build the specialization bundles (one for each set of type and set arguments) and insert missing specializations
-                    let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
+                            // we then build the specialization bundles (one for each set of type and set arguments) and insert missing specializations
+                            let definedSpecs = ns.SpecializationsDefinedInAllSources parent.Name
 
-                    let insertSpecialization typeArgs kind =
-                        ns.InsertSpecialization (kind, typeArgs) (parent.Name, source)
+                            let insertSpecialization typeArgs kind =
+                                ns.InsertSpecialization(kind, typeArgs) (parent.Name, source)
 
-                    let props, bundleErrs =
-                        SymbolResolution.GetBundleProperties insertSpecialization (signature, source) definedSpecs
+                            let props, bundleErrs =
+                                SymbolResolution.GetBundleProperties
+                                    insertSpecialization
+                                    (signature, source)
+                                    definedSpecs
 
-                    let bundleErrs = bundleErrs |> Array.concat
-                    errs <- bundleErrs :: errs
+                            let bundleErrs = bundleErrs |> Array.concat
+                            errs <- bundleErrs :: errs
 
-                    // we remove the specializations which could not be bundled and resolve the newly inserted ones
-                    for (specSource, (errPos, d)) in bundleErrs do
-                        match d.Diagnostic with
-                        | Information _
-                        | Warning _ -> ()
-                        | Error errCode ->
-                            let removed =
-                                ns.RemoveSpecialization (specSource, { Offset = errPos; Range = d.Range }) parent.Name
+                            // we remove the specializations which could not be bundled and resolve the newly inserted ones
+                            for (specSource, (errPos, d)) in bundleErrs do
+                                match d.Diagnostic with
+                                | Information _
+                                | Warning _ -> ()
+                                | Error errCode ->
+                                    let removed =
+                                        ns.RemoveSpecialization
+                                            (specSource, { Offset = errPos; Range = d.Range })
+                                            parent.Name
 
-                            QsCompilerError.Verify
-                                ((removed <= 1),
-                                 sprintf
-                                     "removed %i specializations based on error code %s"
-                                     removed
-                                     (errCode.ToString()))
+                                    QsCompilerError.Verify(
+                                        (removed <= 1),
+                                        sprintf
+                                            "removed %i specializations based on error code %s"
+                                            removed
+                                            (errCode.ToString())
+                                    )
 
-                    let autoResErrs =
-                        ns.SetSpecializationResolutions
-                            (parent.Name, typeArgsResolution, (fun _ _ -> ImmutableArray.Empty, [||]))
+                            let autoResErrs =
+                                ns.SetSpecializationResolutions(
+                                    parent.Name,
+                                    typeArgsResolution,
+                                    (fun _ _ -> ImmutableArray.Empty, [||])
+                                )
 
-                    // only then can we resolve the generators themselves, as well as the callable and specialization attributes
-                    let callableAttributes, attrErrs = this.ResolveAttributes (parent, source) signature
-                    let resolution _ = SymbolResolution.ResolveGenerator props
+                            // only then can we resolve the generators themselves, as well as the callable and specialization attributes
+                            let callableAttributes, attrErrs = this.ResolveAttributes(parent, source) signature
+                            let resolution _ = SymbolResolution.ResolveGenerator props
 
-                    let specErrs =
-                        ns.SetSpecializationResolutions
-                            (parent.Name, resolution, (fun attSource -> this.ResolveAttributes(parent, attSource)))
+                            let specErrs =
+                                ns.SetSpecializationResolutions(
+                                    parent.Name,
+                                    resolution,
+                                    (fun attSource -> this.ResolveAttributes(parent, attSource))
+                                )
 
-                    // and finally we resolve the overall signature (whose characteristics are the intersection of the one of all bundles)
-                    let characteristics = props.Values |> Seq.map (fun bundle -> bundle.BundleInfo) |> Seq.toList
+                            // and finally we resolve the overall signature (whose characteristics are the intersection of the one of all bundles)
+                            let characteristics =
+                                props.Values |> Seq.map (fun bundle -> bundle.BundleInfo) |> Seq.toList
 
-                    let resolved, msgs =
-                        (signature.Defined, characteristics)
-                        |> this.ResolveCallableSignature(kind, parent, source, signature.Access) // no positional info for type constructors
+                            let resolved, msgs =
+                                (signature.Defined, characteristics)
+                                |> this.ResolveCallableSignature(kind, parent, source, signature.Access) // no positional info for type constructors
 
-                    ns.SetCallableResolution source (parent.Name, resolved |> Value, callableAttributes)
+                            ns.SetCallableResolution source (parent.Name, resolved |> Value, callableAttributes)
 
-                    errs <-
-                        (attrErrs |> Array.map (fun m -> source, m))
-                        :: (msgs |> Array.map (fun m -> source, (signature.Position, m))) :: errs
+                            errs <-
+                                (attrErrs |> Array.map (fun m -> source, m))
+                                :: (msgs |> Array.map (fun m -> source, (signature.Position, m))) :: errs
 
-                    let errs = specErrs.Concat autoResErrs |> errs.Concat |> Array.concat
+                            let errs = specErrs.Concat autoResErrs |> errs.Concat |> Array.concat
 
-                    if kind = QsCallableKind.TypeConstructor then
-                        // don't return diagnostics for type constructors - everything will be captured upon type resolution
-                        Array.empty
-                    elif parent.ToString() |> (not << nsNames.Contains) then
-                        errs
-                    else
-                        signature.Range
-                        |> QsCompilerDiagnostic.New
-                            (Error ErrorCode.FullNameConflictsWithNamespace, [ parent.ToString() ])
-                        |> (fun msg -> source, (signature.Position, msg))
-                        |> Array.singleton
-                        |> Array.append errs))
+                            if kind = QsCallableKind.TypeConstructor then
+                                // don't return diagnostics for type constructors - everything will be captured upon type resolution
+                                Array.empty
+                            elif parent.ToString() |> (not << nsNames.Contains) then
+                                errs
+                            else
+                                signature.Range
+                                |> QsCompilerDiagnostic.New(
+                                    Error ErrorCode.FullNameConflictsWithNamespace,
+                                    [ parent.ToString() ]
+                                )
+                                |> (fun msg -> source, (signature.Position, msg))
+                                |> Array.singleton
+                                |> Array.append errs))
 
         diagnostics.ToArray()
 
@@ -883,7 +937,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             for opened in nsToAutoOpen do
                 for ns in Namespaces.Values do
                     for source in ns.Sources do
-                        this.AddOpenDirective (opened, Range.Zero) (null, Value Range.Zero) (ns.Name, source) |> ignore
+                        this.AddOpenDirective(opened, Range.Zero) (null, Value Range.Zero) (ns.Name, source) |> ignore
             // We need to resolve types before we resolve callables,
             // since the attribute resolution for callables relies on the corresponding types having been resolved.
             let typeDiagnostics = this.CacheTypeResolution nsNames
@@ -892,9 +946,11 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             callableDiagnostics
                 .Concat(typeDiagnostics)
-                .ToLookup(fst,
-                          (fun (_, (position, diagnostic)) ->
-                              { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range }))
+                .ToLookup(
+                    fst,
+                    (fun (_, (position, diagnostic)) ->
+                        { diagnostic with QsCompilerDiagnostic.Range = position + diagnostic.Range })
+                )
         finally
             syncRoot.ExitWriteLock()
 
@@ -921,12 +977,15 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             | true, ns ->
                 let imported =
                     ns.Sources
-                    |> Seq.collect (fun source ->
-                        ns.ImportedNamespaces source
-                        |> Seq.choose (fun imported ->
-                            if imported.Key <> ns.Name
-                            then Some(source, new ValueTuple<_, _>(imported.Key, imported.Value))
-                            else None))
+                    |> Seq.collect
+                        (fun source ->
+                            ns.ImportedNamespaces source
+                            |> Seq.choose
+                                (fun imported ->
+                                    if imported.Key <> ns.Name then
+                                        Some(source, new ValueTuple<_, _>(imported.Key, imported.Value))
+                                    else
+                                        None))
 
                 imported.ToLookup(fst, snd)
             | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
@@ -968,25 +1027,27 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 | false, _ -> SymbolNotFoundException "The namespace with the given name was not found." |> raise
                 | true, ns ->
                     ns.SpecializationsDefinedInAllSources parent.Name
-                    |> Seq.choose (fun (kind, (source, resolution)) ->
-                        match resolution.Resolved with
-                        | Null ->
-                            QsCompilerError.Raise "everything should be resolved but isn't"
-                            None
-                        | Value gen ->
-                            Some
-                                (gen.Directive,
-                                 {
-                                     Kind = kind
-                                     TypeArguments = gen.TypeArguments
-                                     Information = gen.Information
-                                     Parent = parent
-                                     Attributes = resolution.ResolvedAttributes
-                                     Source = { CodeFile = source; AssemblyFile = Null }
-                                     Position = DeclarationHeader.Offset.Defined resolution.Position
-                                     HeaderRange = DeclarationHeader.Range.Defined resolution.Range
-                                     Documentation = resolution.Documentation
-                                 }))
+                    |> Seq.choose
+                        (fun (kind, (source, resolution)) ->
+                            match resolution.Resolved with
+                            | Null ->
+                                QsCompilerError.Raise "everything should be resolved but isn't"
+                                None
+                            | Value gen ->
+                                Some(
+                                    gen.Directive,
+                                    {
+                                        Kind = kind
+                                        TypeArguments = gen.TypeArguments
+                                        Information = gen.Information
+                                        Parent = parent
+                                        Attributes = resolution.ResolvedAttributes
+                                        Source = { CodeFile = source; AssemblyFile = Null }
+                                        Position = DeclarationHeader.Offset.Defined resolution.Position
+                                        HeaderRange = DeclarationHeader.Range.Defined resolution.Range
+                                        Documentation = resolution.Documentation
+                                    }
+                                ))
 
             defined.ToImmutableArray()
         finally
@@ -1018,29 +1079,31 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             let defined =
                 Namespaces.Values
-                |> Seq.collect (fun ns ->
-                    ns.CallablesDefinedInAllSources()
-                    |> Seq.choose (fun kvPair ->
-                        let cName, (source, (kind, declaration)) = kvPair.Key, kvPair.Value
+                |> Seq.collect
+                    (fun ns ->
+                        ns.CallablesDefinedInAllSources()
+                        |> Seq.choose
+                            (fun kvPair ->
+                                let cName, (source, (kind, declaration)) = kvPair.Key, kvPair.Value
 
-                        match declaration.Resolved with
-                        | Null ->
-                            QsCompilerError.Raise "everything should be resolved but isn't"
-                            None
-                        | Value (signature, argTuple) ->
-                            Some
-                                {
-                                    Kind = kind
-                                    QualifiedName = { Namespace = ns.Name; Name = cName }
-                                    Attributes = declaration.ResolvedAttributes
-                                    Access = declaration.Access
-                                    Source = { CodeFile = source; AssemblyFile = Null }
-                                    Position = DeclarationHeader.Offset.Defined declaration.Position
-                                    SymbolRange = DeclarationHeader.Range.Defined declaration.Range
-                                    Signature = signature
-                                    ArgumentTuple = argTuple
-                                    Documentation = declaration.Documentation
-                                }))
+                                match declaration.Resolved with
+                                | Null ->
+                                    QsCompilerError.Raise "everything should be resolved but isn't"
+                                    None
+                                | Value (signature, argTuple) ->
+                                    Some
+                                        {
+                                            Kind = kind
+                                            QualifiedName = { Namespace = ns.Name; Name = cName }
+                                            Attributes = declaration.ResolvedAttributes
+                                            Access = declaration.Access
+                                            Source = { CodeFile = source; AssemblyFile = Null }
+                                            Position = DeclarationHeader.Offset.Defined declaration.Position
+                                            SymbolRange = DeclarationHeader.Range.Defined declaration.Range
+                                            Signature = signature
+                                            ArgumentTuple = argTuple
+                                            Documentation = declaration.Documentation
+                                        }))
 
             defined.ToImmutableArray()
         finally
@@ -1083,28 +1146,30 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             let defined =
                 Namespaces.Values
-                |> Seq.collect (fun ns ->
-                    ns.TypesDefinedInAllSources()
-                    |> Seq.choose (fun kvPair ->
-                        let tName, (source, qsType) = kvPair.Key, kvPair.Value
+                |> Seq.collect
+                    (fun ns ->
+                        ns.TypesDefinedInAllSources()
+                        |> Seq.choose
+                            (fun kvPair ->
+                                let tName, (source, qsType) = kvPair.Key, kvPair.Value
 
-                        match qsType.Resolved with
-                        | Null ->
-                            QsCompilerError.Raise "everything should be resolved but isn't"
-                            None
-                        | Value (underlyingType, items) ->
-                            Some
-                                {
-                                    QualifiedName = { Namespace = ns.Name; Name = tName }
-                                    Attributes = qsType.ResolvedAttributes
-                                    Access = qsType.Access
-                                    Source = { CodeFile = source; AssemblyFile = Null }
-                                    Position = DeclarationHeader.Offset.Defined qsType.Position
-                                    SymbolRange = DeclarationHeader.Range.Defined qsType.Range
-                                    Type = underlyingType
-                                    TypeItems = items
-                                    Documentation = qsType.Documentation
-                                }))
+                                match qsType.Resolved with
+                                | Null ->
+                                    QsCompilerError.Raise "everything should be resolved but isn't"
+                                    None
+                                | Value (underlyingType, items) ->
+                                    Some
+                                        {
+                                            QualifiedName = { Namespace = ns.Name; Name = tName }
+                                            Attributes = qsType.ResolvedAttributes
+                                            Access = qsType.Access
+                                            Source = { CodeFile = source; AssemblyFile = Null }
+                                            Position = DeclarationHeader.Offset.Defined qsType.Position
+                                            SymbolRange = DeclarationHeader.Range.Defined qsType.Range
+                                            Type = underlyingType
+                                            TypeItems = items
+                                            Documentation = qsType.Documentation
+                                        }))
 
             defined.ToImmutableArray()
         finally
@@ -1177,9 +1242,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
             | true, NS ->
                 let copy = NS.Copy()
 
-                if copy.TryAddSource source
-                then copy
-                else ArgumentException "partial namespace already exists" |> raise
+                if copy.TryAddSource source then
+                    copy
+                else
+                    ArgumentException "partial namespace already exists" |> raise
             | false, _ ->
                 new Namespace(nsName, [ source ], ImmutableArray.Empty, ImmutableArray.Empty, ImmutableArray.Empty)
         finally
@@ -1270,10 +1336,12 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
         let findInReferences (ns: Namespace) =
             ns.CallablesInReferencedAssemblies.[callableName.Name]
-            |> Seq.map (fun callable ->
-                if callable.Access |> Access.isAccessibleFrom OtherAssembly
-                then Found callable
-                else Inaccessible)
+            |> Seq.map
+                (fun callable ->
+                    if callable.Access |> Access.isAccessibleFrom OtherAssembly then
+                        Found callable
+                    else
+                        Inaccessible)
             |> ResolutionResult.AtMostOne
 
         let findInSources (ns: Namespace) =
@@ -1282,15 +1350,17 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 // OK to use CallableInSource because this is only evaluated if the callable is not in a reference.
                 let kind, declaration = ns.CallableInSource source callableName.Name
 
-                if declaration.Access |> Access.isAccessibleFrom SameAssembly
-                then Found(buildHeader { callableName with Namespace = ns.Name } (source, kind, declaration))
-                else Inaccessible
+                if declaration.Access |> Access.isAccessibleFrom SameAssembly then
+                    Found(buildHeader { callableName with Namespace = ns.Name } (source, kind, declaration))
+                else
+                    Inaccessible
             | None ->
                 match ns.CallablesDefinedInAllSources().TryGetValue callableName.Name with
                 | true, (source, (kind, declaration)) ->
-                    if declaration.Access |> Access.isAccessibleFrom SameAssembly
-                    then Found(buildHeader { callableName with Namespace = ns.Name } (source, kind, declaration))
-                    else Inaccessible
+                    if declaration.Access |> Access.isAccessibleFrom SameAssembly then
+                        Found(buildHeader { callableName with Namespace = ns.Name } (source, kind, declaration))
+                    else
+                        Inaccessible
                 | false, _ -> NotFound
 
         syncRoot.EnterReadLock()
@@ -1316,7 +1386,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// contain the parent namespace.
     /// </exception>
     member this.TryGetCallable (callableName: QsQualifiedName) (nsName, source) =
-        this.TryGetCallableHeader (callableName, None) (nsName, source)
+        this.TryGetCallableHeader(callableName, None) (nsName, source)
 
     /// Given an unqualified callable name, returns the corresponding CallableDeclarationHeader in a ResolutionResult if
     /// the qualifier can be uniquely resolved within the given parent namespace and source file, and the callable is
@@ -1374,10 +1444,12 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
         let findInReferences (ns: Namespace) =
             ns.TypesInReferencedAssemblies.[typeName.Name]
-            |> Seq.map (fun typeHeader ->
-                if typeHeader.Access |> Access.isAccessibleFrom OtherAssembly
-                then Found typeHeader
-                else Inaccessible)
+            |> Seq.map
+                (fun typeHeader ->
+                    if typeHeader.Access |> Access.isAccessibleFrom OtherAssembly then
+                        Found typeHeader
+                    else
+                        Inaccessible)
             |> ResolutionResult.AtMostOne
 
         let findInSources (ns: Namespace) =
@@ -1386,15 +1458,17 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 // OK to use TypeInSource because this is only evaluated if the type is not in a reference.
                 let declaration = ns.TypeInSource source typeName.Name
 
-                if declaration.Access |> Access.isAccessibleFrom SameAssembly
-                then Found(buildHeader { typeName with Namespace = ns.Name } (source, declaration))
-                else Inaccessible
+                if declaration.Access |> Access.isAccessibleFrom SameAssembly then
+                    Found(buildHeader { typeName with Namespace = ns.Name } (source, declaration))
+                else
+                    Inaccessible
             | None ->
                 match ns.TypesDefinedInAllSources().TryGetValue typeName.Name with
                 | true, (source, declaration) ->
-                    if declaration.Access |> Access.isAccessibleFrom SameAssembly
-                    then Found(buildHeader { typeName with Namespace = ns.Name } (source, declaration))
-                    else Inaccessible
+                    if declaration.Access |> Access.isAccessibleFrom SameAssembly then
+                        Found(buildHeader { typeName with Namespace = ns.Name } (source, declaration))
+                    else
+                        Inaccessible
                 | false, _ -> NotFound
 
         syncRoot.EnterReadLock()
@@ -1420,7 +1494,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// contain the parent namespace.
     /// </exception>
     member this.TryGetType (typeName: QsQualifiedName) (nsName, source) =
-        this.TryGetTypeHeader (typeName, None) (nsName, source)
+        this.TryGetTypeHeader(typeName, None) (nsName, source)
 
     /// Given an unqualified type name, returns the corresponding TypeDeclarationHeader in a ResolutionResult if the
     /// qualifier can be uniquely resolved within the given parent namespace and source file, and the type is
@@ -1430,7 +1504,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// uniquely resolved.
     member this.TryResolveAndGetType tName (nsName, source) =
         let toHeader (declaredNs, (declaredSource, _, _)) =
-            match this.TryGetTypeHeader ({ Namespace = declaredNs; Name = tName }, Some declaredSource) (nsName, source) with
+            match this.TryGetTypeHeader({ Namespace = declaredNs; Name = tName }, Some declaredSource) (nsName, source) with
             | Found value -> value
             | _ ->
                 QsCompilerError.Raise "Expected to find the header corresponding to a possible resolution"
@@ -1469,8 +1543,8 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
         try
             Namespaces.Values
-            |> Seq.choose (fun ns ->
-                ns.TryFindCallable cName |> ResolutionResult.ToOption |> Option.map (fun _ -> ns.Name))
+            |> Seq.choose
+                (fun ns -> ns.TryFindCallable cName |> ResolutionResult.ToOption |> Option.map (fun _ -> ns.Name))
             |> fun namespaces -> namespaces.ToImmutableArray()
         finally
             syncRoot.ExitReadLock()
@@ -1509,11 +1583,12 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         | QsTypeKind.UserDefinedType udt -> hash (2, udt.Namespace, udt.Name)
         | QsTypeKind.TypeParameter tp -> hash (3, tp.Origin.Namespace, tp.Origin.Name, tp.TypeName)
         | QsTypeKind.Operation ((inT, outT), fList) ->
-            hash
-                (4,
-                 (inT |> NamespaceManager.TypeHash),
-                 (outT |> NamespaceManager.TypeHash),
-                 (fList |> JsonConvert.SerializeObject))
+            hash (
+                4,
+                (inT |> NamespaceManager.TypeHash),
+                (outT |> NamespaceManager.TypeHash),
+                (fList |> JsonConvert.SerializeObject)
+            )
         | QsTypeKind.Function (inT, outT) ->
             hash (5, (inT |> NamespaceManager.TypeHash), (outT |> NamespaceManager.TypeHash))
         | kind -> JsonConvert.SerializeObject kind |> hash
@@ -1552,7 +1627,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 hash (id.Namespace, id.Name, NamespaceManager.ExpressionHash arg)
 
             attributes
-            |> QsNullable<_>.Choose(fun att -> att.TypeId |> QsNullable<_>.Map(getHash att.Argument))
+            |> QsNullable<_>.Choose (fun att -> att.TypeId |> QsNullable<_>.Map (getHash att.Argument))
             |> Seq.toList
 
         let callableHash (kind, (signature, _), specs, attributes: QsDeclarationAttribute seq) =
@@ -1572,7 +1647,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 let genHash (gen: ResolvedGenerator) =
                     let tArgs =
                         gen.TypeArguments
-                        |> QsNullable<_>.Map(fun tArgs -> tArgs |> Seq.map NamespaceManager.TypeHash |> Seq.toList)
+                        |> QsNullable<_>.Map (fun tArgs -> tArgs |> Seq.map NamespaceManager.TypeHash |> Seq.toList)
 
                     hash (gen.Directive, hash tArgs)
 
@@ -1587,7 +1662,8 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             let namedItems =
                 typeItems.Items
-                |> Seq.choose (function
+                |> Seq.choose
+                    (function
                     | Named item -> Some item
                     | _ -> None)
 
@@ -1605,35 +1681,41 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
             let callables =
                 relevantNamespaces
-                |> Seq.collect (fun ns ->
-                    let inSource = ns.CallablesDefinedInSource source |> Seq.sortBy fst
+                |> Seq.collect
+                    (fun ns ->
+                        let inSource = ns.CallablesDefinedInSource source |> Seq.sortBy fst
 
-                    inSource
-                    |> Seq.map (fun (cName, (kind, signature)) ->
-                        let specs =
-                            ns.SpecializationsDefinedInAllSources cName
-                            |> Seq.map (fun (kind, (_, resolution)) ->
-                                kind, resolution.Resolved.ValueOrApply inconsistentStateException)
+                        inSource
+                        |> Seq.map
+                            (fun (cName, (kind, signature)) ->
+                                let specs =
+                                    ns.SpecializationsDefinedInAllSources cName
+                                    |> Seq.map
+                                        (fun (kind, (_, resolution)) ->
+                                            kind, resolution.Resolved.ValueOrApply inconsistentStateException)
 
-                        let resolved = signature.Resolved.ValueOrApply inconsistentStateException
-                        ns.Name, cName, (kind, resolved, specs, signature.ResolvedAttributes)))
+                                let resolved = signature.Resolved.ValueOrApply inconsistentStateException
+                                ns.Name, cName, (kind, resolved, specs, signature.ResolvedAttributes)))
 
             let types =
                 relevantNamespaces
-                |> Seq.collect (fun ns ->
-                    let inSources = ns.TypesDefinedInSource source |> Seq.sortBy fst
+                |> Seq.collect
+                    (fun ns ->
+                        let inSources = ns.TypesDefinedInSource source |> Seq.sortBy fst
 
-                    inSources
-                    |> Seq.map (fun (tName, qsType) ->
-                        let resolved, resItems = qsType.Resolved.ValueOrApply inconsistentStateException
-                        ns.Name, tName, (resolved, resItems, qsType.ResolvedAttributes)))
+                        inSources
+                        |> Seq.map
+                            (fun (tName, qsType) ->
+                                let resolved, resItems = qsType.Resolved.ValueOrApply inconsistentStateException
+                                ns.Name, tName, (resolved, resItems, qsType.ResolvedAttributes)))
 
             let imports =
                 relevantNamespaces
-                |> Seq.collect (fun ns ->
-                    ns.ImportedNamespaces source
-                    |> Seq.sortBy (fun x -> x.Value)
-                    |> Seq.map (fun opened -> ns.Name, opened.Value))
+                |> Seq.collect
+                    (fun ns ->
+                        ns.ImportedNamespaces source
+                        |> Seq.sortBy (fun x -> x.Value)
+                        |> Seq.map (fun opened -> ns.Name, opened.Value))
 
             let callablesHash =
                 callables |> Seq.map (fun (ns, name, c) -> (ns, name, callableHash c)) |> Seq.toList |> hash

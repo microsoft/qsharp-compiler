@@ -48,21 +48,21 @@ let simpleParseString parser string =
     | Failure (_) -> false
 
 let parse_string parser str =
-    let diags: QsCompilerDiagnostic list = []
+    let diags : QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
     | Success (_) -> true
     | Failure (_) -> false
 
 let parse_string_diags parser str =
-    let diags: QsCompilerDiagnostic list = []
+    let diags : QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
     | Success (_, ustate, _) -> true, ustate
     | Failure (_) -> false, []
 
 let parse_string_diags_res parser str =
-    let diags: QsCompilerDiagnostic list = []
+    let diags : QsCompilerDiagnostic list = []
 
     match CharParsers.runParserOnString parser diags "" str with
     | Success (res, ustate, _) -> true, ustate, Some res
@@ -79,7 +79,8 @@ let toBigInt b =
 
 let toSymbol s = { Symbol = Symbol s; Range = Null }
 
-let toIdentifier s = (Identifier(toSymbol s, Null)) |> toExpr
+let toIdentifier s =
+    (Identifier(toSymbol s, Null)) |> toExpr
 
 let toTuple (es: QsExpression seq) =
     ValueTuple(es.ToImmutableArray()) |> toExpr
@@ -174,11 +175,12 @@ let rec matchExpression e1 e2 =
         a1.Length = a2.Length && Seq.forall2 matchExpression a1 a2
 
     let matchTypeArray (t1: QsNullable<ImmutableArray<QsType>>) (t2: QsNullable<ImmutableArray<QsType>>) =
-        if t1 <> Null && t2 <> Null
-        then Seq.forall2 matchType (t1.ValueOr ImmutableArray.Empty) (t2.ValueOr ImmutableArray.Empty)
-        elif t1 = Null && t2 = Null
-        then true
-        else false
+        if t1 <> Null && t2 <> Null then
+            Seq.forall2 matchType (t1.ValueOr ImmutableArray.Empty) (t2.ValueOr ImmutableArray.Empty)
+        elif t1 = Null && t2 = Null then
+            true
+        else
+            false
 
     let ex1 = e1.Expression
     let ex2 = e2.Expression
@@ -353,28 +355,32 @@ let testOne parser (str, succExp, resExp, diagsExp) =
     let resOk = (not succ) || (res |> Option.contains resExp)
     let errsOk = (not succ) || (matchDiagnostics diagsExp diags)
 
-    Assert.True
-        (succOk && resOk && errsOk,
-         sprintf
-             "String %s: %s"
-             str
-             (if not succOk
-              then sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
-              elif not resOk
-              then sprintf "expected result %A but received %A" resExp res.Value
-              else sprintf "expected errors %A but received %A" diagsExp diags))
+    Assert.True(
+        succOk && resOk && errsOk,
+        sprintf
+            "String %s: %s"
+            str
+            (if not succOk then
+                 sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
+             elif not resOk then
+                 sprintf "expected result %A but received %A" resExp res.Value
+             else
+                 sprintf "expected errors %A but received %A" diagsExp diags)
+    )
 
 let internal testType (str, result, diagnostics) =
     let success, diagnostics', result' = parse_string_diags_res TypeParsing.qsType str
     Assert.True(success, sprintf "Failed to parse: %s" str)
 
-    Assert.True
-        (result' |> Option.exists (matchType result),
-         sprintf "Type: %s\n\nExpected result:\n%A\n\nActual result:\n%A" str result result')
+    Assert.True(
+        result' |> Option.exists (matchType result),
+        sprintf "Type: %s\n\nExpected result:\n%A\n\nActual result:\n%A" str result result'
+    )
 
-    Assert.True
-        (matchDiagnostics diagnostics diagnostics',
-         sprintf "Type: %s\n\nExpected diagnostics:\n%A\n\nActual diagnostics:\n%A" str diagnostics diagnostics')
+    Assert.True(
+        matchDiagnostics diagnostics diagnostics',
+        sprintf "Type: %s\n\nExpected diagnostics:\n%A\n\nActual diagnostics:\n%A" str diagnostics diagnostics'
+    )
 
 let testExpr (str, succExp, resExp, diagsExp) =
     let succ, diags, res = parse_string_diags_res ExpressionParsing.expr str
@@ -382,13 +388,15 @@ let testExpr (str, succExp, resExp, diagsExp) =
     let resOk = (not succ) || (res |> Option.exists (matchExpression resExp))
     let errsOk = (not succ) || (matchDiagnostics diagsExp diags)
 
-    Assert.True
-        (succOk && resOk && errsOk,
-         sprintf
-             "Expression %s: %s"
-             str
-             (if not succOk
-              then sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
-              elif not resOk
-              then sprintf "expected result %A but received %A" resExp res.Value
-              else sprintf "expected errors %A but received %A" diagsExp diags))
+    Assert.True(
+        succOk && resOk && errsOk,
+        sprintf
+            "Expression %s: %s"
+            str
+            (if not succOk then
+                 sprintf "%s unexpectedly" (if succExp then "failed" else "passed")
+             elif not resOk then
+                 sprintf "expected result %A but received %A" resExp res.Value
+             else
+                 sprintf "expected errors %A but received %A" diagsExp diags)
+    )

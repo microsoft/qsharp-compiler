@@ -18,7 +18,7 @@ type QsType with
         | None -> InvalidSetExpr |> ResolvedCharacteristics.New
         | Some props -> ResolvedCharacteristics.FromProperties props
 
-    member public this.Documentation: ImmutableArray<string> =
+    member public this.Documentation : ImmutableArray<string> =
         let doc =
             match this.Type with
             | QsTypeKind.UnitType -> [ "# Summary"; "Represents a singleton type whose only value is \"()\"." ]

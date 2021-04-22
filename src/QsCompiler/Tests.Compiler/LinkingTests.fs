@@ -27,8 +27,10 @@ open Xunit.Abstractions
 
 
 type LinkingTests(output: ITestOutputHelper) =
-    inherit CompilerTests(CompilerTests.Compile
-                              (Path.Combine("TestCases", "LinkingTests"), [ "Core.qs"; "InvalidEntryPoints.qs" ]))
+    inherit CompilerTests(CompilerTests.Compile(
+        Path.Combine("TestCases", "LinkingTests"),
+        [ "Core.qs"; "InvalidEntryPoints.qs" ]
+    ))
 
     let compilationManager =
         new CompilationUnitManager(new Action<Exception>(fun ex -> failwith ex.Message), isExecutable = true)
@@ -38,14 +40,18 @@ type LinkingTests(output: ITestOutputHelper) =
         Path.GetRandomFileName() + ".qs" |> Path.GetFullPath |> Uri
 
     let getManager uri content =
-        CompilationUnitManager.InitializeFileManager
-            (uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
+        CompilationUnitManager.InitializeFileManager(
+            uri,
+            content,
+            compilationManager.PublishDiagnostics,
+            compilationManager.LogException
+        )
 
     let defaultOffset = { Offset = Position.Zero; Range = Range.Zero }
 
     let qualifiedName ns name = { Namespace = ns; Name = name }
 
-    let createReferences: seq<string * IEnumerable<QsNamespace>> -> References =
+    let createReferences : seq<string * IEnumerable<QsNamespace>> -> References =
         Seq.map (fun (source, namespaces) -> KeyValuePair.Create(source, References.Headers(source, namespaces)))
         >> ImmutableDictionary.CreateRange
         >> References
@@ -56,9 +62,10 @@ type LinkingTests(output: ITestOutputHelper) =
         Seq.iter (references.Namespaces.OnNamespace >> ignore) namespaces
 
         let declaration =
-            if obj.ReferenceEquals(references.SharedState.DeclarationLocation, null)
-            then 0
-            else 1
+            if obj.ReferenceEquals(references.SharedState.DeclarationLocation, null) then
+                0
+            else
+                1
 
         references.SharedState.Locations.Count + declaration
 
@@ -159,11 +166,12 @@ type LinkingTests(output: ITestOutputHelper) =
         targetCallable.Specializations.Length > 0 |> Assert.True
 
         targetCallable.Specializations
-        |> Seq.map (fun spec ->
-            match spec.Implementation with
-            | Provided _ -> true
-            | _ -> false
-            |> Assert.True)
+        |> Seq.map
+            (fun spec ->
+                match spec.Implementation with
+                | Provided _ -> true
+                | _ -> false
+                |> Assert.True)
         |> ignore
 
     /// Runs the nth internal renaming test, asserting that declarations with the given name and references to them have
@@ -234,8 +242,10 @@ type LinkingTests(output: ITestOutputHelper) =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x)
 
-        Assert.True
-            (generated.Access = Public, "Callables originally public should remain public if all arguments are public.")
+        Assert.True(
+            generated.Access = Public,
+            "Callables originally public should remain public if all arguments are public."
+        )
 
     member private this.RunSyntaxTreeTrimTest testNumber keepIntrinsics =
         let source = (LinkingTests.ReadAndChunkSourceFile "SyntaxTreeTrim.qs").[testNumber - 1]
@@ -244,7 +254,7 @@ type LinkingTests(output: ITestOutputHelper) =
         TrimSyntaxTree.Apply(compilationDataStructures.BuiltCompilation, keepIntrinsics)
         |> Signatures.SignatureCheck
             [ Signatures.SyntaxTreeTrimmingNS ]
-               Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
+            Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
 
     [<Fact>]
     [<Trait("Category", "Monomorphization")>]
@@ -462,9 +472,11 @@ type LinkingTests(output: ITestOutputHelper) =
         let tests = LinkingTests.ReadAndChunkSourceFile "EntryPointDiagnostics.qs"
 
         let compilationManager =
-            new CompilationUnitManager(Action<_>(fun ex -> failwith ex.Message),
-                                       isExecutable = true,
-                                       capability = BasicQuantumFunctionality)
+            new CompilationUnitManager(
+                Action<_>(fun ex -> failwith ex.Message),
+                isExecutable = true,
+                capability = BasicQuantumFunctionality
+            )
 
         let addOrUpdateSourceFile filePath =
             getManager (new Uri(filePath)) (File.ReadAllText filePath)
@@ -622,6 +634,7 @@ type LinkingTests(output: ITestOutputHelper) =
         let callables = GlobalCallableResolutions referenceCompilation.BuiltCompilation.Namespaces
 
         let decorator = new NameDecorator("QsRef")
+
         for idx = 0 to references.Declarations.Count - 1 do
             let name = decorator.Decorate(qualifiedName Signatures.InternalRenamingNS "Foo", idx)
             let specializations = callables.[name].Specializations
@@ -726,38 +739,47 @@ type LinkingTests(output: ITestOutputHelper) =
         let buildDict (args: _ seq) = args.ToImmutableDictionary(fst, snd)
 
         let declInSource1 =
-            new Set<_>([
-                ("Microsoft.Quantum.Testing.Linking", "BigEndian") |> fullName
-                ("Microsoft.Quantum.Testing.Linking", "Foo") |> fullName
-                ("Microsoft.Quantum.Testing.Linking", "Bar") |> fullName
-            ])
+            new Set<_>(
+                [
+                    ("Microsoft.Quantum.Testing.Linking", "BigEndian") |> fullName
+                    ("Microsoft.Quantum.Testing.Linking", "Foo") |> fullName
+                    ("Microsoft.Quantum.Testing.Linking", "Bar") |> fullName
+                ]
+            )
 
-        checkValidCombination
-            (buildDict [ (source 1, (chunks.[0], declInSource1))
-                         (source 2, (chunks.[1], declInSource1)) ])
+        checkValidCombination (
+            buildDict [ (source 1, (chunks.[0], declInSource1))
+                        (source 2, (chunks.[1], declInSource1)) ]
+        )
 
-        checkValidCombination
-            (buildDict [ (source 1, (chunks.[1], declInSource1))
-                         (source 2, (chunks.[1], declInSource1)) ])
+        checkValidCombination (
+            buildDict [ (source 1, (chunks.[1], declInSource1))
+                        (source 2, (chunks.[1], declInSource1)) ]
+        )
 
-        checkValidCombination
-            (buildDict [ (source 1, (chunks.[2], declInSource1))
-                         (source 2, (chunks.[4], declInSource1)) ])
+        checkValidCombination (
+            buildDict [ (source 1, (chunks.[2], declInSource1))
+                        (source 2, (chunks.[4], declInSource1)) ]
+        )
 
-        checkValidCombination
-            (buildDict [ (source 1, (chunks.[3], declInSource1))
-                         (source 2, (chunks.[4], declInSource1)) ])
+        checkValidCombination (
+            buildDict [ (source 1, (chunks.[3], declInSource1))
+                        (source 2, (chunks.[4], declInSource1)) ]
+        )
 
         let declInSource2 =
-            new Set<_>([
-                ("Microsoft.Quantum.Testing.Linking.Core", "BigEndian") |> fullName
-                ("Microsoft.Quantum.Testing.Linking.Core", "Foo") |> fullName
-                ("Microsoft.Quantum.Testing.Linking.Core", "Bar") |> fullName
-            ])
+            new Set<_>(
+                [
+                    ("Microsoft.Quantum.Testing.Linking.Core", "BigEndian") |> fullName
+                    ("Microsoft.Quantum.Testing.Linking.Core", "Foo") |> fullName
+                    ("Microsoft.Quantum.Testing.Linking.Core", "Bar") |> fullName
+                ]
+            )
 
-        checkValidCombination
-            (buildDict [ (source 1, (chunks.[0], declInSource1))
-                         (source 2, (chunks.[6], declInSource2)) ])
+        checkValidCombination (
+            buildDict [ (source 1, (chunks.[0], declInSource1))
+                        (source 2, (chunks.[6], declInSource2)) ]
+        )
 
     [<Fact>]
     member this.``Trimmer Removes Unused Callables``() = this.RunSyntaxTreeTrimTest 1 false

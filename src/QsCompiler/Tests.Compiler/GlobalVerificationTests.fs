@@ -12,14 +12,15 @@ open Xunit
 
 
 type GlobalVerificationTests() =
-    inherit CompilerTests(CompilerTests.Compile
-                              ("TestCases",
-                               [
-                                   "General.qs"
-                                   "GlobalVerification.qs"
-                                   "Types.qs"
-                                   System.IO.Path.Join("LinkingTests", "Core.qs")
-                               ]))
+    inherit CompilerTests(CompilerTests.Compile(
+        "TestCases",
+        [
+            "General.qs"
+            "GlobalVerification.qs"
+            "Types.qs"
+            System.IO.Path.Join("LinkingTests", "Core.qs")
+        ]
+    ))
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.GlobalVerification"
