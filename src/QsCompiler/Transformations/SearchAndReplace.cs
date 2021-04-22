@@ -25,8 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// Class that allows to walk the syntax tree and find all locations where a certain identifier occurs.
     /// If a set of source file names is given on initialization, the search is limited to callables and specializations in those files.
     /// </summary>
-    public class IdentifierReferences
-    : SyntaxTreeTransformation<IdentifierReferences.TransformationState>
+    public class IdentifierReferences : SyntaxTreeTransformation<IdentifierReferences.TransformationState>
     {
         public class Location : IEquatable<Location>
         {
@@ -171,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         public IdentifierReferences(TransformationState state)
-        : base(state, TransformationOptions.NoRebuild)
+            : base(state, TransformationOptions.NoRebuild)
         {
             this.Types = new TypeTransformation(this);
             this.Expressions = new TypedExpressionWalker<TransformationState>(this.SharedState.LogIdentifierLocation, this);
@@ -180,12 +179,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         public IdentifierReferences(string idName, QsLocation? defaultOffset, IImmutableSet<string>? limitToSourceFiles = null)
-        : this(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item == idName, defaultOffset, limitToSourceFiles))
+            : this(new TransformationState(id => id is Identifier.LocalVariable varName && varName.Item == idName, defaultOffset, limitToSourceFiles))
         {
         }
 
         public IdentifierReferences(QsQualifiedName idName, QsLocation? defaultOffset, IImmutableSet<string>? limitToSourceFiles = null)
-        : this(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
+            : this(new TransformationState(id => id is Identifier.GlobalCallable cName && cName.Item.Equals(idName), defaultOffset, limitToSourceFiles))
         {
         }
 
@@ -219,35 +218,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // helper classes
 
-        private class TypeTransformation
-        : TypeTransformation<TransformationState>
+        private class TypeTransformation : TypeTransformation<TransformationState>
         {
             public TypeTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent, TransformationOptions.NoRebuild)
+                : base(parent, TransformationOptions.NoRebuild)
             {
             }
 
-            public override QsTypeKind OnUserDefinedType(UserDefinedType udt)
+            public override ResolvedType OnType(ResolvedType type)
             {
-                var id = Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name));
-                this.SharedState.LogIdentifierLocation(id, udt.Range);
-                return QsTypeKind.NewUserDefinedType(udt);
-            }
+                switch (type.Resolution)
+                {
+                    case QsTypeKind.UserDefinedType { Item: var udt }:
+                        var id = Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name));
+                        this.SharedState.LogIdentifierLocation(id, TypeRangeModule.TryRange(type.Range));
+                        break;
+                    case QsTypeKind.TypeParameter _:
+                        id = Identifier.NewLocalVariable(SyntaxTreeToQsharp.Default.ToCode(type) ?? "");
+                        this.SharedState.LogIdentifierLocation(id, TypeRangeModule.TryRange(type.Range));
+                        break;
+                }
 
-            public override QsTypeKind OnTypeParameter(QsTypeParameter tp)
-            {
-                var resT = ResolvedType.New(QsTypeKind.NewTypeParameter(tp));
-                var id = Identifier.NewLocalVariable(SyntaxTreeToQsharp.Default.ToCode(resT) ?? "");
-                this.SharedState.LogIdentifierLocation(id, tp.Range);
-                return resT.Resolution;
+                return base.OnType(type);
             }
         }
 
-        private class StatementTransformation
-        : StatementTransformation<TransformationState>
+        private class StatementTransformation : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent, TransformationOptions.NoRebuild)
+                : base(parent, TransformationOptions.NoRebuild)
             {
             }
 
@@ -258,11 +257,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        private class NamespaceTransformation
-        : NamespaceTransformation<TransformationState>
+        private class NamespaceTransformation : NamespaceTransformation<TransformationState>
         {
             public NamespaceTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent, TransformationOptions.NoRebuild)
+                : base(parent, TransformationOptions.NoRebuild)
             {
             }
 
@@ -333,8 +331,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// The location information is relative to the root node, i.e. the start position of the containing specialization
     /// declaration.
     /// </remarks>
-    public class AccumulateIdentifiers
-    : SyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
+    public class AccumulateIdentifiers : SyntaxTreeTransformation<AccumulateIdentifiers.TransformationState>
     {
         public class TransformationState
         {
@@ -371,7 +368,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         public AccumulateIdentifiers()
-        : base(new TransformationState(), TransformationOptions.NoRebuild)
+            : base(new TransformationState(), TransformationOptions.NoRebuild)
         {
             this.Statements = new StatementTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
@@ -381,11 +378,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // helper classes
 
-        private class StatementTransformation
-        : StatementTransformation<TransformationState>
+        private class StatementTransformation : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent, TransformationOptions.NoRebuild)
+                : base(parent, TransformationOptions.NoRebuild)
             {
             }
 
@@ -397,11 +393,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             }
         }
 
-        private class StatementKindTransformation
-        : StatementKindTransformation<TransformationState>
+        private class StatementKindTransformation : StatementKindTransformation<TransformationState>
         {
             public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent, TransformationOptions.NoRebuild)
+                : base(parent, TransformationOptions.NoRebuild)
             {
             }
 
@@ -493,8 +488,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     /// The original variable name can be recovered by using the static method StripUniqueName.
     /// This class is *not* threadsafe.
     /// </summary>
-    public class UniqueVariableNames
-    : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
+    public class UniqueVariableNames : SyntaxTreeTransformation<UniqueVariableNames.TransformationState>
     {
         public class TransformationState
         {
@@ -521,7 +515,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
         }
 
         public UniqueVariableNames()
-        : base(new TransformationState())
+            : base(new TransformationState())
         {
             this.Statements = new StatementTransformation(this);
             this.StatementKinds = new StatementKindTransformation(this);
@@ -537,11 +531,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
         // helper classes
 
-        private class StatementTransformation
-        : StatementTransformation<TransformationState>
+        private class StatementTransformation : StatementTransformation<TransformationState>
         {
             public StatementTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent)
+                : base(parent)
             {
             }
 
@@ -549,11 +542,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 this.SharedState.TryGetUniqueName(name, out var unique) ? unique : name;
         }
 
-        private class StatementKindTransformation
-        : StatementKindTransformation<TransformationState>
+        private class StatementKindTransformation : StatementKindTransformation<TransformationState>
         {
             public StatementKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent)
+                : base(parent)
             {
             }
 
@@ -565,11 +557,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                     : syms;
         }
 
-        private class ExpressionKindTransformation
-        : ExpressionKindTransformation<TransformationState>
+        private class ExpressionKindTransformation : ExpressionKindTransformation<TransformationState>
         {
             public ExpressionKindTransformation(SyntaxTreeTransformation<TransformationState> parent)
-            : base(parent)
+                : base(parent)
             {
             }
 
@@ -608,7 +599,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
             internal UserDefinedType RenameUdt(UserDefinedType udt)
             {
                 var newName = this.GetNewName(new QsQualifiedName(udt.Namespace, udt.Name));
-                return new UserDefinedType(newName.Namespace, newName.Name, udt.Range);
+                return udt.With(newName.Namespace, newName.Name);
             }
         }
 
@@ -705,7 +696,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 QsTypeKind.NewUserDefinedType(this.state.RenameUdt(udt));
 
             public override QsTypeKind OnTypeParameter(QsTypeParameter tp) =>
-                QsTypeKind.NewTypeParameter(new QsTypeParameter(this.state.GetNewName(tp.Origin), tp.TypeName, tp.Range));
+                QsTypeKind.NewTypeParameter(tp.With(this.state.GetNewName(tp.Origin)));
         }
 
         private class ExpressionKindTransformation : Core.ExpressionKindTransformation
@@ -740,7 +731,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
                 var typeId = attribute.TypeId.IsValue
                     ? QsNullable<UserDefinedType>.NewValue(this.state.RenameUdt(attribute.TypeId.Item))
                     : attribute.TypeId;
-                return new QsDeclarationAttribute(typeId, argument, attribute.Offset, attribute.Comments);
+
+                return new QsDeclarationAttribute(
+                    typeId, attribute.TypeIdRange, argument, attribute.Offset, attribute.Comments);
             }
 
             public override QsCallable OnCallableDeclaration(QsCallable callable) =>

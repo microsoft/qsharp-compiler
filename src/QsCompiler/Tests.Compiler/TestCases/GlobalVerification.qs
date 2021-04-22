@@ -1569,6 +1569,15 @@ namespace Microsoft.Quantum.Testing.GlobalVerification {
     @AttType2()
     function ValidAttributes10 () : Unit {}
 
+    @BigIntArrayAttribute([0L, size = 3])
+    function ValidAttributes11 () : Unit {}
+
+    @BigIntArrayAttribute([0L, size = 0])
+    function ValidAttributes12 () : Unit {}
+
+    @BigIntArrayAttribute([])
+    function ValidAttributes13 () : Unit {}
+
     @AttType2()
     @AttType1()
     @AttType1()

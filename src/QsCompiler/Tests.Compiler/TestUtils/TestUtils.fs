@@ -216,6 +216,10 @@ let rec matchExpression e1 e2 =
         match ex2 with
         | ValueArray a2 -> matchAll a1 a2
         | _ -> false
+    | SizedArray (value1, size1) ->
+        match ex2 with
+        | SizedArray (value2, size2) -> matchExpression value1 value2 && matchExpression size1 size2
+        | _ -> false
     | ArrayItem (s1a, s1b) ->
         match ex2 with
         | ArrayItem (s2a, s2b) -> (matchExpression s1a s2a) && (matchExpression s1b s2b)

@@ -55,11 +55,48 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
                 | ValueTuple _
                 | ValueArray _
                 | RangeLiteral _
+                | SizedArray _
                 | NewArray _ -> true
-                | CallLikeExpression ({ Expression = Identifier (GlobalCallable qualName, _) }, _) when (callables.[qualName])
+                | CallLikeExpression ({ Expression = Identifier (GlobalCallable name, _) }, _) when callables.[name]
                     .Kind = TypeConstructor -> true
-                | a when TypedExpression.IsPartialApplication a -> true
-                | _ -> false
+                | _ when TypedExpression.IsPartialApplication ex.Expression -> true
+                | UnitValue
+                | IntLiteral _
+                | BigIntLiteral _
+                | DoubleLiteral _
+                | BoolLiteral _
+                | StringLiteral _
+                | ResultLiteral _
+                | PauliLiteral _
+                | NEG _
+                | NOT _
+                | BNOT _
+                | ADD _
+                | SUB _
+                | MUL _
+                | DIV _
+                | MOD _
+                | POW _
+                | EQ _
+                | NEQ _
+                | LT _
+                | LTE _
+                | GT _
+                | GTE _
+                | AND _
+                | OR _
+                | BOR _
+                | BAND _
+                | BXOR _
+                | LSHIFT _
+                | RSHIFT _
+                | CONDITIONAL _
+                | CopyAndUpdate _
+                | AdjointApplication _
+                | ControlledApplication _
+                | CallLikeExpression _
+                | MissingExpr _
+                | InvalidExpr _ -> false
                 && Seq.forall id sub)
 
         expr.Fold folder

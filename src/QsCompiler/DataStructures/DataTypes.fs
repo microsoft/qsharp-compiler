@@ -94,7 +94,8 @@ module QsNullable =
     /// Returns the original nullable if it is <see cref="Value"/>, otherwise returns the given
     /// <paramref name="ifNull"/>.
     /// </summary>
-    let internal orElse ifNull =
+    [<CompiledName "OrElse">]
+    let orElse ifNull =
         function
         | Null -> ifNull
         | Value value -> Value value
