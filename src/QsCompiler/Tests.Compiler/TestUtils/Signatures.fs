@@ -3,13 +3,13 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.Signatures
 
-open System.Collections.Generic
-open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.DataTypes
-open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
+open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
+open System.Collections.Generic
+open System.Collections.Immutable
 open Xunit
 
 let private _BaseTypes =
@@ -50,12 +50,7 @@ let private _MakeSignatures sigs =
 
 let _MakeTypeParam originNs originName paramName =
     originName + "." + paramName,
-    {
-        Origin = { Namespace = originNs; Name = originName }
-        TypeName = paramName
-        Range = Null
-    }
-    |> TypeParameter
+    QsTypeParameter.New({ Namespace = originNs; Name = originName }, paramName) |> TypeParameter
 
 /// For all given namespaces in checkedNamespaces, checks that there are exactly
 /// the callables specified with targetSignatures in the given compilation.
@@ -206,13 +201,10 @@ let public MonomorphizationSignatures =
     |> _MakeSignatures
 
 let private _IntrinsicResolutionTypes =
-    _MakeTypeMap [| "TestType",
-                    {
-                        Namespace = IntrinsicResolutionNS
-                        Name = "TestType"
-                        Range = Null
-                    }
-                    |> UserDefinedType |]
+    [|
+        "TestType", UserDefinedType.New(IntrinsicResolutionNS, "TestType") |> UserDefinedType
+    |]
+    |> _MakeTypeMap
 
 /// Expected callable signatures to be found when running Intrinsic Resolution tests
 let public IntrinsicResolutionSignatures =
@@ -544,22 +536,8 @@ let public ClassicalControlSignatures =
     |> _MakeSignatures
 
 let private _SyntaxTreeTrimmingTypes =
-    let UsedUDT =
-        "UsedUDT",
-        {
-            Namespace = SyntaxTreeTrimmingNS
-            Name = "UsedUDT"
-            Range = Null
-        }
-        |> UserDefinedType
-    let UnusedUDT =
-        "UnusedUDT",
-        {
-            Namespace = SyntaxTreeTrimmingNS
-            Name = "UnusedUDT"
-            Range = Null
-        }
-        |> UserDefinedType
+    let UsedUDT = "UsedUDT", UserDefinedType.New(SyntaxTreeTrimmingNS, "UsedUDT") |> UserDefinedType
+    let UnusedUDT = "UnusedUDT", UserDefinedType.New(SyntaxTreeTrimmingNS, "UnusedUDT") |> UserDefinedType
     _MakeTypeMap [| UsedUDT; UnusedUDT |]
 
 let public SyntaxTreeTrimmingSignatures =
