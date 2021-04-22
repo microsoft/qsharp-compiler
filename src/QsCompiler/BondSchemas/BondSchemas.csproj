@@ -10,6 +10,14 @@
   <ItemGroup>
     <BondCodegen Remove="**\*.bond" />
   </ItemGroup>
+
+  <ItemGroup>
+    <None Remove="Argument\Argument.bond" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <BondCodegen Include="Argument\Argument.bond" />
+  </ItemGroup>
   <ItemGroup>
     <!-- Set up where gbc will look to resolve import statements. -->
     <BondImportDirectory Include="." />

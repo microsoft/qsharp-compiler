@@ -4,28 +4,24 @@
 using System;
 using System.Collections.Generic;
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.Argument
 {
     /// <summary>
-    /// This class provides extension methods for objects in the Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint namespace.
+    /// This class provides extension methods for objects in the Microsoft.Quantum.QsCompiler.BondSchemas.Argument namespace.
     /// </summary>
     public static class Extensions
     {
         /// <summary>
         /// Determine whether the values of two object instances are equal.
         /// </summary>
-        internal static bool ValueEquals(this EntryPointOperation entryPointA, EntryPointOperation entryPointB)
+        public static bool ValueEquals(this Argument @this, Argument other)
         {
-            if (!entryPointA.Name.Equals(entryPointB.Name))
+            if (!@this.Name.Equals(other.Name))
             {
                 return false;
             }
 
-            if (!AreCollectionsEqual(entryPointA.Arguments, entryPointB.Arguments, ValueEquals))
-            {
-                return false;
-            }
-
+            // TODO implement.
             return true;
         }
 
@@ -140,47 +136,6 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
             }
 
             if (!AreNullablesEqual(argumentValueA.Array, argumentValueB.Array, ValueEquals))
-            {
-                return false;
-            }
-
-            return true;
-        }
-
-        private static bool ValueEquals(this ArrayValue arrayValueA, ArrayValue arrayValueB)
-        {
-            static bool AreBoolListsEqual(List<bool> listA, List<bool> listB) => AreCollectionsEqual(listA, listB, (a, b) => a == b);
-            if (!AreNullablesEqual(arrayValueA.Bool, arrayValueB.Bool, AreBoolListsEqual))
-            {
-                return false;
-            }
-
-            static bool AreIntegerListsEqual(List<long> listA, List<long> listB) => AreCollectionsEqual(listA, listB, (a, b) => a == b);
-            if (!AreNullablesEqual(arrayValueA.Integer, arrayValueB.Integer, AreIntegerListsEqual))
-            {
-                return false;
-            }
-
-            static bool AreDoubleListsEqual(List<double> listA, List<double> listB) => AreCollectionsEqual(listA, listB, (a, b) => a == b);
-            if (!AreNullablesEqual(arrayValueA.Double, arrayValueB.Double, AreDoubleListsEqual))
-            {
-                return false;
-            }
-
-            static bool ArePauliListsEqual(List<PauliValue> listA, List<PauliValue> listB) => AreCollectionsEqual(listA, listB, (a, b) => a == b);
-            if (!AreNullablesEqual(arrayValueA.Pauli, arrayValueB.Pauli, ArePauliListsEqual))
-            {
-                return false;
-            }
-
-            static bool AreRangeListsEqual(List<RangeValue> listA, List<RangeValue> listB) => AreCollectionsEqual(listA, listB, ValueEquals);
-            if (!AreNullablesEqual(arrayValueA.Range, arrayValueB.Range, AreRangeListsEqual))
-            {
-                return false;
-            }
-
-            static bool AreResultListsEqual(List<ResultValue> listA, List<ResultValue> listB) => AreCollectionsEqual(listA, listB, (a, b) => a == b);
-            if (!AreNullablesEqual(arrayValueA.Result, arrayValueB.Result, AreResultListsEqual))
             {
                 return false;
             }
