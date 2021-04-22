@@ -345,7 +345,7 @@ namespace Microsoft.Quantum.QIR.Emission
             var tuple = this.sharedState.CurrentBuilder.Call(constructor, size);
             if (registerWithScopeManager)
             {
-                this.sharedState.ScopeMgr.RegisterValue(this, shallow: true);
+                this.sharedState.ScopeMgr.RegisterValue(this);
             }
             return tuple;
         }
@@ -469,7 +469,7 @@ namespace Microsoft.Quantum.QIR.Emission
             var pointer = this.sharedState.CurrentBuilder.Call(constructor, elementSize, this.Length);
             if (registerWithScopeManager)
             {
-                this.sharedState.ScopeMgr.RegisterValue(this, shallow: true);
+                this.sharedState.ScopeMgr.RegisterValue(this);
             }
             return pointer;
         }
@@ -552,10 +552,10 @@ namespace Microsoft.Quantum.QIR.Emission
 
             // The runtime function CallableCreate creates a new value with reference count 1.
             var createCallable = context.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value);
+            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, registerWithScopeManager: false);
             var memoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
             this.Value = context.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? context.Constants.UnitValue);
-            context.ScopeMgr.RegisterValue(this, shallow: true);
+            context.ScopeMgr.RegisterValue(this);
         }
 
         /// <summary>

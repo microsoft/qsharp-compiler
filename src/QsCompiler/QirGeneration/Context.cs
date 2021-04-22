@@ -1632,6 +1632,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return this.ValueStack.Pop();
         }
 
+        /// <summary>
+        /// Evaluates the given expression and increases its reference count by 1,
+        /// either by not registering a newly constructed item with the scope manager,
+        /// or by explicitly increasing its reference count.
+        /// Note that increasing the reference count may be delayed until needed.
+        /// </summary>
+        internal IValue BuildSubitem(TypedExpression ex)
+        {
+            this.ScopeMgr.OpenScope();
+            this.Transformation.Expressions.OnTypedExpression(ex);
+            var value = this.ValueStack.Pop();
+            this.ScopeMgr.CloseScope(value);
+            return value;
+        }
+
         #endregion
 
         #region IDisposable Support

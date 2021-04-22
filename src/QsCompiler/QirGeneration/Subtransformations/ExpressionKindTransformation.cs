@@ -199,7 +199,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             bool unreferenceOriginal = false)
         {
             var (originalValue, accEx, updated) = copyAndUpdate;
-            void StoreElement(PointerValue pointer, IValue value, bool shallow = false)
+            void StoreElement(PointerValue pointer, IValue value, Value wasCopied, bool shallow = false)
             {
                 // To better understand the logic in this function, consider the following example for an array of arrays
                 // (the same logic applies to tuples/udts):
@@ -212,26 +212,37 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 //     }
                 //
                 // The first line gets translated into first creating and then populating the Int[][].
-                // After creation and populating, the array has a ref count 1, and each item points to the default value for Int[].
-                // That default value has a ref count 1 and is queued separately for release at the end of TestRefCounts.
-                //
-                // It is not necessary to reflect that several pointers (each item) within the outer array point to it,
-                // since there is no way for the default value to be freed before the outer array is, unless it is assigned to
-                // a mutable variable. We hence apply ref count changes recursively only when assigning to mutable variables
-                // and not for the initial construction of the array. An example for why the ref count needs to be increased
+                // After creation and populating, the array and all its items have ref count 1.
+                // Then that array is assigned to the mutable variable. Upon assignement to a mutable variable,
+                // we increase the ref count of array and all its items by 1, meaning the array and all its items
+                // having ref count 2, and an alias count 1. An example for why the ref count needs to be increased
                 // recursively for assignments to mutable variables can be found further blow, marked with (*).
-                //
-                // Then that array is assigned to the mutable variable.
-                // Upon assignement to a mutable variable, we increase the ref count of array and all its items by 1,
-                // meaning the array has ref count 2, and the default value has a ref count of 1 + Length(ops) = 6.
                 //
                 // Continuing into the if-branch, we create a new array that has ref count 1.
                 // Upon assigning it to item 0 in the array, its alias count and ref count are increased.
                 // At the same time, the alias count and ref count of the old item are decreased.
+                // The ops array and all its items now have an alias count 1 and a ref count 2.
+                // The alias count of the old item is now 0, and its ref count is 1.
                 //
                 // Now we exit the conditional scope. When we exit that scope, the array value created inside the if-branch goes out of scope.
                 // Its ref count is hence decreased by 1. Upon exiting the function, we decrease the alias count and the ref count of ops
                 // and all its items by 1, since the mutable ops variable goes out of scope.
+                // The alias count of ops and all its items is then 0, and the ref count of all items except item 0 is 1,
+                // while the ref count of item 0 is 0.
+                //
+                // Here is where things go wrong unless we insert an adjustment depending on whether the array was copied or not;
+                // we also release the initially created array (variable % 0), which is correct, since the value goes out of scope.
+                // However, the original item at index 0 is no longer accessible by getting the 0 - element pointer of % 0 -
+                // instead of getting the old item that still has a ref count 1 that needs to be set to 0,
+                // we get the new item that has a ref count 0 already.
+                // Now why is it relevant whether the ops array has been copied inside the if-branch or not?
+                // Suppose after the first line there is another variable defined that is bound to ops,
+                // such that the if-branch actually does create the copy. In that case when we exit TestRefCounts,
+                // accessing the item at index 0 of % 0 indeed still accesses the old item, and everything works fine.
+                //
+                // We hence inject an additional ref count increase for the new item and ref count decrease for the old item
+                // when an array item is modified in place. The additional count change has to be exactly 1 as long as we ensure
+                // that unless the alias count for the array forces the copy, the old array item cannot be unreferenced more than once.
 
                 // (*) To understand why the ref count needs to be increased recursively for assignments to mutable variables
                 // think of the case where the array assigned to the mutable variable has been passed in as an argument:
@@ -255,6 +266,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
                     sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
                 }
+
+                if (ScopeManager.RequiresReferenceCount(value.LlvmType) && !unreferenceOriginal)
+                {
+                    var contBlock = sharedState.AddBlockAfterCurrent("condContinue");
+                    var falseBlock = sharedState.AddBlockAfterCurrent("condFalse");
+
+                    sharedState.CurrentBuilder.Branch(wasCopied, contBlock, falseBlock);
+                    sharedState.ScopeMgr.OpenScope();
+                    sharedState.SetCurrentBlock(falseBlock);
+
+                    sharedState.ScopeMgr.IncreaseReferenceCount(value, shallow);
+                    sharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow);
+
+                    sharedState.ScopeMgr.CloseScope(false);
+                    sharedState.CurrentBuilder.Branch(contBlock);
+                    sharedState.SetCurrentBlock(contBlock);
+                }
+
                 pointer.StoreValue(value);
             }
 
@@ -267,6 +296,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var forceCopy = sharedState.Context.CreateConstant(false);
                 var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
                 var array = sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
+                var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, originalArray.OpaquePointer, array.OpaquePointer);
                 sharedState.ScopeMgr.RegisterValue(array);
 
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
@@ -278,7 +308,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var newElement = getNewItemForIndex(index);
-                    StoreElement(elementPtr, newElement);
+                    StoreElement(elementPtr, newElement, wasCopied);
                 }
 
                 if (accEx.ResolvedType.Resolution.IsInt)
@@ -324,7 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateUdt(TupleValue originalValue)
             {
-                TupleValue GetTupleCopy(TupleValue original)
+                (Value, TupleValue) GetTupleCopy(TupleValue original)
                 {
                     // Since we keep track of alias counts for tuples we always ask the runtime to create a shallow copy
                     // if needed. The runtime function TupleCopy creates a new value with reference count 1 if the current
@@ -335,10 +365,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var tuple = original.TypeName == null
                         ? sharedState.Values.FromTuple(copy, original.ElementTypes)
                         : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
-                    return tuple;
+                    var wasCopied = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, original.OpaquePointer, tuple.OpaquePointer);
+                    return (wasCopied, tuple);
                 }
 
-                var value = GetTupleCopy(originalValue);
+                var (wasCopied, value) = GetTupleCopy(originalValue);
                 sharedState.ScopeMgr.RegisterValue(value);
 
                 var udtName = originalValue.TypeName;
@@ -359,7 +390,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         if (depth == location.Count - 1)
                         {
                             var newItemValue = sharedState.EvaluateSubexpression(updated);
-                            StoreElement(itemPointer, newItemValue);
+                            StoreElement(itemPointer, newItemValue, wasCopied);
                         }
                         else
                         {
@@ -368,8 +399,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             // such that we can then proceed to modify that copy (the next inner tuple).
                             var originalItem = (TupleValue)itemPointer.LoadValue();
                             var copyReturn = GetTupleCopy(originalItem);
-                            copies.Push(copyReturn);
-                            StoreElement(itemPointer, copies.Peek(), shallow: true);
+                            copies.Push(copyReturn.Item2);
+                            StoreElement(itemPointer, copies.Peek(), copyReturn.Item1, shallow: true);
                         }
                     }
 
@@ -922,7 +953,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromArray(res, elementType.Item);
+                // The explicit ref count increase for all items is necessary for the sake of
+                // consistency such that the reference count adjustment for copy-and-update is correct.
+                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
                 this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -952,16 +987,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                // Array slice creates a new array if the current alias count is larger than zero.
+                // Unless we force that memory is copied when a new slice is created,
+                // array sliceing creates a new array only if the current alias count is larger than zero.
                 // The created array is instantiated with reference count 1 and alias count 0.
-                // If the current alias count is zero, then the array may be modified in place.
+                // otherwise, if the current alias count is zero, then the array may be modified in place.
                 // In this case, its reference count is increased by 1.
-                // Since we keep track of alias counts for arrays, there is no need to force the copy.
-                var forceCopy = this.SharedState.Context.CreateConstant(false);
+                // Even though we keep track of alias counts for arrays, we force a copy here to simplify
+                // the logic we do to avoid alias count increases when possible, while also ensuring that
+                // the additional reference count compensation for copy-and-update as explained in the
+                // the comment there is exactly one.
+                var forceCopy = this.SharedState.Context.CreateConstant(true);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
+                // The explicit ref count increase for all items is necessary for the sake of
+                // consistency such that the reference count adjustment for copy-and-update is correct.
+                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
                 this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1873,9 +1916,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // We need to populate the array
             var start = this.SharedState.Context.CreateConstant(0L);
             var end = this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
-            var defaultValue = DefaultValue(elementType);
-
-            this.SharedState.IterateThroughRange(start, null, end, index => array.GetArrayElementPointer(index).StoreValue(defaultValue));
+            void PopulateItem(Value index)
+            {
+                // We need to make sure that the reference count for the built item is increased by 1.
+                this.SharedState.ScopeMgr.OpenScope();
+                var value = DefaultValue(elementType);
+                this.SharedState.ScopeMgr.CloseScope(value);
+                array.GetArrayElementPointer(index).StoreValue(value);
+            }
+            this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
             return ResolvedExpressionKind.InvalidExpr;
         }
 
