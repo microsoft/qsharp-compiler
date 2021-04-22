@@ -55,7 +55,5 @@ exiting__1:                                       ; preds = %body__1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
-  call void @__quantum__rt__array_update_reference_count(%Array* %6, i32 1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %6, i32 -1)
   br label %condContinue__1
 }
