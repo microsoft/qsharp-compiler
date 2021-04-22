@@ -40,6 +40,7 @@ entry:
   call void @__quantum__rt__callable_update_alias_count(%Callable* %doNothing, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %doNothing, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %doNothing, i32 -1)
+  call void @__quantum__rt__capture_update_reference_count(%Callable* %15, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %15, i32 -1)
   ret void
 }
