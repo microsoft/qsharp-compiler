@@ -5,18 +5,13 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
-  <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Chemistry" Version="0.15.2103133969" />
-  </ItemGroup>
-    
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
   </PropertyGroup>
     
   <ItemGroup>
-    <UpToDateCheckInput Include="@(None)" />
-    <None Include="$(QirOutputPath)**" />
+    <None Include="qir\**" />
     <Compile Remove="Main.cs" />
   </ItemGroup>
     
@@ -33,17 +28,17 @@
   and files with the generated QIR are deleted when the project is cleaned
   despite that we added them in a way that displays them as part of the project.
   -->
-
-  <Target Name="CleanQir" AfterTargets="QSharpClean" DependsOnTargets="Restore">
+    
+  <Target Name="CleanAll" BeforeTargets="QSharpClean">
     <ItemGroup>
-      <_QirFilesToClean Include="$(QirOutputPath)**" />
-      <None Remove="@(_QirFilesToClean)" />
+      <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
+      <_FilesToClean Include="$(QirOutputPath)**/*.ll" />
+      <Compile Remove="$(_FilesToClean)**/*.g.cs" />
     </ItemGroup>
-    <Delete Files="@(_QirFilesToClean)" />
-    <RemoveDir Directories="$(QirOutputPath)" />
+    <Delete Files="@(_FilesToClean)" />
   </Target>
 
-  <Target Name="BeforeQSharpCompile" DependsOnTargets="QSharpClean">
+  <Target Name="BeforeQSharpCompile" DependsOnTargets="CleanAll">
     <Message Text="Removed files from prior compilation." Importance="High" />
   </Target>
 
@@ -53,27 +48,6 @@
         <Visible>false</Visible>
       </Compile>
     </ItemGroup>
-  </Target>
-
-  <!--
-  We provide a target that builds an executable in the qir folder.
-  -->
-    
-  <Target Name="BuildExecutable" Condition="'$(DesignTimeBuild)' != 'true'" AfterTargets="QSharpCompile;CoreBuild">
-    <PropertyGroup>
-      <SimulatorRuntime>$(MSBuildThisFileDirectory)Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
-      <QirRuntimeLibs>$(MSBuildThisFileDirectory)/../../../../QsSimulation/src/Qir/Runtime/build/$(Configuration)/bin</QirRuntimeLibs>
-      <QirRuntimeHeaders>$(MSBuildThisFileDirectory)/../../../../QsSimulation/src/Qir/Runtime/public</QirRuntimeHeaders>
-      <ClangCommand>clang++ -o $(QirOutputPath)$(MSBuildProjectName).exe $(QirOutputPath)$(PathCompatibleAssemblyName).ll Main.cpp -I$(QirOutputPath) -L$(QirOutputPath) -lMicrosoft.Quantum.Qir.Runtime -lMicrosoft.Quantum.Qir.QSharp.Core -lMicrosoft.Quantum.Qir.QSharp.Foundation</ClangCommand>
-    </PropertyGroup>
-    <ItemGroup>
-      <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
-      <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.hpp" />
-    </ItemGroup>
-    <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(QirOutputPath)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(QirOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Copy SourceFiles="@(_QirRuntimeHeaderFiles)" DestinationFolder="$(QirOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
-    <Exec Command="$(ClangCommand)" IgnoreExitCode="false" />
   </Target>
 
 </Project>

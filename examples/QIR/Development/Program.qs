@@ -1,66 +1,47 @@
-﻿namespace Microsoft.Quantum.Qir.Development {
+﻿namespace Microsoft.Quantum.Qir.Emission {
+
     open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Samples.Chemistry.SimpleVQE;
+    open Microsoft.Quantum.Math;
 
-    @EntryPoint()
-    operation RunExample() : String {
-        mutable res = new Double[0];
-        for i in 1 .. 10 {
-            set res += [GetEnergyHydrogenVQE(0.1, 0.1, 0.1, 10)];
+    operation Prepare(target : Qubit) : Unit {
+        H(target);
+    }
+
+    operation Iterate(time : Double, theta : Double, target : Qubit) : Result {
+
+        use aux = Qubit();
+        within {
+            H(aux);
+        } apply {
+            Rz(-theta * time, aux);
+            Controlled Rz([aux], (PI() * time, target));
         }
-        Message($"Computed energies: \n{res}");
-        return "Program completed successfully.";
+        return M(aux);
     }
-}
-
-namespace Microsoft.Quantum.Samples.Chemistry.SimpleVQE {
-    open Microsoft.Quantum.Core;
-    open Microsoft.Quantum.Chemistry;
-    open Microsoft.Quantum.Chemistry.JordanWigner;
-    open Microsoft.Quantum.Samples.Chemistry.SimpleVQE.VariationalQuantumEigensolver;
 
     @EntryPoint()
-    operation GetEnergyHydrogenVQE(theta1: Double, theta2: Double, theta3: Double, nSamples: Int) : Double {
-        let hamiltonian = JWOptimizedHTerms(
-        [
-            HTerm([0], [0.17120128499999998]),
-            HTerm([1], [0.17120128499999998]),
-            HTerm([2], [-0.222796536]),
-            HTerm([3], [-0.222796536])],
-        [
-            HTerm([0, 1], [0.1686232915]),
-            HTerm([0, 2], [0.12054614575]),
-            HTerm([0, 3], [0.16586802525]),
-            HTerm([1, 2], [0.16586802525]),
-            HTerm([1, 3], [0.12054614575]),
-            HTerm([2, 3], [0.1743495025])
-        ],
-        new HTerm[0],
-        [
-            HTerm([0, 1, 2, 3], [0.0, -0.0453218795, 0.0, 0.0453218795])
-        ]
-        );
-        let inputState = (
-            3,
-            [
-                JordanWignerInputState((theta1, 0.0), [2, 0]),
-                JordanWignerInputState((theta2, 0.0), [3, 1]),
-                JordanWignerInputState((theta3, 0.0), [2, 3, 1, 0]),
-                JordanWignerInputState((1.0, 0.0), [0, 1])
-            ]
-        );
-        let JWEncodedData = JordanWignerEncodingData(
-            4,
-            hamiltonian,
-            inputState,
-            -0.09883444600000002
-        );
+    operation EstimatePhaseByRandomWalk(nrIter : Int) : Double {
+            
+        mutable mu = 0.7951;
+        mutable sigma = 0.6065;
 
-        return EstimateEnergy(
-            5, hamiltonian, inputState, -0.09883444600000002, nSamples
-        );
+        use target = Qubit(); 
+        Prepare(target);
+    
+        for _ in 1 .. nrIter {
+    
+            let time = mu - PI() * sigma / 2.0;
+            let theta = 1.0 / sigma;
+
+            let datum = Iterate(time, theta, target);
+    
+            set mu = datum == Zero
+                ? mu - sigma * 0.6065
+                | mu + sigma * 0.6065;    
+            set sigma *= 0.7951;
+        }
+        return mu;
     }
 }
-
 
 
