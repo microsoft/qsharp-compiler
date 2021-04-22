@@ -289,14 +289,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.EndBranch();
             }
 
-            // Finally, set the continuation block as current or prune it if it is unused.
-            if (contBlockUsed)
+            // Finally, set the continuation block as current and prune it if it is unused.
+            this.SharedState.SetCurrentBlock(contBlock);
+            if (!contBlockUsed)
             {
-                this.SharedState.SetCurrentBlock(contBlock);
-            }
-            else
-            {
-                this.SharedState.CurrentFunction.BasicBlocks.Remove(contBlock);
+                // This is the savest option to deal with this case from a code rubustness perspective.
+                // The additional code blocks that don't have any predecessors are better trimmed in a separate pass over the generated ir.
+                this.OnFailStatement(SyntaxGenerator.StringLiteral("reached unreachable code...", ImmutableArray<TypedExpression>.Empty));
             }
             return QsStatementKind.EmptyStatement;
         }
@@ -330,6 +329,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("current function is set to null");
             }
 
+            Action<T> LoopBody<T>(Action<T> execute) => loopVariable =>
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                execute(loopVariable);
+                var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+                this.SharedState.ScopeMgr.CloseScope(isTerminated);
+            };
+
             if (stm.IterationValues.ResolvedType.Resolution.IsRange)
             {
                 void ExecuteBody(Value loopVariable)
@@ -347,7 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(stm.IterationValues);
-                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), ExecuteBody);
+                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), LoopBody<Value>(ExecuteBody));
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
             {
@@ -359,7 +366,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var array = (ArrayValue)this.SharedState.EvaluateSubexpression(stm.IterationValues);
-                this.SharedState.IterateThroughArray(array, ExecuteBody);
+                this.SharedState.IterateThroughArray(array, LoopBody<IValue>(ExecuteBody));
             }
             else
             {
@@ -409,7 +416,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We need to make sure to properly invoke all calls to unreference, release, and remove alias counts
                 // for variables and values in the repeat-block after the statement ends.
                 this.SharedState.SetCurrentBlock(contBlock);
-                this.SharedState.ScopeMgr.ExitScope(false);
+                this.SharedState.ScopeMgr.ExitScope();
 
                 this.SharedState.SetCurrentBlock(fixupBlock);
                 this.Transformation.Statements.OnScope(stm.FixupBlock.Body);

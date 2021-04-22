@@ -77,7 +77,8 @@ let ``QIR inlined call`` () = qirTest true "TestInline"
 let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
-let ``QIR reference counts`` () = qirTest false "TestReferenceCounts"
+let ``QIR reference counts`` () =
+    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
@@ -162,7 +163,16 @@ let ``QIR entry points`` () =
 
 [<Fact>]
 let ``QIR partial applications`` () =
-    qirMultiTest true "TestPartials" [ "TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4" ]
+    qirMultiTest
+        true
+        "TestPartials"
+        [
+            "TestPartials1"
+            "TestPartials2"
+            "TestPartials3"
+            "TestPartials4"
+            "TestPartials5"
+        ]
 
 [<Fact>]
 let ``QIR declarations`` () =
