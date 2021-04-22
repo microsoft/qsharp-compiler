@@ -27,7 +27,7 @@ module TypeCheckingTests =
         expect "Integral1" []
         expect "Integral2" []
         expect "IntegralInvalid1" (Error ErrorCode.ExpectingIntegralExpr |> List.replicate 4)
-        expect "IntegralInvalid2" (Error ErrorCode.MissingBaseType |> List.replicate 4)
+        expect "IntegralInvalid2" (Error ErrorCode.TypeIntersectionMismatch |> List.replicate 4)
 
     [<Fact>]
     let ``Supports iteration`` () =
@@ -124,8 +124,8 @@ type TypeCheckingTests() =
     [<Fact>]
     member this.``Common base type``() =
         this.Expect "CommonBaseType1" []
-        this.Expect "CommonBaseType2" [ Error ErrorCode.MissingBaseType ]
-        this.Expect "CommonBaseType3" [ Error ErrorCode.MissingBaseType ]
+        this.Expect "CommonBaseType2" [ Error ErrorCode.TypeIntersectionMismatch ]
+        this.Expect "CommonBaseType3" [ Error ErrorCode.TypeIntersectionMismatch ]
         this.Expect "CommonBaseType4" [ Error ErrorCode.TypeMismatchInReturn ]
         this.Expect "CommonBaseType5" []
         this.Expect "CommonBaseType6" []
@@ -134,20 +134,20 @@ type TypeCheckingTests() =
         this.Expect "CommonBaseType9" []
         this.Expect "CommonBaseType10" []
         this.Expect "CommonBaseType11" [ Error ErrorCode.TypeMismatchInReturn ]
-        this.Expect "CommonBaseType12" [ Error ErrorCode.MissingBaseType ]
+        this.Expect "CommonBaseType12" [ Error ErrorCode.TypeIntersectionMismatch ]
         this.Expect "CommonBaseType13" []
         this.Expect "CommonBaseType14" []
         this.Expect "CommonBaseType15" [ Error ErrorCode.TypeMismatchInReturn ]
-        this.Expect "CommonBaseType16" [ Error ErrorCode.MissingBaseType ]
+        this.Expect "CommonBaseType16" [ Error ErrorCode.TypeIntersectionMismatch ]
         this.Expect "CommonBaseType17" []
         this.Expect "CommonBaseType18" []
         this.Expect "CommonBaseType19" [ Warning WarningCode.UnusedTypeParam ]
-        this.Expect "CommonBaseType20" [ Error ErrorCode.MissingBaseType ]
+        this.Expect "CommonBaseType20" [ Error ErrorCode.TypeIntersectionMismatch ]
         this.Expect "CommonBaseType21" []
         this.Expect "CommonBaseType22" []
         this.Expect "CommonBaseType23" []
         this.Expect "CommonBaseType24" []
-        this.Expect "CommonBaseType25" [ Error ErrorCode.MissingBaseType ]
+        this.Expect "CommonBaseType25" [ Error ErrorCode.TypeIntersectionMismatch ]
 
 
     [<Fact>]
@@ -199,8 +199,8 @@ type TypeCheckingTests() =
                 Error ErrorCode.InvalidUseOfUnderscorePattern
             ]
 
-        this.Expect "NoCommonBaseEquality" [ Error ErrorCode.MissingBaseType ]
-        this.Expect "NoCommonBaseInequality" [ Error ErrorCode.MissingBaseType ]
+        this.Expect "NoCommonBaseEquality" [ Error ErrorCode.TypeIntersectionMismatch ]
+        this.Expect "NoCommonBaseInequality" [ Error ErrorCode.TypeIntersectionMismatch ]
 
 
     [<Fact>]

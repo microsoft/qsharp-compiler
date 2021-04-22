@@ -204,7 +204,7 @@ module private Inference =
 
         let error =
             QsCompilerDiagnostic.Error
-                (ErrorCode.MissingBaseType, relation :: describeTypeContext types)
+                (ErrorCode.TypeIntersectionMismatch, relation :: describeTypeContext types)
                 (range |> QsNullable.defaultValue Range.Zero)
 
         match types.Left.Resolution, types.Right.Resolution with

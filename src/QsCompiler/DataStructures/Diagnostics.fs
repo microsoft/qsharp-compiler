@@ -8,7 +8,7 @@ open System.Collections.Generic
 
 type ErrorCode =
     | TypeMismatch = 1
-    | MissingBaseType = 2
+    | TypeIntersectionMismatch = 2
 
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
@@ -465,7 +465,7 @@ type DiagnosticItem =
             << function
             | ErrorCode.TypeMismatch ->
                 "The type {1} does not match the type {0}.\nActual type:   {3}\nExpected type: {2}"
-            | ErrorCode.MissingBaseType ->
+            | ErrorCode.TypeIntersectionMismatch ->
                 "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
