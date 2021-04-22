@@ -89,25 +89,16 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
     let ignoreSerializationException = defaultArg ignoreSerializationException false
 
     /// Returns an invalid type if the deserialization fails and ignoreSerializationException was set to true upon initialization
-    override this.ReadJson(reader: JsonReader,
-                           objectType: Type,
-                           existingValue: ResolvedType,
-                           hasExistingValue: bool,
-                           serializer: JsonSerializer) =
+    override this.ReadJson(reader, _, _, _, serializer) =
         try
-            let resolvedType =
-                (true,
-                 serializer.Deserialize<QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>>
-                     (reader))
-                |> ResolvedType.New
+            let resolvedType = serializer.Deserialize<_> reader |> ResolvedType.New
 
             match resolvedType.Resolution with
-            | Operation ((i, o), c) when Object.ReferenceEquals(c, null)
-                                         || Object.ReferenceEquals(c.Characteristics, null) ->
-                new JsonSerializationException("failed to deserialize operation characteristics") |> raise
+            | Operation (_, c) when Object.ReferenceEquals(c, null) || Object.ReferenceEquals(c.Characteristics, null) ->
+                JsonSerializationException "failed to deserialize operation characteristics" |> raise
             | _ -> resolvedType
         with :? JsonSerializationException as ex ->
-            if ignoreSerializationException then ResolvedType.New(true, InvalidType) else raise ex
+            if ignoreSerializationException then ResolvedType.New InvalidType else raise ex
 
     override this.WriteJson(writer: JsonWriter, value: ResolvedType, serializer: JsonSerializer) =
         serializer.Serialize(writer, value.Resolution)
