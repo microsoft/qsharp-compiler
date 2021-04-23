@@ -82,6 +82,15 @@
     <Content Include="TestCases\QirTests\TestBuiltIn.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestBuiltInIntrinsics1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestBuiltInIntrinsics2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestBuiltInIntrinsics.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestCaching.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
