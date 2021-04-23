@@ -159,6 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(file.IndexRangeSuggestions(compilation, range))
                 .Concat(file.UnreachableCodeSuggestions(diagnostics))
                 .Concat(file.DocCommentSuggestions(range))
+                .Concat(file.BindingSuggestions(compilation, diagnostics))
                 .ToLookup(s => s.Item1, s => s.Item2);
         }
 
