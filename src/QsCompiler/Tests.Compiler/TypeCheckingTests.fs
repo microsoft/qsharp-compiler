@@ -144,7 +144,7 @@ type TypeCheckingTests() =
         this.Expect
             "CommonBaseType4"
             [
-                Error ErrorCode.TypeIntersectionMismatch
+                Error ErrorCode.TypeMismatchInReturn
                 Warning WarningCode.DeprecatedNewArray
                 Warning WarningCode.DeprecatedNewArray
             ]
