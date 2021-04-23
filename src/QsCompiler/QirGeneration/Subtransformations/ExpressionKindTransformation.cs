@@ -201,12 +201,73 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var (originalValue, accEx, updated) = copyAndUpdate;
             void StoreElement(PointerValue pointer, IValue value, Value wasCopied, bool shallow = false)
             {
+                // To better understand the logic in this function, consider the following example for an array of arrays
+                // (the same logic applies to tuples/udts):
+                //
+                //     function TestRefCounts(cond : Bool) : Unit {
+                //         mutable ops = new Int[][5];
+                //         if cond {
+                //             set ops w /= 0 <- new Int[3];
+                //         }
+                //     }
+                //
+                // The first line gets translated into first creating and then populating the Int[][].
+                // After creation and populating, the array and all its items have ref count 1.
+                // Then that array is assigned to the mutable variable. Upon assignement to a mutable variable,
+                // we increase the ref count of array and all its items by 1, meaning the array and all its items
+                // having ref count 2, and an alias count 1. An example for why the ref count needs to be increased
+                // recursively for assignments to mutable variables can be found further blow, marked with (*).
+                //
+                // Continuing into the if-branch, we create a new array that has ref count 1.
+                // Upon assigning it to item 0 in the array, its alias count and ref count are increased.
+                // At the same time, the alias count and ref count of the old item are decreased.
+                // The ops array and all its items now have an alias count 1 and a ref count 2.
+                // The alias count of the old item is now 0, and its ref count is 1.
+                //
+                // Now we exit the conditional scope. When we exit that scope, the array value created inside the if-branch goes out of scope.
+                // Its ref count is hence decreased by 1. Upon exiting the function, we decrease the alias count and the ref count of ops
+                // and all its items by 1, since the mutable ops variable goes out of scope.
+                // The alias count of ops and all its items is then 0, and the ref count of all items except item 0 is 1,
+                // while the ref count of item 0 is 0.
+                //
+                // Here is where things go wrong unless we insert an adjustment depending on whether the array was copied or not;
+                // we also release the initially created array (variable % 0), which is correct, since the value goes out of scope.
+                // However, the original item at index 0 is no longer accessible by getting the 0 - element pointer of % 0 -
+                // instead of getting the old item that still has a ref count 1 that needs to be set to 0,
+                // we get the new item that has a ref count 0 already.
+                // Now why is it relevant whether the ops array has been copied inside the if-branch or not?
+                // Suppose after the first line there is another variable defined that is bound to ops,
+                // such that the if-branch actually does create the copy. In that case when we exit TestRefCounts,
+                // accessing the item at index 0 of % 0 indeed still accesses the old item, and everything works fine.
+                //
+                // We hence inject an additional ref count increase for the new item and ref count decrease for the old item
+                // when an array item is modified in place. The additional count change has to be exactly 1 as long as we ensure
+                // that unless the alias count for the array forces the copy, the old array item cannot be unreferenced more than once.
+
+                // (*) To understand why the ref count needs to be increased recursively for assignments to mutable variables
+                // think of the case where the array assigned to the mutable variable has been passed in as an argument:
+                //
+                //    function TestRefCounts(cond : Bool, arr: Int[][]) : Unit {
+                //        mutable ops = arr;
+                //        if (cond)
+                //        {
+                //            set ops w /= 0 <- new Int[3];
+                //        }
+                //        // do something
+                //    }
+                //
+                // Suppose that argument arr initially has ref count 1 and is "owned" by the calling function.
+                // Then if we kept the ref count at 1, and updated an item in ops, the old item's ref count would drop to 0, releasing it.
+                // Hence (assuming we can't know which items will be updated), we increase both the alias and the ref count
+                // when assigning to mutable variables for the array and all its item.
+
                 if (updateItemAliasCount)
                 {
                     sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
                     sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
                 }
-                if (sharedState.ScopeMgr.RequiresReferenceCount(value.LlvmType) && !unreferenceOriginal)
+
+                if (ScopeManager.RequiresReferenceCount(value.LlvmType) && !unreferenceOriginal)
                 {
                     var contBlock = sharedState.AddBlockAfterCurrent("condContinue");
                     var falseBlock = sharedState.AddBlockAfterCurrent("condFalse");
@@ -222,6 +283,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     sharedState.CurrentBuilder.Branch(contBlock);
                     sharedState.SetCurrentBlock(contBlock);
                 }
+
                 pointer.StoreValue(value);
             }
 
@@ -419,6 +481,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
+            IValue CreateStringValue(Value str) =>
+                sharedState.Values.From(str, ResolvedType.New(ResolvedTypeKind.String));
+
             // Creates a string value that needs to be queued for unreferencing.
             Value CreateConstantString(string s)
             {
@@ -496,6 +561,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return sharedState.CurrentBuilder.Call(createString, evaluated.Value);
                 }
 
+                // Creates a string value that needs to be queued for unreferencing.
                 Value TupleToString(TupleValue tuple)
                 {
                     var str = CreateConstantString($"{tuple.TypeName}(");
@@ -504,23 +570,42 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     for (var idx = 0; idx < tupleElements.Length; ++idx)
                     {
+                        if (idx > 0)
+                        {
+                            comma ??= CreateConstantString(", ");
+                            str = DoAppend(str, comma!, unreferenceNext: false);
+                        }
                         str = DoAppend(str, ExpressionToString(tupleElements[idx]));
-                        if (idx == tupleElements.Length - 1)
-                        {
-                            str = DoAppend(str, CreateConstantString(")"), unreferenceNext: true);
-                        }
-                        else
-                        {
-                            comma ??= CreateConstantString(",");
-                            str = DoAppend(str, comma, unreferenceNext: false);
-                        }
                     }
 
+                    str = DoAppend(str, CreateConstantString(")"), unreferenceNext: true);
                     if (comma != null)
                     {
                         UpdateStringRefCount(comma, -1);
                     }
+
                     return str;
+                }
+
+                // Creates a string value that needs to be queued for unreferencing.
+                Value ArrayToString(ArrayValue array)
+                {
+                    Value comma = CreateConstantString(", ");
+                    var openParens = CreateConstantString("[");
+                    var outputStr = sharedState.IterateThroughArray(array, openParens, (item, str) =>
+                    {
+                        var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens);
+                        var updatedStr = sharedState.ConditionalEvaluation(
+                            cond,
+                            onCondTrue: () => CreateStringValue(DoAppend(str!, comma, unreferenceNext: false)),
+                            defaultValueForCondFalse: CreateStringValue(str!),
+                            increaseReferenceCount: false);
+                        return DoAppend(updatedStr, ExpressionToString(item));
+                    });
+
+                    outputStr = DoAppend(outputStr, CreateConstantString("]"));
+                    UpdateStringRefCount(comma, -1);
+                    return outputStr;
                 }
 
                 var ty = evaluated.QSharpType.Resolution;
@@ -575,20 +660,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (ty.IsArrayType)
                 {
-                    var arr = (ArrayValue)evaluated;
-                    var str = CreateConstantString("[");
-                    Value comma = CreateConstantString(",");
-                    Value closeParens = CreateConstantString("]");
-
-                    sharedState.IterateThroughArray(arr, item =>
-                    {
-                        str = DoAppend(str, ExpressionToString(item));
-                        str = DoAppend(str, comma, unreferenceNext: false);
-                    });
-
-                    str = DoAppend(str, closeParens);
-                    UpdateStringRefCount(comma, -1);
-                    return str;
+                    var array = (ArrayValue)evaluated;
+                    return ArrayToString(array);
                 }
                 else if (ty.IsTupleType || ty.IsUserDefinedType)
                 {
@@ -640,67 +713,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             current ??= CreateConstantString(str);
-            var value = sharedState.Values.From(current, ResolvedType.New(ResolvedTypeKind.String));
+            var value = CreateStringValue(current);
             sharedState.ScopeMgr.RegisterValue(value);
             return value;
         }
 
         // private helpers
-
-        /// <summary>
-        /// Depending on the value of the given condition, evaluates the expression given for the corresponding branch.
-        /// </summary>
-        /// <returns>
-        /// A phi node that evaluates to either the value of the expression depending on the branch that was taken,
-        /// or the value of the condition if no expression has been specified for that branch.
-        /// </returns>
-        private Value ConditionalEvaluation(Value condition, TypedExpression? onCondTrue = null, TypedExpression? onCondFalse = null)
-        {
-            var contBlock = this.SharedState.AddBlockAfterCurrent("condContinue");
-            var falseBlock = onCondFalse != null
-                ? this.SharedState.AddBlockAfterCurrent("condFalse")
-                : contBlock;
-            var trueBlock = onCondTrue != null
-                ? this.SharedState.AddBlockAfterCurrent("condTrue")
-                : contBlock;
-
-            // In order to ensure the correct reference counts, it is important that we create a new scope
-            // for each branch of the conditional. When we close the scope, we list the computed value as
-            // to be returned from that scope, meaning it either won't be dereferenced or its reference
-            // count will increase by 1. The result of the expression is a phi node that we then properly
-            // register with the scope manager, such that it will be unreferenced when going out of scope.
-
-            this.SharedState.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
-            var entryBlock = this.SharedState.CurrentBlock!;
-
-            var (evaluatedOnTrue, afterTrue) = (condition, entryBlock);
-            if (onCondTrue != null)
-            {
-                this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.SetCurrentBlock(trueBlock);
-                var onTrue = this.SharedState.EvaluateSubexpression(onCondTrue);
-                this.SharedState.ScopeMgr.CloseScope(onTrue, false); // force that the ref count is increased within the branch
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.SharedState.CurrentBlock!);
-            }
-
-            var (evaluatedOnFalse, afterFalse) = (condition, entryBlock);
-            if (onCondFalse != null)
-            {
-                this.SharedState.ScopeMgr.OpenScope();
-                this.SharedState.SetCurrentBlock(falseBlock);
-                var onFalse = this.SharedState.EvaluateSubexpression(onCondFalse);
-                this.SharedState.ScopeMgr.CloseScope(onFalse, false); // force that the ref count is increased within the branch
-                this.SharedState.CurrentBuilder.Branch(contBlock);
-                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.SharedState.CurrentBlock!);
-            }
-
-            this.SharedState.SetCurrentBlock(contBlock);
-            var phi = this.SharedState.CurrentBuilder.PhiNode(this.SharedState.CurrentLlvmExpressionType());
-            phi.AddIncoming(evaluatedOnTrue, afterTrue);
-            phi.AddIncoming(evaluatedOnFalse, afterFalse);
-            return phi;
-        }
 
         /// <summary>
         /// Handles calls to specific functor specializations of global callables.
@@ -894,27 +912,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return callable;
         }
 
-        /// <summary>
-        /// Creates a callable value of the given type and registers it with the scope manager.
-        /// The necessary functions to invoke the callable are defined by the callable table;
-        /// i.e. the globally defined array of function pointers accessible via the given global variable.
-        /// The given capture, if any, is expected to be a tuple that contains all captured values.
-        /// Does *not* increase the reference count of the capture tuple.
-        /// </summary>
-        /// <param name="callableType">The Q# type of the callable value</param>
-        /// <param name="table">The global variable that contains the array of function pointers defining the callable</param>
-        /// <param name="capture">A tuple containing all captured values</param>
-        private CallableValue CreateCallableValue(ResolvedType callableType, GlobalVariable table, TupleValue? capture = null)
-        {
-            // The runtime function CallableCreate creates a new value with reference count 1.
-            var createCallable = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
-            var memoryManagementTable = this.SharedState.GetOrCreateCallableMemoryManagementTable(capture);
-            var res = this.SharedState.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? this.SharedState.Constants.UnitValue);
-            var value = this.SharedState.Values.FromCallable(res, callableType);
-            this.SharedState.ScopeMgr.RegisterValue(value);
-            return value;
-        }
-
         // public overrides
 
         public override ResolvedExpressionKind OnAddition(TypedExpression lhsEx, TypedExpression rhsEx)
@@ -956,6 +953,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromArray(res, elementType.Item);
+                // The explicit ref count increase for all items is necessary for the sake of
+                // consistency such that the reference count adjustment for copy-and-update is correct.
+                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
+                this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
@@ -986,16 +987,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (idx.ResolvedType.Resolution.IsRange)
             {
-                // Array slice creates a new array if the current alias count is larger than zero.
+                // Unless we force that memory is copied when a new slice is created,
+                // array sliceing creates a new array only if the current alias count is larger than zero.
                 // The created array is instantiated with reference count 1 and alias count 0.
-                // If the current alias count is zero, then the array may be modified in place.
+                // otherwise, if the current alias count is zero, then the array may be modified in place.
                 // In this case, its reference count is increased by 1.
-                // Since we keep track of alias counts for arrays, there is no need to force the copy.
-                var forceCopy = this.SharedState.Context.CreateConstant(false);
+                // Even though we keep track of alias counts for arrays, we force a copy here to simplify
+                // the logic we do to avoid alias count increases when possible, while also ensuring that
+                // the additional reference count compensation for copy-and-update as explained in the
+                // the comment there is exactly one.
+                var forceCopy = this.SharedState.Context.CreateConstant(true);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
+                // The explicit ref count increase for all items is necessary for the sake of
+                // consistency such that the reference count adjustment for copy-and-update is correct.
+                this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
                 this.SharedState.ScopeMgr.RegisterValue(value, shallow: true);
+                this.SharedState.ScopeMgr.RegisterValue(value);
             }
             else
             {
@@ -1187,7 +1196,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var evaluated = this.ConditionalEvaluation(cond.Value, onCondTrue: ifTrueEx, onCondFalse: ifFalseEx);
+                var evaluated = this.SharedState.ConditionalEvaluation(
+                    cond.Value,
+                    onCondTrue: () => this.SharedState.EvaluateSubexpression(ifTrueEx),
+                    onCondFalse: () => this.SharedState.EvaluateSubexpression(ifFalseEx));
                 value = this.SharedState.Values.From(evaluated, exType);
                 this.SharedState.ScopeMgr.RegisterValue(value);
             }
@@ -1446,7 +1458,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (this.SharedState.TryGetGlobalCallable(globalCallable.Item, out QsCallable? callable))
             {
                 var table = this.SharedState.GetOrCreateCallableTable(callable);
-                value = this.CreateCallableValue(exType, table);
+                value = this.SharedState.Values.CreateCallable(exType, table);
             }
             else
             {
@@ -1624,8 +1636,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var cond = this.SharedState.EvaluateSubexpression(lhsEx).Value;
-                evaluated = this.ConditionalEvaluation(cond, onCondTrue: rhsEx);
+                var evaluatedLhs = this.SharedState.EvaluateSubexpression(lhsEx);
+                evaluated = this.SharedState.ConditionalEvaluation(
+                    evaluatedLhs.Value,
+                    onCondTrue: () => this.SharedState.EvaluateSubexpression(rhsEx),
+                    defaultValueForCondFalse: evaluatedLhs);
             }
 
             var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
@@ -1659,8 +1674,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                var cond = this.SharedState.EvaluateSubexpression(lhsEx).Value;
-                evaluated = this.ConditionalEvaluation(cond, onCondFalse: rhsEx);
+                var evaluatedLhs = this.SharedState.EvaluateSubexpression(lhsEx);
+                evaluated = this.SharedState.ConditionalEvaluation(
+                    this.SharedState.CurrentBuilder.Not(evaluatedLhs.Value),
+                    onCondTrue: () => this.SharedState.EvaluateSubexpression(rhsEx),
+                    defaultValueForCondFalse: evaluatedLhs);
             }
 
             var value = this.SharedState.Values.FromSimpleValue(evaluated, exType);
@@ -1906,7 +1924,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.CloseScope(value);
                 array.GetArrayElementPointer(index).StoreValue(value);
             }
-
             this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
             return ResolvedExpressionKind.InvalidExpr;
         }
@@ -2000,7 +2017,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ImmutableArray<ResolvedType> captureType, ImmutableArray<ResolvedType> paArgsTypes, PartialApplicationArgument partialArgs)
+            IrFunction BuildLiftedSpecialization(string name, QsSpecializationKind kind, ResolvedType captureType, ResolvedType paArgsType, PartialApplicationArgument partialArgs)
             {
                 IValue ApplyFunctors(CallableValue innerCallable)
                 {
@@ -2029,13 +2046,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 void BuildPartialApplicationBody(IReadOnlyList<Argument> parameters)
                 {
-                    var captureTuple = this.SharedState.Values.FromTuple(parameters[0], captureType);
-                    TupleValue BuildControlledInnerArgument(ResolvedType paArgType)
+                    var captureTuple = this.SharedState.AsArgumentTuple(captureType, parameters[0]);
+                    TupleValue BuildControlledInnerArgument()
                     {
                         // The argument tuple given to the controlled version of the partial application consists of the array of control qubits
                         // as well as a tuple with the remaining arguments for the partial application.
                         // We need to cast the corresponding function parameter to the appropriate type and load both of these items.
-                        var ctlPaArgsTypes = ImmutableArray.Create(SyntaxGenerator.QubitArrayType, paArgType);
+                        var ctlPaArgsTypes = ImmutableArray.Create(SyntaxGenerator.QubitArrayType, paArgsType);
                         var ctlPaArgsTuple = this.SharedState.Values.FromTuple(parameters[1], ctlPaArgsTypes);
                         var ctlPaArgItems = ctlPaArgsTuple.GetTupleElements();
 
@@ -2050,14 +2067,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         // Deal with the extra control qubit arg for controlled and controlled-adjoint
                         // We special case if the base specialization only takes a single parameter and don't create the sub-tuple in this case.
-                        innerArg = BuildControlledInnerArgument(
-                            paArgsTypes.Length == 1
-                            ? paArgsTypes[0]
-                            : ResolvedType.New(ResolvedTypeKind.NewTupleType(paArgsTypes)));
+                        innerArg = BuildControlledInnerArgument();
                     }
                     else
                     {
-                        var parArgsTuple = this.SharedState.Values.FromTuple(parameters[1], paArgsTypes);
+                        var parArgsTuple = paArgsType.Resolution.IsUnitType
+                            ? this.SharedState.Values.FromTuple(parameters[1], ImmutableArray.Create(paArgsType)) // todo: this is a bit hacky...
+                            : this.SharedState.AsArgumentTuple(paArgsType, parameters[1]);
                         var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
                         innerArg = typedInnerArg is TupleValue innerArgTuple
                             ? innerArgTuple
@@ -2091,10 +2107,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Figure out the inputs to the resulting callable based on the signature of the partial application expression
             var exType = this.SharedState.CurrentExpressionType();
             var callableArgType = CallableArgumentType(exType);
-            var paArgsTypes = callableArgType.Resolution is ResolvedTypeKind.TupleType itemTypes
-                ? itemTypes.Item
-                : ImmutableArray.Create(callableArgType);
-
             // Argument type of the callable that is partially applied
             var innerArgType = CallableArgumentType(method.ResolvedType);
 
@@ -2107,7 +2119,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var captured = ImmutableArray.CreateBuilder<TypedExpression>();
             captured.Add(method);
             var rebuild = BuildPartialArgList(innerArgType, arg, new List<ResolvedType>(), captured);
-            var capture = this.SharedState.Values.CreateTuple(captured.ToImmutable(), registerWithScopeManager: false);
+            var captureType = ResolvedType.New(ResolvedTypeKind.NewTupleType(captured.Select(element => element.ResolvedType).ToImmutableArray()));
 
             // Create the lifted specialization implementation(s)
             // First, figure out which ones we need to create
@@ -2127,10 +2139,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IrFunction? BuildSpec(QsSpecializationKind kind) =>
                 SupportsNecessaryFunctors(kind)
-                    ? BuildLiftedSpecialization(liftedName, kind, capture.ElementTypes, paArgsTypes, rebuild)
+                    ? BuildLiftedSpecialization(liftedName, kind, captureType, callableArgType, rebuild)
                     : null;
             var table = this.SharedState.GetOrCreateCallableTable(liftedName, BuildSpec);
-            var value = this.CreateCallableValue(exType, table, capture);
+            var value = this.SharedState.Values.CreateCallable(exType, table, captured.ToImmutable());
 
             this.SharedState.ValueStack.Push(value);
             return ResolvedExpressionKind.InvalidExpr;
