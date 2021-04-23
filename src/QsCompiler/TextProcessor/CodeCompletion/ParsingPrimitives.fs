@@ -5,12 +5,10 @@ module internal Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.Parsi
 
 open System
 open FParsec
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion
 open Microsoft.Quantum.QsCompiler.TextProcessing.Keywords
 open Microsoft.Quantum.QsCompiler.TextProcessing.ParsingPrimitives
 open Microsoft.Quantum.QsCompiler.TextProcessing.SyntaxBuilder
-
 
 /// `p1 ?>> p2` attempts `p1`. If `p1` succeeds and consumes all input, it returns the result of `p1` without using
 /// `p2`. Otherwise, it continues parsing with `p2` and returns the result of `p2`.
@@ -78,9 +76,9 @@ let operator (op: string) notAfter =
 
 /// Parses a sequence of operator-like characters (even if those characters are not a valid operator), excluding
 /// characters in `excluded`. Consumes whitespace.
-let operatorLike excluded =
+let operatorLikeExcluding excluded =
     let isOperatorChar c =
-        not (isSymbolContinuation c || Char.IsWhiteSpace c || Seq.exists ((=) c) "()[]{}\u0004")
+        not (isSymbolContinuation c || Char.IsWhiteSpace c || Seq.exists ((=) c) ",()[]{}\u0004")
         && not (Seq.exists ((=) c) excluded)
 
     many1Chars (satisfy isOperatorChar) >>. emptySpace >>% []
@@ -143,7 +141,7 @@ let manyR p shouldBacktrack stream =
         stream.BacktrackTo(fst last.Result)
 
         if ((notFollowedBy shouldBacktrack >>. notFollowedBy eot) stream).Status = Ok || consumedEot
-        then stream.BacktrackTo after |> ignore
+        then stream.BacktrackTo after
 
         Reply(snd last.Result)
 
@@ -177,19 +175,11 @@ let tuple p =
 let tuple1 p =
     brackets (lTuple, rTuple) (sepBy1 p comma |>> List.last)
 
-/// Parses an array of items each parsed by `p`.
-let array p =
-    brackets (lArray, rArray) (sepBy1 p comma |>> List.last)
-
-/// The missing expression keyword.
-let missingExpr = { parse = keyword "_"; id = "_" }
-
 /// The omitted symbols keyword.
 let omittedSymbols = { parse = keyword "..."; id = "..." }
 
 /// Parses the unit value. The right bracket is optional if EOT occurs first.
-let unitValue: Parser<CompletionKind list, QsCompilerDiagnostic list> =
-    term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
+let unitValue: Parser<CompletionKind list, _> = term (pchar '(' >>. emptySpace >>. expected (pchar ')')) |>> fst
 
 /// Creates an expression parser using the given prefix operator, infix operator, postfix operator, and term parsers.
 let createExpressionParser prefixOp infixOp postfixOp expTerm =

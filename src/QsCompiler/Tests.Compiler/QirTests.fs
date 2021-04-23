@@ -39,17 +39,24 @@ let private compilerArgs target (name: string) =
          then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
          else "")
 
-        "--qir"
-        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)
+        "--load"
+
+        Path.Combine
+            (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Microsoft.Quantum.QirGeneration.dll")
+
         "--verbosity"
         "Diagnostic"
     }
 
 let private customTest name compilerArgs snippets =
-    clearOutput (name + ".ll")
+    if not <| Directory.Exists "qir"
+    then Directory.CreateDirectory "qir" |> ignore
+
+    let fileName = Path.Combine("qir", name + ".ll")
+    clearOutput fileName
     compilerArgs |> testOne ReturnCode.Success
 
-    let fullText = (name + ".ll") |> File.ReadAllText
+    let fullText = fileName |> File.ReadAllText
     snippets |> List.map (fun s -> checkAltOutput (s + ".ll") fullText)
 
 let private qirMultiTest target name snippets =
@@ -70,10 +77,15 @@ let ``QIR inlined call`` () = qirTest true "TestInline"
 let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
-let ``QIR reference counts`` () = qirTest false "TestReferenceCounts"
+let ``QIR reference counts`` () =
+    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
+
+[<Fact>]
+let ``QIR built-in intrinsics`` () =
+    qirMultiTest false "TestBuiltInIntrinsics" [ "TestBuiltInIntrinsics1"; "TestBuiltInIntrinsics2" ]
 
 [<Fact>]
 let ``QIR array loop`` () = qirTest false "TestArrayLoop"
@@ -155,7 +167,17 @@ let ``QIR entry points`` () =
 
 [<Fact>]
 let ``QIR partial applications`` () =
-    qirMultiTest true "TestPartials" [ "TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4" ]
+    qirMultiTest
+        true
+        "TestPartials"
+        [
+            "TestPartials1"
+            "TestPartials2"
+            "TestPartials3"
+            "TestPartials4"
+            "TestPartials5"
+            "TestPartials6"
+        ]
 
 [<Fact>]
 let ``QIR declarations`` () =
@@ -173,6 +195,11 @@ let ``QIR declarations`` () =
 
 [<Fact>]
 let ``QIR functors`` () = qirTest true "TestFunctors"
+
+[<Fact>]
+let ``QIR built-in generics`` () =
+    qirMultiTest false "TestGenerics" [ "TestGenerics1"; "TestGenerics2"; "TestGenerics3"; "TestGenerics4" ]
+
 
 [<Fact>]
 let ``QIR paulis`` () = qirTest false "TestPaulis"
@@ -202,7 +229,11 @@ let ``QIR expressions`` () = qirTest false "TestExpressions"
 [<Fact>]
 let ``QIR targeting`` () =
     let compilerArgs =
-        [ "--runtime"; "BasicMeasurementFeedback" ]
+        [
+            "--runtime"
+            "BasicMeasurementFeedback"
+            "--force-rewrite-step-execution" // to make sure the target specific transformation actually runs
+        ]
         |> Seq.append (compilerArgs true "TestTargeting")
         |> Seq.toArray
 

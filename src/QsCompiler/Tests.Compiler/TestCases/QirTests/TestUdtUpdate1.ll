@@ -4,6 +4,7 @@ entry:
   %1 = bitcast %Tuple* %0 to { double, %String* }*
   %2 = getelementptr inbounds { double, %String* }, { double, %String* }* %1, i32 0, i32 0
   %3 = getelementptr inbounds { double, %String* }, { double, %String* }* %1, i32 0, i32 1
+  call void @__quantum__rt__string_update_reference_count(%String* %a, i32 1)
   store double 1.000000e+00, double* %2, align 8
   store %String* %a, %String** %3, align 8
   %4 = call { { double, %String* }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestType__body({ double, %String* }* %1, i64 %b)
@@ -60,6 +61,7 @@ condContinue__2:                                  ; preds = %condFalse__2, %cond
   store { { double, %String* }*, i64 }* %13, { { double, %String* }*, i64 }** %x, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %17, i32 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %11, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %a, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %10, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %7, i32 -1)

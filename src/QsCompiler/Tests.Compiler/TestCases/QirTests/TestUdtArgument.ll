@@ -40,6 +40,7 @@ entry:
   %25 = getelementptr inbounds { i64, { i2, i64 }* }, { i64, { i2, i64 }* }* %23, i32 0, i32 1
   %26 = getelementptr inbounds { i64 }, { i64 }* %udt1, i32 0, i32 0
   %27 = load i64, i64* %26, align 4
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i32 1)
   store i64 %27, i64* %24, align 4
   store { i2, i64 }* %udt2, { i2, i64 }** %25, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %1, i32 -1)
@@ -51,6 +52,7 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %1, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %8, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %8, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %17, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %17, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %20, i32 -1)

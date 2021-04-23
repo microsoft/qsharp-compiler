@@ -1,0 +1,16 @@
+﻿{
+  "$schema": "https://raw.githubusercontent.com/DotNetAnalyzers/StyleCopAnalyzers/master/StyleCop.Analyzers/StyleCop.Analyzers/Settings/stylecop.schema.json",
+  "settings": {
+    "orderingRules": {
+      "usingDirectivesPlacement": "preserve"
+    },
+    "documentationRules": {
+      "companyName": "Ubiquity.NET Contributors",
+      "copyrightText": "Copyright (c) Ubiquity.NET Contributors. All rights reserved.\nPortions Copyright (c) Microsoft Corporation",
+      "documentInterfaces": false,
+      "documentExposedElements": false,
+      "documentInternalElements": false,
+      "xmlHeader": true
+    }
+  }
+}

@@ -62,12 +62,17 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// Called whenever an exception is logged after the exception has been properly tracked.
         /// Prints the given exception as Hint if the logger verbosity is sufficiently high.
         /// </summary>
-        protected internal virtual void OnException(Exception ex) =>
+        protected internal virtual void OnException(Exception ex)
+        {
+            var verbosity = this.Verbosity;
+            this.Verbosity = DiagnosticSeverity.Hint;
             this.Output(ex == null ? null : new Diagnostic
             {
                 Severity = DiagnosticSeverity.Hint,
                 Message = $"{Environment.NewLine}{ex}{Environment.NewLine}"
             });
+            this.Verbosity = verbosity;
+        }
 
         // NB: Calling the LSP.Range constructor results in an object with
         //     non-nullable fields set to null values, confusing other places
