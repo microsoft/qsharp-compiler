@@ -13,6 +13,8 @@ open Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
 
 type EntryPointSchemaTests(output: ITestOutputHelper) =
 
+    let testCasesDirectory = Path.Combine("TestCases", "QirEntryPointTests")
+
     let createRangeValueFromTuple (tuple: (int64 * int64 * int64)) =
         let rstart, rstep, rend = tuple
         RangeValue(Start = rstart, Step = rstep, End = rend)
@@ -77,12 +79,11 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     let sampleEntryPointOperations =
         Map
             .empty
-            .Add("UseNoArgs", (new EntryPointOperation(Name = "UseNoArgs"), "{\"Name\":\"UseNoArgs\"}"))
+            .Add("UseNoArgs", new EntryPointOperation(Name = "UseNoArgs"))
             .Add("UseBoolArg",
-                 (createEntryPointOperation ("UseBoolArg", [ createArgument ("BoolArg", DataType.BoolType, 0, []) ]),
-                  "{\"Name\":\"UseBoolArg\",\"Arguments\":[{\"Name\":\"BoolArg\"}]}"))
+                 createEntryPointOperation ("UseBoolArg", [ createArgument ("BoolArg", DataType.BoolType, 0, []) ]))
             .Add("UseBoolArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseBoolArgWithValues",
                       [
                           createArgument
@@ -93,14 +94,12 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Bool = System.Nullable(true))
                                    new ArgumentValue(Bool = System.Nullable(false))
                                ])
-                      ]),
-                  "{\"Name\":\"UseBoolArgWithValues\",\"Arguments\":[{\"Name\":\"BoolArg\",\"Values\":[{\"Bool\":[true]},{\"Bool\":[false]}]}]}"))
+                      ]))
             .Add("UseIntegerArg",
-                 (createEntryPointOperation
-                     ("UseIntegerArg", [ createArgument ("IntegerArg", DataType.IntegerType, 0, []) ]),
-                  "{\"Name\":\"UseIntegerArg\",\"Arguments\":[{\"Type\":1,\"Name\":\"IntegerArg\"}]}"))
+                 createEntryPointOperation
+                     ("UseIntegerArg", [ createArgument ("IntegerArg", DataType.IntegerType, 0, []) ]))
             .Add("UseIntegerArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseIntegerArgWithValues",
                       [
                           createArgument
@@ -111,14 +110,12 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Integer = System.Nullable(int64 (11)))
                                    new ArgumentValue(Integer = System.Nullable(int64 (999)))
                                ])
-                      ]),
-                  "{\"Name\":\"UseIntegerArgWithValues\",\"Arguments\":[{\"Type\":1,\"Name\":\"IntegerArg\",\"Values\":[{\"Integer\":[11]},{\"Integer\":[999]}]}]}"))
+                      ]))
             .Add("UseDoubleArg",
-                 (createEntryPointOperation
-                     ("UseDoubleArg", [ createArgument ("DoubleArg", DataType.DoubleType, 0, []) ]),
-                  "{\"Name\":\"UseDoubleArg\",\"Arguments\":[{\"Type\":2,\"Name\":\"DoubleArg\"}]}"))
+                 createEntryPointOperation
+                     ("UseDoubleArg", [ createArgument ("DoubleArg", DataType.DoubleType, 0, []) ]))
             .Add("UseDoubleArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseDoubleArgWithValues",
                       [
                           createArgument
@@ -129,13 +126,11 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Double = System.Nullable(0.1))
                                    new ArgumentValue(Double = System.Nullable(0.2))
                                ])
-                      ]),
-                  "{\"Name\":\"UseDoubleArgWithValues\",\"Arguments\":[{\"Type\":2,\"Name\":\"DoubleArg\",\"Values\":[{\"Double\":[0.1]},{\"Double\":[0.2]}]}]}"))
+                      ]))
             .Add("UsePauliArg",
-                 (createEntryPointOperation ("UsePauliArg", [ createArgument ("PauliArg", DataType.PauliType, 0, []) ]),
-                  "{\"Name\":\"UsePauliArg\",\"Arguments\":[{\"Type\":3,\"Name\":\"PauliArg\"}]}"))
+                 createEntryPointOperation ("UsePauliArg", [ createArgument ("PauliArg", DataType.PauliType, 0, []) ]))
             .Add("UsePauliArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UsePauliArgWithValues",
                       [
                           createArgument
@@ -147,13 +142,11 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliY))
                                    new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliZ))
                                ])
-                      ]),
-                  "{\"Name\":\"UsePauliArgWithValues\",\"Arguments\":[{\"Type\":3,\"Name\":\"PauliArg\",\"Values\":[{\"Pauli\":[1]},{\"Pauli\":[2]},{\"Pauli\":[3]}]}]}"))
+                      ]))
             .Add("UseRangeArg",
-                 (createEntryPointOperation ("UseRangeArg", [ createArgument ("RangeArg", DataType.RangeType, 0, []) ]),
-                  "{\"Name\":\"UseRangeArg\",\"Arguments\":[{\"Type\":4,\"Name\":\"RangeArg\"}]}"))
+                 createEntryPointOperation ("UseRangeArg", [ createArgument ("RangeArg", DataType.RangeType, 0, []) ]))
             .Add("UseRangeArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseRangeArgWithValues",
                       [
                           createArgument
@@ -164,14 +157,12 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createRangeArgumentValue (int64 (1), int64 (1), int64 (10))
                                    createRangeArgumentValue (int64 (10), int64 (5), int64 (100))
                                ])
-                      ]),
-                  "{\"Name\":\"UseRangeArgWithValues\",\"Arguments\":[{\"Type\":4,\"Name\":\"RangeArg\",\"Values\":[{\"Range\":[{\"Start\":1,\"Step\":1,\"End\":10}]},{\"Range\":[{\"Start\":10,\"Step\":5,\"End\":100}]}]}]}"))
+                      ]))
             .Add("UseResultArg",
-                 (createEntryPointOperation
-                     ("UseResultArg", [ createArgument ("ResultArg", DataType.ResultType, 0, []) ]),
-                  "{\"Name\":\"UseResultArg\",\"Arguments\":[{\"Type\":5,\"Name\":\"ResultArg\"}]}"))
+                 createEntryPointOperation
+                     ("UseResultArg", [ createArgument ("ResultArg", DataType.ResultType, 0, []) ]))
             .Add("UseResultArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseResultArgWithValues",
                       [
                           createArgument
@@ -182,14 +173,12 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    new ArgumentValue(Result = System.Nullable(ResultValue.Zero))
                                    new ArgumentValue(Result = System.Nullable(ResultValue.One))
                                ])
-                      ]),
-                  "{\"Name\":\"UseResultArgWithValues\",\"Arguments\":[{\"Type\":5,\"Name\":\"ResultArg\",\"Values\":[{\"Result\":[0]},{\"Result\":[1]}]}]}"))
+                      ]))
             .Add("UseStringArg",
-                 (createEntryPointOperation
-                     ("UseStringArg", [ createArgument ("StringArg", DataType.StringType, 0, []) ]),
-                  "{\"Name\":\"UseStringArg\",\"Arguments\":[{\"Type\":6,\"Name\":\"StringArg\"}]}"))
+                 createEntryPointOperation
+                     ("UseStringArg", [ createArgument ("StringArg", DataType.StringType, 0, []) ]))
             .Add("UseStringArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseStringArgWithValues",
                       [
                           createArgument
@@ -197,18 +186,16 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                DataType.StringType,
                                0,
                                [ new ArgumentValue(String = "StringA"); new ArgumentValue(String = "StringB") ])
-                      ]),
-                  "{\"Name\":\"UseStringArgWithValues\",\"Arguments\":[{\"Type\":6,\"Name\":\"StringArg\",\"Values\":[{\"String\":[\"StringA\"]},{\"String\":[\"StringB\"]}]}]}"))
+                      ]))
             .Add("UseBoolArrayArg",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseBoolArrayArg",
                       [
                           createArrayArgument
                               ("BoolArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.BoolType), [])
-                      ]),
-                  "{\"Name\":\"UseBoolArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"BoolArrayArg\",\"ArrayType\":[0]}]}"))
+                      ]))
             .Add("UseBoolArrayArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseBoolArrayArgWithValues",
                       [
                           createArrayArgument
@@ -220,18 +207,16 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createBoolArrayArgumentValue ([ true; false; true ])
                                    createBoolArrayArgumentValue ([ false; true; false ])
                                ])
-                      ]),
-                  "{\"Name\":\"UseBoolArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"BoolArrayArg\",\"ArrayType\":[0],\"Values\":[{\"Array\":[{\"Bool\":[[true,false,true]]}]},{\"Array\":[{\"Bool\":[[false,true,false]]}]}]}]}"))
+                      ]))
             .Add("UseIntegerArrayArg",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseIntegerArrayArg",
                       [
                           createArrayArgument
                               ("IntegerArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.IntegerType), [])
-                      ]),
-                  "{\"Name\":\"UseIntegerArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"IntegerArrayArg\",\"ArrayType\":[1]}]}"))
+                      ]))
             .Add("UseIntegerArrayArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseIntegerArrayArgWithValues",
                       [
                           createArrayArgument
@@ -244,18 +229,16 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createIntegerArrayArgumentValue
                                        ([ int64 (2048); int64 (-1024); int64 (4096); int64 (-8192) ])
                                ])
-                      ]),
-                  "{\"Name\":\"UseIntegerArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"IntegerArrayArg\",\"ArrayType\":[1],\"Values\":[{\"Array\":[{\"Integer\":[[999,-1,11]]}]},{\"Array\":[{\"Integer\":[[2048,-1024,4096,-8192]]}]}]}]}"))
+                      ]))
             .Add("UseDoubleArrayArg",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseDoubleArrayArg",
                       [
                           createArrayArgument
                               ("DoubleArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.DoubleType), [])
-                      ]),
-                  "{\"Name\":\"UseDoubleArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"DoubleArrayArg\",\"ArrayType\":[2]}]}"))
+                      ]))
             .Add("UseDoubleArrayArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseDoubleArrayArgWithValues",
                       [
                           createArrayArgument
@@ -267,18 +250,16 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createDoubleArrayArgumentValue ([ 3.14159; 0.55; 1024.333; -8192.667 ])
                                    createDoubleArrayArgumentValue ([ 999.999; -101010.10; 0.0001 ])
                                ])
-                      ]),
-                  "{\"Name\":\"UseDoubleArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"DoubleArrayArg\",\"ArrayType\":[2],\"Values\":[{\"Array\":[{\"Double\":[[3.14159,0.55,1024.333,-8192.667]]}]},{\"Array\":[{\"Double\":[[999.999,-101010.1,0.0001]]}]}]}]}"))
+                      ]))
             .Add("UsePauliArrayArg",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UsePauliArrayArg",
                       [
                           createArrayArgument
                               ("PauliArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.PauliType), [])
-                      ]),
-                  "{\"Name\":\"UsePauliArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"PauliArrayArg\",\"ArrayType\":[3]}]}"))
+                      ]))
             .Add("UsePauliArrayArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UsePauliArrayArgWithValues",
                       [
                           createArrayArgument
@@ -291,18 +272,16 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                        ([ PauliValue.PauliX; PauliValue.PauliY; PauliValue.PauliZ ])
                                    createPauliArrayArgumentValue ([ PauliValue.PauliI; PauliValue.PauliZ ])
                                ])
-                      ]),
-                  "{\"Name\":\"UsePauliArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"PauliArrayArg\",\"ArrayType\":[3],\"Values\":[{\"Array\":[{\"Pauli\":[[1,2,3]]}]},{\"Array\":[{\"Pauli\":[[0,3]]}]}]}]}"))
+                      ]))
             .Add("UseRangeArrayArg",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseRangeArrayArg",
                       [
                           createArrayArgument
                               ("RangeArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.RangeType), [])
-                      ]),
-                  "{\"Name\":\"UseRangeArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"RangeArrayArg\",\"ArrayType\":[4]}]}"))
+                      ]))
             .Add("UseRangeArrayArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseRangeArrayArgWithValues",
                       [
                           createArrayArgument
@@ -315,18 +294,16 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                        ([ (int64 (1), int64 (1), int64 (10)); (int64 (10), int64 (5), int64 (100)) ])
                                    createRangeArrayArgumentValue ([ (int64 (1), int64 (2), int64 (10)) ])
                                ])
-                      ]),
-                  "{\"Name\":\"UseRangeArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"RangeArrayArg\",\"ArrayType\":[4],\"Values\":[{\"Array\":[{\"Range\":[[{\"Start\":1,\"Step\":1,\"End\":10},{\"Start\":10,\"Step\":5,\"End\":100}]]}]},{\"Array\":[{\"Range\":[[{\"Start\":1,\"Step\":2,\"End\":10}]]}]}]}]}"))
+                      ]))
             .Add("UseResultArrayArg",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseResultArrayArg",
                       [
                           createArrayArgument
                               ("ResultArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.ResultType), [])
-                      ]),
-                  "{\"Name\":\"UseResultArrayArg\",\"Arguments\":[{\"Type\":7,\"Name\":\"ResultArrayArg\",\"ArrayType\":[5]}]}"))
+                      ]))
             .Add("UseResultArrayArgWithValues",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseResultArrayArgWithValues",
                       [
                           createArrayArgument
@@ -338,18 +315,16 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
                                    createResultArrayArgumentValue ([ ResultValue.Zero; ResultValue.One ])
                                    createResultArrayArgumentValue ([ ResultValue.One; ResultValue.Zero ])
                                ])
-                      ]),
-                  "{\"Name\":\"UseResultArrayArgWithValues\",\"Arguments\":[{\"Type\":7,\"Name\":\"ResultArrayArg\",\"ArrayType\":[5],\"Values\":[{\"Array\":[{\"Result\":[[0,1]]}]},{\"Array\":[{\"Result\":[[1,0]]}]}]}]}"))
+                      ]))
             .Add("UseMiscArgs",
-                 (createEntryPointOperation
+                 createEntryPointOperation
                      ("UseMiscArgs",
                       [
                           createArgument ("IntegerArg", DataType.BoolType, 0, [])
                           createArgument ("PauliArg", DataType.PauliType, 1, [])
                           createArrayArgument
                               ("ResultArrayArg", DataType.ArrayType, 2, System.Nullable(DataType.ResultType), [])
-                      ]),
-                  "{\"Name\":\"UseMiscArgs\",\"Arguments\":[{\"Name\":\"IntegerArg\"},{\"Type\":3,\"Name\":\"PauliArg\",\"Position\":1},{\"Type\":7,\"Name\":\"ResultArrayArg\",\"Position\":2,\"ArrayType\":[5]}]}"))
+                      ]))
 
     [<Theory>]
     [<InlineData("UseNoArgs")>]
@@ -381,7 +356,8 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     [<InlineData("UseResultArrayArgWithValues")>]
     [<InlineData("UseMiscArgs")>]
     member this.DeserializeFromJson(sampleName: string) =
-        let expectedEntryPointOperation, sourceJson = sampleEntryPointOperations.[sampleName]
+        let expectedEntryPointOperation = sampleEntryPointOperations.[sampleName]
+        let sourceJson = Path.Join(testCasesDirectory, sampleName + ".json") |> File.ReadAllText
         let memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(sourceJson))
         let entryPointOperation = Protocols.DeserializeFromJson(memoryStream)
         Assert.True(Extensions.ValueEquals(entryPointOperation, expectedEntryPointOperation))
@@ -417,7 +393,8 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     [<InlineData("UseResultArrayArgWithValues")>]
     [<InlineData("UseMiscArgs")>]
     member this.SerializeToJson(sampleName: string) =
-        let entryPointOperation, expectedJson = sampleEntryPointOperations.[sampleName]
+        let entryPointOperation = sampleEntryPointOperations.[sampleName]
+        let expectedJson = Path.Join(testCasesDirectory, sampleName + ".json") |> File.ReadAllText
         let memoryStream = new MemoryStream()
         Protocols.SerializeToJson(entryPointOperation, memoryStream)
         let reader = new StreamReader(memoryStream, Encoding.UTF8)

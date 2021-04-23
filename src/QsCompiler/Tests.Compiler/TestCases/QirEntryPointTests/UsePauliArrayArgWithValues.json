@@ -1,0 +1,1 @@
+﻿{"Name":"UsePauliArrayArgWithValues","Arguments":[{"Type":7,"Name":"PauliArrayArg","ArrayType":[3],"Values":[{"Array":[{"Pauli":[[1,2,3]]}]},{"Array":[{"Pauli":[[0,3]]}]}]}]}

@@ -1,0 +1,1 @@
+﻿{"Name":"UseDoubleArrayArgWithValues","Arguments":[{"Type":7,"Name":"DoubleArrayArg","ArrayType":[2],"Values":[{"Array":[{"Double":[[3.14159,0.55,1024.333,-8192.667]]}]},{"Array":[{"Double":[[999.999,-101010.1,0.0001]]}]}]}]}

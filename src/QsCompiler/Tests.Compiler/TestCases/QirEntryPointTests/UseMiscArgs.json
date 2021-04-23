@@ -1,0 +1,1 @@
+﻿{"Name":"UseMiscArgs","Arguments":[{"Name":"IntegerArg"},{"Type":3,"Name":"PauliArg","Position":1},{"Type":7,"Name":"ResultArrayArg","Position":2,"ArrayType":[5]}]}
