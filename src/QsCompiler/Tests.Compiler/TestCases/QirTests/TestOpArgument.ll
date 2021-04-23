@@ -66,6 +66,7 @@ entry:
   %36 = getelementptr inbounds { %Callable*, { %Qubit*, %Qubit* }* }, { %Callable*, { %Qubit*, %Qubit* }* }* %35, i32 0, i32 0
   %37 = getelementptr inbounds { %Callable*, { %Qubit*, %Qubit* }* }, { %Callable*, { %Qubit*, %Qubit* }* }* %35, i32 0, i32 1
   %38 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR___Choose, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i32 1)
   store %Callable* %38, %Callable** %36, align 8
   store { %Qubit*, %Qubit* }* %qs, { %Qubit*, %Qubit* }** %37, align 8
   %39 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__6, [2 x void (%Tuple*, i32)*]* @MemoryManagement__5, %Tuple* %34)
@@ -74,6 +75,7 @@ entry:
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %0, i32 -1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %op, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %op, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %op, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %13, i32 -1)
