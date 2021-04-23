@@ -86,6 +86,30 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
     public partial class Argument
     {
         [global::Bond.Id(5)]
+        public string Name { get; set; }
+
+        [global::Bond.Id(10)]
+        public DataType Type { get; set; }
+
+        [global::Bond.Id(15)]
+        public int Position { get; set; }
+
+        public Argument()
+            : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.Argument", "Argument")
+        {}
+
+        protected Argument(string fullName, string name)
+        {
+            Name = "";
+            Type = DataType.BoolType;
+        }
+    }
+
+    [global::Bond.Schema]
+    [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
+    public partial class ArgumentValue
+    {
+        [global::Bond.Id(5)]
         public DataType Type { get; set; }
 
         [global::Bond.Id(10), global::Bond.Type(typeof(global::Bond.Tag.nullable<bool>))]
@@ -109,20 +133,16 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
         [global::Bond.Id(40), global::Bond.Type(typeof(global::Bond.Tag.nullable<string>))]
         public string String { get; set; }
 
-        [global::Bond.Id(45), global::Bond.Type(typeof(global::Bond.Tag.nullable<List<Argument>>))]
-        public List<Argument> Array { get; set; }
+        [global::Bond.Id(45), global::Bond.Type(typeof(global::Bond.Tag.nullable<List<ArgumentValue>>))]
+        public List<ArgumentValue> Array { get; set; }
 
-        [global::Bond.Id(50)]
-        public string Name { get; set; }
-
-        public Argument()
-            : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.Argument", "Argument")
+        public ArgumentValue()
+            : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.ArgumentValue", "ArgumentValue")
         {}
 
-        protected Argument(string fullName, string name)
+        protected ArgumentValue(string fullName, string name)
         {
             Type = DataType.BoolType;
-            Name = "";
         }
     }
 
@@ -149,10 +169,31 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
 
     [global::Bond.Schema]
     [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
+    public partial class ExecutionInformation
+    {
+        [global::Bond.Id(5)]
+        public EntryPointOperation EntryPoint { get; set; }
+
+        [global::Bond.Id(10)]
+        public Dictionary<string, ArgumentValue> ArgumentValues { get; set; }
+
+        public ExecutionInformation()
+            : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.ExecutionInformation", "ExecutionInformation")
+        {}
+
+        protected ExecutionInformation(string fullName, string name)
+        {
+            EntryPoint = new EntryPointOperation();
+            ArgumentValues = new Dictionary<string, ArgumentValue>();
+        }
+    }
+
+    [global::Bond.Schema]
+    [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
     public partial class QirExecutionWrapper
     {
         [global::Bond.Id(5)]
-        public List<EntryPointOperation> EntryPoints { get; set; }
+        public List<ExecutionInformation> Executions { get; set; }
 
         [global::Bond.Id(10)]
         public System.ArraySegment<byte> QirBytecode { get; set; }
@@ -163,7 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
 
         protected QirExecutionWrapper(string fullName, string name)
         {
-            EntryPoints = new List<EntryPointOperation>();
+            Executions = new List<ExecutionInformation>();
             QirBytecode = new System.ArraySegment<byte>();
         }
     }
