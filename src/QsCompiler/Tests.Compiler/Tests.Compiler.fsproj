@@ -536,6 +536,10 @@
 </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="libLLVM.runtime.win-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.osx-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" PrivateAssets="All" />      
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
