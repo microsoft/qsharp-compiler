@@ -229,6 +229,8 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         public static int Run(DiagnoseOptions options, ConsoleLogger logger)
         {
+            options.Print(logger);
+            options.SetupLoadingContext();
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {
                 logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());

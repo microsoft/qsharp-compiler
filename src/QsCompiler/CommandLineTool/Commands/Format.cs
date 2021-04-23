@@ -157,8 +157,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     .ToImmutableDictionary(entry => entry.Key, entry => UpdateArrayLiterals(entry.Value)); // manually replace array literals
 
             // no rewrite steps, no generation
-            var loaded =
-                new CompilationLoader(LoadSources, options.References ?? Enumerable.Empty<string>(), logger: logger);
+            options.Print(logger);
+            var loaded = new CompilationLoader(LoadSources, options.References ?? Enumerable.Empty<string>(), logger: logger);
+
             if (ReturnCode.Status(loaded) == ReturnCode.UnresolvedFiles)
             {
                 return ReturnCode.UnresolvedFiles; // ignore compilation errors
