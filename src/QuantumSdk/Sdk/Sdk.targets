@@ -43,7 +43,7 @@
   <!-- Creates the CommandArgsFile with all the parameters for the Q# compiler. -->
   <Target Name="PrepareQSharpCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
-          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;_CopyFilesMarkedCopyLocal"
+          DependsOnTargets="ResolveAssemblyReferences;ResolveQscReferences;ResolveTargetPackage;BeforeQSharpCompile;Restore;_CopyFilesMarkedCopyLocal"
           BeforeTargets="QSharpCompile">
     <MakeDir Directories="$(GeneratedFilesOutputPath)" />
     <MakeDir Directories="$(QscBuildConfigOutputPath)" />
