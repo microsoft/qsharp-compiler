@@ -32,7 +32,7 @@
 
 
   <!-- Removes all files in the specified GeneratedFilesOutputPath. -->
-  <Target Name="QSharpClean" BeforeTargets="Clean">
+  <Target Name="QSharpClean" BeforeTargets="Clean" DependsOnTargets="Restore">
     <ItemGroup>
       <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
       <Compile Remove="$(_FilesToClean)**/*.cs" />
