@@ -138,6 +138,13 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let bt, idx = this.Types.OnType bt, this.Expressions.OnTypedExpression idx
         NewArray |> Node.BuildOr InvalidExpr (bt, idx)
 
+    abstract OnSizedArray: value:TypedExpression * size:TypedExpression -> ExpressionKind
+
+    default this.OnSizedArray(value, size) =
+        let value = this.Expressions.OnTypedExpression value
+        let size = this.Expressions.OnTypedExpression size
+        SizedArray |> Node.BuildOr InvalidExpr (value, size)
+
     abstract OnStringLiteral: string * ImmutableArray<TypedExpression> -> ExpressionKind
 
     default this.OnStringLiteral(s, exs) =
@@ -356,6 +363,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
                 | NamedItem (ex, acc) -> this.OnNamedItem(ex, acc)
                 | ValueArray vs -> this.OnValueArray vs
                 | NewArray (bt, idx) -> this.OnNewArray(bt, idx)
+                | SizedArray (value, size) -> this.OnSizedArray(value, size)
                 | IntLiteral i -> this.OnIntLiteral i
                 | BigIntLiteral b -> this.OnBigIntLiteral b
                 | DoubleLiteral d -> this.OnDoubleLiteral d
@@ -446,12 +454,9 @@ and ExpressionTransformationBase internal (options: TransformationOptions, _inte
      -> ImmutableDictionary<(QsQualifiedName * string), ResolvedType>
 
     default this.OnTypeParamResolutions typeParams =
-        let asTypeParameter (key) =
-            QsTypeParameter.New(fst key, snd key, Null)
-
         let filteredTypeParams =
             typeParams
-            |> Seq.map (fun kv -> this.Types.OnTypeParameter(kv.Key |> asTypeParameter), kv.Value)
+            |> Seq.map (fun kv -> QsTypeParameter.New(fst kv.Key, snd kv.Key) |> this.Types.OnTypeParameter, kv.Value)
             |> Seq.choose (function
                 | TypeParameter tp, value -> Some((tp.Origin, tp.TypeName), this.Types.OnType value)
                 | _ -> None)

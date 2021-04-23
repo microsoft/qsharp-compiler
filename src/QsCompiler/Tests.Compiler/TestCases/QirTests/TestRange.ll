@@ -33,7 +33,7 @@ entry:
   store i64 14, i64* %18, align 4
   store i64 16, i64* %20, align 4
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
-  %b = call %Array* @__quantum__rt__array_slice_1d(%Array* %a, %Range %x, i1 false)
+  %b = call %Array* @__quantum__rt__array_slice_1d(%Array* %a, %Range %x, i1 true)
   call void @__quantum__rt__array_update_alias_count(%Array* %b, i32 1)
   %21 = load %Range, %Range* @EmptyRange, align 4
   %22 = insertvalue %Range %21, i64 0, 0

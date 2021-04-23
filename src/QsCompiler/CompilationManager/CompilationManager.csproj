@@ -22,8 +22,4 @@
     <ProjectReference Include="..\Transformations\Transformations.csproj" />
   </ItemGroup>
 
-  <ItemGroup>
-    <Compile Include="..\..\Common\DelaySign.cs" Link="Properties\DelaySign.cs" />
-  </ItemGroup>
-
 </Project>

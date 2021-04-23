@@ -35,8 +35,23 @@ type FunctorAutoGenTests() =
 
         this.Expect "OperationCharacteristics1" []
         this.Expect "OperationCharacteristics2" [ Error ErrorCode.InvalidAdjointApplication ]
-        this.Expect "OperationCharacteristics3" [ Error ErrorCode.InvalidControlledApplication ]
-        this.Expect "OperationCharacteristics4" [ Error ErrorCode.InvalidControlledApplication ]
+
+        this.Expect
+            "OperationCharacteristics3"
+            [
+                Error ErrorCode.InvalidControlledApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
+        this.Expect
+            "OperationCharacteristics4"
+            [
+                Error ErrorCode.InvalidControlledApplication
+                Error ErrorCode.TypeMismatch
+                Error ErrorCode.TypeMismatch
+            ]
+
         this.Expect "OperationCharacteristics5" [ Error ErrorCode.InvalidAdjointApplication ]
         this.Expect "OperationCharacteristics6" [ Error ErrorCode.InvalidAdjointApplication ]
         this.Expect "OperationCharacteristics7" [ Error ErrorCode.InvalidAdjointApplication ]

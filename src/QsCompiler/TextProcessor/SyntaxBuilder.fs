@@ -333,23 +333,37 @@ let internal warnOnComma =
     >>= pushDiagnostic
     |> opt
 
-/// Parses a comma separated sequence of items, expecting at least one item, and returns the parsed items as a list.
-/// Generates an error with the given missingCode if nothing (but whitespace) precedes the next comma,
-/// inserting the given fallback at that position in the list.
-/// If there is non-whitespace text preceding the next comma but validItem does not succeed,
-/// advances until the given delimiter or comma succeeds, or the end of the stream is reached, and
-/// generates an error with the given errorCode, while inserting the given fallback at that position in the list.
-/// If validItem succeeds after a comma, but is not followed by the next comma or the given delimiter,
-/// advances until comma or the given delimiter succeeds, generating an ExcessContinuationError for the skipped piece.
-/// Generates am ExcessComma warning if the there is no validItem following the last comma, but the given delimiter succeeds.
-let internal commaSep1 validItem errCode missingCode fallback delimiter =
+/// The item parser and separator parser for a comma-separated list.
+let private commaSepParsers validItem errorCode missingCode fallback delimiter =
     let delimiter = (delimiter >>% ()) <|> (comma >>% ())
-    let item = expected validItem errCode missingCode fallback delimiter
-    let invalidLast = checkForInvalid delimiter errCode >>% fallback
-    let piece = (item .>>? followedBy comma) <|> attempt validItem <|> invalidLast
+    let item = expected validItem errorCode missingCode fallback delimiter
+    let invalidLast = checkForInvalid delimiter errorCode >>% fallback
+    let piece = item .>>? followedBy comma <|> attempt validItem <|> invalidLast
+    piece |> withExcessContinuation delimiter, comma .>>? followedBy piece
 
-    sepBy1 (piece |> withExcessContinuation delimiter) (comma .>>? followedBy piece) .>> warnOnComma
-    |>> fun x -> x.ToImmutableArray()
+/// <summary>
+/// Parses a comma-separated list of zero or more items.
+/// </summary>
+/// <param name="validItem">The parser for a valid list item.</param>
+/// <param name="errorCode">The diagnostic error code for an invalid item.</param>
+/// <param name="missingCode">The diagnostic error code for a missing item.</param>
+/// <param name="fallback">An item to insert into the list in place of a missing item.</param>
+/// <param name="delimiter">A continuation parser that delimits the end of an item before the comma.</param>
+let internal commaSep validItem errorCode missingCode fallback delimiter =
+    commaSepParsers validItem errorCode missingCode fallback delimiter ||> sepBy .>> warnOnComma
+    |>> ImmutableArray.CreateRange
+
+/// <summary>
+/// Parses a comma-separated list of one or more items.
+/// </summary>
+/// <param name="validItem">The parser for a valid list item.</param>
+/// <param name="errorCode">The diagnostic error code for an invalid item.</param>
+/// <param name="missingCode">The diagnostic error code for a missing item.</param>
+/// <param name="fallback">An item to insert into the list in place of a missing item.</param>
+/// <param name="delimiter">A continuation parser that delimits the end of an item before the comma.</param>
+let internal commaSep1 validItem errorCode missingCode fallback delimiter =
+    commaSepParsers validItem errorCode missingCode fallback delimiter ||> sepBy1 .>> warnOnComma
+    |>> ImmutableArray.CreateRange
 
 /// parser succeeds without consuming input or changing the parser state if the next char is a comma,
 /// a right tuple bracket, or if we are at the end of the input stream

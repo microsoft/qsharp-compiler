@@ -61,6 +61,7 @@ then0__1:                                         ; preds = %body__1
   %25 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %24, i32 0, i32 0
   %26 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %24, i32 0, i32 1
   %27 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__InnerNestedTuple, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i32 1)
   store %Callable* %27, %Callable** %25, align 8
   store { i64, double }* %tuple1, { i64, double }** %26, align 8
   %partial1 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__2, [2 x void (%Tuple*, i32)*]* @MemoryManagement__2, %Tuple* %23)
@@ -71,6 +72,8 @@ then0__1:                                         ; preds = %body__1
   %30 = getelementptr inbounds { %Callable*, { %String*, %Qubit* }* }, { %Callable*, { %String*, %Qubit* }* }* %29, i32 0, i32 0
   %31 = getelementptr inbounds { %Callable*, { %String*, %Qubit* }* }, { %Callable*, { %String*, %Qubit* }* }* %29, i32 0, i32 1
   %32 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__InnerNestedTuple, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i32 1)
   store %Callable* %32, %Callable** %30, align 8
   store { %String*, %Qubit* }* %tuple2, { %String*, %Qubit* }** %31, align 8
   %partial2 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__3, [2 x void (%Tuple*, i32)*]* @MemoryManagement__3, %Tuple* %28)
@@ -83,6 +86,7 @@ then0__1:                                         ; preds = %body__1
   %35 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %34, i32 0, i32 0
   %36 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %34, i32 0, i32 1
   %37 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TakesNestedTuple, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i32 1)
   store %Callable* %37, %Callable** %35, align 8
   store { i64, double }* %tuple1, { i64, double }** %36, align 8
   %partial3 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__4, [2 x void (%Tuple*, i32)*]* @MemoryManagement__4, %Tuple* %33)
@@ -103,7 +107,6 @@ then0__1:                                         ; preds = %body__1
   call void @__quantum__rt__callable_update_alias_count(%Callable* %partial4, i32 1)
   call void @__quantum__rt__callable_invoke(%Callable* %partial3, %Tuple* %19, %Tuple* null)
   call void @__quantum__rt__callable_invoke(%Callable* %partial4, %Tuple* %16, %Tuple* null)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %16, i32 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %19, i32 -1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %partial1, i32 -1)
@@ -114,6 +117,9 @@ then0__1:                                         ; preds = %body__1
   call void @__quantum__rt__callable_update_alias_count(%Callable* %partial3, i32 -1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %partial4, i32 -1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %partial4, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %partial1, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %partial1, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %partial2, i32 -1)

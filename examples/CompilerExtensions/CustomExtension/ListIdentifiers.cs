@@ -26,25 +26,14 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
         : base(new TransformationState())
         {
             // We provide our own custom namespace transformation, and expression kind transformation.
-            this.Namespaces = new ListIdentifiers.NamespaceTransformation(this);
-            this.ExpressionKinds = new ListIdentifiers.ExpressionKindTransformation(this);
+            this.Namespaces = new NamespaceTransformation(this);
+            this.ExpressionKinds = new ExpressionKindTransformation(this);
             // Since we only want to modify the QsCallable nodes, there is no need to rebuild statements and expressions.
             this.Statements = new StatementTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
             this.StatementKinds = new StatementKindTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
             this.Expressions = new ExpressionTransformation<TransformationState>(this, TransformationOptions.NoRebuild);
             // Since we are only interested in all occurring identifiers, we can omit walking type nodes entirely.
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
-        }
-
-        /// <summary>
-        /// Adds a comment to each callable listing all identifiers used within the callable.
-        /// </summary>
-        public QsCompilation OnCompilation(QsCompilation compilation)
-        {
-            var namespaces = compilation.Namespaces
-                .Select(this.Namespaces.OnNamespace)
-                .ToImmutableArray();
-            return new QsCompilation(namespaces, compilation.EntryPoints);
         }
 
         /// <summary>

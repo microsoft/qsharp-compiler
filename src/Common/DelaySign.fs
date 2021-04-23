@@ -3,16 +3,6 @@
 
 module internal SigningConstants
 
-open System.Reflection
-
-#if SIGNED
-// Attributes for delay-signing
-[<assembly: AssemblyKeyFile("..\\..\\..\\build\\267DevDivSNKey2048.snk")>]
-[<assembly: AssemblyDelaySign(true)>]
-
-do ()
-#endif
-
 #if SIGNED
 [<Literal>]
 let PUBLIC_KEY =
