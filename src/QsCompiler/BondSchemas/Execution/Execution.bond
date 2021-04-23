@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas.Argument;
+namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution;
 
 enum DataType
 {
@@ -67,4 +67,18 @@ struct Argument
     45: nullable<vector<Argument>> Array;
 
     50: string Name;
+}
+
+struct EntryPointOperation
+{
+    5: string Name;
+
+    10: vector<Argument> Arguments;
+}
+
+struct QirExecutionWrapper
+{
+    5: vector<EntryPointOperation> EntryPoints;
+
+    10: blob QirBytecode;
 }
