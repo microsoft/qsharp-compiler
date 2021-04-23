@@ -114,7 +114,7 @@ namespace Microsoft.Quantum.QIR.Emission
         internal TupleValue CreateTuple(ImmutableArray<TypedExpression> tupleElements, bool registerWithScopeManager = true)
         {
             var elementTypes = tupleElements.Select(v => v.ResolvedType).ToImmutableArray();
-            TupleValue tuple = new TupleValue(elementTypes, this.sharedState, registerWithScopeManager);
+            TupleValue tuple = new TupleValue(null, elementTypes, this.sharedState, registerWithScopeManager);
             PointerValue[] itemPointers = tuple.GetTupleElementPointers();
 
             var elements = tupleElements.Select(this.sharedState.BuildSubitem).ToArray();
@@ -167,7 +167,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// </summary>
         /// <param name="tupleElements">The tuple elements</param>
         internal TupleValue CreateTuple(params IValue[] tupleElements) =>
-            this.CreateTuple(true, tupleElements);
+            this.CreateTuple(null, true, tupleElements);
 
         /// <summary>
         /// Builds a tuple representing a Q# value of user defined type with the items set to the given elements.
@@ -248,5 +248,16 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="arrayElements">The elements in the array</param>
         internal ArrayValue CreateArray(ResolvedType elementType, params IValue[] arrayElements) =>
             this.CreateArray(elementType, true, arrayElements);
+
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="captured">All captured values.</param>
+        internal CallableValue CreateCallable(ResolvedType callableType, GlobalVariable table, ImmutableArray<TypedExpression>? captured = null) =>
+            new CallableValue(callableType, table, this.sharedState, captured);
     }
 }
