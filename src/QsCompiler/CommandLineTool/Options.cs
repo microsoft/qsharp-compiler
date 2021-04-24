@@ -99,6 +99,20 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Specifies whether to build a Q# command line application.")]
         public bool MakeExecutable { get; set; }
 
+        [Option(
+            "package-load-fallback-folders",
+            Required = false,
+            SetName = CodeMode,
+            HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
+        public IEnumerable<string>? PackageLoadFallbackFolders { get; set; }
+
+        [Option(
+            "llvm-libs",
+            Required = false,
+            SetName = CodeMode,
+            HelpText = "Specifies the folder where the llvm libraries can be found.")]
+        public string? LlvmLibs { get; set; }
+
         /// <summary>
         /// Returns a dictionary with the specified assembly properties as out parameter.
         /// Returns a boolean indicating whether all specified properties were successfully added.
@@ -116,6 +130,25 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"'));
             }
             return success;
+        }
+
+        /// <summary>
+        /// Configures the LoadingContext for this assembly depending on the defined options.
+        /// </summary>
+        internal void SetupLoadingContext()
+        {
+            var current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
+            var fallbackFolders = this.PackageLoadFallbackFolders.Prepend(current);
+            CompilationLoader.LoadAssembly = path =>
+                LoadContext.LoadAssembly(path, fallbackFolders.ToArray());
+
+            var llvmLibs = this.LlvmLibs != null
+                ? LoadContext.ResolveFromPaths("libLLVM", new[] { this.LlvmLibs })
+                : null;
+            if (llvmLibs != null)
+            {
+                LoadContext.UnmanagedDllPaths.Add(llvmLibs);
+            }
         }
     }
 
@@ -188,13 +221,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             HelpText = "Warnings with the given code(s) will be ignored.")]
         public IEnumerable<int>? NoWarn { get; set; }
 
-        [Option(
-            "package-load-fallback-folders",
-            Required = false,
-            SetName = CodeMode,
-            HelpText = "Specifies the directories the compiler will search when a compiler dependency could not be found.")]
-        public IEnumerable<string>? PackageLoadFallbackFolders { get; set; }
-
         /// <summary>
         /// Updates the settings that can be used independent on the other arguments according to the setting in the given options.
         /// Already specified non-default values are prioritized over the values in the given options,
@@ -241,8 +267,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             };
 
         /// <summary>
-        /// Creates a suitable logger for the given command line options,
-        /// logging the given arguments if the verbosity is high enough.
+        /// Creates a suitable logger for the given command line options.
         /// </summary>
         public ConsoleLogger GetLogger(DiagnosticSeverity defaultVerbosity = DiagnosticSeverity.Warning)
         {
@@ -261,7 +286,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 verbosity,
                 this.NoWarn,
                 this.CodeSnippet != null ? -2 : 0);
-            this.Print(logger);
             return logger;
         }
 

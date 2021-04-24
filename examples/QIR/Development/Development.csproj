@@ -5,13 +5,30 @@
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+	<!-- The following references need to be removed once the Sdk version number is updated. -->
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Windows'))"
+                      Include="libLLVM.runtime.win-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('OSX'))"
+                      Include="libLLVM.runtime.osx-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'"
+                      Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'"
+                      Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+  </ItemGroup>
+    
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
   </PropertyGroup>
     
   <ItemGroup>
-    <None Include="qir\**" />
+    <UpToDateCheckInput Include="@(None)" />
+    <None Include="$(QirOutputPath)**" />
     <Compile Remove="Main.cs" />
   </ItemGroup>
     
@@ -28,18 +45,28 @@
   and files with the generated QIR are deleted when the project is cleaned
   despite that we added them in a way that displays them as part of the project.
   -->
-    
-  <Target Name="CleanAll" BeforeTargets="QSharpClean">
+
+  <Target Name="CleanQir" AfterTargets="QSharpClean" DependsOnTargets="Restore">
     <ItemGroup>
-      <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
-      <_FilesToClean Include="$(QirOutputPath)**/*.ll" />
-      <Compile Remove="$(_FilesToClean)**/*.g.cs" />
+      <_QirFilesToClean Include="$(QirOutputPath)**" />
+      <None Remove="@(_QirFilesToClean)" />
     </ItemGroup>
-    <Delete Files="@(_FilesToClean)" />
+    <Delete Files="@(_QirFilesToClean)" />
+    <RemoveDir Directories="$(QirOutputPath)" />
   </Target>
 
-  <Target Name="BeforeQSharpCompile" DependsOnTargets="CleanAll">
+  <Target Name="BeforeQSharpCompile" DependsOnTargets="QSharpClean">
     <Message Text="Removed files from prior compilation." Importance="High" />
+	<!-- The following lines need to be removed once the Sdk version number is updated. -->
+    <PropertyGroup Condition="'$(LlvmLibsPath)' == ''">
+      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkglibLLVM_runtime_osx-x64)</LlvmLibsPath>
+      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkglibLLVM_runtime_win-x64)</LlvmLibsPath>
+      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'">$(PkglibLLVM_runtime_ubuntu_18_04-x64)</LlvmLibsPath>
+      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'">$(PkglibLLVM_runtime_ubuntu_20_04-x64)</LlvmLibsPath>
+    </PropertyGroup>
+    <PropertyGroup>
+      <AdditionalQscArguments>--llvm-libs $(LlvmLibsPath)/</AdditionalQscArguments>
+    </PropertyGroup>
   </Target>
 
   <Target Name="BeforeCSharpCompile">
