@@ -23,7 +23,7 @@ let internal emptySpace = manySatisfy Text.IsWhitespace
 
 // whitespace management
 
-let private rws p: Parser<_, QsCompilerDiagnostic list> = attempt p .>> emptySpace // making all parsers non-generic here for the sake of performance!
+let private rws p : Parser<_, QsCompilerDiagnostic list> = attempt p .>> emptySpace // making all parsers non-generic here for the sake of performance!
 let private rwstr s = pstring s |> rws
 
 // symbols and names
@@ -45,17 +45,17 @@ let internal isSymbolContinuation c =
     System.Char.IsLetter(c) // Covers Lu, Ll, Lt, Lm, Lo
     || List.contains
         (System.Char.GetUnicodeCategory c)
-           [
-               System.Globalization.UnicodeCategory.LetterNumber // Nl
-               System.Globalization.UnicodeCategory.DecimalDigitNumber // Nd
-               System.Globalization.UnicodeCategory.ConnectorPunctuation // Pc (includes underscore)
-               System.Globalization.UnicodeCategory.NonSpacingMark // Mn
-               System.Globalization.UnicodeCategory.SpacingCombiningMark // Mc
-               System.Globalization.UnicodeCategory.Format // Cf
-           ]
+        [
+            System.Globalization.UnicodeCategory.LetterNumber // Nl
+            System.Globalization.UnicodeCategory.DecimalDigitNumber // Nd
+            System.Globalization.UnicodeCategory.ConnectorPunctuation // Pc (includes underscore)
+            System.Globalization.UnicodeCategory.NonSpacingMark // Mn
+            System.Globalization.UnicodeCategory.SpacingCombiningMark // Mc
+            System.Globalization.UnicodeCategory.Format // Cf
+        ]
 
 /// Returns the current position in the input stream.
-let internal getPosition = CharParsers.getPosition |>> fun p -> Position.Create (int p.Line - 1) (int p.Column - 1)
+let internal getPosition = CharParsers.getPosition |>> fun p -> Position.Create(int p.Line - 1) (int p.Column - 1)
 
 /// Returns the result of 'p' and the character range that 'p' consumed.
 let internal getRange p =

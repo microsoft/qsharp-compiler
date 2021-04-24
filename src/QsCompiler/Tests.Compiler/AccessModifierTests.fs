@@ -3,18 +3,18 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Generic
-open System.IO
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.Collections.Generic
+open System.IO
 open Xunit
 
-
 type AccessModifierTests() =
-    inherit CompilerTests(CompilerTests.Compile
-                              ("TestCases", [ "AccessModifiers.qs" ], [ File.ReadAllLines("ReferenceTargets.txt").[1] ]))
+    inherit CompilerTests(AccessModifierTests.Compile())
+
+    static member private Compile() =
+        CompilerTests.Compile("TestCases", [ "AccessModifiers.qs" ], [ File.ReadAllLines("ReferenceTargets.txt").[1] ])
 
     member private this.Expect name (diagnostics: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers"

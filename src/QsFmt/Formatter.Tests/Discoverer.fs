@@ -80,43 +80,46 @@ module Discoverer =
     let private properties<'a when 'a :> Attribute> () =
         Assembly.GetCallingAssembly().GetTypes()
         |> Seq.collect (fun typ -> typ.GetProperties())
-        |> Seq.choose (fun property ->
-            property.GetCustomAttributes typeof<'a>
-            |> Seq.tryHead
-            |> Option.map (fun attribute' -> attribute' :?> 'a, property))
+        |> Seq.choose
+            (fun property ->
+                property.GetCustomAttributes typeof<'a>
+                |> Seq.tryHead
+                |> Option.map (fun attribute' -> attribute' :?> 'a, property))
 
     /// <summary>
     /// The auto-discovered <see cref="Example"/> test cases.
     /// </summary>
     let private examples =
         properties<ExampleAttribute> ()
-        |> Seq.choose (fun (attribute, property) ->
-            match property.GetValue null with
-            | :? (string * string) as example ->
-                {
-                    Name = property.Name
-                    Skip = Option.ofObj attribute.Skip
-                    Before = fst example
-                    After = snd example
-                }
-                |> Some
-            | _ -> None)
+        |> Seq.choose
+            (fun (attribute, property) ->
+                match property.GetValue null with
+                | :? (string * string) as example ->
+                    {
+                        Name = property.Name
+                        Skip = Option.ofObj attribute.Skip
+                        Before = fst example
+                        After = snd example
+                    }
+                    |> Some
+                | _ -> None)
 
     /// <summary>
     /// The auto-discovered <see cref="FixedPoint"/> test cases.
     /// </summary>
     let private fixedPoints =
         properties<FixedPointAttribute> ()
-        |> Seq.choose (fun (attribute, property) ->
-            match property.GetValue null with
-            | :? string as source ->
-                {
-                    Name = property.Name
-                    Skip = Option.ofObj attribute.Skip
-                    Source = source
-                }
-                |> Some
-            | _ -> None)
+        |> Seq.choose
+            (fun (attribute, property) ->
+                match property.GetValue null with
+                | :? string as source ->
+                    {
+                        Name = property.Name
+                        Skip = Option.ofObj attribute.Skip
+                        Source = source
+                    }
+                    |> Some
+                | _ -> None)
 
     /// <summary>
     /// Provides auto-discovered <see cref="Example"/> test cases as theory data.

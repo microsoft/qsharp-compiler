@@ -35,22 +35,21 @@ let private compilerArgs target (name: string) =
         ("TestCases", "QirTests", name + ".qs") |> Path.Combine
         ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
 
-        (if target
-         then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
-         else "")
+        (if target then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine else "")
 
         "--load"
 
-        Path.Combine
-            (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Microsoft.Quantum.QirGeneration.dll")
+        Path.Combine(
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+            "Microsoft.Quantum.QirGeneration.dll"
+        )
 
         "--verbosity"
         "Diagnostic"
     }
 
 let private customTest name compilerArgs snippets =
-    if not <| Directory.Exists "qir"
-    then Directory.CreateDirectory "qir" |> ignore
+    if not <| Directory.Exists "qir" then Directory.CreateDirectory "qir" |> ignore
 
     let fileName = Path.Combine("qir", name + ".ll")
     clearOutput fileName
