@@ -92,7 +92,7 @@
 
 
   <!-- Computes the ResolvedTargetSpecificDecompositions property. Generates a build error if more than one target package has been specified. -->
-  <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences;Restore" BeforeTargets="BeforeQSharpCompile">
+  <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQSharpCompile">
     <ItemGroup>
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
       <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" />
@@ -110,7 +110,7 @@
   </Target>
 
   <!-- Computes ResolvedQscReferences, ResolvedQscReferencesAndPriorities, QscProjectReference and QscPackageReference. -->
-  <Target Name="ResolveQscReferences" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences;Restore" BeforeTargets="BeforeQSharpCompile">
+  <Target Name="ResolveQscReferences" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQSharpCompile">
     <!-- get the assembly path for all relevant project references which are passed as qsc references -->
     <ItemGroup>
       <QscProjectReference Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsQscReference)" />
