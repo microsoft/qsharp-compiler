@@ -29,10 +29,12 @@
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.13.20102604" />
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.IonQ" Version="0.13.20102604" />
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.QCI" Version="0.13.20102604" />
-    <!-- TODO: UNCOMMENT THESE ONCE WE HAVE THE CORRESPONDING PACKAGES. -->
-    <!--PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'OpenQASM'" Include="Microsoft.Quantum.Intrinsics.OpenQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' />
-    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'ExtendedQASM'" Include="Microsoft.Quantum.Intrinsics.ExtendedQASM" Version="0.11.2006.2118-beta" IsTargetPackage='true' /-->
-  </ItemGroup>
+    <!-- TODO: uncomment once we are ready to use these packages.
+    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type1'" Include="Microsoft.Quantum.Type1.Core" Version="0.11.2006.2118-beta" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type2'" Include="Microsoft.Quantum.Type2.Core" Version="0.11.2006.2118-beta" IsTargetPackage='true' />
+    <PackageReference Condition="'$(ResolvedQuantumIntrinsics)' == 'Type3'" Include="Microsoft.Quantum.Type3.Core" Version="0.11.2006.2118-beta" IsTargetPackage='true' />
+    -->  
+    </ItemGroup>
 
   <!-- Include the qir generation and docs generation compiler extensions if needed. -->
   <ItemGroup>
@@ -44,6 +46,22 @@
                       Include="Microsoft.Quantum.QirGeneration" Version="0.15.2101126940"
                       IsImplicitlyDefined="true" 
                       IsQscReference="true" ExecutionTarget="Any" Priority="-1" PrivateAssets="All" />
+    <PackageReference Condition="$(QirGeneration) And $([MSBuild]::IsOsPlatform('Windows'))"
+                      Include="libLLVM.runtime.win-x64" Version="11.0.0"
+                      IsImplicitlyDefined="true" 
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$(QirGeneration) And $([MSBuild]::IsOsPlatform('OSX'))"
+                      Include="libLLVM.runtime.osx-x64" Version="11.0.0"
+                      IsImplicitlyDefined="true" 
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$(QirGeneration) And $([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'"
+                      Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0"
+                      IsImplicitlyDefined="true" 
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$(QirGeneration) And $([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'"
+                      Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
+                      IsImplicitlyDefined="true" 
+                      PrivateAssets="All" GeneratePathProperty="true" />
   </ItemGroup>
 
   <!-- Packages for execution on the simulation framework. -->
