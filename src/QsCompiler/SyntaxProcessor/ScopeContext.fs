@@ -45,11 +45,12 @@ type ScopeContext =
     /// Thrown if the given namespace manager does not contain all resolutions or if the specialization's parent does
     /// not exist in the given namespace manager.
     /// </exception>
-    static member Create (nsManager: NamespaceManager)
-                         capability
-                         processorArchitecture
-                         (spec: SpecializationDeclarationHeader)
-                         =
+    static member Create
+        (nsManager: NamespaceManager)
+        capability
+        processorArchitecture
+        (spec: SpecializationDeclarationHeader)
+        =
         match nsManager.TryGetCallable spec.Parent (spec.Parent.Namespace, Source.assemblyOrCodeFile spec.Source) with
         | Found declaration ->
             let symbolTracker = SymbolTracker(nsManager, Source.assemblyOrCodeFile spec.Source, spec.Parent)
