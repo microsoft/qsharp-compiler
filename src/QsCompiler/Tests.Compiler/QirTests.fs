@@ -93,7 +93,8 @@ let ``QIR array loop`` () = qirTest false "TestArrayLoop"
 let ``QIR nested for loop`` () = qirTest false "TestForLoop"
 
 [<Fact>]
-let ``QIR caching of values`` () = qirTest true "TestCaching"
+let ``QIR caching of values`` () =
+    qirMultiTest true "TestCaching" [ "TestCaching1"; "TestCaching2"; "TestCaching3" ]
 
 [<Fact>]
 let ``QIR array update`` () =
