@@ -53,25 +53,28 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
 
             let myList =
                 jointFlatten (s.Binding.Lhs, s.Binding.Rhs)
-                |> Seq.collect (fun (l, r) ->
-                    match l, r.Resolution with
-                    | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
-                        let elemI = fun i -> Identifier(LocalVariable(sprintf "__qsItem%d__%s__" i name), Null)
+                |> Seq.collect
+                    (fun (l, r) ->
+                        match l, r.Resolution with
+                        | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
+                            let elemI = fun i -> Identifier(LocalVariable(sprintf "__qsItem%d__%s__" i name), Null)
 
-                        let expr =
-                            Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit)
-                            |> ImmutableArray.CreateRange
-                            |> ValueArray
-                            |> wrapExpr (ArrayType(ResolvedType.New Qubit))
+                            let expr =
+                                Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit)
+                                |> ImmutableArray.CreateRange
+                                |> ValueArray
+                                |> wrapExpr (ArrayType(ResolvedType.New Qubit))
 
-                        let newStmt = QsVariableDeclaration(QsBinding.New QsBindingKind.ImmutableBinding (l, expr))
-                        newStatements <- wrapStmt newStmt :: newStatements
+                            let newStmt = QsVariableDeclaration(QsBinding.New QsBindingKind.ImmutableBinding (l, expr))
+                            newStatements <- wrapStmt newStmt :: newStatements
 
-                        Seq.init (safeCastInt64 num) (fun i ->
-                            VariableName(sprintf "__qsItem%d__%s__" i name),
-                            ResolvedInitializer.New SingleQubitAllocation)
-                    | DiscardedItem, _ -> Seq.empty
-                    | _ -> Seq.singleton (l, r))
+                            Seq.init
+                                (safeCastInt64 num)
+                                (fun i ->
+                                    VariableName(sprintf "__qsItem%d__%s__" i name),
+                                    ResolvedInitializer.New SingleQubitAllocation)
+                        | DiscardedItem, _ -> Seq.empty
+                        | _ -> Seq.singleton (l, r))
                 |> List.ofSeq
 
             match myList with
@@ -88,8 +91,9 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
                 let newBody = QsScope.New(s.Body.Statements.InsertRange(0, newStatements), s.Body.KnownSymbols)
                 QsQubitScope.New s.Kind ((lhs, rhs), newBody) |> QsQubitScope |> Seq.singleton
         | ScopeStatement s -> s.Body.Statements |> Seq.map (fun x -> x.Statement)
-        | _ when not c.HasQuantum
-                 && c2.ExternalMutations.IsEmpty
-                 && not c.HasInterrupts
-                 && (not c.HasOutput || removeFunctions) -> Seq.empty
+        | _ when
+            not c.HasQuantum
+            && c2.ExternalMutations.IsEmpty
+            && not c.HasInterrupts
+            && (not c.HasOutput || removeFunctions) -> Seq.empty
         | a -> Seq.singleton a

@@ -24,18 +24,24 @@ type CallGraphTests(output: ITestOutputHelper) =
     let compilationManager = new CompilationUnitManager(new Action<Exception>(fun ex -> failwith ex.Message))
 
     let compilationManagerExe =
-        new CompilationUnitManager(Action<_>(fun ex -> failwith ex.Message),
-                                   null,
-                                   false,
-                                   FullComputation,
-                                   isExecutable = true)
+        new CompilationUnitManager(
+            Action<_>(fun ex -> failwith ex.Message),
+            null,
+            false,
+            FullComputation,
+            isExecutable = true
+        )
 
     let getTempFile () =
         new Uri(Path.GetFullPath(Path.GetRandomFileName()))
 
     let getManager uri content =
-        CompilationUnitManager.InitializeFileManager
-            (uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
+        CompilationUnitManager.InitializeFileManager(
+            uri,
+            content,
+            compilationManager.PublishDiagnostics,
+            compilationManager.LogException
+        )
 
     // Adds Core to the compilation
     do
@@ -54,8 +60,10 @@ type CallGraphTests(output: ITestOutputHelper) =
         let qualifiedName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
 
         let res =
-            paramRes.ToImmutableDictionary
-                ((fun kvp -> (qualifiedName, fst kvp)), (fun kvp -> ResolvedType.New(snd kvp)))
+            paramRes.ToImmutableDictionary(
+                (fun kvp -> (qualifiedName, fst kvp)),
+                (fun kvp -> ResolvedType.New(snd kvp))
+            )
 
         ConcreteCallGraphNode(qualifiedName, specKind, res)
 
@@ -94,20 +102,25 @@ type CallGraphTests(output: ITestOutputHelper) =
         let got =
             compilationDataStructures.Diagnostics()
             |> Seq.filter (fun d -> d.Severity = Nullable DiagnosticSeverity.Error)
-            |> Seq.choose (fun d ->
-                match Diagnostics.TryGetCode d.Code with
-                | true, code -> Some code
-                | false, _ -> None)
+            |> Seq.choose
+                (fun d ->
+                    match Diagnostics.TryGetCode d.Code with
+                    | true, code -> Some code
+                    | false, _ -> None)
 
         let codeMismatch = expected.ToImmutableHashSet().SymmetricExcept got
         let gotLookup = got.ToLookup(new Func<_, _>(id))
         let expectedLookup = expected.ToLookup(new Func<_, _>(id))
         let nrMismatch = gotLookup.Where(fun g -> g.Count() <> expectedLookup.[g.Key].Count())
 
-        Assert.False
-            (codeMismatch.Any() || nrMismatch.Any(),
-             sprintf "%A code mismatch\nexpected: %s\ngot: %s" DiagnosticSeverity.Error (String.Join(", ", expected))
-                 (String.Join(", ", got)))
+        Assert.False(
+            codeMismatch.Any() || nrMismatch.Any(),
+            sprintf
+                "%A code mismatch\nexpected: %s\ngot: %s"
+                DiagnosticSeverity.Error
+                (String.Join(", ", expected))
+                (String.Join(", ", got))
+        )
 
     let CompileTest testNumber fileName =
         let srcChunks = ReadAndChunkSourceFile fileName
@@ -133,7 +146,8 @@ type CallGraphTests(output: ITestOutputHelper) =
     let CompileInvalidCycleTest testNumber expected =
         let errors =
             expected
-            |> Seq.choose (function
+            |> Seq.choose
+                (function
                 | Error error -> Some error
                 | _ -> None)
 
@@ -172,17 +186,19 @@ type CallGraphTests(output: ITestOutputHelper) =
         let expected = expectedCycles |> DecorateWithNamespace Signatures.CycleDetectionNS
         let actual = actualCycles |> (Seq.map ((Seq.map (fun x -> x.CallableName)) >> Seq.toList) >> Seq.toList)
 
-        Assert.True
-            (actual.Length = expected.Length,
-             sprintf "Expected call graph to have %i cycle(s), but found %i cycle(s)" expected.Length actual.Length)
+        Assert.True(
+            actual.Length = expected.Length,
+            sprintf "Expected call graph to have %i cycle(s), but found %i cycle(s)" expected.Length actual.Length
+        )
 
         let cycleToString (cycle: QsQualifiedName list) =
             String.Join(" -> ", List.map (fun node -> node.ToString()) cycle)
 
         for cycle in expected do
-            Assert.True
-                (List.exists (CyclicEquivalence cycle) actual,
-                 sprintf "Did not find expected cycle: %s" (cycleToString cycle))
+            Assert.True(
+                List.exists (CyclicEquivalence cycle) actual,
+                sprintf "Did not find expected cycle: %s" (cycleToString cycle)
+            )
 
     let AssertExpectedDirectDependencies nameFrom nameToList (givenGraph: CallGraph) =
         let strToNode name =
@@ -194,8 +210,10 @@ type CallGraphTests(output: ITestOutputHelper) =
         for nameTo in nameToList do
             let expectedNode = strToNode nameTo
 
-            Assert.True
-                (dependencies.Contains(expectedNode), sprintf "Expected %s to take dependency on %s." nameFrom nameTo)
+            Assert.True(
+                dependencies.Contains(expectedNode),
+                sprintf "Expected %s to take dependency on %s." nameFrom nameTo
+            )
 
     let AssertInGraph (givenGraph: CallGraph) name =
         let nodeName = { Namespace = Signatures.PopulateCallGraphNS; Name = name }
@@ -208,16 +226,24 @@ type CallGraphTests(output: ITestOutputHelper) =
         Assert.False(found, sprintf "Expected %s to not be in the call graph." name)
 
     let AssertInConcreteGraph (givenGraph: ConcreteCallGraph) node =
-        Assert.True
-            (givenGraph.Nodes.Contains(node),
-             sprintf "Expected %A (%A) to be in the call graph with the following type parameter resolutions:\n%A"
-                 node.CallableName node.Kind node.ParamResolutions)
+        Assert.True(
+            givenGraph.Nodes.Contains(node),
+            sprintf
+                "Expected %A (%A) to be in the call graph with the following type parameter resolutions:\n%A"
+                node.CallableName
+                node.Kind
+                node.ParamResolutions
+        )
 
     let AssertNotInConcreteGraph (givenGraph: ConcreteCallGraph) node =
-        Assert.False
-            (givenGraph.Nodes.Contains(node),
-             sprintf "Expected %A (%A) to not be in the call graph with the following type parameter resolutions:\n%A"
-                 node.CallableName node.Kind node.ParamResolutions)
+        Assert.False(
+            givenGraph.Nodes.Contains(node),
+            sprintf
+                "Expected %A (%A) to not be in the call graph with the following type parameter resolutions:\n%A"
+                node.CallableName
+                node.Kind
+                node.ParamResolutions
+        )
 
     // ToDo: Add tests for cycle validation once that is implemented.
 
@@ -227,7 +253,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 1 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo"; "Bar" ]; "Foo", []; "Bar", [ "Baz" ]; "Baz", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
@@ -236,7 +262,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 2 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
         [ "Bar"; "Baz" ] |> List.map (AssertNotInGraph graph) |> ignore
@@ -247,7 +273,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 3 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
         AssertNotInGraph graph "NotCalled"
@@ -258,7 +284,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraph 4 |> CallGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
         AssertInGraph graph "NotCalled"
@@ -269,7 +295,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraph 5 |> CallGraph
 
         [ "Main", [ "Foo" ]; "Foo", []; "Bar", [ "Baz" ]; "Baz", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
@@ -284,7 +310,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 7 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [ "Main" ] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
@@ -293,7 +319,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 8 |> BuildTrimmedGraph
 
         [ "Main", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
         AssertNotInGraph graph "Bar"
@@ -304,7 +330,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 9 |> BuildTrimmedGraph
 
         [ "Main1", [ "Foo" ]; "Main2", [ "Bar" ]; "Foo", []; "Bar", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
     [<Fact>]
@@ -313,7 +339,7 @@ type CallGraphTests(output: ITestOutputHelper) =
         let graph = PopulateCallGraphWithExe 10 |> BuildTrimmedGraph
 
         [ "Test", [ "Foo" ]; "Foo", [] ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
         AssertNotInGraph graph "Bar"
@@ -329,7 +355,7 @@ type CallGraphTests(output: ITestOutputHelper) =
             "Test1", [ "Zip" ]
             "Test2", [ "Zap" ]
         ]
-        |> List.map (fun x -> AssertExpectedDirectDependencies (fst x) (snd x) graph)
+        |> List.map (fun x -> AssertExpectedDirectDependencies(fst x) (snd x) graph)
         |> ignore
 
         AssertNotInGraph graph "Unused"
@@ -470,14 +496,17 @@ type CallGraphTests(output: ITestOutputHelper) =
 
         let dependencies = graph.GetDirectDependencies FooAdj
 
-        Assert.True
-            (dependencies.Contains(Foo), "Expected adjoint specialization to take dependency on body specialization.")
+        Assert.True(
+            dependencies.Contains(Foo),
+            "Expected adjoint specialization to take dependency on body specialization."
+        )
 
         let dependencies = graph.GetDirectDependencies FooCtlAdj
 
-        Assert.True
-            (dependencies.Contains(FooCtl),
-             "Expected controlled-adjoint specialization to take dependency on controlled specialization.")
+        Assert.True(
+            dependencies.Contains(FooCtl),
+            "Expected controlled-adjoint specialization to take dependency on controlled specialization."
+        )
 
     [<Fact>]
     [<Trait("Category", "Populate Call Graph")>]
@@ -490,10 +519,11 @@ type CallGraphTests(output: ITestOutputHelper) =
         for node in graph.Nodes do
             let unresolvedTypeParameters =
                 node.ParamResolutions
-                |> Seq.choose (fun res ->
-                    match res.Value.Resolution with
-                    | TypeParameter _ -> Some(res.Key)
-                    | _ -> None)
+                |> Seq.choose
+                    (fun res ->
+                        match res.Value.Resolution with
+                        | TypeParameter _ -> Some(res.Key)
+                        | _ -> None)
 
             Assert.Empty unresolvedTypeParameters
 

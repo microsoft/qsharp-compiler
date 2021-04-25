@@ -147,13 +147,15 @@ and private CallableInliningStatements(parent: CallableInlining, callables: Immu
     /// then findAllCalls f will include both g and h (and possibly other callables).
     /// Mutates the given HashSet by adding all the found callables to the set.
     /// Is used to prevent inlining recursive functions into themselves forever.
-    let rec findAllCalls (callables: ImmutableDictionary<QsQualifiedName, QsCallable>)
-                         (scope: QsScope)
-                         (found: HashSet<QsQualifiedName>)
-                         : unit =
+    let rec findAllCalls
+        (callables: ImmutableDictionary<QsQualifiedName, QsCallable>)
+        (scope: QsScope)
+        (found: HashSet<QsQualifiedName>)
+        : unit =
         scope
         |> findAllSubStatements
-        |> Seq.iter (function
+        |> Seq.iter
+            (function
             | QsExpressionStatement ex ->
                 match InliningInfo.TryGetInfo callables ex with
                 | Some ii ->

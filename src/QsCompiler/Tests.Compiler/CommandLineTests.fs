@@ -146,8 +146,11 @@ let ``execute rewrite steps only if validation passes`` () =
     let source2 = ("TestCases", "AttributeGeneration.qs") |> Path.Combine
 
     let config =
-        CompilationLoader.Configuration
-            (GenerateFunctorSupport = true, BuildOutputFolder = null, RuntimeCapability = BasicQuantumFunctionality)
+        CompilationLoader.Configuration(
+            GenerateFunctorSupport = true,
+            BuildOutputFolder = null,
+            RuntimeCapability = BasicQuantumFunctionality
+        )
 
     let loadSources (loader: Func<_ seq, _>) = loader.Invoke([ source1; source2 ])
 

@@ -21,7 +21,7 @@ open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
 // utils for providing information for editor commands based on syntax tokens
 
-let rec private collectWith collector (exs: 'a seq, ts: QsType seq): QsSymbol list * QsType list * QsExpression list =
+let rec private collectWith collector (exs: 'a seq, ts: QsType seq) : QsSymbol list * QsType list * QsExpression list =
     let (varFromExs, tsFromExs, bsFromExs) =
         [
             for item in exs do
@@ -60,7 +60,7 @@ and private VariablesInInitializer item =
     | QsInitializerKind.QubitTupleAllocation items -> collectWith VariablesInInitializer (items, [])
     | QsInitializerKind.InvalidInitializer -> [], [], []
 
-and private SymbolsFromExpr item: QsSymbol list * QsType list * QsExpression list =
+and private SymbolsFromExpr item : QsSymbol list * QsType list * QsExpression list =
     match item.Expression with
     | QsExpressionKind.UnitValue -> [], [], [ item ]
     | QsExpressionKind.Identifier (id, typeArgs) ->
@@ -135,7 +135,7 @@ let private SymbolsInGenerator (gen: QsSpecializationGenerator) =
 
 let private SymbolsInArgumentTuple (declName, argTuple) =
     let recur extract items =
-        let extracted: (QsSymbol list * QsType list) list = items |> List.map extract
+        let extracted : (QsSymbol list * QsType list) list = items |> List.map extract
 
         let getSeq select =
             [
@@ -463,12 +463,13 @@ let public PrintSignature (header: CallableDeclarationHeader) =
     sprintf "%s%s" signature annotation
 
 [<Extension>]
-let public VariableInfo (symbolTable: NamespaceManager)
-                        (locals: LocalDeclarations)
-                        (currentNS, source)
-                        (qsSym: QsSymbol)
-                        markdown
-                        =
+let public VariableInfo
+    (symbolTable: NamespaceManager)
+    (locals: LocalDeclarations)
+    (currentNS, source)
+    (qsSym: QsSymbol)
+    markdown
+    =
     match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
     | Some decl, _ ->
         let kind = showAccess (printCallableKind decl.Kind) decl.Access |> toUpperFirst
@@ -581,16 +582,17 @@ let public LocalVariable (locals: LocalDeclarations) (qsSym: QsSymbol) =
     | _ -> Null
 
 [<Extension>]
-let public VariableDeclaration (symbolTable: NamespaceManager)
-                               (locals: LocalDeclarations)
-                               (currentNS, source)
-                               (qsSym: QsSymbol)
-                               =
+let public VariableDeclaration
+    (symbolTable: NamespaceManager)
+    (locals: LocalDeclarations)
+    (currentNS, source)
+    (qsSym: QsSymbol)
+    =
     match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
     | Some decl, Some _ ->
         decl.Location
-        |> QsNullable<_>.Map(fun loc -> Source.assemblyOrCodeFile decl.Source, loc.Offset, loc.Range)
-    | _ -> LocalVariable locals qsSym |> QsNullable<_>.Map(fun (_, pos, range) -> source, pos, range)
+        |> QsNullable<_>.Map (fun loc -> Source.assemblyOrCodeFile decl.Source, loc.Offset, loc.Range)
+    | _ -> LocalVariable locals qsSym |> QsNullable<_>.Map (fun (_, pos, range) -> source, pos, range)
 
 [<Extension>]
 let public TypeDeclaration (symbolTable: NamespaceManager) (currentNS, source) (qsType: QsType) =
@@ -599,26 +601,27 @@ let public TypeDeclaration (symbolTable: NamespaceManager) (currentNS, source) (
         match udt |> globalTypeResolution symbolTable (currentNS, source) with
         | Some decl, _ ->
             decl.Location
-            |> QsNullable<_>.Map(fun loc -> Source.assemblyOrCodeFile decl.Source, loc.Offset, loc.Range)
+            |> QsNullable<_>.Map (fun loc -> Source.assemblyOrCodeFile decl.Source, loc.Offset, loc.Range)
         | _ -> Null
     | _ -> Null
 
 [<Extension>]
-let public SymbolDeclaration (symbolTable: NamespaceManager)
-                             (locals: LocalDeclarations)
-                             (currentNS, source)
-                             (qsSym: QsSymbol)
-                             =
+let public SymbolDeclaration
+    (symbolTable: NamespaceManager)
+    (locals: LocalDeclarations)
+    (currentNS, source)
+    (qsSym: QsSymbol)
+    =
     match qsSym.Symbol with // needs to be first
     | QsSymbolKind.Symbol _ ->
         match qsSym |> globalTypeResolution symbolTable (currentNS, source) with // needs to be first
         | Some decl, _ ->
             decl.Location
-            |> QsNullable<_>.Map(fun loc -> Source.assemblyOrCodeFile decl.Source, loc.Offset, loc.Range)
+            |> QsNullable<_>.Map (fun loc -> Source.assemblyOrCodeFile decl.Source, loc.Offset, loc.Range)
         | None, _ ->
             match qsSym |> globalCallableResolution symbolTable (currentNS, source) with
             | Some decl, _ ->
                 decl.Location
-                |> QsNullable<_>.Map(fun loc -> Source.assemblyOrCodeFile decl.Source, loc.Offset, loc.Range)
-            | _ -> LocalVariable locals qsSym |> QsNullable<_>.Map(fun (_, pos, range) -> source, pos, range)
+                |> QsNullable<_>.Map (fun loc -> Source.assemblyOrCodeFile decl.Source, loc.Offset, loc.Range)
+            | _ -> LocalVariable locals qsSym |> QsNullable<_>.Map (fun (_, pos, range) -> source, pos, range)
     | _ -> Null
