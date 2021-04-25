@@ -273,13 +273,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var falseBlock = sharedState.AddBlockAfterCurrent("condFalse");
 
                     sharedState.CurrentBuilder.Branch(wasCopied, contBlock, falseBlock);
-                    sharedState.ScopeMgr.OpenScope();
                     sharedState.SetCurrentBlock(falseBlock);
 
+                    sharedState.StartBranch(); // needed for the caching of length to work properly
+                    sharedState.ScopeMgr.OpenScope();
                     sharedState.ScopeMgr.IncreaseReferenceCount(value, shallow);
                     sharedState.ScopeMgr.DecreaseReferenceCount(pointer, shallow);
-
                     sharedState.ScopeMgr.CloseScope(false);
+                    sharedState.EndBranch();
+
                     sharedState.CurrentBuilder.Branch(contBlock);
                     sharedState.SetCurrentBlock(contBlock);
                 }
