@@ -3,10 +3,13 @@
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>net5.0</TargetFramework>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\src\QsCompiler\LlvmBindings\LlvmBindings.csproj" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.0.1-alpha" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.15.2104137891-alpha" />
   </ItemGroup>
 
 </Project>
