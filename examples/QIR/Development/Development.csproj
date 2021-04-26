@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.15.2103133969">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.16.210426130-alpha">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -6,7 +6,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-	<!-- The following references need to be removed once the Sdk version number is updated. -->
     <PackageReference Condition="$([MSBuild]::IsOsPlatform('Windows'))"
                       Include="libLLVM.runtime.win-x64" Version="11.0.0"
                       PrivateAssets="All" GeneratePathProperty="true" />
@@ -57,7 +56,6 @@
 
   <Target Name="BeforeQSharpCompile" DependsOnTargets="QSharpClean">
     <Message Text="Removed files from prior compilation." Importance="High" />
-	<!-- The following lines need to be removed once the Sdk version number is updated. -->
     <PropertyGroup Condition="'$(LlvmLibsPath)' == ''">
       <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkglibLLVM_runtime_osx-x64)</LlvmLibsPath>
       <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkglibLLVM_runtime_win-x64)</LlvmLibsPath>
