@@ -18,6 +18,9 @@ open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 type private StripPositionInfoFromType(parent: StripPositionInfo) =
     inherit TypeTransformation(parent)
+
+    override this.OnTypeRange _ = TypeRange.Generated
+
     override this.OnRangeInformation _ = Null
 
 and private StripPositionInfoFromExpression(parent: StripPositionInfo) =
@@ -252,7 +255,7 @@ module SyntaxGenerator =
             | BuiltInKind.Function typeParams -> typeParams.[0]
             | _ -> ArgumentException "Length is expected to be a function" |> raise
 
-        let typeParameter = QsTypeParameter.New(callableName, typeParameterName, Null)
+        let typeParameter = QsTypeParameter.New(callableName, typeParameterName)
 
         let genArrayType =
             QsTypeKind.ArrayType(QsTypeKind.TypeParameter typeParameter |> ResolvedType.New) |> ResolvedType.New

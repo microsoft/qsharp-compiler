@@ -364,3 +364,4 @@ src/ProjectTemplates/Quantum.Test1/.template.config/template.json
 /src/VisualStudioExtension/QsharpIonQAppTemplate/IonQAppProjectTemplate.xml
 /examples/QIR/Emission/qir/*
 src/QsCompiler/QirGeneration/QirGeneration.nuspec
+/examples/QIR/Development/qir/*

@@ -840,8 +840,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal GlobalVariable GetOrCreateCallableTable(QsCallable callable)
         {
-            var key = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
-            if (this.callableTables.TryGetValue(key, out (QsCallable, GlobalVariable) item))
+            var tableName = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
+            if (this.callableTables.TryGetValue(tableName, out (QsCallable, GlobalVariable) item))
             {
                 return item.Item2;
             }
@@ -849,12 +849,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 IrFunction? BuildSpec(QsSpecializationKind kind) =>
                     callable.Specializations.Any(spec => spec.Kind == kind &&
-                    (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic))
-                        ? this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
-                        : null;
-                var table = this.CreateCallableTable(key, BuildSpec);
-                this.callableTables.Add(key, (callable, table));
-                this.pendingCallableTables.Add(key);
+                        (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic))
+                            ? this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
+                            : null;
+
+                var table = this.CreateCallableTable(tableName, BuildSpec);
+                this.callableTables.Add(tableName, (callable, table));
+                this.pendingCallableTables.Add(tableName);
                 return table;
             }
         }
@@ -898,6 +899,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
+        /// Given the value passed to a function that implements a Q# callable specialization with the given argument type,
+        /// constructs a TupleValue of suitable type.
+        /// </summary>
+        internal TupleValue AsArgumentTuple(ResolvedType argType, Value argTuple)
+        {
+            if (argType.Resolution is ResolvedTypeKind.UserDefinedType udt)
+            {
+                return this.Values.FromCustomType(argTuple, udt.Item);
+            }
+            else
+            {
+                var itemTypes =
+                    argType.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
+                    argType.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
+                    ImmutableArray.Create(argType);
+                return this.Values.FromTuple(argTuple, itemTypes);
+            }
+        }
+
+        /// <summary>
         /// Sets the current function to the given one and sets the parameter names to the given names.
         /// Populates the body of the given function by invoking the given action with the function parameters.
         /// If the current block after the invokation is not terminated, adds a void return.
@@ -930,47 +951,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Callables within QIR are bundles of four functions. When callables are assigned to variable or
-        /// passed around, which one of these functions is ultimately invoked is strictly runtime information.
-        /// For each declared callable, a constant array with four IrFunction values represents the bundle.
-        /// All functions have the same type (accessible via Types.FunctionSignature), namely they take three
-        /// opaque tuples and return void.
-        /// <br/>
-        /// A callable value is then created by specifying the global constant with the bundle as well as the
-        /// capture tuple (which is the first of the three tuples that is passed to a function upon invokation).
-        /// It can be invoked by providing the remaining two tuples; the argument tuple and the output tuple.
-        /// In order to invoke the concrete implementation of a function, the argument tuple first needs to be
-        /// cast to its concrete type and its item need to be assigned to the corresponding variables if need.
-        /// Similarly, the output tuple needs to be populated with the computed value before exiting.
-        /// We create a separate "wrapper" function to do just that; it casts and deconstructs the argument
-        /// tuple, invokes the concrete implementation, and populates the output tuple.
-        /// <br/>
-        /// In cases where it is clear at generation time which concreate implementation needs to be invoked,
-        /// we directly invoke that function. The global constant for the bundle and the wrapper functions
-        /// hence only need to be created when callable values are assigned or passed around. Callables for
-        /// which this is the case are hence accumulated during the sytnax tree transformation, and the
-        /// corresponding wrappers are generated only upon emission by invoking this method.
-        /// Additionally, this method generates all necessary partial applications and all necessary functions
-        /// for managing reference counts for capture tuples.
+        /// Creates a function wrapper that takes three tuples as arguments, and returns void. The wrapper
+        /// takes a tuple with the captured values, one with the function arguments, and one to store the function return values.
+        /// It extracts the function arguments from the corresponding tuple, calls into the given implementation with them,
+        /// and populates the third tuple with the returned values.
         /// </summary>
-        internal void GenerateRequiredFunctions()
+        private void GenerateFunctionWrapper(IrFunction func, ResolvedSignature signature, Func<TupleValue, Value> implementation)
         {
-            TupleValue GetArgumentTuple(ResolvedType type, Value argTuple)
-            {
-                if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
-                {
-                    return this.Values.FromCustomType(argTuple, udt.Item);
-                }
-                else
-                {
-                    var itemTypes =
-                        type.Resolution.IsUnitType ? ImmutableArray.Create<ResolvedType>() :
-                        type.Resolution is ResolvedTypeKind.TupleType argItemTypes ? argItemTypes.Item :
-                        ImmutableArray.Create(type);
-                    return this.Values.FromTuple(argTuple, itemTypes);
-                }
-            }
-
             // result value contains the return value, and output tuple is the tuple where that value should be stored
             void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value outputTuple)
             {
@@ -997,6 +984,40 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
+            this.GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, parameters =>
+            {
+                var argTuple = this.AsArgumentTuple(signature.ArgumentType, parameters[1]);
+                var result = implementation(argTuple);
+                PopulateResultTuple(signature.ReturnType, result, parameters[2]);
+            });
+        }
+
+        /// <summary>
+        /// Callables within QIR are bundles of four functions. When callables are assigned to variable or
+        /// passed around, which one of these functions is ultimately invoked is strictly runtime information.
+        /// For each declared callable, a constant array with four IrFunction values represents the bundle.
+        /// All functions have the same type (accessible via Types.FunctionSignature), namely they take three
+        /// opaque tuples and return void.
+        /// <br/>
+        /// A callable value is then created by specifying the global constant with the bundle as well as the
+        /// capture tuple (which is the first of the three tuples that is passed to a function upon invokation).
+        /// It can be invoked by providing the remaining two tuples; the argument tuple and the output tuple.
+        /// In order to invoke the concrete implementation of a function, the argument tuple first needs to be
+        /// cast to its concrete type and its item need to be assigned to the corresponding variables if need.
+        /// Similarly, the output tuple needs to be populated with the computed value before exiting.
+        /// We create a separate "wrapper" function to do just that; it casts and deconstructs the argument
+        /// tuple, invokes the concrete implementation, and populates the output tuple.
+        /// <br/>
+        /// In cases where it is clear at generation time which concreate implementation needs to be invoked,
+        /// we directly invoke that function. The global constant for the bundle and the wrapper functions
+        /// hence only need to be created when callable values are assigned or passed around. Callables for
+        /// which this is the case are hence accumulated during the sytnax tree transformation, and the
+        /// corresponding wrappers are generated only upon emission by invoking this method.
+        /// Additionally, this method generates all necessary partial applications and all necessary functions
+        /// for managing reference counts for capture tuples.
+        /// </summary>
+        internal void GenerateRequiredFunctions()
+        {
             Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
             {
                 if (TryGetTargetInstructionName(callable, out var name))
@@ -1013,23 +1034,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            foreach (var key in this.pendingCallableTables)
+            foreach (var tableName in this.pendingCallableTables)
             {
-                var (callable, _) = this.callableTables[key];
+                var (callable, _) = this.callableTables[tableName];
                 foreach (var spec in callable.Specializations)
                 {
                     var fullName = FunctionWrapperName(callable.FullName, spec.Kind);
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
                         && this.Module.TryGetFunction(fullName, out IrFunction? func))
                     {
-                        this.GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, parameters =>
+                        this.GenerateFunctionWrapper(func, spec.Signature, argTuple =>
                         {
-                            var argTuple = GetArgumentTuple(spec.Signature.ArgumentType, parameters[1]);
-                            var args = spec.Signature.ArgumentType.Resolution.IsUserDefinedType
-                                ? new[] { argTuple.TypedPointer }
-                                : argTuple.GetTupleElements().Select(qirValue => qirValue.Value).ToArray();
-                            var result = GenerateBaseMethodCall(callable, spec.Kind, args);
-                            PopulateResultTuple(callable.Signature.ReturnType, result, parameters[2]);
+                            if (spec.Kind == QsSpecializationKind.QsBody &&
+                                this.Functions.TryGetBuiltInImplementation(callable.FullName, out var implementation))
+                            {
+                                var arg =
+                                    spec.Signature.ArgumentType.Resolution.IsUserDefinedType ? argTuple :
+                                    argTuple.ElementTypes.Length > 1 ? argTuple :
+                                    argTuple.ElementTypes.Length == 1 ? argTuple.GetTupleElement(0) :
+                                    this.Values.Unit;
+                                return implementation(arg).Value;
+                            }
+                            else
+                            {
+                                var args = spec.Signature.ArgumentType.Resolution.IsUserDefinedType
+                                    ? new[] { argTuple.TypedPointer }
+                                    : argTuple.GetTupleElements().Select(qirValue => qirValue.Value).ToArray();
+                                return GenerateBaseMethodCall(callable, spec.Kind, args);
+                            }
                         });
                     }
                     else
@@ -1061,7 +1093,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.GenerateFunction(func, new[] { "capture-tuple", "count-change" }, parameters =>
                         {
-                            var capture = GetArgumentTuple(type, parameters[0]);
+                            var capture = this.AsArgumentTuple(type, parameters[0]);
                             updateCounts(parameters[1], capture);
                         });
                     }
@@ -1076,7 +1108,109 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #endregion
 
-        #region Iteration
+        #region Control flow
+
+        /// <summary>
+        /// Depending on the value of the given condition, evaluates the corresponding function.
+        /// If no function is specified for one of the branches, then a <paramref name="defaultValue"/> needs to be specified
+        /// that the branch should evaluate to instead.
+        /// Increases the reference count of the value the conditional execution evaluates to 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </summary>
+        /// <returns>
+        /// A phi node that evaluates to either the value of the expression depending on the branch that was taken,
+        /// or the <paramref name="defaultValue"/> if no function has been specified for that branch.
+        /// </returns>
+        /// <exception cref="InvalidOperationException">
+        /// Either <paramref name="onCondTrue"/> or <paramref name="onCondFalse"/> is null but no <paramref name="defaultValue"/> was specified.
+        /// </exception>
+        private Value ConditionalEvaluation(Value condition, Func<IValue>? onCondTrue = null, Func<IValue>? onCondFalse = null, IValue? defaultValue = null, bool increaseReferenceCount = true)
+        {
+            if (defaultValue == null && (onCondTrue == null || onCondFalse == null))
+            {
+                throw new InvalidOperationException("a default value is required if either onCondTrue or onCondFalse is null");
+            }
+
+            var defaultRequiresRefCount = increaseReferenceCount && defaultValue != null && ScopeManager.RequiresReferenceCount(defaultValue.LlvmType);
+            var requiresTrueBlock = onCondTrue != null || defaultRequiresRefCount;
+            var requiresFalseBlock = onCondFalse != null || defaultRequiresRefCount;
+
+            var contBlock = this.AddBlockAfterCurrent("condContinue");
+            var falseBlock = requiresFalseBlock
+                ? this.AddBlockAfterCurrent("condFalse")
+                : contBlock;
+            var trueBlock = requiresTrueBlock
+                ? this.AddBlockAfterCurrent("condTrue")
+                : contBlock;
+
+            // In order to ensure the correct reference counts, it is important that we create a new scope
+            // for each branch of the conditional. When we close the scope, we list the computed value as
+            // to be returned from that scope, meaning it either won't be dereferenced or its reference
+            // count will increase by 1. The result of the expression is a phi node that we then properly
+            // register with the scope manager, such that it will be unreferenced when going out of scope.
+
+            this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
+            var entryBlock = this.CurrentBlock!;
+
+            IValue ProcessBlock(Func<IValue>? evaluate)
+            {
+                if (increaseReferenceCount)
+                {
+                    this.ScopeMgr.OpenScope();
+                    var evaluated = evaluate?.Invoke() ?? defaultValue!;
+                    this.ScopeMgr.CloseScope(evaluated); // forces that the ref count is increased within the branch
+                    return evaluated;
+                }
+                else
+                {
+                    return evaluate?.Invoke() ?? defaultValue!;
+                }
+            }
+
+            var (evaluatedOnTrue, afterTrue) = (defaultValue?.Value, entryBlock);
+            if (requiresTrueBlock)
+            {
+                this.SetCurrentBlock(trueBlock);
+                var onTrue = ProcessBlock(onCondTrue);
+                this.CurrentBuilder.Branch(contBlock);
+                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.CurrentBlock!);
+            }
+
+            var (evaluatedOnFalse, afterFalse) = (defaultValue?.Value, entryBlock);
+            if (requiresFalseBlock)
+            {
+                this.SetCurrentBlock(falseBlock);
+                var onFalse = ProcessBlock(onCondFalse);
+                this.CurrentBuilder.Branch(contBlock);
+                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.CurrentBlock!);
+            }
+
+            this.SetCurrentBlock(contBlock);
+            var phi = this.CurrentBuilder.PhiNode(defaultValue?.LlvmType ?? evaluatedOnTrue!.NativeType);
+            phi.AddIncoming(evaluatedOnTrue!, afterTrue);
+            phi.AddIncoming(evaluatedOnFalse!, afterFalse);
+            return phi;
+        }
+
+        /// <summary>
+        /// Depending on the value of the given condition, evaluates the corresponding function.
+        /// Increases the reference count of the value the conditional execution evaluates to 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </summary>
+        /// <returns>
+        /// A phi node that evaluates to either the value of the expression depending on the branch that was taken.
+        /// </returns>
+        internal Value ConditionalEvaluation(Value condition, Func<IValue> onCondTrue, Func<IValue> onCondFalse, bool increaseReferenceCount = true) =>
+            this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: onCondFalse, null, increaseReferenceCount);
+
+        /// <returns>
+        /// Returns a value that when executed either evaluates to the value defined by <paramref name="onCondTrue"/>,
+        /// if the condition is true, or to the given <paramref name="defaultValueForCondFalse"/> if it is not.
+        /// Increases the reference count of the evaluated value by 1,
+        /// unless <paramref name="increaseReferenceCount"/> is set to false.
+        /// </returns>
+        internal Value ConditionalEvaluation(Value condition, Func<IValue> onCondTrue, IValue defaultValueForCondFalse, bool increaseReferenceCount = true) =>
+            this.ConditionalEvaluation(condition, onCondTrue: onCondTrue, onCondFalse: null, defaultValueForCondFalse, increaseReferenceCount);
 
         /// <returns>A range with the given start, step and end.</returns>
         internal IValue CreateRange(Value start, Value step, Value end)
@@ -1089,14 +1223,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Creates a for-loop that breaks based on a condition.
+        /// <inheritdoc cref="CreateForLoop(Value, Func{Value, Value}, Value, Action{Value})"/>
+        /// The loop may optionally compute an output value. If an <paramref name="initialOutputValue"/> is given,
+        /// then a suitable phi node to hold the computed output will be instantiated and updated as part of the loop.
         /// </summary>
-        /// <param name="startValue">The value to which the loop variable will be instantiated</param>
-        /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered</param>
-        /// <param name="increment">The value that is added to the loop variable after each iteration </param>
-        /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop</param>
+        /// <returns>The final value of the computed output, if <paramref name="initialOutputValue"/> and the value returned by <paramref name="executeBody"/> are non-null, and null otherwise.</returns>
+        /// <param name="startValue">The value to which the loop variable will be instantiated.</param>
+        /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered.</param>
+        /// <param name="increment">The value that is added to the loop variable after each iteration.</param>
+        /// <param name="initialOutputValue">The initial value for the output that will be computed by the loop.</param>
+        /// <param name="executeBody">Given the current value of the loop variable and the current output value, executes the body of the loop and returns the updated output value.</param>
         /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
-        internal void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
+        private Value? CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Value? initialOutputValue, Func<Value, Value?, Value?> executeBody)
         {
             if (this.CurrentFunction == null || this.CurrentBlock == null)
             {
@@ -1121,7 +1259,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var exitName = this.BlockName("exit");
             BasicBlock exitBlock = this.CurrentFunction.AppendBasicBlock(exitName);
 
-            PhiNode PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
+            (PhiNode, PhiNode?) PopulateLoopHeader(Value startValue, Func<Value, Value> evaluateCondition)
             {
                 // End the current block by branching into the header of the loop
                 BasicBlock precedingBlock = this.CurrentBlock ?? throw new InvalidOperationException("no preceding block");
@@ -1131,8 +1269,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.ScopeMgr.OpenScope();
                 this.CurrentBuilder.Branch(headerBlock);
 
-                // Header block: create/update phi node representing the iteration variable and evaluate the condition
+                // Header block:
+                // create a phi node for a loop output value if needed,
+                // create a phi node representing the iteration variable and evaluate the condition
+
                 this.SetCurrentBlock(headerBlock);
+                var outputValue = initialOutputValue == null ? null : this.CurrentBuilder.PhiNode(initialOutputValue.NativeType);
+                outputValue?.AddIncoming(initialOutputValue!, precedingBlock);
+
                 var loopVariable = this.CurrentBuilder.PhiNode(this.Types.Int);
                 loopVariable.AddIncoming(startValue, precedingBlock);
 
@@ -1140,41 +1284,58 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.ScopeMgr.CloseScope(this.CurrentBlock?.Terminator != null);
 
                 this.CurrentBuilder.Branch(condition, bodyBlock, exitBlock);
-                return loopVariable;
-            }
-
-            bool PopulateLoopBody(Action executeBody)
-            {
-                this.ScopeMgr.OpenScope();
                 this.SetCurrentBlock(bodyBlock);
-                executeBody();
-                var isTerminated = this.CurrentBlock?.Terminator != null;
-                this.ScopeMgr.CloseScope(isTerminated);
-                return isTerminated;
+                return (loopVariable, outputValue);
             }
 
-            void ContinueOrExitLoop(PhiNode loopVariable, Value increment, bool bodyWasTerminated = false)
+            void ContinueOrExitLoop((PhiNode LoopVariable, Value Increment) loopUpdate, (PhiNode PhiNode, Value NewValue)? outputUpdate)
             {
                 // Unless there was a terminating statement in the loop body (such as return or fail),
                 // continue into the exiting block, which updates the loop variable and enters the next iteration.
-                if (!bodyWasTerminated)
+                if (this.CurrentBlock?.Terminator == null)
                 {
                     this.CurrentBuilder.Branch(exitingBlock);
                 }
 
                 // Update the iteration value (phi node) and enter the next iteration
                 this.SetCurrentBlock(exitingBlock);
-                var nextValue = this.CurrentBuilder.Add(loopVariable, increment);
-                loopVariable.AddIncoming(nextValue, exitingBlock);
+                var nextValue = this.CurrentBuilder.Add(loopUpdate.LoopVariable, loopUpdate.Increment);
+                loopUpdate.LoopVariable.AddIncoming(nextValue, exitingBlock);
+                outputUpdate?.PhiNode.AddIncoming(outputUpdate.Value.NewValue, exitingBlock);
                 this.CurrentBuilder.Branch(headerBlock);
             }
 
+            Value? output = null;
             this.ExecuteLoop(exitBlock, () =>
             {
-                var loopVariable = PopulateLoopHeader(startValue, evaluateCondition);
-                var bodyWasTerminated = PopulateLoopBody(() => executeBody(loopVariable));
-                ContinueOrExitLoop(loopVariable, increment, bodyWasTerminated);
+                var (loopVariable, outputValue) = PopulateLoopHeader(startValue, evaluateCondition);
+                var newOutputValue = executeBody(loopVariable, outputValue);
+                var outputUpdate = outputValue == null || newOutputValue == null ? ((PhiNode, Value)?)null : (outputValue!, newOutputValue!);
+                ContinueOrExitLoop((loopVariable, increment), outputUpdate);
+                output = outputUpdate?.Item1;
             });
+            return output;
+        }
+
+        /// <summary>
+        /// Creates a for-loop that breaks based on a condition.
+        /// Note that <paramref name="evaluateCondition"/> - in contrast to <paramref name="executeBody"/> - is executed within its own scope,
+        /// meaning anything allocated within the condition will be unreferenced at the end of the condition evaluation.
+        /// The expectation for <paramref name="executeBody"/> on the other hand is that it takes care of all necessary handling itself.
+        /// </summary>
+        /// <param name="startValue">The value to which the loop variable will be instantiated.</param>
+        /// <param name="evaluateCondition">Given the current value of the loop variable, determines whether the next loop iteration should be entered.</param>
+        /// <param name="increment">The value that is added to the loop variable after each iteration.</param>
+        /// <param name="executeBody">Given the current value of the loop variable, executes the body of the loop.</param>
+        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
+        private void CreateForLoop(Value startValue, Func<Value, Value> evaluateCondition, Value increment, Action<Value> executeBody)
+        {
+            Value? ExecuteBody(Value loopVar, Value? currentOutputValue)
+            {
+                executeBody(loopVar);
+                return null;
+            }
+            this.CreateForLoop(startValue, evaluateCondition, increment, null, ExecuteBody);
         }
 
         /// <summary>
@@ -1198,12 +1359,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         /// <summary>
         /// Iterates through the range defined by start, step, and end, and executes the given action on each iteration value.
-        /// The action is executed within its own scope.
+        /// Note that <paramref name="executeBody"/> is expected takes care of all necessary scope/memory management itself.
         /// </summary>
-        /// <param name="start">The start of the range and first iteration value</param>
-        /// <param name="step">The optional step of the range that will be added to the iteration value in each iteration, where the default value is 1L</param>
-        /// <param name="end">The end of the range after which the iteration terminates</param>
-        /// <param name="executeBody">The action to perform on each item</param>
+        /// <param name="start">The start of the range and first iteration value.</param>
+        /// <param name="step">The optional step of the range that will be added to the iteration value in each iteration, where the default value is 1L.</param>
+        /// <param name="end">The end of the range after which the iteration terminates.</param>
+        /// <param name="executeBody">The action to perform on each item (needs to include the scope management).</param>
         /// <exception cref="InvalidOperationException">The current block is set to null.</exception>
         internal void IterateThroughRange(Value start, Value? step, Value end, Action<Value> executeBody)
         {
@@ -1254,17 +1415,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Iterates through the given array and executes the given action on each element.
-        /// The action is executed within its own scope.
+        /// <inheritdoc cref=" IterateThroughArray(ArrayValue, Action{IValue})"/>
+        /// The iteration may optionally compute an output value. If an <paramref name="initialOutputValue"/> is given,
+        /// then a suitable phi node to hold the computed output will be instantiated and updated as part of the loop.
         /// </summary>
-        /// <param name="array">The array to iterate over</param>
-        /// <param name="executeBody">The action to perform on each item</param>
-        internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)
+        /// <returns>The final value of the computed output, if <paramref name="initialOutputValue"/> and the value returned by <paramref name="executeBody"/> are non-null, and null otherwise.</returns>
+        /// <param name="array">The array to iterate over.</param>
+        /// <param name="initialOutputValue">The initial value for the output that will be computed by the loop.</param>
+        /// <param name="executeBody">Given the array element and the current output value, executes the body of the loop and returns the updated output value.</param>
+        /// <exception cref="InvalidOperationException">The current function or the current block is set to null.</exception>
+        internal Value? IterateThroughArray(ArrayValue array, Value? initialOutputValue, Func<IValue, Value?, Value?> executeBody)
         {
             var startValue = this.Context.CreateConstant(0L);
             if (array.Length == startValue)
             {
-                return;
+                return initialOutputValue;
             }
 
             var increment = this.Context.CreateConstant(1L);
@@ -1273,10 +1438,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value EvaluateCondition(Value loopVariable) =>
                 this.CurrentBuilder.Compare(IntPredicate.SignedLessThanOrEqual, loopVariable, endValue);
 
-            void ExecuteBody(Value loopVariable) =>
-                executeBody(array.GetArrayElement(loopVariable));
+            Value? ExecuteBody(Value iterationIndex, Value? currentOutputValue) =>
+                executeBody(array.GetArrayElement(iterationIndex), currentOutputValue);
 
-            this.CreateForLoop(startValue, EvaluateCondition, increment, ExecuteBody);
+            return this.CreateForLoop(startValue, EvaluateCondition, increment, initialOutputValue, ExecuteBody);
+        }
+
+        /// <summary>
+        /// Iterates through the given array and executes the specifed body.
+        /// Note that <paramref name="executeBody"/> is expected takes care of all necessary scope/memory management itself.
+        /// </summary>
+        /// <param name="array">The array to iterate over.</param>
+        /// <param name="executeBody">The action to perform on each item (needs to include the scope management).</param>
+        internal void IterateThroughArray(ArrayValue array, Action<IValue> executeBody)
+        {
+            Value? ExecuteBody(IValue arrayItem, Value? currentOutputValue)
+            {
+                executeBody(arrayItem);
+                return null;
+            }
+            this.IterateThroughArray(array, null, ExecuteBody);
         }
 
         #endregion

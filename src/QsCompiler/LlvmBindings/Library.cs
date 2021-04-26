@@ -1,7 +1,8 @@
-﻿// <copyright file="StaticState.cs" company="Ubiquity.NET Contributors">
+﻿// <copyright file="Library.cs" company="Ubiquity.NET Contributors">
 // Copyright (c) Ubiquity.NET Contributors. All rights reserved.
 // Portions Copyright (c) Microsoft Corporation
 // </copyright>
+
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;

@@ -105,7 +105,8 @@ enum QsExpressionKind
     ControlledApplication,
     CallLikeExpression,
     MissingExpr,
-    InvalidExpr
+    InvalidExpr,
+    SizedArray
 }
 
 // Used to encapsulate data when QsExpressionKind is Identifier.
@@ -126,7 +127,8 @@ struct QsExpressionKindStringLiteral<TExpression>
     10: vector<TExpression> Expressions;
 }
 
-// Used to encapsulate data when QsExpressionKind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT, LTE, GT, GTE, AND, OR, BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication.
+// Used to encapsulate data when QsExpressionKind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT,
+// LTE, GT, GTE, AND, OR, BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication, SizedArray.
 // N.B. Does not have an equivalent F# type.
 struct QsExpressionKindExpressionDouble<TExpression>
 {
@@ -203,7 +205,8 @@ struct QsExpressionKindComposition<TExpression, TSymbol, TType>
     // Not null when Kind is NEG, NOT, BNOT, UnwrapApplication, AdjointApplication, ControlledApplication.
     65: nullable<TExpression> Expression;
 
-    // Not null when Kind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT, LTE, GT, GTE, AND, OR, BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication.
+    // Not null when Kind is RangeLiteral, ArrayItem, ADD, SUB, MUL, DIV, MOD, POW, EQ, NEQ, LT, LTE, GT, GTE, AND, OR,
+    // BOR, BAND, BXOR, LSHIFT, RSHIFT, CallLikeApplication, SizedArray.
     70: nullable<QsExpressionKindExpressionDouble<TExpression>> ExpressionDouble;
 
     // Not null when Kind is CONDITIONAL, CopyAndUpdate.

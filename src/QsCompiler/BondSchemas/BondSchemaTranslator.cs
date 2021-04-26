@@ -536,9 +536,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 Origin = qsTypeParameter.Origin.ToBondSchema(),
                 TypeName = qsTypeParameter.TypeName,
-                Range = qsTypeParameter.Range.IsNull ?
-                    null :
-                    qsTypeParameter.Range.Item.ToBondSchema()
+                Range = null
             };
 
         private static QsValueUpdate ToBondSchema(this SyntaxTree.QsValueUpdate valueUpdate) =>
@@ -675,9 +673,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 Namespace = userDefinedType.Namespace,
                 Name = userDefinedType.Name,
-                Range = userDefinedType.Range.IsNull ?
-                    null :
-                    userDefinedType.Range.Item.ToBondSchema()
+                Range = null
             };
 
         private static CharacteristicsKindComposition<TBond> ToBondSchemaGeneric<TBond, TCompiler>(
@@ -858,6 +854,14 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 kind = QsExpressionKind.ValueArray;
                 bondExpressionArray = compilerValueArray.Item.Select(e => expressionTranslator(e)).ToList();
+            }
+            else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.SizedArray compilerSizedArray)
+            {
+                kind = QsExpressionKind.SizedArray;
+                bondExpressionDouble = ToQsExpressionKindExpressionDoubleGeneric(
+                    compilerSizedArray.value,
+                    compilerSizedArray.size,
+                    expressionTranslator);
             }
             else if (qsExpressionKind is SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.ArrayItem compilerArrayItem)
             {

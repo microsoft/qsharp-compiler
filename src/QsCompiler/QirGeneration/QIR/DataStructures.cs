@@ -536,6 +536,34 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public ResolvedType QSharpType { get; }
 
+        /// <summary>
+        /// Creates a callable value of the given type and registers it with the scope manager.
+        /// The necessary functions to invoke the callable are defined by the callable table;
+        /// i.e. the globally defined array of function pointers accessible via the given global variable.
+        /// </summary>
+        /// <param name="callableType">The Q# type of the callable value.</param>
+        /// <param name="table">The global variable that contains the array of function pointers defining the callable.</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed.</param>
+        /// <param name="captured">All captured values.</param>
+        internal CallableValue(ResolvedType callableType, GlobalVariable table, GenerationContext context, ImmutableArray<TypedExpression>? captured = null)
+        {
+            this.LlvmType = context.Types.Callable;
+            this.QSharpType = callableType;
+
+            // The runtime function CallableCreate creates a new value with reference count 1.
+            var createCallable = context.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCreate);
+            var capture = captured == null || captured.Value.Length == 0 ? null : context.Values.CreateTuple(captured.Value, registerWithScopeManager: false);
+            var memoryManagementTable = context.GetOrCreateCallableMemoryManagementTable(capture);
+            this.Value = context.CurrentBuilder.Call(createCallable, table, memoryManagementTable, capture?.OpaquePointer ?? context.Constants.UnitValue);
+            context.ScopeMgr.RegisterValue(this);
+        }
+
+        /// <summary>
+        /// Creates a new callable value of the given type.
+        /// </summary>
+        /// <param name="value">The pointer to a QIR callable value.</param>
+        /// <param name="type">Q# type of the callable.</param>
+        /// <param name="context">Generation context where constants are defined and generated if needed.</param>
         internal CallableValue(Value value, ResolvedType type, GenerationContext context)
         {
             this.Value = value;

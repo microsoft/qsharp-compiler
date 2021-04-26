@@ -225,6 +225,8 @@ let invertFunctorGenDirective = addLanguageKeyword Directives.Invert
 /// keyword for a Q# directive (QsLanguageKeyword)
 let distributeFunctorGenDirective = addLanguageKeyword Directives.Distribute
 
+/// Contextual keyword for sized array constructor expressions.
+let size = qsKeyword "size"
 
 // external access to Q# keywords
 
