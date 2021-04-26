@@ -24,7 +24,7 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
         let executionInformation = new ExecutionInformation()
         executionInformation.EntryPoint <- expectedEntryPointOperation
         executionInformation.ArgumentValues <- new Dictionary<string, ArgumentValue>()
-        executionInformation.ArgumentValues.["argument name"] <- new ArgumentValue(Integer = int64(4))
+        executionInformation.ArgumentValues.["argument name"] <- new ArgumentValue(Integer = int64 (4))
         executionInformation
 
     let createBytecode () =
@@ -35,8 +35,8 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
     member this.SerializeAndDeserializeInFastBinary() =
         let qirWrapper = new QirExecutionWrapper()
         let bytecode = createBytecode ()
-        qirWrapper.Executions<- new List<ExecutionInformation>()
-        qirWrapper.Executions.Add(createExecutionInformation())
+        qirWrapper.Executions <- new List<ExecutionInformation>()
+        qirWrapper.Executions.Add(createExecutionInformation ())
         qirWrapper.QirBytecode <- bytecode
         let memoryStream = new MemoryStream()
 
