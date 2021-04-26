@@ -233,6 +233,8 @@ let invertFunctorGenDirective = addLanguageKeyword Directives.Invert
 /// keyword for a Q# directive (QsLanguageKeyword)
 let distributeFunctorGenDirective = addLanguageKeyword Directives.Distribute
 
+/// Contextual keyword for sized array constructor expressions.
+let size = qsKeyword "size"
 
 // external access to Q# keywords
 
@@ -310,6 +312,7 @@ let qsSetIntersection = QsOperator.New("*", 20, true)
 // All modifiers bind stronger than the call combinator.
 // The array item combinator binds stronger than all modifiers.
 let qsCallCombinator = QsOperator.New("(", ")", 900, true) // Op()() is fine
+
 let qsAdjointModifier = QsOperator.New(qsAdjointFunctor.id, 950, false)
 let qsControlledModifier = QsOperator.New(qsControlledFunctor.id, 951, false)
 let qsUnwrapModifier = QsOperator.New("!", 1000, true)

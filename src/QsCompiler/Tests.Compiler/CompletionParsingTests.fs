@@ -13,9 +13,10 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing
 let private matches scope previous (text, expected) =
     match GetCompletionKinds scope previous text with
     | Success actual ->
-        Assert.True
-            (Set.ofList expected = Set.ofSeq actual,
-             String.Format("Input:    {0}\n" + "Expected: {1}\n" + "Actual:   {2}", text, Set.ofList expected, actual))
+        Assert.True(
+            Set.ofList expected = Set.ofSeq actual,
+            String.Format("Input:    {0}\n" + "Expected: {1}\n" + "Actual:   {2}", text, Set.ofList expected, actual)
+        )
     | Failure message -> raise (Exception message)
 
 let private fails scope previous text =
@@ -440,7 +441,7 @@ let ``Function statement parser tests`` () =
             ("set x w/= 0..2 <- ", expression)
             ("set x w/= 0..2 <- [", expression)
             ("set x w/= 0..2 <- [One", expression)
-            ("set x w/= 0..2 <- [One,", expression)
+            ("set x w/= 0..2 <- [One,", Keyword "size" :: expression)
             ("set x w/= 0..2 <- [One, Zero,", expression)
             ("set x w/= 0..2 <- [One, Zero, One", expression)
             ("set x w/= 0..2 <- [One, Zero, One]", infix)
@@ -793,9 +794,16 @@ let ``Expression parser tests`` () =
             ("[x a", infix)
             ("[x and", infix)
             ("[x and ", expression)
-            ("[x and y,", expression)
-            ("[x and y, z", expression)
+            ("[x and y,", Keyword "size" :: expression)
+            ("[x and y, z", Keyword "size" :: expression)
             ("[x and y, z]", infix)
+            ("[x,", Keyword "size" :: expression)
+            ("[x, ", Keyword "size" :: expression)
+            ("[x, size ", infix)
+            ("[x, size =", expression)
+            ("[x, size = ", expression)
+            ("[x, size = n", expression)
+            ("[x, size = n]", infix)
             ("(", expression)
             ("(x", expression)
             ("(x)", infix)

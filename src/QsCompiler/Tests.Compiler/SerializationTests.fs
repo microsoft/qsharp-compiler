@@ -57,8 +57,10 @@ module SerializationTests =
             ArgumentType = argType |> ResolvedType.New
             ReturnType = rType |> ResolvedType.New
             Information =
-                CallableInformation.New
-                    (ResolvedCharacteristics.FromProperties props, InferredCallableInformation.NoInformation)
+                CallableInformation.New(
+                    ResolvedCharacteristics.FromProperties props,
+                    InferredCallableInformation.NoInformation
+                )
         }
 
     let varDecl name t (s, e) =
@@ -67,7 +69,7 @@ module SerializationTests =
             Type = t |> ResolvedType.New
             InferredInformation = InferredExpressionInformation.New(false, false)
             Position = Null
-            Range = Range.Create (Position.Create 0 s) (Position.Create 0 e)
+            Range = Range.Create(Position.Create 0 s) (Position.Create 0 e)
         }
 
     let tupleIntIntType = TupleType([ Int |> ResolvedType.New; Int |> ResolvedType.New ].ToImmutableArray())
@@ -79,15 +81,8 @@ module SerializationTests =
     let qualifiedName ns name = { Namespace = ns; Name = name }
 
     let udt name =
-        let range = Range.Create (Position.Create 4 9) (Position.Create 4 9) |> Value
         let fullName = qualifiedName "Microsoft.Quantum" name
-
-        {
-            Namespace = fullName.Namespace
-            Name = fullName.Name
-            Range = range
-        }
-        |> UserDefinedType
+        UserDefinedType.New(fullName.Namespace, fullName.Name) |> UserDefinedType
 
     let udtPair = udt "Pair"
 
@@ -110,7 +105,7 @@ module SerializationTests =
             Attributes = ImmutableArray.Empty
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 4 43 |> DeclarationHeader.Offset.Defined
-            HeaderRange = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
+            HeaderRange = Range.Create(Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
             Documentation = ImmutableArray.Empty
         }
         |> testOne
@@ -119,15 +114,16 @@ module SerializationTests =
             Kind = QsSpecializationKind.QsBody
             TypeArguments = Null
             Information =
-                CallableInformation.New
-                    (ResolvedCharacteristics.FromProperties [ Adjointable
-                                                              Controllable ],
-                     InferredCallableInformation.NoInformation)
+                CallableInformation.New(
+                    ResolvedCharacteristics.FromProperties [ Adjointable
+                                                             Controllable ],
+                    InferredCallableInformation.NoInformation
+                )
             Parent = qualifiedName "Microsoft.Quantum" "emptyOperation"
             Attributes = ImmutableArray.Empty
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 5 39 |> DeclarationHeader.Offset.Defined
-            HeaderRange = Range.Create (Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
+            HeaderRange = Range.Create(Position.Create 0 0) (Position.Create 0 4) |> DeclarationHeader.Range.Defined
             Documentation = [ "Line one"; "Line two" ] |> ImmutableArray.CreateRange
         }
         |> testOne
@@ -136,13 +132,15 @@ module SerializationTests =
             Kind = QsSpecializationKind.QsBody
             TypeArguments = Null
             Information =
-                CallableInformation.New
-                    (ResolvedCharacteristics.Empty, InferredCallableInformation.New(intrinsic = true))
+                CallableInformation.New(
+                    ResolvedCharacteristics.Empty,
+                    InferredCallableInformation.New(intrinsic = true)
+                )
             Parent = qualifiedName "Microsoft.Quantum" "Pair"
             Attributes = ImmutableArray.Empty
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
-            HeaderRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
+            HeaderRange = Range.Create(Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             Documentation = ImmutableArray.Empty
         }
         |> testOne
@@ -151,13 +149,15 @@ module SerializationTests =
             Kind = QsSpecializationKind.QsBody
             TypeArguments = Null
             Information =
-                CallableInformation.New
-                    (ResolvedCharacteristics.Empty, InferredCallableInformation.New(intrinsic = true))
+                CallableInformation.New(
+                    ResolvedCharacteristics.Empty,
+                    InferredCallableInformation.New(intrinsic = true)
+                )
             Parent = qualifiedName "Microsoft.Quantum" "Unused"
             Attributes = ImmutableArray.Empty
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 6 4 |> DeclarationHeader.Offset.Defined
-            HeaderRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
+            HeaderRange = Range.Create(Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             Documentation = ImmutableArray.Empty
         }
         |> testOne
@@ -178,7 +178,7 @@ module SerializationTests =
             Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
-            SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
+            SymbolRange = Range.Create(Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             ArgumentTuple =
                 [
                     varDecl "__Item1__" Int (1, 1) |> QsTupleItem
@@ -198,7 +198,7 @@ module SerializationTests =
             Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 4 4 |> DeclarationHeader.Offset.Defined
-            SymbolRange = Range.Create (Position.Create 0 9) (Position.Create 0 22) |> DeclarationHeader.Range.Defined
+            SymbolRange = Range.Create(Position.Create 0 9) (Position.Create 0 22) |> DeclarationHeader.Range.Defined
             ArgumentTuple = [ varDecl "p" udtPair (25, 26) |> QsTupleItem ].ToImmutableArray() |> QsTuple
             Signature = simpleSignature udtPair UnitType []
             Documentation = ImmutableArray.Empty
@@ -212,7 +212,7 @@ module SerializationTests =
             Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 5 4 |> DeclarationHeader.Offset.Defined
-            SymbolRange = Range.Create (Position.Create 0 10) (Position.Create 0 24) |> DeclarationHeader.Range.Defined
+            SymbolRange = Range.Create(Position.Create 0 10) (Position.Create 0 24) |> DeclarationHeader.Range.Defined
             ArgumentTuple = [].ToImmutableArray() |> QsTuple
             Signature = simpleSignature UnitType UnitType [ Adjointable; Controllable ]
             Documentation = ImmutableArray.Empty
@@ -226,7 +226,7 @@ module SerializationTests =
             Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
-            SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
+            SymbolRange = Range.Create(Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             ArgumentTuple =
                 [
                     varDecl "__Item1__" Int (1, 1) |> QsTupleItem
@@ -254,7 +254,7 @@ module SerializationTests =
             Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 2 4 |> DeclarationHeader.Offset.Defined
-            SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
+            SymbolRange = Range.Create(Position.Create 0 8) (Position.Create 0 12) |> DeclarationHeader.Range.Defined
             Type = tupleIntIntType |> ResolvedType.New
             TypeItems = intIntTypeItems
             Documentation = ImmutableArray.Empty
@@ -267,7 +267,7 @@ module SerializationTests =
             Access = Public
             Source = { CodeFile = "Test.qs"; AssemblyFile = Null }
             Position = Position.Create 3 4 |> DeclarationHeader.Offset.Defined
-            SymbolRange = Range.Create (Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
+            SymbolRange = Range.Create(Position.Create 0 8) (Position.Create 0 14) |> DeclarationHeader.Range.Defined
             Type = tupleIntIntType |> ResolvedType.New
             TypeItems = intIntTypeItems
             Documentation = ImmutableArray.Empty
@@ -305,9 +305,10 @@ module SerializationTests =
         let mutable attrs = null
         let loadedFromResource = AssemblyLoader.LoadReferencedAssembly(dllUri, &attrs, false)
 
-        Assert.False
-            (loadedFromResource,
-             "loading should indicate failure when headers are loaded based on attributes rather than resources")
+        Assert.False(
+            loadedFromResource,
+            "loading should indicate failure when headers are loaded based on attributes rather than resources"
+        )
 
         let callables = attrs.Callables |> Seq.map (fun c -> c.ToJson()) |> Seq.toList
         let types = attrs.Types |> Seq.map (fun t -> t.ToJson()) |> Seq.toList

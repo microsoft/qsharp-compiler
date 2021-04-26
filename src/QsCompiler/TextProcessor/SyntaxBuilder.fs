@@ -28,7 +28,7 @@ let getSubstring (start: CharStreamState<_>) =
 /// between the given char stream state and the current stream position.
 /// NOTE: Anything run on the substream will be processed with the user state of the original stream,
 /// and any updates to the user state will be reflected in the original stream.
-let runOnSubstream (start: CharStreamState<_>) (parser: Parser<'A, _>): Parser<'A, _> =
+let runOnSubstream (start: CharStreamState<_>) (parser: Parser<'A, _>) : Parser<'A, _> =
     let parserAndState = parser .>>. getUserState
 
     let subparser (stream: CharStream<_>) =
@@ -218,7 +218,7 @@ let internal getStringContent interpolArg =
                  |>> function // Also supports escapting '{'
                  | 'n' -> "\n"
                  | 'r' -> "\r"
-                 | 't' -> "\t"
+                 | 't' -> "	"
                  | c -> string c)
 
         let nonInterpol = (stringsSepBy interpolCharSnippet escapedChar)
@@ -240,7 +240,7 @@ let internal getStringContent interpolArg =
                  |>> function
                  | 'n' -> "\n"
                  | 'r' -> "\r"
-                 | 't' -> "\t"
+                 | 't' -> "	"
                  | c -> string c)
 
         let content = (stringsSepBy normalCharSnippet escapedChar)
@@ -279,9 +279,10 @@ let leftRecursionByInfix breakingDelimiter before after = // before and after br
 
     getCharStreamState
     >>= fun state ->
-            attempt
-                (advanceToInfix >>. (before .>> followedBy eof |> runOnSubstream state) .>> breakingDelimiter
-                 .>>. after)
+            attempt (
+                advanceToInfix >>. (before .>> followedBy eof |> runOnSubstream state) .>> breakingDelimiter
+                .>>. after
+            )
 
 
 // routines that dictate how parsing is handled accross all fragments and expression
@@ -333,23 +334,37 @@ let internal warnOnComma =
     >>= pushDiagnostic
     |> opt
 
-/// Parses a comma separated sequence of items, expecting at least one item, and returns the parsed items as a list.
-/// Generates an error with the given missingCode if nothing (but whitespace) precedes the next comma,
-/// inserting the given fallback at that position in the list.
-/// If there is non-whitespace text preceding the next comma but validItem does not succeed,
-/// advances until the given delimiter or comma succeeds, or the end of the stream is reached, and
-/// generates an error with the given errorCode, while inserting the given fallback at that position in the list.
-/// If validItem succeeds after a comma, but is not followed by the next comma or the given delimiter,
-/// advances until comma or the given delimiter succeeds, generating an ExcessContinuationError for the skipped piece.
-/// Generates am ExcessComma warning if the there is no validItem following the last comma, but the given delimiter succeeds.
-let internal commaSep1 validItem errCode missingCode fallback delimiter =
+/// The item parser and separator parser for a comma-separated list.
+let private commaSepParsers validItem errorCode missingCode fallback delimiter =
     let delimiter = (delimiter >>% ()) <|> (comma >>% ())
-    let item = expected validItem errCode missingCode fallback delimiter
-    let invalidLast = checkForInvalid delimiter errCode >>% fallback
-    let piece = (item .>>? followedBy comma) <|> attempt validItem <|> invalidLast
+    let item = expected validItem errorCode missingCode fallback delimiter
+    let invalidLast = checkForInvalid delimiter errorCode >>% fallback
+    let piece = item .>>? followedBy comma <|> attempt validItem <|> invalidLast
+    piece |> withExcessContinuation delimiter, comma .>>? followedBy piece
 
-    sepBy1 (piece |> withExcessContinuation delimiter) (comma .>>? followedBy piece) .>> warnOnComma
-    |>> fun x -> x.ToImmutableArray()
+/// <summary>
+/// Parses a comma-separated list of zero or more items.
+/// </summary>
+/// <param name="validItem">The parser for a valid list item.</param>
+/// <param name="errorCode">The diagnostic error code for an invalid item.</param>
+/// <param name="missingCode">The diagnostic error code for a missing item.</param>
+/// <param name="fallback">An item to insert into the list in place of a missing item.</param>
+/// <param name="delimiter">A continuation parser that delimits the end of an item before the comma.</param>
+let internal commaSep validItem errorCode missingCode fallback delimiter =
+    commaSepParsers validItem errorCode missingCode fallback delimiter ||> sepBy .>> warnOnComma
+    |>> ImmutableArray.CreateRange
+
+/// <summary>
+/// Parses a comma-separated list of one or more items.
+/// </summary>
+/// <param name="validItem">The parser for a valid list item.</param>
+/// <param name="errorCode">The diagnostic error code for an invalid item.</param>
+/// <param name="missingCode">The diagnostic error code for a missing item.</param>
+/// <param name="fallback">An item to insert into the list in place of a missing item.</param>
+/// <param name="delimiter">A continuation parser that delimits the end of an item before the comma.</param>
+let internal commaSep1 validItem errorCode missingCode fallback delimiter =
+    commaSepParsers validItem errorCode missingCode fallback delimiter ||> sepBy1 .>> warnOnComma
+    |>> ImmutableArray.CreateRange
 
 /// parser succeeds without consuming input or changing the parser state if the next char is a comma,
 /// a right tuple bracket, or if we are at the end of the input stream
@@ -390,11 +405,12 @@ let internal buildTupleItem validSingle bundle errCode missingCode fallback cont
 /// In order to guarantee correct whitespace management, the name needs to be parsed as a term.
 let internal symbolNameLike errCode =
     let ident =
-        IdentifierOptions
-            (isAsciiIdStart = isSymbolStart,
-             isAsciiIdContinue = isSymbolContinuation,
-             preCheckStart = isSymbolStart,
-             preCheckContinue = isSymbolContinuation)
+        IdentifierOptions(
+            isAsciiIdStart = isSymbolStart,
+            isAsciiIdContinue = isSymbolContinuation,
+            preCheckStart = isSymbolStart,
+            preCheckContinue = isSymbolContinuation
+        )
         |> identifier
         |> getRange
 
@@ -499,27 +515,29 @@ let private filterAndAdapt (diagnostics: QsCompilerDiagnostic list) endPos =
     // opting to only actually raise ExcessContinuation errors if no other errors overlap with them
     let excessCont, remainingDiagnostics =
         diagnostics
-        |> List.partition (fun x ->
-            match x.Diagnostic with
-            | Error (ErrorCode.ExcessContinuation) -> true
-            | _ -> false)
+        |> List.partition
+            (fun x ->
+                match x.Diagnostic with
+                | Error (ErrorCode.ExcessContinuation) -> true
+                | _ -> false)
 
     let remainingErrs =
         remainingDiagnostics
-        |> List.filter (fun x ->
-            match x.Diagnostic with
-            | Error _ -> true
-            | _ -> false)
+        |> List.filter
+            (fun x ->
+                match x.Diagnostic with
+                | Error _ -> true
+                | _ -> false)
 
     let hasOverlap (diagnostic: QsCompilerDiagnostic) =
         remainingErrs
-        |> List.exists (fun other ->
-            diagnostic.Range.Start <= other.Range.Start && diagnostic.Range.End >= other.Range.Start)
+        |> List.exists
+            (fun other -> diagnostic.Range.Start <= other.Range.Start && diagnostic.Range.End >= other.Range.Start)
 
     let filteredExcessCont = excessCont |> List.filter (not << hasOverlap)
 
     let rangeWithinFragment (range: Range) =
-        Range.Create (min endPos range.Start) (min endPos range.End)
+        Range.Create(min endPos range.Start) (min endPos range.End)
 
     filteredExcessCont @ remainingDiagnostics
     |> List.map (fun diagnostic -> { diagnostic with Range = rangeWithinFragment diagnostic.Range })

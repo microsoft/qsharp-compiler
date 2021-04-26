@@ -39,11 +39,11 @@
     <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
-  <!-- Resolving the QuantumIntrinsics to either OpenQASM, ExtendedQASM, or Default.-->
+  <!-- Resolving the QuantumIntrinsics to either Type1, Type2, Type3, or Default.-->
   <PropertyGroup>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">ExtendedQASM</ResolvedQuantumIntrinsics>
-    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">OpenQASM</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'">Type1</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type2</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Type3</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 

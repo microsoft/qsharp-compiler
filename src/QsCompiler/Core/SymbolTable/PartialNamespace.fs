@@ -17,13 +17,17 @@ open Microsoft.Quantum.QsCompiler.Utils
 /// Represents the partial declaration of a namespace in a single file.
 ///
 /// Note that this class is *not* thread-safe, and access modifiers are always ignored when looking up declarations.
-type private PartialNamespace private (name: string,
-                                       source: string,
-                                       documentation: IEnumerable<ImmutableArray<string>>,
-                                       openNS: IEnumerable<KeyValuePair<string, string>>,
-                                       typeDecl: IEnumerable<KeyValuePair<string, Resolution<QsTuple<QsSymbol * QsType>, ResolvedType * QsTuple<QsTypeItem>>>>,
-                                       callableDecl: IEnumerable<KeyValuePair<string, QsCallableKind * Resolution<CallableSignature, ResolvedSignature * QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>>>,
-                                       specializations: IEnumerable<KeyValuePair<string, List<QsSpecializationKind * Resolution<QsSpecializationGenerator, ResolvedGenerator>>>>) =
+type private PartialNamespace
+    private
+    (
+        name: string,
+        source: string,
+        documentation: IEnumerable<ImmutableArray<string>>,
+        openNS: IEnumerable<KeyValuePair<string, string>>,
+        typeDecl: IEnumerable<KeyValuePair<string, Resolution<QsTuple<QsSymbol * QsType>, ResolvedType * QsTuple<QsTypeItem>>>>,
+        callableDecl: IEnumerable<KeyValuePair<string, QsCallableKind * Resolution<CallableSignature, ResolvedSignature * QsTuple<LocalVariableDeclaration<QsLocalSymbol>>>>>,
+        specializations: IEnumerable<KeyValuePair<string, List<QsSpecializationKind * Resolution<QsSpecializationGenerator, ResolvedGenerator>>>>
+    ) =
 
     let keySelector (item: KeyValuePair<'k, 'v>) = item.Key
     let valueSelector (item: KeyValuePair<'k, 'v>) = item.Value
@@ -112,8 +116,8 @@ type private PartialNamespace private (name: string,
     member internal this.GetCallable cName =
         CallableDeclarations.TryGetValue cName
         |> tryOption
-        |> Option.defaultWith (fun () ->
-            SymbolNotFoundException "A callable with the given name was not found." |> raise)
+        |> Option.defaultWith
+            (fun () -> SymbolNotFoundException "A callable with the given name was not found." |> raise)
 
     member internal this.ContainsCallable = CallableDeclarations.ContainsKey
 
@@ -189,9 +193,10 @@ type private PartialNamespace private (name: string,
             let validDeprecatedQualification qual =
                 String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace
 
-            if attributes |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification)
-            then ImmutableArray.Create deprecationWithoutRedirect
-            else ImmutableArray.Empty
+            if attributes |> Seq.exists (SymbolResolution.IndicatesDeprecation validDeprecatedQualification) then
+                ImmutableArray.Create deprecationWithoutRedirect
+            else
+                ImmutableArray.Empty
 
         TypeDeclarations.Add(tName, (typeTuple, attributes, access, documentation) |> unresolved location)
 
@@ -216,8 +221,10 @@ type private PartialNamespace private (name: string,
     /// The given location is associated with the callable declaration and accessible via the record properties Position and SymbolRange.
     /// -> Note that this routine will fail with the standard dictionary.Add error if a callable with that name already exists.
     member this.AddCallableDeclaration location (cName, (kind, signature), attributes, modifiers, documentation) =
-        CallableDeclarations.Add
-            (cName, (kind, (signature, attributes, modifiers, documentation) |> unresolved location))
+        CallableDeclarations.Add(
+            cName,
+            (kind, (signature, attributes, modifiers, documentation) |> unresolved location)
+        )
 
     /// Adds the callable specialization defined by the given kind and generator for the callable of the given name to the dictionary of declared specializations.
     /// The given location is associated with the given specialization and accessible via the record properties Position and HeaderRange.
@@ -225,14 +232,11 @@ type private PartialNamespace private (name: string,
     /// *IMPORTANT*: both the verification of whether the length of the given array of type specialization
     /// matches the number of type parameters in the callable declaration, and whether a specialization that clashes with this one
     /// already exists is up to the calling routine!
-    member this.AddCallableSpecialization location
-                                          kind
-                                          (cName,
-                                           generator: QsSpecializationGenerator,
-                                           attributes,
-                                           access,
-                                           documentation)
-                                          =
+    member this.AddCallableSpecialization
+        location
+        kind
+        (cName, generator: QsSpecializationGenerator, attributes, access, documentation)
+        =
         // NOTE: all types that are not specialized need to be resolved according to the file in which the callable is declared,
         // but all specialized types need to be resolved according to *this* file
         let spec = kind, (generator, attributes, access, documentation) |> unresolved location
@@ -287,10 +291,11 @@ type private PartialNamespace private (name: string,
         match CallableSpecializations.TryGetValue cName with
         | true, specs ->
             [| 0 .. specs.Count - 1 |]
-            |> Array.collect (fun index ->
-                let kind, spec = specs.[index]
-                let resAttr, attErrs = getResAttributes this.Source spec
-                let res, errs = computeResolution this.Source (kind, spec)
-                specs.[index] <- (kind, { spec with Resolved = res; ResolvedAttributes = resAttr })
-                errs |> Array.append attErrs)
+            |> Array.collect
+                (fun index ->
+                    let kind, spec = specs.[index]
+                    let resAttr, attErrs = getResAttributes this.Source spec
+                    let res, errs = computeResolution this.Source (kind, spec)
+                    specs.[index] <- (kind, { spec with Resolved = res; ResolvedAttributes = resAttr })
+                    errs |> Array.append attErrs)
         | false, _ -> [||]

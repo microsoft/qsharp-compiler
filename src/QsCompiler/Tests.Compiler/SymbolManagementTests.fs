@@ -3,6 +3,8 @@
 
 module Microsoft.Quantum.QsCompiler.Testing.SymbolManagementTests
 
+#nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
+
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SymbolManagement
@@ -13,11 +15,11 @@ open Xunit
 let private random = System.Random 1
 
 let private randomPosition () =
-    Position.Create (random.Next()) (random.Next())
+    Position.Create(random.Next()) (random.Next())
 
 let private randomRange () =
     let a, b = randomPosition (), randomPosition ()
-    Range.Create (min a b) (max a b)
+    Range.Create(min a b) (max a b)
 
 let toQualName (ns: string, name: string) = { Namespace = ns; Name = name }
 
@@ -60,6 +62,7 @@ let ``type hash tests`` () =
         (toTuple [ Int; Bool ], toTuple [ Bool; String ], false)
         (toTuple [ Int; Bool ], toTuple [ Int; Bool ], true)
     ]
-    |> Seq.iter (fun (left, right, expected) ->
-        let ok = (expected = ((thash left) = (thash right)))
-        Assert.True ok)
+    |> Seq.iter
+        (fun (left, right, expected) ->
+            let ok = (expected = ((thash left) = (thash right)))
+            Assert.True ok)

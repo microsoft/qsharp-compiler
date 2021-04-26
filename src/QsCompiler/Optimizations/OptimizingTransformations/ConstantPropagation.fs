@@ -55,11 +55,48 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
                 | ValueTuple _
                 | ValueArray _
                 | RangeLiteral _
+                | SizedArray _
                 | NewArray _ -> true
-                | CallLikeExpression ({ Expression = Identifier (GlobalCallable qualName, _) }, _) when (callables.[qualName])
-                    .Kind = TypeConstructor -> true
-                | a when TypedExpression.IsPartialApplication a -> true
-                | _ -> false
+                | CallLikeExpression ({ Expression = Identifier (GlobalCallable name, _) }, _) when
+                    callables.[name].Kind = TypeConstructor -> true
+                | _ when TypedExpression.IsPartialApplication ex.Expression -> true
+                | UnitValue
+                | IntLiteral _
+                | BigIntLiteral _
+                | DoubleLiteral _
+                | BoolLiteral _
+                | StringLiteral _
+                | ResultLiteral _
+                | PauliLiteral _
+                | NEG _
+                | NOT _
+                | BNOT _
+                | ADD _
+                | SUB _
+                | MUL _
+                | DIV _
+                | MOD _
+                | POW _
+                | EQ _
+                | NEQ _
+                | LT _
+                | LTE _
+                | GT _
+                | GTE _
+                | AND _
+                | OR _
+                | BOR _
+                | BAND _
+                | BXOR _
+                | LSHIFT _
+                | RSHIFT _
+                | CONDITIONAL _
+                | CopyAndUpdate _
+                | AdjointApplication _
+                | ControlledApplication _
+                | CallLikeExpression _
+                | MissingExpr _
+                | InvalidExpr _ -> false
                 && Seq.forall id sub)
 
         expr.Fold folder
@@ -68,21 +105,23 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
         let lhs = so.OnSymbolTuple stm.Lhs
         let rhs = so.Expressions.OnTypedExpression stm.Rhs
 
-        if stm.Kind = ImmutableBinding
-        then defineVarTuple (shouldPropagate callables) parent.Constants (lhs, rhs)
+        if stm.Kind = ImmutableBinding then
+            defineVarTuple (shouldPropagate callables) parent.Constants (lhs, rhs)
 
         QsBinding<TypedExpression>.New stm.Kind (lhs, rhs) |> QsVariableDeclaration
 
     override this.OnConditionalStatement stm =
         let cbList, cbListEnd =
             stm.ConditionalBlocks
-            |> Seq.fold (fun s (cond, block) ->
-                let newCond = this.Expressions.OnTypedExpression cond
+            |> Seq.fold
+                (fun s (cond, block) ->
+                    let newCond = this.Expressions.OnTypedExpression cond
 
-                match newCond.Expression with
-                | BoolLiteral true -> s @ [ Null, block ]
-                | BoolLiteral false -> s
-                | _ -> s @ [ Value cond, block ]) []
+                    match newCond.Expression with
+                    | BoolLiteral true -> s @ [ Null, block ]
+                    | BoolLiteral false -> s
+                    | _ -> s @ [ Value cond, block ])
+                []
             |> List.ofSeq
             |> takeWhilePlus1 (fun (c, _) -> c <> Null)
 
@@ -109,20 +148,21 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
         let rhs = this.OnQubitInitializer stm.Binding.Rhs
 
         jointFlatten (lhs, rhs)
-        |> Seq.iter (fun (l, r) ->
-            match l, r.Resolution with
-            | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
-                let arrayIden = Identifier(LocalVariable name, Null) |> wrapExpr (ArrayType(ResolvedType.New Qubit))
-                let elemI = fun i -> ArrayItem(arrayIden, IntLiteral(int64 i) |> wrapExpr Int)
+        |> Seq.iter
+            (fun (l, r) ->
+                match l, r.Resolution with
+                | VariableName name, QubitRegisterAllocation { Expression = IntLiteral num } ->
+                    let arrayIden = Identifier(LocalVariable name, Null) |> wrapExpr (ArrayType(ResolvedType.New Qubit))
+                    let elemI = fun i -> ArrayItem(arrayIden, IntLiteral(int64 i) |> wrapExpr Int)
 
-                let expr =
-                    Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit)
-                    |> ImmutableArray.CreateRange
-                    |> ValueArray
-                    |> wrapExpr (ArrayType(ResolvedType.New Qubit))
+                    let expr =
+                        Seq.init (safeCastInt64 num) (elemI >> wrapExpr Qubit)
+                        |> ImmutableArray.CreateRange
+                        |> ValueArray
+                        |> wrapExpr (ArrayType(ResolvedType.New Qubit))
 
-                defineVar (fun _ -> true) parent.Constants (name, expr)
-            | _ -> ())
+                    defineVar (fun _ -> true) parent.Constants (name, expr)
+                | _ -> ())
 
         let body = this.Statements.OnScope stm.Body
         QsQubitScope.New kind ((lhs, rhs), body) |> QsQubitScope

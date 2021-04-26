@@ -120,10 +120,11 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
     [<InlineData(355, 10, 555)>]
     [<InlineData(835, 110, 55)>]
     [<InlineData(155, 2905, 225)>]
-    member this.``Measure Task Intervals With Pause`` (firstIntervalDurationInMs: int)
-                                                      (pauseDurationInMs: int)
-                                                      (secondIntervalDurationInMs: int)
-                                                      =
+    member this.``Measure Task Intervals With Pause``
+        (firstIntervalDurationInMs: int)
+        (pauseDurationInMs: int)
+        (secondIntervalDurationInMs: int)
+        =
         CompilationTracker.ClearData()
         let taskName = "TestTask"
 
@@ -218,9 +219,10 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
             Assert.InRange(measuredTaskDurationInMs, nestedTaskDurationInMs, Int32.MaxValue)
 
     [<Theory; ClassData(typeof<MeasureDoubleNestedTasksTestCases>)>]
-    member this.``Measure Double Nested Tasks`` (firstNestedTasksDurationInMs: int [])
-                                                (secondNestedTasksDurationInMs: int [])
-                                                =
+    member this.``Measure Double Nested Tasks``
+        (firstNestedTasksDurationInMs: int [])
+        (secondNestedTasksDurationInMs: int [])
+        =
         CompilationTracker.ClearData()
         let parentTaskName = "ParentTask"
         let firstNestedTaskName = "FirstNestedTask"
@@ -298,8 +300,8 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         // Start measuring a task but attempt to publish when it is still in progress.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
 
-        Assert.Throws<InvalidOperationException>(fun () ->
-            MethodBase.GetCurrentMethod().Name |> getResultsDictionary |> ignore)
+        Assert.Throws<InvalidOperationException>
+            (fun () -> MethodBase.GetCurrentMethod().Name |> getResultsDictionary |> ignore)
         |> ignore
 
 
@@ -311,8 +313,8 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         // Start measuring a task when it is already in progress.
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
 
-        Assert.Throws<InvalidOperationException>(fun () ->
-            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName))
+        Assert.Throws<InvalidOperationException>
+            (fun () -> CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName))
         |> ignore
 
     [<Fact>]
@@ -321,8 +323,8 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         let taskName = "TestTask"
 
         // Stop measuring a task when it was never started.
-        Assert.Throws<InvalidOperationException>(fun () ->
-            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
+        Assert.Throws<InvalidOperationException>
+            (fun () -> CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
         |> ignore
 
     [<Fact>]
@@ -334,6 +336,6 @@ type CompilationTrackerTests(output: ITestOutputHelper) =
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.Start, null, taskName)
         CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName)
 
-        Assert.Throws<InvalidOperationException>(fun () ->
-            CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
+        Assert.Throws<InvalidOperationException>
+            (fun () -> CompilationTracker.OnCompilationTaskEvent(CompilationTaskEventType.End, null, taskName))
         |> ignore

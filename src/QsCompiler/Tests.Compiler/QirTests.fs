@@ -35,22 +35,21 @@ let private compilerArgs target (name: string) =
         ("TestCases", "QirTests", name + ".qs") |> Path.Combine
         ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
 
-        (if target
-         then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
-         else "")
+        (if target then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine else "")
 
         "--load"
 
-        Path.Combine
-            (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Microsoft.Quantum.QirGeneration.dll")
+        Path.Combine(
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+            "Microsoft.Quantum.QirGeneration.dll"
+        )
 
         "--verbosity"
         "Diagnostic"
     }
 
 let private customTest name compilerArgs snippets =
-    if not <| Directory.Exists "qir"
-    then Directory.CreateDirectory "qir" |> ignore
+    if not <| Directory.Exists "qir" then Directory.CreateDirectory "qir" |> ignore
 
     let fileName = Path.Combine("qir", name + ".ll")
     clearOutput fileName
@@ -77,10 +76,15 @@ let ``QIR inlined call`` () = qirTest true "TestInline"
 let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
-let ``QIR reference counts`` () = qirTest false "TestReferenceCounts"
+let ``QIR reference counts`` () =
+    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
+
+[<Fact>]
+let ``QIR built-in intrinsics`` () =
+    qirMultiTest false "TestBuiltInIntrinsics" [ "TestBuiltInIntrinsics1"; "TestBuiltInIntrinsics2" ]
 
 [<Fact>]
 let ``QIR array loop`` () = qirTest false "TestArrayLoop"
@@ -162,7 +166,17 @@ let ``QIR entry points`` () =
 
 [<Fact>]
 let ``QIR partial applications`` () =
-    qirMultiTest true "TestPartials" [ "TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4" ]
+    qirMultiTest
+        true
+        "TestPartials"
+        [
+            "TestPartials1"
+            "TestPartials2"
+            "TestPartials3"
+            "TestPartials4"
+            "TestPartials5"
+            "TestPartials6"
+        ]
 
 [<Fact>]
 let ``QIR declarations`` () =
@@ -180,6 +194,11 @@ let ``QIR declarations`` () =
 
 [<Fact>]
 let ``QIR functors`` () = qirTest true "TestFunctors"
+
+[<Fact>]
+let ``QIR built-in generics`` () =
+    qirMultiTest false "TestGenerics" [ "TestGenerics1"; "TestGenerics2"; "TestGenerics3"; "TestGenerics4" ]
+
 
 [<Fact>]
 let ``QIR paulis`` () = qirTest false "TestPaulis"

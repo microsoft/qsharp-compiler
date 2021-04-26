@@ -3,18 +3,24 @@
 
 module Microsoft.Quantum.QsCompiler.SyntaxExtensions
 
+#nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
+
+open System
 open System.Collections.Generic
-open System.Collections.ObjectModel
 open System.Collections.Immutable
+open System.Collections.ObjectModel
 open System.Linq
+
+open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
-
 
 type QsQualifiedName with
     static member New(nsName, cName) = { Namespace = nsName; Name = cName }
 
 type UserDefinedType with
+    // TODO: RELEASE 2021-10: Remove member.
+    [<Obsolete "Use UserDefinedType.New(string, string) instead.">]
     static member New(nsName, tName, range) =
         {
             Namespace = nsName
@@ -23,6 +29,8 @@ type UserDefinedType with
         }
 
 type QsTypeParameter with
+    // TODO: RELEASE 2021-10: Remove member.
+    [<Obsolete "Use QsTypeParameter.New(string, string) instead.">]
     static member New(origin, tName, range) =
         {
             Origin = origin
@@ -161,10 +169,11 @@ type ResolvedSignature with
         }
 
 type QsSpecialization with
-    static member New kind
-                      (source, location)
-                      (parent, attributes, typeArgs, signature, implementation, documentation, comments)
-                      =
+    static member New
+        kind
+        (source, location)
+        (parent, attributes, typeArgs, signature, implementation, documentation, comments)
+        =
         {
             Kind = kind
             Parent = parent
@@ -184,17 +193,11 @@ type QsSpecialization with
     static member NewControlledAdjoint = QsSpecialization.New QsControlledAdjoint
 
 type QsCallable with
-    static member New kind
-                      (source, location)
-                      (name,
-                       attributes,
-                       access,
-                       argTuple,
-                       signature,
-                       specializations: IEnumerable<_>,
-                       documentation,
-                       comments)
-                      =
+    static member New
+        kind
+        (source, location)
+        (name, attributes, access, argTuple, signature, specializations: IEnumerable<_>, documentation, comments)
+        =
         {
             Kind = kind
             FullName = name
@@ -228,9 +231,12 @@ type QsCustomType with
         }
 
 type QsDeclarationAttribute with
+    // TODO: RELEASE 2021-10: Remove member.
+    [<Obsolete "Use the overload of New with 5 parameters.">]
     static member New(typeId, arg, pos, comments) =
         {
             TypeId = typeId
+            TypeIdRange = Null
             Argument = arg
             Offset = pos
             Comments = comments
@@ -240,7 +246,9 @@ type QsNamespaceElement with
     static member NewOperation loc =
         QsCallable.NewOperation loc >> QsCallable
 
-    static member NewFunction loc = QsCallable.NewFunction loc >> QsCallable
+    static member NewFunction loc =
+        QsCallable.NewFunction loc >> QsCallable
+
     static member NewType loc = QsCustomType.New loc >> QsCustomType
 
 type QsNamespace with

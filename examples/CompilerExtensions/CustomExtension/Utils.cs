@@ -50,20 +50,19 @@ namespace Microsoft.Quantum.Demos.CompilerExtensions.Demo
                 .Prepend($"// Compiled Q# code from file \"{filesToShow[sourceIndex].Item1}\":")
                 .Select(nsCode => $"{nsCode}{Environment.NewLine}"));
 
-            try
+            var winNotepad = @"c:\windows\system32\notepad.exe";
+            if (File.Exists(winNotepad))
             {
                 var tempFile = Path.GetTempFileName() + ".txt";
                 File.WriteAllLines(tempFile, code);
-                if (Environment.OSVersion.Platform != PlatformID.Win32NT) Process.Start(tempFile);
-                else Process.Start("notepad.exe", tempFile);
+                Process.Start(winNotepad, tempFile);
             }
-            catch
+            else
             {
                 Console.WriteLine($"{Environment.NewLine}******");
-                Console.Write(String.Join(Environment.NewLine, code));
+                Console.Write(string.Join(Environment.NewLine, code));
                 Console.WriteLine("******");
             }
         }
-
     }
 }

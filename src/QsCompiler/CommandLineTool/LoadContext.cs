@@ -10,6 +10,7 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Reflection;
+using System.Runtime.InteropServices;
 using System.Runtime.Loader;
 
 namespace Microsoft.Quantum.QsCompiler
@@ -21,6 +22,9 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public class LoadContext : AssemblyLoadContext
     {
+        internal static HashSet<string> ManagedDllPaths = new HashSet<string>();
+        internal static HashSet<string> UnmanagedDllPaths = new HashSet<string>();
+
         public readonly string PathToParentAssembly;
         private readonly AssemblyDependencyResolver resolver;
         private readonly HashSet<string> fallbackPaths;
@@ -49,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler
         protected override IntPtr LoadUnmanagedDll(string name)
         {
             var path = this.resolver.ResolveUnmanagedDllToPath(name);
-            path ??= this.ResolveFromFallbackPaths(name);
+            path ??= ResolveFromPaths(name, this.fallbackPaths);
             return path == null ? IntPtr.Zero : this.LoadUnmanagedDllFromPath(path);
         }
 
@@ -57,20 +61,35 @@ namespace Microsoft.Quantum.QsCompiler
         /// Search all fallback paths for a suitable .dll, .dylib, or .so file, ignoring all exceptions.
         /// Returns the full path to the file if such a file was found.
         /// </summary>
-        private string? ResolveFromFallbackPaths(string name)
+        internal static string? ResolveFromPaths(string name, IEnumerable<string> paths)
         {
             bool MatchByName(string file) =>
                 Path.GetFileNameWithoutExtension(file)
                 .Equals(name, StringComparison.InvariantCultureIgnoreCase);
 
             var found = new List<string>();
-            foreach (var dir in this.fallbackPaths)
+            foreach (var dir in paths)
             {
                 try
                 {
-                    found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName));
-                    found.AddRange(Directory.GetFiles(dir, "*.dylib", SearchOption.AllDirectories).Where(MatchByName));
-                    found.AddRange(Directory.GetFiles(dir, "*.so", SearchOption.AllDirectories).Where(MatchByName));
+                    if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dylib", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.so", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName));
+                    }
+                    else
+                    {
+                        found.AddRange(Directory.GetFiles(dir, "*.dll", SearchOption.AllDirectories).Where(MatchByName));
+                        found.AddRange(Directory.GetFiles(dir, "*.dylib", SearchOption.AllDirectories).Where(MatchByName));
+                        found.AddRange(Directory.GetFiles(dir, "*.so", SearchOption.AllDirectories).Where(MatchByName));
+                    }
                 }
                 catch
                 {
@@ -92,14 +111,14 @@ namespace Microsoft.Quantum.QsCompiler
         /// Search all fallback paths for a suitable .dll ignoring all exceptions.
         /// Returns the full path to the dll if a suitable assembly was found.
         /// </summary>
-        private string? ResolveFromFallbackPaths(AssemblyName name)
+        internal static string? ResolveFromPaths(AssemblyName name, string pathToParentAssembly, IEnumerable<string> paths)
         {
             bool MatchByName(string file) =>
                 Path.GetFileNameWithoutExtension(file)
                 .Equals(name.Name, StringComparison.InvariantCultureIgnoreCase);
 
             var found = new List<string>();
-            foreach (var dir in this.fallbackPaths)
+            foreach (var dir in paths)
             {
                 try
                 {
@@ -116,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler
                 return found.FirstOrDefault();
             }
 
-            var tempContext = new LoadContext(this.PathToParentAssembly);
+            var tempContext = new LoadContext(pathToParentAssembly);
             var versions = new List<(string, Version?)>();
             foreach (var file in found)
             {
@@ -156,7 +175,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private Assembly? OnResolving(AssemblyLoadContext context, AssemblyName name)
         {
-            var path = this.ResolveFromFallbackPaths(name);
+            var path = ResolveFromPaths(name, this.PathToParentAssembly, this.fallbackPaths);
             return path == null ? null : this.LoadFromAssemblyPath(path);
         }
 
@@ -194,6 +213,15 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 context.AddToPath(fallbackPaths);
             }
+            foreach (var preload in UnmanagedDllPaths)
+            {
+                context.LoadUnmanagedDllFromPath(preload);
+            }
+            foreach (var preload in ManagedDllPaths)
+            {
+                context.LoadFromAssemblyPath(preload);
+            }
+
             Loaded.Add(context);
             var assemblyName = new AssemblyName(Path.GetFileNameWithoutExtension(path));
             return context.LoadFromAssemblyName(assemblyName);

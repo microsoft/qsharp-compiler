@@ -250,6 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 typeId: bondQsDeclarationAttribute.TypeId != null ?
                     bondQsDeclarationAttribute.TypeId.ToCompilerObject().ToQsNullableGeneric() :
                     QsNullable<SyntaxTree.UserDefinedType>.Null,
+                typeIdRange: QsNullable<DataTypes.Range>.Null,
                 argument: bondQsDeclarationAttribute.Argument.ToCompilerObject(),
                 offset: bondQsDeclarationAttribute.Offset.ToCompilerObject(),
                 comments: bondQsDeclarationAttribute.Comments.ToCompilerObject());
@@ -537,9 +538,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.QsTypeParameter(
                 origin: bondQsTypeParameter.Origin.ToCompilerObject(),
                 typeName: bondQsTypeParameter.TypeName,
-                range: bondQsTypeParameter.Range != null ?
-                    bondQsTypeParameter.Range.ToCompilerObject().ToQsNullableGeneric() :
-                    QsNullable<DataTypes.Range>.Null);
+                range: QsNullable<DataTypes.Range>.Null);
 
         private static SyntaxTree.QsWhileStatement ToCompilerObject(this QsWhileStatement bondQsWhileStatement) =>
             new SyntaxTree.QsWhileStatement(
@@ -653,9 +652,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             new SyntaxTree.UserDefinedType(
                 @namespace: bondUserDefinedType.Namespace,
                 name: bondUserDefinedType.Name,
-                range: bondUserDefinedType.Range != null ?
-                    bondUserDefinedType.Range.ToCompilerObject().ToQsNullableGeneric() :
-                    QsNullable<DataTypes.Range>.Null);
+                range: QsNullable<DataTypes.Range>.Null);
 
         private static Tuple<SyntaxTree.SymbolTuple, SyntaxTree.ResolvedType> ToCompilerObject(this QsLoopItem bondQsLoopItem) =>
             new Tuple<SyntaxTree.SymbolTuple, SyntaxTree.ResolvedType>(
@@ -868,6 +865,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             }
             else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.RangeLiteral) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.ArrayItem) ||
+                     (bondQsExpressionKindComposition.Kind == QsExpressionKind.SizedArray) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.ADD) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.SUB) ||
                      (bondQsExpressionKindComposition.Kind == QsExpressionKind.MUL) ||
@@ -901,6 +899,8 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         NewRangeLiteral(item1: compilerExpression1, item2: compilerExpression2),
                     QsExpressionKind.ArrayItem => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewArrayItem(item1: compilerExpression1, item2: compilerExpression2),
+                    QsExpressionKind.SizedArray => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
+                        NewSizedArray(compilerExpression1, compilerExpression2),
                     QsExpressionKind.ADD => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewADD(item1: compilerExpression1, item2: compilerExpression2),
                     QsExpressionKind.SUB => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.

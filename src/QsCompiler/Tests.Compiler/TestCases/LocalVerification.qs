@@ -3,11 +3,15 @@
 
 /// This namespace contains test cases for expression and statement verification
 namespace Microsoft.Quantum.Testing.LocalVerification {
-
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Testing.General;
     open Microsoft.Quantum.Testing.TypeChecking;
 
+    function UnusedTypeParam<'a>() : Unit {}
+
+    operation Sequence<'a, 'b>(f : 'a => Unit, g : 'b => Unit) : ('a, 'b) => Unit {
+        fail "Not implemented.";
+    }
 
     // type argument inference
 
@@ -222,6 +226,25 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         TypeArgumentsInference23<'A, 'A>(a, b);
     }
 
+    function TypeArgumentsInference43() : Unit {
+        Default();
+    }
+
+    function TypeArgumentsInference44() : Unit {
+        let _ = Default();
+    }
+
+    function TypeArgumentsInference45() : Unit {
+        UnusedTypeParam();
+    }
+
+    function TypeArgumentsInference46() : Unit {
+        let _ = GenericFunction(Default);
+    }
+
+    operation TypeArgumentsInference47() : Unit {
+        Sequence(GenericOperation, GenericOperation)("Foo", 3);
+    }
 
     // variable declarations
 
@@ -266,7 +289,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
     }
 
     operation VariableDeclaration11<'T>(cnt: Int, arg : 'T) : Unit {
-        let recur = VariableDeclaration11; // not allowed
+        let recur = VariableDeclaration11;
         recur(cnt - 1, arg);
     }
 
@@ -1507,7 +1530,7 @@ namespace Microsoft.Quantum.Testing.LocalVerification {
         repeat {
         } until 1 != 2;
     }
-    
+
     operation ParensUntilFixup() : Unit {
         repeat {
         } until (1 != 2) fixup {

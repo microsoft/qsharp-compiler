@@ -5,6 +5,8 @@
 [<System.Runtime.CompilerServices.Extension>]
 module Microsoft.Quantum.QsCompiler.SyntaxTreeExtensions
 
+#nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -16,10 +18,8 @@ open System.Linq
 
 
 let private OnTupleItems onSingle tupleName (items: ImmutableArray<'a>) =
-    if items.Length = 0
-    then failwith (sprintf "empty tuple in %s instance" tupleName)
-    elif items.Length = 1
-    then items.[0] |> onSingle
+    if items.Length = 0 then failwith (sprintf "empty tuple in %s instance" tupleName)
+    elif items.Length = 1 then items.[0] |> onSingle
     else Some(items |> Seq.toList)
 
 
@@ -27,7 +27,7 @@ type QsInitializer with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: QsInitializer) -> single.TupleItems) "QsInitializer"
+    static member private OnTupleItems = OnTupleItems(fun (single: QsInitializer) -> single.TupleItems) "QsInitializer"
 
     member internal this.TupleItems =
         match this.Initializer with
@@ -41,7 +41,7 @@ type ResolvedInitializer with
     // utils for tuple matching
 
     static member private OnTupleItems =
-        OnTupleItems (fun (single: ResolvedInitializer) -> single.TupleItems) "ResolvedInitializer"
+        OnTupleItems(fun (single: ResolvedInitializer) -> single.TupleItems) "ResolvedInitializer"
 
     member internal this.TupleItems =
         match this.Resolution with
@@ -54,7 +54,7 @@ type QsSymbol with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: QsSymbol) -> single.TupleItems) "QsSymbol"
+    static member private OnTupleItems = OnTupleItems(fun (single: QsSymbol) -> single.TupleItems) "QsSymbol"
 
     member internal this.TupleItems =
         match this.Symbol with
@@ -68,7 +68,7 @@ type SymbolTuple with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: SymbolTuple) -> single.TupleItems) "SymbolTuple"
+    static member private OnTupleItems = OnTupleItems(fun (single: SymbolTuple) -> single.TupleItems) "SymbolTuple"
 
     member internal this.TupleItems =
         match this with
@@ -97,7 +97,7 @@ type ResolvedType with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: ResolvedType) -> single.TupleItems) "ResolvedType"
+    static member private OnTupleItems = OnTupleItems(fun (single: ResolvedType) -> single.TupleItems) "ResolvedType"
 
     member internal this.TupleItems =
         match this.Resolution with
@@ -127,8 +127,10 @@ type ResolvedType with
     /// Recursively applies the given function inner to the given item and
     /// applies the given extraction function to each contained subitem of the returned type kind.
     /// Returns an enumerable of all extracted items.
-    static member private ExtractAll (inner: _ -> QsTypeKind<_, _, _, _>, extract: _ -> IEnumerable<_>) this
-                                     : IEnumerable<_> =
+    static member private ExtractAll
+        (inner: _ -> QsTypeKind<_, _, _, _>, extract: _ -> IEnumerable<_>)
+        this
+        : IEnumerable<_> =
         let recur = ResolvedType.ExtractAll(inner, extract)
 
         match inner this with
@@ -143,16 +145,16 @@ type ResolvedType with
     /// and applies the given extraction function to each contained type,
     /// including array base types, tuple item types, and argument and result types of functions and operations.
     /// Returns an enumerable of all extracted return values.
-    member this.ExtractAll(extract: _ -> IEnumerable<_>): IEnumerable<_> =
+    member this.ExtractAll(extract: _ -> IEnumerable<_>) : IEnumerable<_> =
         let inner (t: ResolvedType) = t.Resolution
-        ResolvedType.ExtractAll (inner, extract) this
+        ResolvedType.ExtractAll(inner, extract) this
 
 
 type QsType with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: QsType) -> single.TupleItems) "QsType"
+    static member private OnTupleItems = OnTupleItems(fun (single: QsType) -> single.TupleItems) "QsType"
 
     member internal this.TupleItems =
         match this.Type with
@@ -168,7 +170,7 @@ type QsType with
     /// Returns an enumerable of all extracted types.
     member public this.ExtractAll(extract: _ -> IEnumerable<_>) =
         let inner (t: QsType) = t.Type
-        ResolvedType.ExtractAll (inner, extract) this
+        ResolvedType.ExtractAll(inner, extract) this
 
 
 type TypedExpression with
@@ -176,7 +178,7 @@ type TypedExpression with
     // utils for tuple matching
 
     static member private OnTupleItems =
-        OnTupleItems (fun (single: TypedExpression) -> single.TupleItems) "TypedExpression"
+        OnTupleItems(fun (single: TypedExpression) -> single.TupleItems) "TypedExpression"
 
     member internal this.TupleItems =
         match this.Expression with
@@ -187,26 +189,13 @@ type TypedExpression with
 
     // utils for walking the data structure
 
-    /// Returns true if the expression kind does not contain any inner expressions.
-    static member private IsAtomic(kind: QsExpressionKind<'E, _, _>) =
-        match kind with
-        | UnitValue
-        | Identifier _
-        | IntLiteral _
-        | BigIntLiteral _
-        | DoubleLiteral _
-        | BoolLiteral _
-        | ResultLiteral _
-        | PauliLiteral _
-        | MissingExpr
-        | InvalidExpr -> true
-        | _ -> false
-
     /// Recursively traverses an expression by first applying the given mapper to the expression,
     /// then finding all sub-expressions recurring on each one, and finally calling the given folder
     /// with the original expression as well as the returned results.
-    static member private MapAndFold (mapper: 'E -> QsExpressionKind<'E, _, _>, folder: 'E -> 'A seq -> 'A) (expr: 'E)
-                                     : 'A =
+    static member private MapAndFold
+        (mapper: 'E -> QsExpressionKind<'E, _, _>, folder: 'E -> 'A seq -> 'A)
+        (expr: 'E)
+        : 'A =
         let recur = TypedExpression.MapAndFold(mapper, folder)
 
         match mapper expr with
@@ -217,7 +206,7 @@ type TypedExpression with
         | ControlledApplication ex
         | UnwrapApplication ex
         | NamedItem (ex, _)
-        | NewArray (_, ex) -> [ ex ] :> seq<_>
+        | NewArray (_, ex) -> seq [ ex ]
         | ADD (lhs, rhs)
         | SUB (lhs, rhs)
         | MUL (lhs, rhs)
@@ -239,14 +228,23 @@ type TypedExpression with
         | NEQ (lhs, rhs)
         | RangeLiteral (lhs, rhs)
         | ArrayItem (lhs, rhs)
-        | CallLikeExpression (lhs, rhs) -> upcast [ lhs; rhs ]
+        | CallLikeExpression (lhs, rhs) -> seq [ lhs; rhs ]
         | CopyAndUpdate (ex1, ex2, ex3)
-        | CONDITIONAL (ex1, ex2, ex3) -> upcast [ ex1; ex2; ex3 ]
+        | CONDITIONAL (ex1, ex2, ex3) -> seq [ ex1; ex2; ex3 ]
         | StringLiteral (_, items)
         | ValueTuple items
-        | ValueArray items -> upcast items
-        | kind when TypedExpression.IsAtomic kind -> Seq.empty
-        | _ -> NotImplementedException "missing implementation for the given expression kind" |> raise
+        | ValueArray items -> seq items
+        | SizedArray (value, size) -> seq [ value; size ]
+        | UnitValue
+        | Identifier _
+        | IntLiteral _
+        | BigIntLiteral _
+        | DoubleLiteral _
+        | BoolLiteral _
+        | ResultLiteral _
+        | PauliLiteral _
+        | MissingExpr
+        | InvalidExpr -> Seq.empty
         |> Seq.map recur
         |> folder expr
 
@@ -276,8 +274,10 @@ type TypedExpression with
     /// Recursively applies the given function inner to the given item and
     /// applies the given extraction function to each contained subitem of the returned expression kind.
     /// Returns an enumerable of all extracted items.
-    static member private ExtractAll (inner: 'E -> QsExpressionKind<'E, _, _>, extract: _ -> seq<_>) (this: 'E)
-                                     : seq<_> =
+    static member private ExtractAll
+        (inner: 'E -> QsExpressionKind<'E, _, _>, extract: _ -> seq<_>)
+        (this: 'E)
+        : seq<_> =
         let fold ex sub =
             Seq.concat sub |> Seq.append (extract ex)
 
@@ -288,7 +288,7 @@ type TypedExpression with
     /// Returns an enumerable of all extracted expressions.
     member public this.ExtractAll(extract: _ -> IEnumerable<_>) =
         let inner (ex: TypedExpression) = ex.Expression
-        TypedExpression.ExtractAll (inner, extract) this
+        TypedExpression.ExtractAll(inner, extract) this
 
     /// Applies the given function to the expression kind,
     /// and then recurs into each subexpression of the returned expression kind.
@@ -306,7 +306,7 @@ type QsExpression with
 
     // utils for tuple matching
 
-    static member private OnTupleItems = OnTupleItems (fun (single: QsExpression) -> single.TupleItems) "QsExpression"
+    static member private OnTupleItems = OnTupleItems(fun (single: QsExpression) -> single.TupleItems) "QsExpression"
 
     member internal this.TupleItems =
         match this.Expression with
@@ -322,7 +322,7 @@ type QsExpression with
     /// Returns an enumerable of all extracted expressions.
     member public this.ExtractAll(extract: _ -> IEnumerable<_>) =
         let inner (ex: QsExpression) = ex.Expression
-        TypedExpression.ExtractAll (inner, extract) this
+        TypedExpression.ExtractAll(inner, extract) this
 
 
 type QsStatement with
@@ -346,9 +346,9 @@ type QsStatement with
         | QsConditionalStatement s ->
             (Seq.append
                 (s.ConditionalBlocks |> Seq.collect (fun (_, b) -> b.Body.Statements))
-                 (match s.Default with
-                  | Null -> Seq.empty
-                  | Value v -> upcast v.Body.Statements))
+                (match s.Default with
+                 | Null -> Seq.empty
+                 | Value v -> upcast v.Body.Statements))
         | QsForStatement s -> upcast s.Body.Statements
         | QsWhileStatement s -> upcast s.Body.Statements
         | QsConjugation s -> Seq.append s.OuterTransformation.Body.Statements s.InnerTransformation.Body.Statements
@@ -394,7 +394,7 @@ type QsTuple<'I> with
 
 // not the nicest solution, but unfortunatly type extensions cannot be used to satisfy member constraints...
 // the box >> unbox below is used to cast the value to the inferred type of 'T
-let private TupleItems<'T when 'T :> ITuple> (arg: 'T): 'T list option =
+let private TupleItems<'T when 'T :> ITuple> (arg: 'T) : 'T list option =
     let cast a =
         box >> unbox |> List.map |> Option.map <| a
 
@@ -459,7 +459,7 @@ let TryAsGlobalCallable (this: TypedExpression) =
     | _ -> Null
 
 [<Extension>]
-let GetResolvedType (argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): ResolvedType =
+let GetResolvedType (argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) : ResolvedType =
     let rec resolveArgTupleItem =
         function
         | QsTupleItem (decl: LocalVariableDeclaration<QsLocalSymbol>) -> decl.Type
@@ -484,20 +484,24 @@ let GetResolvedType (argTuple: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>)
 [<Extension>]
 let Types (syntaxTree: IEnumerable<QsNamespace>) =
     syntaxTree
-    |> Seq.collect (fun ns ->
-        ns.Elements
-        |> Seq.choose (function
-            | QsCustomType t -> Some t
-            | _ -> None))
+    |> Seq.collect
+        (fun ns ->
+            ns.Elements
+            |> Seq.choose
+                (function
+                | QsCustomType t -> Some t
+                | _ -> None))
 
 [<Extension>]
 let Callables (syntaxTree: IEnumerable<QsNamespace>) =
     syntaxTree
-    |> Seq.collect (fun ns ->
-        ns.Elements
-        |> Seq.choose (function
-            | QsCallable c -> Some c
-            | _ -> None))
+    |> Seq.collect
+        (fun ns ->
+            ns.Elements
+            |> Seq.choose
+                (function
+                | QsCallable c -> Some c
+                | _ -> None))
 
 [<Extension>]
 let Attributes (syntaxTree: IEnumerable<QsNamespace>) =
@@ -508,30 +512,36 @@ let Attributes (syntaxTree: IEnumerable<QsNamespace>) =
         | Null -> false
 
     syntaxTree
-    |> Seq.collect (fun ns ->
-        ns.Elements
-        |> Seq.choose (function
-            | QsCustomType t when t.Attributes |> Seq.exists marksAttribute -> Some t
-            | _ -> None))
+    |> Seq.collect
+        (fun ns ->
+            ns.Elements
+            |> Seq.choose
+                (function
+                | QsCustomType t when t.Attributes |> Seq.exists marksAttribute -> Some t
+                | _ -> None))
 
 [<Extension>]
 let Specializations (syntaxTree: IEnumerable<QsNamespace>) =
     syntaxTree
-    |> Seq.collect (fun ns ->
-        ns.Elements
-        |> Seq.collect (function
-            | QsCallable c -> c.Specializations
-            | _ -> ImmutableArray.Empty))
+    |> Seq.collect
+        (fun ns ->
+            ns.Elements
+            |> Seq.collect
+                (function
+                | QsCallable c -> c.Specializations
+                | _ -> ImmutableArray.Empty))
 
 [<Extension>]
 let GlobalTypeResolutions (syntaxTree: IEnumerable<QsNamespace>) =
     let types =
         syntaxTree
-        |> Seq.collect (fun ns ->
-            ns.Elements
-            |> Seq.choose (function
-                | QsCustomType t -> Some(t.FullName, t)
-                | _ -> None))
+        |> Seq.collect
+            (fun ns ->
+                ns.Elements
+                |> Seq.choose
+                    (function
+                    | QsCustomType t -> Some(t.FullName, t)
+                    | _ -> None))
 
     types.ToImmutableDictionary(fst, snd)
 
@@ -539,11 +549,13 @@ let GlobalTypeResolutions (syntaxTree: IEnumerable<QsNamespace>) =
 let GlobalCallableResolutions (syntaxTree: IEnumerable<QsNamespace>) =
     let callables =
         syntaxTree
-        |> Seq.collect (fun ns ->
-            ns.Elements
-            |> Seq.choose (function
-                | QsCallable c -> Some(c.FullName, c)
-                | _ -> None))
+        |> Seq.collect
+            (fun ns ->
+                ns.Elements
+                |> Seq.choose
+                    (function
+                    | QsCallable c -> Some(c.FullName, c)
+                    | _ -> None))
 
     callables.ToImmutableDictionary(fst, snd)
 

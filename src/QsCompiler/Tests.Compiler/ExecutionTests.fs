@@ -46,7 +46,9 @@ type ExecutionTests(output: ITestOutputHelper) =
 
     [<Fact>]
     member this.``Specialization Generation for Conjugations``() =
-        ExecuteAndCompareOutput "ConjugationsInBody" "
+        ExecuteAndCompareOutput
+            "ConjugationsInBody"
+            "
                 U1
                 V1
                 U3
@@ -69,7 +71,9 @@ type ExecutionTests(output: ITestOutputHelper) =
                 Adjoint U1
             "
 
-        ExecuteAndCompareOutput "ConjugationsInAdjoint" "
+        ExecuteAndCompareOutput
+            "ConjugationsInAdjoint"
+            "
                 U1
                 V1
                 U3
@@ -92,7 +96,9 @@ type ExecutionTests(output: ITestOutputHelper) =
                 Adjoint U1
             "
 
-        ExecuteAndCompareOutput "ConjugationsInControlled" "
+        ExecuteAndCompareOutput
+            "ConjugationsInControlled"
+            "
                 U1
                 V1
                 U3
@@ -115,7 +121,9 @@ type ExecutionTests(output: ITestOutputHelper) =
                 Adjoint U1
             "
 
-        ExecuteAndCompareOutput "ConjugationsInControlledAdjoint" "
+        ExecuteAndCompareOutput
+            "ConjugationsInControlledAdjoint"
+            "
                 U1
                 V1
                 U3
@@ -141,18 +149,24 @@ type ExecutionTests(output: ITestOutputHelper) =
 
     [<Fact>]
     member this.``Referencing Projects and Packages``() =
-        ExecuteAndCompareOutput "PackageAndProjectReference" "
+        ExecuteAndCompareOutput
+            "PackageAndProjectReference"
+            "
                 Welcome to Q#!
                 Info: Go check out https://docs.microsoft.com/azure/quantum.
             "
 
-        ExecuteAndCompareOutput "TypeInReferencedProject" "
+        ExecuteAndCompareOutput
+            "TypeInReferencedProject"
+            "
                 [Complex((1, 0))]
             "
 
     [<Fact>]
     member this.``Adjoint generation from expressions should be reversed``() =
-        ExecuteAndCompareOutput "AdjointExpressions" "
+        ExecuteAndCompareOutput
+            "AdjointExpressions"
+            "
                 1
                 2
                 3

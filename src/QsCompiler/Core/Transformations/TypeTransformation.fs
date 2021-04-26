@@ -3,7 +3,11 @@
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Core
 
+#nowarn "44" // TypeParameter.Range and UserDefinedType.Range are deprecated.
+
+open System
 open System.Collections.Immutable
+
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
@@ -14,20 +18,26 @@ type private ExpressionType = QsTypeKind<ResolvedType, UserDefinedType, QsTypePa
 
 
 type TypeTransformationBase(options: TransformationOptions) =
-
     let Node = if options.Rebuild then Fold else Walk
-    new() = new TypeTransformationBase(TransformationOptions.Default)
+
+    new() = TypeTransformationBase TransformationOptions.Default
 
 
     // supplementary type information
 
-    abstract OnRangeInformation: QsNullable<Range> -> QsNullable<Range>
+    // TODO: RELEASE 2021-10: Remove obsolete method.
+    [<Obsolete "Use OnRangeInformation(TypeRange) instead.">]
+    abstract OnRangeInformation : QsNullable<Range> -> QsNullable<Range>
+
     default this.OnRangeInformation range = range
 
-    abstract OnCharacteristicsExpression: ResolvedCharacteristics -> ResolvedCharacteristics
+    abstract OnTypeRange : TypeRange -> TypeRange
+    default this.OnTypeRange range = range
+
+    abstract OnCharacteristicsExpression : ResolvedCharacteristics -> ResolvedCharacteristics
     default this.OnCharacteristicsExpression fs = fs
 
-    abstract OnCallableInformation: CallableInformation -> CallableInformation
+    abstract OnCallableInformation : CallableInformation -> CallableInformation
 
     default this.OnCallableInformation opInfo =
         let characteristics = this.OnCharacteristicsExpression opInfo.Characteristics
@@ -37,42 +47,40 @@ type TypeTransformationBase(options: TransformationOptions) =
 
     // nodes containing subtypes
 
-    abstract OnUserDefinedType: UserDefinedType -> ExpressionType
+    abstract OnUserDefinedType : UserDefinedType -> ExpressionType
 
     default this.OnUserDefinedType udt =
         let ns, name = udt.Namespace, udt.Name
         let range = this.OnRangeInformation udt.Range
-        ExpressionType.UserDefinedType << UserDefinedType.New |> Node.BuildOr InvalidType (ns, name, range)
+        Node.BuildOr InvalidType (ns, name, range) (UserDefinedType.New >> UserDefinedType)
 
-    abstract OnTypeParameter: QsTypeParameter -> ExpressionType
+    abstract OnTypeParameter : QsTypeParameter -> ExpressionType
 
     default this.OnTypeParameter tp =
         let origin = tp.Origin
         let name = tp.TypeName
         let range = this.OnRangeInformation tp.Range
+        Node.BuildOr InvalidType (origin, name, range) (QsTypeParameter.New >> TypeParameter)
 
-        ExpressionType.TypeParameter << QsTypeParameter.New
-        |> Node.BuildOr InvalidType (origin, name, range)
-
-    abstract OnOperation: (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
+    abstract OnOperation : (ResolvedType * ResolvedType) * CallableInformation -> ExpressionType
 
     default this.OnOperation((it, ot), info) =
         let transformed = (this.OnType it, this.OnType ot), this.OnCallableInformation info
         ExpressionType.Operation |> Node.BuildOr InvalidType transformed
 
-    abstract OnFunction: ResolvedType * ResolvedType -> ExpressionType
+    abstract OnFunction : ResolvedType * ResolvedType -> ExpressionType
 
     default this.OnFunction(it, ot) =
         let transformed = this.OnType it, this.OnType ot
         ExpressionType.Function |> Node.BuildOr InvalidType transformed
 
-    abstract OnTupleType: ImmutableArray<ResolvedType> -> ExpressionType
+    abstract OnTupleType : ImmutableArray<ResolvedType> -> ExpressionType
 
     default this.OnTupleType ts =
         let transformed = ts |> Seq.map this.OnType |> ImmutableArray.CreateRange
         ExpressionType.TupleType |> Node.BuildOr InvalidType transformed
 
-    abstract OnArrayType: ResolvedType -> ExpressionType
+    abstract OnArrayType : ResolvedType -> ExpressionType
 
     default this.OnArrayType b =
         ExpressionType.ArrayType |> Node.BuildOr InvalidType (this.OnType b)
@@ -80,49 +88,53 @@ type TypeTransformationBase(options: TransformationOptions) =
 
     // leaf nodes
 
-    abstract OnUnitType: unit -> ExpressionType
+    abstract OnUnitType : unit -> ExpressionType
     default this.OnUnitType() = ExpressionType.UnitType
 
-    abstract OnQubit: unit -> ExpressionType
+    abstract OnQubit : unit -> ExpressionType
     default this.OnQubit() = ExpressionType.Qubit
 
-    abstract OnMissingType: unit -> ExpressionType
+    abstract OnMissingType : unit -> ExpressionType
     default this.OnMissingType() = ExpressionType.MissingType
 
-    abstract OnInvalidType: unit -> ExpressionType
+    abstract OnInvalidType : unit -> ExpressionType
     default this.OnInvalidType() = ExpressionType.InvalidType
 
-    abstract OnInt: unit -> ExpressionType
+    abstract OnInt : unit -> ExpressionType
     default this.OnInt() = ExpressionType.Int
 
-    abstract OnBigInt: unit -> ExpressionType
+    abstract OnBigInt : unit -> ExpressionType
     default this.OnBigInt() = ExpressionType.BigInt
 
-    abstract OnDouble: unit -> ExpressionType
+    abstract OnDouble : unit -> ExpressionType
     default this.OnDouble() = ExpressionType.Double
 
-    abstract OnBool: unit -> ExpressionType
+    abstract OnBool : unit -> ExpressionType
     default this.OnBool() = ExpressionType.Bool
 
-    abstract OnString: unit -> ExpressionType
+    abstract OnString : unit -> ExpressionType
     default this.OnString() = ExpressionType.String
 
-    abstract OnResult: unit -> ExpressionType
+    abstract OnResult : unit -> ExpressionType
     default this.OnResult() = ExpressionType.Result
 
-    abstract OnPauli: unit -> ExpressionType
+    abstract OnPauli : unit -> ExpressionType
     default this.OnPauli() = ExpressionType.Pauli
 
-    abstract OnRange: unit -> ExpressionType
+    abstract OnRange : unit -> ExpressionType
     default this.OnRange() = ExpressionType.Range
 
 
     // transformation root called on each node
 
-    member this.OnType(t: ResolvedType) =
+    abstract OnType : ResolvedType -> ResolvedType
+
+    default this.OnType(t: ResolvedType) =
         if not options.Enable then
             t
         else
+            let range = this.OnTypeRange t.Range
+
             let transformed =
                 match t.Resolution with
                 | ExpressionType.UnitType -> this.OnUnitType()
@@ -144,5 +156,4 @@ type TypeTransformationBase(options: TransformationOptions) =
                 | ExpressionType.Pauli -> this.OnPauli()
                 | ExpressionType.Range -> this.OnRange()
 
-            let ResolvedType t = ResolvedType.New(true, t)
-            ResolvedType |> Node.BuildOr t transformed
+            ResolvedType.create range |> Node.BuildOr t transformed
