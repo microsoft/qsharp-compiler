@@ -1,5 +1,7 @@
-// Copyright (c) Microsoft Corporation.
-// Licensed under the MIT License.
+// <copyright file="MarshaledString.cs" company="Ubiquity.NET Contributors">
+// Copyright (c) Ubiquity.NET Contributors. All rights reserved.
+// Portions Copyright (c) Microsoft Corporation
+// </copyright>
 
 using System;
 using System.Runtime.InteropServices;
@@ -36,6 +38,11 @@ namespace LLVMSharp.Interop
 
         public sbyte* Value { get; private set; }
 
+        public static implicit operator sbyte*(in MarshaledString value)
+        {
+            return value.Value;
+        }
+
         public void Dispose()
         {
             if (this.Value != default)
@@ -44,11 +51,6 @@ namespace LLVMSharp.Interop
                 this.Value = default;
                 this.Length = 0;
             }
-        }
-
-        public static implicit operator sbyte*(in MarshaledString value)
-        {
-            return value.Value;
         }
 
         public override string ToString()

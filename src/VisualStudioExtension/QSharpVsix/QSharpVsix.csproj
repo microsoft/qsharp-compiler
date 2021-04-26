@@ -46,12 +46,10 @@
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
   </PropertyGroup>
+  <Import Project="..\..\Common\DelaySign.props" />
   <ItemGroup>
     <Compile Include="..\..\Common\AssemblyCommon.cs">
       <Link>Properties\AssemblyCommon.cs</Link>
-    </Compile>
-    <Compile Include="..\..\Common\DelaySign.cs">
-      <Link>Properties\DelaySign.cs</Link>
     </Compile>
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="QsContentTypeDefinition.cs" />

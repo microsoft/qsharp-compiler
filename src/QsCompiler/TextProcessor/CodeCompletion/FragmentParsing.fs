@@ -86,7 +86,7 @@ let private mutableStatement =
 /// Parses a set statement.
 let private setStatement =
     let infixOp =
-        operatorLike "="
+        operatorLikeExcluding "="
         <|> pcollect [ expectedKeyword andOperator
                        expectedKeyword orOperator ]
 

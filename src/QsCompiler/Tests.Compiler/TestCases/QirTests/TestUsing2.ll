@@ -14,7 +14,7 @@ entry:
   %3 = insertvalue %Range %2, i64 0, 0
   %4 = insertvalue %Range %3, i64 2, 1
   %5 = insertvalue %Range %4, i64 %max, 2
-  %y = call %Array* @__quantum__rt__array_slice_1d(%Array* %b, %Range %5, i1 false)
+  %y = call %Array* @__quantum__rt__array_slice_1d(%Array* %b, %Range %5, i1 true)
   call void @__quantum__rt__array_update_alias_count(%Array* %y, i32 1)
   %6 = call i64 @__quantum__rt__array_get_size_1d(%Array* %y)
   %7 = icmp eq i64 %6, %max

@@ -3,6 +3,8 @@
 
 namespace Microsoft.Quantum.QsCompiler.SymbolManagement
 
+#nowarn "44" // QsTypeParameter.Range and UserDefinedType.Range are deprecated.
+
 open System
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -240,10 +242,9 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// </summary>
     /// <exception cref="NotSupportedException"><paramref name="qsType"/> contains a <see cref="MissingType"/>.</exception>
     let resolveType (parent: QsQualifiedName, tpNames, source) qsType checkUdt =
-        let processUDT =
-            tryResolveTypeName (parent.Namespace, source)
-            >> function
-            | Some (udt, _, access), errs -> UserDefinedType udt, Array.append errs (checkUdt (udt, access))
+        let processUDT (name, range) =
+            match tryResolveTypeName (parent.Namespace, source) (name, range) with
+            | Some (udt, _, access), errs -> UserDefinedType udt, Array.append errs (checkUdt (udt, range, access))
             | None, errs -> InvalidType, errs
 
         let processTP (symName, symRange) =
@@ -272,10 +273,12 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
     /// Compares the accessibility of the parent declaration with the accessibility of the UDT being referenced. If the
     /// accessibility of a referenced type is less than the accessibility of the parent, returns a diagnostic using the
     /// given error code. Otherwise, returns an empty array.
-    let checkUdtAccess code (parent, parentAccess) (udt: UserDefinedType, udtAccess) =
+    let checkUdtAccess code (parent, parentAccess) (udt: UserDefinedType, udtRange, udtAccess) =
+        let udtRange = udtRange |> QsNullable.defaultValue Range.Zero
+
         [|
             if udtAccess < parentAccess
-            then yield QsCompilerDiagnostic.Error (code, [ udt.Name; parent ]) (udt.Range.ValueOr Range.Zero)
+            then yield QsCompilerDiagnostic.Error (code, [ udt.Name; parent ]) udtRange
         |]
 
     /// <summary>
@@ -496,7 +499,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                 // the attribute is a duplication of another attribute on this declaration
                 if alreadyDefined.Contains attributeHash then
                     (att.Offset,
-                     tId.Range
+                     att.TypeIdRange
                      |> orDefault
                      |> QsCompilerDiagnostic.Warning(WarningCode.DuplicateAttribute, [ tId.Name ]))
                     |> Seq.singleton
@@ -504,7 +507,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
 
                 // the attribute marks an entry point
                 elif tId |> isBuiltIn BuiltIn.EntryPoint then
-                    let register, msgs = validateEntryPoint parent (att.Offset, tId.Range) decl
+                    let register, msgs = validateEntryPoint parent (att.Offset, att.TypeIdRange) decl
                     errs.AddRange msgs
 
                     if register
@@ -548,7 +551,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                             |> returnInvalid
                     | _ ->
                         (att.Offset,
-                         tId.Range
+                         att.TypeIdRange
                          |> orDefault
                          |> QsCompilerDiagnostic.Error(ErrorCode.InvalidTestAttributePlacement, []))
                         |> Seq.singleton
@@ -561,7 +564,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     match box decl.Defined with
                     | :? QsSpecializationGenerator ->
                         (att.Offset,
-                         tId.Range
+                         att.TypeIdRange
                          |> orDefault
                          |> QsCompilerDiagnostic.Error(ErrorCode.AttributeInvalidOnSpecialization, [ tId.Name ]))
                         |> Seq.singleton
@@ -570,7 +573,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                         attributeHash :: alreadyDefined, att :: resAttr
                     | _ ->
                         (att.Offset,
-                         tId.Range
+                         att.TypeIdRange
                          |> orDefault
                          |> QsCompilerDiagnostic.Error(ErrorCode.ExpectingFullNameAsAttributeArgument, [ tId.Name ]))
                         |> Seq.singleton
@@ -581,14 +584,14 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     match box decl.Defined with
                     | :? CallableSignature ->
                         (att.Offset,
-                         tId.Range
+                         att.TypeIdRange
                          |> orDefault
                          |> QsCompilerDiagnostic.Error(ErrorCode.AttributeInvalidOnCallable, [ tId.Name ]))
                         |> Seq.singleton
                         |> returnInvalid
                     | :? QsSpecializationGenerator ->
                         (att.Offset,
-                         tId.Range
+                         att.TypeIdRange
                          |> orDefault
                          |> QsCompilerDiagnostic.Error(ErrorCode.AttributeInvalidOnSpecialization, [ tId.Name ]))
                         |> Seq.singleton
@@ -600,7 +603,7 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
                     match box decl.Defined with
                     | :? QsSpecializationGenerator ->
                         (att.Offset,
-                         tId.Range
+                         att.TypeIdRange
                          |> orDefault
                          |> QsCompilerDiagnostic.Error(ErrorCode.AttributeInvalidOnSpecialization, [ tId.Name ]))
                         |> Seq.singleton
@@ -1521,8 +1524,10 @@ type NamespaceManager(syncRoot: IReaderWriterLock,
         | StringLiteral (s, _) -> hash (6, s)
         | ValueTuple vs -> hash (7, (vs |> Seq.map NamespaceManager.ExpressionHash |> Seq.toList))
         | ValueArray vs -> hash (8, (vs |> Seq.map NamespaceManager.ExpressionHash |> Seq.toList))
-        | NewArray (bt, idx) -> hash (9, NamespaceManager.TypeHash bt, NamespaceManager.ExpressionHash idx)
-        | Identifier (GlobalCallable c, _) -> hash (10, c.Namespace, c.Name)
+        | SizedArray (value, size) ->
+            hash (9, NamespaceManager.ExpressionHash value, NamespaceManager.ExpressionHash size)
+        | NewArray (bt, idx) -> hash (10, NamespaceManager.TypeHash bt, NamespaceManager.ExpressionHash idx)
+        | Identifier (GlobalCallable c, _) -> hash (11, c.Namespace, c.Name)
         | kind -> JsonConvert.SerializeObject kind |> hash
 
     /// <summary>
