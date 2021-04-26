@@ -2,26 +2,15 @@
 // Licensed under the MIT License.
 
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
+using Microsoft.Quantum.QsCompiler.BondSchemas.Execution;
 
 namespace Microsoft.Quantum.QsCompiler.Templates
 {
-    internal class ArgumentCpp : Argument
+    internal static class ArgumentCppExtensions
     {
-        public ArgumentCpp(Argument argument)
+        public static string CppType(this Argument @this)
         {
-            this.Name = argument.Name;
-            this.Position = argument.Position;
-            this.Type = argument.Type;
-            this.ArrayType = argument.ArrayType;
-            this.Values = argument.Values.ToList();
-        }
-
-        public string CppType()
-        {
-            return this.Type switch
+            return @this.Type switch
             {
                 DataType.BoolType => "char",
                 DataType.IntegerType => "int64_t",
@@ -31,25 +20,25 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.ResultType => "char",
                 DataType.StringType => "const char*",
                 DataType.ArrayType => "InteropArray*",
-                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
+                _ => throw new NotSupportedException($"Unsupported argument type {@this.Type}")
             };
         }
 
-        public string CliOptionString()
+        public static string CliOptionString(this Argument @this)
         {
-            if (this.Name.Length == 1)
+            if (@this.Name.Length == 1)
             {
-                return $"-{this.Name}";
+                return $"-{@this.Name}";
             }
             else
             {
-                return $"--{this.Name}";
+                return $"--{@this.Name}";
             }
         }
 
-        public string CliTypeDescription()
+        public static string CliTypeDescription(this Argument @this)
         {
-            return this.Type switch
+            return @this.Type switch
             {
                 DataType.BoolType => $"bool",
                 DataType.IntegerType => $"integer",
@@ -58,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => $"Range (start, step, end)",
                 DataType.ResultType => $"Result",
                 DataType.StringType => $"String",
-                DataType.ArrayType => this.ArrayType switch
+                DataType.ArrayType => @this.ArrayType switch
                 {
                     DataType.BoolType => $"bool array",
                     DataType.IntegerType => $"integer array",
@@ -67,17 +56,17 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => $"Range array",
                     DataType.ResultType => $"Result array",
                     DataType.StringType => $"String array",
-                    _ => throw new NotSupportedException($"Unsupported array type {this.Type}")
+                    _ => throw new NotSupportedException($"Unsupported array type {@this.Type}")
                 },
-                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
+                _ => throw new NotSupportedException($"Unsupported argument type {@this.Type}")
             };
         }
 
-        public string CliDescription() => $"A {this.CliTypeDescription()} value for the {this.Name} argument";
+        public static string CliDescription(this Argument @this) => $"A {@this.CliTypeDescription()} value for the {@this.Name} argument";
 
-        public string CppCliValueType()
+        public static string CppCliValueType(this Argument @this)
         {
-            return this.Type switch
+            return @this.Type switch
             {
                 DataType.BoolType => "char",
                 DataType.IntegerType => "int64_t",
@@ -86,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => "RangeTuple",
                 DataType.ResultType => "char",
                 DataType.StringType => "string",
-                DataType.ArrayType => this.ArrayType switch
+                DataType.ArrayType => @this.ArrayType switch
                 {
                     DataType.BoolType => "vector<char>",
                     DataType.IntegerType => "vector<int64_t>",
@@ -95,15 +84,15 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => "vector<RangeTuple>",
                     DataType.ResultType => "vector<char>",
                     DataType.StringType => "vector<string>",
-                    _ => throw new NotSupportedException($"Unsupported array type {this.Type}")
+                    _ => throw new NotSupportedException($"Unsupported array type {@this.Type}")
                 },
-                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
+                _ => throw new NotSupportedException($"Unsupported argument type {@this.Type}")
             };
         }
 
-        public string? CppCliVariableInitialValue()
+        public static string? CppCliVariableInitialValue(this Argument @this)
         {
-            return this.Type switch
+            return @this.Type switch
             {
                 DataType.BoolType => "InteropFalseAsChar",
                 DataType.IntegerType => "0",
@@ -112,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                 DataType.RangeType => null,
                 DataType.ResultType => "InteropResultZeroAsChar",
                 DataType.StringType => null,
-                DataType.ArrayType => this.ArrayType switch
+                DataType.ArrayType => @this.ArrayType switch
                 {
                     DataType.BoolType => null,
                     DataType.IntegerType => null,
@@ -121,9 +110,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
                     DataType.RangeType => null,
                     DataType.ResultType => null,
                     DataType.StringType => null,
-                    _ => throw new NotSupportedException($"Unsupported array type {this.Type}")
+                    _ => throw new NotSupportedException($"Unsupported array type {@this.Type}")
                 },
-                _ => throw new NotSupportedException($"Unsupported argument type {this.Type}")
+                _ => throw new NotSupportedException($"Unsupported argument type {@this.Type}")
             };
         }
 
@@ -143,43 +132,33 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public string? TransformerMapName() =>
-            this.Type switch {
-                DataType.ArrayType => DataTypeTransformerMapName(this.ArrayType),
-                _ => DataTypeTransformerMapName(this.Type)
+        public static string? TransformerMapName(this Argument @this) =>
+            @this.Type switch {
+                DataType.ArrayType => DataTypeTransformerMapName(@this.ArrayType),
+                _ => DataTypeTransformerMapName(@this.Type)
             };
 
-        public string CliValueVariableName()
+        public static string CliValueVariableName(this Argument @this)
         {
-            return this.Name + "CliValue";
+            return @this.Name + "CliValue";
         }
 
-        public string InteropVariableName()
+        public static string InteropVariableName(this Argument @this)
         {
-            return this.Name + "InteropValue";
+            return @this.Name + "InteropValue";
         }
 
-        public string IntermediateVariableName()
+        public static string IntermediateVariableName(this Argument @this)
         {
-            return this.Name + "IntermediateValue";
+            return @this.Name + "IntermediateValue";
         }
     }
 
-    internal class EntryPointOperationCpp : EntryPointOperation
+    internal static class EntryPointCppExtensions
     {
-        public List<ArgumentCpp> InteropArguments;
-
-        public EntryPointOperationCpp(EntryPointOperation entryPointOperation)
+        public static bool ContainsArgumentType(this EntryPointOperation @this, DataType type)
         {
-            this.Name = entryPointOperation.Name;
-            this.Arguments = entryPointOperation.Arguments.ToList();
-            this.Arguments.Sort((a, b) => a.Position.CompareTo(b.Position));
-            this.InteropArguments = this.Arguments.Select(arg => new ArgumentCpp(arg)).ToList();
-        }
-
-        public bool ContainsArgumentType(DataType type)
-        {
-            foreach (Argument arg in this.Arguments)
+            foreach (Argument arg in @this.Arguments)
             {
                 if (arg.Type == type)
                 {
@@ -189,9 +168,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             return false;
         }
 
-        public bool ContainsArrayType(DataType type)
+        public static bool ContainsArrayType(this EntryPointOperation @this, DataType type)
         {
-            foreach (Argument arg in this.Arguments)
+            foreach (Argument arg in @this.Arguments)
             {
                 if (arg.ArrayType == type)
                 {

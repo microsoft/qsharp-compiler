@@ -89,10 +89,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
         public string Name { get; set; }
 
         [global::Bond.Id(10)]
-        public DataType Type { get; set; }
+        public int Position { get; set; }
 
         [global::Bond.Id(15)]
-        public int Position { get; set; }
+        public DataType Type { get; set; }
+
+        [global::Bond.Id(20), global::Bond.Type(typeof(global::Bond.Tag.nullable<DataType>))]
+        public DataType? ArrayType { get; set; }
 
         public Argument()
             : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.Argument", "Argument")

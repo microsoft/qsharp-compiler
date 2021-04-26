@@ -42,9 +42,11 @@ struct Argument
 {
     5: string Name;
 
-    10: DataType Type = BoolType;
+    10: int32 Position;
 
-    15: int32 Position;
+    15: DataType Type = BoolType;
+
+    20: nullable<DataType> ArrayType;
 }
 
 struct ArgumentValue

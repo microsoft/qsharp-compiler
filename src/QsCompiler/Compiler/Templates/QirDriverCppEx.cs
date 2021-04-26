@@ -1,17 +1,17 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
+using Microsoft.Quantum.QsCompiler.BondSchemas.Execution;
 
 namespace Microsoft.Quantum.QsCompiler.Templates
 {
     public partial class QirDriverCpp
     {
-        private EntryPointOperationCpp entryPointOperation;
+        private EntryPointOperation entryPointOperation;
 
         public QirDriverCpp(EntryPointOperation entryPoint)
         {
-            this.entryPointOperation = new EntryPointOperationCpp(entryPoint);
+            this.entryPointOperation = entryPoint;
         }
     }
 }

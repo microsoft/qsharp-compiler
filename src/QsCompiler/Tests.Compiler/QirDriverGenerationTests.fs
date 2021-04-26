@@ -6,16 +6,14 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 open Xunit
 open Xunit.Abstractions
 open Microsoft.Quantum.QsCompiler
-open Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
 open System.IO
-open System.Text
 
 type QirDriverGenerationTests(output: ITestOutputHelper) =
 
     let testCasesDirectory = Path.Combine("TestCases", "QirEntryPointTests")
 
     [<Theory>]
-    [<InlineData("UseManyArgsWithValues")>]
+    [<InlineData("UseMiscArgs")>]
     [<InlineData("UseBoolArgWithValues")>]
     [<InlineData("UseIntegerArgWithValues")>]
     [<InlineData("UseDoubleArgWithValues")>]
@@ -30,9 +28,7 @@ type QirDriverGenerationTests(output: ITestOutputHelper) =
     [<InlineData("UseRangeArrayArgWithValues")>]
     [<InlineData("UseResultArrayArgWithValues")>]
     member this.GenerateArgs(testFileName: string) =
+        let executionInformation = SampleExecutionInfoHelper.sampleExecutionInformation.[testFileName]
         let expectedArgs = (Path.Join(testCasesDirectory, (testFileName + ".txt")) |> File.ReadAllText).Trim()
-        let entryPointOperationJson = Path.Join(testCasesDirectory, (testFileName + ".json")) |> File.ReadAllText
-        let entryPointOperationMs = new MemoryStream(Encoding.UTF8.GetBytes(entryPointOperationJson))
-        let entryPointOperation = Protocols.DeserializeFromJson(entryPointOperationMs)
-        let generatedArgs = QirDriverGeneration.GenerateCommandLineArguments(entryPointOperation.Arguments)
+        let generatedArgs = QirDriverGeneration.GenerateCommandLineArguments(executionInformation)
         Assert.Equal(expectedArgs, generatedArgs)

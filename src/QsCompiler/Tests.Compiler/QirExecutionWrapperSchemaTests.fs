@@ -8,12 +8,11 @@ open System.IO
 open Bond
 open Xunit
 open Xunit.Abstractions
-open Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint
-open Microsoft.Quantum.QsCompiler.BondSchemas.QirExecutionWrapper
+open Microsoft.Quantum.QsCompiler.BondSchemas.Execution
 
 type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
 
-    let createEntryPointOperation () =
+    let createExecutionInformation () =
         let expectedEntryPointOperation = new EntryPointOperation()
         let argument = new Argument()
         argument.Name <- "argument name"
@@ -22,7 +21,11 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
         arguments.Add(argument)
         expectedEntryPointOperation.Arguments <- arguments
         expectedEntryPointOperation.Name <- "operation name"
-        expectedEntryPointOperation
+        let executionInformation = new ExecutionInformation()
+        executionInformation.EntryPoint <- expectedEntryPointOperation
+        executionInformation.ArgumentValues <- new Dictionary<string, ArgumentValue>()
+        executionInformation.ArgumentValues.["argument name"] <- new ArgumentValue(Integer = int64(4))
+        executionInformation
 
     let createBytecode () =
         let bytes = Array.init 10 (fun i -> byte (i * i))
@@ -32,14 +35,14 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
     member this.SerializeAndDeserializeInFastBinary() =
         let qirWrapper = new QirExecutionWrapper()
         let bytecode = createBytecode ()
-        let entryPoint = createEntryPointOperation ()
-        qirWrapper.EntryPoint <- entryPoint
+        qirWrapper.Executions<- new List<ExecutionInformation>()
+        qirWrapper.Executions.Add(createExecutionInformation())
         qirWrapper.QirBytecode <- bytecode
         let memoryStream = new MemoryStream()
 
         // Serialize input.
-        Protocols.SerializeToFastBinary(qirWrapper, memoryStream)
+        Protocols.SerializeQirExecutionWrapperToFastBinary(qirWrapper, memoryStream)
 
         // Deserialize and confirm that it is correct.
-        let deserializedQirWrapper = Protocols.DeserializeFromFastBinary(memoryStream)
+        let deserializedQirWrapper = Protocols.DeserializeQirExecutionWrapperFromFastBinary(memoryStream)
         Assert.True(Extensions.ValueEquals(deserializedQirWrapper, qirWrapper))

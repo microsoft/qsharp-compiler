@@ -9,7 +9,7 @@
 // ------------------------------------------------------------------------------
 namespace Microsoft.Quantum.QsCompiler.Templates
 {
-    using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
+    using Microsoft.Quantum.QsCompiler.BondSchemas.Execution;
     using System;
     
     /// <summary>
@@ -115,10 +115,10 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
                     "");
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             this.Write("( // NOLINT\r\n");
- for (int i = 0; i < entryPointOperation.InteropArguments.Count; i++) {
-    var arg = entryPointOperation.InteropArguments[i];
+ for (int i = 0; i < entryPointOperation.Arguments.Count; i++) {
+    var arg = entryPointOperation.Arguments[i];
     Write($"    {arg.CppType()} {arg.InteropVariableName()}");
-    if (i < entryPointOperation.InteropArguments.Count-1) {
+    if (i < entryPointOperation.Arguments.Count-1) {
         WriteLine(",");
     }
 } 
@@ -126,13 +126,13 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
  if (entryPointOperation.ContainsArgumentType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { 
             this.Write("\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\nmap<" +
                     "string, bool> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCpp.DataTypeTransformerMapName(DataType.BoolType)));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCppExtensions.DataTypeTransformerMapName(DataType.BoolType)));
             this.Write("{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", InteropFalseAsChar},\r\n    {\"1\", " +
                     "InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}};\r\n");
  } 
  if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
             this.Write("\r\nmap<string, PauliId> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCpp.DataTypeTransformerMapName(DataType.PauliType)));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCppExtensions.DataTypeTransformerMapName(DataType.PauliType)));
             this.Write("{\r\n    {\"PauliI\", PauliId::PauliId_I},\r\n    {\"PauliX\", PauliId::PauliId_X},\r\n    " +
                     "{\"PauliY\", PauliId::PauliId_Y},\r\n    {\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\n\r\nchar " +
                     "TranslatePauliToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli);\r\n}" +
@@ -141,7 +141,7 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
  if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { 
             this.Write("\r\nconst char InteropResultZeroAsChar = 0x0;\r\nconst char InteropResultOneAsChar = " +
                     "0x1;\r\nmap<string, char> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCpp.DataTypeTransformerMapName(DataType.ResultType)));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCppExtensions.DataTypeTransformerMapName(DataType.ResultType)));
             this.Write("{\r\n    {\"0\", InteropResultZeroAsChar},\r\n    {\"Zero\", InteropResultZeroAsChar},\r\n " +
                     "   {\"1\", InteropResultOneAsChar},\r\n    {\"One\", InteropResultOneAsChar}\r\n};\r\n");
  } 
@@ -165,7 +165,7 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
         ""--simulation-output"", simulationOutputFile,
         ""File where the output produced during the simulation is written"");
 ");
- foreach (var arg in entryPointOperation.InteropArguments) {
+ foreach (var arg in entryPointOperation.Arguments) {
     WriteLine("");
     WriteLine($"    {arg.CppCliValueType()} {arg.CliValueVariableName()};"); 
     if (arg.CppCliVariableInitialValue() != null) {
@@ -181,7 +181,7 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
 } 
             this.Write("\r\n    // With all the options added, parse arguments from the command line.\r\n    " +
                     "CLI11_PARSE(app, argc, argv);\r\n\r\n");
- foreach (var arg in entryPointOperation.InteropArguments) {
+ foreach (var arg in entryPointOperation.Arguments) {
     switch (arg.Type) {
         case DataType.PauliType:
             WriteLine("    // Translate a PauliID value to its char representation.");
@@ -240,8 +240,8 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     ");
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             this.Write("(\r\n");
- for (int i = 0; i < entryPointOperation.InteropArguments.Count; i++) {
-    var arg = entryPointOperation.InteropArguments[i];
+ for (int i = 0; i < entryPointOperation.Arguments.Count; i++) {
+    var arg = entryPointOperation.Arguments[i];
     switch (arg.Type) {
         case DataType.StringType:
             Write($"        {arg.InteropVariableName()}.c_str()");
@@ -254,12 +254,12 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
             Write($"        {arg.InteropVariableName()}");
             break;
     }
-    if (i < entryPointOperation.InteropArguments.Count-1 ) {
+    if (i < entryPointOperation.Arguments.Count-1 ) {
         WriteLine(",");
     }
 } 
             this.Write("\r\n    );\r\n\r\n");
- foreach (var arg in entryPointOperation.InteropArguments) {
+ foreach (var arg in entryPointOperation.Arguments) {
     if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
         Write($"    FreePointerVector({arg.IntermediateVariableName()});");
     }
