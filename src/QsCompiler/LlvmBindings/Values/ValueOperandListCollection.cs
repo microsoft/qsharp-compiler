@@ -1,5 +1,5 @@
 ﻿// -----------------------------------------------------------------------
-// <copyright company="Ubiquity.NET Contributors">
+// <copyright file="ValueOperandListCollection.cs" company="Ubiquity.NET Contributors">
 // Copyright (c) Ubiquity.NET Contributors. All rights reserved.
 // Portions Copyright (c) Microsoft Corporation
 // </copyright>

@@ -10,9 +10,11 @@ entry:
   %3 = getelementptr inbounds { double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* %1, i32 0, i32 1
   %4 = getelementptr inbounds { double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* %1, i32 0, i32 2
   %5 = getelementptr inbounds { double, i64, %BigInt*, i64 }, { double, i64, %BigInt*, i64 }* %1, i32 0, i32 3
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %bi, i32 1)
   store double %d, double* %2, align 8
   store i64 %i, i64* %3, align 4
   store %BigInt* %bi, %BigInt** %4, align 8
   store i64 %t, i64* %5, align 4
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %bi, i32 -1)
   ret { double, i64, %BigInt*, i64 }* %1
 }

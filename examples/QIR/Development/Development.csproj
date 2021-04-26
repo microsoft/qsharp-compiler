@@ -1,0 +1,53 @@
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.15.2103133969">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <CSharpGeneration>false</CSharpGeneration>
+    <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
+  </PropertyGroup>
+    
+  <ItemGroup>
+    <None Include="qir\**" />
+    <Compile Remove="Main.cs" />
+  </ItemGroup>
+    
+  <ItemGroup>
+    <ProjectReference Include="..\..\..\src\QsCompiler\CommandLineTool\CommandLineTool.csproj">
+      <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\src\QsCompiler\QirGeneration\QirGeneration.csproj" IsQscReference="true" />
+  </ItemGroup>
+
+  <!--
+  Providing these targets is usually not needed;
+  we just do that here to make sure the Q# compilation is executed even when the Q# project did not change,
+  and files with the generated QIR are deleted when the project is cleaned
+  despite that we added them in a way that displays them as part of the project.
+  -->
+    
+  <Target Name="CleanAll" BeforeTargets="QSharpClean">
+    <ItemGroup>
+      <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
+      <_FilesToClean Include="$(QirOutputPath)**/*.ll" />
+      <Compile Remove="$(_FilesToClean)**/*.g.cs" />
+    </ItemGroup>
+    <Delete Files="@(_FilesToClean)" />
+  </Target>
+
+  <Target Name="BeforeQSharpCompile" DependsOnTargets="CleanAll">
+    <Message Text="Removed files from prior compilation." Importance="High" />
+  </Target>
+
+  <Target Name="BeforeCSharpCompile">
+    <ItemGroup>
+      <Compile Include="Main.cs">
+        <Visible>false</Visible>
+      </Compile>
+    </ItemGroup>
+  </Target>
+
+</Project>

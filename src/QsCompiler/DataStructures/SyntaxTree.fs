@@ -119,35 +119,114 @@ type QsLocation =
 
 
 /// used to represent the use of a type parameter within a fully resolved Q# type
+[<CustomEquality>]
+[<CustomComparison>]
 type QsTypeParameter =
     // TODO: origin needs adapting if we ever allow to declare type parameters on specializations
     {
-        /// the qualified name of the callable the type parameter belongs to
+        /// The qualified name of the callable the type parameter belongs to.
         Origin: QsQualifiedName
-        /// the name of the type parameter
+
+        /// The name of the type parameter.
         TypeName: string
-        /// the range at which the type parameter occurs relative to the statement (or partial statement) root
-        /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
+
+        /// The source code range where the type parameter occurs. Null for auto-generated or inferred types. Range is
+        /// ignored when comparing type parameters.
+        // TODO: RELEASE 2021-10: Remove obsolete property.
+        [<Obsolete "Use ResolvedType.Range instead.">]
         Range: QsNullable<Range>
     }
 
+    interface IComparable with
+        member param1.CompareTo param2 =
+            match param2 with
+            | :? QsTypeParameter as param2 -> compare (param1.Origin, param1.TypeName) (param2.Origin, param2.TypeName)
+            | _ -> ArgumentException "Types are different." |> raise
+
+    override param1.Equals param2 =
+        match param2 with
+        | :? QsTypeParameter as param2 -> param1.Origin = param2.Origin && param1.TypeName = param2.TypeName
+        | _ -> false
+
+    override param.GetHashCode() = hash (param.Origin, param.TypeName)
+
+    /// <summary>
+    /// Returns a copy of this <see cref="QsTypeParameter"/> with updated fields.
+    /// </summary>
+    member param.With([<Optional; DefaultParameterValue null>] ?origin,
+                      [<Optional; DefaultParameterValue null>] ?typeName,
+                      [<Optional; DefaultParameterValue null>] ?range) =
+        { param with
+            Origin = defaultArg origin param.Origin
+            TypeName = defaultArg typeName param.TypeName
+            Range = defaultArg range param.Range
+        }
+
+    /// <summary>
+    /// Creates a new <see cref="QsTypeParameter"/>.
+    /// </summary>
+    static member New(origin, name) =
+        {
+            Origin = origin
+            TypeName = name
+            Range = Null
+        }
 
 /// used to represent the use of a user defined type within a fully resolved Q# type
+[<CustomEquality>]
+[<CustomComparison>]
 type UserDefinedType =
     {
-        /// the name of the namespace in which the type is declared
+        /// The name of the namespace in which the type is declared.
         Namespace: string
-        /// the name of the declared type
+
+        /// The name of the declared type.
         Name: string
-        /// the range at which the type occurs relative to the statement (or partial statement) root
-        /// -> is Null for auto-generated type information, i.e. in particular for inferred type information
+
+        /// The source code range where the user defined type name occurs. Null for auto-generated or inferred types.
+        /// Range is ignored when comparing user defined types.
+        // TODO: RELEASE 2021-10: Remove obsolete property.
+        [<Obsolete "Use ResolvedType.Range instead.">]
         Range: QsNullable<Range>
     }
+
+    interface IComparable with
+        member udt1.CompareTo udt2 =
+            match udt2 with
+            | :? UserDefinedType as udt2 -> compare (udt1.Namespace, udt1.Name) (udt2.Namespace, udt2.Name)
+            | _ -> ArgumentException "Types are different." |> raise
+
+    override udt1.Equals udt2 =
+        match udt2 with
+        | :? UserDefinedType as udt2 -> udt1.Namespace = udt2.Namespace && udt1.Name = udt2.Name
+        | _ -> false
+
+    override udt.GetHashCode() = hash (udt.Namespace, udt.Name)
 
     member this.GetFullName() =
         { Namespace = this.Namespace; Name = this.Name }
 
+    /// <summary>
+    /// Returns a copy of this <see cref="UserDefinedType"/> with updated fields.
+    /// </summary>
+    member udt.With([<Optional; DefaultParameterValue null>] ?ns,
+                    [<Optional; DefaultParameterValue null>] ?name,
+                    [<Optional; DefaultParameterValue null>] ?range) =
+        { udt with
+            Namespace = defaultArg ns udt.Namespace
+            Name = defaultArg name udt.Name
+            Range = defaultArg range udt.Range
+        }
 
+    /// <summary>
+    /// Creates a new <see cref="UserDefinedType"/>.
+    /// </summary>
+    static member New(ns, name) =
+        {
+            Namespace = ns
+            Name = name
+            Range = Null
+        }
 
 /// Fully resolved operation characteristics used to describe the properties of a Q# callable.
 /// A resolved characteristic expression by construction never contains an empty or invalid set as inner expressions,
@@ -342,66 +421,158 @@ type CallableInformation =
 
         { Characteristics = commonCharacteristics; InferredInformation = inferredForAll }
 
+/// The source code range for a type.
+type TypeRange =
+    /// The type is annotated explicitly at the given range.
+    | Annotated of Range
+
+    /// The type is inferred from an expression or other piece of source code at the given range.
+    | Inferred of Range
+
+    /// The type is automatically generated and has no range.
+    | Generated
+
+module TypeRange =
+    /// <summary>
+    /// Creates an <see cref="Annotated"/> type range if a range is given, or the <see cref="Generated"/> type range
+    /// otherwise.
+    /// </summary>
+    let internal annotated = QsNullable<_>.Map Annotated >> QsNullable.defaultValue Generated
+
+    /// <summary>
+    /// Creates an <see cref="Inferred"/> type range if a range is given, or the <see cref="Generated"/> type range
+    /// otherwise.
+    /// </summary>
+    [<CompiledName "Inferred">]
+    let inferred = QsNullable<_>.Map Inferred >> QsNullable.defaultValue Generated
+
+    /// Returns the range if it exists.
+    [<CompiledName "TryRange">]
+    let tryRange =
+        function
+        | Annotated range
+        | Inferred range -> Value range
+        | Generated -> Null
+
+    /// <summary>
+    /// Returns the original type range if it is not generated, otherwise returns <paramref name="ifGenerated"/>.
+    /// </summary>
+    [<CompiledName "OrElse">]
+    let orElse ifGenerated =
+        function
+        | Annotated _
+        | Inferred _ as range -> range
+        | Generated -> ifGenerated
 
 /// Fully resolved Q# type.
 /// A Q# resolved type by construction never contains any arity-0 or arity-1 tuple types.
 /// User defined types are represented as UserDefinedTypes.
 /// Type parameters are represented as QsTypeParameters containing their origin and name.
+[<CustomEquality>]
+[<CustomComparison>]
 type ResolvedType =
     private
         {
-            // the private constructor enforces that the guarantees given for any instance of ResolvedType
-            // -> the static member New replaces the record constructor
-            _TypeKind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+            kind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>
+            range: TypeRange
         }
+
         interface ITuple
+
+        interface IComparable with
+            member this.CompareTo that =
+                match that with
+                | :? ResolvedType as that -> compare this.kind that.kind
+                | _ -> ArgumentException "Types are different." |> raise
+
+        override this.Equals that =
+            match that with
+            | :? ResolvedType as that -> this.kind = that.kind
+            | _ -> false
+
+        override this.GetHashCode() = hash this.kind
 
         /// Contains the fully resolved Q# type,
         /// where type parameters are represented as QsTypeParameters containing their origin (the namespace and the callable they belong to) and their name,
         /// and user defined types are resolved to their fully qualified name.
         /// By construction never contains any arity-0 or arity-1 tuple types.
-        member this.Resolution = this._TypeKind
+        member this.Resolution = this.kind
 
-        /// <summary>
-        /// Builds a ResolvedType based on a compatible Q# type kind, and replaces the (inaccessible) record constructor.
-        /// Replaces an arity-1 tuple by its item type.
-        /// </summary>
-        /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
-        static member New kind = ResolvedType.New(false, kind)
+        /// The source code range where this type originated. Range is ignored when comparing resolved types.
+        member this.Range = this.range
 
-        static member internal New(keepRangeInfo,
-                                   kind: QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>) =
-            match kind with
-            | QsTypeKind.TupleType ts when ts.Length = 0 ->
-                ArgumentException "tuple type requires at least one item" |> raise
-            | QsTypeKind.TupleType ts when ts.Length = 1 -> ts.[0]
-            | QsTypeKind.UserDefinedType udt when not keepRangeInfo ->
-                { _TypeKind = UserDefinedType { udt with Range = Null } }
-            | QsTypeKind.TypeParameter tp when not keepRangeInfo ->
-                { _TypeKind = TypeParameter { tp with Range = Null } }
-            | _ -> { _TypeKind = kind }
+module ResolvedType =
+    /// <summary>
+    /// Replaces singleton tuple types with its contained type.
+    /// </summary>
+    /// <exception cref="ArgumentException">The type kind is an empty tuple.</exception>
+    let private normalizeTuple =
+        function
+        | TupleType items when items.IsEmpty -> ArgumentException "Tuple is empty." |> raise
+        | TupleType items when items.Length = 1 -> (items.[0]: ResolvedType).Resolution
+        | kind -> kind
 
-        /// Given a map that for a type parameter returns the corresponding resolved type it is supposed to be replaced with,
-        /// replaces the type parameters in the given type with their resolutions.
-        static member ResolveTypeParameters (resolutions: ImmutableDictionary<_, _>) (t: ResolvedType) =
-            let inner = ResolvedType.ResolveTypeParameters resolutions
+    /// <summary>
+    /// Creates a resolved type with no source code range.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="kind"/> is an empty tuple.</exception>
+    [<CompiledName "Create">]
+    let create range kind =
+        { kind = normalizeTuple kind; range = range }
 
-            if resolutions.IsEmpty then
-                t
-            else
-                match t.Resolution with
-                | QsTypeKind.TypeParameter tp ->
-                    match resolutions.TryGetValue((tp.Origin, tp.TypeName)) with
-                    | true, res -> res
-                    | false, _ -> t
-                | QsTypeKind.TupleType ts ->
-                    ts |> Seq.map inner |> fun x -> x.ToImmutableArray() |> TupleType |> ResolvedType.New
-                | QsTypeKind.ArrayType b -> inner b |> ArrayType |> ResolvedType.New
-                | QsTypeKind.Function (it, ot) -> (inner it, inner ot) |> QsTypeKind.Function |> ResolvedType.New
-                | QsTypeKind.Operation ((it, ot), fList) ->
-                    ((inner it, inner ot), fList) |> QsTypeKind.Operation |> ResolvedType.New
-                | _ -> t
+    /// <summary>
+    /// Replaces the type kind of <paramref name="resolvedType"/> with <paramref name="kind"/>.
+    /// </summary>
+    [<CompiledName "WithKind">]
+    let withKind kind resolvedType =
+        { resolvedType with kind = normalizeTuple kind }
 
+    /// <summary>
+    /// Replaces the range of <paramref name="resolvedType"/> with <paramref name="range"/>.
+    /// </summary>
+    [<CompiledName "WithRange">]
+    let withRange range resolvedType = { resolvedType with range = range }
+
+    /// <summary>
+    /// Recursively replaces every range in <paramref name="resolvedType"/> with <paramref name="range"/>.
+    /// </summary>
+    [<CompiledName "WithAllRanges">]
+    let rec withAllRanges range (resolvedType: ResolvedType) =
+        match resolvedType.Resolution with
+        | ArrayType item -> withAllRanges range item |> ArrayType
+        | TupleType items -> items |> Seq.map (withAllRanges range) |> ImmutableArray.CreateRange |> TupleType
+        | QsTypeKind.Operation ((input, output), info) ->
+            QsTypeKind.Operation((withAllRanges range input, withAllRanges range output), info)
+        | QsTypeKind.Function (input, output) ->
+            QsTypeKind.Function(withAllRanges range input, withAllRanges range output)
+        | kind -> kind
+        |> create range
+
+type ResolvedType with
+    /// <summary>
+    /// Creates a resolved type with no source code range.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="kind"/> is an empty tuple.</exception>
+    static member New kind = ResolvedType.create Generated kind
+
+    /// Given a map that for a type parameter returns the corresponding resolved type it is supposed to be replaced with,
+    /// replaces the type parameters in the given type with their resolutions.
+    static member ResolveTypeParameters (resolutions: ImmutableDictionary<_, _>) (t: ResolvedType) =
+        let inner = ResolvedType.ResolveTypeParameters resolutions
+
+        match t.Resolution with
+        | _ when resolutions.IsEmpty -> t
+        | QsTypeKind.TypeParameter tp ->
+            match resolutions.TryGetValue((tp.Origin, tp.TypeName)) with
+            | true, res -> res
+            | false, _ -> t
+        | QsTypeKind.TupleType ts ->
+            t |> ResolvedType.withKind (ts |> Seq.map inner |> ImmutableArray.CreateRange |> TupleType)
+        | QsTypeKind.ArrayType b -> t |> ResolvedType.withKind (inner b |> ArrayType)
+        | QsTypeKind.Function (it, ot) -> t |> ResolvedType.withKind (QsTypeKind.Function(inner it, inner ot))
+        | QsTypeKind.Operation ((it, ot), fList) ->
+            t |> ResolvedType.withKind (QsTypeKind.Operation((inner it, inner ot), fList))
+        | _ -> t
 
 /// used to represent information on typed expressions generated and/or tracked during compilation
 type InferredExpressionInformation =
@@ -468,41 +639,46 @@ type ResolvedInitializer =
         {
             // the private constructor enforces that the guarantees given for any instance of ResolvedInitializer
             // -> the static member New replaces the record constructor
-            _InitializerKind: QsInitializerKind<ResolvedInitializer, TypedExpression>
-            _ResolvedType: ResolvedType
+            kind: QsInitializerKind<ResolvedInitializer, TypedExpression>
+            resolvedType: ResolvedType
         }
+
         interface ITuple
 
         /// Contains the fully resolved Q# initializer.
         /// By construction never contains any arity-0 or arity-1 tuple types.
-        member this.Resolution = this._InitializerKind
+        member this.Resolution = this.kind
 
         /// the fully resolved Q# type of the initializer.
-        member this.Type = this._ResolvedType
+        member this.Type = this.resolvedType
 
-        /// <summary>
-        /// Builds a ResolvedInitializer based on a compatible Q# initializer kind, and replaces the (inaccessible) record constructor.
-        /// Replaces an arity-1 tuple by its item type.
-        /// </summary>
-        /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
-        static member New(kind: QsInitializerKind<ResolvedInitializer, TypedExpression>) =
-            let qArrayT = Qubit |> ResolvedType.New |> ArrayType |> ResolvedType.New
+module ResolvedInitializer =
+    let create range kind =
+        let arrayType = Qubit |> ResolvedType.create range |> ArrayType |> ResolvedType.create range
 
-            let buildTupleType is =
-                TupleType((is |> Seq.map (fun x -> x._ResolvedType)).ToImmutableArray()) |> ResolvedType.New
+        let tupleType =
+            Seq.map (fun init -> init.resolvedType)
+            >> ImmutableArray.CreateRange
+            >> TupleType
+            >> ResolvedType.create range
 
-            match kind with
-            | QsInitializerKind.QubitTupleAllocation is when is.Length = 0 ->
-                ArgumentException "tuple initializer requires at least one item" |> raise
-            | QsInitializerKind.QubitTupleAllocation is when is.Length = 1 -> is.[0]
-            | QsInitializerKind.QubitTupleAllocation is ->
-                { _InitializerKind = kind; _ResolvedType = buildTupleType is }
-            | QsInitializerKind.QubitRegisterAllocation _ -> { _InitializerKind = kind; _ResolvedType = qArrayT }
-            | QsInitializerKind.SingleQubitAllocation ->
-                { _InitializerKind = kind; _ResolvedType = Qubit |> ResolvedType.New }
-            | QsInitializerKind.InvalidInitializer ->
-                { _InitializerKind = kind; _ResolvedType = InvalidType |> ResolvedType.New }
+        match kind with
+        | QsInitializerKind.QubitTupleAllocation items when items.IsEmpty ->
+            ArgumentException "Tuple initializer is empty." |> raise
+        | QsInitializerKind.QubitTupleAllocation items when items.Length = 1 -> items.[0]
+        | QsInitializerKind.QubitTupleAllocation items -> { kind = kind; resolvedType = tupleType items }
+        | QsInitializerKind.QubitRegisterAllocation _ -> { kind = kind; resolvedType = arrayType }
+        | QsInitializerKind.SingleQubitAllocation -> { kind = kind; resolvedType = ResolvedType.create range Qubit }
+        | QsInitializerKind.InvalidInitializer -> { kind = kind; resolvedType = ResolvedType.create range InvalidType }
 
+type ResolvedInitializer with
+    /// <summary>
+    /// Builds a ResolvedInitializer based on a compatible Q# initializer kind, and replaces the (inaccessible) record constructor.
+    /// Replaces an arity-1 tuple by its item type.
+    /// </summary>
+    /// <exception cref="ArgumentException">The given type kind is an empty tuple.</exception>
+    static member New kind =
+        ResolvedInitializer.create Generated kind
 
 type LocalVariableDeclaration<'Name> =
     {
@@ -739,17 +915,35 @@ type QsLocalSymbol =
 type QsDeclarationAttribute =
     {
         /// Identifies the user defined type that the attribute instantiates.
-        /// The range information describes the range occupied by the attribute identifier relative to the attribute offset.
         /// Is Null only if the correct attribute could not be determined. Attributes set to Null should be ignored.
         TypeId: QsNullable<UserDefinedType>
+
+        /// <summary>
+        /// The range of <see cref="TypeId"/> relative to <see cref="Offset"/>.
+        /// </summary>
+        TypeIdRange: QsNullable<Range>
+
         /// Contains the argument with which the attribute is instantiated.
         Argument: TypedExpression
+
         /// Represents the position in the source file where the attribute is used.
         Offset: Position
+
         /// contains comments in the code associated with the attached attribute
         Comments: QsComments
     }
 
+    /// <summary>
+    /// Creates a new <see cref="QsDeclarationAttribute"/>.
+    /// </summary>
+    static member New(typeId, typeIdRange, argument, offset, comments) =
+        {
+            TypeId = typeId
+            TypeIdRange = typeIdRange
+            Argument = argument
+            Offset = offset
+            Comments = comments
+        }
 
 /// Fully resolved Q# callable signature
 type ResolvedSignature =
