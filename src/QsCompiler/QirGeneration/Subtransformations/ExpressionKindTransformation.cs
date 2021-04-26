@@ -912,6 +912,40 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return callable;
         }
 
+        /// <summary>
+        /// Creates an array of the given size and populates each element with the given <paramref name="itemValue"/>,
+        /// increasing its reference count accordingly. The type of the created array is the current expression type.
+        /// Registers the contructed array with the scope manager.
+        /// </summary>
+        /// <exception cref="InvalidOperationException">The type of the current expression is not an array type.</exception>
+        private ResolvedExpressionKind CreateAndPopulateArray(TypedExpression sizeEx, IValue itemValue)
+        {
+            var elementType = this.SharedState.CurrentExpressionType().Resolution is ResolvedTypeKind.ArrayType et
+                ? et.Item
+                : throw new InvalidOperationException("current expression is expected to be an array");
+
+            var size = this.SharedState.EvaluateSubexpression(sizeEx);
+            var array = this.SharedState.Values.CreateArray(size.Value, elementType);
+            this.SharedState.ValueStack.Push(array);
+            if (array.Length == this.SharedState.Context.CreateConstant(0L))
+            {
+                return ResolvedExpressionKind.InvalidExpr;
+            }
+
+            // We need to populate the array
+            var start = this.SharedState.Context.CreateConstant(0L);
+            var end = this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
+            void PopulateItem(Value index)
+            {
+                // We need to make sure that the reference count for the built item is increased by 1.
+                this.SharedState.ScopeMgr.OpenScope();
+                array.GetArrayElementPointer(index).StoreValue(itemValue);
+                this.SharedState.ScopeMgr.CloseScope(itemValue);
+            }
+            this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
+            return ResolvedExpressionKind.InvalidExpr;
+        }
+
         // public overrides
 
         public override ResolvedExpressionKind OnAddition(TypedExpression lhsEx, TypedExpression rhsEx)
@@ -1810,7 +1844,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        public override ResolvedExpressionKind OnNewArray(ResolvedType elementType, TypedExpression lengthEx)
+        public override ResolvedExpressionKind OnSizedArray(TypedExpression ex, TypedExpression size)
+        {
+            var itemValue = this.SharedState.EvaluateSubexpression(ex);
+            return this.CreateAndPopulateArray(size, itemValue);
+        }
+
+        public override ResolvedExpressionKind OnNewArray(ResolvedType elementType, TypedExpression size)
         {
             IValue DefaultValue(ResolvedType type)
             {
@@ -1904,28 +1944,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            // TODO: new multi-dimensional arrays
-            var length = this.SharedState.EvaluateSubexpression(lengthEx);
-            var array = this.SharedState.Values.CreateArray(length.Value, elementType);
-            this.SharedState.ValueStack.Push(array);
-            if (array.Length == this.SharedState.Context.CreateConstant(0L))
-            {
-                return ResolvedExpressionKind.InvalidExpr;
-            }
-
-            // We need to populate the array
-            var start = this.SharedState.Context.CreateConstant(0L);
-            var end = this.SharedState.CurrentBuilder.Sub(array.Length, this.SharedState.Context.CreateConstant(1L));
-            void PopulateItem(Value index)
-            {
-                // We need to make sure that the reference count for the built item is increased by 1.
-                this.SharedState.ScopeMgr.OpenScope();
-                var value = DefaultValue(elementType);
-                this.SharedState.ScopeMgr.CloseScope(value);
-                array.GetArrayElementPointer(index).StoreValue(value);
-            }
-            this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
-            return ResolvedExpressionKind.InvalidExpr;
+            var defaultValue = DefaultValue(elementType);
+            return this.CreateAndPopulateArray(size, defaultValue);
         }
 
         public override ResolvedExpressionKind OnOperationCall(TypedExpression method, TypedExpression arg)
