@@ -111,9 +111,9 @@ let qsZero = addKeywordLiteral Literals.Zero
 let qsOne = addKeywordLiteral Literals.One
 
 /// keyword for a Q# literal (QsReservedKeyword)
-let qsTrue = addKeyword Literals.True
+let qsTrue = addKeywordLiteral Literals.True
 /// keyword for a Q# literal (QsReservedKeyword)
-let qsFalse = addKeyword Literals.False
+let qsFalse = addKeywordLiteral Literals.False
 
 // Qs functors
 
