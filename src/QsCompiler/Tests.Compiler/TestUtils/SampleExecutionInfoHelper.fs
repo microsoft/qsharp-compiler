@@ -83,9 +83,7 @@ let sampleExecutionInformation =
         .empty
         .Add("UseNoArgs",
              createExecutionInformation
-                 (createEntryPointOperation
-                     ("UseNoArgs", [ ]),
-                 new Dictionary<string, ArgumentValue>()))
+                 (createEntryPointOperation ("UseNoArgs", []), new Dictionary<string, ArgumentValue>()))
         .Add("UseBoolArgWithValues",
              createExecutionInformation
                  (createEntryPointOperation
