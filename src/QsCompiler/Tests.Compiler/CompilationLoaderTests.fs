@@ -26,9 +26,10 @@ type CompilationLoaderTests(output: ITestOutputHelper) =
     let testCases =
         File.ReadAllText testFile
         |> fun text -> Environment.NewLine + "// ---" |> text.Split
-        |> Seq.map (fun case ->
-            let parts = case.Split(Environment.NewLine, 2)
-            parts.[0].Trim(), parts.[1])
+        |> Seq.map
+            (fun case ->
+                let parts = case.Split(Environment.NewLine, 2)
+                parts.[0].Trim(), parts.[1])
         |> Map.ofSeq
 
     /// <summary>

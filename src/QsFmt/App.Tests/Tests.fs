@@ -52,11 +52,11 @@ let private run args input =
 
 [<Fact>]
 let ``Shows help with no arguments`` () =
-    Assert.Equal
-        ({
-             Code = 2
-             Out = ""
-             Error = "ERROR: missing argument '<string>'.
+    Assert.Equal(
+        {
+            Code = 2
+            Out = ""
+            Error = "ERROR: missing argument '<string>'.
 
 INPUT:
 
@@ -66,8 +66,9 @@ OPTIONS:
 
     --help                Display this list of options.
 "
-         },
-         run [||] "")
+        },
+        run [||] ""
+    )
 
 [<Theory>]
 [<InlineData("Example.qs",
@@ -78,13 +79,14 @@ OPTIONS:
 }
 ")>]
 let ``Formats file`` path output =
-    Assert.Equal
-        ({
-             Code = 0
-             Out = output
-             Error = ""
-         },
-         run [| path |] "")
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output
+            Error = ""
+        },
+        run [| path |] ""
+    )
 
 [<Theory>]
 [<InlineData("namespace Foo { function Bar() : Int { return 0; } }\n",
@@ -95,26 +97,28 @@ let ``Formats file`` path output =
 }
 ")>]
 let ``Formats standard input`` input output =
-    Assert.Equal
-        ({
-             Code = 0
-             Out = output
-             Error = ""
-         },
-         run [| "-" |] input)
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output
+            Error = ""
+        },
+        run [| "-" |] input
+    )
 
 [<Theory>]
 [<InlineData("namespace Foo { invalid syntax; } ",
              "Line 1, column 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
 ")>]
 let ``Shows syntax errors`` input errors =
-    Assert.Equal
-        ({
-             Code = 1
-             Out = ""
-             Error = errors
-         },
-         run [| "-" |] input)
+    Assert.Equal(
+        {
+            Code = 1
+            Out = ""
+            Error = errors
+        },
+        run [| "-" |] input
+    )
 
 [<Theory>]
 [<InlineData "NotFound.qs">]

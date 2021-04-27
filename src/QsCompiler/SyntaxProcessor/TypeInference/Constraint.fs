@@ -23,7 +23,7 @@ type internal Constraint =
 
 module internal Constraint =
     /// Pretty prints a type.
-    let private prettyType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
+    let private prettyType : ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
     let types =
         function

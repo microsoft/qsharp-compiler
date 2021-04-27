@@ -32,16 +32,17 @@ let private onAutoInvertCheckQuantumDependency (symbols: SymbolTracker) (expr: T
     [|
         if symbols.RequiredFunctorSupport.Contains Adjoint
            && expr.InferredInformation.HasLocalQuantumDependency then
-            QsCompilerDiagnostic.Error (ErrorCode.QuantumDependencyOutsideExprStatement, []) (rangeOrDefault expr)
+            QsCompilerDiagnostic.Error(ErrorCode.QuantumDependencyOutsideExprStatement, []) (rangeOrDefault expr)
     |]
 
 /// If the given SymbolTracker specifies that an auto-inversion of the routine is requested,
 /// returns an array with containing a diagnostic for the given range with the given error code.
 /// Returns an empty array otherwise.
 let private onAutoInvertGenerateError (errCode, range) (symbols: SymbolTracker) =
-    if symbols.RequiredFunctorSupport.Contains Adjoint
-    then [| range |> QsCompilerDiagnostic.Error errCode |]
-    else [||]
+    if symbols.RequiredFunctorSupport.Contains Adjoint then
+        [| range |> QsCompilerDiagnostic.Error errCode |]
+    else
+        [||]
 
 // utils for building QsStatements from QsFragmentKinds
 
@@ -107,12 +108,12 @@ let rec private VerifyBinding (inference: InferenceContext) tryBuildDeclaration 
     match symbol.Symbol with
     | InvalidSymbol -> InvalidItem, [||], [||]
     | MissingSymbol when warnOnDiscard ->
-        let warning = QsCompilerDiagnostic.Warning (WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
+        let warning = QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
         DiscardedItem, [||], [| warning |]
     | MissingSymbol -> DiscardedItem, [||], [||]
     | OmittedSymbols
     | QualifiedSymbol _ ->
-        let error = QsCompilerDiagnostic.Error (ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
+        let error = QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
         InvalidItem, [||], [| error |]
     | Symbol name ->
         match tryBuildDeclaration (name, symbol.RangeOrDefault) (rhsType) with
@@ -153,7 +154,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
     verifyAssignment context.Inference lhs.ResolvedType ErrorCode.TypeMismatchInValueUpdate rhs
     |> diagnostics.AddRange
 
-    let rec verifyMutability: TypedExpression -> _ =
+    let rec verifyMutability : TypedExpression -> _ =
         function
         | Tuple exs -> exs |> Seq.iter verifyMutability
         | Item ex when ex.InferredInformation.IsMutable ->
@@ -161,7 +162,7 @@ let NewValueUpdate comments (location: QsLocation) context (lhs, rhs) =
             | Identifier (LocalVariable id, Null) -> context.Symbols.UpdateQuantumDependency id localQdep
             | _ -> ()
         | Item ex ->
-            QsCompilerDiagnostic.Error (ErrorCode.UpdateOfImmutableIdentifier, []) (ex.Range.ValueOr Range.Zero)
+            QsCompilerDiagnostic.Error(ErrorCode.UpdateOfImmutableIdentifier, []) (ex.Range.ValueOr Range.Zero)
             |> diagnostics.Add
         | _ -> () // both missing and invalid expressions on the lhs are fine
 
@@ -342,8 +343,9 @@ let NewConjugation (outer: QsPositionedBlock, inner: QsPositionedBlock) =
         updatedInInner
         |> Seq.filter (fun updated -> usedInOuter.Contains updated.Key)
         |> Seq.collect id
-        |> Seq.map (fun loc ->
-            loc.Offset + loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.InvalidReassignmentInApplyBlock, []))
+        |> Seq.map
+            (fun loc ->
+                loc.Offset + loc.Range |> QsCompilerDiagnostic.Error(ErrorCode.InvalidReassignmentInApplyBlock, []))
         |> Seq.toArray
 
     QsConjugation.New(outer, inner)

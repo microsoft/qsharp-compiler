@@ -51,7 +51,10 @@ type TypeParameterTests() =
     let AssertExpectedResolution expected given =
         Assert.True(CheckResolutionMatch expected given, "Given resolutions did not match the expected resolutions.")
 
-    let CheckCombinedResolution expected (resolutions: ImmutableDictionary<(QsQualifiedName * string), ResolvedType> []) =
+    let CheckCombinedResolution
+        expected
+        (resolutions: ImmutableDictionary<(QsQualifiedName * string), ResolvedType> [])
+        =
         let combination = TypeResolutionCombination(resolutions)
         AssertExpectedResolution expected combination.CombinedResolutionDictionary
         combination.IsValid
@@ -70,8 +73,12 @@ type TypeParameterTests() =
         new Uri(Path.GetFullPath(Path.GetRandomFileName()))
 
     let getManager uri content =
-        CompilationUnitManager.InitializeFileManager
-            (uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
+        CompilationUnitManager.InitializeFileManager(
+            uri,
+            content,
+            compilationManager.PublishDiagnostics,
+            compilationManager.LogException
+        )
 
     let ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText

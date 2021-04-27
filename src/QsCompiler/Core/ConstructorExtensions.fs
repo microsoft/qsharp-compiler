@@ -169,10 +169,11 @@ type ResolvedSignature with
         }
 
 type QsSpecialization with
-    static member New kind
-                      (source, location)
-                      (parent, attributes, typeArgs, signature, implementation, documentation, comments)
-                      =
+    static member New
+        kind
+        (source, location)
+        (parent, attributes, typeArgs, signature, implementation, documentation, comments)
+        =
         {
             Kind = kind
             Parent = parent
@@ -192,17 +193,11 @@ type QsSpecialization with
     static member NewControlledAdjoint = QsSpecialization.New QsControlledAdjoint
 
 type QsCallable with
-    static member New kind
-                      (source, location)
-                      (name,
-                       attributes,
-                       access,
-                       argTuple,
-                       signature,
-                       specializations: IEnumerable<_>,
-                       documentation,
-                       comments)
-                      =
+    static member New
+        kind
+        (source, location)
+        (name, attributes, access, argTuple, signature, specializations: IEnumerable<_>, documentation, comments)
+        =
         {
             Kind = kind
             FullName = name
@@ -251,7 +246,9 @@ type QsNamespaceElement with
     static member NewOperation loc =
         QsCallable.NewOperation loc >> QsCallable
 
-    static member NewFunction loc = QsCallable.NewFunction loc >> QsCallable
+    static member NewFunction loc =
+        QsCallable.NewFunction loc >> QsCallable
+
     static member NewType loc = QsCustomType.New loc >> QsCustomType
 
 type QsNamespace with

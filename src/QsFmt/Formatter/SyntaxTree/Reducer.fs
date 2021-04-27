@@ -10,14 +10,14 @@ type internal 'result Reducer() as reducer =
     /// Reduces a list of results into a single result.
     let reduce = curry reducer.Combine |> List.reduce
 
-    abstract Combine: 'result * 'result -> 'result
+    abstract Combine : 'result * 'result -> 'result
 
-    abstract Document: document:Document -> 'result
+    abstract Document : document: Document -> 'result
 
     default _.Document document =
         (document.Namespaces |> List.map reducer.Namespace) @ [ reducer.Terminal document.Eof ] |> reduce
 
-    abstract Namespace: ns:Namespace -> 'result
+    abstract Namespace : ns: Namespace -> 'result
 
     default _.Namespace ns =
         [
@@ -27,14 +27,14 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract NamespaceItem: item:NamespaceItem -> 'result
+    abstract NamespaceItem : item: NamespaceItem -> 'result
 
     default _.NamespaceItem item =
         match item with
         | CallableDeclaration callable -> reducer.CallableDeclaration callable
         | Unknown terminal -> reducer.Terminal terminal
 
-    abstract CallableDeclaration: callable:CallableDeclaration -> 'result
+    abstract CallableDeclaration : callable: CallableDeclaration -> 'result
 
     default _.CallableDeclaration callable =
         [
@@ -46,7 +46,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Type: typ:Type -> 'result
+    abstract Type : typ: Type -> 'result
 
     default _.Type typ =
         match typ with
@@ -59,12 +59,12 @@ type internal 'result Reducer() as reducer =
         | Callable callable -> reducer.CallableType callable
         | Type.Unknown terminal -> reducer.Terminal terminal
 
-    abstract TypeAnnotation: annotation:TypeAnnotation -> 'result
+    abstract TypeAnnotation : annotation: TypeAnnotation -> 'result
 
     default _.TypeAnnotation annotation =
         [ reducer.Terminal annotation.Colon; reducer.Type annotation.Type ] |> reduce
 
-    abstract ArrayType: array:ArrayType -> 'result
+    abstract ArrayType : array: ArrayType -> 'result
 
     default _.ArrayType array =
         [
@@ -74,7 +74,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract CallableType: callable:CallableType -> 'result
+    abstract CallableType : callable: CallableType -> 'result
 
     default _.CallableType callable =
         [
@@ -85,7 +85,7 @@ type internal 'result Reducer() as reducer =
         @ (callable.Characteristics |> Option.map reducer.CharacteristicSection |> Option.toList)
         |> reduce
 
-    abstract CharacteristicSection: section:CharacteristicSection -> 'result
+    abstract CharacteristicSection : section: CharacteristicSection -> 'result
 
     default _.CharacteristicSection section =
         [
@@ -94,7 +94,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract CharacteristicGroup: group:CharacteristicGroup -> 'result
+    abstract CharacteristicGroup : group: CharacteristicGroup -> 'result
 
     default _.CharacteristicGroup group =
         [
@@ -104,7 +104,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Characteristic: characteristic:Characteristic -> 'result
+    abstract Characteristic : characteristic: Characteristic -> 'result
 
     default _.Characteristic characteristic =
         match characteristic with
@@ -113,7 +113,7 @@ type internal 'result Reducer() as reducer =
         | Group group -> reducer.CharacteristicGroup group
         | Characteristic.BinaryOperator operator -> reducer.BinaryOperator(reducer.Characteristic, operator)
 
-    abstract Statement: statement:Statement -> 'result
+    abstract Statement : statement: Statement -> 'result
 
     default _.Statement statement =
         match statement with
@@ -123,7 +123,7 @@ type internal 'result Reducer() as reducer =
         | Else elses -> reducer.Else elses
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
-    abstract Let: lets:Let -> 'result
+    abstract Let : lets: Let -> 'result
 
     default _.Let lets =
         [
@@ -135,7 +135,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Return: returns:Return -> 'result
+    abstract Return : returns: Return -> 'result
 
     default _.Return returns =
         [
@@ -145,7 +145,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract If: ifs:If -> 'result
+    abstract If : ifs: If -> 'result
 
     default _.If ifs =
         [
@@ -155,7 +155,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Else: elses:Else -> 'result
+    abstract Else : elses: Else -> 'result
 
     default _.Else elses =
         [
@@ -164,21 +164,21 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract SymbolBinding: binding:SymbolBinding -> 'result
+    abstract SymbolBinding : binding: SymbolBinding -> 'result
 
     default _.SymbolBinding binding =
         match binding with
         | SymbolDeclaration declaration -> reducer.SymbolDeclaration declaration
         | SymbolTuple tuple -> reducer.Tuple(reducer.SymbolBinding, tuple)
 
-    abstract SymbolDeclaration: declaration:SymbolDeclaration -> 'result
+    abstract SymbolDeclaration : declaration: SymbolDeclaration -> 'result
 
     default _.SymbolDeclaration declaration =
         reducer.Terminal declaration.Name
         :: (declaration.Type |> Option.map reducer.TypeAnnotation |> Option.toList)
         |> reduce
 
-    abstract Expression: expression:Expression -> 'result
+    abstract Expression : expression: Expression -> 'result
 
     default _.Expression expression =
         match expression with
@@ -189,7 +189,7 @@ type internal 'result Reducer() as reducer =
         | Update update -> reducer.Update update
         | Expression.Unknown terminal -> reducer.Terminal terminal
 
-    abstract Update: update:Update -> 'result
+    abstract Update : update: Update -> 'result
 
     default _.Update update =
         [
@@ -201,28 +201,28 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Block: mapper:('a -> 'result) * block:'a Block -> 'result
+    abstract Block : mapper: ('a -> 'result) * block: 'a Block -> 'result
 
     default _.Block(mapper, block) =
         reducer.Terminal block.OpenBrace :: (block.Items |> List.map mapper)
         @ [ reducer.Terminal block.CloseBrace ]
         |> reduce
 
-    abstract Tuple: mapper:('a -> 'result) * tuple:'a Tuple -> 'result
+    abstract Tuple : mapper: ('a -> 'result) * tuple: 'a Tuple -> 'result
 
     default _.Tuple(mapper, tuple) =
         reducer.Terminal tuple.OpenParen :: (tuple.Items |> List.map (curry reducer.SequenceItem mapper))
         @ [ reducer.Terminal tuple.CloseParen ]
         |> reduce
 
-    abstract SequenceItem: mapper:('a -> 'result) * item:'a SequenceItem -> 'result
+    abstract SequenceItem : mapper: ('a -> 'result) * item: 'a SequenceItem -> 'result
 
     default _.SequenceItem(mapper, item) =
         (item.Item |> Option.map mapper |> Option.toList)
         @ (item.Comma |> Option.map reducer.Terminal |> Option.toList)
         |> reduce
 
-    abstract BinaryOperator: mapper:('a -> 'result) * operator:'a BinaryOperator -> 'result
+    abstract BinaryOperator : mapper: ('a -> 'result) * operator: 'a BinaryOperator -> 'result
 
     default _.BinaryOperator(mapper, operator) =
         [
@@ -232,4 +232,4 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract Terminal: terminal:Terminal -> 'result
+    abstract Terminal : terminal: Terminal -> 'result

@@ -45,34 +45,35 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // subconstructs used within declarations
 
-    abstract OnLocation: QsNullable<QsLocation> -> QsNullable<QsLocation>
+    abstract OnLocation : QsNullable<QsLocation> -> QsNullable<QsLocation>
     default this.OnLocation l = l
 
-    abstract OnDocumentation: ImmutableArray<string> -> ImmutableArray<string>
+    abstract OnDocumentation : ImmutableArray<string> -> ImmutableArray<string>
     default this.OnDocumentation doc = doc
 
     // TODO: RELEASE 2021-07: Remove NamespaceTransformationBase.OnSourceFile.
     [<Obsolete "Replaced by OnSource.">]
-    abstract OnSourceFile: string -> string
+    abstract OnSourceFile : string -> string
 
     default this.OnSourceFile file = file
 
-    abstract OnSource: Source -> Source
+    abstract OnSource : Source -> Source
 
     default this.OnSource source =
         let file = Source.assemblyOrCodeFile source |> this.OnSourceFile
 
-        if file.EndsWith ".qs"
-        then { source with CodeFile = file }
-        else { source with AssemblyFile = Value file }
+        if file.EndsWith ".qs" then
+            { source with CodeFile = file }
+        else
+            { source with AssemblyFile = Value file }
 
-    abstract OnAttribute: QsDeclarationAttribute -> QsDeclarationAttribute
+    abstract OnAttribute : QsDeclarationAttribute -> QsDeclarationAttribute
     default this.OnAttribute att = att
 
-    abstract OnItemName: string -> string
+    abstract OnItemName : string -> string
     default this.OnItemName name = name
 
-    abstract OnTypeItems: QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
+    abstract OnTypeItems : QsTuple<QsTypeItem> -> QsTuple<QsTypeItem>
 
     default this.OnTypeItems tItem =
         match tItem with
@@ -91,14 +92,14 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTupleItem << Named << LocalVariableDeclaration<_>.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
-    abstract OnArgumentName: QsLocalSymbol -> QsLocalSymbol
+    abstract OnArgumentName : QsLocalSymbol -> QsLocalSymbol
 
     default this.OnArgumentName arg =
         match arg with
         | ValidName name -> ValidName |> Node.BuildOr arg (this.Statements.OnVariableName name)
         | InvalidName -> arg
 
-    abstract OnArgumentTuple: QsArgumentTuple -> QsArgumentTuple
+    abstract OnArgumentTuple : QsArgumentTuple -> QsArgumentTuple
 
     default this.OnArgumentTuple arg =
         match arg with
@@ -114,7 +115,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             QsTupleItem << LocalVariableDeclaration<_>.New info.IsMutable
             |> Node.BuildOr original (loc, name, t, info.HasLocalQuantumDependency)
 
-    abstract OnSignature: ResolvedSignature -> ResolvedSignature
+    abstract OnSignature : ResolvedSignature -> ResolvedSignature
 
     default this.OnSignature(s: ResolvedSignature) =
         let typeParams = s.TypeParameters
@@ -126,32 +127,32 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // specialization declarations and implementations
 
-    abstract OnProvidedImplementation: QsArgumentTuple * QsScope -> QsArgumentTuple * QsScope
+    abstract OnProvidedImplementation : QsArgumentTuple * QsScope -> QsArgumentTuple * QsScope
 
     default this.OnProvidedImplementation(argTuple, body) =
         let argTuple = this.OnArgumentTuple argTuple
         let body = this.Statements.OnScope body
         argTuple, body
 
-    abstract OnSelfInverseDirective: unit -> unit
+    abstract OnSelfInverseDirective : unit -> unit
     default this.OnSelfInverseDirective() = ()
 
-    abstract OnInvertDirective: unit -> unit
+    abstract OnInvertDirective : unit -> unit
     default this.OnInvertDirective() = ()
 
-    abstract OnDistributeDirective: unit -> unit
+    abstract OnDistributeDirective : unit -> unit
     default this.OnDistributeDirective() = ()
 
-    abstract OnInvalidGeneratorDirective: unit -> unit
+    abstract OnInvalidGeneratorDirective : unit -> unit
     default this.OnInvalidGeneratorDirective() = ()
 
-    abstract OnExternalImplementation: unit -> unit
+    abstract OnExternalImplementation : unit -> unit
     default this.OnExternalImplementation() = ()
 
-    abstract OnIntrinsicImplementation: unit -> unit
+    abstract OnIntrinsicImplementation : unit -> unit
     default this.OnIntrinsicImplementation() = ()
 
-    abstract OnGeneratedImplementation: QsGeneratorDirective -> QsGeneratorDirective
+    abstract OnGeneratedImplementation : QsGeneratorDirective -> QsGeneratorDirective
 
     default this.OnGeneratedImplementation(directive: QsGeneratorDirective) =
         match directive with
@@ -168,7 +169,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             this.OnInvalidGeneratorDirective()
             InvalidGenerator
 
-    abstract OnSpecializationImplementation: SpecializationImplementation -> SpecializationImplementation
+    abstract OnSpecializationImplementation : SpecializationImplementation -> SpecializationImplementation
 
     default this.OnSpecializationImplementation(implementation: SpecializationImplementation) =
         let Build kind transformed =
@@ -193,8 +194,8 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
         let typeArgs =
             spec.TypeArguments
-            |> QsNullable<_>
-                .Map(fun args -> args |> Seq.map this.Statements.Expressions.Types.OnType |> ImmutableArray.CreateRange)
+            |> QsNullable<_>.Map
+                (fun args -> args |> Seq.map this.Statements.Expressions.Types.OnType |> ImmutableArray.CreateRange)
 
         let signature = this.OnSignature spec.Signature
         let impl = this.OnSpecializationImplementation spec.Implementation
@@ -204,19 +205,19 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         QsSpecialization.New spec.Kind (source, loc)
         |> Node.BuildOr spec (spec.Parent, attributes, typeArgs, signature, impl, doc, comments)
 
-    abstract OnBodySpecialization: QsSpecialization -> QsSpecialization
+    abstract OnBodySpecialization : QsSpecialization -> QsSpecialization
     default this.OnBodySpecialization spec = this.OnSpecializationKind spec
 
-    abstract OnAdjointSpecialization: QsSpecialization -> QsSpecialization
+    abstract OnAdjointSpecialization : QsSpecialization -> QsSpecialization
     default this.OnAdjointSpecialization spec = this.OnSpecializationKind spec
 
-    abstract OnControlledSpecialization: QsSpecialization -> QsSpecialization
+    abstract OnControlledSpecialization : QsSpecialization -> QsSpecialization
     default this.OnControlledSpecialization spec = this.OnSpecializationKind spec
 
-    abstract OnControlledAdjointSpecialization: QsSpecialization -> QsSpecialization
+    abstract OnControlledAdjointSpecialization : QsSpecialization -> QsSpecialization
     default this.OnControlledAdjointSpecialization spec = this.OnSpecializationKind spec
 
-    abstract OnSpecializationDeclaration: QsSpecialization -> QsSpecialization
+    abstract OnSpecializationDeclaration : QsSpecialization -> QsSpecialization
 
     default this.OnSpecializationDeclaration(spec: QsSpecialization) =
         match spec.Kind with
@@ -249,16 +250,16 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         QsCallable.New c.Kind (source, loc)
         |> Node.BuildOr c (c.FullName, attributes, c.Access, argTuple, signature, specializations, doc, comments)
 
-    abstract OnOperation: QsCallable -> QsCallable
+    abstract OnOperation : QsCallable -> QsCallable
     default this.OnOperation c = this.OnCallableKind c
 
-    abstract OnFunction: QsCallable -> QsCallable
+    abstract OnFunction : QsCallable -> QsCallable
     default this.OnFunction c = this.OnCallableKind c
 
-    abstract OnTypeConstructor: QsCallable -> QsCallable
+    abstract OnTypeConstructor : QsCallable -> QsCallable
     default this.OnTypeConstructor c = this.OnCallableKind c
 
-    abstract OnCallableDeclaration: QsCallable -> QsCallable
+    abstract OnCallableDeclaration : QsCallable -> QsCallable
 
     default this.OnCallableDeclaration(c: QsCallable) =
         match c.Kind with
@@ -266,7 +267,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
         | QsCallableKind.Operation -> this.OnOperation c
         | QsCallableKind.TypeConstructor -> this.OnTypeConstructor c
 
-    abstract OnTypeDeclaration: QsCustomType -> QsCustomType
+    abstract OnTypeDeclaration : QsCustomType -> QsCustomType
 
     default this.OnTypeDeclaration t =
         let source = this.OnSource t.Source
@@ -283,7 +284,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
 
     // transformation roots called on each namespace or namespace element
 
-    abstract OnNamespaceElement: QsNamespaceElement -> QsNamespaceElement
+    abstract OnNamespaceElement : QsNamespaceElement -> QsNamespaceElement
 
     default this.OnNamespaceElement element =
         if not options.Enable then
@@ -293,7 +294,7 @@ type NamespaceTransformationBase internal (options: TransformationOptions, _inte
             | QsCustomType t -> t |> this.OnTypeDeclaration |> QsCustomType
             | QsCallable c -> c |> this.OnCallableDeclaration |> QsCallable
 
-    abstract OnNamespace: QsNamespace -> QsNamespace
+    abstract OnNamespace : QsNamespace -> QsNamespace
 
     default this.OnNamespace ns =
         if not options.Enable then
