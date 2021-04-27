@@ -65,33 +65,34 @@ condContinue__2:                                  ; preds = %condFalse__2, %cond
   call void @__quantum__rt__array_update_reference_count(%Array* %13, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %13, i32 1)
   store %Array* %13, %Array** %x, align 8
-  %19 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 10)
+  %19 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
+  %20 = bitcast %Tuple* %19 to { i64, i64 }*
+  %21 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %20, i32 0, i32 0
+  %22 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %20, i32 0, i32 1
+  store i64 0, i64* %21, align 4
+  store i64 0, i64* %22, align 4
+  %23 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 10)
   br label %header__2
 
 header__2:                                        ; preds = %exiting__2, %condContinue__2
-  %20 = phi i64 [ 0, %condContinue__2 ], [ %28, %exiting__2 ]
-  %21 = icmp sle i64 %20, 9
-  br i1 %21, label %body__2, label %exit__2
+  %24 = phi i64 [ 0, %condContinue__2 ], [ %28, %exiting__2 ]
+  %25 = icmp sle i64 %24, 9
+  br i1 %25, label %body__2, label %exit__2
 
 body__2:                                          ; preds = %header__2
-  %22 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i64* getelementptr (i64, i64* null, i32 1) to i64), i64 2))
-  %23 = bitcast %Tuple* %22 to { i64, i64 }*
-  %24 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 0
-  %25 = getelementptr inbounds { i64, i64 }, { i64, i64 }* %23, i32 0, i32 1
-  store i64 0, i64* %24, align 4
-  store i64 0, i64* %25, align 4
-  %26 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %19, i64 %20)
+  %26 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %23, i64 %24)
   %27 = bitcast i8* %26 to { i64, i64 }**
-  store { i64, i64 }* %23, { i64, i64 }** %27, align 8
+  store { i64, i64 }* %20, { i64, i64 }** %27, align 8
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i32 1)
   br label %exiting__2
 
 exiting__2:                                       ; preds = %body__2
-  %28 = add i64 %20, 1
+  %28 = add i64 %24, 1
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
   %arr = alloca %Array*, align 8
-  store %Array* %19, %Array** %arr, align 8
+  store %Array* %23, %Array** %arr, align 8
   br label %header__3
 
 header__3:                                        ; preds = %exiting__3, %exit__2
@@ -100,7 +101,7 @@ header__3:                                        ; preds = %exiting__3, %exit__
   br i1 %30, label %body__3, label %exit__3
 
 body__3:                                          ; preds = %header__3
-  %31 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %19, i64 %29)
+  %31 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %23, i64 %29)
   %32 = bitcast i8* %31 to { i64, i64 }**
   %33 = load { i64, i64 }*, { i64, i64 }** %32, align 8
   %34 = bitcast { i64, i64 }* %33 to %Tuple*
@@ -112,7 +113,7 @@ exiting__3:                                       ; preds = %body__3
   br label %header__3
 
 exit__3:                                          ; preds = %header__3
-  call void @__quantum__rt__array_update_alias_count(%Array* %19, i32 1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %23, i32 1)
   br label %header__4
 
 header__4:                                        ; preds = %exiting__4, %exit__3
@@ -121,7 +122,7 @@ header__4:                                        ; preds = %exiting__4, %exit__
   br i1 %37, label %body__4, label %exit__4
 
 body__4:                                          ; preds = %header__4
-  %38 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %19, i64 %36)
+  %38 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %23, i64 %36)
   %39 = bitcast i8* %38 to { i64, i64 }**
   %40 = load { i64, i64 }*, { i64, i64 }** %39, align 8
   %41 = bitcast { i64, i64 }* %40 to %Tuple*
@@ -133,7 +134,7 @@ exiting__4:                                       ; preds = %body__4
   br label %header__4
 
 exit__4:                                          ; preds = %header__4
-  call void @__quantum__rt__array_update_reference_count(%Array* %19, i32 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %23, i32 1)
   br label %header__5
 
 header__5:                                        ; preds = %exiting__5, %exit__4
@@ -216,6 +217,7 @@ exit__6:                                          ; preds = %header__6
   call void @__quantum__rt__string_update_reference_count(%String* %15, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %18, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %13, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %19, i32 -1)
   br label %header__7
 
 header__7:                                        ; preds = %exiting__7, %exit__6
@@ -224,7 +226,7 @@ header__7:                                        ; preds = %exiting__7, %exit__
   br i1 %68, label %body__7, label %exit__7
 
 body__7:                                          ; preds = %header__7
-  %69 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %19, i64 %67)
+  %69 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %23, i64 %67)
   %70 = bitcast i8* %69 to { i64, i64 }**
   %71 = load { i64, i64 }*, { i64, i64 }** %70, align 8
   %72 = bitcast { i64, i64 }* %71 to %Tuple*
@@ -236,7 +238,7 @@ exiting__7:                                       ; preds = %body__7
   br label %header__7
 
 exit__7:                                          ; preds = %header__7
-  call void @__quantum__rt__array_update_reference_count(%Array* %19, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %23, i32 -1)
   %74 = sub i64 %58, 1
   br label %header__8
 
