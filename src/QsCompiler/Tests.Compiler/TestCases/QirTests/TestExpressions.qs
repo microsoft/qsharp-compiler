@@ -58,6 +58,7 @@ namespace Microsoft.Quantum.Testing.QIR {
         let _ = ReturnNot();
         let _ = ReturnBNot();
         let _ = ReturnNegative(3.);
+        let _ = ReturnSizedArray();
     }
 
     function ReturnGlobalId() : (Unit => Unit) {
@@ -114,6 +115,10 @@ namespace Microsoft.Quantum.Testing.QIR {
 
     function ReturnNewArray() : Result[] {
         return new Result[5];
+    }
+
+    function ReturnSizedArray() : Result[] {
+        return [Zero, size = 5];
     }
 
     function ReturnString() : String {

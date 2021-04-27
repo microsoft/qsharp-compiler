@@ -63,31 +63,32 @@ type SpecializationBundleProperties =
             DefinedGenerators: ImmutableDictionary<QsSpecializationKind, QsSpecializationGenerator>
         }
 
-        /// Given the type- and set-arguments associated with a certain specialization,
-        /// determines the corresponding unique identifier for all specializations with the same type- and set-arguments.
-        static member public BundleId(typeArgs: QsNullable<ImmutableArray<ResolvedType>>) =
-            typeArgs
-            |> QsNullable<_>.Map(fun args -> (args |> Seq.map (fun t -> t.WithoutRangeInfo)).ToImmutableArray())
+    /// Given the type- and set-arguments associated with a certain specialization,
+    /// determines the corresponding unique identifier for all specializations with the same type- and set-arguments.
+    static member public BundleId(typeArgs: QsNullable<ImmutableArray<ResolvedType>>) =
+        typeArgs
+        |> QsNullable<_>.Map (fun args -> (args |> Seq.map (fun t -> t.WithoutRangeInfo)).ToImmutableArray())
 
-        /// <summary>
-        /// Returns an identifier for the bundle to which the given specialization declaration belongs to.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">No (partial) resolution is defined for the given specialization.</exception>
-        static member internal BundleId(spec: Resolution<_, _>) =
-            match spec.Resolved with
-            | Null -> InvalidOperationException "cannot determine id for unresolved specialization" |> raise
-            | Value (gen: ResolvedGenerator) -> SpecializationBundleProperties.BundleId gen.TypeArguments
+    /// <summary>
+    /// Returns an identifier for the bundle to which the given specialization declaration belongs to.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">No (partial) resolution is defined for the given specialization.</exception>
+    static member internal BundleId(spec: Resolution<_, _>) =
+        match spec.Resolved with
+        | Null -> InvalidOperationException "cannot determine id for unresolved specialization" |> raise
+        | Value (gen: ResolvedGenerator) -> SpecializationBundleProperties.BundleId gen.TypeArguments
 
-        /// Given a function that associates an item of the given array with a particular set of type- and set-arguments,
-        /// as well as a function that associates it with a certain specialization kind,
-        /// returns a dictionary that contains a dictionary mapping the specialization kind to the corresponding item for each set of type arguments.
-        /// The keys for the returned dictionary are the BundleIds for particular sets of type- and characteristics-arguments.
-        static member public Bundle (getTypeArgs: Func<_, _>, getKind: Func<_, QsSpecializationKind>)
-                                    (specs: IEnumerable<'T>)
-                                    =
-            specs
-                .ToLookup(new Func<_, _>(getTypeArgs.Invoke >> SpecializationBundleProperties.BundleId))
-                .ToDictionary((fun group -> group.Key), (fun group -> group.ToImmutableDictionary(getKind)))
+    /// Given a function that associates an item of the given array with a particular set of type- and set-arguments,
+    /// as well as a function that associates it with a certain specialization kind,
+    /// returns a dictionary that contains a dictionary mapping the specialization kind to the corresponding item for each set of type arguments.
+    /// The keys for the returned dictionary are the BundleIds for particular sets of type- and characteristics-arguments.
+    static member public Bundle
+        (getTypeArgs: Func<_, _>, getKind: Func<_, QsSpecializationKind>)
+        (specs: IEnumerable<'T>)
+        =
+        specs
+            .ToLookup(new Func<_, _>(getTypeArgs.Invoke >> SpecializationBundleProperties.BundleId))
+            .ToDictionary((fun group -> group.Key), (fun group -> group.ToImmutableDictionary(getKind)))
 
 
 /// Represents the outcome of resolving a symbol.
@@ -156,16 +157,18 @@ module internal ResolutionResult =
     /// Returns a Found result if there is only one in the sequence. If there is more than one, returns an Ambiguous
     /// result containing the namespaces of all Found results given by applying nsGetter to each value. Otherwise,
     /// returns the same value as TryFirstBest.
-    let internal TryAtMostOne<'T> (nsGetter: 'T -> string) (results: seq<ResolutionResult<'T>>): ResolutionResult<'T> =
+    let internal TryAtMostOne<'T> (nsGetter: 'T -> string) (results: seq<ResolutionResult<'T>>) : ResolutionResult<'T> =
         let found =
             results
-            |> Seq.filter (function
+            |> Seq.filter
+                (function
                 | Found _ -> true
                 | _ -> false)
 
-        if Seq.length found > 1
-        then found |> Seq.map (Map nsGetter >> ToList) |> Seq.concat |> Ambiguous
-        else found |> Seq.tryExactlyOne |> Option.defaultWith (fun () -> TryFirstBest results)
+        if Seq.length found > 1 then
+            found |> Seq.map (Map nsGetter >> ToList) |> Seq.concat |> Ambiguous
+        else
+            found |> Seq.tryExactlyOne |> Option.defaultWith (fun () -> TryFirstBest results)
 
     /// Returns a Found result if there is only one in the sequence. If there is more than one, raises an exception.
     /// Otherwise, returns the same value as ResolutionResult.TryFirstBest.
@@ -243,11 +246,9 @@ module SymbolResolution =
     /// If several attributes indicate deprecation, a redirection is suggested based on the first deprecation attribute.
     let internal TryFindRedirectInUnresolved checkQualification attributes =
         let getRedirect (att: AttributeAnnotation) =
-            if att |> IndicatesDeprecation checkQualification
-            then Some att.Argument
-            else None
+            if att |> IndicatesDeprecation checkQualification then Some att.Argument else None
 
-        StringArgument (getRedirect, (fun ex -> ex.Expression)) attributes
+        StringArgument(getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -259,7 +260,7 @@ module SymbolResolution =
         let getRedirect (att: QsDeclarationAttribute) =
             if att |> BuiltIn.MarksDeprecation then Some att.Argument else None
 
-        StringArgument (getRedirect, (fun ex -> ex.Expression)) attributes
+        StringArgument(getRedirect, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -272,9 +273,7 @@ module SymbolResolution =
             let pieces = str.Split '.'
             { Namespace = String.Join('.', pieces.Take(pieces.Length - 1)); Name = pieces.Last() }
 
-        if matchQualifiedName.Success
-        then Some(matchQualifiedName.Value |> asQualifiedName)
-        else None
+        if matchQualifiedName.Success then Some(matchQualifiedName.Value |> asQualifiedName) else None
 
     /// Checks whether the given attributes define an alternative name that may be used when loading a type or callable for testing purposes.
     /// Returns the qualified name to use as Value if such a name is defined, or Null otherwise.
@@ -283,7 +282,7 @@ module SymbolResolution =
         let getTestName (att: QsDeclarationAttribute) =
             if att |> BuiltIn.DefinesNameForTesting then Some att.Argument else None
 
-        StringArgument (getTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument(getTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> Option.bind TryAsQualifiedName
         |> QsNullable.ofOption
@@ -293,11 +292,9 @@ module SymbolResolution =
     /// The returned Value is based on the first attribute that indicates the original name.
     let TryGetOriginalName attributes =
         let loadedViaTestName (att: QsDeclarationAttribute) =
-            if att |> BuiltIn.DefinesLoadedViaTestNameInsteadOf
-            then Some att.Argument
-            else None
+            if att |> BuiltIn.DefinesLoadedViaTestNameInsteadOf then Some att.Argument else None
 
-        StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument(loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> Option.bind TryAsQualifiedName
         |> QsNullable.ofOption
@@ -321,7 +318,7 @@ module SymbolResolution =
                 | true, valid -> valid
                 | false, _ -> null
 
-        StringArgument (getTarget, (fun ex -> ex.Expression)) attributes
+        StringArgument(getTarget, (fun ex -> ex.Expression)) attributes
         |> Seq.map targetName
         |> ImmutableHashSet.CreateRange
 
@@ -337,13 +334,14 @@ module SymbolResolution =
                 None
 
         let capabilities =
-            StringArgument (getCapability, (fun ex -> ex.Expression)) attributes
+            StringArgument(getCapability, (fun ex -> ex.Expression)) attributes
             |> QsNullable<_>.Choose RuntimeCapability.TryParse
             |> ImmutableHashSet.CreateRange
 
-        if Seq.isEmpty capabilities
-        then Null
-        else capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
+        if Seq.isEmpty capabilities then
+            Null
+        else
+            capabilities |> Seq.reduce RuntimeCapability.Combine |> Value
 
     /// Checks whether the given attributes defines a code for an instruction within the quantum instruction set that matches this callable.
     /// Returns the string code as Value if this is the case, and Null otherwise.
@@ -352,7 +350,7 @@ module SymbolResolution =
         let loadedViaTestName (att: QsDeclarationAttribute) =
             if att |> BuiltIn.DefinesTargetInstruction then Some att.Argument else None
 
-        StringArgument (loadedViaTestName, (fun ex -> ex.Expression)) attributes
+        StringArgument(loadedViaTestName, (fun ex -> ex.Expression)) attributes
         |> Seq.tryHead
         |> QsNullable.ofOption
 
@@ -388,8 +386,8 @@ module SymbolResolution =
                 let isNamedParam = isTypeParam name
 
                 [
-                    if argType.Exists isNamedParam |> not && returnType.Exists isNamedParam |> not
-                    then QsCompilerDiagnostic.Warning (WarningCode.UnusedTypeParam, [ "'" + name ]) range
+                    if argType.Exists isNamedParam |> not && returnType.Exists isNamedParam |> not then
+                        QsCompilerDiagnostic.Warning(WarningCode.UnusedTypeParam, [ "'" + name ]) range
                 ]
             | InvalidName -> []
 
@@ -440,29 +438,31 @@ module SymbolResolution =
     /// Returns the resolved signature and argument tuple, as well as an array with the diagnostics created during resolution.
     /// </summary>
     /// <exception cref="ArgumentException"><paramref name="specBundleInfos"/> is empty.</exception>
-    let internal ResolveCallableSignature (resolveType, specBundleInfos: CallableInformation list)
-                                          (signature: CallableSignature)
-                                          =
+    let internal ResolveCallableSignature
+        (resolveType, specBundleInfos: CallableInformation list)
+        (signature: CallableSignature)
+        =
         let orDefault (range: QsNullable<_>) = range.ValueOr Range.Zero
 
         let typeParams, tpErrs =
             signature.TypeParameters
-            |> Seq.fold (fun (tps, errs) qsSym ->
-                let range = qsSym.Range |> orDefault
-                let invalidTp = InvalidName, range
+            |> Seq.fold
+                (fun (tps, errs) qsSym ->
+                    let range = qsSym.Range |> orDefault
+                    let invalidTp = InvalidName, range
 
-                match qsSym.Symbol with
-                | QsSymbolKind.InvalidSymbol -> invalidTp :: tps, errs
-                | QsSymbolKind.Symbol sym ->
-                    if not (tps |> List.exists (fst >> (=) (ValidName sym))) then
-                        (ValidName sym, range) :: tps, errs
-                    else
+                    match qsSym.Symbol with
+                    | QsSymbolKind.InvalidSymbol -> invalidTp :: tps, errs
+                    | QsSymbolKind.Symbol sym ->
+                        if not (tps |> List.exists (fst >> (=) (ValidName sym))) then
+                            (ValidName sym, range) :: tps, errs
+                        else
+                            invalidTp :: tps,
+                            (range |> QsCompilerDiagnostic.Error(ErrorCode.TypeParameterRedeclaration, [ sym ])) :: errs
+                    | _ ->
                         invalidTp :: tps,
-                        (range |> QsCompilerDiagnostic.Error(ErrorCode.TypeParameterRedeclaration, [ sym ])) :: errs
-                | _ ->
-                    invalidTp :: tps,
-                    (range |> QsCompilerDiagnostic.Error(ErrorCode.InvalidTypeParameterDeclaration, [])) :: errs)
-                   ([], [])
+                        (range |> QsCompilerDiagnostic.Error(ErrorCode.InvalidTypeParameterDeclaration, [])) :: errs)
+                ([], [])
             |> (fun (tps, errs) -> tps |> List.rev, errs |> List.rev |> List.toArray)
 
         let resolveArg (sym, range) t =
@@ -478,11 +478,12 @@ module SymbolResolution =
         let resolveType =
             let validTpNames =
                 typeParams
-                |> List.choose
-                    (fst
-                     >> function
-                     | ValidName name -> Some name
-                     | InvalidName -> None)
+                |> List.choose (
+                    fst
+                    >> function
+                    | ValidName name -> Some name
+                    | InvalidName -> None
+                )
 
             resolveType (validTpNames.ToImmutableArray())
 
@@ -549,7 +550,8 @@ module SymbolResolution =
                 ImmutableArray.Create udtTuple |> QsTuple |> ResolveArgumentTuple(resolveItem, resolveType)
 
         let underlyingType =
-            argTuple.ResolveWith(function
+            argTuple.ResolveWith
+                (function
                 | Anonymous t -> t.WithoutRangeInfo
                 | Named x -> x.Type.WithoutRangeInfo)
 
@@ -663,13 +665,14 @@ module SymbolResolution =
             | ResultLiteral r -> (ResultLiteral r, Result) |> asTypedExpression ex.Range, [||]
             | PauliLiteral p -> (PauliLiteral p, Pauli) |> asTypedExpression ex.Range, [||]
             | StringLiteral (s, exs) ->
-                if exs.Length <> 0
-                then invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InterpolatedStringInAttribute |]
-                else (StringLiteral(s, ImmutableArray.Empty), String) |> asTypedExpression ex.Range, [||]
+                if exs.Length <> 0 then
+                    invalidExpr ex.Range, [| ex.Range |> diagnostic ErrorCode.InterpolatedStringInAttribute |]
+                else
+                    (StringLiteral(s, ImmutableArray.Empty), String) |> asTypedExpression ex.Range, [||]
             | ValueTuple vs when vs.Length = 1 -> argExpression (vs.First())
             | ValueTuple vs ->
-                if vs.Length = 0
-                then ArgumentException "tuple valued attribute argument requires at least one tuple item" |> raise
+                if vs.Length = 0 then
+                    ArgumentException "tuple valued attribute argument requires at least one tuple item" |> raise
 
                 let innerExs, errs = aggregateInner vs
                 let types = (innerExs |> Seq.map (fun ex -> ex.ResolvedType)).ToImmutableArray()
@@ -706,7 +709,7 @@ module SymbolResolution =
                 let onTypeParam (_, tpRange) =
                     InvalidType, [| tpRange |> diagnostic ErrorCode.TypeParameterizedArgumentInAttribute |]
 
-                let resBaseType, typeErrs = ResolveType (onUdt, onTypeParam) bt
+                let resBaseType, typeErrs = ResolveType(onUdt, onTypeParam) bt
                 let resIdx, idxErrs = argExpression idx
 
                 (NewArray(resBaseType, resIdx), ArrayType resBaseType) |> asTypedExpression ex.Range,
@@ -904,7 +907,10 @@ module SymbolResolution =
     /// Otherwise resolves any valid directive to a "distribute" directive.
     /// Does *not* generate diagnostics for things that do not require semantic information to detect
     /// (these should be detected and raised upon context verification).
-    let private ResolveControlledGeneratorDirective (info: InferredCallableInformation) (gen: QsSpecializationGenerator) =
+    let private ResolveControlledGeneratorDirective
+        (info: InferredCallableInformation)
+        (gen: QsSpecializationGenerator)
+        =
         if info.IsIntrinsic then
             NeedsToBeIntrinsic(gen, false)
         else
@@ -931,10 +937,11 @@ module SymbolResolution =
     /// b) to a "distribute" directive to be applied to the adjoint version otherwise.
     /// Does *not* generate diagnostics for things that do not require semantic information to detect
     /// (these should be detected and raised upon context verification).
-    let private ResolveControlledAdjointGeneratorDirective (adjGenKind, ctlGenKind)
-                                                           (info: InferredCallableInformation)
-                                                           (gen: QsSpecializationGenerator)
-                                                           =
+    let private ResolveControlledAdjointGeneratorDirective
+        (adjGenKind, ctlGenKind)
+        (info: InferredCallableInformation)
+        (gen: QsSpecializationGenerator)
+        =
         if info.IsSelfAdjoint then
             NeedsToBeSelfInverse gen
         elif info.IsIntrinsic then
@@ -988,10 +995,11 @@ module SymbolResolution =
     /// determines the resolved characteristics of the specializations for these type- and set-arguments.
     /// Calls generateSpecialization for each missing specialization kind that can be inferred.
     /// Returns the resolved characteristics as well as an array of diagnostics.
-    let private InferCharacteristicsAndMetadata generateSpecialization
-                                                (specKinds: ImmutableDictionary<_, _>)
-                                                (characteristics: Characteristics, declLocation: QsLocation)
-                                                =
+    let private InferCharacteristicsAndMetadata
+        generateSpecialization
+        (specKinds: ImmutableDictionary<_, _>)
+        (characteristics: Characteristics, declLocation: QsLocation)
+        =
         let adjExists, ctlExists = specKinds.ContainsKey QsAdjoint, specKinds.ContainsKey QsControlled
         let bodyExists, ctlAdjExists = specKinds.ContainsKey QsBody, specKinds.ContainsKey QsControlledAdjoint
 
@@ -1006,14 +1014,13 @@ module SymbolResolution =
                 let adjSup, ctlSup = supported.Contains Adjointable, supported.Contains Controllable
 
                 let additional =
-                    ResolvedCharacteristics.FromProperties
-                        (seq {
-                            if (adjExists || ctlAdjExists) && not adjSup
-                            then yield Adjointable
+                    ResolvedCharacteristics.FromProperties(
+                        seq {
+                            if (adjExists || ctlAdjExists) && not adjSup then yield Adjointable
 
-                            if (ctlExists || ctlAdjExists) && not ctlSup
-                            then yield Controllable
-                         })
+                            if (ctlExists || ctlAdjExists) && not ctlSup then yield Controllable
+                        }
+                    )
 
                 let adj, ctl =
                     (adjExists || ctlAdjExists || adjSup, annotRange adjSup),
@@ -1039,12 +1046,12 @@ module SymbolResolution =
         let ctlAdjRange = annotRange (adjRange <> Null && ctlRange <> Null)
 
         let errs =
-            Array.concat [ if supportsAdj && not adjExists
-                           then yield generateSpecialization QsAdjoint (declLocation, adjRange)
-                           if supportsCtl && not ctlExists
-                           then yield generateSpecialization QsControlled (declLocation, ctlRange)
-                           if supportsAdj && supportsCtl && not ctlAdjExists
-                           then yield generateSpecialization QsControlledAdjoint (declLocation, ctlAdjRange)
+            Array.concat [ if supportsAdj && not adjExists then
+                               yield generateSpecialization QsAdjoint (declLocation, adjRange)
+                           if supportsCtl && not ctlExists then
+                               yield generateSpecialization QsControlled (declLocation, ctlRange)
+                           if supportsAdj && supportsCtl && not ctlAdjExists then
+                               yield generateSpecialization QsControlledAdjoint (declLocation, ctlAdjRange)
                            if not bodyExists then
                                yield generateSpecialization QsBody (declLocation, Null)
 
@@ -1059,9 +1066,10 @@ module SymbolResolution =
             | Error _ -> true
             | _ -> false
 
-        if errs |> Array.exists isError
-        then InvalidSetExpr |> ResolvedCharacteristics.New, metadata, errs
-        else resolved, metadata, errs
+        if errs |> Array.exists isError then
+            InvalidSetExpr |> ResolvedCharacteristics.New, metadata, errs
+        else
+            resolved, metadata, errs
 
     /// <summary>
     /// Given the signature and source file of a callable as well as all specializations defined for it, constructs
@@ -1072,10 +1080,11 @@ module SymbolResolution =
     /// Returns the constructed dictionary as well as an array of diagnostics.
     /// </summary>
     /// <exception cref="InvalidOperationException">No (partial) resolution is defined for any one of the given specializations.</exception>
-    let internal GetBundleProperties generateSpecialization
-                                     (parentSignature: Resolution<CallableSignature, _>, source)
-                                     (definedSpecs: IEnumerable<_>)
-                                     =
+    let internal GetBundleProperties
+        generateSpecialization
+        (parentSignature: Resolution<CallableSignature, _>, source)
+        (definedSpecs: IEnumerable<_>)
+        =
         let declCharacteristics = parentSignature.Defined.Characteristics // if we allow to specialize for certain set parameters, then these need to be resolved in parent
         let declLocation = { Offset = parentSignature.Position; Range = parentSignature.Range }
 
@@ -1093,14 +1102,17 @@ module SymbolResolution =
 
                 let errs =
                     (relevantSpecs.[QsBody].Skip(1) |> Seq.map (positionedErr ErrorCode.RedefinitionOfBody))
-                    |> Seq.append
-                        (relevantSpecs.[QsAdjoint].Skip(1) |> Seq.map (positionedErr ErrorCode.RedefinitionOfAdjoint))
-                    |> Seq.append
-                        (relevantSpecs.[QsControlled].Skip(1)
-                         |> Seq.map (positionedErr ErrorCode.RedefinitionOfControlled))
-                    |> Seq.append
-                        (relevantSpecs.[QsControlledAdjoint].Skip(1)
-                         |> Seq.map (positionedErr ErrorCode.RedefinitionOfControlledAdjoint))
+                    |> Seq.append (
+                        relevantSpecs.[QsAdjoint].Skip(1) |> Seq.map (positionedErr ErrorCode.RedefinitionOfAdjoint)
+                    )
+                    |> Seq.append (
+                        relevantSpecs.[QsControlled].Skip(1)
+                        |> Seq.map (positionedErr ErrorCode.RedefinitionOfControlled)
+                    )
+                    |> Seq.append (
+                        relevantSpecs.[QsControlledAdjoint].Skip(1)
+                        |> Seq.map (positionedErr ErrorCode.RedefinitionOfControlledAdjoint)
+                    )
 
                 relevantSpecs.ToImmutableDictionary((fun g -> g.Key), (fun g -> (g.First() |> snd).Defined)),
                 errs.ToArray()
@@ -1134,10 +1146,11 @@ module SymbolResolution =
     /// </summary>
     /// <exception cref="InvalidOperationException">No (partial) resolution is defined for the given specialization.</exception>
     /// <exception cref="KeyNotFoundException">The given specialization is not part of a specialization bundle in the given properties dictionary.</exception>
-    let internal ResolveGenerator (properties: ImmutableDictionary<_, _>)
-                                  (kind, spec: Resolution<QsSpecializationGenerator, ResolvedGenerator>)
-                                  =
-        let bundle: SpecializationBundleProperties = properties.[SpecializationBundleProperties.BundleId spec]
+    let internal ResolveGenerator
+        (properties: ImmutableDictionary<_, _>)
+        (kind, spec: Resolution<QsSpecializationGenerator, ResolvedGenerator>)
+        =
+        let bundle : SpecializationBundleProperties = properties.[SpecializationBundleProperties.BundleId spec]
 
         let impl, err =
             match kind with
@@ -1164,7 +1177,7 @@ module SymbolResolution =
 
         let resolvedGen =
             spec.Resolved
-            |> QsNullable<_>
-                .Map(fun resolution -> { resolution with Information = bundle.BundleInfo; Directive = dir })
+            |> QsNullable<_>.Map
+                (fun resolution -> { resolution with Information = bundle.BundleInfo; Directive = dir })
 
         resolvedGen, err |> Array.map (fun msg -> spec.Position, msg)

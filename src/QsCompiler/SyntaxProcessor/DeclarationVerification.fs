@@ -30,13 +30,13 @@ let public AsDeclarationName sym onInvalid =
     | _ -> null
 
 let private NameOnly onInvalid arg =
-    (arg |> QsNullable<_>.Map(fun (sym, _) -> AsDeclarationName sym.Symbol onInvalid)).ValueOr null
+    (arg |> QsNullable<_>.Map (fun (sym, _) -> AsDeclarationName sym.Symbol onInvalid)).ValueOr null
 
 /// If the given fragment kind is a namespace declaration,
 /// returns a tuple with the namespace symbol and null (to make the signature of this routine compatible with the remaining ones) as Value.
 /// Returns Null otherwise.
 [<Extension>]
-let public DeclaredNamespace this: QsNullable<QsSymbol * obj> =
+let public DeclaredNamespace this : QsNullable<QsSymbol * obj> =
     match this with
     | NamespaceDeclaration sym -> (sym, null) |> Value
     | _ -> Null
@@ -53,7 +53,7 @@ let public DeclaredNamespaceName this onInvalid =
 /// returns a tuple with the symbol of the opened namespace and the defined short name (if any) as Value.
 /// Returns Null otherwise.
 [<Extension>]
-let public OpenedNamespace this: QsNullable<QsSymbol * QsNullable<QsSymbol>> =
+let public OpenedNamespace this : QsNullable<QsSymbol * QsNullable<QsSymbol>> =
     match this with
     | OpenDirective (nsName, alias) -> (nsName, alias) |> Value
     | _ -> Null
@@ -107,8 +107,9 @@ let public DeclaredCallableName this onInvalid =
 /// The type specializations are given as either an Value containing an immutable array of Q# types,
 /// or as Null, if no type specializations have been declared.
 [<Extension>]
-let public DeclaredSpecialization this
-                                  : QsNullable<(QsSpecializationKind * QsSpecializationGenerator) * QsNullable<ImmutableArray<QsType>>> =
+let public DeclaredSpecialization
+    this
+    : QsNullable<(QsSpecializationKind * QsSpecializationGenerator) * QsNullable<ImmutableArray<QsType>>> =
     match this with
     | BodyDeclaration gen -> ((QsBody, gen), Null) |> Value
     | AdjointDeclaration gen -> ((QsAdjoint, gen), Null) |> Value
@@ -211,7 +212,10 @@ let public BuildArgumentControlled (this: QsTuple<LocalVariableDeclaration<QsLoc
 /// verifies that the symbol tuple indeed has the expected shape for that specialization.
 /// Returns the argument tuple for the specialization, as well as an array of diagnostics.
 [<Extension>]
-let public BuildArgumentControlledAdjoint (this: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) (arg: QsSymbol, pos) =
+let public BuildArgumentControlledAdjoint
+    (this: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>)
+    (arg: QsSymbol, pos)
+    =
     let ctrlQs, diagnostics = arg |> singleAdditionalArg (ErrorCode.ControlledAdjointGenArgMismatch, [])
     SyntaxGenerator.WithControlQubits this pos ctrlQs |> StripRangeInfo, diagnostics
 
@@ -228,9 +232,11 @@ let public ValidDeclarations (this: ImmutableArray<LocalVariableDeclaration<QsLo
 /// Returns the built declarations as LocalDeclarations object.
 [<Extension>]
 let public WithAbsolutePosition (this: LocalDeclarations) (updatePosition: Func<QsNullable<Position>, Position>) =
-    LocalDeclarations.New
-        (this
+    LocalDeclarations.New(
+        this
             .Variables
-            .Select(Func<_, _>(fun (d: LocalVariableDeclaration<_>) ->
-                        { d with Position = updatePosition.Invoke d.Position |> Value }))
-            .ToImmutableArray())
+            .Select(Func<_, _>
+                        (fun (d: LocalVariableDeclaration<_>) ->
+                            { d with Position = updatePosition.Invoke d.Position |> Value }))
+            .ToImmutableArray()
+    )

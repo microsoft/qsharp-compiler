@@ -65,10 +65,11 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
         checkedNamespaces
         |> Seq.map (fun checkedNs -> getNs checkedNs)
         |> SyntaxTreeExtensions.Callables
-        |> Seq.map (fun call ->
-            (call.FullName,
-             StripPositionInfo.Apply call.Signature.ArgumentType,
-             StripPositionInfo.Apply call.Signature.ReturnType))
+        |> Seq.map
+            (fun call ->
+                (call.FullName,
+                 StripPositionInfo.Apply call.Signature.ArgumentType,
+                 StripPositionInfo.Apply call.Signature.ReturnType))
 
     let doesCallMatchSig call signature =
         let (call_fullName: QsQualifiedName), call_argType, call_rtrnType = call
@@ -94,14 +95,15 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
         callableSigs
         |> Seq.tryFindIndex (fun callSig -> doesCallMatchSig callSig targetSig)
         |> (fun x ->
-            Assert.True
-                (x <> None,
-                 sprintf
-                     "Expected but did not find: %s.*%s %s : %A"
-                     sig_fullName.Namespace
-                     sig_fullName.Name
-                     (makeArgsString sig_argType)
-                     sig_rtrnType.Resolution)
+            Assert.True(
+                x <> None,
+                sprintf
+                    "Expected but did not find: %s.*%s %s : %A"
+                    sig_fullName.Namespace
+                    sig_fullName.Name
+                    (makeArgsString sig_argType)
+                    sig_rtrnType.Resolution
+            )
 
             callableSigs <- removeAt x.Value callableSigs)
 
@@ -109,12 +111,13 @@ let public SignatureCheck checkedNamespaces targetSignatures compilation =
     for callSig in callableSigs do
         let sig_fullName, sig_argType, sig_rtrnType = callSig
 
-        failwith
-            (sprintf
+        failwith (
+            sprintf
                 "Found unexpected callable: %O %s : %A"
-                 sig_fullName
-                 (makeArgsString sig_argType)
-                 sig_rtrnType.Resolution)
+                sig_fullName
+                (makeArgsString sig_argType)
+                sig_rtrnType.Resolution
+        )
 
 /// Names of several testing namespaces
 let public MonomorphizationNS = "Microsoft.Quantum.Testing.Monomorphization"
