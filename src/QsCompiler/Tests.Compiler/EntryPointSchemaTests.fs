@@ -519,7 +519,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     [<InlineData("UseResultArrayArgWithValues")>]
     [<InlineData("UseMiscArgs")>]
     member this.DeserializeFromJson(sampleName: string) =
-        let expectedEntryPointOperation = sampleEntryPointOperations.[sampleName]
+        let expectedEntryPointOperation, _ = sampleEntryPointOperations.[sampleName]
         let sourceJson = Path.Join(testCasesDirectory, sampleName + ".json") |> File.ReadAllText
         let memoryStream = new MemoryStream(Encoding.UTF8.GetBytes(sourceJson))
         let entryPointOperation = Protocols.DeserializeFromJson(memoryStream)
@@ -556,7 +556,7 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
     [<InlineData("UseResultArrayArgWithValues")>]
     [<InlineData("UseMiscArgs")>]
     member this.SerializeToJson(sampleName: string) =
-        let entryPointOperation = sampleEntryPointOperations.[sampleName]
+        let entryPointOperation, _ = sampleEntryPointOperations.[sampleName]
         let expectedJson = Path.Join(testCasesDirectory, sampleName + ".json") |> File.ReadAllText
         let memoryStream = new MemoryStream()
         Protocols.SerializeToJson(entryPointOperation, memoryStream)
