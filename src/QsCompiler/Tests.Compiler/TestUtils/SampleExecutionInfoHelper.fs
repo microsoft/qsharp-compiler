@@ -50,7 +50,10 @@ let private createArgument (name: string, argType: DataType, position: int) =
     new Argument(Name = name, Type = argType, Position = position)
 
 let private createArrayArgument (name: string, arrayType: DataType, position: int32) =
-    new Argument(Name = name, Type = DataType.ArrayType, Position = position, ArrayType = arrayType)
+    new Argument(Name = name,
+                 Type = DataType.ArrayType,
+                 Position = position,
+                 ArrayType = new System.Nullable<DataType>(arrayType))
 
 let private createEntryPointOperation (name: string, argsList) =
     let entryPointOperation = new EntryPointOperation(Name = name)
@@ -82,22 +85,23 @@ let sampleExecutionInformation =
              createExecutionInformation
                  (createEntryPointOperation
                      ("UseBoolArgWithValues", [ createArgument ("BoolArg", DataType.BoolType, 0) ]),
-                  createArgumentMap ("BoolArg", new ArgumentValue(Bool = true))))
+                  createArgumentMap ("BoolArg", new ArgumentValue(Bool = new System.Nullable<bool>(true)))))
         .Add("UseIntegerArgWithValues",
              createExecutionInformation
                  (createEntryPointOperation
                      ("UseIntegerArgWithValues", [ createArgument ("IntegerArg", DataType.IntegerType, 0) ]),
-                  createArgumentMap ("IntegerArg", new ArgumentValue(Integer = int64 (11)))))
+                  createArgumentMap ("IntegerArg", new ArgumentValue(Integer = new System.Nullable<int64>(int64 (11))))))
         .Add("UseDoubleArgWithValues",
              createExecutionInformation
                  (createEntryPointOperation
                      ("UseDoubleArgWithValues", [ createArgument ("DoubleArg", DataType.DoubleType, 0) ]),
-                  createArgumentMap ("DoubleArg", new ArgumentValue(Double = 0.1))))
+                  createArgumentMap ("DoubleArg", new ArgumentValue(Double = new System.Nullable<float>(0.1)))))
         .Add("UsePauliArgWithValues",
              createExecutionInformation
                  (createEntryPointOperation
                      ("UsePauliArgWithValues", [ createArgument ("PauliArg", DataType.PauliType, 0) ]),
-                  createArgumentMap ("PauliArg", new ArgumentValue(Pauli = PauliValue.PauliY))))
+                  createArgumentMap
+                      ("PauliArg", new ArgumentValue(Pauli = new System.Nullable<PauliValue>(PauliValue.PauliY)))))
         .Add("UseRangeArgWithValues",
              createExecutionInformation
                  (createEntryPointOperation
@@ -107,7 +111,8 @@ let sampleExecutionInformation =
              createExecutionInformation
                  (createEntryPointOperation
                      ("UseResultArgWithValues", [ createArgument ("ResultArg", DataType.ResultType, 0) ]),
-                  createArgumentMap ("ResultArg", new ArgumentValue(Result = ResultValue.One))))
+                  createArgumentMap
+                      ("ResultArg", new ArgumentValue(Result = new System.Nullable<ResultValue>(ResultValue.One)))))
         .Add("UseStringArgWithValues",
              createExecutionInformation
                  (createEntryPointOperation
@@ -194,6 +199,6 @@ let sampleExecutionInformation =
                   createMultiArgumentMap
                       ([ "IntegerArg"; "StringArg" ],
                        [
-                           new ArgumentValue(Integer = int64 (30))
+                           new ArgumentValue(Integer = new System.Nullable<int64>(int64 (30)))
                            new ArgumentValue(String = "String value")
                        ])))
