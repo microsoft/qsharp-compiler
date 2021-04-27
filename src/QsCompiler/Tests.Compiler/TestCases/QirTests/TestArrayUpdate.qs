@@ -8,7 +8,7 @@ namespace Microsoft.Quantum.Testing.QIR
     function TestArrayUpdate1(even : String) : String[]
     {
         mutable arr = new String[10];
-        for (i in 0 .. 9)
+        for i in 0 .. 9
         {
             let str = i % 2 != 0 ? "odd" | even;
             set arr w/= i <- str; 
@@ -20,7 +20,7 @@ namespace Microsoft.Quantum.Testing.QIR
     function TestArrayUpdate2(array : String[], even : String) : String[]
     {
         mutable arr = array;
-        for (i in 0 .. 9)
+        for i in 0 .. 9
         {
             let str = i % 2 != 0 ? "odd" | even;
             set arr w/= i <- str; 
@@ -35,8 +35,8 @@ namespace Microsoft.Quantum.Testing.QIR
         set x w/= 0 <- b;
         set x w/= 1 <- "Hello";
 
-        mutable arr = new (Int, Int)[10];
-        for (i in 0 .. 9)
+        mutable arr = [(0,0), size = 10];
+        for i in 0 .. 9
         {
             set arr w/= i <- (i, i + 1); 
         }
@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.Testing.QIR
         mutable arr = new String[0];
         set arr = array;
 
-        for (i in 0 .. 9)
+        for i in 0 .. 9
         {
             set arr w/= i <- item; 
         }
@@ -62,7 +62,7 @@ namespace Microsoft.Quantum.Testing.QIR
     {
         let item = Complex(0.,0.);
         mutable arr = array;
-        for (i in 0 .. 2 .. Length(arr) - 1)
+        for i in 0 .. 2 .. Length(arr) - 1
         {
             set arr w/= i <- arr[i % 2]; 
             if (cond)

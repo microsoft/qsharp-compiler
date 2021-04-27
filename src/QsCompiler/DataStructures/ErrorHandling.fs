@@ -22,10 +22,11 @@ type QsCompilerError = QsCompilerError
         /// Method that wraps all handling of inner errors (i.e. a failure of the Q# compiler)
         /// that allows to easily modify the behavior for such errors.
         [<DoesNotReturn>]
-        static member Raise(message, innerException: Exception): unit =
-            if innerException = null
-            then new QsCompilerException(message) |> raise
-            else new QsCompilerException(message, innerException) |> raise
+        static member Raise(message, innerException: Exception) : unit =
+            if innerException = null then
+                new QsCompilerException(message) |> raise
+            else
+                new QsCompilerException(message, innerException) |> raise
 
         /// Method that wraps all handling of inner errors (i.e. a failure of the Q# compiler)
         /// that allows to easily modify the behavior for such errors.
@@ -44,9 +45,10 @@ type QsCompilerError = QsCompilerError
             let outer = sprintf "%s: %s\n" (ex.GetType().Name) ex.Message
 
             let inner =
-                if ex.InnerException = null
-                then ""
-                else sprintf "Inner Exception: %s - %s\n" (ex.InnerException.GetType().Name) ex.InnerException.Message
+                if ex.InnerException = null then
+                    ""
+                else
+                    sprintf "Inner Exception: %s - %s\n" (ex.InnerException.GetType().Name) ex.InnerException.Message
 
             let stackTrace = sprintf "Stack trace: \n%s\n" ex.StackTrace
             sprintf "%s\n%s%s%s" header outer inner stackTrace

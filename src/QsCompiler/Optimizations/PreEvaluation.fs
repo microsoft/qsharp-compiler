@@ -22,9 +22,10 @@ type PreEvaluation =
     /// function that takes as input such a dictionary of callables.
     ///
     /// Disclaimer: This is an experimental feature.
-    static member WithScript (script: Func<ImmutableDictionary<QsQualifiedName, QsCallable>, TransformationBase seq>)
-                             (arg: QsCompilation)
-                             =
+    static member WithScript
+        (script: Func<ImmutableDictionary<QsQualifiedName, QsCallable>, TransformationBase seq>)
+        (arg: QsCompilation)
+        =
 
         // TODO: this should actually only evaluate everything for each entry point
         let rec evaluate (tree: _ list) =
@@ -38,27 +39,25 @@ type PreEvaluation =
             for opt in optimizers do
                 tree <- List.map opt.Namespaces.OnNamespace tree
 
-            if optimizers |> List.exists (fun opt -> opt.CheckChanged())
-            then evaluate tree
-            else tree
+            if optimizers |> List.exists (fun opt -> opt.CheckChanged()) then evaluate tree else tree
 
         let namespaces = arg.Namespaces |> Seq.map StripPositionInfo.Apply |> List.ofSeq |> evaluate
         QsCompilation.New(namespaces.ToImmutableArray(), arg.EntryPoints)
 
     /// Default sequence of optimizing transformations
-    static member DefaultScript removeFunctions maxSize: Func<_, TransformationBase seq> =
+    static member DefaultScript removeFunctions maxSize : Func<_, TransformationBase seq> =
         new Func<_, _>(fun callables ->
-        seq {
-            VariableRemoval()
-            StatementRemoval(removeFunctions)
-            ConstantPropagation(callables)
-            LoopUnrolling(callables, maxSize)
-            CallableInlining(callables)
-            StatementGrouping()
-            PureCircuitFinder(callables)
-        })
+            seq {
+                VariableRemoval()
+                StatementRemoval(removeFunctions)
+                ConstantPropagation(callables)
+                LoopUnrolling(callables, maxSize)
+                CallableInlining(callables)
+                StatementGrouping()
+                PureCircuitFinder(callables)
+            })
 
     /// Attempts to pre-evaluate the given sequence of namespaces
     /// as much as possible with a default optimization script
     static member All(arg: QsCompilation) =
-        PreEvaluation.WithScript (PreEvaluation.DefaultScript false 40) arg
+        PreEvaluation.WithScript(PreEvaluation.DefaultScript false 40) arg

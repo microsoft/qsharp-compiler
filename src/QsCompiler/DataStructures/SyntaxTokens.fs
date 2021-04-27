@@ -289,21 +289,21 @@ type CallableDeclaration =
             signature: CallableSignature
         }
 
-        static member Create(name, access, signature) =
-            {
-                name = name
-                access = access
-                signature = signature
-            }
+    static member Create(name, access, signature) =
+        {
+            name = name
+            access = access
+            signature = signature
+        }
 
-        /// The name of the callable.
-        member callable.Name = callable.name
+    /// The name of the callable.
+    member callable.Name = callable.name
 
-        /// The accessibility of the callable, or Null if the callable has the default accessibility.
-        member callable.Access = callable.access
+    /// The accessibility of the callable, or Null if the callable has the default accessibility.
+    member callable.Access = callable.access
 
-        /// The signature of the callable.
-        member callable.Signature = callable.signature
+    /// The signature of the callable.
+    member callable.Signature = callable.signature
 
 /// A type definition.
 type TypeDefinition =
@@ -314,21 +314,21 @@ type TypeDefinition =
             underlyingType: (QsSymbol * QsType) QsTuple
         }
 
-        static member Create(name, access, underlyingType) =
-            {
-                name = name
-                access = access
-                underlyingType = underlyingType
-            }
+    static member Create(name, access, underlyingType) =
+        {
+            name = name
+            access = access
+            underlyingType = underlyingType
+        }
 
-        /// The name of the type.
-        member typeDef.Name = typeDef.name
+    /// The name of the type.
+    member typeDef.Name = typeDef.name
 
-        /// The accessibility of the type, or Null if the type has the default accessibility.
-        member typeDef.Access = typeDef.access
+    /// The accessibility of the type, or Null if the type has the default accessibility.
+    member typeDef.Access = typeDef.access
 
-        /// The type's underlying type.
-        member typeDef.UnderlyingType = typeDef.underlyingType
+    /// The type's underlying type.
+    member typeDef.UnderlyingType = typeDef.underlyingType
 
 type QsFragmentKind =
     | ExpressionStatement of QsExpression

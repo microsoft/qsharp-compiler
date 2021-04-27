@@ -57,7 +57,8 @@ let indentPrefix level =
 /// <summary>
 /// Indents the <see cref="Terminal"/> token to the given indentation <paramref name="level"/>.
 /// </summary>
-let indentTerminal level = indentPrefix level |> Terminal.mapPrefix
+let indentTerminal level =
+    indentPrefix level |> Terminal.mapPrefix
 
 let indentation =
     { new Rewriter<_>() with
@@ -95,7 +96,8 @@ let newLines =
         override _.Block((), mapper, block) =
             let block = base.Block((), mapper, block)
 
-            if List.isEmpty block.Items
-            then block
-            else { block with CloseBrace = Terminal.mapPrefix ensureNewLine block.CloseBrace }
+            if List.isEmpty block.Items then
+                block
+            else
+                { block with CloseBrace = Terminal.mapPrefix ensureNewLine block.CloseBrace }
     }

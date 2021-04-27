@@ -62,11 +62,14 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
         List.iter (fun v -> argument.Values.Add v) valuesList
         argument
 
-    let createArrayArgument (name: string,
-                             argType: DataType,
-                             position: int32,
-                             arrayType: System.Nullable<DataType>,
-                             valuesList: ArgumentValue list) =
+    let createArrayArgument
+        (
+            name: string,
+            argType: DataType,
+            position: int32,
+            arrayType: System.Nullable<DataType>,
+            valuesList: ArgumentValue list
+        ) =
         let argument = new Argument(Name = name, Type = argType, Position = position, ArrayType = arrayType)
         List.iter (fun v -> argument.Values.Add v) valuesList
         argument

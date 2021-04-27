@@ -13,9 +13,10 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.CodeCompletion.FragmentParsing
 let private matches scope previous (text, expected) =
     match GetCompletionKinds scope previous text with
     | Success actual ->
-        Assert.True
-            (Set.ofList expected = Set.ofSeq actual,
-             String.Format("Input:    {0}\n" + "Expected: {1}\n" + "Actual:   {2}", text, Set.ofList expected, actual))
+        Assert.True(
+            Set.ofList expected = Set.ofSeq actual,
+            String.Format("Input:    {0}\n" + "Expected: {1}\n" + "Actual:   {2}", text, Set.ofList expected, actual)
+        )
     | Failure message -> raise (Exception message)
 
 let private fails scope previous text =

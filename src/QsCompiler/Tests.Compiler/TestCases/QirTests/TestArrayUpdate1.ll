@@ -1,28 +1,29 @@
 define %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate1__body(%String* %even) {
 entry:
-  %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 10)
+  %0 = call %String* @__quantum__rt__string_create(i8* null)
+  %1 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 10)
   br label %header__1
 
 header__1:                                        ; preds = %exiting__1, %entry
-  %1 = phi i64 [ 0, %entry ], [ %6, %exiting__1 ]
-  %2 = icmp sle i64 %1, 9
-  br i1 %2, label %body__1, label %exit__1
+  %2 = phi i64 [ 0, %entry ], [ %6, %exiting__1 ]
+  %3 = icmp sle i64 %2, 9
+  br i1 %3, label %body__1, label %exit__1
 
 body__1:                                          ; preds = %header__1
-  %3 = call %String* @__quantum__rt__string_create(i8* null)
-  %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %1)
+  %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 %2)
   %5 = bitcast i8* %4 to %String**
-  store %String* %3, %String** %5, align 8
+  store %String* %0, %String** %5, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %0, i32 1)
   br label %exiting__1
 
 exiting__1:                                       ; preds = %body__1
-  %6 = add i64 %1, 1
+  %6 = add i64 %2, 1
   br label %header__1
 
 exit__1:                                          ; preds = %header__1
   %arr = alloca %Array*, align 8
-  store %Array* %0, %Array** %arr, align 8
-  call void @__quantum__rt__array_update_alias_count(%Array* %0, i32 1)
+  store %Array* %1, %Array** %arr, align 8
+  call void @__quantum__rt__array_update_alias_count(%Array* %1, i32 1)
   br label %header__2
 
 header__2:                                        ; preds = %exiting__2, %exit__1
@@ -31,7 +32,7 @@ header__2:                                        ; preds = %exiting__2, %exit__
   br i1 %8, label %body__2, label %exit__2
 
 body__2:                                          ; preds = %header__2
-  %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %7)
+  %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 %7)
   %10 = bitcast i8* %9 to %String**
   %11 = load %String*, %String** %10, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %11, i32 1)
@@ -42,7 +43,7 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
-  call void @__quantum__rt__array_update_reference_count(%Array* %0, i32 1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %1, i32 1)
   br label %header__3
 
 header__3:                                        ; preds = %exiting__3, %exit__2
@@ -98,6 +99,7 @@ exiting__3:                                       ; preds = %condContinue__2
 exit__3:                                          ; preds = %header__3
   %24 = load %Array*, %Array** %arr, align 8
   call void @__quantum__rt__array_update_alias_count(%Array* %24, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
   br label %header__4
 
 header__4:                                        ; preds = %exiting__4, %exit__3
@@ -106,7 +108,7 @@ header__4:                                        ; preds = %exiting__4, %exit__
   br i1 %26, label %body__4, label %exit__4
 
 body__4:                                          ; preds = %header__4
-  %27 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 %25)
+  %27 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %1, i64 %25)
   %28 = bitcast i8* %27 to %String**
   %29 = load %String*, %String** %28, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %29, i32 -1)
@@ -117,6 +119,6 @@ exiting__4:                                       ; preds = %body__4
   br label %header__4
 
 exit__4:                                          ; preds = %header__4
-  call void @__quantum__rt__array_update_reference_count(%Array* %0, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %1, i32 -1)
   ret %Array* %24
 }

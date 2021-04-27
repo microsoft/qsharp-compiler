@@ -23,8 +23,12 @@ and private CheckDeclarations private (_internal_, onTypeDecl, onCallableDecl, o
     member internal this.CheckSpecializationDeclaration = onSpecDecl
 
     new(?onTypeDecl, ?onCallableDecl, ?onSpecDecl) as this =
-        CheckDeclarations
-            ("_internal_", defaultArg onTypeDecl id, defaultArg onCallableDecl id, defaultArg onSpecDecl id)
+        CheckDeclarations(
+            "_internal_",
+            defaultArg onTypeDecl id,
+            defaultArg onCallableDecl id,
+            defaultArg onSpecDecl id
+        )
         then
             this.Types <- new TypeTransformation(this, TransformationOptions.Disabled)
             this.Expressions <- new ExpressionTransformation(this, TransformationOptions.Disabled)

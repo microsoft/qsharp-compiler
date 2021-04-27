@@ -32,7 +32,7 @@ let internal check x = if x then Some() else None
 
 
 /// Returns whether a given expression is a literal (and thus a constant)
-let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>) (expr: TypedExpression): bool =
+let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>) (expr: TypedExpression) : bool =
     let folder ex sub =
         match ex.Expression with
         | IntLiteral _
@@ -51,8 +51,8 @@ let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>)
         | RangeLiteral _
         | NewArray _ -> true
         | Identifier _ when ex.ResolvedType.Resolution = Qubit -> true
-        | CallLikeExpression ({ Expression = Identifier (GlobalCallable name, _) }, _) when callables.[name].Kind = TypeConstructor ->
-            true
+        | CallLikeExpression ({ Expression = Identifier (GlobalCallable name, _) }, _) when
+            callables.[name].Kind = TypeConstructor -> true
         | _ when TypedExpression.IsPartialApplication ex.Expression -> true
         | Identifier _
         | ArrayItem _
@@ -102,12 +102,12 @@ let internal defineVar check (constants: IDictionary<_, _>) (name, value) =
     if check value then constants.[name] <- value
 
 /// Applies the given function op on a SymbolTuple, ValueTuple pair
-let rec private onTuple op constants (names, values): unit =
+let rec private onTuple op constants (names, values) : unit =
     match names, values with
     | VariableName name, _ -> op constants (name, values)
     | VariableNameTuple namesTuple, Tuple valuesTuple ->
-        if namesTuple.Length <> valuesTuple.Length
-        then ArgumentException "names and values have different lengths" |> raise
+        if namesTuple.Length <> valuesTuple.Length then
+            ArgumentException "names and values have different lengths" |> raise
 
         for sym, value in Seq.zip namesTuple valuesTuple do
             onTuple op constants (sym, value)
@@ -136,8 +136,8 @@ let rec internal flatten =
 let rec internal jointFlatten =
     function
     | Tuple t1, Tuple t2 ->
-        if t1.Length <> t2.Length
-        then ArgumentException "The lengths of the given tuples do not match" |> raise
+        if t1.Length <> t2.Length then
+            ArgumentException "The lengths of the given tuples do not match" |> raise
 
         Seq.zip t1 t2 |> Seq.collect jointFlatten
     | v1, v2 -> Seq.singleton (v1, v2)
@@ -147,7 +147,7 @@ let rec internal jointFlatten =
 /// Converts a range literal to a sequence of integers.
 /// </summary>
 /// <exception cref="ArgumentException">The input isn't a valid range literal.</exception>
-let internal rangeLiteralToSeq (r: ExprKind): seq<int64> =
+let internal rangeLiteralToSeq (r: ExprKind) : seq<int64> =
     match r with
     | RangeLiteral (a, b) ->
         match a.Expression, b.Expression with
@@ -173,7 +173,7 @@ let rec internal removeIndices idx l =
 
 
 /// Converts a QsTuple to a SymbolTuple
-let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>): SymbolTuple =
+let rec internal toSymbolTuple (x: QsTuple<LocalVariableDeclaration<QsLocalSymbol>>) : SymbolTuple =
     match x with
     | QsTupleItem item ->
         match item.VariableName with
@@ -192,7 +192,8 @@ let rec internal (|LocalVarTuple|_|) (expr: TypedExpression) =
     | InvalidExpr -> InvalidItem |> Some
     | ValueTuple va ->
         va
-        |> Seq.map (function
+        |> Seq.map
+            (function
             | LocalVarTuple t -> Some t
             | _ -> None)
         |> List.ofSeq
@@ -204,12 +205,12 @@ let rec internal (|LocalVarTuple|_|) (expr: TypedExpression) =
 /// Wraps a QsExpressionType in a basic TypedExpression
 /// The returned TypedExpression has no type param / inferred info / range information,
 /// and it should not be used for any code step that requires this information.
-let internal wrapExpr (bt: TypeKind) (expr: ExprKind): TypedExpression =
+let internal wrapExpr (bt: TypeKind) (expr: ExprKind) : TypedExpression =
     let ii = { IsMutable = false; HasLocalQuantumDependency = false }
     TypedExpression.New(expr, ImmutableDictionary.Empty, ResolvedType.New bt, ii, Null)
 
 /// Wraps a QsStatementKind in a basic QsStatement
-let internal wrapStmt (stmt: QsStatementKind): QsStatement =
+let internal wrapStmt (stmt: QsStatementKind) : QsStatement =
     let symbolDecl =
         match stmt with
         | QsVariableDeclaration x ->
@@ -262,7 +263,7 @@ let rec private containsMissing (ex: TypedExpression) =
     | _ -> false
 
 /// Fills a partial argument by replacing MissingExprs with the corresponding values of a tuple
-let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpression): TypedExpression =
+let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpression) : TypedExpression =
     match partialArg with
     | Missing -> arg
     | Tuple items ->
@@ -273,13 +274,15 @@ let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpressi
             | _ -> failwithf "args must be a tuple"
 
         items
-        |> List.mapFold (fun args t1 ->
-            if containsMissing t1 then
-                match args with
-                | [] -> failwithf "ran out of args"
-                | head :: tail -> fillPartialArg (t1, head), tail
-            else
-                t1, args) argsList
+        |> List.mapFold
+            (fun args t1 ->
+                if containsMissing t1 then
+                    match args with
+                    | [] -> failwithf "ran out of args"
+                    | head :: tail -> fillPartialArg (t1, head), tail
+                else
+                    t1, args)
+            argsList
         |> fst
         |> ImmutableArray.CreateRange
         |> ValueTuple
@@ -288,9 +291,8 @@ let rec internal fillPartialArg (partialArg: TypedExpression, arg: TypedExpressi
 
 
 /// Computes exponentiation for 64-bit integers
-let internal longPow (a: int64) (b: int64): int64 =
-    if b < 0L
-    then failwithf "Negative power %d not supported for integer exponentiation." b
+let internal longPow (a: int64) (b: int64) : int64 =
+    if b < 0L then failwithf "Negative power %d not supported for integer exponentiation." b
 
     let mutable x = a
     let mutable power = b
@@ -323,15 +325,16 @@ let internal findAllSubStatements (scope: QsScope) =
     scope.Statements |> Seq.collect (fun stm -> stm.ExtractAll(statementKind >> Seq.singleton))
 
 /// Returns the number of return statements in this scope
-let internal countReturnStatements (scope: QsScope): int =
+let internal countReturnStatements (scope: QsScope) : int =
     scope
     |> findAllSubStatements
-    |> Seq.sumBy (function
+    |> Seq.sumBy
+        (function
         | QsReturnStatement _ -> 1
         | _ -> 0)
 
 /// Returns the number of statements in this scope
-let internal scopeLength (scope: QsScope): int =
+let internal scopeLength (scope: QsScope) : int =
     scope |> findAllSubStatements |> Seq.length
 
 
@@ -347,23 +350,25 @@ let rec internal isAllDiscarded =
 /// Casts an <see cref="int64"/> to an <see cref="int"/>.
 /// </summary>
 /// <exception cref="ArgumentException"><paramref name="i"/> is outside the allowed range.</exception>
-let internal safeCastInt64 (i: int64): int =
-    if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30)
-    then ArgumentException "Integer is too large for 32 bits" |> raise
-    else int i
+let internal safeCastInt64 (i: int64) : int =
+    if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30) then
+        ArgumentException "Integer is too large for 32 bits" |> raise
+    else
+        int i
 
 /// <summary>
 /// Casts a <see cref="BigInteger"/> to an <see cref="int"/>.
 /// </summary>
 /// <exception cref="ArgumentException"><paramref name="i"/> is outside the allowed range.</exception>
-let internal safeCastBigInt (i: BigInteger): int =
-    if BigInteger.Abs(i) > BigInteger(1 <<< 30)
-    then ArgumentException "Integer is too large for 32 bits" |> raise
-    else int i
+let internal safeCastBigInt (i: BigInteger) : int =
+    if BigInteger.Abs(i) > BigInteger(1 <<< 30) then
+        ArgumentException "Integer is too large for 32 bits" |> raise
+    else
+        int i
 
 
 /// Creates a new scope statement wrapping the given block
-let internal newScopeStatement (block: QsScope): QsStatementKind =
+let internal newScopeStatement (block: QsScope) : QsStatementKind =
     let posBlock = QsPositionedBlock.New QsComments.Empty Null block
 
     QsConditionalStatement.New(Seq.singleton (wrapExpr Bool (BoolLiteral true), posBlock), Null)
