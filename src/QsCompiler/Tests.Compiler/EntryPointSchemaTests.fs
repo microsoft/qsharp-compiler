@@ -83,251 +83,375 @@ type EntryPointSchemaTests(output: ITestOutputHelper) =
         Map
             .empty
             .Add("UseNoArgs", new EntryPointOperation(Name = "UseNoArgs"))
-            .Add("UseBoolArg",
-                 createEntryPointOperation ("UseBoolArg", [ createArgument ("BoolArg", DataType.BoolType, 0, []) ]))
-            .Add("UseBoolArgWithValues",
-                 createEntryPointOperation
-                     ("UseBoolArgWithValues",
-                      [
-                          createArgument
-                              ("BoolArg",
-                               DataType.BoolType,
-                               0,
-                               [
-                                   new ArgumentValue(Bool = System.Nullable(true))
-                                   new ArgumentValue(Bool = System.Nullable(false))
-                               ])
-                      ]))
-            .Add("UseIntegerArg",
-                 createEntryPointOperation
-                     ("UseIntegerArg", [ createArgument ("IntegerArg", DataType.IntegerType, 0, []) ]))
-            .Add("UseIntegerArgWithValues",
-                 createEntryPointOperation
-                     ("UseIntegerArgWithValues",
-                      [
-                          createArgument
-                              ("IntegerArg",
-                               DataType.IntegerType,
-                               0,
-                               [
-                                   new ArgumentValue(Integer = System.Nullable(int64 (11)))
-                                   new ArgumentValue(Integer = System.Nullable(int64 (999)))
-                               ])
-                      ]))
-            .Add("UseDoubleArg",
-                 createEntryPointOperation
-                     ("UseDoubleArg", [ createArgument ("DoubleArg", DataType.DoubleType, 0, []) ]))
-            .Add("UseDoubleArgWithValues",
-                 createEntryPointOperation
-                     ("UseDoubleArgWithValues",
-                      [
-                          createArgument
-                              ("DoubleArg",
-                               DataType.DoubleType,
-                               0,
-                               [
-                                   new ArgumentValue(Double = System.Nullable(0.1))
-                                   new ArgumentValue(Double = System.Nullable(0.2))
-                               ])
-                      ]))
-            .Add("UsePauliArg",
-                 createEntryPointOperation ("UsePauliArg", [ createArgument ("PauliArg", DataType.PauliType, 0, []) ]))
-            .Add("UsePauliArgWithValues",
-                 createEntryPointOperation
-                     ("UsePauliArgWithValues",
-                      [
-                          createArgument
-                              ("PauliArg",
-                               DataType.PauliType,
-                               0,
-                               [
-                                   new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliX))
-                                   new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliY))
-                                   new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliZ))
-                               ])
-                      ]))
-            .Add("UseRangeArg",
-                 createEntryPointOperation ("UseRangeArg", [ createArgument ("RangeArg", DataType.RangeType, 0, []) ]))
-            .Add("UseRangeArgWithValues",
-                 createEntryPointOperation
-                     ("UseRangeArgWithValues",
-                      [
-                          createArgument
-                              ("RangeArg",
-                               DataType.RangeType,
-                               0,
-                               [
-                                   createRangeArgumentValue (int64 (1), int64 (1), int64 (10))
-                                   createRangeArgumentValue (int64 (10), int64 (5), int64 (100))
-                               ])
-                      ]))
-            .Add("UseResultArg",
-                 createEntryPointOperation
-                     ("UseResultArg", [ createArgument ("ResultArg", DataType.ResultType, 0, []) ]))
-            .Add("UseResultArgWithValues",
-                 createEntryPointOperation
-                     ("UseResultArgWithValues",
-                      [
-                          createArgument
-                              ("ResultArg",
-                               DataType.ResultType,
-                               0,
-                               [
-                                   new ArgumentValue(Result = System.Nullable(ResultValue.Zero))
-                                   new ArgumentValue(Result = System.Nullable(ResultValue.One))
-                               ])
-                      ]))
-            .Add("UseStringArg",
-                 createEntryPointOperation
-                     ("UseStringArg", [ createArgument ("StringArg", DataType.StringType, 0, []) ]))
-            .Add("UseStringArgWithValues",
-                 createEntryPointOperation
-                     ("UseStringArgWithValues",
-                      [
-                          createArgument
-                              ("StringArg",
-                               DataType.StringType,
-                               0,
-                               [ new ArgumentValue(String = "StringA"); new ArgumentValue(String = "StringB") ])
-                      ]))
-            .Add("UseBoolArrayArg",
-                 createEntryPointOperation
-                     ("UseBoolArrayArg",
-                      [
-                          createArrayArgument
-                              ("BoolArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.BoolType), [])
-                      ]))
-            .Add("UseBoolArrayArgWithValues",
-                 createEntryPointOperation
-                     ("UseBoolArrayArgWithValues",
-                      [
-                          createArrayArgument
-                              ("BoolArrayArg",
-                               DataType.ArrayType,
-                               0,
-                               System.Nullable(DataType.BoolType),
-                               [
-                                   createBoolArrayArgumentValue ([ true; false; true ])
-                                   createBoolArrayArgumentValue ([ false; true; false ])
-                               ])
-                      ]))
-            .Add("UseIntegerArrayArg",
-                 createEntryPointOperation
-                     ("UseIntegerArrayArg",
-                      [
-                          createArrayArgument
-                              ("IntegerArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.IntegerType), [])
-                      ]))
-            .Add("UseIntegerArrayArgWithValues",
-                 createEntryPointOperation
-                     ("UseIntegerArrayArgWithValues",
-                      [
-                          createArrayArgument
-                              ("IntegerArrayArg",
-                               DataType.ArrayType,
-                               0,
-                               System.Nullable(DataType.IntegerType),
-                               [
-                                   createIntegerArrayArgumentValue ([ int64 (999); int64 (-1); int64 (11) ])
-                                   createIntegerArrayArgumentValue
-                                       ([ int64 (2048); int64 (-1024); int64 (4096); int64 (-8192) ])
-                               ])
-                      ]))
-            .Add("UseDoubleArrayArg",
-                 createEntryPointOperation
-                     ("UseDoubleArrayArg",
-                      [
-                          createArrayArgument
-                              ("DoubleArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.DoubleType), [])
-                      ]))
-            .Add("UseDoubleArrayArgWithValues",
-                 createEntryPointOperation
-                     ("UseDoubleArrayArgWithValues",
-                      [
-                          createArrayArgument
-                              ("DoubleArrayArg",
-                               DataType.ArrayType,
-                               0,
-                               System.Nullable(DataType.DoubleType),
-                               [
-                                   createDoubleArrayArgumentValue ([ 3.14159; 0.55; 1024.333; -8192.667 ])
-                                   createDoubleArrayArgumentValue ([ 999.999; -101010.10; 0.0001 ])
-                               ])
-                      ]))
-            .Add("UsePauliArrayArg",
-                 createEntryPointOperation
-                     ("UsePauliArrayArg",
-                      [
-                          createArrayArgument
-                              ("PauliArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.PauliType), [])
-                      ]))
-            .Add("UsePauliArrayArgWithValues",
-                 createEntryPointOperation
-                     ("UsePauliArrayArgWithValues",
-                      [
-                          createArrayArgument
-                              ("PauliArrayArg",
-                               DataType.ArrayType,
-                               0,
-                               System.Nullable(DataType.PauliType),
-                               [
-                                   createPauliArrayArgumentValue
-                                       ([ PauliValue.PauliX; PauliValue.PauliY; PauliValue.PauliZ ])
-                                   createPauliArrayArgumentValue ([ PauliValue.PauliI; PauliValue.PauliZ ])
-                               ])
-                      ]))
-            .Add("UseRangeArrayArg",
-                 createEntryPointOperation
-                     ("UseRangeArrayArg",
-                      [
-                          createArrayArgument
-                              ("RangeArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.RangeType), [])
-                      ]))
-            .Add("UseRangeArrayArgWithValues",
-                 createEntryPointOperation
-                     ("UseRangeArrayArgWithValues",
-                      [
-                          createArrayArgument
-                              ("RangeArrayArg",
-                               DataType.ArrayType,
-                               0,
-                               System.Nullable(DataType.RangeType),
-                               [
-                                   createRangeArrayArgumentValue
-                                       ([ (int64 (1), int64 (1), int64 (10)); (int64 (10), int64 (5), int64 (100)) ])
-                                   createRangeArrayArgumentValue ([ (int64 (1), int64 (2), int64 (10)) ])
-                               ])
-                      ]))
-            .Add("UseResultArrayArg",
-                 createEntryPointOperation
-                     ("UseResultArrayArg",
-                      [
-                          createArrayArgument
-                              ("ResultArrayArg", DataType.ArrayType, 0, System.Nullable(DataType.ResultType), [])
-                      ]))
-            .Add("UseResultArrayArgWithValues",
-                 createEntryPointOperation
-                     ("UseResultArrayArgWithValues",
-                      [
-                          createArrayArgument
-                              ("ResultArrayArg",
-                               DataType.ArrayType,
-                               0,
-                               System.Nullable(DataType.ResultType),
-                               [
-                                   createResultArrayArgumentValue ([ ResultValue.Zero; ResultValue.One ])
-                                   createResultArrayArgumentValue ([ ResultValue.One; ResultValue.Zero ])
-                               ])
-                      ]))
-            .Add("UseMiscArgs",
-                 createEntryPointOperation
-                     ("UseMiscArgs",
-                      [
-                          createArgument ("IntegerArg", DataType.BoolType, 0, [])
-                          createArgument ("PauliArg", DataType.PauliType, 1, [])
-                          createArrayArgument
-                              ("ResultArrayArg", DataType.ArrayType, 2, System.Nullable(DataType.ResultType), [])
-                      ]))
+            .Add(
+                "UseBoolArg",
+                createEntryPointOperation ("UseBoolArg", [ createArgument ("BoolArg", DataType.BoolType, 0, []) ])
+            )
+            .Add(
+                "UseBoolArgWithValues",
+                createEntryPointOperation (
+                    "UseBoolArgWithValues",
+                    [
+                        createArgument (
+                            "BoolArg",
+                            DataType.BoolType,
+                            0,
+                            [
+                                new ArgumentValue(Bool = System.Nullable(true))
+                                new ArgumentValue(Bool = System.Nullable(false))
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseIntegerArg",
+                createEntryPointOperation (
+                    "UseIntegerArg",
+                    [ createArgument ("IntegerArg", DataType.IntegerType, 0, []) ]
+                )
+            )
+            .Add(
+                "UseIntegerArgWithValues",
+                createEntryPointOperation (
+                    "UseIntegerArgWithValues",
+                    [
+                        createArgument (
+                            "IntegerArg",
+                            DataType.IntegerType,
+                            0,
+                            [
+                                new ArgumentValue(Integer = System.Nullable(int64 (11)))
+                                new ArgumentValue(Integer = System.Nullable(int64 (999)))
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseDoubleArg",
+                createEntryPointOperation ("UseDoubleArg", [ createArgument ("DoubleArg", DataType.DoubleType, 0, []) ])
+            )
+            .Add(
+                "UseDoubleArgWithValues",
+                createEntryPointOperation (
+                    "UseDoubleArgWithValues",
+                    [
+                        createArgument (
+                            "DoubleArg",
+                            DataType.DoubleType,
+                            0,
+                            [
+                                new ArgumentValue(Double = System.Nullable(0.1))
+                                new ArgumentValue(Double = System.Nullable(0.2))
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UsePauliArg",
+                createEntryPointOperation ("UsePauliArg", [ createArgument ("PauliArg", DataType.PauliType, 0, []) ])
+            )
+            .Add(
+                "UsePauliArgWithValues",
+                createEntryPointOperation (
+                    "UsePauliArgWithValues",
+                    [
+                        createArgument (
+                            "PauliArg",
+                            DataType.PauliType,
+                            0,
+                            [
+                                new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliX))
+                                new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliY))
+                                new ArgumentValue(Pauli = System.Nullable(PauliValue.PauliZ))
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseRangeArg",
+                createEntryPointOperation ("UseRangeArg", [ createArgument ("RangeArg", DataType.RangeType, 0, []) ])
+            )
+            .Add(
+                "UseRangeArgWithValues",
+                createEntryPointOperation (
+                    "UseRangeArgWithValues",
+                    [
+                        createArgument (
+                            "RangeArg",
+                            DataType.RangeType,
+                            0,
+                            [
+                                createRangeArgumentValue (int64 (1), int64 (1), int64 (10))
+                                createRangeArgumentValue (int64 (10), int64 (5), int64 (100))
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseResultArg",
+                createEntryPointOperation ("UseResultArg", [ createArgument ("ResultArg", DataType.ResultType, 0, []) ])
+            )
+            .Add(
+                "UseResultArgWithValues",
+                createEntryPointOperation (
+                    "UseResultArgWithValues",
+                    [
+                        createArgument (
+                            "ResultArg",
+                            DataType.ResultType,
+                            0,
+                            [
+                                new ArgumentValue(Result = System.Nullable(ResultValue.Zero))
+                                new ArgumentValue(Result = System.Nullable(ResultValue.One))
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseStringArg",
+                createEntryPointOperation ("UseStringArg", [ createArgument ("StringArg", DataType.StringType, 0, []) ])
+            )
+            .Add(
+                "UseStringArgWithValues",
+                createEntryPointOperation (
+                    "UseStringArgWithValues",
+                    [
+                        createArgument (
+                            "StringArg",
+                            DataType.StringType,
+                            0,
+                            [ new ArgumentValue(String = "StringA"); new ArgumentValue(String = "StringB") ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseBoolArrayArg",
+                createEntryPointOperation (
+                    "UseBoolArrayArg",
+                    [
+                        createArrayArgument (
+                            "BoolArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.BoolType),
+                            []
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseBoolArrayArgWithValues",
+                createEntryPointOperation (
+                    "UseBoolArrayArgWithValues",
+                    [
+                        createArrayArgument (
+                            "BoolArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.BoolType),
+                            [
+                                createBoolArrayArgumentValue ([ true; false; true ])
+                                createBoolArrayArgumentValue ([ false; true; false ])
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseIntegerArrayArg",
+                createEntryPointOperation (
+                    "UseIntegerArrayArg",
+                    [
+                        createArrayArgument (
+                            "IntegerArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.IntegerType),
+                            []
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseIntegerArrayArgWithValues",
+                createEntryPointOperation (
+                    "UseIntegerArrayArgWithValues",
+                    [
+                        createArrayArgument (
+                            "IntegerArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.IntegerType),
+                            [
+                                createIntegerArrayArgumentValue ([ int64 (999); int64 (-1); int64 (11) ])
+                                createIntegerArrayArgumentValue (
+                                    [ int64 (2048); int64 (-1024); int64 (4096); int64 (-8192) ]
+                                )
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseDoubleArrayArg",
+                createEntryPointOperation (
+                    "UseDoubleArrayArg",
+                    [
+                        createArrayArgument (
+                            "DoubleArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.DoubleType),
+                            []
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseDoubleArrayArgWithValues",
+                createEntryPointOperation (
+                    "UseDoubleArrayArgWithValues",
+                    [
+                        createArrayArgument (
+                            "DoubleArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.DoubleType),
+                            [
+                                createDoubleArrayArgumentValue ([ 3.14159; 0.55; 1024.333; -8192.667 ])
+                                createDoubleArrayArgumentValue ([ 999.999; -101010.10; 0.0001 ])
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UsePauliArrayArg",
+                createEntryPointOperation (
+                    "UsePauliArrayArg",
+                    [
+                        createArrayArgument (
+                            "PauliArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.PauliType),
+                            []
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UsePauliArrayArgWithValues",
+                createEntryPointOperation (
+                    "UsePauliArrayArgWithValues",
+                    [
+                        createArrayArgument (
+                            "PauliArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.PauliType),
+                            [
+                                createPauliArrayArgumentValue (
+                                    [ PauliValue.PauliX; PauliValue.PauliY; PauliValue.PauliZ ]
+                                )
+                                createPauliArrayArgumentValue ([ PauliValue.PauliI; PauliValue.PauliZ ])
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseRangeArrayArg",
+                createEntryPointOperation (
+                    "UseRangeArrayArg",
+                    [
+                        createArrayArgument (
+                            "RangeArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.RangeType),
+                            []
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseRangeArrayArgWithValues",
+                createEntryPointOperation (
+                    "UseRangeArrayArgWithValues",
+                    [
+                        createArrayArgument (
+                            "RangeArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.RangeType),
+                            [
+                                createRangeArrayArgumentValue (
+                                    [ (int64 (1), int64 (1), int64 (10)); (int64 (10), int64 (5), int64 (100)) ]
+                                )
+                                createRangeArrayArgumentValue ([ (int64 (1), int64 (2), int64 (10)) ])
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseResultArrayArg",
+                createEntryPointOperation (
+                    "UseResultArrayArg",
+                    [
+                        createArrayArgument (
+                            "ResultArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.ResultType),
+                            []
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseResultArrayArgWithValues",
+                createEntryPointOperation (
+                    "UseResultArrayArgWithValues",
+                    [
+                        createArrayArgument (
+                            "ResultArrayArg",
+                            DataType.ArrayType,
+                            0,
+                            System.Nullable(DataType.ResultType),
+                            [
+                                createResultArrayArgumentValue ([ ResultValue.Zero; ResultValue.One ])
+                                createResultArrayArgumentValue ([ ResultValue.One; ResultValue.Zero ])
+                            ]
+                        )
+                    ]
+                )
+            )
+            .Add(
+                "UseMiscArgs",
+                createEntryPointOperation (
+                    "UseMiscArgs",
+                    [
+                        createArgument ("IntegerArg", DataType.BoolType, 0, [])
+                        createArgument ("PauliArg", DataType.PauliType, 1, [])
+                        createArrayArgument (
+                            "ResultArrayArg",
+                            DataType.ArrayType,
+                            2,
+                            System.Nullable(DataType.ResultType),
+                            []
+                        )
+                    ]
+                )
+            )
 
     [<Theory>]
     [<InlineData("UseNoArgs")>]
