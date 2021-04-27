@@ -13,6 +13,7 @@ type QirDriverGenerationTests(output: ITestOutputHelper) =
     let testCasesDirectory = Path.Combine("TestCases", "QirEntryPointTests")
 
     [<Theory>]
+    [<InlineData("UseNoArgs")>]
     [<InlineData("UseMiscArgs")>]
     [<InlineData("UseBoolArgWithValues")>]
     [<InlineData("UseIntegerArgWithValues")>]

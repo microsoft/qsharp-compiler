@@ -14,6 +14,7 @@ type EntryPointGenerationTests(output: ITestOutputHelper) =
     let testCasesDirectory = Path.Combine("TestCases", "QirEntryPointTests")
 
     [<Theory>]
+    [<InlineData("UseNoArgs")>]
     [<InlineData("UseBoolArgWithValues")>]
     [<InlineData("UseIntegerArgWithValues")>]
     [<InlineData("UseDoubleArgWithValues")>]

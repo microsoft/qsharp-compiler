@@ -25,6 +25,9 @@
     <Compile Include="QirDriverGenerationTests.fs" />
     <Compile Include="QirExecutionWrapperSchemaTests.fs" />
     <Compile Include="EntryPointGenerationTests.fs" />
+    <None Include="TestCases\QirEntryPointTests\UseNoArgs.txt">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\QirEntryPointTests\UseMiscArgs.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
@@ -67,6 +70,7 @@
     <None Include="TestCases\QirEntryPointTests\UseStringArgWithValues.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
+    <None Include="TestCases\QirEntryPointTests\UseNoArgs.cpp" />
     <None Include="TestCases\QirEntryPointTests\UseBoolArrayArgWithValues.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
