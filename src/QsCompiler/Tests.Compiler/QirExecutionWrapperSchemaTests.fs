@@ -24,7 +24,7 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
         let executionInformation = new ExecutionInformation()
         executionInformation.EntryPoint <- expectedEntryPointOperation
         executionInformation.ArgumentValues <- new Dictionary<string, ArgumentValue>()
-        executionInformation.ArgumentValues.["argument name"] <- new ArgumentValue(Integer = int64 (4))
+        executionInformation.ArgumentValues.["argument name"] <- new ArgumentValue(Integer = new System.Nullable<int64>(int64 (4)))
         executionInformation
 
     let createBytecode () =

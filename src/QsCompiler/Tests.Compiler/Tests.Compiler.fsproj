@@ -70,7 +70,9 @@
     <None Include="TestCases\QirEntryPointTests\UseStringArgWithValues.txt">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <None Include="TestCases\QirEntryPointTests\UseNoArgs.cpp" />
+    <None Include="TestCases\QirEntryPointTests\UseNoArgs.cpp">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="TestCases\QirEntryPointTests\UseBoolArrayArgWithValues.cpp">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>

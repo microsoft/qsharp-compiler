@@ -81,6 +81,11 @@ let private createArgumentMap (name: string, value: ArgumentValue) =
 let sampleExecutionInformation =
     Map
         .empty
+        .Add("UseNoArgs",
+             createExecutionInformation
+                 (createEntryPointOperation
+                     ("UseNoArgs", [ ]),
+                 new Dictionary<string, ArgumentValue>()))
         .Add("UseBoolArgWithValues",
              createExecutionInformation
                  (createEntryPointOperation
