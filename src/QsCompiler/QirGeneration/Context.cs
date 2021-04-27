@@ -120,21 +120,49 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         #region Control flow context tracking
 
-        internal bool IsWithinLoop = false;
+        // This value is used to assigne a unique id to each branch/loop in the program.
+        private int uniqueControlFlowId = 0;
 
-        private (int, Stack<int>) branchIds = (0, new Stack<int>(new[] { 0 }));
-        internal int CurrentBranch => this.branchIds.Item2.Peek();
-        internal bool IsOpenBranch(int id) => this.branchIds.Item2.Contains(id);
+        // Contains the ids of all currently open branches.
+        private readonly Stack<int> branchIds = new Stack<int>(new[] { 0 });
+        internal int CurrentBranch => this.branchIds.Peek();
+        internal bool IsOpenBranch(int id) => this.branchIds.Contains(id);
 
         internal void StartBranch()
         {
-            var (lastUsedId, stack) = this.branchIds;
-            stack.Push(lastUsedId + 1);
-            this.branchIds = (stack.Peek(), stack);
+            this.uniqueControlFlowId += 1;
+            this.branchIds.Push(this.uniqueControlFlowId);
         }
 
         internal void EndBranch() =>
-            this.branchIds.Item2.Pop();
+            this.branchIds.Pop();
+
+        // Contains the ids of all currently executing loops.
+        private readonly Stack<int> loopIds = new Stack<int>();
+        internal bool IsWithinLoop => this.loopIds.Any();
+        internal bool IsWithinCurrentLoop(int branchId)
+        {
+            if (!this.loopIds.TryPeek(out var currentLoopId))
+            {
+                return false;
+            }
+            var branchesWithinCurrentLoop = this.branchIds.TakeWhile(id => id >= currentLoopId);
+            return branchesWithinCurrentLoop.Contains(branchId);
+        }
+
+        internal void StartLoop()
+        {
+            // We need to mark the loop and also mark the branching
+            // to ensure that pointers are properly loaded when needed.
+            this.StartBranch();
+            this.loopIds.Push(this.CurrentBranch);
+        }
+
+        internal void EndLoop()
+        {
+            this.loopIds.Pop();
+            this.EndBranch();
+        }
 
         internal bool IsInlined => this.inlineLevels.Any();
 
@@ -1152,37 +1180,43 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
             var entryBlock = this.CurrentBlock!;
 
-            IValue ProcessBlock(Func<IValue>? evaluate)
+            Value ProcessConditionalBlock(BasicBlock block, Func<IValue>? evaluate)
             {
+                this.SetCurrentBlock(block);
+                this.StartBranch();
+
+                IValue evaluated;
                 if (increaseReferenceCount)
                 {
                     this.ScopeMgr.OpenScope();
-                    var evaluated = evaluate?.Invoke() ?? defaultValue!;
+                    evaluated = evaluate?.Invoke() ?? defaultValue!;
                     this.ScopeMgr.CloseScope(evaluated); // forces that the ref count is increased within the branch
-                    return evaluated;
                 }
                 else
                 {
-                    return evaluate?.Invoke() ?? defaultValue!;
+                    evaluated = evaluate?.Invoke() ?? defaultValue!;
                 }
+
+                // We need to make sure to access the value *before* we end the branch -
+                // otherwise the caching may complain that the value is no longer accessible.
+                var res = evaluated.Value;
+                this.EndBranch();
+                this.CurrentBuilder.Branch(contBlock);
+                return res;
             }
 
             var (evaluatedOnTrue, afterTrue) = (defaultValue?.Value, entryBlock);
             if (requiresTrueBlock)
             {
-                this.SetCurrentBlock(trueBlock);
-                var onTrue = ProcessBlock(onCondTrue);
-                this.CurrentBuilder.Branch(contBlock);
-                (evaluatedOnTrue, afterTrue) = (onTrue.Value, this.CurrentBlock!);
+                var onTrue = ProcessConditionalBlock(trueBlock, onCondTrue);
+                (evaluatedOnTrue, afterTrue) = (onTrue, this.CurrentBlock!);
             }
 
             var (evaluatedOnFalse, afterFalse) = (defaultValue?.Value, entryBlock);
             if (requiresFalseBlock)
             {
-                this.SetCurrentBlock(falseBlock);
-                var onFalse = ProcessBlock(onCondFalse);
-                this.CurrentBuilder.Branch(contBlock);
-                (evaluatedOnFalse, afterFalse) = (onFalse.Value, this.CurrentBlock!);
+                var onFalse = ProcessConditionalBlock(falseBlock, onCondFalse);
+                (evaluatedOnFalse, afterFalse) = (onFalse, this.CurrentBlock!);
             }
 
             this.SetCurrentBlock(contBlock);
@@ -1346,14 +1380,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="loop">The loop to execute</param>
         internal void ExecuteLoop(BasicBlock continuation, Action loop)
         {
-            // We need to mark the loop and also mark the branching
-            // to ensure that pointers are properly loaded when needed.
-            bool withinOuterLoop = this.IsWithinLoop;
-            this.IsWithinLoop = true;
-            this.StartBranch();
+            this.StartLoop();
             loop();
-            this.EndBranch();
-            this.IsWithinLoop = withinOuterLoop;
+            this.EndLoop();
             this.SetCurrentBlock(continuation);
         }
 

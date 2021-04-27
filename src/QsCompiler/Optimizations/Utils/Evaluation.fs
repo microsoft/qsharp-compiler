@@ -42,7 +42,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
 
     /// Represents a computation that decreases the remaining statements counter by 1.
     /// Yields an OutOfStatements interrupt if this decreases the remaining statements below 0.
-    let incrementState: Imp<Unit> =
+    let incrementState : Imp<Unit> =
         imperative {
             let! vars, counter = getState
             if counter < 1 then yield TooManyStatements
@@ -50,7 +50,7 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
         }
 
     /// Represents a computation that sets the given variables to the given values
-    let setVars callables entry: Imp<Unit> =
+    let setVars callables entry : Imp<Unit> =
         imperative {
             let! vars, counter = getState
             defineVarTuple (isLiteral callables) vars entry
@@ -58,20 +58,21 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
         }
 
     /// Casts a BoolLiteral to the corresponding bool
-    let castToBool x: bool =
+    let castToBool x : bool =
         match x.Expression with
         | BoolLiteral b -> b
         | _ -> ArgumentException("Not a BoolLiteral: " + x.Expression.ToString()) |> raise
 
     /// Evaluates and simplifies a single Q# expression
-    member private this.EvaluateExpression expr: Imp<TypedExpression> =
+    member private this.EvaluateExpression expr : Imp<TypedExpression> =
         imperative {
             let! vars, counter = getState
             let result = ExpressionEvaluator(callables, vars, counter / 2).Expressions.OnTypedExpression expr
 
-            if isLiteral callables result
-            then return result
-            else yield CouldNotEvaluate("Not a literal: " + result.Expression.ToString())
+            if isLiteral callables result then
+                return result
+            else
+                yield CouldNotEvaluate("Not a literal: " + result.Expression.ToString())
         }
 
     /// Evaluates a single Q# statement
@@ -125,8 +126,9 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
                         | ValueArray va -> return va :> seq<_>
                         | _ ->
                             yield
-                                CouldNotEvaluate
-                                    ("Unknown IterationValue in for loop: " + iterExpr.Expression.ToString())
+                                CouldNotEvaluate(
+                                    "Unknown IterationValue in for loop: " + iterExpr.Expression.ToString()
+                                )
                     }
 
                 for loopValue in iterSeq do
@@ -162,11 +164,10 @@ type internal FunctionEvaluator(callables: IDictionary<QsQualifiedName, QsCallab
     member internal this.EvaluateFunction (name: QsQualifiedName) (arg: TypedExpression) (stmtsLeft: int) =
         let callable = callables.[name]
 
-        if callable.Kind = Operation
-        then ArgumentException "Input is not a function" |> raise
+        if callable.Kind = Operation then ArgumentException "Input is not a function" |> raise
 
-        if callable.Specializations.Length <> 1
-        then ArgumentException "Functions must have exactly one specialization" |> raise
+        if callable.Specializations.Length <> 1 then
+            ArgumentException "Functions must have exactly one specialization" |> raise
 
         let impl = (Seq.exactlyOne callable.Specializations).Implementation
 
@@ -199,10 +200,13 @@ and internal ExpressionEvaluator private (_private_) =
 
 
 /// The ExpressionKindTransformation used to evaluate constant expressions
-and private ExpressionKindEvaluator(parent,
-                                    callables: IDictionary<QsQualifiedName, QsCallable>,
-                                    constants: IDictionary<string, TypedExpression>,
-                                    stmtsLeft: int) =
+and private ExpressionKindEvaluator
+    (
+        parent,
+        callables: IDictionary<QsQualifiedName, QsCallable>,
+        constants: IDictionary<string, TypedExpression>,
+        stmtsLeft: int
+    ) =
     inherit ExpressionKindTransformation(parent)
 
     member private this.simplify e1 = this.Expressions.OnTypedExpression e1
@@ -291,18 +295,20 @@ and private ExpressionKindEvaluator(parent,
         let ex = this.simplify ex
 
         match ex.Expression with
-        | CallLikeExpression ({ Expression = Identifier (GlobalCallable qualName, types) }, arg) when (callables.[qualName])
-            .Kind = TypeConstructor ->
-              // TODO - must be adapted if we want to support user-defined type constructors
-              QsCompilerError.Verify
-                  ((callables.[qualName]).Specializations.Length = 1,
-                   "Type constructors should have exactly one specialization")
+        | CallLikeExpression ({ Expression = Identifier (GlobalCallable qualName, types) }, arg) when
+            (callables.[qualName]).Kind = TypeConstructor ->
+            // TODO - must be adapted if we want to support user-defined type constructors
+            QsCompilerError.Verify(
+                (callables.[qualName]).Specializations.Length = 1,
+                "Type constructors should have exactly one specialization"
+            )
 
-              QsCompilerError.Verify
-                  ((callables.[qualName]).Specializations.[0].Implementation = Intrinsic,
-                   "Type constructors should be implicit")
+            QsCompilerError.Verify(
+                (callables.[qualName]).Specializations.[0].Implementation = Intrinsic,
+                "Type constructors should be implicit"
+            )
 
-              arg.Expression
+            arg.Expression
         | _ -> UnwrapApplication ex
 
     override this.OnArrayItem(arr, idx) =
@@ -493,7 +499,8 @@ and private ExpressionKindEvaluator(parent,
     override this.OnBitwiseExclusiveOr(lhs, rhs) =
         this.intBinaryOp BXOR (^^^) (^^^) lhs rhs
 
-    override this.OnBitwiseOr(lhs, rhs) = this.intBinaryOp BOR (|||) (|||) lhs rhs
+    override this.OnBitwiseOr(lhs, rhs) =
+        this.intBinaryOp BOR (|||) (|||) lhs rhs
 
     override this.OnBitwiseAnd(lhs, rhs) =
         this.intBinaryOp BAND (&&&) (&&&) lhs rhs

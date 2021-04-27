@@ -12,20 +12,23 @@ open System.Collections.Immutable
 
 type TestRewriteStep(priority: int) =
     interface IRewriteStep with
-        member this.AssemblyConstants: IDictionary<string, string> =
+        member this.AssemblyConstants : IDictionary<string, string> =
             new Dictionary<string, string>() :> IDictionary<string, string>
 
-        member this.GeneratedDiagnostics: IEnumerable<IRewriteStep.Diagnostic> = Seq.empty
-        member this.ImplementsPostconditionVerification: bool = false
-        member this.ImplementsPreconditionVerification: bool = false
-        member this.ImplementsTransformation: bool = false
-        member this.Name: string = "Test Rewrite Step"
-        member this.PostconditionVerification(compilation: SyntaxTree.QsCompilation): bool = false
-        member this.PreconditionVerification(compilation: SyntaxTree.QsCompilation): bool = false
-        member this.Priority: int = priority
+        member this.GeneratedDiagnostics : IEnumerable<IRewriteStep.Diagnostic> = Seq.empty
+        member this.ImplementsPostconditionVerification : bool = false
+        member this.ImplementsPreconditionVerification : bool = false
+        member this.ImplementsTransformation : bool = false
+        member this.Name : string = "Test Rewrite Step"
+        member this.PostconditionVerification(compilation: SyntaxTree.QsCompilation) : bool = false
+        member this.PreconditionVerification(compilation: SyntaxTree.QsCompilation) : bool = false
+        member this.Priority : int = priority
 
-        member this.Transformation(compilation: SyntaxTree.QsCompilation, transformed: byref<SyntaxTree.QsCompilation>)
-                                   : bool =
+        member this.Transformation
+            (
+                compilation: SyntaxTree.QsCompilation,
+                transformed: byref<SyntaxTree.QsCompilation>
+            ) : bool =
             true
 
     new() = TestRewriteStep(0)
@@ -83,9 +86,11 @@ type ExternalRewriteStepsManagerTests() =
         let stepInstance = new TestRewriteStep()
 
         let config =
-            new CompilationLoader.Configuration(RewriteStepAssemblies = [ (this.GetType().Assembly.Location, "") ],
-                                                RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ],
-                                                RewriteStepInstances = [ (stepInstance :> IRewriteStep, "") ])
+            new CompilationLoader.Configuration(
+                RewriteStepAssemblies = [ (this.GetType().Assembly.Location, "") ],
+                RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ],
+                RewriteStepInstances = [ (stepInstance :> IRewriteStep, "") ]
+            )
 
         let loadedSteps = GetSteps config
 
@@ -98,12 +103,10 @@ type ExternalRewriteStepsManagerTests() =
         let stepInstance2 = new TestRewriteStep 20
 
         let config =
-            new CompilationLoader.Configuration(RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ],
-                                                RewriteStepInstances =
-                                                    [
-                                                        (stepInstance1 :> IRewriteStep, "")
-                                                        (stepInstance2 :> IRewriteStep, "")
-                                                    ])
+            new CompilationLoader.Configuration(
+                RewriteStepTypes = [ (typedefof<TestRewriteStep>, "") ],
+                RewriteStepInstances = [ (stepInstance1 :> IRewriteStep, ""); (stepInstance2 :> IRewriteStep, "") ]
+            )
 
         let loadedSteps = GetSteps config
 

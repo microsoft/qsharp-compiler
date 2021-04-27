@@ -42,20 +42,21 @@ condFalse__1:                                     ; preds = %entry
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %entry
-  store { double, %String* }* %19, { double, %String* }** %14, align 8
-  %20 = getelementptr inbounds { double, %String* }, { double, %String* }* %19, i32 0, i32 1
-  %21 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i32 1)
-  %22 = load %String*, %String** %20, align 8
+  %20 = bitcast %Tuple* %17 to { double, %String* }*
+  store { double, %String* }* %20, { double, %String* }** %14, align 8
+  %21 = getelementptr inbounds { double, %String* }, { double, %String* }* %20, i32 0, i32 1
+  %22 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
+  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 1)
+  %23 = load %String*, %String** %21, align 8
   br i1 %12, label %condContinue__2, label %condFalse__2
 
 condFalse__2:                                     ; preds = %condContinue__1
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i32 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 1)
+  call void @__quantum__rt__string_update_reference_count(%String* %23, i32 -1)
   br label %condContinue__2
 
 condContinue__2:                                  ; preds = %condFalse__2, %condContinue__1
-  store %String* %21, %String** %20, align 8
+  store %String* %22, %String** %21, align 8
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %11, i32 1)
   store { { double, %String* }*, i64 }* %13, { { double, %String* }*, i64 }** %x, align 8
@@ -68,8 +69,8 @@ condContinue__2:                                  ; preds = %condFalse__2, %cond
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %22, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %23, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 -1)
   ret { { double, %String* }*, i64 }* %13

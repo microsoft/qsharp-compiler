@@ -23,7 +23,7 @@ type QsNullable<'T> =
 
     /// If the given nullable has a value, applies the given function to it and returns the result as Value,
     /// and returns Null otherwise.
-    static member Map fct = QsNullable<_>.Bind(fct >> Value)
+    static member Map fct = QsNullable<_>.Bind (fct >> Value)
 
     /// If the given nullable has a value, applies the given function to it.
     static member Iter fct =
@@ -51,11 +51,12 @@ type QsNullable<'T> =
     /// Returns the sequence comprised of the results x for each element where the function returns Value x
     static member Choose fct (seq: _ seq) =
         seq
-        |> Seq.choose
-            (fct
-             >> function
-             | Null -> None
-             | Value v -> Some v)
+        |> Seq.choose (
+            fct
+            >> function
+            | Null -> None
+            | Value v -> Some v
+        )
 
     /// Converts the given F# option to a QsNullable.
     // TODO: RELEASE 2021-08: Remove QsNullable<T>.FromOption.
@@ -187,8 +188,8 @@ type Position =
     /// </summary>
     /// <exception cref="ArgumentOutOfRangeException">Thrown if the line or column is negative.</exception>
     static member Create line column =
-        if line < 0 || column < 0
-        then ArgumentOutOfRangeException "Line and column cannot be negative." |> raise
+        if line < 0 || column < 0 then
+            ArgumentOutOfRangeException "Line and column cannot be negative." |> raise
 
         Position(line, column)
 
@@ -236,8 +237,7 @@ type Range =
     /// Thrown if <paramref name="start"/> occurs after <paramref name="end"/>.
     /// </exception>
     static member Create start ``end`` =
-        if start > ``end``
-        then ArgumentException "Range start cannot occur after range end." |> raise
+        if start > ``end`` then ArgumentException "Range start cannot occur after range end." |> raise
 
         Range(start, ``end``)
 
@@ -270,15 +270,15 @@ type QsCompilerDiagnostic =
 
     /// builds a new diagnostics error with the give code and range
     static member Error (code, args) range =
-        QsCompilerDiagnostic.New (Error code, args) range
+        QsCompilerDiagnostic.New(Error code, args) range
 
     /// builds a new diagnostics warning with the give code and range
     static member Warning (code, args) range =
-        QsCompilerDiagnostic.New (Warning code, args) range
+        QsCompilerDiagnostic.New(Warning code, args) range
 
     /// builds a new diagnostics information with the give code and range
     static member Info (code, args) range =
-        QsCompilerDiagnostic.New (Information code, args) range
+        QsCompilerDiagnostic.New(Information code, args) range
 
     member this.Code =
         match this.Diagnostic with
@@ -295,7 +295,7 @@ type QsCompilerDiagnostic =
 
 /// interface used to pass anything lock-like to the symbol table (could not find an existing one??)
 type IReaderWriterLock =
-    abstract EnterReadLock: unit -> unit
-    abstract ExitReadLock: unit -> unit
-    abstract EnterWriteLock: unit -> unit
-    abstract ExitWriteLock: unit -> unit
+    abstract EnterReadLock : unit -> unit
+    abstract ExitReadLock : unit -> unit
+    abstract EnterWriteLock : unit -> unit
+    abstract ExitWriteLock : unit -> unit

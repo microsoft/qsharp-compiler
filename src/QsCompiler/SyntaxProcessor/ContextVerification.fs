@@ -28,9 +28,10 @@ let private ApplyOrDefaultTo fallback nullable apply =
 /// Verifies that the number of parents in the given context is 0.
 /// Returns an array with suitable diagnostics.
 let private verifyNamespace (context: SyntaxTokenContext) =
-    if context.Parents.Length = 0
-    then true, [||]
-    else false, [| (ErrorCode.NotWithinGlobalScope |> Error, context.Range) |]
+    if context.Parents.Length = 0 then
+        true, [||]
+    else
+        false, [| (ErrorCode.NotWithinGlobalScope |> Error, context.Range) |]
 
 /// Verifies that the direct parent in the given context is a namespace declaration.
 /// Indicates that the fragment is to be excluded from compilation if the direct parent is not a namespace declaration.
@@ -130,7 +131,7 @@ let private verifySpecialization (context: SyntaxTokenContext) =
             false, [| (ErrorCode.ControlledAdjointDeclInFunction |> Error, context.Range) |]
         | decl -> checkGenerator decl
 
-    let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
+    let NullOr = ApplyOrDefaultTo(false, [||]) context.Self // empty fragments can be excluded from the compilation
 
     let errMsg = false, [| (ErrorCode.NotWithinCallable |> Error, context.Range) |]
 
@@ -178,7 +179,7 @@ let private verifyStatement (context: SyntaxTokenContext) =
         | ReturnStatement _ -> false, [| (ErrorCode.ReturnFromWithinApplyBlock |> Error, context.Range) |]
         | _ -> true, [||]
 
-    let NullOr = ApplyOrDefaultTo (false, [||]) context.Self // empty fragments can be excluded from the compilation
+    let NullOr = ApplyOrDefaultTo(false, [||]) context.Self // empty fragments can be excluded from the compilation
 
     let notWithinSpecialization = false, [| (ErrorCode.NotWithinSpecialization |> Error, context.Range) |]
 
@@ -264,36 +265,36 @@ type ContextVerification = delegate of SyntaxTokenContext -> (bool * QsCompilerD
 /// Marked as excluded, on the other hand, are invalid or empty fragments.
 let VerifySyntaxTokenContext =
     new ContextVerification(fun context ->
-    match context.Self with
-    | Null -> false, [||]
-    | Value kind ->
-        match kind with
-        | ExpressionStatement _ -> verifyStatement context
-        | ReturnStatement _ -> verifyStatement context
-        | FailStatement _ -> verifyStatement context
-        | ImmutableBinding _ -> verifyStatement context
-        | MutableBinding _ -> verifyStatement context
-        | ValueUpdate _ -> verifyStatement context
-        | IfClause _ -> verifyStatement context
-        | ElifClause _ -> precededByIfOrElif context
-        | ElseClause _ -> precededByIfOrElif context
-        | ForLoopIntro _ -> verifyStatement context
-        | WhileLoopIntro _ -> verifyStatement context
-        | RepeatIntro _ -> followedByUntil context
-        | UntilSuccess _ -> precededByRepeat context
-        | WithinBlockIntro _ -> followedByApply context
-        | ApplyBlockIntro _ -> precededByWithin context
-        | UsingBlockIntro _ -> verifyStatement context
-        | BorrowingBlockIntro _ -> verifyStatement context
-        | BodyDeclaration _ -> verifySpecialization context
-        | AdjointDeclaration _ -> verifySpecialization context
-        | ControlledDeclaration _ -> verifySpecialization context
-        | ControlledAdjointDeclaration _ -> verifySpecialization context
-        | OperationDeclaration _ -> verifyDeclaration context
-        | FunctionDeclaration _ -> verifyDeclaration context
-        | TypeDefinition _ -> verifyDeclaration context
-        | OpenDirective _ -> verifyOpenDirective context
-        | DeclarationAttribute _ -> verifyDeclarationAttribute context
-        | NamespaceDeclaration _ -> verifyNamespace context
-        | InvalidFragment _ -> false, [||]
-    |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New (x, []) y))
+        match context.Self with
+        | Null -> false, [||]
+        | Value kind ->
+            match kind with
+            | ExpressionStatement _ -> verifyStatement context
+            | ReturnStatement _ -> verifyStatement context
+            | FailStatement _ -> verifyStatement context
+            | ImmutableBinding _ -> verifyStatement context
+            | MutableBinding _ -> verifyStatement context
+            | ValueUpdate _ -> verifyStatement context
+            | IfClause _ -> verifyStatement context
+            | ElifClause _ -> precededByIfOrElif context
+            | ElseClause _ -> precededByIfOrElif context
+            | ForLoopIntro _ -> verifyStatement context
+            | WhileLoopIntro _ -> verifyStatement context
+            | RepeatIntro _ -> followedByUntil context
+            | UntilSuccess _ -> precededByRepeat context
+            | WithinBlockIntro _ -> followedByApply context
+            | ApplyBlockIntro _ -> precededByWithin context
+            | UsingBlockIntro _ -> verifyStatement context
+            | BorrowingBlockIntro _ -> verifyStatement context
+            | BodyDeclaration _ -> verifySpecialization context
+            | AdjointDeclaration _ -> verifySpecialization context
+            | ControlledDeclaration _ -> verifySpecialization context
+            | ControlledAdjointDeclaration _ -> verifySpecialization context
+            | OperationDeclaration _ -> verifyDeclaration context
+            | FunctionDeclaration _ -> verifyDeclaration context
+            | TypeDefinition _ -> verifyDeclaration context
+            | OpenDirective _ -> verifyOpenDirective context
+            | DeclarationAttribute _ -> verifyDeclarationAttribute context
+            | NamespaceDeclaration _ -> verifyNamespace context
+            | InvalidFragment _ -> false, [||]
+        |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New(x, []) y))

@@ -359,7 +359,11 @@ let private controlledDeclaration =
 let private controlledAdjointDeclaration =
     let invalid = ControlledAdjointDeclaration unknownGenerator
 
-    buildFragment (attempt ctrlAdjDeclHeader.parse) functorGenDirective invalid (fun _ -> ControlledAdjointDeclaration)
+    buildFragment
+        (attempt ctrlAdjDeclHeader.parse)
+        functorGenDirective
+        invalid
+        (fun _ -> ControlledAdjointDeclaration)
         eof
 
 /// Uses buildFragment to parse a Q# OperationDeclaration as QsFragment.
@@ -442,15 +446,23 @@ let private failStatement =
 let private letStatement =
     let invalid = ImmutableBinding(invalidSymbol, unknownExpr)
 
-    buildFragment qsImmutableBinding.parse (expectedExpr eof |> symbolBinding equal ErrorCode.ExpectingAssignment)
-        invalid (fun _ -> ImmutableBinding) eof
+    buildFragment
+        qsImmutableBinding.parse
+        (expectedExpr eof |> symbolBinding equal ErrorCode.ExpectingAssignment)
+        invalid
+        (fun _ -> ImmutableBinding)
+        eof
 
 /// Uses buildFragment to parse a Q# mutable binding (i.e. mutable-statement) as QsFragment.
 let private mutableStatement =
     let invalid = MutableBinding(invalidSymbol, unknownExpr)
 
-    buildFragment qsMutableBinding.parse (expectedExpr eof |> symbolBinding equal ErrorCode.ExpectingAssignment) invalid (fun _ ->
-        MutableBinding) eof
+    buildFragment
+        qsMutableBinding.parse
+        (expectedExpr eof |> symbolBinding equal ErrorCode.ExpectingAssignment)
+        invalid
+        (fun _ -> MutableBinding)
+        eof
 
 
 /// Uses buildFragment to parse a Q# value update (i.e. set-statement) as QsFragment.
@@ -580,7 +592,11 @@ let private untilSuccess =
     let invalid = UntilSuccess(unknownExpr, false)
     let optionalFixup = qsRUSfixup.parse >>% true <|> preturn false
 
-    buildFragment qsUntil.parse (expectedCondition qsRUSfixup.parse .>>. optionalFixup) invalid (fun _ -> UntilSuccess)
+    buildFragment
+        qsUntil.parse
+        (expectedCondition qsRUSfixup.parse .>>. optionalFixup)
+        invalid
+        (fun _ -> UntilSuccess)
         eof
 
 
@@ -652,13 +668,13 @@ let private fragments =
         (qsInternal, buildInvalidFragment qsInternal.parse)
     ]
 
-// Make sure all of the fragment header keywords are listed above.
-do let implementedHeaders = (List.map (fun (keyword, _) -> keyword.id) fragments).ToImmutableHashSet()
-   let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
+do
+    let implementedHeaders = (List.map (fun (keyword, _) -> keyword.id) fragments).ToImmutableHashSet()
+    let existingHeaders = Keywords.FragmentHeaders.ToImmutableHashSet()
 
-   if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then
-       System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments"
-       |> raise
+    if (implementedHeaders.SymmetricExcept existingHeaders).Count <> 0 then
+        System.NotImplementedException "mismatch between existing Q# fragments and implemented Q# fragments"
+        |> raise
 
 
 /// Uses buildFragment to parse a Q# expression statement as QsFragment.

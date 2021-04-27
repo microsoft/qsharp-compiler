@@ -35,22 +35,21 @@ let private compilerArgs target (name: string) =
         ("TestCases", "QirTests", name + ".qs") |> Path.Combine
         ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
 
-        (if target
-         then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
-         else "")
+        (if target then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine else "")
 
         "--load"
 
-        Path.Combine
-            (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Microsoft.Quantum.QirGeneration.dll")
+        Path.Combine(
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+            "Microsoft.Quantum.QirGeneration.dll"
+        )
 
         "--verbosity"
         "Diagnostic"
     }
 
 let private customTest name compilerArgs snippets =
-    if not <| Directory.Exists "qir"
-    then Directory.CreateDirectory "qir" |> ignore
+    if not <| Directory.Exists "qir" then Directory.CreateDirectory "qir" |> ignore
 
     let fileName = Path.Combine("qir", name + ".ll")
     clearOutput fileName
@@ -94,7 +93,8 @@ let ``QIR array loop`` () = qirTest false "TestArrayLoop"
 let ``QIR nested for loop`` () = qirTest false "TestForLoop"
 
 [<Fact>]
-let ``QIR caching of values`` () = qirTest true "TestCaching"
+let ``QIR caching of values`` () =
+    qirMultiTest true "TestCaching" [ "TestCaching1"; "TestCaching2"; "TestCaching3" ]
 
 [<Fact>]
 let ``QIR array update`` () =

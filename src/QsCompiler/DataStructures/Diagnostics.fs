@@ -446,7 +446,7 @@ type DiagnosticItem =
     | Information of InformationCode
 
     static member private ApplyArguments (args: IEnumerable<string>) str =
-        let args: obj [] =
+        let args : obj [] =
             if args = null then
                 [||]
             else
@@ -773,9 +773,7 @@ type DiagnosticItem =
             | ErrorCode.UnexpectedTupleArgument -> "Unexpected argument tuple. Expecting an argument of type {0}."
             | ErrorCode.AmbiguousTypeParameterResolution ->
                 "The type parameter {0} is ambiguous. More type annotations or usage context may be necessary."
-                + if Seq.item 1 args |> String.IsNullOrWhiteSpace
-                  then ""
-                  else " Note: {0} has constraints {1}."
+                + if Seq.item 1 args |> String.IsNullOrWhiteSpace then "" else " Note: {0} has constraints {1}."
             | ErrorCode.ConstrainsTypeParameter -> "The given expression constrains the type parameter(s) {0}."
             | ErrorCode.GlobalTypeAlreadyExists -> "A type with the name \"{0}\" already exists."
             | ErrorCode.GlobalCallableAlreadyExists -> "A callable with the name \"{0}\" already exists."
