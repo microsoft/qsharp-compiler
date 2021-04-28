@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
@@ -307,6 +308,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             UnknownIdNamespaceSuggestions(file, compilation, lineNr, diagnostics)
                 .Concat(UnknownIdCaseSuggestions(file, compilation, diagnostics));
 
+        private static readonly Regex QubitBindingsMatcher = new Regex("(using|borrowing)\\s*\\((.*)\\)", RegexOptions.Compiled | RegexOptions.Singleline, TimeSpan.FromSeconds(1));
+
         internal static IEnumerable<(string, WorkspaceEdit)> BindingSuggestions(
             this FileContentManager file, CompilationUnit compilation, IReadOnlyCollection<Diagnostic> diagnostics)
         {
@@ -378,6 +381,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var orSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator))
                 .Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
 
+            var qubitBindingSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedQubitBindingKeyword))
+                .Select(d =>
+                {
+                    var fragment = file.TryGetFragmentAt(d.Range.ToQSharp().Start, out _);
+                    if (fragment != null)
+                    {
+                        var match = QubitBindingsMatcher.Match(fragment.Text);
+                        if (match.Success && match.Groups.Count == 3)
+                        {
+#pragma warning disable 0618
+                            var newText = (match.Groups[1].Value == Keywords.qsUsing.id ? Keywords.qsUse.id : Keywords.qsBorrow.id) + " " + match.Groups[2].Value.Trim();
+#pragma warning restore 0618
+                            var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText };
+                            return ($"Replace with \"{edit.NewText.Trim()}\".", file.GetWorkspaceEdit(edit));
+                        }
+                    }
+
+#pragma warning disable 0618
+                    return d.Message.Contains($"\"{Keywords.qsUsing.id}\"") ? ReplaceWith(Keywords.qsUse.id, d.Range) : ReplaceWith(Keywords.qsBorrow.id, d.Range);
+#pragma warning restore 0618
+                });
+
             // update deprecated operation characteristics syntax
 
             static IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
@@ -420,7 +445,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(unitSuggestions)
                 .Concat(notSuggestions)
                 .Concat(andSuggestions)
-                .Concat(orSuggestions);
+                .Concat(orSuggestions)
+                .Concat(qubitBindingSuggestions);
         }
 
         /// <summary>
