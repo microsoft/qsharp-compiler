@@ -1,4 +1,4 @@
-define { double, double }* @Microsoft__Quantum__Testing__QIR__TestInline__body() {
+define internal { double, double }* @Microsoft__Quantum__Testing__QIR__TestInline__body() {
 entry:
   %x = alloca double, align 8
   store double 0.000000e+00, double* %x, align 8
