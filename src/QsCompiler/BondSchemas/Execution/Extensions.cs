@@ -54,13 +54,13 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
         public static bool ValueEquals(this EntryPointOperation @this, EntryPointOperation other)
         {
             return AreNullablesEqual(@this.Name, other.Name, string.Equals) &&
-                   AreNullablesEqual(@this.Arguments, other.Arguments, (a, b) => AreCollectionsEqual(a, b, ValueEquals));
+                   AreNullablesEqual(@this.Parameters, other.Parameters, (a, b) => AreCollectionsEqual(a, b, ValueEquals));
         }
 
         /// <summary>
         /// Determine whether the values of two object instances are equal.
         /// </summary>
-        public static bool ValueEquals(this Argument @this, Argument other)
+        public static bool ValueEquals(this Parameter @this, Parameter other)
         {
             return AreNullablesEqual(@this.Name, other.Name, string.Equals) &&
                    @this.Position == other.Position &&

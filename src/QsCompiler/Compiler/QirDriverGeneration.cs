@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.QsCompiler
         public static string GenerateCommandLineArguments(ExecutionInformation executionInformation)
         {
             // Sort arguments by position.
-            var sortedArguments = executionInformation.EntryPoint.Arguments.OrderBy(arg => arg.Position);
+            var sortedArguments = executionInformation.EntryPoint.Parameters.OrderBy(arg => arg.Position);
             var argumentBuilder = new StringBuilder();
             foreach (var arg in sortedArguments)
             {
@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler
             return argumentBuilder.ToString();
         }
 
-        private static string GetArgumentValueString(Argument argument, ArgumentValue argumentValue)
+        private static string GetArgumentValueString(Parameter argument, ArgumentValue argumentValue)
         {
             // Today, only the first argument value in the array will be used.
             return argument.Type switch

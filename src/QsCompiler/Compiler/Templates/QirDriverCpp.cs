@@ -47,7 +47,7 @@ using namespace Microsoft::Quantum;
 using namespace std;
     
 ");
- if (entryPointOperation.ContainsArgumentType(DataType.ArrayType)) { 
+ if (entryPointOperation.ContainsParameterType(DataType.ArrayType)) { 
             this.Write(@"
 struct InteropArray
 {
@@ -74,7 +74,7 @@ void TranslateVector(vector<S>& sourceVector, vector<D>& destinationVector, func
 }
 ");
  } 
- if (entryPointOperation.ContainsArgumentType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
+ if (entryPointOperation.ContainsParameterType(DataType.RangeType) || entryPointOperation.ContainsArrayType(DataType.RangeType)) { 
             this.Write(@"
 using RangeTuple = tuple<int64_t, int64_t, int64_t>;
 struct InteropRange
@@ -115,38 +115,38 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
                     "");
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             this.Write("( // NOLINT\r\n");
- for (int i = 0; i < entryPointOperation.Arguments.Count; i++) {
-    var arg = entryPointOperation.Arguments[i];
-    Write($"    {arg.CppType()} {arg.InteropVariableName()}");
-    if (i < entryPointOperation.Arguments.Count-1) {
+ for (int i = 0; i < entryPointOperation.Parameters.Count; i++) {
+    var param = entryPointOperation.Parameters[i];
+    Write($"    {param.CppType()} {param.InteropVariableName()}");
+    if (i < entryPointOperation.Parameters.Count-1) {
         WriteLine(",");
     }
 } 
             this.Write("\r\n);\r\n\r\n");
- if (entryPointOperation.ContainsArgumentType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { 
+ if (entryPointOperation.ContainsParameterType(DataType.BoolType) || entryPointOperation.ContainsArrayType(DataType.BoolType)) { 
             this.Write("\r\nconst char InteropFalseAsChar = 0x0;\r\nconst char InteropTrueAsChar = 0x1;\r\nmap<" +
                     "string, bool> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCppExtensions.DataTypeTransformerMapName(DataType.BoolType)));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ParameterCppExtensions.DataTypeTransformerMapName(DataType.BoolType)));
             this.Write("{\r\n    {\"0\", InteropFalseAsChar},\r\n    {\"false\", InteropFalseAsChar},\r\n    {\"1\", " +
                     "InteropTrueAsChar},\r\n    {\"true\", InteropTrueAsChar}};\r\n");
  } 
- if (entryPointOperation.ContainsArgumentType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
+ if (entryPointOperation.ContainsParameterType(DataType.PauliType) || entryPointOperation.ContainsArrayType(DataType.PauliType)) { 
             this.Write("\r\nmap<string, PauliId> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCppExtensions.DataTypeTransformerMapName(DataType.PauliType)));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ParameterCppExtensions.DataTypeTransformerMapName(DataType.PauliType)));
             this.Write("{\r\n    {\"PauliI\", PauliId::PauliId_I},\r\n    {\"PauliX\", PauliId::PauliId_X},\r\n    " +
                     "{\"PauliY\", PauliId::PauliId_Y},\r\n    {\"PauliZ\", PauliId::PauliId_Z}};\r\n\r\n\r\nchar " +
                     "TranslatePauliToChar(PauliId& pauli)\r\n{\r\n    return static_cast<char>(pauli);\r\n}" +
                     "\r\n");
  } 
- if (entryPointOperation.ContainsArgumentType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { 
+ if (entryPointOperation.ContainsParameterType(DataType.ResultType) || entryPointOperation.ContainsArrayType(DataType.ResultType)) { 
             this.Write("\r\nconst char InteropResultZeroAsChar = 0x0;\r\nconst char InteropResultOneAsChar = " +
                     "0x1;\r\nmap<string, char> ");
-            this.Write(this.ToStringHelper.ToStringWithCulture(ArgumentCppExtensions.DataTypeTransformerMapName(DataType.ResultType)));
+            this.Write(this.ToStringHelper.ToStringWithCulture(ParameterCppExtensions.DataTypeTransformerMapName(DataType.ResultType)));
             this.Write("{\r\n    {\"0\", InteropResultZeroAsChar},\r\n    {\"Zero\", InteropResultZeroAsChar},\r\n " +
                     "   {\"1\", InteropResultOneAsChar},\r\n    {\"One\", InteropResultOneAsChar}\r\n};\r\n");
  } 
             this.Write("\r\n");
- if (entryPointOperation.ContainsArgumentType(DataType.StringType) || entryPointOperation.ContainsArrayType(DataType.StringType)) { 
+ if (entryPointOperation.ContainsParameterType(DataType.StringType) || entryPointOperation.ContainsArrayType(DataType.StringType)) { 
             this.Write("\r\nconst char* TranslateStringToCharBuffer(string& s)\r\n{\r\n    return s.c_str();\r\n}" +
                     "\r\n");
  } 
@@ -165,63 +165,63 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
         ""--simulation-output"", simulationOutputFile,
         ""File where the output produced during the simulation is written"");
 ");
- foreach (var arg in entryPointOperation.Arguments) {
+ foreach (var param in entryPointOperation.Parameters) {
     WriteLine("");
-    WriteLine($"    {arg.CppCliValueType()} {arg.CliValueVariableName()};"); 
-    if (arg.CppCliVariableInitialValue() != null) {
-        WriteLine($"    {arg.CliValueVariableName()} = {arg.CppCliVariableInitialValue()};");
+    WriteLine($"    {param.CppCliValueType()} {param.CliValueVariableName()};"); 
+    if (param.CppCliVariableInitialValue() != null) {
+        WriteLine($"    {param.CliValueVariableName()} = {param.CppCliVariableInitialValue()};");
     }
-    Write($"    app.add_option(\"{arg.CliOptionString()}\", {arg.CliValueVariableName()}, \"{arg.CliDescription()}\")->required()");
-    if (arg.TransformerMapName() != null) {
+    Write($"    app.add_option(\"{param.CliOptionString()}\", {param.CliValueVariableName()}, \"{param.CliDescription()}\")->required()");
+    if (param.TransformerMapName() != null) {
     WriteLine("");
-        Write($"        ->transform(CLI::CheckedTransformer({arg.TransformerMapName()}, CLI::ignore_case))");
+        Write($"        ->transform(CLI::CheckedTransformer({param.TransformerMapName()}, CLI::ignore_case))");
     }
     WriteLine(";");
     
 } 
             this.Write("\r\n    // With all the options added, parse arguments from the command line.\r\n    " +
                     "CLI11_PARSE(app, argc, argv);\r\n\r\n");
- foreach (var arg in entryPointOperation.Arguments) {
-    switch (arg.Type) {
+ foreach (var param in entryPointOperation.Parameters) {
+    switch (param.Type) {
         case DataType.PauliType:
             WriteLine("    // Translate a PauliID value to its char representation.");
-            WriteLine($"    char {arg.InteropVariableName()} = TranslatePauliToChar({arg.CliValueVariableName()});");
+            WriteLine($"    char {param.InteropVariableName()} = TranslatePauliToChar({param.CliValueVariableName()});");
             break;
         case DataType.RangeType:
             WriteLine("    // Create an interop range.");
-            WriteLine($"    unique_ptr<InteropRange> {arg.InteropVariableName()} = CreateInteropRange({arg.CliValueVariableName()});");
+            WriteLine($"    unique_ptr<InteropRange> {param.InteropVariableName()} = CreateInteropRange({param.CliValueVariableName()});");
             break;
         case DataType.ArrayType:
-            switch (arg.ArrayType) {
+            switch (param.ArrayType) {
                 case DataType.IntegerType:
                 case DataType.DoubleType:
                 case DataType.BoolType:
                 case DataType.ResultType:
                     WriteLine("    // Translate values to its final form after parsing.");
                     WriteLine("    // Create an interop array of values.");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.CliValueVariableName()});");
+                    WriteLine($"    unique_ptr<InteropArray> {param.InteropVariableName()} = CreateInteropArray({param.CliValueVariableName()});");
                     break;
                 case DataType.PauliType:
                     WriteLine("    // Create an interop array of Pauli values represented as chars.");
-                    WriteLine($"    vector<char> {arg.IntermediateVariableName()};");
-                    WriteLine($"    TranslateVector<PauliId, char>({arg.CliValueVariableName()}, {arg.IntermediateVariableName()}, TranslatePauliToChar);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.IntermediateVariableName()});");
+                    WriteLine($"    vector<char> {param.IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<PauliId, char>({param.CliValueVariableName()}, {param.IntermediateVariableName()}, TranslatePauliToChar);");
+                    WriteLine($"    unique_ptr<InteropArray> {param.InteropVariableName()} = CreateInteropArray({param.IntermediateVariableName()});");
                     break;
                 case DataType.RangeType:
-                    WriteLine($"    vector<InteropRange*> {arg.IntermediateVariableName()};");
-                    WriteLine($"    TranslateVector<RangeTuple, InteropRange*>({arg.CliValueVariableName()}, {arg.IntermediateVariableName()}, TranslateRangeTupleToInteropRangePointer);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.IntermediateVariableName()});");
+                    WriteLine($"    vector<InteropRange*> {param.IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<RangeTuple, InteropRange*>({param.CliValueVariableName()}, {param.IntermediateVariableName()}, TranslateRangeTupleToInteropRangePointer);");
+                    WriteLine($"    unique_ptr<InteropArray> {param.InteropVariableName()} = CreateInteropArray({param.IntermediateVariableName()});");
                     break;
                 case DataType.StringType:
                     WriteLine("    // Create an interop array of String values.");
-                    WriteLine($"    vector<const char *> {arg.IntermediateVariableName()};");
-                    WriteLine($"    TranslateVector<string, const char*>({arg.CliValueVariableName()}, {arg.IntermediateVariableName()}, TranslateStringToCharBuffer);");
-                    WriteLine($"    unique_ptr<InteropArray> {arg.InteropVariableName()} = CreateInteropArray({arg.IntermediateVariableName()});");
+                    WriteLine($"    vector<const char *> {param.IntermediateVariableName()};");
+                    WriteLine($"    TranslateVector<string, const char*>({param.CliValueVariableName()}, {param.IntermediateVariableName()}, TranslateStringToCharBuffer);");
+                    WriteLine($"    unique_ptr<InteropArray> {param.InteropVariableName()} = CreateInteropArray({param.IntermediateVariableName()});");
                     break;
             }
             break;
         default:
-            WriteLine($"    {arg.CppCliValueType()} {arg.InteropVariableName()} = {arg.CliValueVariableName()};");
+            WriteLine($"    {param.CppCliValueType()} {param.InteropVariableName()} = {param.CliValueVariableName()};");
             break;
     }
     WriteLine("");
@@ -240,28 +240,28 @@ InteropRange* TranslateRangeTupleToInteropRangePointer(RangeTuple& rangeTuple)
     ");
             this.Write(this.ToStringHelper.ToStringWithCulture(entryPointOperation.Name));
             this.Write("(\r\n");
- for (int i = 0; i < entryPointOperation.Arguments.Count; i++) {
-    var arg = entryPointOperation.Arguments[i];
-    switch (arg.Type) {
+ for (int i = 0; i < entryPointOperation.Parameters.Count; i++) {
+    var param = entryPointOperation.Parameters[i];
+    switch (param.Type) {
         case DataType.StringType:
-            Write($"        {arg.InteropVariableName()}.c_str()");
+            Write($"        {param.InteropVariableName()}.c_str()");
             break;
         case DataType.ArrayType:
         case DataType.RangeType:
-            Write($"        {arg.InteropVariableName()}.get()");
+            Write($"        {param.InteropVariableName()}.get()");
             break;
         default:
-            Write($"        {arg.InteropVariableName()}");
+            Write($"        {param.InteropVariableName()}");
             break;
     }
-    if (i < entryPointOperation.Arguments.Count-1 ) {
+    if (i < entryPointOperation.Parameters.Count-1 ) {
         WriteLine(",");
     }
 } 
             this.Write("\r\n    );\r\n\r\n");
- foreach (var arg in entryPointOperation.Arguments) {
-    if (arg.Type == DataType.ArrayType && arg.Type == DataType.RangeType) {
-        Write($"    FreePointerVector({arg.IntermediateVariableName()});");
+ foreach (var param in entryPointOperation.Parameters) {
+    if (param.Type == DataType.ArrayType && param.Type == DataType.RangeType) {
+        Write($"    FreePointerVector({param.IntermediateVariableName()});");
     }
 } 
             this.Write("\r\n    simulatorOutputStream->flush();\r\n    if (simulationOutputFileStream.is_open" +

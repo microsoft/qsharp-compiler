@@ -38,7 +38,7 @@ enum ResultValue
     One
 }
 
-struct Argument
+struct Parameter
 {
     5: string Name;
 
@@ -82,7 +82,7 @@ struct EntryPointOperation
 {
     5: string Name;
 
-    10: vector<Argument> Arguments;
+    10: vector<Parameter> Parameters;
 }
 
 struct ExecutionInformation

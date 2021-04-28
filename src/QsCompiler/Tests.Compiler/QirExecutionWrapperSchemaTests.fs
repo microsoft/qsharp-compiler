@@ -14,19 +14,19 @@ type QirExecutionWrapperSchemaTests(output: ITestOutputHelper) =
 
     let createExecutionInformation () =
         let expectedEntryPointOperation = new EntryPointOperation()
-        let argument = new Argument()
-        argument.Name <- "argument name"
-        argument.Position <- 0
-        let arguments = new List<Argument>()
-        arguments.Add(argument)
-        expectedEntryPointOperation.Arguments <- arguments
+        let parameter = new Parameter()
+        parameter.Name <- "parameter name"
+        parameter.Position <- 0
+        let parameters = new List<Parameter>()
+        parameters.Add(parameter)
+        expectedEntryPointOperation.Parameters <- parameters
         expectedEntryPointOperation.Name <- "operation name"
         let executionInformation = new ExecutionInformation()
         executionInformation.EntryPoint <- expectedEntryPointOperation
         executionInformation.ArgumentValues <- new Dictionary<string, ArgumentValue>()
 
-        executionInformation.ArgumentValues.["argument name"] <- new ArgumentValue(Integer =
-            new System.Nullable<int64>(int64 (4)))
+        executionInformation.ArgumentValues.["parameter name"] <-
+            new ArgumentValue(Integer = new System.Nullable<int64>(int64 (4)))
 
         executionInformation
 

@@ -6,9 +6,9 @@ using Microsoft.Quantum.QsCompiler.BondSchemas.Execution;
 
 namespace Microsoft.Quantum.QsCompiler.Templates
 {
-    internal static class ArgumentCppExtensions
+    internal static class ParameterCppExtensions
     {
-        public static string CppType(this Argument @this)
+        public static string CppType(this Parameter @this)
         {
             return @this.Type switch
             {
@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static string CliOptionString(this Argument @this)
+        public static string CliOptionString(this Parameter @this)
         {
             if (@this.Name.Length == 1)
             {
@@ -36,7 +36,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             }
         }
 
-        public static string CliTypeDescription(this Argument @this)
+        public static string CliTypeDescription(this Parameter @this)
         {
             return @this.Type switch
             {
@@ -62,9 +62,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static string CliDescription(this Argument @this) => $"A {@this.CliTypeDescription()} value for the {@this.Name} argument";
+        public static string CliDescription(this Parameter @this) => $"A {@this.CliTypeDescription()} value for the {@this.Name} argument";
 
-        public static string CppCliValueType(this Argument @this)
+        public static string CppCliValueType(this Parameter @this)
         {
             return @this.Type switch
             {
@@ -90,7 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static string? CppCliVariableInitialValue(this Argument @this)
+        public static string? CppCliVariableInitialValue(this Parameter @this)
         {
             return @this.Type switch
             {
@@ -132,23 +132,23 @@ namespace Microsoft.Quantum.QsCompiler.Templates
             };
         }
 
-        public static string? TransformerMapName(this Argument @this) =>
+        public static string? TransformerMapName(this Parameter @this) =>
             @this.Type switch {
                 DataType.ArrayType => DataTypeTransformerMapName(@this.ArrayType),
                 _ => DataTypeTransformerMapName(@this.Type)
             };
 
-        public static string CliValueVariableName(this Argument @this)
+        public static string CliValueVariableName(this Parameter @this)
         {
             return @this.Name + "CliValue";
         }
 
-        public static string InteropVariableName(this Argument @this)
+        public static string InteropVariableName(this Parameter @this)
         {
             return @this.Name + "InteropValue";
         }
 
-        public static string IntermediateVariableName(this Argument @this)
+        public static string IntermediateVariableName(this Parameter @this)
         {
             return @this.Name + "IntermediateValue";
         }
@@ -156,9 +156,9 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 
     internal static class EntryPointCppExtensions
     {
-        public static bool ContainsArgumentType(this EntryPointOperation @this, DataType type)
+        public static bool ContainsParameterType(this EntryPointOperation @this, DataType type)
         {
-            foreach (Argument arg in @this.Arguments)
+            foreach (Parameter arg in @this.Parameters)
             {
                 if (arg.Type == type)
                 {
@@ -170,7 +170,7 @@ namespace Microsoft.Quantum.QsCompiler.Templates
 
         public static bool ContainsArrayType(this EntryPointOperation @this, DataType type)
         {
-            foreach (Argument arg in @this.Arguments)
+            foreach (Parameter arg in @this.Parameters)
             {
                 if (arg.ArrayType == type)
                 {

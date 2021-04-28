@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
 
     [global::Bond.Schema]
     [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
-    public partial class Argument
+    public partial class Parameter
     {
         [global::Bond.Id(5)]
         public string Name { get; set; }
@@ -97,11 +97,11 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
         [global::Bond.Id(20), global::Bond.Type(typeof(global::Bond.Tag.nullable<DataType>))]
         public DataType? ArrayType { get; set; }
 
-        public Argument()
-            : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.Argument", "Argument")
+        public Parameter()
+            : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.Parameter", "Parameter")
         {}
 
-        protected Argument(string fullName, string name)
+        protected Parameter(string fullName, string name)
         {
             Name = "";
             Type = DataType.BoolType;
@@ -157,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
         public string Name { get; set; }
 
         [global::Bond.Id(10)]
-        public List<Argument> Arguments { get; set; }
+        public List<Parameter> Parameters { get; set; }
 
         public EntryPointOperation()
             : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.EntryPointOperation", "EntryPointOperation")
@@ -166,7 +166,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
         protected EntryPointOperation(string fullName, string name)
         {
             Name = "";
-            Arguments = new List<Argument>();
+            Parameters = new List<Parameter>();
         }
     }
 
