@@ -198,7 +198,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         member.Item2,
                         ResolveNamespaceAlias(file, compilation, position, member.Item1));
                 case CompletionKind.Keyword keyword:
-                    return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
+                    return new[] { GetKeywordCompletionItem(keyword.Item) };
             }
             var currentNamespace = file.TryGetNamespaceAt(position);
             var openNamespaces =
@@ -266,7 +266,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var openNamespaces = GetOpenNamespaces(file, compilation, position);
             return
                 Keywords.ReservedKeywords
-                .Select(keyword => new CompletionItem { Label = keyword, Kind = CompletionItemKind.Keyword })
+                .Select(keyword => GetKeywordCompletionItem(keyword))
                 .Concat(GetLocalCompletions(file, compilation, position))
                 .Concat(GetCallableCompletions(file, compilation, currentNamespace, openNamespaces))
                 .Concat(GetTypeCompletions(file, compilation, currentNamespace, openNamespaces))
@@ -677,5 +677,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> openNamespaces) =>
             openNamespaces.Contains(qualifiedName.Namespace) &&
             (!qualifiedName.Name.StartsWith("_") || qualifiedName.Namespace == currentNamespace);
+
+        /// <summary>
+        /// Returns the <see cref="CompletionItem"/> with the appropriate <see cref="CompletionItemKind"/> for a keyword
+        /// </summary>
+        /// <param name="keyword">The Q# keyword.</param>
+        private static CompletionItem GetKeywordCompletionItem(string keyword) =>
+            new CompletionItem { Label = keyword, Kind = Keywords.KeywordLiterals.Contains(keyword) ? CompletionItemKind.Constant : CompletionItemKind.Keyword };
     }
 }
