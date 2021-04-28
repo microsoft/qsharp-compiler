@@ -173,19 +173,28 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Loads any QIR byte code included as a resource from <paramref name="assemblyFile"/>.
+        /// Loads any QIR byte code included as a resource from <paramref name="assemblyFileInfo"/>.
         /// </summary>
-        /// <param name="assemblyFile">The reader for the byte stream of a dotnet DLL from which to load the compilation.</param>
-        /// <param name="qirByteCode">The QIR byte code included as a resource of <paramref name="assemblyFile"/>.</param>
+        /// <param name="assemblyFileInfo">The file info of a .NET DLL from which to load the QIR byte code.</param>
+        /// <param name="qirByteStream">A stream of the QIR byte code included as a resource of <paramref name="assemblyFileInfo"/>.</param>
         /// <returns>
-        /// True if <paramref name="assemblyFile"/> includes a suitable resource, false otherwise.
+        /// True if <paramref name="assemblyFileInfo"/> includes a suitable resource, false otherwise.
         /// </returns>
+        /// <exception cref="FileNotFoundException"><paramref name="assemblyFileInfo"/> does not exist.</exception>
         public static bool LoadQirByteCode(
-            PEReader assemblyFile,
-            [NotNullWhen(true)] out byte[]? qirByteCode)
+            FileInfo assemblyFileInfo,
+            [NotNullWhen(true)] out Stream? qirByteStream)
         {
-            qirByteCode = null;
-            var metadataReader = assemblyFile.GetMetadataReader();
+            qirByteStream = null;
+            if (!File.Exists(assemblyFileInfo.FullName))
+            {
+                throw new FileNotFoundException($"The file '{assemblyFileInfo.FullName}' given to the assembly loader does not exist.");
+            }
+
+            using var stream = File.OpenRead(assemblyFileInfo.FullName);
+            using var pe = new PEReader(stream);
+            var metadataReader = pe.GetMetadataReader();
+
             bool isResourcePresent = false;
             ManifestResource resource;
             if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataQirV1, out resource))
@@ -196,25 +205,20 @@ namespace Microsoft.Quantum.QsCompiler
             // The offset of resources is relative to the resources directory.
             // It is possible that there is no offset given because a valid dll allows for extenal resources.
             // In all Q# dlls there will be a resource with the specific name chosen by the compiler.
-            var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
-            if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
+            var resourceDir = pe.PEHeaders.CorHeader.ResourcesDirectory;
+            if (!pe.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
                 !isResourcePresent ||
                 !resource.Implementation.IsNil)
             {
                 return false;
             }
 
-            // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
-            // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB.
-            // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
-            var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
+            var image = pe.GetEntireImage(); // uses int to denote the length and access parameters
             var absResourceOffset = (int)resource.Offset + directoryOffset;
 
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
-            qirByteCode = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
+            qirByteStream = new MemoryStream(image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray());
 
             return true;
         }
