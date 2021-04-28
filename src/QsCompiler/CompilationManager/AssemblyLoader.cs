@@ -228,7 +228,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
-            resourceStream.CopyTo(new MemoryStream(image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray()));
+            new MemoryStream(image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray()).CopyTo(resourceStream);
 
             return true;
         }
