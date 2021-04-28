@@ -33,7 +33,8 @@ and private DistinctQubitsNamespaces(parent: FindDistinctQubits) =
         argTuple
         |> toSymbolTuple
         |> flatten
-        |> Seq.iter (function
+        |> Seq.iter
+            (function
             | VariableName name -> parent.DistinctNames <- parent.DistinctNames.Add name
             | _ -> ())
 
@@ -46,7 +47,8 @@ and private DistinctQubitsStatementKinds(parent: FindDistinctQubits) =
     override this.OnQubitScope stm =
         stm.Binding.Lhs
         |> flatten
-        |> Seq.iter (function
+        |> Seq.iter
+            (function
             | VariableName name -> parent.DistinctNames <- parent.DistinctNames.Add name
             | _ -> ())
 
@@ -77,7 +79,8 @@ and private MutationCheckerStatementKinds(parent: MutationChecker) =
 
     override this.OnVariableDeclaration stm =
         flatten stm.Lhs
-        |> Seq.iter (function
+        |> Seq.iter
+            (function
             | VariableName name -> parent.DeclaredVariables <- parent.DeclaredVariables.Add name
             | _ -> ())
 
@@ -87,7 +90,8 @@ and private MutationCheckerStatementKinds(parent: MutationChecker) =
         match stm.Lhs with
         | LocalVarTuple v ->
             flatten v
-            |> Seq.iter (function
+            |> Seq.iter
+                (function
                 | VariableName name -> parent.MutatedVariables <- parent.MutatedVariables.Add name
                 | _ -> ())
         | _ -> ()
@@ -205,7 +209,7 @@ and internal SideEffectChecker private (_private_) =
 type internal StatementCollectorTransformation(parent: Core.SyntaxTreeTransformation) =
     inherit Core.StatementTransformation(parent)
 
-    abstract CollectStatements: QsStatementKind -> QsStatementKind seq
+    abstract CollectStatements : QsStatementKind -> QsStatementKind seq
 
     override this.OnScope scope =
         let parentSymbols = scope.KnownSymbols

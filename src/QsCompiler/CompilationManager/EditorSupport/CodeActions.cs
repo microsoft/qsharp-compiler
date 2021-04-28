@@ -307,6 +307,36 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             UnknownIdNamespaceSuggestions(file, compilation, lineNr, diagnostics)
                 .Concat(UnknownIdCaseSuggestions(file, compilation, diagnostics));
 
+        internal static IEnumerable<(string, WorkspaceEdit)> BindingSuggestions(
+            this FileContentManager file, CompilationUnit compilation, IReadOnlyCollection<Diagnostic> diagnostics)
+        {
+            var immutableBindingDiagnostics = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.UpdateOfImmutableIdentifier));
+            if (immutableBindingDiagnostics.Any())
+            {
+                var edits = new List<(string, WorkspaceEdit)>();
+                foreach (var diagnostic in immutableBindingDiagnostics)
+                {
+                    var refs = file.TryGetReferences(compilation, diagnostic.Range.Start.ToQSharp(), out var declarationLocation, out _);
+
+                    if (refs && declarationLocation != null)
+                    {
+                        var overlappingFragments = file
+                            .FragmentsOverlappingWithRange(declarationLocation.Range.ToQSharp())
+                            .Where(f => f.Text != null && f.Text.TrimStart()
+                            .StartsWith(Keywords.qsImmutableBinding.id));
+                        foreach (var fragment in overlappingFragments)
+                        {
+                            var newText = Keywords.qsMutableBinding.id + fragment.Text.TrimStart()[Keywords.qsImmutableBinding.id.Length..];
+                            edits.Add(($"Replace with mutable binding: \"{newText}\".", file.GetWorkspaceEdit(new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText })));
+                        }
+                    }
+                }
+                return edits;
+            }
+
+            return Enumerable.Empty<(string, WorkspaceEdit)>();
+        }
+
         /// <summary>
         /// Returns a sequence of suggestions on how deprecated syntax can be updated based on <paramref name="diagnostics"/>.
         /// </summary>

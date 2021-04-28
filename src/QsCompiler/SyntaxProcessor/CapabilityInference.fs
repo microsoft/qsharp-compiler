@@ -33,7 +33,7 @@ type private Pattern =
     | ResultEqualityNotInCondition of Range QsNullable
 
 /// Returns the offset of a nullable location.
-let private locationOffset = QsNullable<_>.Map(fun (location: QsLocation) -> location.Offset)
+let private locationOffset = QsNullable<_>.Map (fun (location: QsLocation) -> location.Offset)
 
 /// Tracks the most recently seen statement location.
 type private StatementLocationTracker(parent, options) =
@@ -63,30 +63,34 @@ let private joinCapabilities = Seq.fold RuntimeCapability.Combine RuntimeCapabil
 /// level.
 let private patternDiagnostic context pattern =
     let error code args (range: _ QsNullable) =
-        if patternCapability context.IsInOperation pattern |> context.Capability.Implies
-        then None
-        else range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error(code, args) |> Some
+        if patternCapability context.IsInOperation pattern |> context.Capability.Implies then
+            None
+        else
+            range.ValueOr Range.Zero |> QsCompilerDiagnostic.Error(code, args) |> Some
 
     let unsupported =
-        if context.Capability = BasicMeasurementFeedback
-        then ErrorCode.ResultComparisonNotInOperationIf
-        else ErrorCode.UnsupportedResultComparison
+        if context.Capability = BasicMeasurementFeedback then
+            ErrorCode.ResultComparisonNotInOperationIf
+        else
+            ErrorCode.UnsupportedResultComparison
 
     match pattern with
     | ReturnInResultConditionedBlock range ->
-        if context.Capability = BasicMeasurementFeedback
-        then error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture ] range
-        else None
+        if context.Capability = BasicMeasurementFeedback then
+            error ErrorCode.ReturnInResultConditionedBlock [ context.ProcessorArchitecture ] range
+        else
+            None
     | SetInResultConditionedBlock (name, range) ->
-        if context.Capability = BasicMeasurementFeedback
-        then error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture ] range
-        else None
+        if context.Capability = BasicMeasurementFeedback then
+            error ErrorCode.SetInResultConditionedBlock [ name; context.ProcessorArchitecture ] range
+        else
+            None
     | ResultEqualityInCondition range -> error unsupported [ context.ProcessorArchitecture ] range
     | ResultEqualityNotInCondition range -> error unsupported [ context.ProcessorArchitecture ] range
 
 /// Adds a position offset to the range in the pattern.
 let private addOffset offset =
-    let add = QsNullable.Map2 (+) offset
+    let add = QsNullable.Map2(+) offset
 
     function
     | ReturnInResultConditionedBlock range -> add range |> ReturnInResultConditionedBlock
@@ -141,7 +145,7 @@ let private nonLocalUpdates scope =
 /// equivalent to "elif (true) { ... }".
 let private conditionBlocks condBlocks elseBlock =
     elseBlock
-    |> QsNullable<_>.Map(fun block -> SyntaxGenerator.BoolLiteral true, block)
+    |> QsNullable<_>.Map (fun block -> SyntaxGenerator.BoolLiteral true, block)
     |> QsNullable<_>.Fold (fun acc x -> x :: acc) []
     |> Seq.append condBlocks
 
@@ -158,9 +162,10 @@ let private conditionalStatementPatterns { ConditionalBlocks = condBlocks; Defau
     let returnPatterns (block: QsPositionedBlock) =
         block.Body.Statements
         |> Seq.collect returnStatements
-        |> Seq.map (fun statement ->
-            let range = statement.Location |> QsNullable<_>.Map(fun location -> location.Offset + location.Range)
-            ReturnInResultConditionedBlock range)
+        |> Seq.map
+            (fun statement ->
+                let range = statement.Location |> QsNullable<_>.Map (fun location -> location.Offset + location.Range)
+                ReturnInResultConditionedBlock range)
 
     let setPatterns (block: QsPositionedBlock) =
         nonLocalUpdates block.Body
@@ -224,7 +229,7 @@ let private globalReferences scope =
             override this.OnTypedExpression expression =
                 match expression.Expression with
                 | Identifier (GlobalCallable name, _) ->
-                    let range = QsNullable.Map2 (+) location.Offset expression.Range
+                    let range = QsNullable.Map2(+) location.Offset expression.Range
                     references <- (name, range) :: references
                 | _ -> ()
 
@@ -235,11 +240,12 @@ let private globalReferences scope =
     references
 
 /// Returns diagnostic reasons for why a global callable reference is not supported.
-let rec private referenceReasons context
-                                 (name: QsQualifiedName)
-                                 (range: _ QsNullable)
-                                 (header: SpecializationDeclarationHeader, impl)
-                                 =
+let rec private referenceReasons
+    context
+    (name: QsQualifiedName)
+    (range: _ QsNullable)
+    (header: SpecializationDeclarationHeader, impl)
+    =
     let reason (header: SpecializationDeclarationHeader) diagnostic =
         match diagnostic.Diagnostic with
         | Error ErrorCode.UnsupportedResultComparison -> Some WarningCode.UnsupportedResultComparison
@@ -248,26 +254,28 @@ let rec private referenceReasons context
         | Error ErrorCode.SetInResultConditionedBlock -> Some WarningCode.SetInResultConditionedBlock
         | Error ErrorCode.UnsupportedCallableCapability -> Some WarningCode.UnsupportedCallableCapability
         | _ -> None
-        |> Option.map (fun code ->
-            let args =
-                Seq.append
-                    [
-                        name.Name
-                        header.Source.CodeFile
-                        string (diagnostic.Range.Start.Line + 1)
-                        string (diagnostic.Range.Start.Column + 1)
-                    ]
-                    diagnostic.Arguments
+        |> Option.map
+            (fun code ->
+                let args =
+                    Seq.append
+                        [
+                            name.Name
+                            header.Source.CodeFile
+                            string (diagnostic.Range.Start.Line + 1)
+                            string (diagnostic.Range.Start.Column + 1)
+                        ]
+                        diagnostic.Arguments
 
-            range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning(code, args))
+                range.ValueOr Range.Zero |> QsCompilerDiagnostic.Warning(code, args))
 
     match impl with
     | Provided (_, scope) ->
         scopeDiagnosticsImpl false context scope
-        |> Seq.map (fun diagnostic ->
-            locationOffset header.Location
-            |> QsNullable<_>.Map(fun offset -> { diagnostic with Range = offset + diagnostic.Range })
-            |> QsNullable.defaultValue diagnostic)
+        |> Seq.map
+            (fun diagnostic ->
+                locationOffset header.Location
+                |> QsNullable<_>.Map (fun offset -> { diagnostic with Range = offset + diagnostic.Range })
+                |> QsNullable.defaultValue diagnostic)
         |> Seq.choose (reason header)
     | _ -> Seq.empty
 
@@ -283,9 +291,10 @@ and private referenceDiagnostics includeReasons context (name: QsQualifiedName, 
             Seq.empty
         else
             let reasons =
-                if includeReasons
-                then context.Globals.ImportedSpecializations name |> Seq.collect (referenceReasons context name range)
-                else Seq.empty
+                if includeReasons then
+                    context.Globals.ImportedSpecializations name |> Seq.collect (referenceReasons context name range)
+                else
+                    Seq.empty
 
             let error =
                 ErrorCode.UnsupportedCallableCapability, [ name.Name; string capability; context.ProcessorArchitecture ]
@@ -295,7 +304,7 @@ and private referenceDiagnostics includeReasons context (name: QsQualifiedName, 
     | _ -> Seq.empty
 
 /// Returns all capability diagnostics for the scope. Ranges are relative to the start of the specialization.
-and private scopeDiagnosticsImpl includeReasons context scope: QsCompilerDiagnostic seq =
+and private scopeDiagnosticsImpl includeReasons context scope : QsCompilerDiagnostic seq =
     [
         globalReferences scope |> Seq.collect (referenceDiagnostics includeReasons context)
         scopePatterns scope |> Seq.choose (patternDiagnostic context)
@@ -321,7 +330,7 @@ let private isDeclaredInSourceFile (callable: QsCallable) =
 let private specSourceCapability inOperation spec =
     match spec.Implementation with
     | Provided (_, scope) ->
-        let offset = spec.Location |> QsNullable<_>.Map(fun location -> location.Offset)
+        let offset = spec.Location |> QsNullable<_>.Map (fun location -> location.Offset)
 
         scopePatterns scope
         |> Seq.map (addOffset offset >> patternCapability inOperation)
@@ -344,9 +353,10 @@ let private sourceCycleCapabilities (callables: ImmutableDictionary<_, _>) (grap
 
     let sourceCycles =
         graph.GetCallCycles()
-        |> Seq.filter
-            (Seq.exists
-             <| fun node -> callables.TryGetValue node.CallableName |> tryOption |> Option.exists isDeclaredInSourceFile)
+        |> Seq.filter (
+            Seq.exists
+            <| fun node -> callables.TryGetValue node.CallableName |> tryOption |> Option.exists isDeclaredInSourceFile
+        )
 
     for cycle in sourceCycles do
         let cycleCapability =
@@ -356,8 +366,9 @@ let private sourceCycleCapabilities (callables: ImmutableDictionary<_, _>) (grap
             |> joinCapabilities
 
         for node in cycle do
-            initialCapabilities.[node.CallableName] <- joinCapabilities [ initialCapabilities.[node.CallableName]
-                                                                          cycleCapability ]
+            initialCapabilities.[node.CallableName] <-
+                joinCapabilities [ initialCapabilities.[node.CallableName]
+                                   cycleCapability ]
 
     initialCapabilities
 
@@ -408,10 +419,11 @@ let private callableDependentCapability (callables: ImmutableDictionary<_, _>) (
     and cachedCapability visited (callable: QsCallable) =
         cache.TryGetValue callable.FullName
         |> tryOption
-        |> Option.defaultWith (fun () ->
-            let capability = callableCapability visited callable
-            cache.[callable.FullName] <- capability
-            capability)
+        |> Option.defaultWith
+            (fun () ->
+                let capability = callableCapability visited callable
+                cache.[callable.FullName] <- capability
+                capability)
 
     cachedCapability Set.empty
 
@@ -434,9 +446,10 @@ let InferCapabilities compilation =
                 let isMissingCapability =
                     SymbolResolution.TryGetRequiredCapability callable.Attributes |> QsNullable.isNull
 
-                if isMissingCapability && isDeclaredInSourceFile callable
-                then callableCapability callable |> toAttribute |> callable.AddAttribute
-                else callable
+                if isMissingCapability && isDeclaredInSourceFile callable then
+                    callableCapability callable |> toAttribute |> callable.AddAttribute
+                else
+                    callable
         }
 
     transformation.OnCompilation compilation

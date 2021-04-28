@@ -27,28 +27,29 @@ type private TrackedScope =
             RequiredFunctorSupport: ImmutableHashSet<QsFunctor>
         }
 
-        /// Given all functors that need to be applied to a particular operation call,
-        /// combines them into the set of functors that that operation needs to support.
-        static member internal CombinedFunctorSupport functors =
-            let rec requiredSupport current =
-                function
-                | [] -> current
-                | Adjoint :: tail ->
-                    if not (current |> List.contains Adjoint) then
-                        requiredSupport (Adjoint :: current) tail
-                    else
-                        requiredSupport
-                            [
-                                for f in current do
-                                    if f <> Adjoint then yield f
-                            ]
-                            tail
-                | Controlled :: tail ->
-                    if current |> List.contains Controlled
-                    then requiredSupport current tail
-                    else requiredSupport (Controlled :: current) tail
+    /// Given all functors that need to be applied to a particular operation call,
+    /// combines them into the set of functors that that operation needs to support.
+    static member internal CombinedFunctorSupport functors =
+        let rec requiredSupport current =
+            function
+            | [] -> current
+            | Adjoint :: tail ->
+                if not (current |> List.contains Adjoint) then
+                    requiredSupport (Adjoint :: current) tail
+                else
+                    requiredSupport
+                        [
+                            for f in current do
+                                if f <> Adjoint then yield f
+                        ]
+                        tail
+            | Controlled :: tail ->
+                if current |> List.contains Controlled then
+                    requiredSupport current tail
+                else
+                    requiredSupport (Controlled :: current) tail
 
-            requiredSupport [] functors
+        requiredSupport [] functors
 
 /// <summary>
 /// The <see cref="SymbolTracker"/> class does *not* make a copy of the given <see cref="NamespaceManager"/>,
@@ -62,13 +63,13 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     // TODO: once we support type specialiations, the parent needs to be the specialization name rather than the callable name
 
     do
-        if not globals.ContainsResolutions
-        then ArgumentException "the content of the given namespace manager needs to be resolved" |> raise
+        if not globals.ContainsResolutions then
+            ArgumentException "the content of the given namespace manager needs to be resolved" |> raise
 
     /// Contains all properties that need to be tracked for verifying the built syntax tree, but are not needed after.
     /// In particular, contains a "stack" of all local declarations up to this point in each scope,
     /// as well as which functors need to be supported by the operations called within each scope.
-    let mutable pushedScopes: TrackedScope list = []
+    let mutable pushedScopes : TrackedScope list = []
 
     /// contains the version number of the global symbols manager upon initialization
     let expectedVersionGlobals = globals.VersionNumber
@@ -90,7 +91,8 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
         match GlobalSymbols().TryGetCallable parent (parent.Namespace, sourceFile) with
         | Found decl ->
             decl.Signature.TypeParameters
-            |> Seq.choose (function
+            |> Seq.choose
+                (function
                 | ValidName name -> Some name
                 | InvalidName -> None)
             |> fun valid -> valid.ToImmutableArray()
@@ -117,7 +119,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     let globalTypeWithName (ns, name) =
         match ns with
         | None -> GlobalSymbols().TryResolveAndGetType name (parent.Namespace, sourceFile)
-        | Some nsName -> GlobalSymbols().TryGetType (QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
+        | Some nsName -> GlobalSymbols().TryGetType(QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
 
     /// If a callable declaration (including type constructors!) for a callable with the given name exists in GlobalSymbols,
     /// returns a its header information as Value. Returns Null otherwise.
@@ -127,7 +129,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
         match ns with
         | None -> GlobalSymbols().TryResolveAndGetCallable name (parent.Namespace, sourceFile)
         | Some nsName ->
-            GlobalSymbols().TryGetCallable (QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
+            GlobalSymbols().TryGetCallable(QsQualifiedName.New(nsName, name)) (parent.Namespace, sourceFile)
 
     /// the namespace and callable declaration within which the symbols tracked by this SymbolTracker instance are used
     member this.Parent = parent
@@ -168,8 +170,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
 
     /// pops the most recent scope from the stack, thus closing it
     member this.EndScope() =
-        if pushedScopes.Length = 0
-        then InvalidOperationException "no scope is currently open" |> raise
+        if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
 
         pushedScopes <- pushedScopes.Tail
 
@@ -184,8 +185,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// </summary>
     /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     member this.TryAddVariableDeclartion(decl: LocalVariableDeclaration<string>) =
-        if pushedScopes.Length = 0
-        then InvalidOperationException "no scope is currently open" |> raise
+        if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
 
         if (globalTypeWithName (None, decl.VariableName)) <> NotFound then
             false,
@@ -220,8 +220,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// </summary>
     /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     member this.TryAddVariableDeclartion(decl: LocalVariableDeclaration<QsLocalSymbol>) =
-        if pushedScopes.Length = 0
-        then InvalidOperationException "no scope is currently open" |> raise
+        if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
 
         match decl.VariableName with
         | InvalidName -> false, [||]
@@ -238,8 +237,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// <exception cref="InvalidOperationException">No scope is currently open.</exception>
     /// <exception cref="InvalidOperationException"><paramref name="varName"/> is immutable.</exception>
     member internal this.UpdateQuantumDependency varName localQdep =
-        if pushedScopes.Length = 0
-        then InvalidOperationException "no scope is currently open" |> raise
+        if pushedScopes.Length = 0 then InvalidOperationException "no scope is currently open" |> raise
 
         match localVariableWithName varName with
         | Value dict ->
@@ -248,10 +246,11 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
             if not existing.InferredInformation.IsMutable then
                 InvalidOperationException "cannot update information for immutable variable" |> raise
             else
-                dict.[varName] <- { existing with
-                                      InferredInformation =
-                                          { existing.InferredInformation with HasLocalQuantumDependency = localQdep }
-                                  }
+                dict.[varName] <-
+                    { existing with
+                        InferredInformation =
+                            { existing.InferredInformation with HasLocalQuantumDependency = localQdep }
+                    }
         | Null -> ArgumentException "no local variable with the given name exists on the current scope" |> raise
 
     /// returns all *local* declarations on the current scope *and* all parent scopes up to this point
@@ -349,7 +348,7 @@ type SymbolTracker(globals: NamespaceManager, sourceFile, parent: QsQualifiedNam
     /// For each diagnostic generated during the resolution, calls the given addDiagnostics function on it.
     /// Returns the resolved type, *including* its range information if applicable.
     member internal this.ResolveType addDiagnostic (qsType: QsType) =
-        let resolved, errs = GlobalSymbols().ResolveType (parent, typeParameters, sourceFile) qsType
+        let resolved, errs = GlobalSymbols().ResolveType(parent, typeParameters, sourceFile) qsType
 
         for err in errs do
             addDiagnostic err

@@ -3,23 +3,26 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Generic
-open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.Collections.Generic
+open System.IO
 open Xunit
 
-
 type GlobalVerificationTests() =
-    inherit CompilerTests(CompilerTests.Compile
-                              ("TestCases",
-                               [
-                                   "General.qs"
-                                   "GlobalVerification.qs"
-                                   "Types.qs"
-                                   System.IO.Path.Join("LinkingTests", "Core.qs")
-                               ]))
+    inherit CompilerTests(GlobalVerificationTests.Compile())
+
+    static member private Compile() =
+        CompilerTests.Compile(
+            "TestCases",
+            [
+                "General.qs"
+                "GlobalVerification.qs"
+                "Types.qs"
+                Path.Join("LinkingTests", "Core.qs")
+            ]
+        )
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.GlobalVerification"
