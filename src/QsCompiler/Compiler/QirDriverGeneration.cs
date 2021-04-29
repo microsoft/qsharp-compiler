@@ -6,14 +6,14 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Text;
-using Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
+using Microsoft.Quantum.QsCompiler.BondSchemas.Execution;
 using Microsoft.Quantum.QsCompiler.Templates;
 
 namespace Microsoft.Quantum.QsCompiler
 {
     public static class QirDriverGeneration
     {
-        private delegate string StringConversion(object? value);
+        private delegate string StringConversion(ArgumentValue value);
 
         public static void GenerateQirDriverCpp(EntryPointOperation entryPointOperation, Stream stream)
         {
@@ -27,12 +27,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// <summary>
         /// Converts a list of arguments to a string that can be passed to the driver.
         /// </summary>
-        /// <param name="arguments">List of arguments to the driver entry point.</param>
+        /// <param name="executionInformation">Execution information containing arguments and values.</param>
         /// <returns>String representation of arguments.</returns>
-        public static string GenerateCommandLineArguments(IList<Argument> arguments)
+        public static string GenerateCommandLineArguments(ExecutionInformation executionInformation)
         {
             // Sort arguments by position.
-            var sortedArguments = arguments.OrderBy(arg => arg.Position);
+            var sortedArguments = executionInformation.EntryPoint.Parameters.OrderBy(arg => arg.Position);
             var argumentBuilder = new StringBuilder();
             foreach (var arg in sortedArguments)
             {
@@ -41,115 +41,114 @@ namespace Microsoft.Quantum.QsCompiler
                     argumentBuilder.Append(' ');
                 }
 
-                argumentBuilder.Append($"--{arg.Name}").Append(' ').Append(GetArgumentValueString(arg));
+                argumentBuilder.Append($"--{arg.Name}").Append(' ').Append(GetArgumentValueString(arg, executionInformation.ArgumentValues[arg.Name]));
             }
 
             return argumentBuilder.ToString();
         }
 
-        private static string GetArgumentValueString(Argument argument)
+        private static string GetArgumentValueString(Parameter argument, ArgumentValue argumentValue)
         {
             // Today, only the first argument value in the array will be used.
-            var value = argument.Values[0];
             return argument.Type switch
             {
-                DataType.BoolType => GetBoolValueString(value.Bool),
-                DataType.DoubleType => GetDoubleValueString(value.Double),
-                DataType.IntegerType => GetIntegerValueString(value.Integer),
-                DataType.PauliType => GetPauliValueString(value.Pauli),
-                DataType.RangeType => GetRangeValueString(value.Range),
-                DataType.ResultType => GetResultValueString(value.Result),
-                DataType.StringType => GetStringValueString(value.String),
-                DataType.ArrayType => GetArrayValueString(argument.ArrayType, value.Array),
+                DataType.BoolType => GetBoolValueString(argumentValue),
+                DataType.DoubleType => GetDoubleValueString(argumentValue),
+                DataType.IntegerType => GetIntegerValueString(argumentValue),
+                DataType.PauliType => GetPauliValueString(argumentValue),
+                DataType.RangeType => GetRangeValueString(argumentValue),
+                DataType.ResultType => GetResultValueString(argumentValue),
+                DataType.StringType => GetStringValueString(argumentValue),
+                DataType.ArrayType => GetArrayValueString(argument.ArrayType, argumentValue.Array),
                 _ => throw new ArgumentException($"Unsupported data type {argument.Type}")
             };
         }
 
-        private static string GetArrayValueString(DataType? arrayType, ArrayValue arrayValue)
+        private static string GetArrayValueString(DataType? arrayType, IList<ArgumentValue> arrayValue)
         {
-            static string ConvertArray<T>(IList<T> list, StringConversion conversion) =>
+            static string ConvertArray(IList<ArgumentValue> list, StringConversion conversion) =>
                 string.Join(' ', list.Select(item => conversion.Invoke(item)));
 
             return arrayType switch
             {
-                DataType.BoolType => ConvertArray(arrayValue.Bool, GetBoolValueString),
-                DataType.DoubleType => ConvertArray(arrayValue.Double, GetDoubleValueString),
-                DataType.IntegerType => ConvertArray(arrayValue.Integer, GetIntegerValueString),
-                DataType.PauliType => ConvertArray(arrayValue.Pauli, GetPauliValueString),
-                DataType.RangeType => ConvertArray(arrayValue.Range, GetRangeValueString),
-                DataType.ResultType => ConvertArray(arrayValue.Result, GetResultValueString),
-                DataType.StringType => ConvertArray(arrayValue.String, GetStringValueString),
+                DataType.BoolType => ConvertArray(arrayValue, GetBoolValueString),
+                DataType.DoubleType => ConvertArray(arrayValue, GetDoubleValueString),
+                DataType.IntegerType => ConvertArray(arrayValue, GetIntegerValueString),
+                DataType.PauliType => ConvertArray(arrayValue, GetPauliValueString),
+                DataType.RangeType => ConvertArray(arrayValue, GetRangeValueString),
+                DataType.ResultType => ConvertArray(arrayValue, GetResultValueString),
+                DataType.StringType => ConvertArray(arrayValue, GetStringValueString),
                 _ => throw new ArgumentException($"Unsupported array data type {arrayType}")
             };
         }
 
-        private static string GetResultValueString(object? value)
+        private static string GetResultValueString(ArgumentValue value)
         {
-            if (value == null)
+            if (value?.Result == null)
             {
                 throw new ArgumentNullException("Cannot convert null result value to string.");
             }
-            return (ResultValue)value == ResultValue.One ? "1" : "0";
+            return value.Result == ResultValue.One ? "1" : "0";
         }
 
-        private static string GetRangeValueString(object? value)
+        private static string GetRangeValueString(ArgumentValue value)
         {
-            if (value == null)
+            if (value?.Range == null)
             {
                 throw new ArgumentNullException("Cannot convert null range value to string.");
             }
-            var rangeValue = (RangeValue)value;
+            var rangeValue = value.Range;
             return $"{rangeValue.Start} {rangeValue.Step} {rangeValue.End}";
         }
 
-        private static string GetStringValueString(object? value)
+        private static string GetStringValueString(ArgumentValue value)
         {
-            if (value == null)
+            if (value?.String == null)
             {
                 throw new ArgumentNullException("Cannot convert null string value to string.");
             }
 
-            return $"\"{value}\"";
+            return $"\"{value.String}\"";
         }
 
-        private static string GetBoolValueString(object? value)
+        private static string GetBoolValueString(ArgumentValue value)
         {
-            if (value == null)
+            if (value?.Bool == null)
             {
                 throw new ArgumentNullException("Cannot convert null bool value to string.");
             }
 
-            return value.ToString().ToLower();
+            return value.Bool.ToString().ToLower();
         }
 
-        private static string GetPauliValueString(object? value)
+        private static string GetPauliValueString(ArgumentValue value)
         {
-            if (value == null)
+            if (value?.Pauli == null)
             {
                 throw new ArgumentNullException("Cannot convert null pauli value to string.");
             }
 
-            return value.ToString().ToLower();
+            return value.Pauli.ToString().ToLower();
         }
 
-        private static string GetDoubleValueString(object? value)
+        private static string GetDoubleValueString(ArgumentValue value)
         {
-            if (value == null)
+            if (value?.Double == null)
             {
                 throw new ArgumentNullException("Cannot convert null double value to string.");
             }
 
-            return value.ToString().ToLower();
+            return value.Double.ToString().ToLower();
         }
 
-        private static string GetIntegerValueString(object? value)
+        private static string GetIntegerValueString(ArgumentValue value)
         {
-            if (value == null)
+            if (value?.Integer == null)
             {
                 throw new ArgumentNullException("Cannot convert null integer value to string.");
             }
 
-            return value.ToString().ToLower();
+            return value.Integer.ToString().ToLower();
         }
     }
 }
