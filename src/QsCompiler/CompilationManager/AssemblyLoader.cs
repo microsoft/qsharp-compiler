@@ -164,7 +164,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// Loads any QIR byte code included as a resource from <paramref name="assemblyFileInfo"/>.
         /// </summary>
         /// <param name="assemblyFileInfo">The file info of a .NET DLL from which to load the QIR byte code.</param>
-        /// <param name="qirByteStream">A stream for reading the QIR byte code included as a resource of <paramref name="assemblyFileInfo"/>.</param>
+        /// <param name="qirByteStream">A stream to store the QIR byte code embedded to<paramref name="assemblyFileInfo"/> as a resource.</param>
         /// <returns>
         /// True if <paramref name="assemblyFileInfo"/> includes the QIR byte code resource, false otherwise.
         /// </returns>
@@ -203,21 +203,12 @@ namespace Microsoft.Quantum.QsCompiler
         /// </returns>
         private static bool LoadResource(string resourceName, PEReader assemblyReader, Stream resourceStream)
         {
-            var metadataReader = assemblyReader.GetMetadataReader();
-
-            bool isResourcePresent = false;
-            ManifestResource resource;
-            if (metadataReader.Resources().TryGetValue(resourceName, out resource))
-            {
-                isResourcePresent = true;
-            }
-
             // The offset of resources is relative to the resources directory.
-            // It is possible that there is no offset given because a valid dll allows for extenal resources.
-            // In all Q# dlls there will be a resource with the specific name chosen by the compiler.
+            // It is possible that there is no offset given because a valid dll allows for external resources.
             var resourceDir = assemblyReader.PEHeaders.CorHeader.ResourcesDirectory;
+            var metadataReader = assemblyReader.GetMetadataReader();
             if (!assemblyReader.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !isResourcePresent ||
+                !metadataReader.Resources().TryGetValue(resourceName, out var resource) ||
                 !resource.Implementation.IsNil)
             {
                 return false;
@@ -226,9 +217,12 @@ namespace Microsoft.Quantum.QsCompiler
             var image = assemblyReader.GetEntireImage(); // uses int to denote the length and access parameters
             var absResourceOffset = (int)resource.Offset + directoryOffset;
 
-            // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
+            // The first four bytes of the resource denote how long the resource is, and are followed by the actual resource data.
             var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
-            new MemoryStream(image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray()).CopyTo(resourceStream);
+            using var content = new MemoryStream(image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray());
+            content.CopyTo(resourceStream);
+            resourceStream.Flush();
+            resourceStream.Position = 0;
 
             return true;
         }
