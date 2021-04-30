@@ -5,6 +5,11 @@
     open Microsoft.Quantum.Measurement;
 
     @EntryPoint()
+    operation Simple() : Unit {
+        Message($"{[1,2]}");
+    }
+
+    @EntryPoint()
     operation Sum(nums : Int[]) : Int {
         mutable sum = 0;
         for n in nums {
