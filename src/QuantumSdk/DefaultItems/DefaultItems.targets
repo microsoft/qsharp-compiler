@@ -59,7 +59,6 @@
   <PropertyGroup>
     <DefaultEntryPointGeneration>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation.dll"</DefaultEntryPointGeneration>
     <!-- true/false optional properties -->
-    <Warning Condition="'$(QirGeneration)' == 'true' And '$(ResolvedQSharpOutputType)' != 'QSharpExe'" Text="QIR Generation 'true' is not supported on library projects, returning to default behavior." />
     <QirGeneration Condition="'$(QirOutputPath)' != '' And '$(QirGeneration)' == 'default' And '$(ResolvedQSharpOutputType)' == 'QSharpExe'">true</QirGeneration>
     <QirGeneration Condition="('$(QirOutputPath)' == '' And '$(QirGeneration)' == 'default') Or '$(ResolvedQSharpOutputType)' != 'QSharpExe'">false</QirGeneration>
     <PerfDataGeneration Condition="'$(PerfDataOutputPath)' != '' And '$(PerfDataGeneration)' == 'default'">true</PerfDataGeneration>
