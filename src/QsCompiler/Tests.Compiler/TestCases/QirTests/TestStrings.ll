@@ -71,6 +71,7 @@ entry:
   call void @__quantum__rt__string_update_reference_count(%String* %35, i32 -1)
   %36 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @9, i32 0, i32 0))
   %37 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @10, i32 0, i32 0))
+  call void @__quantum__rt__string_update_reference_count(%String* %37, i32 1)
   %38 = call i64 @__quantum__rt__array_get_size_1d(%Array* %arr)
   %39 = sub i64 %38, 1
   br label %header__1
@@ -111,6 +112,7 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__string_update_reference_count(%String* %40, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %52, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %36, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %37, i32 -1)
   %53 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @12, i32 0, i32 0))
   call void @__quantum__rt__string_update_reference_count(%String* %x, i32 1)
   %54 = call %String* @__quantum__rt__string_concatenate(%String* %53, %String* %x)
