@@ -2074,7 +2074,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     else
                     {
                         var parArgsTuple = paArgsType.Resolution.IsUnitType
-                            ? this.SharedState.Values.FromTuple(parameters[1], ImmutableArray.Create(paArgsType)) // todo: this is a bit hacky...
+                            ? this.SharedState.Values.Unit
                             : this.SharedState.AsArgumentTuple(paArgsType, parameters[1]);
                         var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
                         innerArg = typedInnerArg is TupleValue innerArgTuple
