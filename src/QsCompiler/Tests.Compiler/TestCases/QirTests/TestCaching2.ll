@@ -1,4 +1,4 @@
-define %Array* @Microsoft__Quantum__Testing__QIR__LengthCaching__body(%Array* %vals) {
+define internal %Array* @Microsoft__Quantum__Testing__QIR__LengthCaching__body(%Array* %vals) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %vals, i32 1)
   br i1 false, label %condTrue__1, label %condFalse__1

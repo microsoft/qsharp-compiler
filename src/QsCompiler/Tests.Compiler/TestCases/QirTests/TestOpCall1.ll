@@ -1,4 +1,4 @@
-define void @Microsoft__Quantum__Testing__QIR__TestOperationCalls__body() {
+define internal void @Microsoft__Quantum__Testing__QIR__TestOperationCalls__body() {
 entry:
   %doNothing = call %Callable* @Microsoft__Quantum__Testing__QIR__ReturnDoNothing__body(i64 1)
   call void @__quantum__rt__capture_update_alias_count(%Callable* %doNothing, i32 1)

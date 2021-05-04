@@ -1,4 +1,4 @@
-define { i1, i1 }* @Microsoft__Quantum__Testing__QIR__TestShortCircuiting__body() {
+define internal { i1, i1 }* @Microsoft__Quantum__Testing__QIR__TestShortCircuiting__body() {
 entry:
   %0 = call i1 @__quantum__qis__getrandombool__body(i64 1)
   br i1 %0, label %condTrue__1, label %condContinue__1

@@ -1,4 +1,4 @@
-﻿define { %String*, double }* @Microsoft__Quantum__Testing__QIR__TestLocalCallables__body() {
+﻿define internal { %String*, double }* @Microsoft__Quantum__Testing__QIR__TestLocalCallables__body() {
 entry:
   %arr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
   %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)

@@ -1,4 +1,4 @@
-define void @Microsoft__Quantum__Testing__QIR__TestRefCountsForItemUpdate__body(i1 %cond) {
+define internal void @Microsoft__Quantum__Testing__QIR__TestRefCountsForItemUpdate__body(i1 %cond) {
 entry:
   %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
   %1 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 5)
