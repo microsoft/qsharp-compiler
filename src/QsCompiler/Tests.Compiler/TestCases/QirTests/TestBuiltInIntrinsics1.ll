@@ -1,4 +1,4 @@
-define void @Microsoft__Quantum__Testing__QIR__TestBuiltInIntrinsics__body() #0 {
+define void @Microsoft__Quantum__Testing__QIR__TestBuiltInIntrinsics__body() {
 entry:
   %0 = call { %Callable* }* @Microsoft__Quantum__Testing__QIR__DefaultOptions__body()
   %1 = bitcast { %Callable* }* %0 to %Tuple*
