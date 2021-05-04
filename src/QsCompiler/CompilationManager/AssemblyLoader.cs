@@ -9,7 +9,6 @@ using System.IO;
 using System.Linq;
 using System.Reflection.Metadata;
 using System.Reflection.PortableExecutable;
-using Microsoft.Quantum.QsCompiler.BondSchemas.Execution;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.ReservedKeywords;
@@ -174,24 +173,6 @@ namespace Microsoft.Quantum.QsCompiler
         {
             using var assemblyFile = GetAssemblyReader(assemblyFileInfo.FullName);
             return LoadResource(DotnetCoreDll.ResourceNameQsDataQirV1, assemblyFile, qirByteStream);
-        }
-
-        public static IList<EntryPointOperation> LoadEntryPointOperations(FileInfo assemblyFileInfo, Action<Exception>? onDeserializationException = null)
-        {
-            using var assemblyFile = GetAssemblyReader(assemblyFileInfo.FullName);
-            if (!FromResource(assemblyFile, out var compilation, onDeserializationException))
-            {
-                throw new ArgumentException("Unable to read the Q# syntax tree from the given DLL.");
-            }
-            return GenerateEntryPointOperations(compilation);
-        }
-
-        private static IList<EntryPointOperation> GenerateEntryPointOperations(QsCompilation compilation)
-        {
-            return compilation.EntryPoints.Select(ep => new EntryPointOperation()
-            {
-                Name = ep.ToString()
-            }).ToList();
         }
 
         /// <summary>
