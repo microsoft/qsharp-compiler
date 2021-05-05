@@ -15,6 +15,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
     public static class EntryPointOperationLoader
     {
+        /// <summary>
+        /// Loads the entry point operations found in the syntax tree included as a resource from <paramref name="assemblyFileInfo"/>.
+        /// </summary>
+        /// <param name="assemblyFileInfo">The file info of a .NET DLL from which to load entry point operations from.</param>
+        /// <returns>
+        /// A list of entry point operation objects representing the QIR entry point operations.
+        /// </returns>
+        /// <exception cref="FileNotFoundException"><paramref name="assemblyFileInfo"/> does not exist.</exception>
+        /// <exception cref="ArgumentException"><paramref name="assemblyFileInfo"/> does not contain a Q# syntax tree.</exception>
+        /// <exception cref="ArgumentException">Encounters invalid parameters for an entry point.</exception>
         public static IList<EntryPointOperation> LoadEntryPointOperations(FileInfo assemblyFileInfo)
         {
             if (!AssemblyLoader.LoadReferencedAssembly(assemblyFileInfo.FullName, out var compilation))
@@ -64,7 +74,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             QsTypeKind.Tags.Result => DataType.ResultType,
             QsTypeKind.Tags.String => DataType.StringType,
             QsTypeKind.Tags.ArrayType => DataType.ArrayType,
-            _ => throw new NotImplementedException("invalid type for entry point parameter")
+            _ => throw new ArgumentException($"Invalid type ({rt.Resolution.Tag}) for entry point parameter")
         };
     }
 }
