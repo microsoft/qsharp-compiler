@@ -6,10 +6,13 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using Microsoft.Quantum.QsCompiler.QIR.BondSchemas;
+using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
+    using QsTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+
     public static class EntryPointOperationLoader
     {
         public static IList<EntryPointOperation> LoadEntryPointOperations(FileInfo assemblyFileInfo)
@@ -51,46 +54,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             };
         }
 
-        private static DataType MapResolvedTypeToDataType(ResolvedType rt)
+        private static DataType MapResolvedTypeToDataType(ResolvedType rt) => rt.Resolution.Tag switch
         {
-            var res = rt.Resolution;
-
-            if (res.IsBool)
-            {
-                return DataType.BoolType;
-            }
-            else if (res.IsInt)
-            {
-                return DataType.IntegerType;
-            }
-            else if (res.IsDouble)
-            {
-                return DataType.DoubleType;
-            }
-            else if (res.IsPauli)
-            {
-                return DataType.PauliType;
-            }
-            else if (res.IsRange)
-            {
-                return DataType.RangeType;
-            }
-            else if (res.IsResult)
-            {
-                return DataType.ResultType;
-            }
-            else if (res.IsString)
-            {
-                return DataType.StringType;
-            }
-            else if (res.IsArrayType)
-            {
-                return DataType.ArrayType;
-            }
-            else
-            {
-                throw new NotImplementedException("invalid type for entry point parameter");
-            }
-        }
+            QsTypeKind.Tags.Bool => DataType.BoolType,
+            QsTypeKind.Tags.Int => DataType.IntegerType,
+            QsTypeKind.Tags.Double => DataType.DoubleType,
+            QsTypeKind.Tags.Pauli => DataType.PauliType,
+            QsTypeKind.Tags.Range => DataType.RangeType,
+            QsTypeKind.Tags.Result => DataType.ResultType,
+            QsTypeKind.Tags.String => DataType.StringType,
+            QsTypeKind.Tags.ArrayType => DataType.ArrayType,
+            _ => throw new NotImplementedException("invalid type for entry point parameter")
+        };
     }
 }
