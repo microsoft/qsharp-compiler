@@ -15,6 +15,7 @@ using System.Linq;
 
 using LLVMSharp.Interop;
 
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -63,17 +64,43 @@ namespace Ubiquity.NET.Llvm
     {
         private LLVMModuleRef moduleHandle;
 
+        private readonly Lazy<DebugInfoBuilder> LazyDiBuilder;
+
         private BitcodeModule(LLVMModuleRef handle)
         {
             this.moduleHandle = handle;
             this.Context = ContextCache.GetContextFor(handle.Context);
+            this.LazyDiBuilder = new Lazy<DebugInfoBuilder>(() => new DebugInfoBuilder(this));
         }
+
+        /// <summary>Name of the Debug Version information module flag</summary>
+        public const string DebugVersionValue = "Debug Info Version";
+
+        /// <summary>Name of the Dwarf Version module flag</summary>
+        public const string DwarfVersionValue = "Dwarf Version";
+
+        /// <summary>Version of the Debug information Metadata</summary>
+        public const UInt32 DebugMetadataVersion = 3; /* DEBUG_METADATA_VERSION (for LLVM > v3.7.0) */
 
         /// <summary>Gets a value indicating whether the module is disposed or not.</summary>
         public bool IsDisposed { get; private set; }
 
         /// <summary>Gets the <see cref="Context"/> this module belongs to.</summary>
         public Context Context { get; }
+
+        /// <summary>Gets the <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
+        /// <remarks>The builder returned from this property is lazy constructed on first access so doesn't consume resources unless used.</remarks>
+        public DebugInfoBuilder DIBuilder
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return LazyDiBuilder.Value;
+            }
+        }
+
+        /// <summary>Gets the Debug Compile unit for this module</summary>
+        public DICompileUnit? DICompileUnit { get; internal set; }
 
         /// <summary>Gets or sets the Target Triple describing the target, ABI and OS.</summary>
         public string TargetTriple
@@ -596,6 +623,28 @@ namespace Ubiquity.NET.Llvm
             {
                 var hContext = this.Context.ContextHandle.CreateModuleWithName(moduleId);
                 return this.GetOrCreateItem(hContext);
+            }
+
+            public BitcodeModule CreateBitcodeModule(string moduleId
+                                                    , SourceLanguage language
+                                                    , string srcFilePath
+                                                    , string producer
+                                                    , bool optimized = false
+                                                    , string compilationFlags = ""
+                                                    , uint runtimeVersion = 0
+                                                    )
+            {
+                var retVal = CreateBitcodeModule(moduleId);
+                retVal.DICompileUnit = retVal.DIBuilder.CreateCompileUnit(language
+                                                                         , srcFilePath
+                                                                         , producer
+                                                                         , optimized
+                                                                         , compilationFlags
+                                                                         , runtimeVersion
+                                                                         );
+                // TODO: does source file name need to be set on module?
+                //retVal.SourceFileName = Path.GetFileName(srcFilePath);
+                return retVal;
             }
 
             private protected override BitcodeModule ItemFactory(LLVMModuleRef handle)
