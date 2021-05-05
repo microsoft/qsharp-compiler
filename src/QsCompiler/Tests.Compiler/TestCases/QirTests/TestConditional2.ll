@@ -1,4 +1,4 @@
-﻿define %Array* @Microsoft__Quantum__Testing__QIR__Hello__body(i1 %withPunctuation) {
+﻿define internal %Array* @Microsoft__Quantum__Testing__QIR__Hello__body(i1 %withPunctuation) {
 entry:
   %arr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 3)
   %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)

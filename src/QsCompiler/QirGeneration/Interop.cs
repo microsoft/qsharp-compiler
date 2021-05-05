@@ -470,42 +470,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 wrapperReturnType ?? this.sharedState.Context.VoidType,
                 argItems.Select(sym => this.MapToInteropType(sym.Type)!));
 
-            if (wrapperSignature.Equals(implementation.Signature))
-            {
-                this.sharedState.Module.AddAlias(implementation, wrapperName).Linkage = Linkage.External;
-                return implementation;
-            }
-            else
-            {
-                var wrapperFunc = this.sharedState.Module.CreateFunction(wrapperName, wrapperSignature);
-                var argNames = argItems.Select(arg => arg.VariableName is QsLocalSymbol.ValidName name ? name.Item : null).ToArray();
+            var wrapperFunc = this.sharedState.Module.CreateFunction(wrapperName, wrapperSignature);
+            var argNames = argItems.Select(arg => arg.VariableName is QsLocalSymbol.ValidName name ? name.Item : null).ToArray();
 
-                this.sharedState.GenerateFunction(wrapperFunc, argNames, parameters =>
+            this.sharedState.GenerateFunction(wrapperFunc, argNames, parameters =>
+            {
+                var argValueList = this.ProcessArguments(argumentTuple, parameters);
+                var evaluatedValue = this.sharedState.CurrentBuilder.Call(implementation, argValueList);
+                var result = this.sharedState.Values.From(evaluatedValue, returnType);
+                this.sharedState.ScopeMgr.RegisterValue(result);
+
+                if (wrapperSignature.ReturnType.IsVoid)
                 {
-                    var argValueList = this.ProcessArguments(argumentTuple, parameters);
-                    var evaluatedValue = this.sharedState.CurrentBuilder.Call(implementation, argValueList);
-                    var result = this.sharedState.Values.From(evaluatedValue, returnType);
-                    this.sharedState.ScopeMgr.RegisterValue(result);
+                    this.sharedState.AddReturn(this.sharedState.Values.Unit, true);
+                }
+                else if (wrapperSignature.ReturnType.Equals(result.LlvmType))
+                {
+                    this.sharedState.AddReturn(result, false);
+                }
+                else
+                {
+                    // ProcessReturnValue makes sure the memory for the returned value isn't freed
+                    var returnValue = this.ProcessReturnValue(result)!;
+                    this.sharedState.ScopeMgr.ExitFunction(this.sharedState.Values.Unit);
+                    this.sharedState.CurrentBuilder.Return(returnValue);
+                }
+            });
 
-                    if (wrapperSignature.ReturnType.IsVoid)
-                    {
-                        this.sharedState.AddReturn(this.sharedState.Values.Unit, true);
-                    }
-                    else if (wrapperSignature.ReturnType.Equals(result.LlvmType))
-                    {
-                        this.sharedState.AddReturn(result, false);
-                    }
-                    else
-                    {
-                        // ProcessReturnValue makes sure the memory for the returned value isn't freed
-                        var returnValue = this.ProcessReturnValue(result)!;
-                        this.sharedState.ScopeMgr.ExitFunction(this.sharedState.Values.Unit);
-                        this.sharedState.CurrentBuilder.Return(returnValue);
-                    }
-                });
-
-                return wrapperFunc;
-            }
+            return wrapperFunc;
         }
 
         /// <summary>

@@ -1,4 +1,4 @@
-﻿define void @MemoryManagement__2__RefCount(%Tuple* %capture-tuple, i32 %count-change) {
+﻿define internal void @MemoryManagement__2__RefCount(%Tuple* %capture-tuple, i32 %count-change) {
 entry:
   %0 = bitcast %Tuple* %capture-tuple to { %Callable*, { i64, double }* }*
   %1 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 0
@@ -13,7 +13,7 @@ entry:
   ret void
 }
 
-define void @MemoryManagement__2__AliasCount(%Tuple* %capture-tuple, i32 %count-change) {
+define internal void @MemoryManagement__2__AliasCount(%Tuple* %capture-tuple, i32 %count-change) {
 entry:
   %0 = bitcast %Tuple* %capture-tuple to { %Callable*, { i64, double }* }*
   %1 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 0

@@ -1,4 +1,4 @@
-define %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate1__body(%String* %even) {
+define internal %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate1__body(%String* %even) {
 entry:
   %0 = call %String* @__quantum__rt__string_create(i8* null)
   %1 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 10)

@@ -1,4 +1,4 @@
-﻿define void @Microsoft__Quantum__Intrinsic__K__ctl__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
+﻿define internal void @Microsoft__Quantum__Intrinsic__K__ctl__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
 entry:
   %0 = bitcast %Tuple* %arg-tuple to { %Array*, { %Qubit*, i64 }* }*
   %1 = getelementptr inbounds { %Array*, { %Qubit*, i64 }* }, { %Array*, { %Qubit*, i64 }* }* %0, i32 0, i32 0

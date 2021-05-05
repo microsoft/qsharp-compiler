@@ -1,4 +1,4 @@
-define %Range @Microsoft__Quantum__Testing__QIR__TestRange__body() {
+define internal %Range @Microsoft__Quantum__Testing__QIR__TestRange__body() {
 entry:
   %0 = load %Range, %Range* @EmptyRange, align 4
   %1 = insertvalue %Range %0, i64 0, 0

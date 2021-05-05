@@ -1,4 +1,4 @@
-define void @Microsoft__Quantum__Testing__QIR__NoArgs__body() {
+define internal void @Microsoft__Quantum__Testing__QIR__NoArgs__body() {
 entry:
   %q = call %Qubit* @__quantum__rt__qubit_allocate()
   %0 = call %Result* @__quantum__qis__mz(%Qubit* %q)
