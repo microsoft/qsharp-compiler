@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -46,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);
             this.ExpressionKinds = new QirExpressionKindTransformation(this, TransformationOptions.NoRebuild);
-            this.Types = new QirTypeTransformation(this, TransformationOptions.NoRebuild);
+            this.Types = new TypeTransformation<GenerationContext>(this, TransformationOptions.Disabled);
 
             // needs to be *after* the proper subtransformations are set
             this.SharedState.SetTransformation(this, out this.RuntimeLibrary, out this.QuantumInstructionSet);

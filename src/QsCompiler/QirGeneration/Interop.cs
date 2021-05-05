@@ -9,6 +9,7 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -61,38 +62,44 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             where TOut : class =>
             items.Select(map).Where(i => i != null).Select(i => i!).ToArray();
 
-        /// <inheritdoc cref="MapToInteropType(ITypeRef)"/>
+        /// <inheritdoc cref="MapToInteropType(Context, ITypeRef)"/>
         private ITypeRef? MapToInteropType(ResolvedType type) =>
-            this.MapToInteropType(this.sharedState.LlvmTypeFromQsharpType(type));
+            MapToInteropType(this.sharedState.Context, this.sharedState.LlvmTypeFromQsharpType(type));
+
+        /// <inheritdoc cref="MapToInteropType(Context, ITypeRef)"/>
+        private ITypeRef? MapToInteropType(ITypeRef type) =>
+            MapToInteropType(this.sharedState.Context, type);
 
         /// <summary>
-        /// Maps the given Q#/QIR type to a more interop-friendly type.
-        /// Returns null only if the given type is Unit. Strips items of type Unit inside tuples.
+        /// Maps the given type to an interop-friendly type.
+        /// Strips items of type unit inside tuples.
+        /// Returns null only if the given type is unit, or a tuple of unit values.
         /// </summary>
         /// <exception cref="ArgumentException">
         /// The given type is a pointer to a non-struct type,
         /// or the given type is not specified in the QIR format.
         /// </exception>
-        private ITypeRef? MapToInteropType(ITypeRef t)
+        internal static ITypeRef? MapToInteropType(Context context, ITypeRef t)
         {
             // Range, Tuple (typed and untyped), Array, Result, String, BigInt, Callable, and Qubit
             // are all structs or struct pointers.
             t = t.IsPointer ? Types.StructFromPointer(t) : t;
             var typeName = (t as IStructType)?.Name;
 
-            var bytePtrType = this.sharedState.Context.Int8Type.CreatePointerType();
+            var bytePtrType = context.Int8Type.CreatePointerType();
+            var dataArrPtrType = context.Int8Type.CreatePointerType();
 
             if (typeName == TypeNames.Array || typeName == TypeNames.BigInt)
             {
-                return this.sharedState.Context.CreateStructType(
+                return context.CreateStructType(
                     packed: false,
-                    this.sharedState.Context.Int64Type,
-                    this.sharedState.Types.DataArrayPointer)
+                    context.Int64Type,
+                    dataArrPtrType)
                    .CreatePointerType();
             }
             else if (typeName == TypeNames.String)
             {
-                return this.sharedState.Types.DataArrayPointer;
+                return dataArrPtrType;
             }
             else if (typeName == TypeNames.Callable || typeName == TypeNames.Qubit)
             {
@@ -100,24 +107,24 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (typeName == TypeNames.Result)
             {
-                return this.sharedState.Context.Int8Type;
+                return context.Int8Type;
             }
             else if (t is IStructType st)
             {
-                var itemTypes = WithoutNullValues(this.MapToInteropType, st.Members);
+                var itemTypes = WithoutNullValues(t => MapToInteropType(context, t), st.Members);
                 return itemTypes.Length > 0
-                    ? this.sharedState.Context.CreateStructType(packed: false, itemTypes).CreatePointerType()
+                    ? context.CreateStructType(packed: false, itemTypes).CreatePointerType()
                     : null;
             }
             if (t.IsInteger)
             {
                 // covers Int, Bool, Pauli
                 var nrBytes = 1 + ((t.IntegerBitWidth - 1) / 8);
-                return this.sharedState.Context.GetIntType(8 * nrBytes);
+                return context.GetIntType(8 * nrBytes);
             }
             else if (t.IsFloatingPoint)
             {
-                return this.sharedState.Context.DoubleType;
+                return context.DoubleType;
             }
             else
             {
@@ -129,7 +136,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Assuming the given parameters are defined by flattening the given argument tuple and stripping
         /// all values of type Unit, constructs the argument(s) to the QIR function that matches the argument tuple.
         /// The arguments of the current function are assumed to be given as interop friendly types
-        /// defined by <see cref="MapToInteropType(ITypeRef)"/>.
+        /// defined by <see cref="MapToInteropType(Context, ITypeRef)"/>.
         /// This method generates suitable calls to the QIR runtime functions and other necessary
         /// conversions and casts to construct the arguments for the QIR function;
         /// i.e. this method implements the mapping "interop-friendly function arguments -> QIR function arguments".
