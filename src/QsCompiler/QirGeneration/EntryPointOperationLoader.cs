@@ -55,12 +55,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private static Parameter MakeParameter(LocalVariableDeclaration<QsLocalSymbol> parameter)
         {
+            var type = MapResolvedTypeToDataType(parameter.Type);
+            var arrayType = parameter.Type.Resolution is QsTypeKind.ArrayType innerType
+                ? (DataType?)MapResolvedTypeToDataType(innerType.Item)
+                : null;
+
+            if (arrayType == DataType.ArrayType)
+            {
+                throw new ArgumentException("Multi-dimensional arrays are not supported types of entry point parameters.");
+            }
+
             return new Parameter()
             {
                 Name = parameter.VariableName is QsLocalSymbol.ValidName name
                     ? name.Item
                     : throw new ArgumentException("Encountered invalid name for parameter."),
-                Type = MapResolvedTypeToDataType(parameter.Type)
+                Type = type,
+                ArrayType = arrayType
             };
         }
 
