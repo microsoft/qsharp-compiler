@@ -6,7 +6,7 @@ using Bond;
 using Bond.IO.Unsafe;
 using Bond.Protocols;
 
-namespace Microsoft.Quantum.QsCompiler.QIR.BondSchemas
+namespace Microsoft.Quantum.Qir.Serialization
 {
     /// <summary>
     /// This class provides methods for serialization/deserialization of objects in the Microsoft.Quantum.QsCompiler.BondSchemas.Execution namespace.
