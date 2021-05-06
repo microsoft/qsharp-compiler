@@ -38,6 +38,7 @@ body__1:                                          ; preds = %header__1
   %13 = call %Result* @__quantum__rt__result_get_zero()
   %14 = call i1 @__quantum__rt__result_equal(%Result* %12, %Result* %13)
   %15 = xor i1 %14, true
+  call void @__quantum__rt__result_update_reference_count(%Result* %12, i32 -1)
   br i1 %15, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %body__1
@@ -152,7 +153,6 @@ continue__1:                                      ; preds = %then0__1, %body__1
   %58 = load %Array*, %Array** %57, align 8
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %9, i32 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %12, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %51, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %51, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %52, i32 -1)
