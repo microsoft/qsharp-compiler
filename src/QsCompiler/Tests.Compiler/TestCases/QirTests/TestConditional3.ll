@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__ReturnFromNested__body(i1 %branch1, i1 %branch2) {
+define internal i64 @Microsoft__Quantum__Testing__QIR__ReturnFromNested__body(i1 %branch1, i1 %branch2) {
 entry:
   br i1 %branch1, label %then0__1, label %else__1
 

@@ -672,6 +672,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.CurrentFunction = this.RegisterFunction(spec);
+            this.CurrentFunction.Linkage = Linkage.Internal;
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
@@ -791,6 +792,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var funcName = FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
             IrFunction func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
+            func.Linkage = Linkage.Internal;
             this.liftedPartialApplications.Add((func, body));
             return func;
         }
@@ -845,13 +847,21 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var funcs = new Constant[4];
             for (var index = 0; index < 4; index++)
             {
-                funcs[index] = getSpec(FunctionArray[index])
-                    ?? Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
+                var func = getSpec(FunctionArray[index]);
+                if (func != null)
+                {
+                    func.Linkage = Linkage.Internal;
+                    funcs[index] = func;
+                }
+                else
+                {
+                    funcs[index] = Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
+                }
             }
 
             // Build the callable table
             var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
-            return this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
+            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
         }
 
         /// <inheritdoc cref="CreateCallableTable"/>
@@ -915,12 +925,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var name = this.GlobalName("MemoryManagement");
             var funcs = new Constant[2];
             var func = this.Module.CreateFunction($"{name}__RefCount", this.Types.CaptureCountFunction);
+            func.Linkage = Linkage.Internal;
             funcs[0] = func;
             func = this.Module.CreateFunction($"{name}__AliasCount", this.Types.CaptureCountFunction);
+            func.Linkage = Linkage.Internal;
             funcs[1] = func;
 
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
-            table = this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
+            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
             this.memoryManagementTables.Add(type, table);
             this.pendingMemoryManagementTables.Add(type);
             return table;
