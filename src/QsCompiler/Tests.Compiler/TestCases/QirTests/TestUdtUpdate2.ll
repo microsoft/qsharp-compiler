@@ -23,6 +23,7 @@ entry:
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i32 1)
   %9 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([5 x i8], [5 x i8]* @1, i32 0, i32 0))
   %10 = call i1 @__quantum__rt__string_equal(%String* %8, %String* %9)
+  call void @__quantum__rt__string_update_reference_count(%String* %9, i32 -1)
   br i1 %10, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %entry
@@ -135,6 +136,5 @@ continue__1:                                      ; preds = %condContinue__3, %e
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %44, i32 -1)
   %45 = bitcast { %String*, { double, double }*, { double, double }* }* %38 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %45, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %9, i32 -1)
   ret { %String*, { double, double }*, { double, double }* }* %38
 }
