@@ -222,7 +222,15 @@ let ``QIR short-circuiting`` () = qirTest false "TestShortCircuiting"
 
 [<Fact>]
 let ``QIR conditionals`` () =
-    qirMultiTest false "TestConditional" [ "TestConditional1"; "TestConditional2"; "TestConditional3" ]
+    qirMultiTest
+        false
+        "TestConditional"
+        [
+            "TestConditional1"
+            "TestConditional2"
+            "TestConditional3"
+            "TestConditional4"
+        ]
 
 [<Fact>]
 let ``QIR expressions`` () = qirTest false "TestExpressions"
