@@ -255,6 +255,9 @@
     <Content Include="TestCases\QirTests\TestPartials6.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestPartials7.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestPartials.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
