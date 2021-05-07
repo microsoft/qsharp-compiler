@@ -25,7 +25,7 @@
 // ReSharper disable RedundantUsingDirective
 #endregion
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution
+namespace Microsoft.Quantum.Qir.Serialization
 {
     using System.Collections.Generic;
 

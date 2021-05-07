@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas.Execution;
+namespace Microsoft.Quantum.Qir.Serialization;
 
 enum DataType
 {
