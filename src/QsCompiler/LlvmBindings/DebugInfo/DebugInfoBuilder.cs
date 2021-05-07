@@ -159,13 +159,12 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </remarks>
         public DIMacroFile CreateTempMacroFile( DIMacroFile? parent, uint line, DIFile? file )
         {
-            var handle = LLVMDIBuilderCreateTempMacroFile( BuilderHandle
-                                                         , parent?.MetadataHandle ?? LLVMMetadataRef.Zero
-                                                         , line
-                                                         , file?.MetadataHandle ?? LLVMMetadataRef.Zero
-                                                         );
+            var handle = this.BuilderHandle.CreateTempMacroFile(
+                parent?.MetadataHandle ?? default,
+                line,
+                file?.MetadataHandle ?? default);
 
-            return MDNode.FromHandle<DIMacroFile>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DIMacroFile>( handle )!;
         }
 
         /// <summary>Create a macro</summary>
@@ -177,9 +176,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns>Newly created macro node</returns>
         public DIMacro CreateMacro( DIMacroFile? parentFile, uint line, MacroKind kind, string name, string value )
         {
-            kind.ValidateDefined( nameof( kind ) );
-            name.ValidateNotNullOrWhiteSpace( nameof( name ) );
-            value.ValidateNotNull( nameof( value ) );
             switch( kind )
             {
             case MacroKind.Define:
@@ -189,17 +185,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new NotSupportedException( "LLVM currently only supports MacroKind.Define and MacroKind.Undefine" );
             }
 
-            var handle = LLVMDIBuilderCreateMacro( BuilderHandle
-                                                 , parentFile?.MetadataHandle ?? LLVMMetadataRef.Zero
-                                                 , line
-                                                 , ( LLVMDWARFMacinfoRecordType )kind
-                                                 , name
-                                                 , name.Length
-                                                 , value
-                                                 , value.Length
-                                                 );
+            var handle = this.BuilderHandle.CreateMacro(
+                parentFile?.MetadataHandle ?? default,
+                line,
+                (LLVMDWARFMacinfoRecordType)kind,
+                name,
+                value);
 
-            return MDNode.FromHandle<DIMacro>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DIMacro>( handle )!;
         }
 
         /// <summary>Creates a <see cref="DINamespace"/></summary>
@@ -210,16 +203,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public DINamespace CreateNamespace( DIScope? scope, string name, bool exportSymbols )
         {
-            name.ValidateNotNullOrWhiteSpace( nameof( name ) );
-
-            var handle = LLVMDIBuilderCreateNameSpace( BuilderHandle
-                                                     , scope?.MetadataHandle ?? default
-                                                     , name
-                                                     , name.Length
-                                                     , exportSymbols
-                                                     );
-
-            return MDNode.FromHandle<DINamespace>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateNameSpace(scope?.MetadataHandle ?? default, name, exportSymbols);
+            return MDNode.FromHandle<DINamespace>( handle )!;
         }
 
         /// <summary>Creates a <see cref="DIFile"/></summary>
@@ -243,13 +228,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </returns>
         public DIFile CreateFile( string? fileName, string? directory )
         {
-            var handle = LLVMDIBuilderCreateFile( BuilderHandle
-                                                , fileName
-                                                , fileName?.Length ?? 0
-                                                , directory
-                                                , directory?.Length ?? 0
-                                                );
-            return MDNode.FromHandle<DIFile>( handle.ThrowIfInvalid( ) )!;
+            var handle = BuilderHandle.CreateFile(fileName, directory);
+            return MDNode.FromHandle<DIFile>( handle )!;
         }
 
         /* TODO: Extend CreateFile with checksum info and source text params (both optional) */
@@ -265,14 +245,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public DILexicalBlock CreateLexicalBlock( DIScope? scope, DIFile? file, uint line, uint column )
         {
-            var handle = LLVMDIBuilderCreateLexicalBlock( BuilderHandle
-                                                        , scope?.MetadataHandle ?? default
-                                                        , file?.MetadataHandle ?? default
-                                                        , line
-                                                        , column
-                                                        );
+            var handle = this.BuilderHandle.CreateLexicalBlock(
+                scope?.MetadataHandle ?? default,
+                file?.MetadataHandle ?? default,
+                line,
+                column);
 
-            return MDNode.FromHandle<DILexicalBlock>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DILexicalBlock>( handle )!;
         }
 
         /// <summary>Creates a <see cref="DILexicalBlockFile"/></summary>
@@ -285,12 +264,12 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public DILexicalBlockFile CreateLexicalBlockFile( DIScope? scope, DIFile? file, uint discriminator )
         {
-            var handle = LLVMDIBuilderCreateLexicalBlockFile( BuilderHandle
-                                                            , scope?.MetadataHandle ?? default
-                                                            , file?.MetadataHandle ?? default
-                                                            , discriminator
-                                                            );
-            return MDNode.FromHandle<DILexicalBlockFile>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateLexicalBlockFile(
+                scope?.MetadataHandle ?? default,
+                file?.MetadataHandle ?? default,
+                discriminator);
+
+            return MDNode.FromHandle<DILexicalBlockFile>( handle )!;
         }
 
         /// <summary>Factory method to create a <see cref="DISubProgram"/> with debug information</summary>
@@ -322,10 +301,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                           , IrFunction function
                                           )
         {
-            name.ValidateNotNull( nameof( name ) );
-            mangledName.ValidateNotNull( nameof( mangledName ) );
-            function.ValidateNotNull( nameof( function ) );
-
             // force whitespace strings to empty
             if( string.IsNullOrWhiteSpace( name ) )
             {
@@ -337,22 +312,20 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 mangledName = string.Empty;
             }
 
-            var handle = LLVMDIBuilderCreateFunction( BuilderHandle
-                                                    , scope?.MetadataHandle ?? default
-                                                    , name
-                                                    , name.Length
-                                                    , mangledName
-                                                    , mangledName.Length
-                                                    , file?.MetadataHandle ?? default
-                                                    , line
-                                                    , signatureType?.MetadataHandle ?? default
-                                                    , isLocalToUnit
-                                                    , isDefinition
-                                                    , scopeLine
-                                                    , ( LLVMDIFlags )debugFlags
-                                                    , isOptimized
-                                                    );
-            var retVal = MDNode.FromHandle<DISubProgram>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateFunction(
+                scope?.MetadataHandle ?? default,
+                name,
+                mangledName,
+                file?.MetadataHandle ?? default,
+                line,
+                signatureType?.MetadataHandle ?? default,
+                isLocalToUnit ? 1 : 0,
+                isDefinition ? 1 : 0,
+                scopeLine,
+                (LLVMDIFlags)debugFlags,
+                isOptimized ? 1 : 0);
+
+            var retVal = MDNode.FromHandle<DISubProgram>( handle )!;
             function.DISubProgram = retVal;
             return retVal;
         }
@@ -384,8 +357,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                   , bool isOptimized
                                                   )
         {
-            subroutineType.ValidateNotNull( nameof( subroutineType ) );
-
             if( string.IsNullOrWhiteSpace( name ) )
             {
                 name = string.Empty;
@@ -435,20 +406,17 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                   , uint alignInBits = 0
                                                   )
         {
-            name.ValidateNotNullOrWhiteSpace( nameof( name ) );
+            var handle = this.BuilderHandle.CreateAutoVariable(
+                scope?.MetadataHandle ?? default,
+                name,
+                file?.MetadataHandle ?? default,
+                line,
+                type?.MetadataHandle ?? default,
+                alwaysPreserve,
+                ( LLVMDIFlags )debugFlags,
+                alignInBits);
 
-            var handle = LLVMDIBuilderCreateAutoVariable( BuilderHandle
-                                                        , scope?.MetadataHandle ?? default
-                                                        , name
-                                                        , name.Length
-                                                        , file?.MetadataHandle ?? default
-                                                        , line
-                                                        , type?.MetadataHandle ?? default
-                                                        , alwaysPreserve
-                                                        , ( LLVMDIFlags )debugFlags
-                                                        , alignInBits
-                                                        );
-            return MDNode.FromHandle<DILocalVariable>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DILocalVariable>( handle )!;
         }
 
         /// <summary>Creates an argument for a function as a <see cref="DILocalVariable"/></summary>
@@ -472,20 +440,17 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                              , ushort argNo
                                              )
         {
-            name.ValidateNotNullOrWhiteSpace( nameof( name ) );
+            var handle = this.BuilderHandle.CreateParameterVariable(
+                scope?.MetadataHandle ?? default,
+                name,
+                argNo,
+                file?.MetadataHandle ?? default,
+                line,
+                type?.MetadataHandle ?? default,
+                alwaysPreserve,
+                (LLVMDIFlags)debugFlags);
 
-            var handle = LLVMDIBuilderCreateParameterVariable( BuilderHandle
-                                                             , scope?.MetadataHandle ?? default
-                                                             , name
-                                                             , name.Length
-                                                             , argNo
-                                                             , file?.MetadataHandle ?? default
-                                                             , line
-                                                             , type?.MetadataHandle ?? default
-                                                             , alwaysPreserve
-                                                             , ( LLVMDIFlags )debugFlags
-                                                             );
-            return MDNode.FromHandle<DILocalVariable>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DILocalVariable>(handle)!;
         }
 
         /// <summary>Construct debug information for a basic type (a.k.a. primitive type)</summary>
@@ -496,9 +461,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns>Basic type debugging information</returns>
         public DIBasicType CreateBasicType( string name, UInt64 bitSize, DiTypeKind encoding, DebugInfoFlags diFlags = DebugInfoFlags.None )
         {
-            name.ValidateNotNullOrWhiteSpace( nameof( name ) );
-            var handle = LLVMDIBuilderCreateBasicType( BuilderHandle, name, name.Length, bitSize, ( uint )encoding, ( LLVMDIFlags )diFlags );
-            return MDNode.FromHandle<DIBasicType>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateBasicType(name, bitSize, (uint)encoding, (LLVMDIFlags)diFlags );
+            return MDNode.FromHandle<DIBasicType>( handle )!;
         }
 
         /// <summary>Creates a pointer type with debug information</summary>
@@ -511,15 +475,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public DIDerivedType CreatePointerType( DIType? pointeeType, string? name, UInt64 bitSize, UInt32 bitAlign = 0, uint addressSpace = 0 )
         {
-            var handle = LLVMDIBuilderCreatePointerType( BuilderHandle
-                                                       , pointeeType?.MetadataHandle ?? default
-                                                       , bitSize
-                                                       , bitAlign
-                                                       , addressSpace
-                                                       , name
-                                                       , name?.Length ?? 0
-                                                       );
-            return MDNode.FromHandle<DIDerivedType>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreatePointerType(
+                pointeeType?.MetadataHandle ?? default,
+                bitSize,
+                bitAlign,
+                addressSpace,
+                name);
+
+            return MDNode.FromHandle<DIDerivedType>(handle)!;
         }
 
         /// <summary>Creates a qualified type</summary>
@@ -531,8 +494,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public DIDerivedType CreateQualifiedType( DIType? baseType, QualifiedTypeTag tag )
         {
-            var handle = LLVMDIBuilderCreateQualifiedType( BuilderHandle, ( uint )tag, baseType?.MetadataHandle ?? default );
-            return MDNode.FromHandle<DIDerivedType>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateQualifiedType((uint)tag, baseType?.MetadataHandle ?? default );
+            return MDNode.FromHandle<DIDerivedType>(handle)!;
         }
 
         /// <summary>Create a debug metadata array of debug types</summary>
@@ -546,8 +509,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DITypeArray CreateTypeArray( IEnumerable<DIType?> types )
         {
             var handles = types.Select( t => t?.MetadataHandle ?? default ).ToArray( );
-            var handle = LLVMDIBuilderGetOrCreateTypeArray( BuilderHandle, handles, handles.LongLength );
-            return new DITypeArray( MDNode.FromHandle<MDTuple>( handle.ThrowIfInvalid( ) ) );
+            var handle = this.BuilderHandle.GetOrCreateTypeArray(handles, handles.LongLength);
+            return new DITypeArray( MDNode.FromHandle<MDTuple>(handle) );
         }
 
         /// <summary>Creates a <see cref="DISubroutineType"/> to provide debug information for a function/procedure signature</summary>
@@ -565,16 +528,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DISubroutineType"/></returns>
         public DISubroutineType CreateSubroutineType( DebugInfoFlags debugFlags, IEnumerable<DIType?> types )
         {
-            types.ValidateNotNull( nameof( types ) );
             var handles = types.Select( t => t?.MetadataHandle ?? default ).ToArray( );
-            var handle = LLVMDIBuilderCreateSubroutineType( BuilderHandle
-                                                          , LLVMMetadataRef.Zero
-                                                          , handles
-                                                          , checked(( uint )handles.Length)
-                                                          , ( LLVMDIFlags )debugFlags
-                                                          );
-
-            return MDNode.FromHandle<DISubroutineType>( handle.ThrowIfInvalid( ) )!;
+            var handle = BuilderHandle.CreateSubroutineType(default, handles, (LLVMDIFlags)debugFlags);
+            return MDNode.FromHandle<DISubroutineType>(handle)!;
         }
 
         /// <summary>Creates a <see cref="DISubroutineType"/> to provide debug information for a function/procedure signature</summary>
@@ -648,14 +604,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                , string uniqueId = ""
                                                )
         {
-            elements.ValidateNotNull( nameof( elements ) );
-            name.ValidateNotNull( nameof( name ) );
-
             var elementHandles = elements.Select( e => e.MetadataHandle ).ToArray( );
-            var handle = LLVMDIBuilderCreateStructType( BuilderHandle
-                                                      , scope?.MetadataHandle ?? default
+            var handle = this.BuilderHandle.CreateStructType( scope?.MetadataHandle ?? default
                                                       , name
-                                                      , name.Length
                                                       , file?.MetadataHandle ?? default
                                                       , line
                                                       , bitSize
@@ -667,10 +618,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                       , runTimeLang
                                                       , vTableHolder?.MetadataHandle ?? default
                                                       , uniqueId ?? string.Empty
-                                                      , uniqueId?.Length ?? 0
                                                       );
 
-            return MDNode.FromHandle<DICompositeType>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DICompositeType>(handle)!;
         }
 
         /// <summary>Creates debug description of a union type</summary>
@@ -744,14 +694,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                               , string uniqueId = ""
                                               )
         {
-            name.ValidateNotNull( nameof( name ) );
-            elements.ValidateNotNull( nameof( elements ) );
-
             var elementHandles = elements.Select( e => e.MetadataHandle ).ToArray( );
-            var handle = LLVMDIBuilderCreateUnionType( BuilderHandle
-                                                     , scope?.MetadataHandle ?? default
+            var handle = this.BuilderHandle.CreateUnionType(
+                                                      scope?.MetadataHandle ?? default
                                                      , name
-                                                     , name.Length
                                                      , file?.MetadataHandle ?? default
                                                      , line
                                                      , bitSize
@@ -761,10 +707,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                      , (uint)elementHandles.Length
                                                      , runTimeLang
                                                      , uniqueId ?? string.Empty
-                                                     , uniqueId?.Length ?? 0
                                                      );
 
-            return MDNode.FromHandle<DICompositeType>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DICompositeType>(handle)!;
         }
 
         /// <summary>Creates a <see cref="DIDerivedType"/> for a member of a type</summary>
@@ -790,12 +735,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                              , DIType? type
                                              )
         {
-            name.ValidateNotNull( nameof( name ) );
-
-            var handle = LLVMDIBuilderCreateMemberType( BuilderHandle
-                                                      , scope?.MetadataHandle ?? default
+            var handle = this.BuilderHandle.CreateMemberType(
+                                                        scope?.MetadataHandle ?? default
                                                       , name
-                                                      , name.Length
                                                       , file?.MetadataHandle ?? default
                                                       , line
                                                       , bitSize
@@ -804,7 +746,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                       , ( LLVMDIFlags )debugFlags
                                                       , type?.MetadataHandle ?? default
                                                       );
-            return MDNode.FromHandle<DIDerivedType>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DIDerivedType>(handle)!;
         }
 
         /// <summary>Creates debug information for an array type</summary>
@@ -838,12 +780,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DICompositeType"/> for the array</returns>
         public DICompositeType CreateArrayType( UInt64 bitSize, UInt32 bitAlign, DIType elementType, IEnumerable<DINode> subscripts )
         {
-            elementType.ValidateNotNull( nameof( elementType ) );
-            subscripts.ValidateNotNull( nameof( subscripts ) );
-
             var subScriptHandles = subscripts.Select( s => s.MetadataHandle ).ToArray( );
-            var handle = LLVMDIBuilderCreateArrayType( BuilderHandle, bitSize, bitAlign, elementType.MetadataHandle, subScriptHandles, (uint)subScriptHandles.Length );
-            return MDNode.FromHandle<DICompositeType>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateArrayType(bitSize, bitAlign, elementType.MetadataHandle, subScriptHandles, (uint)subScriptHandles.Length );
+            return MDNode.FromHandle<DICompositeType>(handle)!;
         }
 
         /// <summary>Creates debug information for a vector type</summary>
@@ -877,12 +816,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DICompositeType"/> for the Vector</returns>
         public DICompositeType CreateVectorType( UInt64 bitSize, UInt32 bitAlign, DIType elementType, IEnumerable<DINode> subscripts )
         {
-            elementType.ValidateNotNull( nameof( elementType ) );
-            subscripts.ValidateNotNull( nameof( subscripts ) );
-
             var subScriptHandles = subscripts.Select( s => s.MetadataHandle ).ToArray( );
-            var handle = LLVMDIBuilderCreateVectorType( BuilderHandle, bitSize, bitAlign, elementType.MetadataHandle, subScriptHandles, (uint)subScriptHandles.Length );
-            return MDNode.FromHandle<DICompositeType>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateVectorType( bitSize, bitAlign, elementType.MetadataHandle, subScriptHandles, (uint)subScriptHandles.Length );
+            return MDNode.FromHandle<DICompositeType>( handle )!;
         }
 
         /// <summary>Creates debug information for a type definition (e.g. type alias)</summary>
@@ -896,18 +832,15 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public DIDerivedType CreateTypedef( DIType? type, string name, DIFile? file, uint line, DINode? context, UInt32 alignInBits )
         {
-            name.ValidateNotNullOrWhiteSpace( nameof( name ) );
+            var handle = this.BuilderHandle.CreateTypedef(
+                type?.MetadataHandle ?? default,
+                name,
+                file?.MetadataHandle ?? default,
+                line,
+                context?.MetadataHandle ?? default,
+                alignInBits);
 
-            var handle = LLVMDIBuilderCreateTypedef( BuilderHandle
-                                                   , type?.MetadataHandle ?? default
-                                                   , name
-                                                   , name.Length
-                                                   , file?.MetadataHandle ?? default
-                                                   , line
-                                                   , context?.MetadataHandle ?? default
-                                                   , alignInBits
-                                                   );
-            return MDNode.FromHandle<DIDerivedType>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DIDerivedType>( handle )!;
         }
 
         /// <summary>Creates a new <see cref="DISubRange"/></summary>
@@ -916,8 +849,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DISubRange"/></returns>
         public DISubRange CreateSubRange( long lowerBound, long count )
         {
-            var handle = LLVMDIBuilderGetOrCreateSubrange( BuilderHandle, lowerBound, count );
-            return MDNode.FromHandle<DISubRange>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.GetOrCreateSubrange( lowerBound, count );
+            return MDNode.FromHandle<DISubRange>(handle)!;
         }
 
         /// <summary>Gets or creates a node array with the specified elements</summary>
@@ -934,7 +867,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             var buf = elements.Select( d => d?.MetadataHandle ?? default ).ToArray( );
             long actualLen = buf.LongLength;
 
-            var handle = LLVMDIBuilderGetOrCreateArray( BuilderHandle, buf, buf.LongLength );
+            var handle = this.BuilderHandle.GetOrCreateArray(buf, buf.LongLength);
             if( handle == default )
             {
                 throw new InternalCodeGeneratorException( "Got a null MDTuple from LLVMDIBuilderGetOrCreateArray" );
@@ -956,8 +889,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DITypeArray GetOrCreateTypeArray( IEnumerable<DIType> types )
         {
             var buf = types.Select( t => t?.MetadataHandle ?? default ).ToArray( );
-            var handle = LLVMDIBuilderGetOrCreateTypeArray( BuilderHandle, buf, buf.LongLength );
-            return new DITypeArray( MDNode.FromHandle<MDTuple>( handle.ThrowIfInvalid( ) ) );
+            var handle = this.BuilderHandle.GetOrCreateTypeArray( buf, buf.LongLength );
+            return new DITypeArray( MDNode.FromHandle<MDTuple>(handle) );
         }
 
         /// <summary>Creates a value for an enumeration</summary>
@@ -967,9 +900,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DIEnumerator"/> for the name, value pair</returns>
         public DIEnumerator CreateEnumeratorValue( string name, long value, bool isUnsigned = false )
         {
-            name.ValidateNotNullOrWhiteSpace( nameof( name ) );
-            var handle = LLVMDIBuilderCreateEnumerator( BuilderHandle, name, name!.Length, value, isUnsigned );
-            return MDNode.FromHandle<DIEnumerator>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateEnumerator(name, value, isUnsigned);
+            return MDNode.FromHandle<DIEnumerator>(handle)!;
         }
 
         /// <summary>Creates an enumeration type</summary>
@@ -993,13 +925,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                     , DIType? underlyingType
                                                     )
         {
-            name.ValidateNotNull( nameof( name ) );
-
             var elementHandles = elements.Select( e => e.MetadataHandle ).ToArray( );
-            var handle = LLVMDIBuilderCreateEnumerationType( BuilderHandle
-                                                           , scope?.MetadataHandle ?? default
+            var handle = this.BuilderHandle.CreateEnumerationType(
+                                                             scope?.MetadataHandle ?? default
                                                            , name
-                                                           , name.Length
                                                            , file?.MetadataHandle ?? default
                                                            , lineNumber
                                                            , sizeInBits
@@ -1009,7 +938,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                            , underlyingType?.MetadataHandle ?? default
                                                            );
 
-            return MDNode.FromHandle<DICompositeType>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DICompositeType>(handle)!;
         }
 
         /// <summary>Creates a new <see cref="DIGlobalVariableExpression"/></summary>
@@ -1037,19 +966,15 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                                         , UInt32 bitAlign = 0
                                                                         )
         {
-            name.ValidateNotNullOrWhiteSpace( nameof( name ) );
-
             if( string.IsNullOrWhiteSpace( linkageName ) )
             {
                 linkageName = name;
             }
 
-            var handle = LLVMDIBuilderCreateGlobalVariableExpression( BuilderHandle
-                                                                    , scope?.MetadataHandle ?? default
+            var handle = this.BuilderHandle.CreateGlobalVariableExpression(
+                                                                      scope?.MetadataHandle ?? default
                                                                     , name
-                                                                    , name.Length
                                                                     , linkageName
-                                                                    , linkageName.Length
                                                                     , file?.MetadataHandle ?? default
                                                                     , lineNo
                                                                     , type?.MetadataHandle ?? default
@@ -1058,14 +983,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                                     , declaration?.MetadataHandle ?? default
                                                                     , bitAlign
                                                                     );
-            return MDNode.FromHandle<DIGlobalVariableExpression>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DIGlobalVariableExpression>(handle)!;
         }
 
         /// <summary>Finalizes debug information for a single <see cref="DISubProgram"/></summary>
         /// <param name="subProgram"><see cref="DISubProgram"/> to finalize debug information for</param>
         public void Finish( DISubProgram subProgram )
         {
-            subProgram.ValidateNotNull( nameof( subProgram ) );
             LibLLVMDIBuilderFinalizeSubProgram( BuilderHandle, subProgram.MetadataHandle );
         }
 
@@ -1085,7 +1009,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             }
 
             var bldr = new StringBuilder( );
-            var unresolvedTemps = from node in OwningModule.Context.Metadata.OfType<MDNode>( )
+            var unresolvedTemps = from node in this.OwningModule.Context.Metadata.OfType<MDNode>( )
                                   where node.IsTemporary && !node.IsResolved
                                   select node;
 
@@ -1093,10 +1017,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             {
                 if( bldr.Length == 0 )
                 {
-                    bldr.AppendLine( Resources.Temporaries_must_be_resolved_before_finalizing_debug_information );
+                    bldr.AppendLine( "Unresolved temporaries." );
                 }
 
-                bldr.AppendFormat( CultureInfo.CurrentCulture, Resources.Unresolved_Debug_temporary_0, node );
+                bldr.Append( node );
                 bldr.AppendLine( );
             }
 
@@ -1105,8 +1029,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new InvalidOperationException( bldr.ToString( ) );
             }
 
-            LLVMDIBuilderFinalize( BuilderHandle );
-            IsFinished = true;
+            this.BuilderHandle.DIBuilderFinalize();
+            this.IsFinished = true;
         }
 
         /// <summary>Inserts an llvm.dbg.declare instruction before the given instruction</summary>
@@ -1148,21 +1072,15 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public CallInstruction InsertDeclare( Value storage, DILocalVariable varInfo, DIExpression expression, DILocation location, Instruction insertBefore )
         {
-            storage.ValidateNotNull( nameof( storage ) );
-            varInfo.ValidateNotNull( nameof( varInfo ) );
-            expression.ValidateNotNull( nameof( expression ) );
-            location.ValidateNotNull( nameof( location ) );
-            insertBefore.ValidateNotNull( nameof( insertBefore ) );
-
-            var handle = LLVMDIBuilderInsertDeclareBefore( BuilderHandle
-                                                         , storage.ValueHandle
+            var handle = this.BuilderHandle.InsertDeclareBefore(
+                                                           storage.ValueHandle
                                                          , varInfo.MetadataHandle
                                                          , expression.MetadataHandle
                                                          , location.MetadataHandle
                                                          , insertBefore.ValueHandle
                                                          );
 
-            return Value.FromHandle<CallInstruction>( handle.ThrowIfInvalid( ) )!;
+            return Value.FromHandle<CallInstruction>( handle )!;
         }
 
         /// <summary>Inserts an llvm.dbg.declare instruction before the given instruction</summary>
@@ -1206,25 +1124,19 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public CallInstruction InsertDeclare( Value storage, DILocalVariable varInfo, DIExpression expression, DILocation location, BasicBlock insertAtEnd )
         {
-            storage.ValidateNotNull( nameof( storage ) );
-            varInfo.ValidateNotNull( nameof( varInfo ) );
-            expression.ValidateNotNull( nameof( expression ) );
-            location.ValidateNotNull( nameof( location ) );
-            insertAtEnd.ValidateNotNull( nameof( insertAtEnd ) );
-
             if( location.Scope.SubProgram != varInfo.Scope.SubProgram )
             {
-                throw new ArgumentException( Resources.Mismatched_scopes_for_location_and_variable );
+                throw new ArgumentException();
             }
 
-            var handle = LLVMDIBuilderInsertDeclareAtEnd( BuilderHandle
-                                                        , storage.ValueHandle
+            var handle = this.BuilderHandle.InsertDeclareAtEnd(
+                                                          storage.ValueHandle
                                                         , varInfo.MetadataHandle
                                                         , expression.MetadataHandle
                                                         , location.MetadataHandle
                                                         , insertAtEnd.BlockHandle
                                                         );
-            return Value.FromHandle<CallInstruction>( handle.ThrowIfInvalid( ) )!;
+            return Value.FromHandle<CallInstruction>(handle)!;
         }
 
         /// <summary>Inserts a call to the llvm.dbg.value intrinsic before the specified instruction</summary>
@@ -1279,19 +1191,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                           , Instruction insertBefore
                                           )
         {
-            value.ValidateNotNull( nameof( value ) );
-            varInfo.ValidateNotNull( nameof( varInfo ) );
-            location.ValidateNotNull( nameof( location ) );
-            insertBefore.ValidateNotNull( nameof( insertBefore ) );
-
-            var handle = LLVMDIBuilderInsertDbgValueBefore( BuilderHandle
-                                                          , value.ValueHandle
+            var handle = this.BuilderHandle.InsertDbgValueBefore(
+                                                            value.ValueHandle
                                                           , varInfo.MetadataHandle
-                                                          , expression?.MetadataHandle ?? CreateExpression( ).MetadataHandle
+                                                          , expression?.MetadataHandle ?? this.CreateExpression().MetadataHandle
                                                           , location.MetadataHandle
                                                           , insertBefore.ValueHandle
                                                           );
-            var retVal = Value.FromHandle<CallInstruction>( handle.ThrowIfInvalid( ) )!;
+            var retVal = Value.FromHandle<CallInstruction>(handle)!;
             retVal.IsTailCall = true;
             return retVal;
         }
@@ -1348,30 +1255,25 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                           , BasicBlock insertAtEnd
                                           )
         {
-            value.ValidateNotNull( nameof( value ) );
-            varInfo.ValidateNotNull( nameof( varInfo ) );
-            location.ValidateNotNull( nameof( location ) );
-            insertAtEnd.ValidateNotNull( nameof( insertAtEnd ) );
-
             if( location.Scope != varInfo.Scope )
             {
-                throw new ArgumentException( Resources.Mismatched_scopes );
+                throw new ArgumentException();
             }
 
             if( ( insertAtEnd.ContainingFunction is null ) || !LocationDescribes( location, insertAtEnd.ContainingFunction ) )
             {
-                throw new ArgumentException( Resources.Location_does_not_describe_the_specified_block_s_containing_function );
+                throw new ArgumentException();
             }
 
-            var handle = LLVMDIBuilderInsertDbgValueAtEnd( BuilderHandle
-                                                         , value.ValueHandle
+            var handle = this.BuilderHandle.InsertDbgValueAtEnd(
+                                                           value.ValueHandle
                                                          , varInfo.MetadataHandle
                                                          , expression?.MetadataHandle ?? CreateExpression( ).MetadataHandle
                                                          , location.MetadataHandle
                                                          , insertAtEnd.BlockHandle
                                                          );
 
-            var retVal = Value.FromHandle<CallInstruction>( handle.ThrowIfInvalid( ) )!;
+            var retVal = Value.FromHandle<CallInstruction>(handle)!;
             retVal.IsTailCall = true;
             return retVal;
         }
@@ -1388,8 +1290,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DIExpression CreateExpression( IEnumerable<ExpressionOp> operations )
         {
             long[ ] args = operations.Cast<long>( ).ToArray( );
-            var handle = LLVMDIBuilderCreateExpression( BuilderHandle, args, args.LongLength );
-            return MDNode.FromHandle<DIExpression>( handle.ThrowIfInvalid( ) )!;
+            var handle = this.BuilderHandle.CreateExpression(args, args.LongLength);
+            return MDNode.FromHandle<DIExpression>(handle)!;
         }
 
         /// <summary>Creates a <see cref="DIExpression"/> for a constant value</summary>
@@ -1397,8 +1299,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DIExpression"/></returns>
         public DIExpression CreateConstantValueExpression( Int64 value )
         {
-            LLVMMetadataRef handle = LLVMDIBuilderCreateConstantValueExpression( BuilderHandle, value );
-            return MDNode.FromHandle<DIExpression>( handle.ThrowIfInvalid( ) )!;
+            LLVMMetadataRef handle = this.BuilderHandle.CreateConstantValueExpression(value);
+            return MDNode.FromHandle<DIExpression>( handle )!;
         }
 
         /// <summary>Creates a replaceable composite type</summary>
@@ -1426,18 +1328,15 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                              , string uniqueId = ""
                                                              )
         {
-            tag.ValidateDefined( nameof( tag ) );
-            name.ValidateNotNull( nameof( name ) );
             if( uniqueId == null )
             {
                 uniqueId = string.Empty;
             }
 
             // TODO: validate that tag is really valid for a composite type or document the result if it isn't (as long as LLVM won't crash at least)
-            var handle = LLVMDIBuilderCreateReplaceableCompositeType( BuilderHandle
-                                                                    , ( uint )tag
+            var handle = this.BuilderHandle.CreateReplaceableCompositeType(
+                                                                      ( uint )tag
                                                                     , name
-                                                                    , name.Length
                                                                     , scope?.MetadataHandle ?? default
                                                                     , file?.MetadataHandle ?? default
                                                                     , line
@@ -1446,9 +1345,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                                     , alignBits
                                                                     , ( LLVMDIFlags )flags
                                                                     , uniqueId
-                                                                    , uniqueId.Length
                                                                     );
-            return MDNode.FromHandle<DICompositeType>( handle.ThrowIfInvalid( ) )!;
+            return MDNode.FromHandle<DICompositeType>(handle)!;
         }
 
         internal DebugInfoBuilder( BitcodeModule owningModule )
@@ -1462,10 +1360,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         // allowUnresolved == false
         private DebugInfoBuilder( BitcodeModule owningModule, bool allowUnresolved )
         {
-            owningModule.ValidateNotNull( nameof( owningModule ) );
             BuilderHandle = allowUnresolved
-                ? LLVMCreateDIBuilder( owningModule.ModuleHandle )
-                : LLVMCreateDIBuilderDisallowUnresolved( owningModule.ModuleHandle );
+                ? owningModule.ModuleHandle.CreateDIBuilder()
+                : owningModule.ModuleHandle.CreateDIBuilderDisallowUnresolved();
 
             OwningModule = owningModule;
         }

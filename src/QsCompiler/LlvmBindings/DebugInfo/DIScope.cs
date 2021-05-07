@@ -24,7 +24,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 }
 
                 
-                return this is DIFile file ? file : FromHandle<DIFile>( LLVMDIScopeGetFile( MetadataHandle ) );
+                return this is DIFile file ? file : FromHandle<DIFile>(this.MetadataHandle.DIScopeGetFile());
             }
         }
 

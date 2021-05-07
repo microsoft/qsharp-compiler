@@ -9,10 +9,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 
-using Ubiquity.ArgValidators;
-using Ubiquity.NET.Llvm.Interop;
-
-using static Ubiquity.NET.Llvm.Interop.NativeMethods;
+using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm
 {
@@ -47,14 +44,12 @@ namespace Ubiquity.NET.Llvm
             {
                 get
                 {
-                    index.ValidateRange( 0, Count, nameof( index ) );
                     var nodeHanlde = LibLLVMNamedMDNodeGetOperand( OwningNode.NativeHandle, ( uint )index );
                     return LlvmMetadata.FromHandle<MDNode>( OwningNode.ParentModule.Context, nodeHanlde.ThrowIfInvalid( ) )!;
                 }
 
                 set
                 {
-                    index.ValidateRange( 0, Count, nameof( index ) );
                     LibLLVMNamedMDNodeSetOperand( OwningNode.NativeHandle, ( uint )index, value.MetadataHandle );
                 }
             }
@@ -86,7 +81,6 @@ namespace Ubiquity.NET.Llvm
 
             public void Add( MDNode item )
             {
-                item.ValidateNotNull( nameof( item ) );
                 LibLLVMNamedMDNodeAddOperand( OwningNode.NativeHandle, item.MetadataHandle );
             }
 
@@ -99,7 +93,6 @@ namespace Ubiquity.NET.Llvm
 
             public void CopyTo( MDNode[ ] array, int arrayIndex )
             {
-                arrayIndex.ValidateRange( 0, array.Length - Count, nameof( arrayIndex ) );
                 for( int i = 0; i < Count; ++i )
                 {
                     array[ i + arrayIndex ] = this[ i ];

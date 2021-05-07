@@ -4,7 +4,6 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using Ubiquity.ArgValidators;
 using Ubiquity.NET.Llvm.Types;
 
 namespace Ubiquity.NET.Llvm.DebugInfo
@@ -22,7 +21,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="name">Name of the type [Default: null]</param>
         /// <param name="alignment">Alignment on pointer</param>
         public DebugPointerType( IDebugType<ITypeRef, DIType> debugElementType, BitcodeModule module, uint addressSpace = 0, string? name = null, uint alignment = 0 )
-            : this( debugElementType.ValidateNotNull( nameof( debugElementType ) ).NativeType
+            : this( debugElementType.NativeType
                   , module
                   , debugElementType.DIType
                   , addressSpace
@@ -40,7 +39,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="name">Name of the type [Default: null]</param>
         /// <param name="alignment">Alignment of pointer</param>
         public DebugPointerType( ITypeRef llvmElementType, BitcodeModule module, DIType? elementType, uint addressSpace = 0, string? name = null, uint alignment = 0 )
-            : this( llvmElementType.ValidateNotNull( nameof( llvmElementType ) ).CreatePointerType( addressSpace )
+            : this( llvmElementType.CreatePointerType( addressSpace )
                   , module
                   , elementType
                   , name
@@ -57,8 +56,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="alignment">Alignment for pointer type</param>
         public DebugPointerType( IPointerType llvmPtrType, BitcodeModule module, DIType? elementType, string? name = null, uint alignment = 0 )
             : base( llvmPtrType,
-                    module.ValidateNotNull( nameof( module ) )
-                          .DIBuilder
+                    module.DIBuilder
                           .CreatePointerType( elementType
                                             , name
                                             , module.Layout.BitSizeOf( llvmPtrType )

@@ -16,8 +16,10 @@ namespace Ubiquity.NET.Llvm
         /// <returns>String this node wraps</returns>
         public override string ToString( )
         {
-            
-            return NativeMethods.LibLLVMGetMDStringText( MetadataHandle, out uint _ );
+            // TODO: might need to get context, and then metadataAsValue
+            //var asValue = LLVM.MetadataAsValue
+            var asValue = new LLVMValueRef(this.MetadataHandle.Handle);
+            return asValue.GetMDString();
         }
 
         internal MDString( LLVMMetadataRef handle )

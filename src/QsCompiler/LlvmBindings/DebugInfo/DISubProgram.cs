@@ -6,11 +6,8 @@
 
 using System.Diagnostics.CodeAnalysis;
 
-using Ubiquity.ArgValidators;
-using Ubiquity.NET.Llvm.Interop;
+using LLVMSharp.Interop;
 using Ubiquity.NET.Llvm.Values;
-
-using static Ubiquity.NET.Llvm.Interop.NativeMethods;
 
 namespace Ubiquity.NET.Llvm.DebugInfo
 {
@@ -31,7 +28,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         */
 
         /// <summary>Gets the source line associated with this <see cref="DISubProgram"/></summary>
-        public uint Line => LLVMDISubprogramGetLine( MetadataHandle );
+        public uint Line => this.MetadataHandle.DISubprogramGetLine();
 
         /// <summary>Gets the name of this <see cref="DISubProgram"/></summary>
         public override string Name => GetOperandString( 2 );
@@ -68,7 +65,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see langword="true"/> if this <see cref="DISubProgram"/> describes <paramref name="function"/> </returns>
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
         public bool Describes( IrFunction function )
-            => LibLLVMSubProgramDescribes( MetadataHandle, function.ValidateNotNull( nameof( function ) ).ValueHandle );
+            => LibLLVMSubProgramDescribes( MetadataHandle, function.ValueHandle );
 
         internal DISubProgram( LLVMMetadataRef handle )
             : base( handle )

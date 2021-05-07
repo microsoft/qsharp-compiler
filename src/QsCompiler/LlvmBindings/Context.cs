@@ -47,6 +47,7 @@ namespace Ubiquity.NET.Llvm
         private readonly BitcodeModule.InterningFactory moduleCache;
         private readonly TypeRef.InterningFactory typeCache;
         private readonly AttributeValue.InterningFactory attributeValueCache;
+        private readonly LlvmMetadata.InterningFactory MetadataCache;
 
         /// <summary>Initializes a new instance of the <see cref="Context"/> class.Creates a new context.</summary>
         public Context()
@@ -68,6 +69,7 @@ namespace Ubiquity.NET.Llvm
             this.moduleCache = new BitcodeModule.InterningFactory(this);
             this.typeCache = new TypeRef.InterningFactory(this);
             this.attributeValueCache = new AttributeValue.InterningFactory(this);
+            this.MetadataCache = new LlvmMetadata.InterningFactory(this);
 
             LLVM.ContextSetDiagnosticHandler(this.ContextHandle, this.activeHandler, (void*)default);
         }
@@ -116,6 +118,9 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Gets the LLVM PPC 128-bit floating point type.</summary>
         public ITypeRef PpcFloat128Type => TypeRef.FromHandle(LLVM.PPCFP128TypeInContext(this.ContextHandle))!;
+
+        /// <summary>Gets an enumerable collection of all the metadata created in this context</summary>
+        public IEnumerable<LlvmMetadata> Metadata => this.MetadataCache;
 
         /// <summary>Gets the modules created in this context.</summary>
         public IEnumerable<BitcodeModule> Modules => this.moduleCache;
@@ -638,6 +643,11 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
+        internal void RemoveDeletedNode(MDNode node)
+        {
+            this.MetadataCache.Remove(node.MetadataHandle);
+        }
+
         internal BitcodeModule GetModuleFor(LLVMModuleRef moduleRef)
         {
             if (moduleRef == default)
@@ -663,6 +673,11 @@ namespace Ubiquity.NET.Llvm
         internal ITypeRef GetTypeFor(LLVMTypeRef typeRef)
         {
             return this.typeCache.GetOrCreateItem(typeRef);
+        }
+
+        internal LlvmMetadata GetNodeFor(LLVMMetadataRef handle)
+        {
+            return this.MetadataCache.GetOrCreateItem(handle);
         }
 
         /// <summary>Disposes the context to release unmanaged resources deterministically.</summary>

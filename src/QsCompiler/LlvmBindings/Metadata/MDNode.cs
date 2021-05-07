@@ -7,11 +7,7 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-using Ubiquity.ArgValidators;
 using LLVMSharp.Interop;
-using Ubiquity.NET.Llvm.Properties;
-
-using static Ubiquity.NET.Llvm.Interop.NativeMethods;
 
 namespace Ubiquity.NET.Llvm
 {
@@ -68,21 +64,19 @@ namespace Ubiquity.NET.Llvm
         /// <param name="other">Node to replace this one with</param>
         public override void ReplaceAllUsesWith( LlvmMetadata other )
         {
-            other.ValidateNotNull( nameof( other ) );
-
             if( !IsTemporary || IsResolved )
             {
-                throw new InvalidOperationException( Resources.Cannot_replace_non_temporary_or_resolved_MDNode );
+                throw new InvalidOperationException( "" );
             }
 
             if( MetadataHandle == default )
             {
-                throw new InvalidOperationException( Resources.Cannot_Replace_all_uses_of_a_null_descriptor );
+                throw new InvalidOperationException( "" );
             }
 
             // grab the context before replacement as replace deletes and invalidates the node
             var context = Context;
-            LLVMMetadataReplaceAllUsesWith( MetadataHandle, other.MetadataHandle );
+            this.MetadataHandle.ReplaceAllUsesWith(other.MetadataHandle);
 
             // remove current node mapping from the context.
             // It won't be valid for use after clearing the handle

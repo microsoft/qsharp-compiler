@@ -6,7 +6,6 @@
 
 using LLVMSharp.Interop;
 
-
 namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug Information Compile Unit, which acts as the containing parent for debug information in a module</summary>

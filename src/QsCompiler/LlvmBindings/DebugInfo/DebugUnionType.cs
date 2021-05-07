@@ -9,8 +9,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-using Ubiquity.ArgValidators;
-using Ubiquity.NET.Llvm.Properties;
 using Ubiquity.NET.Llvm.Types;
 
 namespace Ubiquity.NET.Llvm.DebugInfo
@@ -40,9 +38,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                              , DebugInfoFlags debugFlags
                              , IEnumerable<DebugMemberInfo> elements
                              )
-            : base( llvmType.ValidateNotNull( nameof( llvmType ) ),
-                    module.ValidateNotNull( nameof( module ) )
-                          .DIBuilder
+            : base( llvmType,
+                    module.DIBuilder
                           .CreateReplaceableCompositeType( Tag.UnionType
                                                          , name
                                                          , scope
@@ -53,7 +50,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( !llvmType.IsOpaque )
             {
-                throw new ArgumentException( Resources.Struct_type_used_as_basis_for_a_union_must_not_have_a_body, nameof( llvmType ) );
+                throw new ArgumentException( "" );
             }
 
             SetBody( module, scope, file, line, debugFlags, elements );
@@ -73,7 +70,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                              , DIFile? file
                              , uint line = 0
                              )
-            : base( module.ValidateNotNull( nameof( module ) ).Context.CreateStructType( nativeName ),
+            : base( module.Context.CreateStructType( nativeName ),
                     module.DIBuilder
                           .CreateReplaceableCompositeType( Tag.UnionType
                                                          , name
@@ -112,12 +109,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                            , IEnumerable<DebugMemberInfo> debugElements
                            )
         {
-            module.ValidateNotNull( nameof( module ) );
-            debugElements.ValidateNotNull( nameof( debugElements ) );
-
             if( module.Layout == null )
             {
-                throw new ArgumentException( Resources.Module_needs_Layout_to_build_basic_types, nameof( module ) );
+                throw new ArgumentException( "" );
             }
 
             // Native body is a single element of a type with the largest size
@@ -128,7 +122,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 ulong? bitSize = elem.ExplicitLayout?.BitSize ?? module.Layout?.BitSizeOf( elem.DebugType );
                 if( !bitSize.HasValue )
                 {
-                    throw new ArgumentException( Resources.Cannot_determine_layout_for_element__The_element_must_have_an_explicit_layout_or_the_module_has_a_layout_to_use, nameof( debugElements ) );
+                    throw new ArgumentException( "" );
                 }
 
                 if( maxSize >= bitSize.Value )

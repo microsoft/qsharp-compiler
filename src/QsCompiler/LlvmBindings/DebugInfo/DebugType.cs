@@ -7,9 +7,8 @@
 using System;
 using System.Diagnostics.CodeAnalysis;
 
-using Ubiquity.ArgValidators;
-using Ubiquity.NET.Llvm.Interop;
-using Ubiquity.NET.Llvm.Properties;
+using LLVMSharp.Interop;
+
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
 
@@ -86,12 +85,12 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             get => RawDebugInfoType;
             set
             {
-                TDebug v = value.ValidateNotNull( nameof( value ) )!;
+                TDebug v = value!;
                 if( ( RawDebugInfoType != null ) && RawDebugInfoType.IsTemporary )
                 {
                     if( v.IsTemporary )
                     {
-                        throw new InvalidOperationException( Resources.Cannot_replace_a_temporary_with_another_temporary );
+                        throw new InvalidOperationException( "" );
                     }
 
                     RawDebugInfoType.ReplaceAllUsesWith( v );
@@ -99,7 +98,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 }
                 else
                 {
-                    throw new InvalidOperationException( Resources.Cannot_replace_non_temporary_DIType_with_a_new_Type );
+                    throw new InvalidOperationException( "" );
                 }
             }
         }
@@ -177,7 +176,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( DIType == null )
             {
-                throw new InvalidOperationException( Resources.Type_does_not_have_associated_Debug_type_from_which_to_construct_a_pointer_type );
+                throw new InvalidOperationException( "" );
             }
 
             var nativePointer = NativeType.CreatePointerType( addressSpace );
@@ -189,7 +188,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( DIType == null )
             {
-                throw new InvalidOperationException( Resources.Type_does_not_have_associated_Debug_type_from_which_to_construct_an_array_type );
+                throw new InvalidOperationException( "" );
             }
 
             var llvmArray = NativeType.CreateArrayType( count );
@@ -212,12 +211,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Converts a <see cref="DebugType{TNative, TDebug}"/> to <typeparamref name="TDebug"/> by accessing the <see cref="DIType"/> property</summary>
         /// <param name="self">The type to convert</param>
         [SuppressMessage( "Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "DIType is available as a property, this is for convenience" )]
-        public static implicit operator TDebug?( DebugType<TNative, TDebug> self ) => self.ValidateNotNull( nameof( self ) ).DIType;
+        public static implicit operator TDebug?( DebugType<TNative, TDebug> self ) => self.DIType;
 
         internal DebugType( TNative llvmType, TDebug? debugInfoType )
         {
-            llvmType.ValidateNotNull( nameof( llvmType ) );
-
             NativeType_.Value = llvmType;
             RawDebugInfoType = debugInfoType;
         }
@@ -263,8 +260,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see langword="true"/> if the type has debug information</returns>
         public static bool HasDebugInfo( this IDebugType<ITypeRef, DIType> debugType )
         {
-            debugType.ValidateNotNull( nameof( debugType ) );
-
             return debugType.DIType != null || debugType.NativeType.IsVoid;
         }
     }

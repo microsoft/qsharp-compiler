@@ -127,7 +127,7 @@ namespace Ubiquity.NET.Llvm
                 throw new InvalidOperationException( "" );
             }
 
-            LLVMMetadataReplaceAllUsesWith( MetadataHandle, other.MetadataHandle );
+            MetadataHandle.ReplaceAllUsesWith( other.MetadataHandle );
             MetadataHandle = default;
         }
 
@@ -135,11 +135,12 @@ namespace Ubiquity.NET.Llvm
         /// <returns>Metadata as a string</returns>
         public override string ToString( )
         {
-            return MetadataHandle == default ? string.Empty : LibLLVMMetadataAsString( MetadataHandle );
+            // TODO: test this
+            return MetadataHandle == default ? string.Empty : new LLVMValueRef(this.MetadataHandle.Handle).PrintToString();
         }
 
         /// <summary>Gets a value indicating this metadata's kind</summary>
-        public MetadataKind Kind => ( MetadataKind )LibLLVMGetMetadataID( MetadataHandle );
+        public MetadataKind Kind => ( MetadataKind )this.MetadataHandle.GetMetadataKind();
 
         internal LLVMMetadataRef MetadataHandle { get; /*protected*/ set; }
 
@@ -162,7 +163,7 @@ namespace Ubiquity.NET.Llvm
             {
                 // use the native kind value to determine the managed type
                 // that should wrap this particular handle
-                var kind = ( MetadataKind )LibLLVMGetMetadataID( handle );
+                var kind = ( MetadataKind ) handle.GetMetadataKind();
                 switch( kind )
                 {
                 case MetadataKind.MDString:

@@ -4,9 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using Ubiquity.NET.Llvm.Interop;
-
-using static Ubiquity.NET.Llvm.Interop.NativeMethods;
+using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.DebugInfo
 {
@@ -19,11 +17,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     {
         /// <summary>Gets the <see cref="DIGlobalVariable"/> for this node</summary>
         public DIGlobalVariable Variable
-            => FromHandle<DIGlobalVariable>( LLVMDIGlobalVariableExpressionGetVariable( MetadataHandle ).ThrowIfInvalid( ) )!;
+            => FromHandle<DIGlobalVariable>(this.MetadataHandle.DIGlobalVariableExpressionGetVariable())!;
 
         /// <summary>Gets the <see cref="DIExpression"/> for this node</summary>
         public DIExpression Expression
-            => FromHandle<DIExpression>( LLVMDIGlobalVariableExpressionGetExpression( MetadataHandle ).ThrowIfInvalid( ) )!;
+            => FromHandle<DIExpression>(this.MetadataHandle.DIGlobalVariableExpressionGetExpression())!;
 
         internal DIGlobalVariableExpression( LLVMMetadataRef handle )
             : base( handle )

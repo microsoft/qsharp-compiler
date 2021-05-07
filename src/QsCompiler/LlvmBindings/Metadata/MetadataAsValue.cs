@@ -4,10 +4,8 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using Ubiquity.NET.Llvm.Interop;
+using LLVMSharp.Interop;
 using Ubiquity.NET.Llvm.Values;
-
-using static Ubiquity.NET.Llvm.Interop.NativeMethods;
 
 namespace Ubiquity.NET.Llvm
 {
@@ -28,7 +26,7 @@ namespace Ubiquity.NET.Llvm
         {
             return value == default
                    ? value
-                   : LibLLVMGetValueKind( value ) == LibLLVMValueKind.MetadataAsValueKind ? value : default;
+                   : value.Kind == LLVMValueKind.LLVMMetadataAsValueValueKind ? value : default;
         }
 
         /*

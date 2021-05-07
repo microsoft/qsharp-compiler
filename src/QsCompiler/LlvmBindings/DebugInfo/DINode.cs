@@ -6,8 +6,6 @@
 
 using LLVMSharp.Interop;
 
-using static Ubiquity.NET.Llvm.Interop.NativeMethods;
-
 namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Root of the object hierarchy for Debug information metadata nodes</summary>

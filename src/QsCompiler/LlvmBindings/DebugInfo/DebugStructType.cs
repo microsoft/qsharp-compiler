@@ -9,7 +9,6 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 
-using Ubiquity.ArgValidators;
 using Ubiquity.NET.Llvm.Properties;
 using Ubiquity.NET.Llvm.Types;
 
@@ -47,8 +46,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                               , uint? bitSize = null
                               , uint bitAlignment = 0
                               )
-            : base( module.ValidateNotNull( nameof( module ) )
-                          .Context.CreateStructType( nativeName, packed, members.Select( e => e.DebugType ).ToArray( ) )
+            : base( module.Context.CreateStructType( nativeName, packed, members.Select( e => e.DebugType ).ToArray( ) )
                   , module.DIBuilder.CreateReplaceableCompositeType( Tag.StructureType
                                                                    , sourceName
                                                                    , scope
@@ -100,8 +98,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                               , uint bitAlignment = 0
                               )
             : base( llvmType
-                  , module.ValidateNotNull( nameof( module ) )
-                          .DIBuilder.CreateStructType( scope
+                  , module.DIBuilder.CreateStructType( scope
                                                      , name
                                                      , file
                                                      , line
@@ -134,8 +131,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                               , uint line
                               )
             : base( llvmType
-                  , module.ValidateNotNull( nameof( module ) )
-                          .DIBuilder
+                  , module.DIBuilder
                           .CreateReplaceableCompositeType( Tag.StructureType
                                                          , name
                                                          , scope
@@ -164,7 +160,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                               , DIFile? file = null
                               , uint line = 0
                               )
-            : this( module.ValidateNotNull( nameof( module ) ).Context.CreateStructType( nativeName )
+            : this( module.Context.CreateStructType( nativeName )
                   , module
                   , scope
                   , name
@@ -248,7 +244,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                            , uint bitAlignment = 0
                            )
         {
-            module.ValidateNotNull( nameof( module ) );
             DebugMembers = new ReadOnlyCollection<DebugMemberInfo>( debugElements as IList<DebugMemberInfo> ?? debugElements.ToList( ) );
             SetBody( packed, nativeElements.ToArray( ) );
             var memberTypes = from memberInfo in DebugMembers
@@ -274,7 +269,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( DIType == null )
             {
-                throw new InvalidOperationException( Resources.Type_does_not_have_associated_Debug_type_from_which_to_construct_a_Member );
+                throw new InvalidOperationException( "" );
             }
 
             UInt64 bitSize;

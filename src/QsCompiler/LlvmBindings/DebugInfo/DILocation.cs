@@ -4,10 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
-using Ubiquity.ArgValidators;
-using Ubiquity.NET.Llvm.Interop;
-
-using static Ubiquity.NET.Llvm.Interop.NativeMethods;
+using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm.DebugInfo
 {
@@ -32,10 +29,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="scope">Containing scope for the location</param>
         /// <param name="inlinedAt">Scope where this scope is inlined at/into</param>
         public DILocation( Context context, uint line, uint column, DILocalScope scope, DILocation? inlinedAt )
-            : base( LLVMDIBuilderCreateDebugLocation( context.ValidateNotNull( nameof( context ) ).ContextHandle
-                                                    , line
+            : base( context.ContextHandle.CreateDebugLocation(line
                                                     , column
-                                                    , scope.ValidateNotNull( nameof( scope ) ).MetadataHandle
+                                                    , scope.MetadataHandle
                                                     , inlinedAt?.MetadataHandle ?? default
                                                     )
                   )
@@ -43,16 +39,16 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         }
 
         /// <summary>Gets the scope for this location</summary>
-        public DILocalScope Scope => FromHandle<DILocalScope>( Context, LLVMDILocationGetScope( MetadataHandle ).ThrowIfInvalid( ) )!;
+        public DILocalScope Scope => FromHandle<DILocalScope>( this.Context, this.MetadataHandle.DILocationGetScope())!;
 
         /// <summary>Gets the line for this location</summary>
-        public uint Line => LLVMDILocationGetLine( MetadataHandle );
+        public uint Line => this.MetadataHandle.DILocationGetLine();
 
         /// <summary>Gets the column for this location</summary>
-        public uint Column => LLVMDILocationGetColumn( MetadataHandle );
+        public uint Column => this.MetadataHandle.DILocationGetColumn();
 
         /// <summary>Gets the location this location is inlined at</summary>
-        public DILocation? InlinedAt => FromHandle<DILocation>( LLVMDILocationGetInlinedAt( MetadataHandle ) );
+        public DILocation? InlinedAt => FromHandle<DILocation>(this.MetadataHandle.DILocationGetInlinedAt());
 
         /// <summary>Gets the scope where this is inlined.</summary>
         /// <remarks>

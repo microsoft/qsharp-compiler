@@ -6,8 +6,6 @@
 
 using System;
 
-using Ubiquity.ArgValidators;
-using Ubiquity.NET.Llvm.Properties;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Ubiquity.NET.Llvm
@@ -37,25 +35,24 @@ namespace Ubiquity.NET.Llvm
 
         internal ModuleFlag( MDNode node )
         {
-            node.ValidateNotNull( nameof( node ) );
             if( node.Operands.Count != 3 )
             {
-                throw new ArgumentException( Resources.Expected_node_with_3_operands, nameof( node ) );
+                throw new ArgumentException();
             }
 
             if( !( node.Operands[ 0 ] is ConstantAsMetadata behavior ) )
             {
-                throw new ArgumentException( Resources.Expected_ConstantAsMetadata_for_first_operand, nameof( node ) );
+                throw new ArgumentException();
             }
 
             if( !( behavior.Constant is ConstantInt behaviorConst ) )
             {
-                throw new ArgumentException( Resources.Expected_ConstantInt_wrapped_in_first_operand, nameof( node ) );
+                throw new ArgumentException();
             }
 
             if( !( node.Operands[ 1 ] is MDString nameMd ) )
             {
-                throw new ArgumentException( Resources.Expected_MDString_as_second_operand, nameof( node ) );
+                throw new ArgumentException();
             }
 
             Behavior = ( ModuleFlagBehavior )( behaviorConst.ZeroExtendedValue );

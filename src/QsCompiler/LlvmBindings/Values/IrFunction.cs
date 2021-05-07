@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using System.Linq;
 
 using LLVMSharp.Interop;
-
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Types;
 
 namespace Ubiquity.NET.Llvm.Values
@@ -259,6 +259,22 @@ namespace Ubiquity.NET.Llvm.Values
             {
                 var val = this.ValueHandle;
                 val.PersonalityFn = value?.ValueHandle ?? default;
+            }
+        }
+
+        /// <summary>Gets or sets the debug information for this function</summary>
+        public DISubProgram? DISubProgram
+        {
+            get => MDNode.FromHandle<DISubProgram>(this.ValueHandle.GetSubprogram());
+
+            set
+            {
+                if ((value != null) && !value.Describes(this))
+                {
+                    throw new ArgumentException("Subprogram does not describe this Function");
+                }
+
+                this.ValueHandle.SetSubprogram(value?.MetadataHandle ?? default);
             }
         }
 

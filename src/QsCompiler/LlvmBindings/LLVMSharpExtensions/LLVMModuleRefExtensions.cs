@@ -81,5 +81,10 @@ namespace LLVMSharp.Interop
                 return LLVM.GetIntrinsicDeclaration(self, id, (LLVMOpaqueType**)pParamTypes, (UIntPtr)paramTypes.Length);
             }
         }
+
+        public static LLVMDIBuilderRef CreateDIBuilderDisallowUnresolved(this LLVMModuleRef self)
+        {
+            return LLVM.CreateDIBuilderDisallowUnresolved(self);
+        }
     }
 }
