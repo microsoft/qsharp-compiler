@@ -6,8 +6,6 @@
 
 using LLVMSharp.Interop;
 
-using static Ubiquity.NET.Llvm.Interop.NativeMethods;
-
 namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug information for a basic type</summary>

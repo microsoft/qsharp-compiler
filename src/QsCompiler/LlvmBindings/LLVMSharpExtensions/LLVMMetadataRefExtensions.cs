@@ -121,5 +121,20 @@ namespace LLVMSharp.Interop
         {
             return LLVM.DITypeGetFlags((LLVMOpaqueMetadata*)self.Handle);
         }
+
+        public static uint DIVariableGetLine(this LLVMMetadataRef self)
+        {
+            return LLVM.DIVariableGetLine((LLVMOpaqueMetadata*)self.Handle);
+        }
+
+        public static LLVMMetadataRef DIVariableGetFile(this LLVMMetadataRef self)
+        {
+            return LLVM.DIVariableGetFile((LLVMOpaqueMetadata*)self.Handle);
+        }
+
+        public static LLVMMetadataRef DIVariableGetScope(this LLVMMetadataRef self)
+        {
+            return LLVM.DIVariableGetScope((LLVMOpaqueMetadata*)self.Handle);
+        }
     }
 }

@@ -86,5 +86,22 @@ namespace LLVMSharp.Interop
         {
             return LLVM.CreateDIBuilderDisallowUnresolved(self);
         }
+
+        public static LLVMTargetDataRef GetDataLayout(this LLVMModuleRef self)
+        {
+            return LLVM.GetModuleDataLayout(self);
+        }
+
+        public static void SetDataLayout(this LLVMModuleRef self, LLVMTargetDataRef layout)
+        {
+            LLVM.SetModuleDataLayout(self, layout);
+        }
+
+        public static (LLVMModuleFlagEntry Entry, ulong Length) CopyModuleFlagsMetadata(this LLVMModuleRef self)
+        {
+            UIntPtr len;
+            LLVMModuleFlagEntry result = LLVM.CopyModuleFlagsMetadata(self, &len);
+            return (result, (ulong)len);
+        }
     }
 }

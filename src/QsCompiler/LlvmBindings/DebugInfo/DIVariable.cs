@@ -15,16 +15,16 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DINode
     {
         /// <summary>Gets the line for the variable</summary>
-        public UInt32 Line => LLVMDIVariableGetLine( MetadataHandle );
+        public UInt32 Line => this.MetadataHandle.DIVariableGetLine();
 
         /// <summary>Gets the Debug information scope for this variable</summary>
-        public DIScope? Scope => FromHandle<DIScope>( LLVMDIVariableGetScope( MetadataHandle ) );
+        public DIScope? Scope => FromHandle<DIScope>(this.MetadataHandle.DIVariableGetScope());
 
         /// <summary>Gets the Debug information name for this variable</summary>
         public string Name => ( Operands[ 1 ] as MDString )?.ToString( ) ?? string.Empty;
 
         /// <summary>Gets the Debug information file for this variable</summary>
-        public DIFile? File => FromHandle<DIFile>( LLVMDIVariableGetFile( MetadataHandle ) );
+        public DIFile? File => FromHandle<DIFile>(this.MetadataHandle.DIVariableGetFile());
 
         /// <summary>Gets the Debug information type for this variable</summary>
         public DIType? DIType => GetOperand<DIType>( 3 );

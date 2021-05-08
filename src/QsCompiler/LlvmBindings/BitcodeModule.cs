@@ -88,6 +88,29 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets the <see cref="Context"/> this module belongs to.</summary>
         public Context Context { get; }
 
+        /// <summary>Gets the Metadata for module level flags</summary>
+        public IReadOnlyDictionary<string, ModuleFlag> ModuleFlags
+        {
+            get
+            {
+                ThrowIfDisposed();
+                var retVal = new Dictionary<string, ModuleFlag>();
+                (LLVMModuleFlagEntry flags, ulong len) = this.ModuleHandle.CopyModuleFlagsMetadata();
+
+                for (uint i = 0; i < len; ++i)
+                {
+                    var behavior = flags.GetFlagBehavior(i);
+                    string key = flags.GetKey(i);
+                    var metadata = LlvmMetadata.FromHandle<LlvmMetadata>(this.Context, flags.GetMetadata(i));
+                    retVal.Add(key, new ModuleFlag((ModuleFlagBehavior)behavior, key, metadata!));
+                }
+
+                flags.Dispose();
+
+                return retVal;
+            }
+        }
+
         /// <summary>Gets the <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
         /// <remarks>The builder returned from this property is lazy constructed on first access so doesn't consume resources unless used.</remarks>
         public DebugInfoBuilder DIBuilder
@@ -101,6 +124,40 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Gets the Debug Compile unit for this module</summary>
         public DICompileUnit? DICompileUnit { get; internal set; }
+
+        /// <summary>Gets the Data layout string for this module</summary>
+        /// <remarks>
+        /// <note type="note">The data layout string doesn't do what seems obvious.
+        /// That is, it doesn't force the target back-end to generate code
+        /// or types with a particular layout. Rather, the layout string has
+        /// to match the implicit layout of the target. Thus it should only
+        /// come from the actual <see cref="TargetMachine"/> the code is
+        /// targeting.</note>
+        /// </remarks>
+        public string DataLayoutString
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return Layout?.ToString() ?? string.Empty;
+            }
+        }
+
+        /// <summary>Gets or sets the target data layout for this module</summary>
+        public DataLayout Layout
+        {
+            get
+            {
+                ThrowIfDisposed();
+                return DataLayout.FromHandle(this.ModuleHandle.GetDataLayout());
+            }
+
+            set
+            {
+                ThrowIfDisposed();
+                this.ModuleHandle.SetDataLayout(value.DataLayoutHandle);
+            }
+        }
 
         /// <summary>Gets or sets the Target Triple describing the target, ABI and OS.</summary>
         public string TargetTriple
