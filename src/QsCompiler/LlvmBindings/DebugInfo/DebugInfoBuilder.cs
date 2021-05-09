@@ -330,61 +330,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             return retVal;
         }
 
-        /// <summary>Creates a new forward declaration to a function</summary>
-        /// <param name="scope"><see cref="DIScope"/> for the declaration</param>
-        /// <param name="name">Name of the function as it appears in source</param>
-        /// <param name="mangledName">mangled name of the function (for linker)</param>
-        /// <param name="file">Source file location for the function</param>
-        /// <param name="line">starting line of the declaration</param>
-        /// <param name="subroutineType">Signature for the function</param>
-        /// <param name="isLocalToUnit">Flag to indicate if this declaration is local to the compilation unit</param>
-        /// <param name="isDefinition">Flag to indicate if this is a definition</param>
-        /// <param name="scopeLine">Line of the first scope block</param>
-        /// <param name="debugFlags"><see cref="DebugInfoFlags"/> for the function</param>
-        /// <param name="isOptimized">Flag to indicate if the function is optimized</param>
-        /// <returns>Subprogram as a forward declaration</returns>
-        [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
-        public DISubProgram ForwardDeclareFunction( DIScope? scope
-                                                  , string name
-                                                  , string mangledName
-                                                  , DIFile? file
-                                                  , uint line
-                                                  , DISubroutineType subroutineType
-                                                  , bool isLocalToUnit
-                                                  , bool isDefinition
-                                                  , uint scopeLine
-                                                  , DebugInfoFlags debugFlags
-                                                  , bool isOptimized
-                                                  )
-        {
-            if( string.IsNullOrWhiteSpace( name ) )
-            {
-                name = string.Empty;
-            }
-
-            if( string.IsNullOrWhiteSpace( mangledName ) )
-            {
-                mangledName = string.Empty;
-            }
-
-            var handle = LibLLVMDIBuilderCreateTempFunctionFwdDecl( BuilderHandle
-                                                                  , scope?.MetadataHandle ?? default
-                                                                  , name
-                                                                  , name.Length
-                                                                  , mangledName
-                                                                  , mangledName.Length
-                                                                  , file?.MetadataHandle ?? default
-                                                                  , line
-                                                                  , subroutineType.MetadataHandle
-                                                                  , isLocalToUnit
-                                                                  , isDefinition
-                                                                  , scopeLine
-                                                                  , ( LLVMDIFlags )debugFlags
-                                                                  , isOptimized
-                                                                  );
-            return MDNode.FromHandle<DISubProgram>( handle.ThrowIfInvalid( ) )!;
-        }
-
         /// <summary>Creates a <see cref="DILocalVariable"/> for a given scope</summary>
         /// <param name="scope">Scope the variable belongs to</param>
         /// <param name="name">Name of the variable</param>
