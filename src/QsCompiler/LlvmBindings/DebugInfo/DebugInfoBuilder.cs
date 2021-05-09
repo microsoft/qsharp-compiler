@@ -1260,7 +1260,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new ArgumentException();
             }
 
-            if( ( insertAtEnd.ContainingFunction is null ) || !LocationDescribes( location, insertAtEnd.ContainingFunction ) )
+            if(insertAtEnd.ContainingFunction is null)
             {
                 throw new ArgumentException();
             }
@@ -1368,11 +1368,5 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         }
 
         private bool IsFinished;
-
-        private static bool LocationDescribes( DILocation location, IrFunction function )
-        {
-            return ( location.Scope.SubProgram?.Describes( function ) ?? false )
-                   || ( location.InlinedAtScope?.SubProgram?.Describes( function ) ?? false );
-        }
     }
 }
