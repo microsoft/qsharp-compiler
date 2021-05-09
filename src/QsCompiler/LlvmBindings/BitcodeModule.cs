@@ -578,6 +578,21 @@ namespace Ubiquity.NET.Llvm
             return hGlobal == default ? default : Value.FromHandle<GlobalVariable>(hGlobal);
         }
 
+        public IEnumerable<Value> GetNamedMetadataOperands(string name)
+        {
+            return this.ModuleHandle.GetNamedMetadataOperands(name).Select(r => Value.FromHandle(r));
+        }
+
+        public uint GetNamedMetadataNumOperands(string name)
+        {
+            return this.ModuleHandle.GetNamedMetadataOperandsCount(name);
+        }
+
+        public void AddNamedMetadataOperand(string name, Value operand)
+        {
+            this.ModuleHandle.AddNamedMetadataOperand(name, operand.ValueHandle);
+        }
+
         /// <summary>Gets a declaration for an LLVM intrinsic function.</summary>
         /// <param name="name">Name of the intrinsic.</param>
         /// <param name="args">Args for the intrinsic.</param>

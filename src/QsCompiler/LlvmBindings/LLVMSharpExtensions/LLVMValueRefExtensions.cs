@@ -52,5 +52,10 @@ namespace LLVMSharp.Interop
         {
             LLVM.SetSubprogram(self, subprogram);
         }
+
+        public static LLVMMetadataRef ValueAsMetadata(this LLVMValueRef self)
+        {
+            return LLVM.ValueAsMetadata(self);
+        }
     }
 }

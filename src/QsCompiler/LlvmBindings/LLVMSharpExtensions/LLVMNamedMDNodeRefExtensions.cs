@@ -7,7 +7,7 @@ using System;
 
 namespace LLVMSharp.Interop
 {
-    /// <summary>Extensions for the LLVMSharp.Interop.LLVMDIBuilderRef class.</summary>
+    /// <summary>Extensions for the LLVMSharp.Interop.LLVMNamedMDNodeRef class.</summary>
     public static unsafe class LLVMNamedMDNodeRefExtensions
     {
         public static string Name(this LLVMNamedMDNodeRef self)
