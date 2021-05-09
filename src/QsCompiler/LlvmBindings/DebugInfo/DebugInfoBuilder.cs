@@ -986,13 +986,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             return MDNode.FromHandle<DIGlobalVariableExpression>(handle)!;
         }
 
-        /// <summary>Finalizes debug information for a single <see cref="DISubProgram"/></summary>
-        /// <param name="subProgram"><see cref="DISubProgram"/> to finalize debug information for</param>
-        public void Finish( DISubProgram subProgram )
-        {
-            LibLLVMDIBuilderFinalizeSubProgram( BuilderHandle, subProgram.MetadataHandle );
-        }
-
         /// <summary>Finalizes debug information for all items built by this builder</summary>
         /// <remarks>
         /// <note type="note">
