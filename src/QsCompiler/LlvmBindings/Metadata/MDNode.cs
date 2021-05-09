@@ -37,12 +37,6 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets a value indicating whether this node was deleted</summary>
         public bool IsDeleted => MetadataHandle == default;
 
-        /// <summary>Gets a value indicating whether this node is uniqued</summary>
-        public bool IsUniqued => LibLLVMIsUniqued( MetadataHandle );
-
-        /// <summary>Gets a value indicating whether this node is distinct</summary>
-        public bool IsDistinct => LibLLVMIsDistinct( MetadataHandle );
-
         /// <summary>Gets the operands for this node, if any</summary>
         public MetadataOperandCollection Operands { get; }
 
