@@ -90,7 +90,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new ArgumentNullException( nameof( diBuilder ) );
             }
 
-            if( DIType != null && DIType.IsTemporary && !DIType.IsResolved )
+            if( DIType != null )
             {
                 DIType = diBuilder.CreateArrayType( layout.BitSizeOf( NativeType )
                                                   , layout.AbiBitAlignmentOf( NativeType )

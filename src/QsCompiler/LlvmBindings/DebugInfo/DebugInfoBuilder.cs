@@ -1008,27 +1008,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 return;
             }
 
-            var bldr = new StringBuilder( );
-            var unresolvedTemps = from node in this.OwningModule.Context.Metadata.OfType<MDNode>( )
-                                  where node.IsTemporary && !node.IsResolved
-                                  select node;
-
-            foreach( MDNode node in unresolvedTemps )
-            {
-                if( bldr.Length == 0 )
-                {
-                    bldr.AppendLine( "Unresolved temporaries." );
-                }
-
-                bldr.Append( node );
-                bldr.AppendLine( );
-            }
-
-            if( bldr.Length > 0 )
-            {
-                throw new InvalidOperationException( bldr.ToString( ) );
-            }
-
             this.BuilderHandle.DIBuilderFinalize();
             this.IsFinished = true;
         }

@@ -37,20 +37,6 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets a value indicating whether this node was deleted</summary>
         public bool IsDeleted => MetadataHandle == default;
 
-        /// <summary>Gets a value indicating whether this node is a temporary</summary>
-        public bool IsTemporary => LibLLVMIsTemporary( MetadataHandle );
-
-        /// <summary>Gets a value indicating whether this node is resolved</summary>
-        /// <remarks>
-        /// <para>If <see cref="IsTemporary"/> is <see langword="true"/>, then this always
-        /// returns <see langword="false"/>; if <see cref="IsDistinct"/> is <see langword="true"/>,
-        /// this always returns <see langword="true"/>.</para>
-        ///
-        /// <para>If <see cref="IsUniqued"/> is <see langword="true"/> then this returns <see langword="true"/>
-        /// if this node has already dropped RAUW support (because all operands are resolved).</para>
-        /// </remarks>
-        public bool IsResolved => LibLLVMIsResolved( MetadataHandle );
-
         /// <summary>Gets a value indicating whether this node is uniqued</summary>
         public bool IsUniqued => LibLLVMIsUniqued( MetadataHandle );
 
@@ -64,11 +50,6 @@ namespace Ubiquity.NET.Llvm
         /// <param name="other">Node to replace this one with</param>
         public override void ReplaceAllUsesWith( LlvmMetadata other )
         {
-            if( !IsTemporary || IsResolved )
-            {
-                throw new InvalidOperationException( "" );
-            }
-
             if( MetadataHandle == default )
             {
                 throw new InvalidOperationException( "" );
