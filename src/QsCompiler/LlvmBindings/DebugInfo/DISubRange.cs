@@ -16,9 +16,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DISubRange
         : DINode
     {
-        /// <summary>Gets a value for the lower bound of the range</summary>
-        public Int64 LowerBound => LibLLVMDISubRangeGetLowerBounds( MetadataHandle );
-
         /// <summary>Gets a, potentially null, constant value for the count of the subrange</summary>
         /// <remarks>
         /// Count (length) of a DISubrange is either a <see cref="ConstantInt"/>
