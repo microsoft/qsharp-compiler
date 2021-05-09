@@ -269,7 +269,7 @@ namespace Ubiquity.NET.Llvm.Values
 
             set
             {
-                if ((value != null) && !value.Describes(this))
+                if ((value != null))
                 {
                     throw new ArgumentException("Subprogram does not describe this Function");
                 }
