@@ -50,13 +50,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Gets the location this location is inlined at</summary>
         public DILocation? InlinedAt => FromHandle<DILocation>(this.MetadataHandle.DILocationGetInlinedAt());
 
-        /// <summary>Gets the scope where this is inlined.</summary>
-        /// <remarks>
-        /// This walks through the <see cref="InlinedAt"/> properties to return
-        /// a <see cref="DILocalScope"/> from the deepest location.
-        /// </remarks>
-        public DILocalScope? InlinedAtScope => FromHandle<DILocalScope>( LibLLVMDILocationGetInlinedAtScope( MetadataHandle ) );
-
         /// <inheritdoc/>
         public override string ToString( )
         {
