@@ -72,7 +72,7 @@ namespace Ubiquity.NET.Llvm.Types
     }
 
     /// <summary>Interface for a Type in LLVM.</summary>
-    public interface ITypeRef
+    public interface ITypeRef : IExtensiblePropertyContainer
     {
         /// <summary>Gets a value indicating whether the type is sized.</summary>
         bool IsSized { get; }
