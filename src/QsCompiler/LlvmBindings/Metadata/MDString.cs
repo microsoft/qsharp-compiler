@@ -16,9 +16,8 @@ namespace Ubiquity.NET.Llvm
         /// <returns>String this node wraps</returns>
         public override string ToString( )
         {
-            // TODO: might need to get context, and then metadataAsValue
-            //var asValue = LLVM.MetadataAsValue
-            var asValue = new LLVMValueRef(this.MetadataHandle.Handle);
+            var context = ContextCache.Single();
+            var asValue = context.ContextHandle.MetadataAsValue(this.MetadataHandle);
             return asValue.GetMDString();
         }
 

@@ -133,10 +133,16 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Formats the metadata as a string</summary>
         /// <returns>Metadata as a string</returns>
-        public override string ToString( )
+        public override string ToString()
         {
-            // TODO: test this
-            return MetadataHandle == default ? string.Empty : new LLVMValueRef(this.MetadataHandle.Handle).PrintToString();
+            if (this.MetadataHandle == default)
+            {
+                return string.Empty;
+            }
+
+            var context = ContextCache.Single();
+            var asValue = context.ContextHandle.MetadataAsValue(this.MetadataHandle);
+            return asValue.PrintToString();
         }
 
         /// <summary>Gets a value indicating this metadata's kind</summary>
