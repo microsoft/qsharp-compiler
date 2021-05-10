@@ -13,6 +13,7 @@ using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
@@ -94,6 +95,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
+        internal DebugInfoBuilder DebugBuilder { get; private set; }
+        internal DICompileUnit CU { get; private set; }
+        internal Dictionary<string, DINamespace> DINamespaces { get; } = new Dictionary<string, DINamespace>();
         internal ITypeRef? BuiltType { get; set; }
 
         internal readonly ScopeManager ScopeMgr;
@@ -188,6 +192,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.transformation = null; // needs to be set by the instantiating transformation
 
             this.CurrentBuilder = new InstructionBuilder(this.Context);
+
+            this.DebugBuilder = this.Module.DIBuilder;
+            this.CU = this.DebugBuilder.CreateCompileUnit(
+                SourceLanguage.C,
+                this.DebugBuilder.CreateFile("test-debug.qs", ".").FileName,
+                "Q# Compiler",
+                optimized: false,
+                compilationFlags: null,
+                runtimeVersion: 0);
+
             this.ValueStack = new Stack<IValue>();
             this.ExpressionTypeStack = new Stack<ResolvedType>();
             this.inlineLevels = new Stack<IValue>();
@@ -671,7 +685,44 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     : new[] { LocalVarName(arg) };
             }
 
+            DINamespace GetOrCreateDINamespace()
+            {
+                var name = spec.Parent.Namespace;
+                if (this.DINamespaces.TryGetValue(name, out var ns))
+                {
+                    return ns;
+                }
+
+                var result = this.DebugBuilder.CreateNamespace(this.CU.File, name, true);
+                this.DINamespaces.Add(name, result);
+                return result;
+            }
+
+            DISubroutineType CreateDISubroutineType()
+            {
+                // TODO: this is just stubbed to return a hard coded subrountine type for testing.
+                var doubleDIType = this.DebugBuilder.CreateBasicType("double", 64, DiTypeKind.Float);
+                var stubbedReturn = doubleDIType;
+                DIType[] stubbedArgs = { doubleDIType, doubleDIType };
+
+                return this.DebugBuilder.CreateSubroutineType(DebugInfoFlags.None, stubbedReturn, stubbedArgs);
+            }
+
             this.CurrentFunction = this.RegisterFunction(spec);
+            this.DebugBuilder.CreateFunction(
+                GetOrCreateDINamespace(),
+                this.CurrentFunction.Name,
+                string.Empty,
+                this.CU.File,
+                checked((uint)spec.Location.ValueOr(default).Offset.Line),
+                CreateDISubroutineType(),
+                isLocalToUnit: false,
+                isDefinition: true,
+                scopeLine: checked((uint)spec.Location.ValueOr(default).Offset.Line),
+                debugFlags: DebugInfoFlags.Prototyped,
+                isOptimized: false,
+                this.CurrentFunction);
+
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
