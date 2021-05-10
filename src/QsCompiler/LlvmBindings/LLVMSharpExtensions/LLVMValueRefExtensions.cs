@@ -60,8 +60,14 @@ namespace LLVMSharp.Interop
 
         public static LLVMValueRef[] GetMDNodeOperands(this LLVMValueRef self)
         {
-            throw new NotImplementedException();
-            //return LLVM.GetMDNodeOperands(self, );
+            var Dest = new LLVMValueRef[self.GetMDNodeNumOperands()];
+
+            fixed (LLVMValueRef* pDest = Dest)
+            {
+                LLVM.GetMDNodeOperands(self, (LLVMOpaqueValue**)pDest);
+            }
+
+            return Dest;
         }
 
         public static uint GetMDNodeNumOperands(this LLVMValueRef self)
