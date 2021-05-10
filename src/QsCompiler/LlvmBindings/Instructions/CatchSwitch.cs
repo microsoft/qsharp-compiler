@@ -28,7 +28,6 @@ namespace Ubiquity.NET.Llvm.Instructions
         public Value ParentPad
         {
             get => this.Operands.GetOperand<Value>(0)!;
-            set => this.Operands[0] = value;
         }
 
         /// <summary>Gets or sets the Unwind destination for this <see cref="CatchSwitch"/>.</summary>

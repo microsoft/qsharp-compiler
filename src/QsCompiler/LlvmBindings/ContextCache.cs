@@ -8,6 +8,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 
 using LLVMSharp.Interop;
@@ -38,6 +39,16 @@ namespace Ubiquity.NET.Llvm
         internal static Context GetContextFor(LLVMContextRef contextRef)
         {
             return Instance.Value.GetOrAdd(contextRef, h => new Context(h));
+        }
+
+        internal static Context Single()
+        {
+            if (Instance.Value.Count != 1)
+            {
+                throw new NotSupportedException("More than one context exists.");
+            }
+
+            return Instance.Value.Values.First();
         }
 
         private static ConcurrentDictionary<LLVMContextRef, Context> CreateInstance()

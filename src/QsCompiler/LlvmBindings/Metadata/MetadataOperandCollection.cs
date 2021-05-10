@@ -4,6 +4,7 @@
 // </copyright>
 // -----------------------------------------------------------------------
 
+using LLVMSharp.Interop;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -24,14 +25,17 @@ namespace Ubiquity.NET.Llvm
         public LlvmMetadata? this[ int index ]
         {
             get => GetOperand<LlvmMetadata>( index );
-            set
-            {
-                LibLLVMMDNodeReplaceOperand( Container.MetadataHandle, ( uint )index, value?.MetadataHandle ?? default );
-            }
         }
 
         /// <summary>Gets the count of operands in this collection</summary>
-        public int Count => checked(( int )LibLLVMMDNodeGetNumOperands( Container.MetadataHandle ));
+        public int Count
+        {
+            get
+            {
+                var valueHandle = this.Container.Context.ContextHandle.MetadataAsValue(Container.MetadataHandle);
+                return checked((int)valueHandle.GetMDNodeNumOperands());
+            }
+        }
 
         /// <summary>Gets an enumerator for the operands in this collection</summary>
         /// <returns>Enumerator of operands</returns>
@@ -60,8 +64,12 @@ namespace Ubiquity.NET.Llvm
         public TItem? GetOperand<TItem>( Index i )
             where TItem : LlvmMetadata
         {
-            uint offset = ( uint )i.GetOffset(Count);
-            var node = LibLLVMGetOperandNode( LibLLVMMDNodeGetOperand( Container.MetadataHandle, offset ) );
+            var offset = i.GetOffset(Count);
+
+            var valueHandle = Container.Context.ContextHandle.MetadataAsValue(Container.MetadataHandle);
+            var operand = valueHandle.GetMDNodeOperands().ElementAt(offset);
+            var node = operand.ValueAsMetadata();
+
             return LlvmMetadata.FromHandle<TItem>( Container.Context, node );
         }
 

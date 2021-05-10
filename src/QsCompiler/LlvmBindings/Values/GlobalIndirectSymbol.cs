@@ -17,7 +17,6 @@ namespace Ubiquity.NET.Llvm.Values
         public Constant IndirectSymbol
         {
             get => this.Operands.GetOperand<Constant>(0)!;
-            set => this.Operands[0] = value;
         }
 
         internal GlobalIndirectSymbol(LLVMValueRef handle)

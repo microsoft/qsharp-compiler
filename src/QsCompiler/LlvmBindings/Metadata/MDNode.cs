@@ -6,6 +6,7 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
+using System.Linq;
 
 using LLVMSharp.Interop;
 
@@ -30,7 +31,7 @@ namespace Ubiquity.NET.Llvm
             get
             {
                 ThrowIfDeleted( );
-                return GetMeatadataContext( MetadataHandle );
+                return GetMetadataContext( MetadataHandle );
             }
         }
 
@@ -107,7 +108,7 @@ namespace Ubiquity.NET.Llvm
         internal static T? FromHandle<T>( LLVMMetadataRef handle )
             where T : MDNode
         {
-            return handle == default ? null : FromHandle<T>( GetMeatadataContext( handle ), handle );
+            return handle == default ? null : FromHandle<T>( GetMetadataContext( handle ), handle );
         }
 
         private void ThrowIfDeleted( )
@@ -118,10 +119,11 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        private static Context GetMeatadataContext( LLVMMetadataRef metadataHandle )
+        private static Context GetMetadataContext( LLVMMetadataRef metadataHandle )
         {
-            var hContext = LibLLVMGetNodeContext( metadataHandle ).ThrowIfInvalid()!;
-            return ContextCache.GetContextFor( hContext );
+            // TODO: we currently expect exactly one context. Instead, this method
+            // should find a context that owns metadataHandle and return that.
+            return ContextCache.Single();
         }
     }
 }

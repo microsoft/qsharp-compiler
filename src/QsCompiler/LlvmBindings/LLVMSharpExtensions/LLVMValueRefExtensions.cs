@@ -57,5 +57,16 @@ namespace LLVMSharp.Interop
         {
             return LLVM.ValueAsMetadata(self);
         }
+
+        public static LLVMValueRef[] GetMDNodeOperands(this LLVMValueRef self)
+        {
+            throw new NotImplementedException();
+            //return LLVM.GetMDNodeOperands(self, );
+        }
+
+        public static uint GetMDNodeNumOperands(this LLVMValueRef self)
+        {
+            return LLVM.GetMDNodeNumOperands(self);
+        }
     }
 }
