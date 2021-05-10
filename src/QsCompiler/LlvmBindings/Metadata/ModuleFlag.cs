@@ -6,8 +6,6 @@
 
 using System;
 
-using Ubiquity.NET.Llvm.Values;
-
 namespace Ubiquity.NET.Llvm
 {
     /// <summary>Module Flags Tuple for a module</summary>
@@ -32,32 +30,5 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Gets the Metadata for this flag</summary>
         public LlvmMetadata Metadata { get; }
-
-        internal ModuleFlag( MDNode node )
-        {
-            if( node.Operands.Count != 3 )
-            {
-                throw new ArgumentException();
-            }
-
-            if( !( node.Operands[ 0 ] is ConstantAsMetadata behavior ) )
-            {
-                throw new ArgumentException();
-            }
-
-            if( !( behavior.Constant is ConstantInt behaviorConst ) )
-            {
-                throw new ArgumentException();
-            }
-
-            if( !( node.Operands[ 1 ] is MDString nameMd ) )
-            {
-                throw new ArgumentException();
-            }
-
-            Behavior = ( ModuleFlagBehavior )( behaviorConst.ZeroExtendedValue );
-            Name = nameMd.ToString( );
-            Metadata = node.Operands[ 2 ]!;
-        }
     }
 }
