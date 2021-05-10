@@ -67,11 +67,16 @@ namespace Ubiquity.NET.Llvm
         {
             var offset = i.GetOffset(Count);
 
-            var valueHandle = Container.Context.ContextHandle.MetadataAsValue(Container.MetadataHandle);
+            var valueHandle = this.Container.Context.ContextHandle.MetadataAsValue(this.Container.MetadataHandle);
             var operand = valueHandle.GetMDNodeOperands().ElementAt(offset);
-            var node = operand.ValueAsMetadata();
+            if (operand == default)
+            {
+                // Requested operand doesn't exist.
+                return null;
+            }
 
-            return LlvmMetadata.FromHandle<TItem>( Container.Context, node );
+            var node = operand.ValueAsMetadata();
+            return LlvmMetadata.FromHandle<TItem>( this.Container.Context, node );
         }
 
         internal MetadataOperandCollection( MDNode container )
