@@ -140,7 +140,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                           , 0
                                                           , 0
                                                           , 0
-                                                          // TODO: do we need to specify these? They do default to empty in the IR api
                                                           , string.Empty
                                                           , string.Empty);
 
