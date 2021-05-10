@@ -269,11 +269,6 @@ namespace Ubiquity.NET.Llvm.Values
 
             set
             {
-                if ((value != null))
-                {
-                    throw new ArgumentException("Subprogram does not describe this Function");
-                }
-
                 this.ValueHandle.SetSubprogram(value?.MetadataHandle ?? default);
             }
         }
