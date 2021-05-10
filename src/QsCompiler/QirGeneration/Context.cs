@@ -94,7 +94,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
-        internal DebugInfoBuilder Debug { get; private set; }
         internal ITypeRef? BuiltType { get; set; }
 
         internal readonly ScopeManager ScopeMgr;
