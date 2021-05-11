@@ -714,8 +714,7 @@ namespace Ubiquity.NET.Llvm
                                                                          , compilationFlags
                                                                          , runtimeVersion
                                                                          );
-                // TODO: does source file name need to be set on module?
-                //retVal.SourceFileName = Path.GetFileName(srcFilePath);
+
                 return retVal;
             }
 
