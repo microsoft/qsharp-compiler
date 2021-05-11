@@ -8,8 +8,8 @@ using System;
 using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
-
 using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Ubiquity.NET.Llvm
 {
@@ -65,7 +65,19 @@ namespace Ubiquity.NET.Llvm
         public TItem? GetOperand<TItem>( Index i )
             where TItem : LlvmMetadata
         {
-            var offset = i.GetOffset(Count);
+            var operand = this.GetOperandValue(i);
+            if (operand == null)
+            {
+                return null;
+            }
+
+            var node = operand.ValueHandle.ValueAsMetadata();
+            return LlvmMetadata.FromHandle<TItem>( this.Container.Context, node );
+        }
+
+        public Value? GetOperandValue(Index i)
+        {
+            var offset = i.GetOffset(this.Count);
 
             var valueHandle = this.Container.Context.ContextHandle.MetadataAsValue(this.Container.MetadataHandle);
             var operand = valueHandle.GetMDNodeOperands().ElementAt(offset);
@@ -75,8 +87,7 @@ namespace Ubiquity.NET.Llvm
                 return null;
             }
 
-            var node = operand.ValueAsMetadata();
-            return LlvmMetadata.FromHandle<TItem>( this.Container.Context, node );
+            return Value.FromHandle(operand);
         }
 
         internal MetadataOperandCollection( MDNode container )

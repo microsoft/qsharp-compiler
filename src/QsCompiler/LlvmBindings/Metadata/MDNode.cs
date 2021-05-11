@@ -9,6 +9,7 @@ using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Ubiquity.NET.Llvm
 {
@@ -69,7 +70,12 @@ namespace Ubiquity.NET.Llvm
         public T? GetOperand<T>( int index )
             where T : LlvmMetadata
         {
-            return Operands.GetOperand<T>( index );
+            return this.Operands.GetOperand<T>( index );
+        }
+
+        public Value? GetOperandValue( int index )
+        {
+            return this.Operands.GetOperandValue(index);
         }
 
         /// <summary>Gets a string operand by index</summary>
