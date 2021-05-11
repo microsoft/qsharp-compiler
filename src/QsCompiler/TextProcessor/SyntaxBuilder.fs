@@ -28,7 +28,7 @@ let getSubstring (start: CharStreamState<_>) =
 /// between the given char stream state and the current stream position.
 /// NOTE: Anything run on the substream will be processed with the user state of the original stream,
 /// and any updates to the user state will be reflected in the original stream.
-let runOnSubstream (start: CharStreamState<_>) (parser: Parser<'A, _>): Parser<'A, _> =
+let runOnSubstream (start: CharStreamState<_>) (parser: Parser<'A, _>) : Parser<'A, _> =
     let parserAndState = parser .>>. getUserState
 
     let subparser (stream: CharStream<_>) =
@@ -218,7 +218,7 @@ let internal getStringContent interpolArg =
                  |>> function // Also supports escapting '{'
                  | 'n' -> "\n"
                  | 'r' -> "\r"
-                 | 't' -> "\t"
+                 | 't' -> "	"
                  | c -> string c)
 
         let nonInterpol = (stringsSepBy interpolCharSnippet escapedChar)
@@ -240,7 +240,7 @@ let internal getStringContent interpolArg =
                  |>> function
                  | 'n' -> "\n"
                  | 'r' -> "\r"
-                 | 't' -> "\t"
+                 | 't' -> "	"
                  | c -> string c)
 
         let content = (stringsSepBy normalCharSnippet escapedChar)
@@ -279,9 +279,10 @@ let leftRecursionByInfix breakingDelimiter before after = // before and after br
 
     getCharStreamState
     >>= fun state ->
-            attempt
-                (advanceToInfix >>. (before .>> followedBy eof |> runOnSubstream state) .>> breakingDelimiter
-                 .>>. after)
+            attempt (
+                advanceToInfix >>. (before .>> followedBy eof |> runOnSubstream state) .>> breakingDelimiter
+                .>>. after
+            )
 
 
 // routines that dictate how parsing is handled accross all fragments and expression
@@ -404,11 +405,12 @@ let internal buildTupleItem validSingle bundle errCode missingCode fallback cont
 /// In order to guarantee correct whitespace management, the name needs to be parsed as a term.
 let internal symbolNameLike errCode =
     let ident =
-        IdentifierOptions
-            (isAsciiIdStart = isSymbolStart,
-             isAsciiIdContinue = isSymbolContinuation,
-             preCheckStart = isSymbolStart,
-             preCheckContinue = isSymbolContinuation)
+        IdentifierOptions(
+            isAsciiIdStart = isSymbolStart,
+            isAsciiIdContinue = isSymbolContinuation,
+            preCheckStart = isSymbolStart,
+            preCheckContinue = isSymbolContinuation
+        )
         |> identifier
         |> getRange
 
@@ -513,27 +515,29 @@ let private filterAndAdapt (diagnostics: QsCompilerDiagnostic list) endPos =
     // opting to only actually raise ExcessContinuation errors if no other errors overlap with them
     let excessCont, remainingDiagnostics =
         diagnostics
-        |> List.partition (fun x ->
-            match x.Diagnostic with
-            | Error (ErrorCode.ExcessContinuation) -> true
-            | _ -> false)
+        |> List.partition
+            (fun x ->
+                match x.Diagnostic with
+                | Error (ErrorCode.ExcessContinuation) -> true
+                | _ -> false)
 
     let remainingErrs =
         remainingDiagnostics
-        |> List.filter (fun x ->
-            match x.Diagnostic with
-            | Error _ -> true
-            | _ -> false)
+        |> List.filter
+            (fun x ->
+                match x.Diagnostic with
+                | Error _ -> true
+                | _ -> false)
 
     let hasOverlap (diagnostic: QsCompilerDiagnostic) =
         remainingErrs
-        |> List.exists (fun other ->
-            diagnostic.Range.Start <= other.Range.Start && diagnostic.Range.End >= other.Range.Start)
+        |> List.exists
+            (fun other -> diagnostic.Range.Start <= other.Range.Start && diagnostic.Range.End >= other.Range.Start)
 
     let filteredExcessCont = excessCont |> List.filter (not << hasOverlap)
 
     let rangeWithinFragment (range: Range) =
-        Range.Create (min endPos range.Start) (min endPos range.End)
+        Range.Create(min endPos range.Start) (min endPos range.End)
 
     filteredExcessCont @ remainingDiagnostics
     |> List.map (fun diagnostic -> { diagnostic with Range = rangeWithinFragment diagnostic.Range })

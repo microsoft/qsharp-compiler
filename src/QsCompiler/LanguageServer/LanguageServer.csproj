@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <AssemblyName>Microsoft.Quantum.QsLanguageServer</AssemblyName>
@@ -38,5 +37,11 @@
     <None Include="global.language-server.json" Link="global.json">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Tests.Microsoft.Quantum.QsLanguageServer$(PublicKeySuffix)</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 </Project>

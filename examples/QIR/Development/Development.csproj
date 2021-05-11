@@ -1,17 +1,34 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.15.2103133969">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.16.2105140327-beta">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <!-- These packages are included by the Sdk if QIR generation is enabled. -->
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Windows'))"
+                      Include="libLLVM.runtime.win-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('OSX'))"
+                      Include="libLLVM.runtime.osx-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'"
+                      Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'"
+                      Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+  </ItemGroup>
+    
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
   </PropertyGroup>
     
   <ItemGroup>
-    <None Include="qir\**" />
+    <UpToDateCheckInput Include="@(None)" />
+    <None Include="$(QirOutputPath)**" />
     <Compile Remove="Main.cs" />
   </ItemGroup>
     
@@ -28,17 +45,17 @@
   and files with the generated QIR are deleted when the project is cleaned
   despite that we added them in a way that displays them as part of the project.
   -->
-    
-  <Target Name="CleanAll" BeforeTargets="QSharpClean">
+
+  <Target Name="CleanQir" AfterTargets="QSharpClean" DependsOnTargets="Restore">
     <ItemGroup>
-      <_FilesToClean Include="$(GeneratedFilesOutputPath)**" />
-      <_FilesToClean Include="$(QirOutputPath)**/*.ll" />
-      <Compile Remove="$(_FilesToClean)**/*.g.cs" />
+      <_QirFilesToClean Include="$(QirOutputPath)**" />
+      <None Remove="@(_QirFilesToClean)" />
     </ItemGroup>
-    <Delete Files="@(_FilesToClean)" />
+    <Delete Files="@(_QirFilesToClean)" />
+    <RemoveDir Directories="$(QirOutputPath)" />
   </Target>
 
-  <Target Name="BeforeQSharpCompile" DependsOnTargets="CleanAll">
+  <Target Name="BeforeQSharpCompile" DependsOnTargets="QSharpClean">
     <Message Text="Removed files from prior compilation." Importance="High" />
   </Target>
 

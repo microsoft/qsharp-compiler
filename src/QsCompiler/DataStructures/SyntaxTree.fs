@@ -71,7 +71,8 @@ type QsQualifiedName =
         /// the declared name of the namespace element
         Name: string
     }
-    override this.ToString() = sprintf "%s.%s" this.Namespace this.Name
+    override this.ToString() =
+        sprintf "%s.%s" this.Namespace this.Name
 
 
 type SymbolTuple =
@@ -153,9 +154,12 @@ type QsTypeParameter =
     /// <summary>
     /// Returns a copy of this <see cref="QsTypeParameter"/> with updated fields.
     /// </summary>
-    member param.With([<Optional; DefaultParameterValue null>] ?origin,
-                      [<Optional; DefaultParameterValue null>] ?typeName,
-                      [<Optional; DefaultParameterValue null>] ?range) =
+    member param.With
+        (
+            [<Optional; DefaultParameterValue null>] ?origin,
+            [<Optional; DefaultParameterValue null>] ?typeName,
+            [<Optional; DefaultParameterValue null>] ?range
+        ) =
         { param with
             Origin = defaultArg origin param.Origin
             TypeName = defaultArg typeName param.TypeName
@@ -209,9 +213,12 @@ type UserDefinedType =
     /// <summary>
     /// Returns a copy of this <see cref="UserDefinedType"/> with updated fields.
     /// </summary>
-    member udt.With([<Optional; DefaultParameterValue null>] ?ns,
-                    [<Optional; DefaultParameterValue null>] ?name,
-                    [<Optional; DefaultParameterValue null>] ?range) =
+    member udt.With
+        (
+            [<Optional; DefaultParameterValue null>] ?ns,
+            [<Optional; DefaultParameterValue null>] ?name,
+            [<Optional; DefaultParameterValue null>] ?range
+        ) =
         { udt with
             Namespace = defaultArg ns udt.Namespace
             Name = defaultArg name udt.Name
@@ -239,132 +246,132 @@ type ResolvedCharacteristics =
             _Characteristics: CharacteristicsKind<ResolvedCharacteristics>
         }
 
-        static member Empty = EmptySet |> ResolvedCharacteristics.New
+    static member Empty = EmptySet |> ResolvedCharacteristics.New
 
-        member this.AreInvalid =
-            match this._Characteristics with
-            | InvalidSetExpr -> true
+    member this.AreInvalid =
+        match this._Characteristics with
+        | InvalidSetExpr -> true
+        | _ -> false
+
+    /// Contains the fully resolved characteristics used to describe the properties of a Q# callable.
+    /// By construction never contains an empty or invalid set as inner expressions,
+    /// and necessarily contains the property "Adjointable" if it contains the property "SelfAdjoint".
+    member this.Expression = this._Characteristics
+
+    /// Extracts all properties of a callable with the given characteristics using the given function to access the characteristics kind.
+    /// Returns the extracted properties as Some if the extraction succeeds.
+    /// Returns None if the properties cannot be determined either because the characteristics expression contains unresolved parameters or the expression is invalid.
+    static member internal ExtractProperties(getKind: _ -> CharacteristicsKind<_>) =
+        let rec yieldProperties ex =
+            match getKind ex with
+            | EmptySet -> Seq.empty |> Some
+            | SimpleSet property -> seq { yield property } |> Some
+            | Union (s1, s2) ->
+                Option.map2 (fun (x: _ seq) y -> x.Concat y) (s1 |> yieldProperties) (s2 |> yieldProperties)
+            | Intersection (s1, s2) ->
+                Option.map2 (fun (x: _ seq) y -> x.Intersect y) (s1 |> yieldProperties) (s2 |> yieldProperties)
+            | InvalidSetExpr -> None
+
+        yieldProperties
+
+    /// Returns a new characteristics expression that is the union of all properties, if the properties of the given characteristics can be determined.
+    /// Returns the given characteristics expression unchanged otherwise.
+    static member private Simplify(ex: ResolvedCharacteristics) =
+        let uniqueProps =
+            ex
+            |> ResolvedCharacteristics.ExtractProperties(fun a -> a._Characteristics)
+            |> Option.map (Seq.distinct >> Seq.toList)
+        // it is fine (and necessary) to directly reassemble the unions,
+        // since all property dependencies will already be satisfied (having been extracted from a ResolvedCharacteristics)
+        let rec addProperties (current: ResolvedCharacteristics) =
+            function
+            | head :: tail ->
+                tail |> addProperties { _Characteristics = Union(current, { _Characteristics = SimpleSet head }) }
+            | _ -> current
+
+        match uniqueProps with
+        | Some (head :: tail) -> tail |> addProperties { _Characteristics = SimpleSet head }
+        | _ -> ex
+
+    /// Builds a ResolvedCharacteristics based on a compatible characteristics kind, and replaces the (inaccessible) record constructor.
+    /// Returns an invalid expression if the properties for the built characteristics cannot be determined even after all parameters are known.
+    /// Incorporates all empty sets such that they do not ever occur as part of an encompassing expression.
+    static member New kind =
+        let isEmpty (ex: ResolvedCharacteristics) =
+            match ex._Characteristics with
+            | EmptySet -> true
             | _ -> false
 
-        /// Contains the fully resolved characteristics used to describe the properties of a Q# callable.
-        /// By construction never contains an empty or invalid set as inner expressions,
-        /// and necessarily contains the property "Adjointable" if it contains the property "SelfAdjoint".
-        member this.Expression = this._Characteristics
+        match kind with
+        | EmptySet -> { _Characteristics = EmptySet }
+        | SimpleSet property -> { _Characteristics = SimpleSet property }
+        | Union (s1, s2) when s1 |> isEmpty -> s2
+        | Union (s1, s2) when s2 |> isEmpty -> s1
+        | Union (s1, s2) when s1.AreInvalid || s2.AreInvalid -> { _Characteristics = InvalidSetExpr }
+        | Union (s1, s2) -> { _Characteristics = Union(s1, s2) } |> ResolvedCharacteristics.Simplify
+        | Intersection (s1, s2) when s1 |> isEmpty || s2 |> isEmpty -> { _Characteristics = EmptySet }
+        | Intersection (s1, s2) when s1.AreInvalid || s2.AreInvalid -> { _Characteristics = InvalidSetExpr }
+        | Intersection (s1, s2) -> { _Characteristics = Intersection(s1, s2) } |> ResolvedCharacteristics.Simplify
+        | InvalidSetExpr -> { _Characteristics = InvalidSetExpr }
 
-        /// Extracts all properties of a callable with the given characteristics using the given function to access the characteristics kind.
-        /// Returns the extracted properties as Some if the extraction succeeds.
-        /// Returns None if the properties cannot be determined either because the characteristics expression contains unresolved parameters or the expression is invalid.
-        static member internal ExtractProperties(getKind: _ -> CharacteristicsKind<_>) =
-            let rec yieldProperties ex =
-                match getKind ex with
-                | EmptySet -> Seq.empty |> Some
-                | SimpleSet property -> seq { yield property } |> Some
-                | Union (s1, s2) ->
-                    Option.map2 (fun (x: _ seq) y -> x.Concat y) (s1 |> yieldProperties) (s2 |> yieldProperties)
-                | Intersection (s1, s2) ->
-                    Option.map2 (fun (x: _ seq) y -> x.Intersect y) (s1 |> yieldProperties) (s2 |> yieldProperties)
-                | InvalidSetExpr -> None
+    /// <summary>
+    /// Given the resolved characteristics of a set of specializations,
+    /// determines and returns the minimal characteristics of any one of the specializations.
+    /// </summary>
+    /// <exception cref="ArgumentException"><paramref name="characteristics"/> is empty.</exception>
+    static member internal Common(characteristics: ResolvedCharacteristics list) =
+        let rec common current =
+            function
+            | [] -> current
+            | head :: tail ->
+                // todo: if we support parameterizing over characteristics, we need to replace them in head by their worst-case value
+                tail |> common { _Characteristics = Intersection(current, head) }
 
-            yieldProperties
+        if characteristics |> List.exists (fun a -> a._Characteristics = EmptySet) then
+            { _Characteristics = EmptySet }
+        elif characteristics |> List.exists (fun a -> a.AreInvalid) then
+            { _Characteristics = InvalidSetExpr }
+        else
+            match characteristics with
+            | [] -> ArgumentException "cannot determine common information for an empty sequence" |> raise
+            | head :: tail -> common head tail |> ResolvedCharacteristics.Simplify
 
-        /// Returns a new characteristics expression that is the union of all properties, if the properties of the given characteristics can be determined.
-        /// Returns the given characteristics expression unchanged otherwise.
-        static member private Simplify(ex: ResolvedCharacteristics) =
-            let uniqueProps =
-                ex
-                |> ResolvedCharacteristics.ExtractProperties(fun a -> a._Characteristics)
-                |> Option.map (Seq.distinct >> Seq.toList)
-            // it is fine (and necessary) to directly reassemble the unions,
-            // since all property dependencies will already be satisfied (having been extracted from a ResolvedCharacteristics)
-            let rec addProperties (current: ResolvedCharacteristics) =
-                function
-                | head :: tail ->
-                    tail |> addProperties { _Characteristics = Union(current, { _Characteristics = SimpleSet head }) }
-                | _ -> current
+    /// Builds a ResolvedCharacteristics that represents the given transformation properties.
+    static member FromProperties props =
+        let addProperty prop a =
+            { _Characteristics = Union(a, SimpleSet prop |> ResolvedCharacteristics.New) }
 
-            match uniqueProps with
-            | Some (head :: tail) -> tail |> addProperties { _Characteristics = SimpleSet head }
-            | _ -> ex
+        let rec addProperties (current: ResolvedCharacteristics) =
+            function
+            | head :: tail -> addProperties (current |> addProperty head) tail
+            | _ -> current
 
-        /// Builds a ResolvedCharacteristics based on a compatible characteristics kind, and replaces the (inaccessible) record constructor.
-        /// Returns an invalid expression if the properties for the built characteristics cannot be determined even after all parameters are known.
-        /// Incorporates all empty sets such that they do not ever occur as part of an encompassing expression.
-        static member New kind =
-            let isEmpty (ex: ResolvedCharacteristics) =
-                match ex._Characteristics with
-                | EmptySet -> true
-                | _ -> false
+        match props |> Seq.distinct |> Seq.toList with
+        | [] -> EmptySet |> ResolvedCharacteristics.New
+        | head :: tail -> tail |> addProperties (SimpleSet head |> ResolvedCharacteristics.New)
 
-            match kind with
-            | EmptySet -> { _Characteristics = EmptySet }
-            | SimpleSet property -> { _Characteristics = SimpleSet property }
-            | Union (s1, s2) when s1 |> isEmpty -> s2
-            | Union (s1, s2) when s2 |> isEmpty -> s1
-            | Union (s1, s2) when s1.AreInvalid || s2.AreInvalid -> { _Characteristics = InvalidSetExpr }
-            | Union (s1, s2) -> { _Characteristics = Union(s1, s2) } |> ResolvedCharacteristics.Simplify
-            | Intersection (s1, s2) when s1 |> isEmpty || s2 |> isEmpty -> { _Characteristics = EmptySet }
-            | Intersection (s1, s2) when s1.AreInvalid || s2.AreInvalid -> { _Characteristics = InvalidSetExpr }
-            | Intersection (s1, s2) -> { _Characteristics = Intersection(s1, s2) } |> ResolvedCharacteristics.Simplify
-            | InvalidSetExpr -> { _Characteristics = InvalidSetExpr }
+    /// <summary>
+    /// Determines which properties are supported by a callable with the given characteristics and returns them.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">
+    /// The properties cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
+    /// </exception>
+    member this.GetProperties() =
+        match ResolvedCharacteristics.ExtractProperties(fun ex -> ex._Characteristics) this with
+        | Some props -> props.ToImmutableHashSet()
+        | None -> InvalidOperationException "properties cannot be determined" |> raise
 
-        /// <summary>
-        /// Given the resolved characteristics of a set of specializations,
-        /// determines and returns the minimal characteristics of any one of the specializations.
-        /// </summary>
-        /// <exception cref="ArgumentException"><paramref name="characteristics"/> is empty.</exception>
-        static member internal Common(characteristics: ResolvedCharacteristics list) =
-            let rec common current =
-                function
-                | [] -> current
-                | head :: tail ->
-                    // todo: if we support parameterizing over characteristics, we need to replace them in head by their worst-case value
-                    tail |> common { _Characteristics = Intersection(current, head) }
+    /// Determines which functors are supported by a callable with the given characteristics and returns them as a Value.
+    /// Returns Null if the supported functors cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
+    member this.SupportedFunctors =
+        let getFunctor =
+            function
+            | Adjointable -> Some Adjoint
+            | Controllable -> Some Controlled
 
-            if characteristics |> List.exists (fun a -> a._Characteristics = EmptySet) then
-                { _Characteristics = EmptySet }
-            elif characteristics |> List.exists (fun a -> a.AreInvalid) then
-                { _Characteristics = InvalidSetExpr }
-            else
-                match characteristics with
-                | [] -> ArgumentException "cannot determine common information for an empty sequence" |> raise
-                | head :: tail -> common head tail |> ResolvedCharacteristics.Simplify
-
-        /// Builds a ResolvedCharacteristics that represents the given transformation properties.
-        static member FromProperties props =
-            let addProperty prop a =
-                { _Characteristics = Union(a, SimpleSet prop |> ResolvedCharacteristics.New) }
-
-            let rec addProperties (current: ResolvedCharacteristics) =
-                function
-                | head :: tail -> addProperties (current |> addProperty head) tail
-                | _ -> current
-
-            match props |> Seq.distinct |> Seq.toList with
-            | [] -> EmptySet |> ResolvedCharacteristics.New
-            | head :: tail -> tail |> addProperties (SimpleSet head |> ResolvedCharacteristics.New)
-
-        /// <summary>
-        /// Determines which properties are supported by a callable with the given characteristics and returns them.
-        /// </summary>
-        /// <exception cref="InvalidOperationException">
-        /// The properties cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
-        /// </exception>
-        member this.GetProperties() =
-            match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
-            | Some props -> props.ToImmutableHashSet()
-            | None -> InvalidOperationException "properties cannot be determined" |> raise
-
-        /// Determines which functors are supported by a callable with the given characteristics and returns them as a Value.
-        /// Returns Null if the supported functors cannot be determined either because the characteristics expression contains unresolved parameters or is invalid.
-        member this.SupportedFunctors =
-            let getFunctor =
-                function
-                | Adjointable -> Some Adjoint
-                | Controllable -> Some Controlled
-
-            match ResolvedCharacteristics.ExtractProperties (fun ex -> ex._Characteristics) this with
-            | Some props -> (props |> Seq.choose getFunctor).ToImmutableHashSet() |> Value
-            | None -> Null
+        match ResolvedCharacteristics.ExtractProperties(fun ex -> ex._Characteristics) this with
+        | Some props -> (props |> Seq.choose getFunctor).ToImmutableHashSet() |> Value
+        | None -> Null
 
 
 /// used to represent information on Q# operations and expressions thereof generated and/or tracked during compilation
@@ -477,29 +484,29 @@ type ResolvedType =
             range: TypeRange
         }
 
-        interface ITuple
+    interface ITuple
 
-        interface IComparable with
-            member this.CompareTo that =
-                match that with
-                | :? ResolvedType as that -> compare this.kind that.kind
-                | _ -> ArgumentException "Types are different." |> raise
-
-        override this.Equals that =
+    interface IComparable with
+        member this.CompareTo that =
             match that with
-            | :? ResolvedType as that -> this.kind = that.kind
-            | _ -> false
+            | :? ResolvedType as that -> compare this.kind that.kind
+            | _ -> ArgumentException "Types are different." |> raise
 
-        override this.GetHashCode() = hash this.kind
+    override this.Equals that =
+        match that with
+        | :? ResolvedType as that -> this.kind = that.kind
+        | _ -> false
 
-        /// Contains the fully resolved Q# type,
-        /// where type parameters are represented as QsTypeParameters containing their origin (the namespace and the callable they belong to) and their name,
-        /// and user defined types are resolved to their fully qualified name.
-        /// By construction never contains any arity-0 or arity-1 tuple types.
-        member this.Resolution = this.kind
+    override this.GetHashCode() = hash this.kind
 
-        /// The source code range where this type originated. Range is ignored when comparing resolved types.
-        member this.Range = this.range
+    /// Contains the fully resolved Q# type,
+    /// where type parameters are represented as QsTypeParameters containing their origin (the namespace and the callable they belong to) and their name,
+    /// and user defined types are resolved to their fully qualified name.
+    /// By construction never contains any arity-0 or arity-1 tuple types.
+    member this.Resolution = this.kind
+
+    /// The source code range where this type originated. Range is ignored when comparing resolved types.
+    member this.Range = this.range
 
 module ResolvedType =
     /// <summary>
@@ -643,14 +650,14 @@ type ResolvedInitializer =
             resolvedType: ResolvedType
         }
 
-        interface ITuple
+    interface ITuple
 
-        /// Contains the fully resolved Q# initializer.
-        /// By construction never contains any arity-0 or arity-1 tuple types.
-        member this.Resolution = this.kind
+    /// Contains the fully resolved Q# initializer.
+    /// By construction never contains any arity-0 or arity-1 tuple types.
+    member this.Resolution = this.kind
 
-        /// the fully resolved Q# type of the initializer.
-        member this.Type = this.resolvedType
+    /// the fully resolved Q# type of the initializer.
+    member this.Type = this.resolvedType
 
 module ResolvedInitializer =
     let create range kind =
@@ -897,8 +904,11 @@ type Source with
     /// Returns a copy of this source with the given <paramref name="codeFile"/> or <paramref name="assemblyFile"/> if
     /// provided.
     /// </summary>
-    member source.With([<Optional; DefaultParameterValue null>] ?codeFile,
-                       [<Optional; DefaultParameterValue null>] ?assemblyFile) =
+    member source.With
+        (
+            [<Optional; DefaultParameterValue null>] ?codeFile,
+            [<Optional; DefaultParameterValue null>] ?assemblyFile
+        ) =
         { source with
             CodeFile = codeFile |> Option.defaultValue source.CodeFile
             AssemblyFile = assemblyFile |> QsNullable.ofOption |> QsNullable.orElse source.AssemblyFile

@@ -33,17 +33,20 @@ let private buildCombinedExpression kind (lRange, rRange) =
 let private applyBinary operator _ (left: Characteristics) (right: Characteristics) =
     buildCombinedExpression (operator (left, right)) (left.Range, right.Range)
 
-characteristicsExpression.AddOperator
-    (InfixOperator(qsSetUnion.op, emptySpace, qsSetUnion.prec, qsSetUnion.Associativity, (), applyBinary Union))
+characteristicsExpression.AddOperator(
+    InfixOperator(qsSetUnion.op, emptySpace, qsSetUnion.prec, qsSetUnion.Associativity, (), applyBinary Union)
+)
 
-characteristicsExpression.AddOperator
-    (InfixOperator
-        (qsSetIntersection.op,
-         emptySpace,
-         qsSetIntersection.prec,
-         qsSetIntersection.Associativity,
-         (),
-         applyBinary Intersection))
+characteristicsExpression.AddOperator(
+    InfixOperator(
+        qsSetIntersection.op,
+        emptySpace,
+        qsSetIntersection.prec,
+        qsSetIntersection.Associativity,
+        (),
+        applyBinary Intersection
+    )
+)
 
 /// Parses for an arbitrary characteristics expression.
 /// Fails on all reserved keywords except the ones denoting predefined sets of operation characteristics.
@@ -176,8 +179,8 @@ let internal validateTypeSyntax isArrayItem { Type = kind; Range = range } =
         // To avoid confusing syntax like "new Int -> Int[3]" or "Qubit => Unit is Adj[]", require that function and
         // operation types are tupled when used as an array item type.
         [
-            QsCompilerDiagnostic.Error (ErrorCode.MissingLTupleBracket, []) (Range.Create start start)
-            QsCompilerDiagnostic.Error (ErrorCode.MissingRTupleBracket, []) (Range.Create end' end')
+            QsCompilerDiagnostic.Error(ErrorCode.MissingLTupleBracket, []) (Range.Create start start)
+            QsCompilerDiagnostic.Error(ErrorCode.MissingRTupleBracket, []) (Range.Create end' end')
         ]
         |> pushDiagnostics
     | _ -> preturn ()

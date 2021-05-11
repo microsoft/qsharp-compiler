@@ -1,5 +1,4 @@
 <Project Sdk="Microsoft.NET.Sdk">
-    <Import Project="..\..\..\Common\AssemblyCommon.props" />
 
     <PropertyGroup>
         <OutputType>Exe</OutputType>
@@ -7,9 +6,5 @@
         <AssemblyName>Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation</AssemblyName>
         <AssemblyTitle>Build tool to generate a minimal C# entry point when no C# files are included in the compilation.</AssemblyTitle>
     </PropertyGroup>
-
-  <ItemGroup>
-    <Compile Include="..\..\..\Common\SigningConstants.cs" Link="Properties\SigningConstants.cs" />
-  </ItemGroup>
 
 </Project>

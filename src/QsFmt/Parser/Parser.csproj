@@ -3,6 +3,8 @@
     <TargetFramework>netstandard2.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsFmt.Parser</AssemblyName>
     <RootNamespace>$(AssemblyName)</RootNamespace>
+    <!--Disable warnings for generated code -->
+    <NoWarn>$(NoWarn);CS1584;CS1658</NoWarn>
   </PropertyGroup>
 
   <PropertyGroup>

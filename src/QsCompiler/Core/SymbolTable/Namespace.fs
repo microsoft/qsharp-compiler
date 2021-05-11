@@ -23,11 +23,15 @@ open Microsoft.Quantum.QsCompiler.Utils
 ///
 /// Symbol accessibility is considered when resolving symbols. Some methods bypass this (e.g., when returning a list of
 /// all declarations). Individual methods will mention if they follow accessibility or not.
-type Namespace private (name,
-                        parts: IEnumerable<KeyValuePair<string, PartialNamespace>>,
-                        CallablesInReferences: ILookup<string, CallableDeclarationHeader>,
-                        SpecializationsInReferences: ILookup<string, SpecializationDeclarationHeader * SpecializationImplementation>,
-                        TypesInReferences: ILookup<string, TypeDeclarationHeader>) =
+type Namespace
+    private
+    (
+        name,
+        parts: IEnumerable<KeyValuePair<string, PartialNamespace>>,
+        CallablesInReferences: ILookup<string, CallableDeclarationHeader>,
+        SpecializationsInReferences: ILookup<string, SpecializationDeclarationHeader * SpecializationImplementation>,
+        TypesInReferences: ILookup<string, TypeDeclarationHeader>
+    ) =
 
     /// dictionary containing a PartialNamespaces for each source file which implements a part of this namespace -
     /// the key is the source file where each part of the namespace is defined
@@ -44,10 +48,13 @@ type Namespace private (name,
 
         isAvailableWith (fun name -> CallablesInReferences.[name]) (fun c -> c.Access) OtherAssembly
         && isAvailableWith (fun name -> TypesInReferences.[name]) (fun t -> t.Access) OtherAssembly
-        && Parts.Values.All(fun partial ->
-            isAvailableWith (partial.TryGetCallable >> tryOption >> Option.toList) (fun c -> (snd c).Access)
-                SameAssembly
-            && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Access) SameAssembly)
+        && Parts.Values.All
+            (fun partial ->
+                isAvailableWith
+                    (partial.TryGetCallable >> tryOption >> Option.toList)
+                    (fun c -> (snd c).Access)
+                    SameAssembly
+                && isAvailableWith (partial.TryGetType >> tryOption >> Option.toList) (fun t -> t.Access) SameAssembly)
 
     /// Returns whether a declaration is accessible from the calling location, given whether the calling location is in
     /// the same assembly as the declaration, and the declaration's access modifier.
@@ -90,17 +97,18 @@ type Namespace private (name,
             callablesInRefs.Where(fun (header: CallableDeclarationHeader) -> header.QualifiedName.Namespace = name)
 
         let specializationsInRefs =
-            specializationsInRefs.Where(fun (header: SpecializationDeclarationHeader, _) ->
-                header.Parent.Namespace = name)
+            specializationsInRefs.Where
+                (fun (header: SpecializationDeclarationHeader, _) -> header.Parent.Namespace = name)
 
         let discardConflicts getAccess (_, nameGroup) =
             // Only one externally accessible declaration with the same name is allowed.
             let isAccessible header =
                 getAccess header |> Access.isAccessibleFrom OtherAssembly
 
-            if nameGroup |> Seq.filter isAccessible |> Seq.length > 1
-            then nameGroup |> Seq.filter (isAccessible >> not)
-            else nameGroup
+            if nameGroup |> Seq.filter isAccessible |> Seq.length > 1 then
+                nameGroup |> Seq.filter (isAccessible >> not)
+            else
+                nameGroup
 
         let createLookup getName getAccess headers =
             headers
@@ -121,11 +129,12 @@ type Namespace private (name,
 
     /// returns true if the namespace currently contains no source files or referenced content
     member this.IsEmpty =
-        not
-            (this.Sources.Any()
-             || this.TypesInReferencedAssemblies.Any()
-             || this.CallablesInReferencedAssemblies.Any()
-             || this.SpecializationsInReferencedAssemblies.Any())
+        not (
+            this.Sources.Any()
+            || this.TypesInReferencedAssemblies.Any()
+            || this.CallablesInReferencedAssemblies.Any()
+            || this.SpecializationsInReferencedAssemblies.Any()
+        )
 
     /// returns a new Namespace that is an exact (deep) copy of this one
     /// -> any modification of the returned Namespace is not reflected in this one
@@ -200,10 +209,7 @@ type Namespace private (name,
                 |> Seq.tryExactlyOne
 
             match referenceType with
-            | Some qsType ->
-                if Seq.exists marksAttribute qsType.Attributes
-                then Some qsType.Type
-                else None
+            | Some qsType -> if Seq.exists marksAttribute qsType.Attributes then Some qsType.Type else None
             | None -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -218,8 +224,9 @@ type Namespace private (name,
         | true, partial ->
             partial.TryGetType tName
             |> tryOption
-            |> Option.defaultWith (fun () ->
-                SymbolNotFoundException "A type with the given name was not found in the source file." |> raise)
+            |> Option.defaultWith
+                (fun () ->
+                    SymbolNotFoundException "A type with the given name was not found in the source file." |> raise)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -256,8 +263,9 @@ type Namespace private (name,
         | true, partial ->
             partial.TryGetCallable cName
             |> tryOption
-            |> Option.defaultWith (fun () ->
-                SymbolNotFoundException "A callable with the given name was not found in the source file." |> raise)
+            |> Option.defaultWith
+                (fun () ->
+                    SymbolNotFoundException "A callable with the given name was not found in the source file." |> raise)
         | false, _ -> SymbolNotFoundException "The source file does not contain this namespace." |> raise
 
     /// <summary>
@@ -294,9 +302,10 @@ type Namespace private (name,
         let getSpecializationInPartial (partial: PartialNamespace) =
             partial.GetSpecializations cName |> Seq.map (fun (kind, decl) -> kind, (partial.Source, decl))
 
-        if this.TryFindCallable cName |> ResolutionResult.Exists
-        then (Parts.Values.SelectMany getSpecializationInPartial).ToImmutableArray()
-        else SymbolNotFoundException "A callable with the given name was not found in a source file." |> raise
+        if this.TryFindCallable cName |> ResolutionResult.Exists then
+            (Parts.Values.SelectMany getSpecializationInPartial).ToImmutableArray()
+        else
+            SymbolNotFoundException "A callable with the given name was not found in a source file." |> raise
 
     /// Returns a resolution result for the type with the given name containing the name of the source file or
     /// referenced assembly in which it is declared, a string indicating the redirection if it has been deprecated, and
@@ -309,22 +318,25 @@ type Namespace private (name,
     /// source file.
     member this.TryFindType(tName, ?checkDeprecation: (string -> bool)) =
         let checkDeprecation =
-            defaultArg checkDeprecation (fun qual ->
-                String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
+            defaultArg
+                checkDeprecation
+                (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceType (typeHeader: TypeDeclarationHeader) =
-            if typeHeader.Access |> Access.isAccessibleFrom OtherAssembly
-            then Found(typeHeader.Source, SymbolResolution.TryFindRedirect typeHeader.Attributes, typeHeader.Access)
-            else Inaccessible
+            if typeHeader.Access |> Access.isAccessibleFrom OtherAssembly then
+                Found(typeHeader.Source, SymbolResolution.TryFindRedirect typeHeader.Attributes, typeHeader.Access)
+            else
+                Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetType tName with
             | true, qsType ->
                 if qsType.Access |> Access.isAccessibleFrom SameAssembly then
-                    Found
-                        ({ CodeFile = partial.Source; AssemblyFile = Null },
-                         SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
-                         qsType.Access)
+                    Found(
+                        { CodeFile = partial.Source; AssemblyFile = Null },
+                        SymbolResolution.TryFindRedirectInUnresolved checkDeprecation qsType.DefinedAttributes,
+                        qsType.Access
+                    )
                 else
                     Inaccessible
             | false, _ -> NotFound
@@ -349,21 +361,24 @@ type Namespace private (name,
     /// and source file.
     member this.TryFindCallable(cName, ?checkDeprecation: (string -> bool)) =
         let checkDeprecation =
-            defaultArg checkDeprecation (fun qual ->
-                String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
+            defaultArg
+                checkDeprecation
+                (fun qual -> String.IsNullOrWhiteSpace qual || qual = BuiltIn.Deprecated.FullName.Namespace)
 
         let resolveReferenceCallable (callable: CallableDeclarationHeader) =
-            if callable.Access |> Access.isAccessibleFrom OtherAssembly
-            then Found(callable.Source, SymbolResolution.TryFindRedirect callable.Attributes)
-            else Inaccessible
+            if callable.Access |> Access.isAccessibleFrom OtherAssembly then
+                Found(callable.Source, SymbolResolution.TryFindRedirect callable.Attributes)
+            else
+                Inaccessible
 
         let findInPartial (partial: PartialNamespace) =
             match partial.TryGetCallable cName with
             | true, (_, callable) ->
                 if callable.Access |> Access.isAccessibleFrom SameAssembly then
-                    Found
-                        ({ CodeFile = partial.Source; AssemblyFile = Null },
-                         SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes)
+                    Found(
+                        { CodeFile = partial.Source; AssemblyFile = Null },
+                        SymbolResolution.TryFindRedirectInUnresolved checkDeprecation callable.DefinedAttributes
+                    )
                 else
                     Inaccessible
             | false, _ -> NotFound
@@ -500,8 +515,10 @@ type Namespace private (name,
     /// If a type or callable with that name already exists, returns an array of suitable diagnostics.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member this.TryAddType (source, location) ((tName, tRange), typeTuple, attributes, access, documentation)
-                           : QsCompilerDiagnostic [] =
+    member this.TryAddType
+        (source, location)
+        ((tName, tRange), typeTuple, attributes, access, documentation)
+        : QsCompilerDiagnostic [] =
         match Parts.TryGetValue source with
         | true, partial when isNameAvailable tName ->
             TypesDefinedInAllSourcesCache <- null
@@ -529,9 +546,10 @@ type Namespace private (name,
     /// If a callable with that name already exists, returns an array of suitable diagnostics.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member this.TryAddCallableDeclaration (source, location)
-                                          ((cName, cRange), (kind, signature), attributes, access, documentation)
-                                          =
+    member this.TryAddCallableDeclaration
+        (source, location)
+        ((cName, cRange), (kind, signature), attributes, access, documentation)
+        =
         match Parts.TryGetValue source with
         | true, partial when isNameAvailable cName ->
             CallablesDefinedInAllSourcesCache <- null
@@ -564,13 +582,11 @@ type Namespace private (name,
     /// IMPORTANT: The verification of whether the given specialization kind (body, adjoint, controlled, or controlled adjoint) may exist
     /// for the given callable is up to the calling routine.
     /// </remarks>
-    member this.TryAddCallableSpecialization kind
-                                             (source, location: QsLocation)
-                                             ((cName, cRange),
-                                              generator: QsSpecializationGenerator,
-                                              attributes,
-                                              documentation)
-                                             =
+    member this.TryAddCallableSpecialization
+        kind
+        (source, location: QsLocation)
+        ((cName, cRange), generator: QsSpecializationGenerator, attributes, documentation)
+        =
         let getRelevantDeclInfo declSource =
             let unitOrInvalid fct =
                 function
@@ -653,10 +669,11 @@ type Namespace private (name,
     /// Return the diagnostics generated upon adding the specialization.
     /// </summary>
     /// <exception cref="SymbolNotFoundException">The source file does not contain this namespace.</exception>
-    member internal this.InsertSpecialization (kind, typeArgs)
-                                              (parentName, source)
-                                              (declLocation: QsLocation, msgRange: QsNullable<Range>)
-                                              =
+    member internal this.InsertSpecialization
+        (kind, typeArgs)
+        (parentName, source)
+        (declLocation: QsLocation, msgRange: QsNullable<Range>)
+        =
         let location = { Offset = declLocation.Offset; Range = msgRange.ValueOr declLocation.Range }
 
         let generator =
@@ -667,8 +684,9 @@ type Namespace private (name,
             }
 
         let doc =
-            ImmutableArray.Create
-                (sprintf "automatically generated %A specialization for %s.%s" kind this.Name parentName)
+            ImmutableArray.Create(
+                sprintf "automatically generated %A specialization for %s.%s" kind this.Name parentName
+            )
 
         this.TryAddCallableSpecialization
             kind

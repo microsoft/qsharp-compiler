@@ -35,22 +35,21 @@ let private compilerArgs target (name: string) =
         ("TestCases", "QirTests", name + ".qs") |> Path.Combine
         ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine
 
-        (if target
-         then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine
-         else "")
+        (if target then ("TestCases", "QirTests", "QirTarget.qs") |> Path.Combine else "")
 
         "--load"
 
-        Path.Combine
-            (Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location), "Microsoft.Quantum.QirGeneration.dll")
+        Path.Combine(
+            Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+            "Microsoft.Quantum.QirGeneration.dll"
+        )
 
         "--verbosity"
         "Diagnostic"
     }
 
 let private customTest name compilerArgs snippets =
-    if not <| Directory.Exists "qir"
-    then Directory.CreateDirectory "qir" |> ignore
+    if not <| Directory.Exists "qir" then Directory.CreateDirectory "qir" |> ignore
 
     let fileName = Path.Combine("qir", name + ".ll")
     clearOutput fileName
@@ -77,10 +76,15 @@ let ``QIR inlined call`` () = qirTest true "TestInline"
 let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
-let ``QIR reference counts`` () = qirTest false "TestReferenceCounts"
+let ``QIR reference counts`` () =
+    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
+
+[<Fact>]
+let ``QIR built-in intrinsics`` () =
+    qirMultiTest false "TestBuiltInIntrinsics" [ "TestBuiltInIntrinsics1"; "TestBuiltInIntrinsics2" ]
 
 [<Fact>]
 let ``QIR array loop`` () = qirTest false "TestArrayLoop"
@@ -89,7 +93,8 @@ let ``QIR array loop`` () = qirTest false "TestArrayLoop"
 let ``QIR nested for loop`` () = qirTest false "TestForLoop"
 
 [<Fact>]
-let ``QIR caching of values`` () = qirTest true "TestCaching"
+let ``QIR caching of values`` () =
+    qirMultiTest true "TestCaching" [ "TestCaching1"; "TestCaching2"; "TestCaching3" ]
 
 [<Fact>]
 let ``QIR array update`` () =
@@ -162,7 +167,18 @@ let ``QIR entry points`` () =
 
 [<Fact>]
 let ``QIR partial applications`` () =
-    qirMultiTest true "TestPartials" [ "TestPartials1"; "TestPartials2"; "TestPartials3"; "TestPartials4" ]
+    qirMultiTest
+        true
+        "TestPartials"
+        [
+            "TestPartials1"
+            "TestPartials2"
+            "TestPartials3"
+            "TestPartials4"
+            "TestPartials5"
+            "TestPartials6"
+            "TestPartials7"
+        ]
 
 [<Fact>]
 let ``QIR declarations`` () =
@@ -206,7 +222,15 @@ let ``QIR short-circuiting`` () = qirTest false "TestShortCircuiting"
 
 [<Fact>]
 let ``QIR conditionals`` () =
-    qirMultiTest false "TestConditional" [ "TestConditional1"; "TestConditional2"; "TestConditional3" ]
+    qirMultiTest
+        false
+        "TestConditional"
+        [
+            "TestConditional1"
+            "TestConditional2"
+            "TestConditional3"
+            "TestConditional4"
+        ]
 
 [<Fact>]
 let ``QIR expressions`` () = qirTest false "TestExpressions"

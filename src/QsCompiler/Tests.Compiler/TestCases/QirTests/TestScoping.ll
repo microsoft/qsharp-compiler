@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestScoping__body(%Array* %a) {
+define internal i64 @Microsoft__Quantum__Testing__QIR__TestScoping__body(%Array* %a) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %a, i32 1)
   %sum = alloca i64, align 8

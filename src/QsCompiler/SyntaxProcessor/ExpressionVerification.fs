@@ -19,7 +19,7 @@ open System.Collections.Immutable
 // utils for verifying types in expressions
 
 /// Returns the string representation of a type.
-let private showType: ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
+let private showType : ResolvedType -> _ = SyntaxTreeToQsharp.Default.ToCode
 
 /// Returns true if the type is a function type.
 let private isFunction (resolvedType: ResolvedType) =
@@ -53,9 +53,10 @@ let rec private partialArgType (inference: InferenceContext) (argType: ResolvedT
             ||> Seq.foldBack (fun (item, params1) (items, params2) -> item :: items, Option.toList params1 @ params2)
 
         let missing =
-            if List.isEmpty missing
-            then None
-            else ImmutableArray.CreateRange missing |> TupleType |> ResolvedType.New |> Some
+            if List.isEmpty missing then
+                None
+            else
+                ImmutableArray.CreateRange missing |> TupleType |> ResolvedType.New |> Some
 
         argType |> ResolvedType.withKind (ImmutableArray.CreateRange items |> TupleType), missing
     | _ -> argType, None
@@ -94,8 +95,8 @@ let private verifyConditionalExecution (expr: TypedExpression) =
         | _ -> false
 
     [
-        if expr.Exists isOperationCall
-        then QsCompilerDiagnostic.Warning (WarningCode.ConditionalEvaluationOfOperationCall, []) (rangeOrDefault expr)
+        if expr.Exists isOperationCall then
+            QsCompilerDiagnostic.Warning(WarningCode.ConditionalEvaluationOfOperationCall, []) (rangeOrDefault expr)
     ]
 
 /// <summary>
@@ -116,7 +117,7 @@ let private verifyUdtWith processUdt (resolvedType: ResolvedType) range =
     | _ ->
         ResolvedType.New InvalidType,
         [
-            QsCompilerDiagnostic.Error (ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
+            QsCompilerDiagnostic.Error(ErrorCode.ExpectingUserDefinedType, [ showType resolvedType ]) range
         ]
 
 /// <summary>
@@ -209,10 +210,11 @@ let private verifyValueArray (inference: InferenceContext) range exprs =
         let diagnostics = ResizeArray()
 
         types
-        |> Seq.reduce (fun left right ->
-            let intersectionType, intersectionDiagnostics = inference.Intersect(left, right)
-            intersectionDiagnostics |> List.iter diagnostics.Add
-            intersectionType |> ResolvedType.withAllRanges right.Range)
+        |> Seq.reduce
+            (fun left right ->
+                let intersectionType, intersectionDiagnostics = inference.Intersect(left, right)
+                intersectionDiagnostics |> List.iter diagnostics.Add
+                intersectionType |> ResolvedType.withAllRanges right.Range)
         |> ResolvedType.withAllRanges (Inferred range)
         |> ArrayType
         |> ResolvedType.create (Inferred range),
@@ -255,14 +257,15 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
 
     let resolvedTargs =
         typeArgs
-        |> QsNullable<_>
-            .Map(fun (args: ImmutableArray<QsType>) ->
+        |> QsNullable<_>.Map
+            (fun (args: ImmutableArray<QsType>) ->
                 args
-                |> Seq.map (fun tArg ->
-                    match tArg.Type with
-                    | MissingType -> ResolvedType.New MissingType
-                    | _ -> symbols.ResolveType diagnostics.Add tArg))
-        |> QsNullable<_>.Map(fun args -> args.ToImmutableArray())
+                |> Seq.map
+                    (fun tArg ->
+                        match tArg.Type with
+                        | MissingType -> ResolvedType.New MissingType
+                        | _ -> symbols.ResolveType diagnostics.Add tArg))
+        |> QsNullable<_>.Map (fun args -> args.ToImmutableArray())
 
     let resId, typeParams = symbols.ResolveIdentifier diagnostics.Add symbol
     let identifier, info = Identifier(resId.VariableName, resolvedTargs), resId.InferredInformation
@@ -279,7 +282,7 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
     | LocalVariable _, Null -> (identifier, resId.Type) |> exprWithoutTypeArgs symbol.Range info, Seq.toList diagnostics
     | LocalVariable _, Value _ ->
         invalidWithoutTargs false,
-        QsCompilerDiagnostic.Error (ErrorCode.IdentifierCannotHaveTypeArguments, []) symbol.RangeOrDefault
+        QsCompilerDiagnostic.Error(ErrorCode.IdentifierCannotHaveTypeArguments, []) symbol.RangeOrDefault
         :: Seq.toList diagnostics
     | GlobalCallable _, Value res when res.Length <> typeParams.Length ->
         invalidWithoutTargs false,
@@ -290,7 +293,8 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
     | GlobalCallable name, _ ->
         let typeParams =
             typeParams
-            |> Seq.choose (function
+            |> Seq.choose
+                (function
                 | ValidName param -> Some(name, param)
                 | InvalidName -> None)
 
@@ -298,16 +302,19 @@ let private verifyIdentifier (inference: InferenceContext) (symbols: SymbolTrack
 
         let resolutions =
             typeParams
-            |> Seq.mapi (fun i param ->
-                if i < typeArgs.Length && typeArgs.[i].Resolution <> MissingType
-                then KeyValuePair(param, typeArgs.[i])
-                else KeyValuePair(param, inference.Fresh symbol.RangeOrDefault))
+            |> Seq.mapi
+                (fun i param ->
+                    if i < typeArgs.Length && typeArgs.[i].Resolution <> MissingType then
+                        KeyValuePair(param, typeArgs.[i])
+                    else
+                        KeyValuePair(param, inference.Fresh symbol.RangeOrDefault))
             |> ImmutableDictionary.CreateRange
 
         let identifier =
-            if resolutions.IsEmpty
-            then identifier
-            else Identifier(GlobalCallable name, ImmutableArray.CreateRange resolutions.Values |> Value)
+            if resolutions.IsEmpty then
+                identifier
+            else
+                Identifier(GlobalCallable name, ImmutableArray.CreateRange resolutions.Values |> Value)
 
         let exInfo = InferredExpressionInformation.New(isMutable = false, quantumDep = info.HasLocalQuantumDependency)
         TypedExpression.New(identifier, resolutions, resId.Type, exInfo, symbol.Range), Seq.toList diagnostics
@@ -504,7 +511,7 @@ type QsExpression with
             | InvalidSymbol -> InvalidIdentifier
             | Symbol name -> LocalVariable name
             | _ ->
-                QsCompilerDiagnostic.Error (ErrorCode.ExpectingItemName, []) sym.RangeOrDefault |> diagnose
+                QsCompilerDiagnostic.Error(ErrorCode.ExpectingItemName, []) sym.RangeOrDefault |> diagnose
                 InvalidIdentifier
 
         /// Resolves and verifies the given expression and item name of a named item access expression,
@@ -698,8 +705,7 @@ type QsExpression with
             let rhs = resolve rhs
             verify lhs rhs |> List.iter diagnose
 
-            if shortCircuits
-            then verifyConditionalExecution rhs |> List.iter diagnose
+            if shortCircuits then verifyConditionalExecution rhs |> List.iter diagnose
 
             let localQdependency =
                 lhs.InferredInformation.HasLocalQuantumDependency
@@ -748,8 +754,10 @@ type QsExpression with
             let argType, partialType = partialArgType inference arg.ResolvedType
 
             if Option.isNone partialType then
-                inference.Constrain
-                    (callable.ResolvedType, Set.ofSeq symbols.RequiredFunctorSupport |> CanGenerateFunctors)
+                inference.Constrain(
+                    callable.ResolvedType,
+                    Set.ofSeq symbols.RequiredFunctorSupport |> CanGenerateFunctors
+                )
                 |> List.iter diagnose
 
             let output = inference.Fresh this.RangeOrDefault
@@ -761,7 +769,7 @@ type QsExpression with
                     inference.Unify(QsTypeKind.Function(argType, output) |> ResolvedType.New, callable.ResolvedType)
 
                 if inference.Resolve callable.ResolvedType |> isOperation then
-                    QsCompilerDiagnostic.Error (ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
+                    QsCompilerDiagnostic.Error(ErrorCode.OperationCallOutsideOfOperation, []) this.RangeOrDefault
                     |> diagnose
                 else
                     List.iter diagnose diagnostics
@@ -836,16 +844,28 @@ type QsExpression with
         | MUL (lhs, rhs) -> buildArithmeticOp MUL (lhs, rhs)
         | DIV (lhs, rhs) -> buildArithmeticOp DIV (lhs, rhs)
         | LT (lhs, rhs) ->
-            buildBooleanOpWith (fun lhs rhs -> verifyArithmeticOp inference this.Range lhs rhs |> snd) false LT
+            buildBooleanOpWith
+                (fun lhs rhs -> verifyArithmeticOp inference this.Range lhs rhs |> snd)
+                false
+                LT
                 (lhs, rhs)
         | LTE (lhs, rhs) ->
-            buildBooleanOpWith (fun lhs rhs -> verifyArithmeticOp inference this.Range lhs rhs |> snd) false LTE
+            buildBooleanOpWith
+                (fun lhs rhs -> verifyArithmeticOp inference this.Range lhs rhs |> snd)
+                false
+                LTE
                 (lhs, rhs)
         | GT (lhs, rhs) ->
-            buildBooleanOpWith (fun lhs rhs -> verifyArithmeticOp inference this.Range lhs rhs |> snd) false GT
+            buildBooleanOpWith
+                (fun lhs rhs -> verifyArithmeticOp inference this.Range lhs rhs |> snd)
+                false
+                GT
                 (lhs, rhs)
         | GTE (lhs, rhs) ->
-            buildBooleanOpWith (fun lhs rhs -> verifyArithmeticOp inference this.Range lhs rhs |> snd) false GTE
+            buildBooleanOpWith
+                (fun lhs rhs -> verifyArithmeticOp inference this.Range lhs rhs |> snd)
+                false
+                GTE
                 (lhs, rhs)
         | POW (lhs, rhs) -> buildPower (lhs, rhs) // power takes a special role because you can raise integers and doubles to integer and double powers, but bigint only to integer powers
         | MOD (lhs, rhs) -> buildIntegralOp MOD (lhs, rhs)
@@ -862,6 +882,8 @@ type QsExpression with
         | BNOT ex -> verifyAndBuildWith BNOT (verifyIsIntegral inference) ex
         | NOT ex ->
             ex
-            |> verifyAndBuildWith NOT (fun expr ->
-                   Bool |> ResolvedType.create (TypeRange.inferred this.Range),
-                   inference.Unify(ResolvedType.New Bool, expr.ResolvedType))
+            |> verifyAndBuildWith
+                NOT
+                (fun expr ->
+                    Bool |> ResolvedType.create (TypeRange.inferred this.Range),
+                    inference.Unify(ResolvedType.New Bool, expr.ResolvedType))

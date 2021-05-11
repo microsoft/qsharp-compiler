@@ -252,16 +252,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // continuation block if not.
             for (int n = 0; n < clauses.Length; n++)
             {
-                // Evaluate the test, which should be a Boolean at this point
-                var test = clauses[n].Item1;
-                var testValue = this.SharedState.EvaluateSubexpression(test).Value;
-                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
-                            this.SharedState.BlockName($"then{n}"), contBlock);
-
                 // If this is an intermediate clause, then the next block if the test fails
                 // is the next clause's test block.
                 // If this is the last clause, then the next block is the default clause's block
                 // if there is one, or the continue block if not.
+                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
+                            this.SharedState.BlockName($"then{n}"), contBlock);
                 var nextConditional = n < clauses.Length - 1
                     ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
                     : (stm.Default.IsNull
@@ -270,14 +266,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                 this.SharedState.BlockName($"else"), contBlock));
                 contBlockUsed = contBlockUsed || nextConditional == contBlock;
 
-                // Create the branch
-                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
-
-                // Get a builder for the then block, make it current, and then process the block
+                // Evaluate the test, which should be a Boolean at this point, and create the branch.
+                // Note that we need to start the branching and create a scope for the condition
+                // to ensure that anything created as part of the condition is released as part of the condition,
+                // and the caching properly detects that things inside the condition are no longer accessible.
                 this.SharedState.StartBranch();
+                this.SharedState.ScopeMgr.OpenScope();
+                var testValue = this.SharedState.EvaluateSubexpression(clauses[n].Item1).Value;
+                this.SharedState.ScopeMgr.CloseScope(false);
+                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
                 contBlockUsed = this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
-
                 this.SharedState.SetCurrentBlock(nextConditional);
             }
 
@@ -289,14 +288,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.EndBranch();
             }
 
-            // Finally, set the continuation block as current or prune it if it is unused.
-            if (contBlockUsed)
+            // Finally, set the continuation block as current and prune it if it is unused.
+            this.SharedState.SetCurrentBlock(contBlock);
+            if (!contBlockUsed)
             {
-                this.SharedState.SetCurrentBlock(contBlock);
-            }
-            else
-            {
-                this.SharedState.CurrentFunction.BasicBlocks.Remove(contBlock);
+                // This is the savest option to deal with this case from a code rubustness perspective.
+                // The additional code blocks that don't have any predecessors are better trimmed in a separate pass over the generated ir.
+                this.OnFailStatement(SyntaxGenerator.StringLiteral("reached unreachable code...", ImmutableArray<TypedExpression>.Empty));
             }
             return QsStatementKind.EmptyStatement;
         }
@@ -330,6 +328,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("current function is set to null");
             }
 
+            Action<T> LoopBody<T>(Action<T> execute) => loopVariable =>
+            {
+                this.SharedState.ScopeMgr.OpenScope();
+                execute(loopVariable);
+                var isTerminated = this.SharedState.CurrentBlock?.Terminator != null;
+                this.SharedState.ScopeMgr.CloseScope(isTerminated);
+            };
+
             if (stm.IterationValues.ResolvedType.Resolution.IsRange)
             {
                 void ExecuteBody(Value loopVariable)
@@ -347,7 +353,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var (getStart, getStep, getEnd) = this.SharedState.Functions.RangeItems(stm.IterationValues);
-                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), ExecuteBody);
+                this.SharedState.IterateThroughRange(getStart(), getStep(), getEnd(), LoopBody<Value>(ExecuteBody));
             }
             else if (stm.IterationValues.ResolvedType.Resolution.IsArrayType)
             {
@@ -359,7 +365,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 var array = (ArrayValue)this.SharedState.EvaluateSubexpression(stm.IterationValues);
-                this.SharedState.IterateThroughArray(array, ExecuteBody);
+                this.SharedState.IterateThroughArray(array, LoopBody<IValue>(ExecuteBody));
             }
             else
             {
@@ -409,7 +415,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // We need to make sure to properly invoke all calls to unreference, release, and remove alias counts
                 // for variables and values in the repeat-block after the statement ends.
                 this.SharedState.SetCurrentBlock(contBlock);
-                this.SharedState.ScopeMgr.ExitScope(false);
+                this.SharedState.ScopeMgr.ExitScope();
 
                 this.SharedState.SetCurrentBlock(fixupBlock);
                 this.Transformation.Statements.OnScope(stm.FixupBlock.Body);

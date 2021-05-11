@@ -3,25 +3,28 @@
 
 namespace Microsoft.Quantum.QsCompiler.Testing
 
-open System.Collections.Generic
-open System.IO
 open Microsoft.Quantum.QsCompiler.Diagnostics
 open Microsoft.Quantum.QsCompiler.SyntaxExtensions
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open System.Collections.Generic
+open System.IO
 open Xunit
 
-
 type LocalVerificationTests() =
-    inherit CompilerTests(CompilerTests.Compile
-                              ("TestCases",
-                               [
-                                   "General.qs"
-                                   "LocalVerification.qs"
-                                   "Types.qs"
-                                   Path.Combine("LinkingTests", "Core.qs")
-                                   Path.Combine("StringParsingTests", "StringParsing.qs")
-                                   Path.Combine("StringParsingTests", "StringInterpolation.qs")
-                               ]))
+    inherit CompilerTests(LocalVerificationTests.Compile())
+
+    static member private Compile() =
+        CompilerTests.Compile(
+            "TestCases",
+            [
+                "General.qs"
+                "LocalVerification.qs"
+                "Types.qs"
+                Path.Combine("LinkingTests", "Core.qs")
+                Path.Combine("StringParsingTests", "StringParsing.qs")
+                Path.Combine("StringParsingTests", "StringInterpolation.qs")
+            ]
+        )
 
     member private this.Expect name (diag: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.LocalVerification"

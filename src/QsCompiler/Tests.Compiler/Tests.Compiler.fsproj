@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -82,7 +81,22 @@
     <Content Include="TestCases\QirTests\TestBuiltIn.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestCaching.ll">
+    <Content Include="TestCases\QirTests\TestBuiltInIntrinsics1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestBuiltInIntrinsics2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestBuiltInIntrinsics.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestCaching1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestCaching2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestCaching3.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestCaching.qs">
@@ -95,6 +109,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestConditional3.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestConditional4.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestConditional.qs">
@@ -232,6 +249,15 @@
     <Content Include="TestCases\QirTests\TestPartials4.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestPartials5.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestPartials6.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestPartials7.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestPartials.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -247,7 +273,10 @@
     <Content Include="TestCases\QirTests\TestRange.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestReferenceCounts.ll">
+    <Content Include="TestCases\QirTests\TestReferenceCounts1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestReferenceCounts2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestReferenceCounts.qs">
@@ -265,28 +294,28 @@
     <Content Include="TestCases\QirTests\TestResults.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestShortCircuiting.ll">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
-    <Content Include="TestCases\QirTests\TestShortCircuiting.qs">
-      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-    </Content>
     <Content Include="TestCases\QirTests\TestScoping.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestScoping.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestTargeting.ll">
+    <Content Include="TestCases\QirTests\TestShortCircuiting.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestTargeting.qs">
+    <Content Include="TestCases\QirTests\TestShortCircuiting.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestStrings.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestStrings.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestTargeting.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestTargeting.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestUdt.ll">
@@ -488,7 +517,6 @@
     <None Include="TestCases\CompilationLoader.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="ExternalRewriteStepsManagerTests.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
@@ -518,6 +546,10 @@
 </ItemGroup>
 
   <ItemGroup>
+    <PackageReference Include="libLLVM.runtime.win-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.osx-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" PrivateAssets="All" />      
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">

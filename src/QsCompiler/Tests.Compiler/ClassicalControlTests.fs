@@ -24,8 +24,12 @@ type ClassicalControlTests() =
         new Uri(Path.GetFullPath(Path.GetRandomFileName()))
 
     let getManager uri content =
-        CompilationUnitManager.InitializeFileManager
-            (uri, content, compilationManager.PublishDiagnostics, compilationManager.LogException)
+        CompilationUnitManager.InitializeFileManager(
+            uri,
+            content,
+            compilationManager.PublishDiagnostics,
+            compilationManager.LogException
+        )
 
     let ReadAndChunkSourceFile fileName =
         let sourceInput = Path.Combine("TestCases", fileName) |> File.ReadAllText
@@ -96,9 +100,10 @@ type ClassicalControlTests() =
 
         let regexMatch = Regex.Match(input, regex)
 
-        if regexMatch.Success
-        then (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
-        else (false, "", "")
+        if regexMatch.Success then
+            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
+        else
+            (false, "", "")
 
     let MakeApplicationRegex (opName: QsQualifiedName) =
         let call = sprintf @"(%s\.)?%s" <| Regex.Escape opName.Namespace <| Regex.Escape opName.Name
@@ -110,9 +115,10 @@ type ClassicalControlTests() =
         let regexMatch =
             Regex.Match(input, sprintf @"^\s*%s,\s*%s$" <| Regex.Escape resultVar <| MakeApplicationRegex opName)
 
-        if regexMatch.Success
-        then (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
-        else (false, "", "")
+        if regexMatch.Success then
+            (true, regexMatch.Groups.[3].Value, regexMatch.Groups.[4].Value)
+        else
+            (false, "", "")
 
     let IsApplyIfElseArgsMatch input resultVar (opName1: QsQualifiedName) (opName2: QsQualifiedName) =
         let ApplyIfElseRegex =
@@ -140,9 +146,10 @@ type ClassicalControlTests() =
         Seq.forall (fun (i, ns, name) -> CheckIfLineIsCall ns name lines.[i] |> (fun (x, _, _) -> x)) calls
 
     let AssertSpecializationHasCalls specialization calls =
-        Assert.True
-            (CheckIfSpecializationHasCalls specialization calls,
-             sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind)
+        Assert.True(
+            CheckIfSpecializationHasCalls specialization calls,
+            sprintf "Callable %O(%A) did not have expected content" specialization.Parent specialization.Kind
+        )
 
     let ExpandBuiltInQualifiedSymbol (i, (builtin: BuiltIn)) =
         (i, builtin.FullName.Namespace, builtin.FullName.Name)
@@ -190,9 +197,10 @@ type ClassicalControlTests() =
         let original = GetCallableWithName compilation Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (2 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            2 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, targs, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
@@ -216,36 +224,37 @@ type ClassicalControlTests() =
         let adjMatch =
             lazy
                 (if hasAdjoint then
-                    match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint) with
-                    | None -> false
-                    | Some x ->
-                        match x.Implementation with
-                        | SpecializationImplementation.Generated gen ->
-                            gen = QsGeneratorDirective.Invert || gen = QsGeneratorDirective.SelfInverse
-                        | SpecializationImplementation.Provided _ -> true
-                        | _ -> false
+                     match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsAdjoint) with
+                     | None -> false
+                     | Some x ->
+                         match x.Implementation with
+                         | SpecializationImplementation.Generated gen ->
+                             gen = QsGeneratorDirective.Invert || gen = QsGeneratorDirective.SelfInverse
+                         | SpecializationImplementation.Provided _ -> true
+                         | _ -> false
                  else
                      true)
 
         let ctlMatch =
             lazy
                 (if hasControlled then
-                    match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled) with
-                    | None -> false
-                    | Some x ->
-                        match x.Implementation with
-                        | SpecializationImplementation.Generated gen -> gen = QsGeneratorDirective.Distribute
-                        | SpecializationImplementation.Provided _ -> true
-                        | _ -> false
+                     match call.Specializations |> Seq.tryFind (fun x -> x.Kind = QsSpecializationKind.QsControlled) with
+                     | None -> false
+                     | Some x ->
+                         match x.Implementation with
+                         | SpecializationImplementation.Generated gen -> gen = QsGeneratorDirective.Distribute
+                         | SpecializationImplementation.Provided _ -> true
+                         | _ -> false
                  else
                      true)
 
         charMatch.Value && adjMatch.Value && ctlMatch.Value
 
     let AssertCallSupportsFunctors expectedFunctors call =
-        Assert.True
-            (DoesCallSupportFunctors expectedFunctors call,
-             sprintf "Callable %O did not support the expected functors" call.FullName)
+        Assert.True(
+            DoesCallSupportFunctors expectedFunctors call,
+            sprintf "Callable %O did not support the expected functors" call.FullName
+        )
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
@@ -339,9 +348,10 @@ type ClassicalControlTests() =
 
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (2 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            2 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
@@ -355,9 +365,10 @@ type ClassicalControlTests() =
 
         let lines = generated |> GetLinesFromSpecialization
 
-        Assert.True
-            (1 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
@@ -383,9 +394,10 @@ type ClassicalControlTests() =
 
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (2 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            2 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
@@ -399,9 +411,10 @@ type ClassicalControlTests() =
 
         let lines = generated |> GetLinesFromSpecialization
 
-        Assert.True
-            (1 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
@@ -427,9 +440,10 @@ type ClassicalControlTests() =
 
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (2 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            2 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
@@ -443,9 +457,10 @@ type ClassicalControlTests() =
 
         let lines = generated |> GetLinesFromSpecialization
 
-        Assert.True
-            (1 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
@@ -457,15 +472,18 @@ type ClassicalControlTests() =
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
-    member this.``Don't Lift Functions``() = CompileClassicalControlTest 13 |> ignore
+    member this.``Don't Lift Functions``() =
+        CompileClassicalControlTest 13 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
-    member this.``Lift Self-Contained Mutable``() = CompileClassicalControlTest 14 |> ignore
+    member this.``Lift Self-Contained Mutable``() =
+        CompileClassicalControlTest 14 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
-    member this.``Don't Lift General Mutable``() = CompileClassicalControlTest 15 |> ignore
+    member this.``Don't Lift General Mutable``() =
+        CompileClassicalControlTest 15 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Generics Support")>]
@@ -482,7 +500,8 @@ type ClassicalControlTests() =
 
         let GetTypeParams call =
             call.Signature.TypeParameters
-            |> Seq.choose (function
+            |> Seq.choose
+                (function
                 | ValidName str -> Some str
                 | InvalidName -> None)
 
@@ -504,9 +523,10 @@ type ClassicalControlTests() =
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[1]
 
-        Assert.True
-            (success,
-             sprintf "Callable %O(%A) did not have expected content" original.FullName QsSpecializationKind.QsBody)
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.FullName QsSpecializationKind.QsBody
+        )
 
         let (success, typeArgs, _) = IsApplyIfArgMatch args "r" generated.FullName
         Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
@@ -779,7 +799,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
             let bodyGen = (Seq.item 0 generated)
-            AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
+            AssertSpecializationHasCalls(GetBodyFromCallable bodyGen) bodyContent
             AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
 
@@ -907,7 +927,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
             let bodyGen = (Seq.item 0 generated)
-            AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
+            AssertSpecializationHasCalls(GetBodyFromCallable bodyGen) bodyContent
             AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] bodyGen
 
@@ -1033,7 +1053,7 @@ type ClassicalControlTests() =
 
             let bodyContent = [ (0, "SubOps", "SubOpCA1"); (1, "SubOps", "SubOpCA2") ]
             let bodyGen = (Seq.item 0 generated)
-            AssertSpecializationHasCalls (GetBodyFromCallable bodyGen) bodyContent
+            AssertSpecializationHasCalls(GetBodyFromCallable bodyGen) bodyContent
             AssertCallSupportsFunctors [ QsFunctor.Controlled; QsFunctor.Adjoint ] original
             AssertCallSupportsFunctors [ QsFunctor.Controlled ] bodyGen
 
@@ -1096,9 +1116,10 @@ type ClassicalControlTests() =
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZeroA.FullName.Namespace BuiltIn.ApplyIfZeroA.FullName.Name lines.[2]
 
-        Assert.True
-            (success,
-             sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
 
         let (success, _, _) = IsApplyIfArgMatch args "r" outerOp.FullName
         Assert.True(success, "ApplyIfZeroA did not have the correct arguments")
@@ -1113,9 +1134,10 @@ type ClassicalControlTests() =
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[1]
 
-        Assert.True
-            (success,
-             sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody)
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
 
         let (success, typeArgs, _) =
             IsApplyIfArgMatch args "r" { Namespace = Signatures.ClassicalControlNS; Name = "Bar" }
@@ -1126,15 +1148,18 @@ type ClassicalControlTests() =
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
-    member this.``Lift Functor Application``() = CompileClassicalControlTest 25 |> ignore
+    member this.``Lift Functor Application``() =
+        CompileClassicalControlTest 25 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
-    member this.``Lift Partial Application``() = CompileClassicalControlTest 26 |> ignore
+    member this.``Lift Partial Application``() =
+        CompileClassicalControlTest 26 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
-    member this.``Lift Array Item Call``() = CompileClassicalControlTest 27 |> ignore
+    member this.``Lift Array Item Call``() =
+        CompileClassicalControlTest 27 |> ignore
 
     [<Fact>]
     [<Trait("Category", "Content Lifting")>]
@@ -1152,9 +1177,10 @@ type ClassicalControlTests() =
         let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (3 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            3 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, targs, args) =
             CheckIfLineIsCall
@@ -1179,9 +1205,10 @@ type ClassicalControlTests() =
         let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (3 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            3 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, targs, args) =
             CheckIfLineIsCall
@@ -1206,9 +1233,10 @@ type ClassicalControlTests() =
         let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (3 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            3 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, targs, args) =
             CheckIfLineIsCall
@@ -1309,9 +1337,10 @@ type ClassicalControlTests() =
 
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (2 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            2 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
@@ -1325,9 +1354,10 @@ type ClassicalControlTests() =
 
         let lines = generated |> GetLinesFromSpecialization
 
-        Assert.True
-            (1 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]
@@ -1352,9 +1382,10 @@ type ClassicalControlTests() =
 
         let lines = original |> GetLinesFromSpecialization
 
-        Assert.True
-            (2 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind)
+        Assert.True(
+            2 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" original.Parent original.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[1]
@@ -1368,9 +1399,10 @@ type ClassicalControlTests() =
 
         let lines = generated |> GetLinesFromSpecialization
 
-        Assert.True
-            (1 = Seq.length lines,
-             sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind)
+        Assert.True(
+            1 = Seq.length lines,
+            sprintf "Callable %O(%A) did not have the expected number of statements" generated.Parent generated.Kind
+        )
 
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[0]

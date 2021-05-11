@@ -91,6 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 BuildOptions options, [NotNullWhen(true)] out BuildOptions? incorporated, ILogger? logger = null)
             {
                 incorporated = null;
+                var responseFiles = options.ResponseFiles;
                 while (options.ResponseFiles != null && options.ResponseFiles.Any())
                 {
                     try
@@ -110,6 +111,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     }
                 }
                 incorporated = options;
+                incorporated.ResponseFiles = responseFiles;
                 return true;
             }
         }
@@ -203,11 +205,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             if (!BuildOptions.IncorporateResponseFiles(options, out var incorporated))
             {
+                options.Print(logger);
                 logger.Log(ErrorCode.InvalidCommandLineArgsInResponseFiles, Array.Empty<string>());
                 return ReturnCode.InvalidArguments;
             }
 
             options = incorporated;
+            options.Print(logger);
+            options.SetupLoadingContext();
+
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
             if (!options.ParseAssemblyProperties(out var assemblyConstants))
             {

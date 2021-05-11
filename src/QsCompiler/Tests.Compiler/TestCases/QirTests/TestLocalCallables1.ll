@@ -1,4 +1,4 @@
-﻿define { %String*, double }* @Microsoft__Quantum__Testing__QIR__TestLocalCallables__body() {
+﻿define internal { %String*, double }* @Microsoft__Quantum__Testing__QIR__TestLocalCallables__body() {
 entry:
   %arr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
   %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
@@ -72,6 +72,7 @@ exit__1:                                          ; preds = %header__1
   %36 = bitcast %Tuple* %35 to { %String*, double }*
   %37 = getelementptr inbounds { %String*, double }, { %String*, double }* %36, i32 0, i32 0
   %38 = getelementptr inbounds { %String*, double }, { %String*, double }* %36, i32 0, i32 1
+  call void @__quantum__rt__string_update_reference_count(%String* %str, i32 1)
   store %String* %str, %String** %37, align 8
   store double %val, double* %38, align 8
   br label %header__2
@@ -128,6 +129,7 @@ exit__3:                                          ; preds = %header__3
   call void @__quantum__rt__callable_update_reference_count(%Callable* %fct, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %25, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %26, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %str, i32 -1)
   %51 = bitcast { i64, double }* %33 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %51, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %29, i32 -1)

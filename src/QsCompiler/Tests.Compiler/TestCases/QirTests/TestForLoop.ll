@@ -1,4 +1,4 @@
-define { double, %String* }* @Microsoft__Quantum__Testing__QIR__TestNestedLoops__body() {
+define internal { double, %String* }* @Microsoft__Quantum__Testing__QIR__TestNestedLoops__body() {
 entry:
   %name = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([7 x i8], [7 x i8]* @0, i32 0, i32 0))
   %0 = call %String* @__quantum__rt__string_create(i8* null)

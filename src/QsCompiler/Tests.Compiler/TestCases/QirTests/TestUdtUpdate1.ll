@@ -1,9 +1,10 @@
-define { { double, %String* }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestUdtUpdate1__body(%String* %a, i64 %b) {
+define internal { { double, %String* }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestUdtUpdate1__body(%String* %a, i64 %b) {
 entry:
   %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ double, %String* }* getelementptr ({ double, %String* }, { double, %String* }* null, i32 1) to i64))
   %1 = bitcast %Tuple* %0 to { double, %String* }*
   %2 = getelementptr inbounds { double, %String* }, { double, %String* }* %1, i32 0, i32 0
   %3 = getelementptr inbounds { double, %String* }, { double, %String* }* %1, i32 0, i32 1
+  call void @__quantum__rt__string_update_reference_count(%String* %a, i32 1)
   store double 1.000000e+00, double* %2, align 8
   store %String* %a, %String** %3, align 8
   %4 = call { { double, %String* }*, i64 }* @Microsoft__Quantum__Testing__QIR__TestType__body({ double, %String* }* %1, i64 %b)
@@ -41,33 +42,35 @@ condFalse__1:                                     ; preds = %entry
   br label %condContinue__1
 
 condContinue__1:                                  ; preds = %condFalse__1, %entry
-  store { double, %String* }* %19, { double, %String* }** %14, align 8
-  %20 = getelementptr inbounds { double, %String* }, { double, %String* }* %19, i32 0, i32 1
-  %21 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i32 1)
-  %22 = load %String*, %String** %20, align 8
+  %20 = bitcast %Tuple* %17 to { double, %String* }*
+  store { double, %String* }* %20, { double, %String* }** %14, align 8
+  %21 = getelementptr inbounds { double, %String* }, { double, %String* }* %20, i32 0, i32 1
+  %22 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
+  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 1)
+  %23 = load %String*, %String** %21, align 8
   br i1 %12, label %condContinue__2, label %condFalse__2
 
 condFalse__2:                                     ; preds = %condContinue__1
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i32 1)
-  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %22, i32 1)
+  call void @__quantum__rt__string_update_reference_count(%String* %23, i32 -1)
   br label %condContinue__2
 
 condContinue__2:                                  ; preds = %condFalse__2, %condContinue__1
-  store %String* %21, %String** %20, align 8
+  store %String* %22, %String** %21, align 8
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %11, i32 1)
   store { { double, %String* }*, i64 }* %13, { { double, %String* }*, i64 }** %x, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %17, i32 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %11, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %a, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %0, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %10, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %7, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %8, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %16, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %21, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %22, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %23, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 -1)
   ret { { double, %String* }*, i64 }* %13
