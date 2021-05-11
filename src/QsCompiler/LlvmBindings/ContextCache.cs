@@ -45,7 +45,7 @@ namespace Ubiquity.NET.Llvm
         {
             if (Instance.Value.Count != 1)
             {
-                throw new NotSupportedException("More than one context exists.");
+                throw new NotSupportedException($"Expected exactly 1 Context, but {Instance.Value.Count} exist.");
             }
 
             return Instance.Value.Values.First();
