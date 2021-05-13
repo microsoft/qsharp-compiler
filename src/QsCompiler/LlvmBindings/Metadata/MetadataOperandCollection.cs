@@ -78,12 +78,18 @@ namespace Ubiquity.NET.Llvm
         public Value? GetOperandValue(Index i)
         {
             var offset = i.GetOffset(this.Count);
-
             var valueHandle = this.Container.Context.ContextHandle.MetadataAsValue(this.Container.MetadataHandle);
-            var operand = valueHandle.GetMDNodeOperands().ElementAt(offset);
+            var operands = valueHandle.GetMDNodeOperands();
+
+            if (offset >= operands.Length)
+            {
+                throw new ArgumentException($"No operand exists at offset {offset}.");
+            }
+
+            var operand = operands[offset];
             if (operand == default)
             {
-                // Requested operand doesn't exist.
+                // Requested operand is nullptr.
                 return null;
             }
 
