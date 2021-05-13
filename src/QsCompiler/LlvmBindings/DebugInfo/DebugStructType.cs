@@ -268,7 +268,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( DIType == null )
             {
-                throw new InvalidOperationException( "" );
+                throw new InvalidOperationException();
             }
 
             UInt64 bitSize;

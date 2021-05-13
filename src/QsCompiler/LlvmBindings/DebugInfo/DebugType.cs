@@ -93,7 +93,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 }
                 else
                 {
-                    throw new InvalidOperationException( "" );
+                    throw new InvalidOperationException();
                 }
             }
         }
@@ -171,7 +171,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( DIType == null )
             {
-                throw new InvalidOperationException( "" );
+                throw new InvalidOperationException();
             }
 
             var nativePointer = NativeType.CreatePointerType( addressSpace );
@@ -183,7 +183,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( DIType == null )
             {
-                throw new InvalidOperationException( "" );
+                throw new InvalidOperationException();
             }
 
             var llvmArray = NativeType.CreateArrayType( count );

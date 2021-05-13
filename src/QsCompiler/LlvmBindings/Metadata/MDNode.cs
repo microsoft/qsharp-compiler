@@ -48,7 +48,7 @@ namespace Ubiquity.NET.Llvm
         {
             if( MetadataHandle == default )
             {
-                throw new InvalidOperationException( "" );
+                throw new InvalidOperationException();
             }
 
             // grab the context before replacement as replace deletes and invalidates the node

@@ -125,7 +125,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
             if( OwningModule.DICompileUnit != null )
             {
-                throw new InvalidOperationException( "" );
+                throw new InvalidOperationException();
             }
 
             var file = CreateFile( fileName, fileDirectory );

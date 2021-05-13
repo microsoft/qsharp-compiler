@@ -124,7 +124,7 @@ namespace Ubiquity.NET.Llvm
 
             if( MetadataHandle == default )
             {
-                throw new InvalidOperationException( "" );
+                throw new InvalidOperationException();
             }
 
             MetadataHandle.ReplaceAllUsesWith( other.MetadataHandle );

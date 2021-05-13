@@ -50,7 +50,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( !llvmType.IsOpaque )
             {
-                throw new ArgumentException( "" );
+                throw new ArgumentException();
             }
 
             SetBody( module, scope, file, line, debugFlags, elements );
@@ -111,7 +111,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( module.Layout == null )
             {
-                throw new ArgumentException( "" );
+                throw new ArgumentException();
             }
 
             // Native body is a single element of a type with the largest size
@@ -122,7 +122,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 ulong? bitSize = elem.ExplicitLayout?.BitSize ?? module.Layout?.BitSizeOf( elem.DebugType );
                 if( !bitSize.HasValue )
                 {
-                    throw new ArgumentException( "" );
+                    throw new ArgumentException();
                 }
 
                 if( maxSize >= bitSize.Value )

@@ -42,7 +42,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             if( module.Layout == null )
             {
-                throw new ArgumentException( "" );
+                throw new ArgumentException();
             }
 
             switch( llvmType.Kind )
@@ -58,7 +58,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 break;
 
             default:
-                throw new ArgumentException( "" );
+                throw new ArgumentException();
             }
         }
     }
