@@ -29,6 +29,19 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         public string Summary { get; } = "";
 
         /// <summary>
+        /// The summary description of the item, without any automatically
+        /// appended frontmatter.
+        /// </summary>
+        /// <seealso cref="Summary"/>
+        public string RawSummary { get; } = "";
+
+        /// <summary>
+        /// Any deprecation notice for the item.
+        /// Set to <c>null</c> if no deprecation notice applies to this item.
+        /// </summary>
+        public string? DeprecationNotice { get; } = null;
+
+        /// <summary>
         /// The (rest of the) full description of the item.
         /// This should not duplicate the summary, but rather follow it.
         /// </summary>
@@ -271,6 +284,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     new string[] { name, $"<xref:{replacement.AsUid()}>" });
             var deprecationDetails = "";
 
+            if (!string.IsNullOrWhiteSpace(deprecationSummary))
+            {
+                this.DeprecationNotice = deprecationSummary;
+            }
+
             var text = string.Join("\n", docComments);
 
             // Only parse if there are comments to parse
@@ -350,6 +368,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 this.Documentation = ToMarkdown(summarySection.Concat(descriptionSection));
             }
 
+            // Before applying any deprecation notice, save the original
+            // summary.
+            this.RawSummary = this.Summary;
             if (deprecated)
             {
                 var deprecationWarning = Utils.Warning(string.Join(

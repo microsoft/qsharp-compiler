@@ -65,10 +65,17 @@ def summaries_table(namespace : Namespace, kind : str, header : str) -> str:
         lines = summary.splitlines()
         return lines[0] if lines else ""
 
+    def summary_for(item) -> str:
+        summary = first_line(item['summary'])
+        if 'deprecated' in item:
+            return f"**Deprecated:** {item['deprecated']}\n{summary}"
+        else:
+            return summary
+
     items = items_of_kind(namespace.items, kind)
     return (
         table_header + "\n".join(
-            f"|[{item['name']}](xref:{item['uid']}) |{first_line(item['summary'])} |"
+            f"|[{item['name']}](xref:{item['uid']}) |{summary_for(item)} |"
             for item in items
         )
         if items

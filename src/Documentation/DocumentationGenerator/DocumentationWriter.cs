@@ -151,8 +151,18 @@ namespace Microsoft.Quantum.Documentation
                 // Q# metadata
                 ["qsharp.kind"] = "namespace",
                 ["qsharp.name"] = name,
-                ["qsharp.summary"] = docComment.Summary,
+                // We use the raw summary here, so that we don't embed any
+                // frontmatter added by the doc comment parser to the
+                // summary saved into metadata. See
+                // https://github.com/microsoft/qsharp-compiler/issues/1017
+                // for discussion.
+                ["qsharp.summary"] = docComment.RawSummary,
             };
+            if (!string.IsNullOrWhiteSpace(docComment.DeprecationNotice))
+            {
+                header["qsharp.deprecated"] = docComment.DeprecationNotice;
+            }
+
             var document = $@"
 # {title}
 
@@ -201,8 +211,17 @@ namespace Microsoft.Quantum.Documentation
                 ["qsharp.kind"] = "udt",
                 ["qsharp.namespace"] = type.FullName.Namespace,
                 ["qsharp.name"] = type.FullName.Name,
-                ["qsharp.summary"] = docComment.Summary,
+                // We use the raw summary here, so that we don't embed any
+                // frontmatter added by the doc comment parser to the
+                // summary saved into metadata. See
+                // https://github.com/microsoft/qsharp-compiler/issues/1017
+                // for discussion.
+                ["qsharp.summary"] = docComment.RawSummary,
             };
+            if (!string.IsNullOrWhiteSpace(docComment.DeprecationNotice))
+            {
+                header["qsharp.deprecated"] = docComment.DeprecationNotice;
+            }
             var document = $@"
 # {title}
 
@@ -279,8 +298,17 @@ Namespace: [{type.FullName.Namespace}](xref:{type.FullName.Namespace})
                 ["qsharp.kind"] = kind,
                 ["qsharp.namespace"] = callable.FullName.Namespace,
                 ["qsharp.name"] = callable.FullName.Name,
-                ["qsharp.summary"] = docComment.Summary,
+                // We use the raw summary here, so that we don't embed any
+                // frontmatter added by the doc comment parser to the
+                // summary saved into metadata. See
+                // https://github.com/microsoft/qsharp-compiler/issues/1017
+                // for discussion.
+                ["qsharp.summary"] = docComment.RawSummary,
             };
+            if (!string.IsNullOrWhiteSpace(docComment.DeprecationNotice))
+            {
+                header["qsharp.deprecated"] = docComment.DeprecationNotice;
+            }
             var keyword = callable.Kind.Tag switch
             {
                 QsCallableKind.Tags.Function => "function ",
