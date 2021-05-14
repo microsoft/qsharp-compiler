@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
     internal class QirExpressionKindTransformation : ExpressionKindTransformation<GenerationContext>
     {
-        // inner classes
+        /* inner classes */
 
         private abstract class PartialApplicationArgument
         {
@@ -73,6 +73,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// The given capture is unused.
             /// </summary>
             public override IValue BuildItem(TupleValue capture, IValue paArgs) =>
+
                 // parArgs.NativeType == this.ItemType may occur if we have an item of user defined type (represented as a tuple)
                 (paArgs is TupleValue paArgsTuple) && paArgsTuple.StructType.CreatePointerType() != this.ItemType
                     ? paArgsTuple.GetTupleElement(this.ArgIndex)
@@ -105,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
-        // constructors
+        /* constructors */
 
         public QirExpressionKindTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation)
             : base(parentTransformation)
@@ -127,7 +128,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
         }
 
-        // static methods
+        /* static methods */
 
         /// <returns>
         /// True if the expression is self-evaluating and
@@ -158,6 +159,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         {
                             return true;
                         }
+
                         break;
                     case QsTuple<QsTypeItem>.QsTuple list:
                         for (int i = 0; i < list.Item.Length; i++)
@@ -168,8 +170,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                 return true;
                             }
                         }
+
                         break;
                 }
+
                 return false;
             }
 
@@ -262,7 +266,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Then if we kept the ref count at 1, and updated an item in ops, the old item's ref count would drop to 0, releasing it.
                 // Hence (assuming we can't know which items will be updated), we increase both the alias and the ref count
                 // when assigning to mutable variables for the array and all its item.
-
                 if (updateItemAliasCount)
                 {
                     sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
@@ -353,6 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // What's left to do is to unreference the original array itself.
                     sharedState.ScopeMgr.DecreaseReferenceCount(originalArray, shallow: true);
                 }
+
                 return array;
             }
 
@@ -426,6 +430,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         sharedState.ScopeMgr.DecreaseReferenceCount(originalValue);
                     }
+
                     return value;
                 }
                 else
@@ -470,6 +475,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         return (-1, s.Length, -1);
                     }
+
                     // if the number of backslashes before the '{' is even, then the '{' is not escapted
                     else if (((i - start) - s.Substring(start, i - start).TrimEnd('\\').Length) % 2 == 0)
                     {
@@ -478,9 +484,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         {
                             throw new FormatException("Missing } in interpolated string");
                         }
+
                         var n = int.Parse(s[(i + 1)..j]);
                         return (i, j + 1, n);
                     }
+
                     start = i + 1;
                 }
             }
@@ -534,6 +542,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         // we need to increase the reference count of next unless unreferenceNext is true.
                         sharedState.CurrentBuilder.Call(refCountUpdate, next, plusOne);
                     }
+
                     return next;
                 }
 
@@ -545,6 +554,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     sharedState.CurrentBuilder.Call(refCountUpdate, next, minusOne);
                 }
+
                 return app;
             }
 
@@ -579,6 +589,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             comma ??= CreateConstantString(", ");
                             str = DoAppend(str, comma!, unreferenceNext: false);
                         }
+
                         str = DoAppend(str, ExpressionToString(tupleElements[idx]));
                     }
 
@@ -780,12 +791,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var binding = new QsBinding<TypedExpression>(QsBindingKind.ImmutableBinding, symbolTuple, arg);
                         this.Transformation.StatementKinds.OnVariableDeclaration(binding);
                     }
+
                     this.Transformation.Statements.OnScope(impl.Item2);
                 }
                 else
                 {
                     throw new InvalidOperationException("missing specialization implementation for inlining");
                 }
+
                 return this.SharedState.StopInlining();
             }
 
@@ -874,7 +887,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // The same holds if ex is a partial application or another functor application.
             // Call-expression on the other hand may take a callable as argument and return the same value;
             // it is thus not save to apply the functor directly to the returned value (pointer) in that case.
-
             var isGlobalCallable = ex.TryAsGlobalCallable().IsValue;
             var isPartialApplication = TypedExpression.IsPartialApplication(ex.Expression);
             var isFunctorApplication = ex.Expression.IsAdjointApplication || ex.Expression.IsControlledApplication;
@@ -897,7 +909,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             // This method is used when applying functors when building a functor application expression
             // as well as when creating the specializations for a partial application.
-
             if (!modifyInPlace)
             {
                 // Since we track alias counts for callables there is no need to force the copy.
@@ -948,11 +959,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 array.GetArrayElementPointer(index).StoreValue(itemValue);
                 this.SharedState.ScopeMgr.CloseScope(itemValue);
             }
+
             this.SharedState.IterateThroughRange(start, null, end, PopulateItem);
             return ResolvedExpressionKind.InvalidExpr;
         }
 
-        // public overrides
+        /* public overrides */
 
         public override ResolvedExpressionKind OnAddition(TypedExpression lhsEx, TypedExpression rhsEx)
         {
@@ -993,6 +1005,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var adder = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayConcatenate);
                 var res = this.SharedState.CurrentBuilder.Call(adder, lhs.Value, rhs.Value);
                 value = this.SharedState.Values.FromArray(res, elementType.Item);
+
                 // The explicit ref count increase for all items is necessary for the sake of
                 // consistency such that the reference count adjustment for copy-and-update is correct.
                 this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
@@ -1040,6 +1053,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
                 var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
+
                 // The explicit ref count increase for all items is necessary for the sake of
                 // consistency such that the reference count adjustment for copy-and-update is correct.
                 this.SharedState.ScopeMgr.IncreaseReferenceCount(value);
@@ -1914,6 +1928,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var values = elementTypes.Select(DefaultValue).ToArray();
                     return this.SharedState.Values.CreateCustomType(udt.Item, values);
                 }
+
                 if (type.Resolution is ResolvedTypeKind.ArrayType itemType)
                 {
                     return this.SharedState.Values.CreateArray(itemType.Item);
@@ -2133,6 +2148,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // Figure out the inputs to the resulting callable based on the signature of the partial application expression
             var exType = this.SharedState.CurrentExpressionType();
             var callableArgType = CallableArgumentType(exType);
+
             // Argument type of the callable that is partially applied
             var innerArgType = CallableArgumentType(method.ResolvedType);
 
@@ -2224,6 +2240,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     step = this.SharedState.Context.CreateConstant(1L);
                     break;
             }
+
             Value end = this.SharedState.EvaluateSubexpression(rhs).Value;
             var value = this.SharedState.CreateRange(start, step, end);
 

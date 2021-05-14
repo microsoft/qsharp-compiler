@@ -157,17 +157,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.ErrorDelimiterPositions = errorDelimiters.ToImmutableArray();
 
             var lineLength = text.Length - this.LineEnding.Length;
-            // if there is a comment
             if (commentStart >= 0)
             {
+                // There is a comment.
                 this.WithoutEnding = text.Substring(0, commentStart);
                 var commentStr = text.Substring(commentStart, lineLength - commentStart).Trim();
                 var isDocComment = string.IsNullOrWhiteSpace(this.WithoutEnding) && (commentStr.Length - commentStr.TrimStart('/').Length == 3);
                 this.EndOfLineComment = isDocComment ? null : commentStr.Substring(2);
             }
-            // else there is no comment
             else
             {
+                // There is no comment.
                 this.WithoutEnding = text.Substring(0, lineLength);
                 this.EndOfLineComment = null;
             }
@@ -202,6 +202,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 }
 
                 var inputDelimiter = text[delim].ToString();
+
                 // If the input is a " preceded by a $ than the input needs to be updated to $"
                 if (delim > 0 && inputDelimiter == "\"" && text[delim - 1] == '$')
                 {
@@ -230,17 +231,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
 
             var lineLength = text.Length - this.LineEnding.Length;
-            // if there is a comment
             if (commentStart >= 0)
             {
+                // There is a comment.
                 this.WithoutEnding = text.Substring(0, commentStart);
                 var commentStr = text.Substring(commentStart, lineLength - commentStart).Trim();
                 var isDocComment = string.IsNullOrWhiteSpace(this.WithoutEnding) && (commentStr.Length - commentStr.TrimStart('/').Length == 3);
                 this.EndOfLineComment = isDocComment ? null : commentStr.Substring(2);
             }
-            // else there is no comment
             else
             {
+                // There is no comment.
                 this.WithoutEnding = text.Substring(0, lineLength);
                 this.EndOfLineComment = null;
             }
@@ -309,29 +310,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     case StringContext.NoOpenString:
                         // Find the next " or comment
-                        indexOfDelim = text.IndexOfAny(CodeLine.NoOpenStringDelimiters, pos);
+                        indexOfDelim = text.IndexOfAny(NoOpenStringDelimiters, pos);
+
                         // Don't stop if index is a lone /
                         while (IsLoneSlash(indexOfDelim))
                         {
-                            indexOfDelim = text.IndexOfAny(CodeLine.NoOpenStringDelimiters, indexOfDelim + 1);
+                            indexOfDelim = text.IndexOfAny(NoOpenStringDelimiters, indexOfDelim + 1);
                         }
+
                         break;
                     case StringContext.OpenInterpolatedArgument:
                         // Find the next " or } or comment
-                        indexOfDelim = text.IndexOfAny(CodeLine.OpenInterpolatedArgumentDelimiters, pos);
+                        indexOfDelim = text.IndexOfAny(OpenInterpolatedArgumentDelimiters, pos);
+
                         // Don't stop if index is a lone /
                         while (IsLoneSlash(indexOfDelim))
                         {
-                            indexOfDelim = text.IndexOfAny(CodeLine.OpenInterpolatedArgumentDelimiters, indexOfDelim + 1);
+                            indexOfDelim = text.IndexOfAny(OpenInterpolatedArgumentDelimiters, indexOfDelim + 1);
                         }
+
                         break;
                     case StringContext.OpenInterpolatedString:
                         // Find the next " or {, neither or which being preceded by \
-                        indexOfDelim = text.IndexOfAny(CodeLine.OpenInterpolatedStringDelimiters, pos);
+                        indexOfDelim = text.IndexOfAny(OpenInterpolatedStringDelimiters, pos);
                         while (IsEscaped(indexOfDelim))
                         {
-                            indexOfDelim = text.IndexOfAny(CodeLine.OpenInterpolatedStringDelimiters, indexOfDelim + 1);
+                            indexOfDelim = text.IndexOfAny(OpenInterpolatedStringDelimiters, indexOfDelim + 1);
                         }
+
                         break;
                     case StringContext.OpenString:
                     case StringContext.OpenStringInOpenInterpolatedArgument:
@@ -341,6 +347,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                         {
                             indexOfDelim = text.IndexOf('"', indexOfDelim + 1);
                         }
+
                         break;
                 }
 
@@ -357,6 +364,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
 
                 // Get the delimiter
                 var inputDelimiter = text[indexOfDelim].ToString();
+
                 // If the input is a " preceded by a $ than the input needs to be updated to $"
                 if (indexOfDelim > 0 && inputDelimiter == "\"" && text[indexOfDelim - 1] == '$')
                 {
@@ -383,6 +391,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     delimiterBuilder.Add(indexOfDelim);
                 }
+
                 pos = indexOfDelim + 1;
             }
 
@@ -414,6 +423,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                         default:
                             return (curr, true);
                     }
+
                 case "{":
                     switch (curr)
                     {
@@ -424,6 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                         default:
                             return (curr, true);
                     }
+
                 case "}":
                     switch (curr)
                     {
@@ -432,6 +443,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                         default:
                             return (curr, true);
                     }
+
                 case "$\"":
                     switch (curr)
                     {
@@ -447,6 +459,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                         default:
                             return (curr, true);
                     }
+
                 default:
                     return (curr, true);
             }
@@ -533,6 +546,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             {
                 throw new ArgumentException("a CodeFragment needs to be followed by a DelimitingChar");
             }
+
             this.Indentation = indent < 0 ? throw new ArgumentException("indentation needs to be positive") : indent;
             this.Text = text.TrimEnd();
             this.FollowedBy = next;
@@ -557,6 +571,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             {
                 return false;
             }
+
             return
                 this.Range == other.Range &&
                 this.Indentation == other.Indentation &&
@@ -635,14 +650,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new ArgumentOutOfRangeException(nameof(line));
                 }
+
                 if (index < 0)
                 {
                     throw new ArgumentOutOfRangeException(nameof(index));
                 }
+
                 if (line >= file.NrTokenizedLines())
                 {
                     throw new FileContentException("Line exceeds the bounds of the file.");
                 }
+
                 if (index >= file.GetTokenizedLine(line).Length)
                 {
                     throw new FileContentException("Token exceeds the bounds of the line.");
@@ -674,6 +692,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
+
                 this.file.GetTokenizedLine(this.Line)[this.Index].IncludeInCompilation = false;
             }
 
@@ -690,6 +709,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
+
                 this.file.GetTokenizedLine(this.Line)[this.Index].IncludeInCompilation = true;
             }
 
@@ -708,6 +728,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
+
                 return this.file.GetTokenizedLine(this.Line)[this.Index].WithLineNumOffset(this.Line);
             }
 
@@ -724,6 +745,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             internal CodeFragment GetFragmentWithClosingComments()
             {
                 var fragment = this.GetFragment();
+
                 // get any comments attached to a potential empty closing fragment
                 // -> note that the fragment containing a closing bracket has an indentation level that is one higher than the matching parent! (giving the same *after* closing)
                 var allChildren = this.GetChildren(deep: false);
@@ -735,6 +757,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                         fragment = fragment.SetClosingComments(lastChild.Comments.OpeningComments);
                     }
                 }
+
                 return fragment;
             }
 
@@ -750,15 +773,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
+
                 var res = new TokenIndex(this);
                 if (++res.Index < res.file.GetTokenizedLine(res.Line).Length)
                 {
                     return res;
                 }
+
                 res.Index = 0;
                 while (++res.Line < res.file.NrTokenizedLines() && res.file.GetTokenizedLine(res.Line).Length == 0)
                 {
                 }
+
                 return res.Line == res.file.NrTokenizedLines() ? null : res;
             }
 
@@ -774,15 +800,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new FileContentException("Token index is no longer valid within its associated file.");
                 }
+
                 var res = new TokenIndex(this);
                 if (res.Index-- > 0)
                 {
                     return res;
                 }
+
                 while (res.Index < 0 && res.Line-- > 0)
                 {
                     res.Index = res.file.GetTokenizedLine(res.Line).Length - 1;
                 }
+
                 return res.Line < 0 ? null : res;
             }
         }
@@ -824,6 +853,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                 {
                     throw new ArgumentException("parentStart needs to be smaller than or equal to the fragment start.", nameof(parentStart));
                 }
+
                 this.Fragment = fragment;
                 this.Children = children;
                 this.RootPosition = parentStart;
@@ -1130,10 +1160,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
+
             if (count < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
+
             if (lineNrChange < -count)
             {
                 throw new ArgumentOutOfRangeException(nameof(lineNrChange));
@@ -1149,6 +1181,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     this.set.RemoveWhere(lineNr => start <= lineNr);
                     this.set.UnionWith(updatedLineNrs);
                 }
+
                 return nrRemoved;
             }
             finally
@@ -1243,7 +1276,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         {
         }
 
-        // members for content manipulation
+        /* members for content manipulation */
 
         public void Add(T item)
         {
@@ -1365,6 +1398,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
                     item = this.content[index];
                     return true;
                 }
+
                 item = default;
                 return false;
             }

@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
-        // helper classes
+        /* helper classes */
 
         private class StatementTransformation
         : StatementTransformation<TransformationState>
@@ -81,6 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
                         statements.Add(this.OnStatement(statement));
                     }
                 }
+
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
         }
@@ -106,6 +107,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
                     this.SharedState.OnException?.Invoke(ex);
                     this.SharedState.Success = false;
                 }
+
                 return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
             }
         }

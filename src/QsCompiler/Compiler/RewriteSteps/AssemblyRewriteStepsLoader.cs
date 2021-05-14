@@ -110,6 +110,7 @@ namespace Microsoft.Quantum.QsCompiler
                         {
                             sb.AppendLine(msg);
                         }
+
                         if (exSub is FileNotFoundException exFileNotFound && !string.IsNullOrEmpty(exFileNotFound.FusionLog))
                         {
                             sb.AppendLine("Fusion Log:");

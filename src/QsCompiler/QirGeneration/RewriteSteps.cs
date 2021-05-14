@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler
                     Severity = DiagnosticSeverity.Error,
                     Stage = IRewriteStep.Stage.PreconditionVerification,
                     Message = DiagnosticItem.Message(ErrorCode.SyntaxTreeNotMonomorphized, Array.Empty<string>()),
-                    Source = Assembly.GetExecutingAssembly().Location
+                    Source = Assembly.GetExecutingAssembly().Location,
                 });
                 return false;
             }
@@ -166,6 +166,7 @@ namespace Microsoft.Quantum.QsCompiler
                     Stage = IRewriteStep.Stage.Transformation,
                 });
             }
+
             return true;
         }
 

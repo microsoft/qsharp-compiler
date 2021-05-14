@@ -56,6 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     // In the file the newline is correct; YAML.Net serializes \r as \n.
                     rems += "\r\r### Examples\r" + this.Comments.Example;
                 }
+
                 rootNode.AddStringMapping(Utils.RemarksKey, rems);
             }
 
@@ -64,6 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             {
                 rootNode.AddStringMapping(Utils.ReferencesKey, this.Comments.References);
             }
+
             if (this.Comments.SeeAlso.Count > 0)
             {
                 rootNode.Add(Utils.SeeAlsoKey, Utils.BuildSequenceNode(this.Comments.SeeAlso));

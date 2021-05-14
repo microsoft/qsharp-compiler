@@ -45,6 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var concreteNamesMap = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
 
             var nodesWithResolutions = new ConcreteCallGraph(compilation).Nodes
+
                 // Remove specialization information so that we only deal with the full callables.
                 // Note: this only works fine if for all nodes in the call graph,
                 // all existing functor specializations and their dependencies are also in the call graph.
@@ -111,7 +112,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             return ReplaceTypeParamCalls.Apply(compWithImpls, getConcreteIdentifier, intrinsicsToKeep);
         }
 
-        // Rewrite Implementations
+        /* Rewrite Implementations */
 
         private static Access GetAccessModifier(ImmutableDictionary<QsQualifiedName, QsCustomType> userDefinedTypes, QsQualifiedName typeName)
         {
@@ -120,6 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 throw new ArgumentException($"Couldn't find definition for user defined type: {typeName}");
             }
+
             return type.Access;
         }
 
@@ -223,6 +225,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     {
                         return typeParam.Resolution;
                     }
+
                     return ResolvedTypeKind.NewTypeParameter(tp);
                 }
             }
@@ -237,6 +240,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     this.OnType(res);
                 }
+
                 return this.SharedState.AccessModifiers.ToImmutableArray();
             }
 
@@ -264,7 +268,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
         }
 
-        // Rewrite Calls
+        /* Rewrite Calls */
 
         private static Identifier GetConcreteIdentifier(
             Dictionary<ConcreteCallGraphNode, QsQualifiedName> concreteNames,
@@ -393,6 +397,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                             sym = this.SharedState.GetConcreteIdentifier(global, typeRes);
                             tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
                         }
+
                         this.SharedState.CurrentTypeParamResolutions.Clear();
                     }
                     else if (sym is Identifier.LocalVariable && tArgs.IsValue && tArgs.Item.Any())
@@ -422,6 +427,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     {
                         return typeParam.Resolution;
                     }
+
                     return ResolvedTypeKind.NewTypeParameter(tp);
                 }
             }

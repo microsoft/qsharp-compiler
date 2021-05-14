@@ -39,13 +39,14 @@ namespace Microsoft.Quantum.QsLanguageServer
             var props = new Dictionary<string, string>
             {
                 ["BuildProjectReferences"] = "false",
-                ["EnableFrameworkPathOverride"] = "false" // otherwise msbuild fails on .net 461 projects
+                ["EnableFrameworkPathOverride"] = "false", // otherwise msbuild fails on .net 461 projects
             };
             if (targetFramework != null)
             {
                 // necessary for multi-framework projects.
                 props["TargetFramework"] = targetFramework;
             }
+
             return props;
         }
 
@@ -108,6 +109,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentException("given project file is null or does not exist", nameof(projectFile));
             }
+
             (string?, Dictionary<string, string?>) FrameworkAndMetadata(Project project)
             {
                 string? GetVersion(ProjectItem item) => item.DirectMetadata
@@ -124,10 +126,12 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     projInfo[$"pkgref.{package}"] = version;
                 }
+
                 foreach (var (name, value) in trackedProperties)
                 {
                     projInfo[name] = value;
                 }
+
                 projInfo["projectNameHash"] = this.GetProjectNameHash(projectFile);
 
                 var frameworks = TargetedFrameworks(project).ToList();
@@ -135,6 +139,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     frameworks.Sort(preferredFramework);
                 }
+
                 return (frameworks.FirstOrDefault(), projInfo);
             }
 
@@ -160,6 +165,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         sBuilder.Append(data[i].ToString("x2"));
                     }
+
                     return sBuilder.ToString();
                 }
             }
@@ -218,6 +224,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return null;
             }
+
             var loggers = new ILogger[] { new Utils.MSBuildLogger(this.Log) };
             int PreferSupportedFrameworks(string x, string y) => (this.IsSupportedQsFramework(y) ? 1 : 0) - (this.IsSupportedQsFramework(x) ? 1 : 0);
             var properties = this.DesignTimeBuildProperties(projectFile, out metadata, PreferSupportedFrameworks);
@@ -239,6 +246,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     this.Log($"Failed to resolve assembly references for project '{projectFile}'.", MessageType.Error);
                 }
+
                 return instance.Targets.ContainsKey("QSharpCompile") ? instance : null;
             });
         }
@@ -281,6 +289,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 this.Log($"Discovered Q# project '{projectFile}'.", MessageType.Log);
             }
+
             return instance;
         }
     }

@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QIR
         /// </summary>
         public IStructType Range { get; }
 
-        // private and internal fields
+        /* private and internal fields */
 
         private readonly Context context;
 
@@ -112,7 +112,6 @@ namespace Microsoft.Quantum.QIR
         internal IArrayType CallableMemoryManagementTable { get; }
 
         // constructor
-
         internal Types(Context context)
         {
             this.context = context;
@@ -267,7 +266,6 @@ namespace Microsoft.Quantum.QIR
         public const string Pauli = "Pauli";
 
         // names of used structs
-
         public const string Callable = "Callable";
         public const string Result = "Result";
         public const string Qubit = "Qubit";

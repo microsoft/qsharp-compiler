@@ -22,7 +22,7 @@ namespace Microsoft.Quantum.QsLanguageServer
 {
     public class QsLanguageServer : IDisposable
     {
-        // properties required for basic functionality
+        /* properties required for basic functionality */
 
         private readonly JsonRpc rpc;
         private readonly ManualResetEvent disconnectEvent; // used to keep the server running until it is no longer needed
@@ -64,14 +64,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 ? supportedFormats.Contains(MarkupKind.Markdown) ? MarkupKind.Markdown : supportedFormats.First()
                 : MarkupKind.PlainText;
 
-        // methods required for basic functionality
+        /* methods required for basic functionality */
 
         public QsLanguageServer(Stream? sender, Stream? reader)
         {
             this.waitForInit = new ManualResetEvent(false);
             this.rpc = new JsonRpc(sender, reader, this)
             {
-                SynchronizationContext = new QsSynchronizationContext()
+                SynchronizationContext = new QsSynchronizationContext(),
             };
             this.rpc.StartListening();
             this.disconnectEvent = new ManualResetEvent(false);
@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.waitForInit?.Dispose();
         }
 
-        // some utils for server -> client communication
+        /* some utils for server -> client communication */
 
         internal Task NotifyClientAsync(string method, object args) =>
             this.rpc.NotifyWithParameterObjectAsync(method, args);  // no need to wait for completion
@@ -209,6 +209,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                             $"{message}\nDetails on the encountered error have been logged to {logLocation}.",
                             MessageType.Error);
                     }
+
                     break;
             }
         }
@@ -216,7 +217,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         private void OnTemporaryProjectLoaded(Uri projectUri) =>
             this.fileWatcher.ListenAsync(Path.GetDirectoryName(projectUri.LocalPath), false, null, "*.csproj").Wait();
 
-        // jsonrpc methods for initialization and shut down
+        /* jsonrpc methods for initialization and shut down */
 
         private Task InitializeWorkspaceAsync(ImmutableDictionary<Uri, ImmutableHashSet<string>> folders)
         {
@@ -227,6 +228,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     return null;
                 }
+
                 this.projectsInWorkspace.Add(uri);
                 return uri;
             })
@@ -256,12 +258,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     this.clientName = name.ToString();
                 }
+
                 if (options.TryGetValue("version", out var version)
                         && !Version.TryParse(version.ToString(), out this.clientVersion))
                 {
                     this.clientVersion = null;
                 }
             }
+
             bool supportsCompletion = !this.ClientNameIs("VisualStudio") || this.ClientVersionIsAtLeast(new Version(16, 3));
             bool useTriggerCharWorkaround = this.ClientNameIs("VisualStudio") && !this.ClientVersionIsAtLeast(new Version(16, 4));
 
@@ -276,7 +280,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 CompletionProvider = supportsCompletion ? new CompletionOptions() : null,
                 SignatureHelpProvider = new SignatureHelpOptions(),
                 ExecuteCommandProvider = new ExecuteCommandOptions(),
-                DocumentRangeFormattingProvider = false
+                DocumentRangeFormattingProvider = false,
             };
             capabilities.TextDocumentSync.Change = TextDocumentSyncKind.Incremental;
             capabilities.TextDocumentSync.OpenClose = true;
@@ -322,7 +326,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             this.disconnectEvent.Set();
         }
 
-        // jsonrpc methods called by the language server protocol
+        /* jsonrpc methods called by the language server protocol */
 
         [JsonRpcMethod(Methods.TextDocumentDidOpenName)]
         public Task OnTextDocumentDidOpenAsync(JToken arg)
@@ -331,11 +335,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return Task.CompletedTask;
             }
+
             var param = Utils.TryJTokenAs<DidOpenTextDocumentParams>(arg);
             if (param == null)
             {
                 throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDidOpenName}, but got null.");
             }
+
             return this.editorState.OpenFileAsync(
                 param.TextDocument,
                 this.ShowInWindow,
@@ -349,11 +355,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return Task.CompletedTask;
             }
+
             var param = Utils.TryJTokenAs<DidCloseTextDocumentParams>(arg);
             if (param == null)
             {
                 throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDidCloseName}, but got null.");
             }
+
             return this.editorState.CloseFileAsync(param.TextDocument, this.LogToWindow);
         }
 
@@ -364,7 +372,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return Task.CompletedTask;
             }
+
             var param = Utils.TryJTokenAs<DidSaveTextDocumentParams>(arg);
+
             // NB: if param.Text is null, then there's nothing to actually
             //     do here.
             return param?.Text == null
@@ -379,11 +389,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return Task.CompletedTask;
             }
+
             var param = Utils.TryJTokenAs<DidChangeTextDocumentParams>(arg);
             if (param == null)
             {
                 throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDidChangeName}, but got null.");
             }
+
             return this.editorState.DidChangeAsync(param);
         }
 
@@ -394,6 +406,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
+
             var param = Utils.TryJTokenAs<RenameParams>(arg);
             var versionedChanges = this.clientCapabilities?.Workspace?.WorkspaceEdit?.DocumentChanges ?? false;
             try
@@ -415,15 +428,17 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
                 throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDefinitionName}, but got null.");
             }
+
             var defaultLocation = new Location
             {
                 Uri = param.TextDocument.Uri,
-                Range = new VisualStudio.LanguageServer.Protocol.Range { Start = param.Position, End = param.Position }
+                Range = new VisualStudio.LanguageServer.Protocol.Range { Start = param.Position, End = param.Position },
             };
             try
             {
@@ -444,11 +459,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
                 throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentDocumentHighlightName}, but got null.");
             }
+
             try
             {
                 return QsCompilerError.RaiseOnFailure(
@@ -468,6 +485,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
+
             var param = Utils.TryJTokenAs<ReferenceParams>(arg);
             if (param == null)
             {
@@ -493,11 +511,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
                 throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentHoverName}, but got null.");
             }
+
             var supportedFormats = this.clientCapabilities?.TextDocument?.Hover?.ContentFormat;
             var format = this.ChooseFormat(supportedFormats);
             try
@@ -519,6 +539,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
             }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
@@ -554,6 +575,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
+
             var param = Utils.TryJTokenAs<DocumentSymbolParams>(arg);
             if (param != null)
             {
@@ -568,6 +590,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     // This is ok, if it happens we'll return an empty array.
                 }
             }
+
             return Array.Empty<SymbolInformation>();
         }
 
@@ -578,11 +601,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return Task.Run<object?>(() => ProtocolError.AwaitingInitialization);
             }
+
             var param = Utils.TryJTokenAs<TextDocumentPositionParams>(arg);
             if (param == null)
             {
                 throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentCompletionName}, but got null.");
             }
+
             var task = new Task<object?>(() =>
             {
                 // Wait for the file manager to finish processing any changes
@@ -610,11 +635,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
+
             var param = Utils.TryJTokenAs<CompletionItem>(arg);
             if (param?.Data == null)
             {
                 return null;
             }
+
             var supportedFormats = this.clientCapabilities?.TextDocument?.SignatureHelp?.SignatureInformation?.DocumentationFormat;
             var format = this.ChooseFormat(supportedFormats);
             try
@@ -638,7 +665,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 return new CodeAction
                 {
                     Title = title,
-                    Edit = edit
+                    Edit = edit,
                 };
             }
 
@@ -646,6 +673,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return ProtocolError.AwaitingInitialization;
             }
+
             var param = Utils.TryJTokenAs<Workarounds.CodeActionParams>(arg)?.ToCodeActionParams();
             if (param == null)
             {
@@ -677,12 +705,14 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new JsonSerializationException($"Expected parameters for {Methods.WorkspaceExecuteCommandName}, but got null.");
             }
+
             // currently all supported commands take a single argument
             var argument = (JObject?)param.Arguments?.Single();
             if (argument == null)
             {
                 throw new JsonSerializationException($"Expected an array with a single command argument, but got null.");
             }
+
             object? CastAndExecute<T>(Func<T, object?> command)
                 where T : class =>
                 QsCompilerError.RaiseOnFailure(
@@ -710,6 +740,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return;
             }
+
             var param = Utils.TryJTokenAs<DidChangeWatchedFilesParams>(arg);
 
             FileEvent[] PreprocessEvent(FileEvent fileEvent)
@@ -723,11 +754,13 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         this.projectsInWorkspace.Add(fileEvent.Uri);
                     }
+
                     if (fileEvent.FileChangeType == FileChangeType.Deleted)
                     {
                         this.projectsInWorkspace.Remove(fileEvent.Uri);
                     }
                 }
+
                 if (fileName.EndsWith(".qs") && fileEvent.FileChangeType != FileChangeType.Changed)
                 {
                     bool FileIsWithinProjectDir(Uri projFile)
@@ -736,10 +769,12 @@ namespace Microsoft.Quantum.QsLanguageServer
                         QsCompilerError.Verify(projDir != null, "could not determine project directory");
                         return fileName.StartsWith(projDir.LocalPath);
                     }
+
                     var projEvents = this.projectsInWorkspace.Where(FileIsWithinProjectDir)
                         .Select(projFile => new FileEvent { Uri = projFile, FileChangeType = FileChangeType.Changed });
                     events = projEvents.Concat(events).ToArray();
                 }
+
                 return events;
             }
 

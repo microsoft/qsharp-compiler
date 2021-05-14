@@ -39,10 +39,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
             internal CallableDetails(QsCallable callable)
             {
                 this.Callable = callable;
+
                 // ToDo: this may need to be adapted once we support type specializations
                 this.Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
                 this.Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
                 this.ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
+
                 // ToDo: this may need to be per-specialization
                 this.TypeParameters = callable.Signature.TypeParameters.Any(param => param.IsValidName)
                 ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
@@ -121,10 +123,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         addAdjoint = adjGen.Item.IsInvert;
                         isSelfAdjoint = adjGen.Item.IsSelfInverse;
                     }
+
                     if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated ctlGen)
                     {
                         addControlled = ctlGen.Item.IsDistribute;
                     }
+
                     if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated ctlAdjGen)
                     {
                         addAdjoint = addAdjoint || (ctlAdjGen.Item.IsInvert && (ctl?.Implementation.IsGenerated ?? true));
@@ -144,10 +148,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 {
                     props.Add(OpProperty.Adjointable);
                 }
+
                 if (addControlled)
                 {
                     props.Add(OpProperty.Controllable);
                 }
+
                 var newSig = new ResolvedSignature(
                     callable.Callable.Signature.TypeParameters,
                     paramsType,
@@ -436,6 +442,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         // operation's type parameters in the definition of the identifier.
                         this.SharedState.IsRecursiveIdentifier = true;
                     }
+
                     return rtrn;
                 }
             }
@@ -448,6 +455,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
 
                 public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp) =>
+
                     // Reroute a type parameter's origin to the newly generated operation
                     !this.SharedState.IsRecursiveIdentifier && this.SharedState.OldName.Equals(tp.Origin)
                         ? base.OnTypeParameter(tp.With(this.SharedState.NewName))
@@ -635,6 +643,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 {
                     this.SharedState.ContainsParamRef = true;
                 }
+
                 return base.OnIdentifier(sym, tArgs);
             }
         }

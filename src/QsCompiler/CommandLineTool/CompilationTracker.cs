@@ -224,7 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         private static readonly IDictionary<CompilationTaskEventType, CompilationTaskEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationTaskEventType, CompilationTaskEventTypeHandler>
         {
             { CompilationTaskEventType.Start, CompilationEventStartHandler },
-            { CompilationTaskEventType.End, CompilationEventEndHandler }
+            { CompilationTaskEventType.End, CompilationEventEndHandler },
         };
 
         /// <summary>
@@ -347,7 +347,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             using var file = File.CreateText(Path.Combine(outputPath, CompilationPerfDataFileName));
             var jsonWriterOptions = new JsonWriterOptions()
             {
-                Indented = true
+                Indented = true,
             };
 
             using var jsonWriter = new Utf8JsonWriter(file.BaseStream, jsonWriterOptions);

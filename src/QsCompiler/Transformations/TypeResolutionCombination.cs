@@ -1,4 +1,4 @@
-﻿﻿// Copyright (c) Microsoft Corporation.
+﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
 using System;
@@ -13,6 +13,7 @@ namespace Microsoft.Quantum.QsCompiler
 {
     using ExpressionKind = QsExpressionKind<TypedExpression, Identifier, ResolvedType>;
     using ResolvedTypeKind = QsTypeKind<ResolvedType, UserDefinedType, QsTypeParameter, CallableInformation>;
+
     // Type Parameters are frequently referenced by the callable of the type parameter followed by the name of the specific type parameter.
     using TypeParameterName = Tuple<QsQualifiedName, string>;
     using TypeParameterResolutions = ImmutableDictionary</*TypeParameterName*/ Tuple<QsQualifiedName, string>, ResolvedType>;

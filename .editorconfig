@@ -31,13 +31,7 @@ dotnet_diagnostic.SA1214.severity = none        # Readonly fields should appear 
 # StyleCop: Maintainability Rules
 dotnet_diagnostic.SA1402.severity = none        # File may only contain a single type
 dotnet_diagnostic.SA1405.severity = none        # Debug.Assert should provide message text
-dotnet_diagnostic.SA1413.severity = none        # Use trailing comma in multi-line initializers
 dotnet_diagnostic.SA1414.severity = none        # Tuple types in signatures should have element names
-
-# StyleCop: Layout Rules
-dotnet_diagnostic.SA1512.severity = none        # Single-line comments should not be followed by blank line
-dotnet_diagnostic.SA1513.severity = none        # Closing brace should be followed by blank line
-dotnet_diagnostic.SA1515.severity = none        # Single-line comment should be preceded by blank line
 
 # StyleCop: Documentation Rules
 dotnet_diagnostic.SA1623.severity = none        # Property summary documentation should match accessors

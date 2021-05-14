@@ -11,7 +11,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         public const string ApplyEdit = "qsLanguageServer/applyEdit";
 
         // commands for diagnostic purposes
-
         internal const string FileContentInMemory = "qsLanguageServer/fileContentInMemory";
         internal const string FileDiagnostics = "qsLanguageServer/fileDiagnostics";
     }
@@ -21,7 +20,6 @@ namespace Microsoft.Quantum.QsLanguageServer
         public static class Codes
         {
             // specified by the LSP
-
             public const int AwaitingInitialization = -32002;
 
             // behavior unspecified by LSP
@@ -73,12 +71,13 @@ namespace Microsoft.Quantum.QsLanguageServer
                       TextDocument = this.TextDocument,
                       Range = this.Range ?? new Range(),
                       Context = this.Context?.ToCodeActionContext() ??
+
                           // Make a blank context if we're missing a code action
                           // context.
                           new VisualStudio.LanguageServer.Protocol.CodeActionContext
                           {
-                              Diagnostics = new Diagnostic[] { }
-                          }
+                              Diagnostics = new Diagnostic[] { },
+                          },
                   };
         }
 
@@ -97,7 +96,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 new VisualStudio.LanguageServer.Protocol.CodeActionContext
                 {
                     Diagnostics = this.Diagnostics ?? new Diagnostic[] { },
-                    Only = null
+                    Only = null,
                 };
         }
     }

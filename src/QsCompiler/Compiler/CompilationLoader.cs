@@ -244,7 +244,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// <summary>
             /// Indicates that a compilation step executed but failed.
             /// </summary>
-            Failed = 1
+            Failed = 1,
         }
 
         [SuppressMessage(
@@ -514,7 +514,6 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.ReferenceLoading);
 
             // building the compilation
-
             PerformanceTracking.TaskStart(PerformanceTracking.Task.Build);
             this.compilationStatus.Validation = Status.Succeeded;
             var files = CompilationUnitManager.InitializeFileManagers(sourceFiles, null, this.OnCompilerException); // do *not* live track (i.e. use publishing) here!
@@ -567,7 +566,6 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.Build);
 
             // executing the specified rewrite steps
-
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
             var qirEmissionEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
@@ -632,10 +630,10 @@ namespace Microsoft.Quantum.QsCompiler
                 this.CompilationOutput = rewriteStep();
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SingleRewriteStep, name);
             }
+
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.RewriteSteps);
 
             // generating the compiled binary, dll, and docs
-
             PerformanceTracking.TaskStart(PerformanceTracking.Task.OutputGeneration);
             using (var ms = new MemoryStream())
             {
@@ -648,6 +646,7 @@ namespace Microsoft.Quantum.QsCompiler
                     this.PathToCompiledBinary = this.GenerateBinary(ms);
                     PerformanceTracking.TaskEnd(PerformanceTracking.Task.BinaryGeneration);
                 }
+
                 if (serialized && this.config.DllOutputPath != null)
                 {
                     PerformanceTracking.TaskStart(PerformanceTracking.Task.DllGeneration);
@@ -771,6 +770,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 return;
             }
+
             var args = assemblies.Any()
                 ? assemblies.ToArray()
                 : new string[] { "(none)" };
@@ -787,6 +787,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 return;
             }
+
             var args = rewriteSteps.Any()
                 ? rewriteSteps.Select(step => $"{step.Name} ({step.Origin})").ToArray()
                 : new string[] { "(none)" };
@@ -811,6 +812,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 status = this.ExecuteRewriteStep(rewriteStep, this.CompilationOutput, out transformed);
             }
+
             return status == Status.Succeeded ? transformed : this.CompilationOutput;
         }
 
@@ -836,6 +838,7 @@ namespace Microsoft.Quantum.QsCompiler
                     {
                         return (path, loaded.Namespaces);
                     }
+
                     LogError(ErrorCode.FailedToLoadTargetSpecificDecompositions, targetDll);
                     return null;
                 }
@@ -918,6 +921,7 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     this.LogAndUpdate(ref status, ErrorCode.RewriteStepExecutionFailed, new[] { rewriteStep.Name, messageSource });
                 }
+
                 if (postconditionFailed)
                 {
                     this.LogAndUpdate(ref status, ErrorCode.PostconditionVerificationFailed, new[] { rewriteStep.Name, messageSource });
@@ -935,8 +939,10 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     this.LogAndUpdate(ref status, ErrorCode.PluginExecutionFailed, new[] { rewriteStep.Name, messageSource });
                 }
+
                 transformed = null;
             }
+
             return status;
         }
 
@@ -955,6 +961,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.LogAndUpdate(ref this.compilationStatus.SourceFileLoading, ErrorCode.SourceFilesMissing);
             }
+
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.SourceFileLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.SourceFileLoading, d);
             var sourceFiles = ProjectManager.LoadSourceFiles(sources ?? Enumerable.Empty<string>(), OnDiagnostic, OnException);
@@ -977,6 +984,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, WarningCode.ReferencesSetToNull);
             }
+
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.ReferenceLoading, d);
             var headers = ProjectManager.LoadReferencedAssembliesInParallel(refs ?? Enumerable.Empty<string>(), OnDiagnostic, OnException, ignoreDllResources);
@@ -1040,6 +1048,7 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     serialization.WriteTo(file);
                 }
+
                 return target;
             }
             catch (Exception ex)
@@ -1123,6 +1132,7 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     throw new Exception($"error(s) on emitting dll: {Environment.NewLine}{string.Join(Environment.NewLine, errs.Select(d => d.GetMessage()))}");
                 }
+
                 return outputPath;
             }
             catch (Exception ex)
@@ -1185,6 +1195,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 throw new ArgumentException("the given file id is not consistent with an id generated by the Q# compiler");
             }
+
             string FullDirectoryName(string dir) =>
                 Path.GetFullPath(dir.TrimEnd(Path.DirectorySeparatorChar, Path.AltDirectorySeparatorChar) + Path.DirectorySeparatorChar);
 
@@ -1203,10 +1214,12 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 return targetFile;
             }
+
             if (!Directory.Exists(fileDir))
             {
                 Directory.CreateDirectory(fileDir);
             }
+
             File.WriteAllText(targetFile, content);
             return targetFile;
         }

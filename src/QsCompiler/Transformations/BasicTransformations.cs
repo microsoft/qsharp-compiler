@@ -39,6 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             {
                 filter.Namespaces.OnNamespace(ns);
             }
+
             return filter.SharedState.SourceFiles.ToImmutableHashSet();
         }
 
@@ -48,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         public static ImmutableHashSet<string> Apply(params QsNamespace[] namespaces) =>
             Apply((IEnumerable<QsNamespace>)namespaces);
 
-        // helper classes
+        /* helper classes */
 
         private class NamespaceTransformation
         : NamespaceTransformation<TransformationState>
@@ -101,7 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             this.Types = new TypeTransformation<TransformationState>(this, TransformationOptions.Disabled);
         }
 
-        // static methods for convenience
+        /* static methods for convenience */
 
         public static QsNamespace Apply(QsNamespace ns, Func<string, bool> predicate)
         {
@@ -115,7 +116,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             return Apply(ns, sourcesToKeep.Contains);
         }
 
-        // helper classes
+        /* helper classes */
 
         public class NamespaceTransformation
         : NamespaceTransformation<TransformationState>
@@ -134,6 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 {
                     this.SharedState.Elements.Add((t.Location.IsValue ? t.Location.Item.Offset.Line : (int?)null, QsNamespaceElement.NewQsCustomType(t)));
                 }
+
                 return t;
             }
 
@@ -144,6 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 {
                     this.SharedState.Elements.Add((c.Location.IsValue ? c.Location.Item.Offset.Line : (int?)null, QsNamespaceElement.NewQsCallable(c)));
                 }
+
                 return c;
             }
 
@@ -156,12 +159,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                     {
                         return Comparer<int>.Default.Compare(x.Item1.Value, y.Item1.Value);
                     }
+
                     if (!x.Item1.HasValue && !y.Item1.HasValue)
                     {
                         return Comparer<string>.Default.Compare(x.Item2.GetFullName().ToString(), y.Item2.GetFullName().ToString());
                     }
+
                     return x.Item1.HasValue ? -1 : 1;
                 }
+
                 this.SharedState.Elements.Clear();
                 base.OnNamespace(ns);
                 this.SharedState.Elements.Sort(SortComparison);
@@ -220,7 +226,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 this);
         }
 
-        // helper classes
+        /* helper classes */
 
         public class StatementTransformation<TSelector>
         : Core.StatementTransformation<TransformationState>
@@ -264,6 +270,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                         statements.Add(transformed);
                     }
                 }
+
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
         }

@@ -51,6 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     this.functors.Add(Functors.Controlled);
                 }
             }
+
             this.callable = callableObj;
         }
 
@@ -79,6 +80,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     {
                         argNode.AddStringMapping(Utils.SummaryKey, summary);
                     }
+
                     Utils.ResolvedTypeToYaml(declaration.Type, argNode);
                     typesNode.Add(argNode);
                 }
@@ -102,6 +104,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     outputTypeNode.AddStringMapping(Utils.SummaryKey, this.Comments.Output);
                 }
+
                 Utils.ResolvedTypeToYaml(this.callable.Signature.ReturnType, outputTypeNode);
 
                 return outputNode;
@@ -116,29 +119,35 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             {
                 rootNode.AddStringMapping(Utils.SummaryKey, this.Comments.Documentation);
             }
+
             if (!string.IsNullOrWhiteSpace(this.Comments.Remarks))
             {
                 rootNode.AddStringMapping(Utils.RemarksKey, this.Comments.Remarks);
             }
+
             if (!string.IsNullOrWhiteSpace(this.Comments.Example))
             {
                 rootNode.AddStringMapping(Utils.ExamplesKey, this.Comments.Example);
             }
+
             rootNode.AddStringMapping(Utils.SyntaxKey, this.syntax);
             if (!string.IsNullOrWhiteSpace(this.Comments.References))
             {
                 rootNode.AddStringMapping(Utils.ReferencesKey, this.Comments.References);
             }
+
             rootNode.Add(Utils.InputKey, BuildInputNode());
             rootNode.Add(Utils.OutputKey, BuildOutputNode());
             if (this.Comments.TypeParameters.Count > 0)
             {
                 rootNode.Add(Utils.TypeParamsKey, Utils.BuildSequenceMappingNode(this.Comments.TypeParameters));
             }
+
             if (this.functors.Count > 0)
             {
                 rootNode.Add(Utils.FunctorsKey, Utils.BuildSequenceNode(this.functors));
             }
+
             if (this.Comments.SeeAlso.Count > 0)
             {
                 rootNode.Add(Utils.SeeAlsoKey, Utils.BuildSequenceNode(this.Comments.SeeAlso));

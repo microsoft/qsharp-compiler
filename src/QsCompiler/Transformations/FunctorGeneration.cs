@@ -40,12 +40,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             {
                 this.Statements = new BasicTransformations.AddVariableDeclarations<TransformationsState>(this, ControlQubitsDeclaration);
             }
+
             this.StatementKinds = new IgnoreOuterBlockInConjugations<TransformationsState>(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationsState>(this, TransformationOptions.Disabled);
         }
 
-        // static methods for convenience
+        /* static methods for convenience */
 
         private static readonly string ControlQubitsName = InternalUse.ControlQubitsName;
 
@@ -66,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         public static readonly Func<QsScope, QsScope> ApplyControlled =
             new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Statements.OnScope;
 
-        // helper classes
+        /* helper classes */
 
         /// <summary>
         /// Replaces each operation call with a call to the operation after application of the given functor.
@@ -101,6 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 {
                     throw new NotImplementedException("unsupported functor");
                 }
+
                 return base.OnOperationCall(method, arg);
             }
         }
@@ -216,6 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                         statements.Add(transformed);
                     }
                 }
+
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
         }
@@ -286,7 +289,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             this.Statements = new StatementTransformation(this);
         }
 
-        // helper classes
+        /* helper classes */
 
         private class StatementTransformation
         : StatementTransformation<ReverseOrderOfOperationCalls>
@@ -312,6 +315,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                         bottomStatements.Add(transformed);
                     }
                 }
+
                 bottomStatements.Reverse();
                 return new QsScope(topStatements.Concat(bottomStatements).ToImmutableArray(), scope.KnownSymbols);
             }

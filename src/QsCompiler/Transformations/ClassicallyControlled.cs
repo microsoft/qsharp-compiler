@@ -464,7 +464,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         (true, true) => BuiltIn.ApplyConditionallyCA,
                         (true, false) => BuiltIn.ApplyConditionallyA,
                         (false, true) => BuiltIn.ApplyConditionallyC,
-                        (false, false) => BuiltIn.ApplyConditionally
+                        (false, false) => BuiltIn.ApplyConditionally,
                     };
 
                     // Takes a single TypedExpression of type Result and puts in into a
@@ -886,7 +886,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         // ToDo: Reduce the number of unnecessary generated operations by generalizing
                         // the condition logic for the conversion and using that condition here
                         // var (isExprCondition, _, _) = IsConditionedOnResultLiteralExpression(expr.Item);
-
                         if (block.Body.Statements.Length == 0)
                         {
                             // This is an empty scope, so it can just be treated as a call to NoOp.
@@ -957,6 +956,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         {
                             newDefault = QsNullable<QsPositionedBlock>.NewValue(block);
                         }
+
                         // ToDo: We may want to prevent empty blocks from getting lifted
                         // else if (block.Body.Statements.Length > 0)
                         else

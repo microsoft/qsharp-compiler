@@ -86,6 +86,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     {
                         this.SharedState.ExprTypeParamResolutions.Push(ex.TypeParameterResolutions);
                     }
+
                     var result = base.OnTypedExpression(ex);
                     this.SharedState.CurrentExpressionRange = contextRange;
                     return result;

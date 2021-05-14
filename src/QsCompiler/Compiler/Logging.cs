@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             this.Output(ex == null ? null : new Diagnostic
             {
                 Severity = DiagnosticSeverity.Hint,
-                Message = $"{Environment.NewLine}{ex}{Environment.NewLine}"
+                Message = $"{Environment.NewLine}{ex}{Environment.NewLine}",
             });
             this.Verbosity = verbosity;
         }
@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = Errors.Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = range ?? EmptyRange
+                Range = range ?? EmptyRange,
             });
 
         /// <summary>
@@ -108,7 +108,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = Warnings.Code(code),
                 Source = source,
                 Message = DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>()),
-                Range = range ?? EmptyRange
+                Range = range ?? EmptyRange,
             });
 
         /// <summary>
@@ -123,7 +123,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Code = null, // do not show a code for infos
                 Source = source,
                 Message = $"{DiagnosticItem.Message(code, args ?? Enumerable.Empty<string>())}{Environment.NewLine}{string.Join(Environment.NewLine, messageParam)}",
-                Range = range ?? EmptyRange
+                Range = range ?? EmptyRange,
             });
 
         /// <summary>
@@ -136,12 +136,14 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             {
                 return;
             }
+
             foreach (var m in messages)
             {
                 if (m == null)
                 {
                     continue;
                 }
+
                 this.Log(m);
             }
         }
@@ -180,6 +182,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             {
                 ++this.NrErrorsLogged;
             }
+
             if (m.Severity == DiagnosticSeverity.Warning)
             {
                 ++this.NrWarningsLogged;

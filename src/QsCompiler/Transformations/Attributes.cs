@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 this.Types = new Core.TypeTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
             }
 
-            // helper classes
+            /* helper classes */
 
             private class NamespaceTransformation
             : Core.NamespaceTransformation<TransformationState>

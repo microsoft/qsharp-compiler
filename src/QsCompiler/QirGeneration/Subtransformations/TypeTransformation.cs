@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
         }
 
-        // public overrides
+        /* public overrides */
 
         public override QsResolvedTypeKind OnArrayType(ResolvedType b)
         {
@@ -120,6 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new InvalidOperationException("unknown user defined type");
             }
+
             return QsResolvedTypeKind.InvalidType;
         }
 

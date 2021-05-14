@@ -27,6 +27,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return false;
             }
+
             subscriptions.Item1.Dispose();
             subscriptions.Item2.Dispose();
             return true;
@@ -55,6 +56,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 id = -1;
             }
+
             return id;
         }
 
@@ -100,6 +102,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     stack.Push(e);
                 }
             }
+
             return stacks.Values.SelectMany(stack => stack.Reverse()).ToImmutableArray();
         }
     }

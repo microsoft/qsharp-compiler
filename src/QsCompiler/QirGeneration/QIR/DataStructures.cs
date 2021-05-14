@@ -309,7 +309,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
         }
 
-        // private helpers
+        /* private helpers */
 
         private Value GetOpaquePointer() =>
             this.typedPointer.IsCached
@@ -348,6 +348,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 this.sharedState.ScopeMgr.RegisterValue(this);
             }
+
             return tuple;
         }
 
@@ -456,7 +457,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 : this.CreateLengthCache(length);
         }
 
-        // private helpers
+        /* private helpers */
 
         private Value GetLength() => this.sharedState.CurrentBuilder.Call(
             this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
@@ -475,6 +476,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 this.sharedState.ScopeMgr.RegisterValue(this);
             }
+
             return pointer;
         }
 
