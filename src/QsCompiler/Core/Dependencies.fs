@@ -43,8 +43,8 @@ type BuiltIn =
             BuiltIn.RangeReverse.FullName,
             BuiltIn.Length.FullName,
             BuiltIn.Inline.FullName,
-            BuiltIn.TargetInstruction.FullName,
-            BuiltIn.RequiresCapability.FullName
+            BuiltIn.TargetInstruction.FullName
+            //BuiltIn.RequiresCapability.FullName
             //BuiltIn.NoOp
             //BuiltIn.ApplyConditionally
             //BuiltIn.ApplyConditionallyA
