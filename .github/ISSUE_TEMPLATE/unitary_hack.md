@@ -1,8 +1,8 @@
 ---
-name: [Unitary Hack] Compilation to QIR
+name: Unitary Hack - Compilation to QIR
 about: Create a report to help us improve our new QIR generation feature!
 title: ''
-labels: 'bug', 'area: QIR'
+labels: 'bug, area: QIR'
 assignees: ''
 ---
 
