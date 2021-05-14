@@ -5,9 +5,13 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.Qir.Serialization;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.Types;
+using Ubiquity.NET.Llvm.Values;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
@@ -32,6 +36,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new ArgumentException("Unable to read the Q# syntax tree from the given DLL.");
             }
             return GenerateEntryPointOperations(compilation);
+        }
+
+        public static IList<EntryPointOperation> LoadEntryPointOperations(string qirBitCode)
+        {
+            var module = BitcodeModule.LoadFrom(qirBitCode, new Context());
+            var entryPoints = module.Functions.Where(f =>
+                f.Attributes.ContainsKey(FunctionAttributeIndex.Function) // TryGetValue for some reason does not seem to work properly
+                && f.GetAttributesAtIndex(FunctionAttributeIndex.Function).Any(a => a.Name == AttributeNames.EntryPoint));
+            Console.WriteLine($"entry points: {string.Join(", ", entryPoints.Where(f => f.Name.StartsWith("Microsoft")).Select(f => f.Name))}");
+
+            return new List<EntryPointOperation>(entryPoints.Select(ep => new EntryPointOperation()
+            {
+                Name = ep.Name,
+                Parameters = new List<Parameter>(ep.Parameters.Select(param => new Parameter()
+                {
+                    Name = param.Name,
+                    Type = MapResolvedTypeToDataType(param.NativeType),
+                    ArrayType = null // FIXME: we need to perserve the array item type in the signature to populate this
+                }))
+            }));
         }
 
         private static IList<EntryPointOperation> GenerateEntryPointOperations(QsCompilation compilation)
@@ -74,6 +98,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ArrayType = arrayType
             };
         }
+
+        private static DataType MapResolvedTypeToDataType(ITypeRef rt) => rt switch
+        {
+            QsTypeKind.Tags.Bool => DataType.BoolType,
+            QsTypeKind.Tags.Int => DataType.IntegerType,
+            QsTypeKind.Tags.Double => DataType.DoubleType,
+            QsTypeKind.Tags.Pauli => DataType.PauliType,
+            QsTypeKind.Tags.Range => DataType.RangeType,
+            QsTypeKind.Tags.Result => DataType.ResultType,
+            QsTypeKind.Tags.String => DataType.StringType,
+            QsTypeKind.Tags.ArrayType => DataType.ArrayType,
+            _ => throw new ArgumentException($"Invalid type ({rt.Resolution.Tag}) for entry point parameter")
+        };
 
         private static DataType MapResolvedTypeToDataType(ResolvedType rt) => rt.Resolution.Tag switch
         {

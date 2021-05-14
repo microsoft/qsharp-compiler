@@ -177,8 +177,8 @@ namespace Ubiquity.NET.Llvm
         public static BitcodeModule LoadFrom(MemoryBuffer buffer, Context context)
         {
             return context.ContextHandle.TryParseBitcode(buffer.BufferHandle, out LLVMModuleRef modRef, out string message)
-                ? throw new InternalCodeGeneratorException(message)
-                : context.GetModuleFor(modRef);
+                ? context.GetModuleFor(modRef)
+                : throw new InternalCodeGeneratorException(message);
         }
 
         /// <summary>Disposes the <see cref="BitcodeModule"/>, releasing resources associated with the module in native code.</summary>
