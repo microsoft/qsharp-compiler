@@ -175,7 +175,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 ["event"] = eventName,
                 ["properties"] = properties,
-                ["measurements"] = measurements
+                ["measurements"] = measurements,
             });
             #else
             Task.CompletedTask;
