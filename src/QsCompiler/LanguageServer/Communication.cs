@@ -29,8 +29,9 @@ namespace Microsoft.Quantum.QsLanguageServer
             // -> using the range -32900 to -32999 for anything not specified by the LSP should be fine
         }
 
-        public readonly int Code;
-        public readonly string? Message;
+        public int Code { get; }
+
+        public string? Message { get; }
 
         public ProtocolError(int code, string? message = null)
         {

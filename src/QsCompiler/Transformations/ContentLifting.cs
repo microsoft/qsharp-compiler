@@ -26,11 +26,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     {
         internal class CallableDetails
         {
-            internal readonly QsCallable Callable;
-            internal readonly QsSpecialization? Adjoint;
-            internal readonly QsSpecialization? Controlled;
-            internal readonly QsSpecialization? ControlledAdjoint;
-            internal readonly QsNullable<ImmutableArray<ResolvedType>> TypeParameters;
+            internal QsCallable Callable { get; }
+
+            internal QsSpecialization? Adjoint { get; }
+
+            internal QsSpecialization? Controlled { get; }
+
+            internal QsSpecialization? ControlledAdjoint { get; }
+
+            internal QsNullable<ImmutableArray<ResolvedType>> TypeParameters { get; }
 
             internal CallableDetails(QsCallable callable)
             {
@@ -57,20 +61,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         {
             // ToDo: It should be possible to make these three properties private,
             // if we absorb the corresponding logic into LiftBody.
-            public bool IsValidScope = true;
-            internal bool ContainsParamRef = false;
-            internal ImmutableArray<LocalVariableDeclaration<string>> GeneratedOpParams =
+            public bool IsValidScope { get; set; } = true;
+
+            internal bool ContainsParamRef { get; set; } = false;
+
+            internal ImmutableArray<LocalVariableDeclaration<string>> GeneratedOpParams { get; set; } =
                 ImmutableArray<LocalVariableDeclaration<string>>.Empty;
 
-            internal CallableDetails? CurrentCallable = null;
+            internal CallableDetails? CurrentCallable { get; set; } = null;
 
-            protected internal bool InBody = false;
-            protected internal bool InAdjoint = false;
-            protected internal bool InControlled = false;
-            protected internal bool InControlledAdjoint = false;
-            protected internal bool InWithinBlock = false;
+            protected internal bool InBody { get; set; } = false;
 
-            protected internal List<QsCallable>? GeneratedOperations = null;
+            protected internal bool InAdjoint { get; set; } = false;
+
+            protected internal bool InControlled { get; set; } = false;
+
+            protected internal bool InControlledAdjoint { get; set; } = false;
+
+            protected internal bool InWithinBlock { get; set; } = false;
+
+            protected internal List<QsCallable>? GeneratedOperations { get; set; } = null;
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 CallableDetails callable,
@@ -344,10 +354,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             public class TransformationState
             {
-                public bool IsRecursiveIdentifier = false;
-                public readonly ImmutableArray<LocalVariableDeclaration<string>> Parameters;
-                public readonly QsQualifiedName OldName;
-                public readonly QsQualifiedName NewName;
+                public bool IsRecursiveIdentifier { get; set; } = false;
+
+                public ImmutableArray<LocalVariableDeclaration<string>> Parameters { get; }
+
+                public QsQualifiedName OldName { get; }
+
+                public QsQualifiedName NewName { get; }
 
                 public TransformationState(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {

@@ -25,12 +25,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Represents the name of the parent compilation task.
             /// </summary>
-            public readonly string? ParentName;
+            public string? ParentName { get; }
 
             /// <summary>
             /// Represents the name of the compilation task.
             /// </summary>
-            public readonly string Name;
+            public string Name { get; }
 
             /// <summary>
             /// Identifier of the task.
@@ -163,8 +163,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private class CompilationTaskNode
         {
-            public readonly CompilationTask Task;
-            public readonly IDictionary<string, CompilationTaskNode> Children;
+            public CompilationTask Task { get; }
+
+            public IDictionary<string, CompilationTaskNode> Children { get; }
 
             public CompilationTaskNode(CompilationTask task)
             {

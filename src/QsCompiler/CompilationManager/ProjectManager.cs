@@ -18,12 +18,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     internal class ProjectProperties
     {
-        public readonly string Version;
-        public readonly string OutputPath;
-        public readonly RuntimeCapability RuntimeCapability;
-        public readonly bool IsExecutable;
-        public readonly string ProcessorArchitecture;
-        public readonly bool ExposeReferencesViaTestNames;
+        public string Version { get; }
+
+        public string OutputPath { get; }
+
+        public RuntimeCapability RuntimeCapability { get; }
+
+        public bool IsExecutable { get; }
+
+        public string ProcessorArchitecture { get; }
+
+        public bool ExposeReferencesViaTestNames { get; }
 
         public ProjectProperties(
             string version,
@@ -46,10 +51,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         public delegate bool Loader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? projectInfo);
 
-        internal readonly ProjectProperties Properties;
-        public readonly ImmutableArray<string> SourceFiles;
-        public readonly ImmutableArray<string> ProjectReferences;
-        public readonly ImmutableArray<string> References;
+        internal ProjectProperties Properties { get; }
+
+        public ImmutableArray<string> SourceFiles { get; }
+
+        public ImmutableArray<string> ProjectReferences { get; }
+
+        public ImmutableArray<string> References { get; }
 
         internal static ProjectInformation Empty(
                 string version,
@@ -89,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         private class Project : IDisposable
         {
-            public readonly Uri ProjectFile;
+            public Uri ProjectFile { get; }
 
             public Uri? OutputPath { get; private set; }
 
@@ -131,7 +139,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private References loadedProjectReferences;
 
             private readonly ProcessingQueue processing;
-            internal readonly CompilationUnitManager Manager;
+
+            internal CompilationUnitManager Manager { get; }
+
             private readonly Action<string, MessageType> log;
 
             /// <summary>

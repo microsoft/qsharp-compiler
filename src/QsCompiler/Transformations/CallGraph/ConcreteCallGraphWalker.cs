@@ -181,10 +181,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class TransformationState : CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.TransformationState
             {
-                public bool IsInCall = false;
-                public bool HasAdjointDependency = false;
-                public bool HasControlledDependency = false;
-                public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = _ => Enumerable.Empty<QsSpecializationKind>();
+                public bool IsInCall { get; set; } = false;
+
+                public bool HasAdjointDependency { get; set; } = false;
+
+                public bool HasControlledDependency { get; set; } = false;
+
+                public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds { get; set; } =
+                    _ => Enumerable.Empty<QsSpecializationKind>();
+
                 private Range lastReferenceRange = Range.Zero; // This is used if a self-inverse generator directive is encountered.
 
                 internal TransformationState(ConcreteGraphBuilder graph)

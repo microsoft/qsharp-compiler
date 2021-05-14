@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             private class TransformationState : CallGraphWalkerBase<GraphBuilder, CallGraphNode, CallGraphEdge>.TransformationState
             {
                 // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
-                internal bool WithTrimming = false;
+                internal bool WithTrimming { get; set; } = false;
 
                 internal TransformationState(GraphBuilder graph)
                     : base(graph)

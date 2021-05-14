@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     {
         public class TransformationsState
         {
-            public readonly QsFunctor FunctorToApply;
+            public QsFunctor FunctorToApply { get; }
 
             public TransformationsState(QsFunctor functor) => this.FunctorToApply = functor;
         }
@@ -165,20 +165,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             /// <summary>
             /// Accumulates statements that have been lifted from the current statement.
             /// </summary>
-            public List<QsStatement> AdditionalStatements = new List<QsStatement>();
+            public List<QsStatement> AdditionalStatements { get; set; } = new List<QsStatement>();
 
             /// <summary>
             /// Tracks the current expression that is being evaluated, keeping previous
             /// expressions in the stack so that we can return to those when leaving a nested
             /// evaluation.
             /// </summary>
-            public Stack<TypedExpression> CurrentExpression = new Stack<TypedExpression>();
+            public Stack<TypedExpression> CurrentExpression { get; set; } = new Stack<TypedExpression>();
 
             /// <summary>
             /// Allows us to remember the current statement location, and use that for the generated
             /// statements that get added when extracting nested expressions.
             /// </summary>
-            public QsNullable<QsLocation> StatementLocation = QsNullable<QsLocation>.Null;
+            public QsNullable<QsLocation> StatementLocation { get; set; } = QsNullable<QsLocation>.Null;
         }
 
         public ExtractNestedOperationCalls()
@@ -303,7 +303,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 foreach (var statement in scope.Statements)
                 {
                     var transformed = this.OnStatement(statement);
-                    if (this.subSelector?.SharedState.SatisfiesCondition ?? false)
+                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         topStatements.Add(statement);
                     }

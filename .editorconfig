@@ -16,9 +16,6 @@ dotnet_style_qualification_for_property = true:suggestion
 dotnet_diagnostic.IDE0001.severity = warning    # Name can be simplified
 dotnet_diagnostic.IDE0002.severity = warning    # Name can be simplified
 
-# StyleCop: Special Rules
-dotnet_diagnostic.SA0001.severity = none        # XML comment analysis disabled
-
 # StyleCop: Readability Rules
 dotnet_diagnostic.SA1118.severity = none        # Parameter should not span multiple lines
 dotnet_diagnostic.SA1122.severity = none        # Use string.Empty for empty strings
@@ -32,7 +29,6 @@ dotnet_diagnostic.SA1204.severity = none        # Static members should appear b
 dotnet_diagnostic.SA1214.severity = none        # Readonly fields should appear before non-readonly fields
 
 # StyleCop: Maintainability Rules
-dotnet_diagnostic.SA1401.severity = none        # Fields should be private
 dotnet_diagnostic.SA1402.severity = none        # File may only contain a single type
 dotnet_diagnostic.SA1405.severity = none        # Debug.Assert should provide message text
 dotnet_diagnostic.SA1413.severity = none        # Use trailing comma in multi-line initializers

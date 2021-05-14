@@ -261,7 +261,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
             public class TransformationState
             {
-                public readonly QsCompilation Compilation;
+                public QsCompilation Compilation { get; }
 
                 public TransformationState(QsCompilation compilation)
                 {
@@ -836,7 +836,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
         {
             internal class TransformationState : ContentLifting.LiftContent.TransformationState
             {
-                internal bool IsConditionLiftable = false;
+                internal bool IsConditionLiftable { get; set; } = false;
             }
 
             public LiftContent()

@@ -28,8 +28,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </remarks>
     public class FileContentManager : IDisposable
     {
-        internal readonly Uri Uri;
-        public readonly string FileName;
+        internal Uri Uri { get; }
+
+        public string FileName { get; }
+
         private readonly ManagedList<CodeLine> content;
         private readonly ManagedList<ImmutableArray<CodeFragment>> tokens;
         private readonly FileHeader header;
@@ -77,7 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Used as sync root for all managed data structures.
         /// </summary>
-        internal readonly ReaderWriterLockSlim SyncRoot;
+        internal ReaderWriterLockSlim SyncRoot { get; }
 
         /// <summary>
         /// Used to periodically trigger processing the queued changes if no further editing takes place for a while.

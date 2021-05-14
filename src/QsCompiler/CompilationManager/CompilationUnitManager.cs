@@ -43,12 +43,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Used to log exceptions raised during processing.
         /// </summary>
-        public readonly Action<Exception> LogException;
+        public Action<Exception> LogException { get; }
 
         /// <summary>
         /// Called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
-        public readonly Action<PublishDiagnosticParams> PublishDiagnostics;
+        public Action<PublishDiagnosticParams> PublishDiagnostics { get; }
 
         /// <summary>
         /// Null if a global type checking has been queued but is not yet running.
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Used to synchronously execute all write access.
         /// </summary>
-        protected readonly ProcessingQueue Processing;
+        protected ProcessingQueue Processing { get; }
 
         /// <summary>
         /// Initializes a <see cref="CompilationUnitManager"/> instance for a project with the given properties.
@@ -900,34 +900,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <summary>
             /// Contains the file IDs assigned by the Q# compiler for all source files included in the compilation.
             /// </summary>
-            public readonly ImmutableHashSet<string> SourceFiles;
+            public ImmutableHashSet<string> SourceFiles { get; }
 
             /// <summary>
             /// Contains the IDs assigned by the Q# compiler for all assemblies referenced in the compilation.
             /// </summary>
-            public readonly ImmutableHashSet<string> References;
+            public ImmutableHashSet<string> References { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to the text representation of its content.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<string>> FileContent;
+            public ImmutableDictionary<string, ImmutableArray<string>> FileContent { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to the tokenization built based on its content.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization;
+            public ImmutableDictionary<string, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the name of a namespace to the compiled Q# namespace.
             /// </summary>
-            public readonly ImmutableDictionary<string, QsNamespace> SyntaxTree;
+            public ImmutableDictionary<string, QsNamespace> SyntaxTree { get; }
 
             /// <summary>
             /// Contains the built Q# compilation.
             /// </summary>
-            public readonly QsCompilation BuiltCompilation;
+            public QsCompilation BuiltCompilation { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the name of each namespace defined in the compilation to a look-up
@@ -944,42 +944,42 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <summary>
             /// Contains a dictionary that given the fully qualified name of a compiled callable returns its syntax tree.
             /// </summary>
-            public readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
+            public ImmutableDictionary<QsQualifiedName, QsCallable> Callables { get; }
 
             /// <summary>
             /// Contains a dictionary that given the fully qualified name of a compiled type returns its syntax tree.
             /// </summary>
-            public readonly ImmutableDictionary<QsQualifiedName, QsCustomType> Types;
+            public ImmutableDictionary<QsQualifiedName, QsCustomType> Types { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all scope-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> ScopeDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> ScopeDiagnostics { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all syntax-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> SyntaxDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> SyntaxDiagnostics { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all context-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> ContextDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> ContextDiagnostics { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all diagnostics generated during compilation related to header information for declarations.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> HeaderDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> HeaderDiagnostics { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all semantic diagnostics generated during compilation for the specified implementations.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> SemanticDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> SemanticDiagnostics { get; }
 
             /// <summary>
             /// Maps a <paramref name="file"/> ID assigned by the Q# compiler to all diagnostics generated during compilation.

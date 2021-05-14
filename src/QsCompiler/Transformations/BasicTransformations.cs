@@ -15,7 +15,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public class TransformationState
         {
-            internal readonly HashSet<string> SourceFiles = new HashSet<string>();
+            internal HashSet<string> SourceFiles { get; } = new HashSet<string>();
         }
 
         private GetSourceFiles()
@@ -83,8 +83,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
     {
         public class TransformationState
         {
-            internal readonly Func<string, bool> Predicate;
-            internal readonly List<(int?, QsNamespaceElement)> Elements =
+            internal Func<string, bool> Predicate { get; }
+
+            internal List<(int?, QsNamespaceElement)> Elements { get; } =
                 new List<(int?, QsNamespaceElement)>();
 
             public TransformationState(Func<string, bool> predicate) =>
@@ -184,10 +185,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// <inheritdoc/>
             public bool Recur { get; }
 
-            public readonly bool Seed;
+            public bool Seed { get; }
 
-            internal readonly Func<TypedExpression, bool> Condition;
-            internal readonly Func<bool, bool, bool> ConstructFold;
+            internal Func<TypedExpression, bool> Condition { get; }
+
+            internal Func<bool, bool, bool> ConstructFold { get; }
 
             /// <inheritdoc/>
             public bool Fold(TypedExpression ex, bool current) =>
@@ -224,8 +226,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         : Core.StatementTransformation<TransformationState>
             where TSelector : SelectByFoldingOverExpressions
         {
-            protected TSelector? subSelector;
-            protected readonly Func<TransformationState, TSelector> CreateSelector;
+            protected TSelector? SubSelector { get; set; }
+
+            protected Func<TransformationState, TSelector> CreateSelector { get; }
 
             /// <summary>
             /// The given function for creating a new subselector is expected to initialize a new internal state with the same configurations as the one given upon construction.
@@ -238,12 +241,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
             /// <inheritdoc/>
             public override QsStatement OnStatement(QsStatement stm)
             {
-                this.subSelector = this.CreateSelector(this.SharedState);
-                var loc = this.subSelector.Statements.OnLocation(stm.Location);
-                var stmKind = this.subSelector.StatementKinds.OnStatementKind(stm.Statement);
-                var varDecl = this.subSelector.Statements.OnLocalDeclarations(stm.SymbolDeclarations);
+                this.SubSelector = this.CreateSelector(this.SharedState);
+                var loc = this.SubSelector.Statements.OnLocation(stm.Location);
+                var stmKind = this.SubSelector.StatementKinds.OnStatementKind(stm.Statement);
+                var varDecl = this.SubSelector.Statements.OnLocalDeclarations(stm.SymbolDeclarations);
                 this.SharedState.FoldResult = this.SharedState.ConstructFold(
-                    this.SharedState.FoldResult, this.subSelector.SharedState.FoldResult);
+                    this.SharedState.FoldResult, this.SubSelector.SharedState.FoldResult);
                 return new QsStatement(stmKind, varDecl, loc, stm.Comments);
             }
 
@@ -256,7 +259,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                     // StatementKind.Transform sets a new Subselector that walks all expressions contained in statement,
                     // and sets its satisfiesCondition to true if one of them satisfies the condition given on initialization
                     var transformed = this.OnStatement(statement);
-                    if (this.subSelector?.SharedState.SatisfiesCondition ?? false)
+                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         statements.Add(transformed);
                     }
@@ -353,7 +356,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
         : base(internalState, TransformationOptions.NoRebuild) =>
             this.OnExpression = onExpression;
 
-        public readonly Action<TypedExpression> OnExpression;
+        public Action<TypedExpression> OnExpression { get; }
 
         /// <inheritdoc/>
         public override TypedExpression OnTypedExpression(TypedExpression ex)

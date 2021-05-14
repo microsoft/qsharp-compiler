@@ -25,9 +25,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Conjugations
         {
             public bool Success { get; internal set; }
 
-            internal readonly Action<Exception>? OnException;
+            internal Action<Exception>? OnException { get; }
 
-            internal Func<QsScope, QsScope> ResolveNames =
+            internal Func<QsScope, QsScope> ResolveNames { get; set; } =
                 new UniqueVariableNames().Statements.OnScope;
 
             public void Reset() =>

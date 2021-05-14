@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private abstract class PartialApplicationArgument
         {
-            protected readonly GenerationContext SharedState;
+            protected GenerationContext SharedState { get; }
 
             public PartialApplicationArgument(GenerationContext sharedState)
             {
@@ -39,7 +39,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private class InnerCapture : PartialApplicationArgument
         {
-            public readonly int CaptureIndex;
+            public int CaptureIndex { get; }
 
             public InnerCapture(GenerationContext sharedState, int captureIndex)
             : base(sharedState)
@@ -57,8 +57,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private class InnerArg : PartialApplicationArgument
         {
-            public readonly ITypeRef ItemType;
-            public readonly int ArgIndex;
+            public ITypeRef ItemType { get; }
+
+            public int ArgIndex { get; }
 
             public InnerArg(GenerationContext sharedState, ITypeRef itemType, int argIndex)
             : base(sharedState)
@@ -80,8 +81,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private class InnerTuple : PartialApplicationArgument
         {
-            public readonly ResolvedType TupleType;
-            public readonly ImmutableArray<PartialApplicationArgument> Items;
+            public ResolvedType TupleType { get; }
+
+            public ImmutableArray<PartialApplicationArgument> Items { get; }
 
             public InnerTuple(GenerationContext sharedState, ResolvedType tupleType, IEnumerable<PartialApplicationArgument> items)
             : base(sharedState)

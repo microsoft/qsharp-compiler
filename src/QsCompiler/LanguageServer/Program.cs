@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             return (int)code;
         }
 
-        public static string? Version =
+        public static string? Version { get; set; } =
             typeof(Server).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? typeof(Server).Assembly.GetName().Version?.ToString();
 

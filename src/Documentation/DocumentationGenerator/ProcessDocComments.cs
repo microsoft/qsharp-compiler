@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.Documentation
         /// </summary>
         public event Action<IRewriteStep.Diagnostic>? OnDiagnostic;
 
-        internal readonly DocumentationWriter Writer;
+        internal DocumentationWriter Writer { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProcessDocComments"/> class.

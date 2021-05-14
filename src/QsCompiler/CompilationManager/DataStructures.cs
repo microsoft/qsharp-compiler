@@ -45,8 +45,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             OpenStringInOpenInterpolatedArgument,
         }
 
-        internal readonly string Text;
-        internal readonly string LineEnding; // contains the line break for this line (included in text)
+        internal string Text { get; }
+
+        internal string LineEnding { get; } // contains the line break for this line (included in text)
 
         private static readonly char[] NoOpenStringDelimiters = new[] { '"', '/' };
         private static readonly char[] OpenInterpolatedArgumentDelimiters = new[] { '"', '}', '/' };
@@ -55,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// <summary>
         /// Contains the text content of the line, without any end of line or doc comment and *without* the line break.
         /// </summary>
-        public readonly string WithoutEnding;
+        public string WithoutEnding { get; }
 
         /// <summary>
         /// Contains the end of line comment without any leading or trailing whitespace, and without the comment slashes.
@@ -66,18 +67,21 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// Documenting comments (i.e. triple-slash comments) are *not* considered to be end of line comments.
         /// All comments which *either* follow non-whitespace content or do not start with triple-slash are considered end of line comments.
         /// </remarks>
-        public readonly string? EndOfLineComment;
+        public string? EndOfLineComment { get; }
 
-        internal readonly int Indentation; // Note: This denotes the initial indentation at the beginning of the line
-        internal readonly ImmutableArray<int> ExcessBracketPositions;
-        internal readonly ImmutableArray<int> ErrorDelimiterPositions;
+        internal int Indentation { get; } // Note: This denotes the initial indentation at the beginning of the line
+
+        internal ImmutableArray<int> ExcessBracketPositions { get; }
+
+        internal ImmutableArray<int> ErrorDelimiterPositions { get; }
 
         // convention: first one opens a string, and we have the usual inclusions: {0,5} means the chars 0..4 are the content of a string
         // -> i.e. -1 means the string starts on a previous line, and an end delimiter that is equal to Text.Length means that the string continues on the next line
-        internal readonly ImmutableArray<int> StringDelimiters; // note that this property is only properly initialized *after* knowing the surrounding lines
+        internal ImmutableArray<int> StringDelimiters { get; } // note that this property is only properly initialized *after* knowing the surrounding lines
 
-        internal readonly StringContext BeginningStringContext;
-        internal readonly StringContext EndingStringContext;
+        internal StringContext BeginningStringContext { get; }
+
+        internal StringContext EndingStringContext { get; }
 
         /// <summary>
         /// Verbose constructor that allows all fields to be specified.
@@ -147,7 +151,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             this.BeginningStringContext = beginningStringContext;
             this.EndingStringContext = beginningStringContext;
 
-            var delimiters = ComputeStringDelimiters(text, ref this.EndingStringContext, out var commentStart, out var errorDelimiters);
+            var endingStringContext = this.EndingStringContext;
+            var delimiters = ComputeStringDelimiters(text, ref endingStringContext, out var commentStart, out var errorDelimiters);
+            this.EndingStringContext = endingStringContext;
             this.ErrorDelimiterPositions = errorDelimiters.ToImmutableArray();
 
             var lineLength = text.Length - this.LineEnding.Length;
@@ -496,12 +502,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
         /// </summary>
         internal Range Range { get; }
 
-        internal readonly Range HeaderRange;
-        internal readonly int Indentation;
-        internal readonly string Text;
-        internal readonly char FollowedBy;
-        internal readonly QsComments Comments;
-        public readonly QsFragmentKind? Kind;
+        internal Range HeaderRange { get; }
+
+        internal int Indentation { get; }
+
+        internal string Text { get; }
+
+        internal char FollowedBy { get; }
+
+        internal QsComments Comments { get; }
+
+        public QsFragmentKind? Kind { get; }
 
         internal bool IncludeInCompilation { get; private set; } // used to exclude certain code fragments from the compilation if they are e.g. misplaced
 
@@ -784,8 +795,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal struct TreeNode
         {
-            public readonly CodeFragment Fragment;
-            public readonly IReadOnlyList<TreeNode> Children;
+            public CodeFragment Fragment { get; }
+
+            public IReadOnlyList<TreeNode> Children { get; }
 
             /// <summary>
             /// The position of the root node that all child node positions are relative to.
@@ -819,10 +831,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
             }
         }
 
-        public readonly string Source;
-        public readonly string Namespace;
-        public readonly string Callable;
-        public readonly IReadOnlyList<TreeNode>? Specializations;
+        public string Source { get; }
+
+        public string Namespace { get; }
+
+        public string Callable { get; }
+
+        public IReadOnlyList<TreeNode>? Specializations { get; }
 
         public FragmentTree(string source, string ns, string callable, IEnumerable<TreeNode>? specs)
         {
@@ -840,13 +855,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     {
         internal Position Position { get; }
 
-        internal readonly string SymbolName;
-        internal readonly Tuple<string, Range> PositionedSymbol;
+        internal string SymbolName { get; }
 
-        internal readonly T Declaration;
-        internal readonly ImmutableArray<AttributeAnnotation> Attributes;
-        internal readonly ImmutableArray<string> Documentation;
-        internal readonly QsComments Comments;
+        internal Tuple<string, Range> PositionedSymbol { get; }
+
+        internal T Declaration { get; }
+
+        internal ImmutableArray<AttributeAnnotation> Attributes { get; }
+
+        internal ImmutableArray<string> Documentation { get; }
+
+        internal QsComments Comments { get; }
 
         private HeaderEntry(
             CodeFragment.TokenIndex tIndex,
@@ -915,7 +934,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     /// </summary>
     internal class FileHeader // *don't* dispose of the sync root!
     {
-        public readonly ReaderWriterLockSlim SyncRoot;
+        public ReaderWriterLockSlim SyncRoot { get; }
 
         // IMPORTANT: quite a couple of places rely on these being sorted!
         private readonly ManagedSortedSet namespaceDeclarations;
@@ -1041,7 +1060,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     public class ManagedSortedSet // *don't* dispose of the sync root!
     {
         private SortedSet<int> set = new SortedSet<int>();
-        public readonly ReaderWriterLockSlim SyncRoot;
+
+        public ReaderWriterLockSlim SyncRoot { get; }
 
         public ManagedSortedSet(ReaderWriterLockSlim syncRoot)
         {
@@ -1144,7 +1164,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     public class ManagedHashSet<T> // *don't* dispose of the sync root!
     {
         private readonly HashSet<T> content = new HashSet<T>();
-        public readonly ReaderWriterLockSlim SyncRoot;
+
+        public ReaderWriterLockSlim SyncRoot { get; }
 
         public ManagedHashSet(IEnumerable<T> collection, ReaderWriterLockSlim syncRoot)
         {
@@ -1203,7 +1224,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures
     public class ManagedList<T> // *don't* dispose of the sync root!
     {
         private List<T> content = new List<T>();
-        public readonly ReaderWriterLockSlim SyncRoot;
+
+        public ReaderWriterLockSlim SyncRoot { get; }
 
         private ManagedList(List<T> content, ReaderWriterLockSlim syncRoot)
         {

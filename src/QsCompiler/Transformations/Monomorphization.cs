@@ -134,8 +134,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly TypeParameterResolutions TypeParams;
-                public readonly GetAccessModifiers GetAccessModifiers;
+                public TypeParameterResolutions TypeParams { get; }
+
+                public GetAccessModifiers GetAccessModifiers { get; }
 
                 public TransformationState(TypeParameterResolutions typeParams, GetAccessModifiers getAccessModifiers)
                 {
@@ -241,8 +242,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             internal class TransformationState
             {
-                public readonly HashSet<Access> AccessModifiers = new HashSet<Access>();
-                public readonly Func<QsQualifiedName, Access> GetAccessModifier;
+                public HashSet<Access> AccessModifiers { get; } = new HashSet<Access>();
+
+                public Func<QsQualifiedName, Access> GetAccessModifier { get; }
 
                 public TransformationState(Func<QsQualifiedName, Access> getAccessModifier)
                 {
@@ -303,10 +305,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly Stack<TypeParameterResolutions> CurrentTypeParamResolutions = new Stack<TypeParameterResolutions>();
-                public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
-                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicsToKeep;
-                public TypeParameterResolutions? LastCalculatedTypeResolutions = null;
+                public Stack<TypeParameterResolutions> CurrentTypeParamResolutions { get; } = new Stack<TypeParameterResolutions>();
+
+                public GetConcreteIdentifierFunc GetConcreteIdentifier { get; }
+
+                public ImmutableHashSet<QsQualifiedName> IntrinsicsToKeep { get; }
+
+                public TypeParameterResolutions? LastCalculatedTypeResolutions { get; set; } = null;
 
                 public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
                 {

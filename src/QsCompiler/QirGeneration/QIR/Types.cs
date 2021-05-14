@@ -19,48 +19,48 @@ namespace Microsoft.Quantum.QIR
         /// <summary>
         /// Represents the type of a 64-bit signed integer in QIR.
         /// </summary>
-        public readonly ITypeRef Int;
+        public ITypeRef Int { get; }
 
         /// <summary>
         /// Represents the type of a double precision floating point number in QIR.
         /// </summary>
-        public readonly ITypeRef Double;
+        public ITypeRef Double { get; }
 
         /// <summary>
         /// Represents the type of a boolean value in QIR.
         /// </summary>
-        public readonly ITypeRef Bool;
+        public ITypeRef Bool { get; }
 
         /// <summary>
         /// Represents the type of a single-qubit Pauli matrix in QIR
         /// used to indicate e.g. the basis of a quantum measurement.
         /// The type is a two-bit integer type.
         /// </summary>
-        public readonly ITypeRef Pauli;
+        public ITypeRef Pauli { get; }
 
         /// <summary>
         /// Represents the type of a result value from a quantum measurement in QIR.
         /// The type is a pointer to an opaque struct.
         /// </summary>
-        public readonly IPointerType Result;
+        public IPointerType Result { get; }
 
         /// <summary>
         /// Represents the type of a string value in QIR.
         /// The type is a pointer to an opaque struct.
         /// </summary>
-        public readonly IPointerType Qubit;
+        public IPointerType Qubit { get; }
 
         /// <summary>
         /// Represents the type of a string value in QIR.
         /// The type is a pointer to an opaque struct.
         /// </summary>
-        public readonly IPointerType String;
+        public IPointerType String { get; }
 
         /// <summary>
         /// Represents the type of a big integer value in QIR.
         /// The type is a pointer to an opaque struct.
         /// </summary>
-        public readonly IPointerType BigInt;
+        public IPointerType BigInt { get; }
 
         /// <summary>
         /// Represents the type of an array in QIR.
@@ -69,7 +69,7 @@ namespace Microsoft.Quantum.QIR
         /// The library method(s) return byte pointers
         /// that need to be cast to the appropriate type.
         /// </summary>
-        public readonly IPointerType Array;
+        public IPointerType Array { get; }
 
         /// <summary>
         /// Represents the type of a tuple value in QIR.
@@ -78,13 +78,13 @@ namespace Microsoft.Quantum.QIR
         /// to a suitable concrete type depending on the types of their items.
         /// Such a concrete tuple type is constructed using <see cref="TypedTuple(Value[])"/>.
         /// </summary>
-        public readonly IPointerType Tuple;
+        public IPointerType Tuple { get; }
 
         /// <summary>
         /// Represents the type of a callable value in QIR.
         /// The type is a pointer to an opaque struct.
         /// </summary>
-        public readonly IPointerType Callable;
+        public IPointerType Callable { get; }
 
         /// <summary>
         /// Represents the signature of a callable specialization in QIR.
@@ -93,21 +93,23 @@ namespace Microsoft.Quantum.QIR
         /// a tuple containing all arguments,
         /// and a tuple where the output will be stored.
         /// </summary>
-        public readonly IFunctionType FunctionSignature;
+        public IFunctionType FunctionSignature { get; }
 
         /// <summary>
         /// Represents the type of a range of numbers defined by a start, step, and end value.
         /// The type is a named struct that contains three 64-bit integers.
         /// </summary>
-        public readonly IStructType Range;
+        public IStructType Range { get; }
 
         // private and internal fields
 
         private readonly Context context;
 
-        internal readonly IArrayType CallableTable;
-        internal readonly IFunctionType CaptureCountFunction;
-        internal readonly IArrayType CallableMemoryManagementTable;
+        internal IArrayType CallableTable { get; }
+
+        internal IFunctionType CaptureCountFunction { get; }
+
+        internal IArrayType CallableMemoryManagementTable { get; }
 
         // constructor
 

@@ -28,11 +28,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     /// </summary>
     public class TransformationContext
     {
-        public string? CurrentNamespace;
-        public ImmutableHashSet<string> OpenedNamespaces;
-        public ImmutableDictionary<string, string> NamespaceShortNames; // mapping namespace names to their short names
-        public ImmutableHashSet<string> SymbolsInCurrentNamespace;
-        public ImmutableHashSet<string> AmbiguousNames;
+        public string? CurrentNamespace { get; set; }
+
+        public ImmutableHashSet<string> OpenedNamespaces { get; set; }
+
+        public ImmutableDictionary<string, string> NamespaceShortNames { get; set; } // mapping namespace names to their short names
+
+        public ImmutableHashSet<string> SymbolsInCurrentNamespace { get; set; }
+
+        public ImmutableHashSet<string> AmbiguousNames { get; set; }
 
         public TransformationContext()
         {
@@ -62,23 +66,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public class TransformationState
         {
-            public Action? BeforeInvalidType = null;
-            public Action? BeforeInvalidSet = null;
-            public Action? BeforeInvalidIdentifier = null;
-            public Action? BeforeInvalidExpression = null;
-            public Action? BeforeInvalidSymbol = null;
-            public Action? BeforeInvalidInitializer = null;
-            public Action? BeforeExternalImplementation = null;
-            public Action? BeforeInvalidFunctorGenerator = null;
+            public Action? BeforeInvalidType { get; set; } = null;
 
-            internal string? TypeOutputHandle = null;
-            internal string? ExpressionOutputHandle = null;
-            internal readonly List<string> StatementOutputHandle = new List<string>();
-            internal readonly List<string> NamespaceOutputHandle = new List<string>();
+            public Action? BeforeInvalidSet { get; set; } = null;
 
-            internal QsComments StatementComments = QsComments.Empty;
-            internal TransformationContext Context;
-            internal IEnumerable<string>? NamespaceDocumentation = null;
+            public Action? BeforeInvalidIdentifier { get; set; } = null;
+
+            public Action? BeforeInvalidExpression { get; set; } = null;
+
+            public Action? BeforeInvalidSymbol { get; set; } = null;
+
+            public Action? BeforeInvalidInitializer { get; set; } = null;
+
+            public Action? BeforeExternalImplementation { get; set; } = null;
+
+            public Action? BeforeInvalidFunctorGenerator { get; set; } = null;
+
+            internal string? TypeOutputHandle { get; set; } = null;
+
+            internal string? ExpressionOutputHandle { get; set; } = null;
+
+            internal List<string> StatementOutputHandle { get; } = new List<string>();
+
+            internal List<string> NamespaceOutputHandle { get; } = new List<string>();
+
+            internal QsComments StatementComments { get; set; } = QsComments.Empty;
+
+            internal TransformationContext Context { get; set; }
+
+            internal IEnumerable<string>? NamespaceDocumentation { get; set; } = null;
 
             public TransformationState(TransformationContext? context = null) =>
                 this.Context = context ?? new TransformationContext();

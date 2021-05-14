@@ -60,7 +60,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// reference type parameters in other dictionaries appear before those dictionaries containing
         /// the referenced type parameters. I.e., dictionary A depends on dictionary B, so A should come before B.
         /// </summary>
-        public readonly ImmutableArray<TypeParameterResolutions> IndependentResolutionDictionaries;
+        public ImmutableArray<TypeParameterResolutions> IndependentResolutionDictionaries { get; }
 
         /// <summary>
         /// The resulting resolution dictionary from combining all the input resolutions in
@@ -262,7 +262,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             internal class TransformationState
             {
-                public HashSet<TypeParameterName> TypeParams = new HashSet<TypeParameterName>();
+                public HashSet<TypeParameterName> TypeParams { get; } = new HashSet<TypeParameterName>();
             }
 
             private GetTypeParameters()
@@ -309,8 +309,9 @@ namespace Microsoft.Quantum.QsCompiler
 
             internal class TransformationState
             {
-                public readonly QsQualifiedName Origin;
-                public bool IsConstrictive = false;
+                public QsQualifiedName Origin { get; }
+
+                public bool IsConstrictive { get; set; } = false;
 
                 public TransformationState(QsQualifiedName origin)
                 {
@@ -368,8 +369,9 @@ namespace Microsoft.Quantum.QsCompiler
 
             internal class TransformationState
             {
-                public List<TypeParameterResolutions> Resolutions = new List<TypeParameterResolutions>();
-                public bool InCallLike = false;
+                public List<TypeParameterResolutions> Resolutions { get; set; } = new List<TypeParameterResolutions>();
+
+                public bool InCallLike { get; set; } = false;
             }
 
             private GetTypeParameterResolutions()

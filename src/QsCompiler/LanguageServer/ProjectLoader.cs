@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.QsLanguageServer
     /// </summary>
     internal class ProjectLoader
     {
-        public readonly Action<string, MessageType> Log;
+        public Action<string, MessageType> Log { get; }
 
         public ProjectLoader(Action<string, MessageType>? log = null) =>
             this.Log = log ?? ((_, __) => { });

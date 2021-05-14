@@ -18,7 +18,8 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal class QirGeneration : IRewriteStep
     {
-        internal static int EmissionPriority = -10;
+        internal const int EmissionPriority = -10;
+
         private readonly List<IRewriteStep.Diagnostic> diagnostics;
 
         public QirGeneration()

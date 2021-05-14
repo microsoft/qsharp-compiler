@@ -47,34 +47,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The context used for QIR generation.
         /// </summary>
         /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
-        public readonly Context Context;
+        public Context Context { get; }
 
         /// <summary>
         /// The module used for QIR generation.
         /// Generated functions to facilitate interoperability are created via <see cref="Interop"/>.
         /// </summary>
         /// <inheritdoc cref="BitcodeModule"/>
-        public readonly BitcodeModule Module;
+        public BitcodeModule Module { get; }
 
         /// <summary>
         /// The used QIR types.
         /// </summary>
-        public readonly Types Types;
+        public Types Types { get; }
 
         /// <summary>
         /// The used QIR constants.
         /// </summary>
-        public readonly Constants Constants;
+        public Constants Constants { get; }
 
         /// <summary>
         /// Tools to construct and handle values throughout QIR emission.
         /// </summary>
-        internal readonly QirValues Values;
+        internal QirValues Values { get; }
 
         /// <summary>
         /// Tools to invoke built-in functions.
         /// </summary>
-        internal readonly Functions Functions;
+        internal Functions Functions { get; }
 
         /// <summary>
         /// The syntax tree transformation that constructs QIR.
@@ -96,9 +96,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal InstructionBuilder CurrentBuilder { get; private set; }
         internal ITypeRef? BuiltType { get; set; }
 
-        internal readonly ScopeManager ScopeMgr;
-        internal readonly Stack<IValue> ValueStack;
-        internal readonly Stack<ResolvedType> ExpressionTypeStack;
+        internal ScopeManager ScopeMgr { get; }
+        internal Stack<IValue> ValueStack { get; }
+        internal Stack<ResolvedType> ExpressionTypeStack { get; }
 
         /// <summary>
         /// We support nested inlining and hence keep a stack with the information for each inline level.

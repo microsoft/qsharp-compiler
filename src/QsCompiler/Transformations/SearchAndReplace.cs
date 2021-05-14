@@ -29,22 +29,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     {
         public class Location : IEquatable<Location>
         {
-            public readonly string SourceFile;
+            public string SourceFile { get; }
 
             /// <summary>
             /// contains the offset of the root node relative to which the statement location is given
             /// </summary>
-            public readonly Position DeclarationOffset;
+            public Position DeclarationOffset { get; }
 
             /// <summary>
             /// contains the location of the statement containing the symbol relative to the root node
             /// </summary>
-            public readonly QsLocation RelativeStatementLocation;
+            public QsLocation RelativeStatementLocation { get; }
 
             /// <summary>
             /// contains the range of the symbol relative to the statement position
             /// </summary>
-            public readonly Range SymbolRange;
+            public Range SymbolRange { get; }
 
             public Location(string source, Position declOffset, QsLocation stmLoc, Range range)
             {
@@ -124,8 +124,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             private string currentSourceFile = "";
             private Position? rootOffset = null;
-            internal QsLocation? CurrentLocation = null;
-            internal readonly Func<Identifier, bool> TrackIdentifier;
+
+            internal QsLocation? CurrentLocation { get; set; } = null;
+
+            internal Func<Identifier, bool> TrackIdentifier { get; }
 
             public Position? DeclarationOffset
             {
@@ -335,8 +337,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
     {
         public class TransformationState
         {
-            internal QsLocation? StatementLocation = null;
-            internal Func<TypedExpression, TypedExpression> UpdatedExpression;
+            internal QsLocation? StatementLocation { get; set; } = null;
+
+            internal Func<TypedExpression, TypedExpression> UpdatedExpression { get; set; }
 
             private readonly List<(string, QsLocation?)> updatedLocals = new List<(string, QsLocation?)>();
             private readonly List<(string, QsLocation?)> usedLocals = new List<(string, QsLocation?)>();

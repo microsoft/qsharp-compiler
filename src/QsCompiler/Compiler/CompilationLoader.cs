@@ -59,86 +59,86 @@ namespace Microsoft.Quantum.QsCompiler
             /// The name of the project. Used as assembly name in the generated dll.
             /// The name of the project with a suitable extension will also be used as the name of the generated binary file.
             /// </summary>
-            public string? ProjectName;
+            public string? ProjectName { get; set; }
 
             /// <summary>
             /// If set to true, forces all rewrite steps to execute, regardless of whether their precondition was satisfied.
             /// If the precondition of a step is not satisfied, the transformation is executed but the output will be ignored,
             /// and an error is generated, indicating a compilation failure.
             /// </summary>
-            public bool ForceRewriteStepExecution;
+            public bool ForceRewriteStepExecution { get; set; }
 
             /// <summary>
             /// If set to true, the syntax tree rewrite step that replaces all generation directives
             /// for all functor specializations is executed during compilation.
             /// </summary>
-            public bool GenerateFunctorSupport;
+            public bool GenerateFunctorSupport { get; set; }
 
             /// <summary>
             /// Unless this is set to true, the syntax tree rewrite step that inlines conjugations is executed during compilation.
             /// </summary>
-            public bool SkipConjugationInlining;
+            public bool SkipConjugationInlining { get; set; }
 
             /// <summary>
             /// Unless this is set to true, all unused callables are removed from the syntax tree.
             /// </summary>
-            public bool SkipSyntaxTreeTrimming;
+            public bool SkipSyntaxTreeTrimming { get; set; }
 
             /// <summary>
             /// If set to true, the compiler attempts to pre-evaluate the built compilation as much as possible.
             /// This is an experimental feature that will change over time.
             /// </summary>
-            public bool AttemptFullPreEvaluation;
+            public bool AttemptFullPreEvaluation { get; set; }
 
             /// <summary>
             /// Specifies the capabilities of the runtime.
             /// The specified capabilities determine what QIR profile to compile to.
             /// </summary>
-            public RuntimeCapability? RuntimeCapability;
+            public RuntimeCapability? RuntimeCapability { get; set; }
 
             /// <summary>
             /// Specifies whether the project to build is a Q# command line application.
             /// If set to true, a warning will be raised if no entry point is defined.
             /// If set to false, then defined entry points will be ignored and a warning will be raised.
             /// </summary>
-            public bool IsExecutable;
+            public bool IsExecutable { get; set; }
 
             /// <summary>
             /// Unless this is set to true, all usages of type-parameterized callables are replaced with
             /// the concrete callable instantiation if an entry point is specified for the compilation.
             /// Removes all type-parameterizations in the syntax tree.
             /// </summary>
-            public bool SkipMonomorphization;
+            public bool SkipMonomorphization { get; set; }
 
             /// <summary>
             /// If the output folder is not null,
             /// documentation is generated in the specified folder based on doc comments in the source code.
             /// </summary>
-            public string? DocumentationOutputFolder;
+            public string? DocumentationOutputFolder { get; set; }
 
             /// <summary>
             /// Directory where the compiled binaries will be generated.
             /// No binaries will be written to disk unless this path is specified and valid.
             /// </summary>
-            public string? BuildOutputFolder;
+            public string? BuildOutputFolder { get; set; }
 
             /// <summary>
             /// Output path for the dll containing the compiled binaries.
             /// No dll will be generated unless this path is specified and valid.
             /// </summary>
-            public string? DllOutputPath;
+            public string? DllOutputPath { get; set; }
 
             /// <summary>
             /// If set to true, then referenced dlls will be loaded purely based on attributes in the contained C# code.
             /// Any Q# resources will be ignored.
             /// </summary>
-            public bool LoadReferencesBasedOnGeneratedCsharp;
+            public bool LoadReferencesBasedOnGeneratedCsharp { get; set; }
 
             /// <summary>
             /// If set to true, then public types and callables declared in referenced assemblies
             /// are exposed via their test name defined by the corresponding attribute.
             /// </summary>
-            public bool ExposeReferencesViaTestNames;
+            public bool ExposeReferencesViaTestNames { get; set; }
 
             /// <summary>
             /// Contains a sequence of tuples with the path to a dotnet dll containing one or more rewrite steps
@@ -171,7 +171,7 @@ namespace Microsoft.Quantum.QsCompiler
             /// If set to true, the post-condition for loaded rewrite steps is checked if the corresponding verification is implemented.
             /// Otherwise post-condition verifications are skipped.
             /// </summary>
-            public bool EnableAdditionalChecks;
+            public bool EnableAdditionalChecks { get; set; }
 
             /// <summary>
             /// Handle to pass arbitrary constants with which to populate the corresponding dictionary for loaded rewrite steps.
@@ -179,14 +179,14 @@ namespace Microsoft.Quantum.QsCompiler
             /// However, the compiler may overwrite the assembly constants defined for the Q# compilation unit in the dictionary of the loaded step.
             /// The given dictionary in this configuration is left unchanged in any case.
             /// </summary>
-            public IReadOnlyDictionary<string, string>? AssemblyConstants;
+            public IReadOnlyDictionary<string, string>? AssemblyConstants { get; set; }
 
             /// <summary>
             /// Paths to the assemblies that contains a syntax tree with target specific implementations for certain functions and operations.
             /// The functions and operations defined in these assemblies replace the ones declared within the compilation unit.
             /// If no paths are specified here or the sequence is null then this compilation step is omitted.
             /// </summary>
-            public IEnumerable<string>? TargetPackageAssemblies;
+            public IEnumerable<string>? TargetPackageAssemblies { get; set; }
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
@@ -247,6 +247,10 @@ namespace Microsoft.Quantum.QsCompiler
             Failed = 1
         }
 
+        [SuppressMessage(
+            "StyleCop.CSharp.MaintainabilityRules",
+            "SA1401:FieldsMustBePrivate",
+            Justification = "Fields are passed by reference.")]
         private class ExecutionStatus
         {
             internal Status SourceFileLoading = Status.NotRun;
@@ -430,27 +434,27 @@ namespace Microsoft.Quantum.QsCompiler
         /// Contains all diagnostics generated upon source file and reference loading.
         /// All other diagnostics can be accessed via the VerifiedCompilation.
         /// </summary>
-        public ImmutableArray<Diagnostic> LoadDiagnostics;
+        public ImmutableArray<Diagnostic> LoadDiagnostics { get; set; }
 
         /// <summary>
         /// Contains the initial compilation built by the compilation unit manager after verification.
         /// </summary>
-        public readonly CompilationUnitManager.Compilation? VerifiedCompilation;
+        public CompilationUnitManager.Compilation? VerifiedCompilation { get; }
 
         /// <summary>
         /// Contains the built compilation including the syntax tree after executing all configured rewrite steps.
         /// </summary>
-        public readonly QsCompilation? CompilationOutput;
+        public QsCompilation? CompilationOutput { get; }
 
         /// <summary>
         /// Contains the absolute path where the binary representation of the generated syntax tree has been written to disk.
         /// </summary>
-        public readonly string? PathToCompiledBinary;
+        public string? PathToCompiledBinary { get; }
 
         /// <summary>
         /// Contains the absolute path where the generated dll containing the compiled binary has been written to disk.
         /// </summary>
-        public readonly string? DllOutputPath;
+        public string? DllOutputPath { get; }
 
         /// <summary>
         /// Contains the full Q# syntax tree after executing all configured rewrite steps, including the content of loaded references.

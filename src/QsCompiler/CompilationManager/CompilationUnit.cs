@@ -26,9 +26,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         public class Headers
         {
-            public readonly ImmutableArray<CallableDeclarationHeader> Callables;
-            public readonly ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations;
-            public readonly ImmutableArray<TypeDeclarationHeader> Types;
+            public ImmutableArray<CallableDeclarationHeader> Callables { get; }
+
+            public ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations { get; }
+
+            public ImmutableArray<TypeDeclarationHeader> Types { get; }
 
             internal Headers(
                 string source,
@@ -162,9 +164,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
         /// </summary>
-        public readonly ImmutableDictionary<string, Headers> Declarations;
+        public ImmutableDictionary<string, Headers> Declarations { get; }
 
-        public static References Empty =
+        public static References Empty { get; set; } =
             new References(ImmutableDictionary<string, Headers>.Empty);
 
         /// <summary>
@@ -315,9 +317,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ReaderWriterLockSlim syncRoot;
         private readonly HashSet<ReaderWriterLockSlim> dependentLocks;
 
-        internal readonly RuntimeCapability RuntimeCapability;
-        internal readonly bool IsExecutable;
-        internal readonly string ProcessorArchitecture;
+        internal RuntimeCapability RuntimeCapability { get; }
+
+        internal bool IsExecutable { get; }
+
+        internal string ProcessorArchitecture { get; }
 
         /// <inheritdoc/>
         public void Dispose()
