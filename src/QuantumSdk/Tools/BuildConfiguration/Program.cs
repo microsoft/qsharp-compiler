@@ -13,7 +13,7 @@ namespace Microsoft.Quantum.Sdk.Tools
             MISSING_ARGUMENTS = 1,
             INVALID_ARGUMENTS = 2,
             IO_EXCEPTION = 3,
-            UNEXPECTED_ERROR = 100
+            UNEXPECTED_ERROR = 100,
         }
 
         private static int Main(string[] args) =>
