@@ -4,10 +4,12 @@
 // Portions Copyright (c) Microsoft Corporation
 // </copyright>
 // -----------------------------------------------------------------------
+#define SINGLE_CONTEXT
 
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Threading;
 
@@ -23,6 +25,28 @@ namespace Ubiquity.NET.Llvm
     /// </remarks>
     internal static class ContextCache
     {
+        [Conditional("SINGLE_CONTEXT")]
+        private static void AddSingle(Context context)
+        {
+            var single = Instance.Value.GetOrAdd(default, h => context);
+            if (single.ContextHandle != context.ContextHandle)
+            {
+                throw new NotSupportedException($"Context already exists!");
+            }
+        }
+
+#if SINGLE_CONTEXT
+        internal static Context Single()
+        {
+            if (Instance.Value.TryGetValue(default, out var result))
+            {
+                return result;
+            }
+
+            throw new NotSupportedException("Context does not exist!");
+        }
+#endif
+
         internal static bool TryRemove(LLVMContextRef h)
         {
             return Instance.Value.TryRemove(h, out Context _);
@@ -30,6 +54,7 @@ namespace Ubiquity.NET.Llvm
 
         internal static void Add(Context context)
         {
+            AddSingle(context);
             if (!Instance.Value.TryAdd(context.ContextHandle, context))
             {
                 throw new InternalCodeGeneratorException("Internal Error: Can't add context to Cache as it already exists!");
@@ -38,17 +63,9 @@ namespace Ubiquity.NET.Llvm
 
         internal static Context GetContextFor(LLVMContextRef contextRef)
         {
-            return Instance.Value.GetOrAdd(contextRef, h => new Context(h));
-        }
-
-        internal static Context Single()
-        {
-            if (Instance.Value.Count != 1)
-            {
-                throw new NotSupportedException($"Expected exactly 1 Context, but {Instance.Value.Count} exist.");
-            }
-
-            return Instance.Value.Values.First();
+            var context = new Context(contextRef);
+            AddSingle(context);
+            return Instance.Value.GetOrAdd(contextRef, h => context);
         }
 
         private static ConcurrentDictionary<LLVMContextRef, Context> CreateInstance()
