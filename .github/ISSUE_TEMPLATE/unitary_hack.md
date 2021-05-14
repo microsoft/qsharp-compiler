@@ -1,14 +1,14 @@
 ---
-name: Unitary Hack
+name: [Unitary Hack] Compilation to QIR
 about: Create a report to help us improve our new QIR generation feature!
 title: ''
-labels: bug, unitaryhack
+labels: 'bug', 'area: QIR'
 assignees: ''
 ---
 
 **Description of the issue**
 
-Describe briefly what this issue is about, and past any error messages or unexpected behavior you are seeing.
+Describe briefly what this issue is that you have encountered as part of the [Unitary Hack](https://unitaryfund.github.io/unitaryhack/), and past any error messages or unexpected behavior you are seeing.
 
 **Q# code that causes the issue**
 
