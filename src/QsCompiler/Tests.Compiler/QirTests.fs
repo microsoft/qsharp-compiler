@@ -235,7 +235,7 @@ let ``QIR conditionals`` () =
 [<Fact>]
 let ``QIR expressions`` () = qirTest false "TestExpressions"
 
-[<Fact>]
+[<Fact(Skip="Temporarily disabled for the sake of omitting dependencies")>]
 let ``QIR targeting`` () =
     let compilerArgs =
         [
