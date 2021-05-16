@@ -7,10 +7,10 @@ using System;
 
 namespace LLVMSharp.Interop
 {
-    /// <summary>Extensions for the LLVMSharp.Interop.LLVMNamedMDNodeRef class.</summary>
+    /// <summary>Extensions for <see cref="LLVMNamedMDNodeRef"/>.</summary>
     public static unsafe class LLVMNamedMDNodeRefExtensions
     {
-        /// <summary>Convenience wrapper for LLVM.GetNamedMetadataName.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.GetNamedMetadataName"/>.</summary>
         public static string Name(this LLVMNamedMDNodeRef self)
         {
             UIntPtr len;

@@ -7,22 +7,22 @@ using System;
 
 namespace LLVMSharp.Interop
 {
-    /// <summary>Extensions for the LLVMSharp.Interop.LLVMModuleFlagEntry class.</summary>
+    /// <summary>Extensions for <see cref="LLVMModuleFlagEntry"/>.</summary>
     public static unsafe class LLVMModuleFlagEntryExtensions
     {
-        /// <summary>Convenience wrapper for LLVM.DisposeModuleFlagsMetadata.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.DisposeModuleFlagsMetadata"/>.</summary>
         public static void Dispose(this LLVMModuleFlagEntry entries)
         {
             LLVM.DisposeModuleFlagsMetadata(entries);
         }
 
-        /// <summary>Convenience wrapper for LLVM.ModuleFlagEntriesGetFlagBehavior.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.ModuleFlagEntriesGetFlagBehavior"/>.</summary>
         public static LLVMModuleFlagBehavior GetFlagBehavior(this LLVMModuleFlagEntry entries, uint index)
         {
             return LLVM.ModuleFlagEntriesGetFlagBehavior(entries, index);
         }
 
-        /// <summary>Convenience wrapper for LLVM.ModuleFlagEntriesGetKey.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.ModuleFlagEntriesGetKey"/>.</summary>
         public static string GetKey(this LLVMModuleFlagEntry entries, uint index)
         {
             UIntPtr len;
@@ -36,7 +36,7 @@ namespace LLVMSharp.Interop
             return new ReadOnlySpan<byte>(pStr, (int)len).AsString();
         }
 
-        /// <summary>Convenience wrapper for LLVM.ModuleFlagEntriesGetMetadata.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.ModuleFlagEntriesGetMetadata"/>.</summary>
         public static LLVMMetadataRef GetMetadata(this LLVMModuleFlagEntry entries, uint index)
         {
             return LLVM.ModuleFlagEntriesGetMetadata(entries, index);

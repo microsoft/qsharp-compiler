@@ -7,28 +7,28 @@ using System;
 
 namespace LLVMSharp.Interop
 {
-    /// <summary>Extensions for the LLVMSharp.Interop.LLVMTargetDataRef class.</summary>
+    /// <summary>Extensions for <see cref="LLVMTargetDataRef"/>.</summary>
     public static unsafe class LLVMTargetDataRefExtensions
     {
-        /// <summary>Convenience wrapper for LLVM.ByteOrder.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.ByteOrder"/>.</summary>
         public static LLVMByteOrdering ByteOrder(this LLVMTargetDataRef self)
         {
             return LLVM.ByteOrder(self);
         }
 
-        /// <summary>Convenience wrapper for LLVM.PointerSize.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.PointerSize"/>.</summary>
         public static uint PointerSize(this LLVMTargetDataRef self)
         {
             return LLVM.PointerSize(self);
         }
 
-        /// <summary>Convenience wrapper for LLVM.PointerSizeForAS.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.PointerSizeForAS"/>.</summary>
         public static uint PointerSizeForAS(this LLVMTargetDataRef self, uint AS)
         {
             return LLVM.PointerSizeForAS(self, AS);
         }
 
-        /// <summary>Convenience wrapper for LLVM.CopyStringRepOfTargetData.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.CopyStringRepOfTargetData"/>.</summary>
         public static string CopyStringRepOfTargetData(this LLVMTargetDataRef self)
         {
             var pStr = LLVM.CopyStringRepOfTargetData(self);
