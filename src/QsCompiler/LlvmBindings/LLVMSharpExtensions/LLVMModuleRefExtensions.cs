@@ -82,21 +82,25 @@ namespace LLVMSharp.Interop
             }
         }
 
+        /// <summary>Convenience wrapper for LLVM.CreateDIBuilderDisallowUnresolved.</summary>
         public static LLVMDIBuilderRef CreateDIBuilderDisallowUnresolved(this LLVMModuleRef self)
         {
             return LLVM.CreateDIBuilderDisallowUnresolved(self);
         }
 
+        /// <summary>Convenience wrapper for LLVM.GetModuleDataLayout.</summary>
         public static LLVMTargetDataRef GetDataLayout(this LLVMModuleRef self)
         {
             return LLVM.GetModuleDataLayout(self);
         }
 
+        /// <summary>Convenience wrapper for LLVM.SetModuleDataLayout.</summary>
         public static void SetDataLayout(this LLVMModuleRef self, LLVMTargetDataRef layout)
         {
             LLVM.SetModuleDataLayout(self, layout);
         }
 
+        /// <summary>Convenience wrapper for LLVM.CopyModuleFlagsMetadata.</summary>
         public static (LLVMModuleFlagEntry Entry, ulong Length) CopyModuleFlagsMetadata(this LLVMModuleRef self)
         {
             UIntPtr len;

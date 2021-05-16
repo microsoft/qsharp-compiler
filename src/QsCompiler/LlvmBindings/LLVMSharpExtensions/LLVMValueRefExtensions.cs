@@ -43,21 +43,25 @@ namespace LLVMSharp.Interop
             return (metadataRef, (uint)count);
         }
 
+        /// <summary>Convenience wrapper for LLVM.GetSubprogram.</summary>
         public static LLVMMetadataRef GetSubprogram(this LLVMValueRef self)
         {
             return LLVM.GetSubprogram(self);
         }
 
+        /// <summary>Convenience wrapper for LLVM.SetSubprogram.</summary>
         public static void SetSubprogram(this LLVMValueRef self, LLVMMetadataRef subprogram)
         {
             LLVM.SetSubprogram(self, subprogram);
         }
 
+        /// <summary>Convenience wrapper for LLVM.ValueAsMetadata.</summary>
         public static LLVMMetadataRef ValueAsMetadata(this LLVMValueRef self)
         {
             return LLVM.ValueAsMetadata(self);
         }
 
+        /// <summary>Convenience wrapper for LLVM.GetMDNodeOperands.</summary>
         public static LLVMValueRef[] GetMDNodeOperands(this LLVMValueRef self)
         {
             var Dest = new LLVMValueRef[self.GetMDNodeNumOperands()];
@@ -70,6 +74,7 @@ namespace LLVMSharp.Interop
             return Dest;
         }
 
+        /// <summary>Convenience wrapper for LLVM.GetMDNodeNumOperands.</summary>
         public static uint GetMDNodeNumOperands(this LLVMValueRef self)
         {
             return LLVM.GetMDNodeNumOperands(self);

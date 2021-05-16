@@ -10,6 +10,7 @@ namespace LLVMSharp.Interop
     /// <summary>Extensions for the LLVMSharp.Interop.LLVMNamedMDNodeRef class.</summary>
     public static unsafe class LLVMNamedMDNodeRefExtensions
     {
+        /// <summary>Convenience wrapper for LLVM.GetNamedMetadataName.</summary>
         public static string Name(this LLVMNamedMDNodeRef self)
         {
             UIntPtr len;
