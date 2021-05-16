@@ -578,16 +578,35 @@ namespace Ubiquity.NET.Llvm
             return hGlobal == default ? default : Value.FromHandle<GlobalVariable>(hGlobal);
         }
 
-        public IEnumerable<Value> GetNamedMetadataOperands(string name)
+        /// <summary>
+        /// Get the operands of a <see cref="NamedMDNode"/>.
+        /// </summary>
+        /// <remarks>
+        /// For metadata operands, use <see cref="LLVMValueRefExtensions.ValueAsMetadata(LLVMValueRef)"/> to
+        /// unwrap <see cref="Value"/> to its underlying <see cref="LlvmMetadata"/>.
+        /// </remarks>
+        /// <param name="name">The name of the node (i.e. <see cref="NamedMDNode.Name"/>).</param>
+        /// <returns>The operands.</returns>
+        public Value[] GetNamedMetadataOperands(string name)
         {
-            return this.ModuleHandle.GetNamedMetadataOperands(name).Select(r => Value.FromHandle(r));
+            return this.ModuleHandle.GetNamedMetadataOperands(name).Select(r => Value.FromHandle(r)).ToArray();
         }
 
+        /// <summary>
+        /// Get the number of operands of a <see cref="NamedMDNode"/>.
+        /// </summary>
+        /// <param name="name">The name of the node (i.e. <see cref="NamedMDNode.Name"/>).</param>
+        /// <returns>The number of operands.</returns>
         public uint GetNamedMetadataNumOperands(string name)
         {
             return this.ModuleHandle.GetNamedMetadataOperandsCount(name);
         }
 
+        /// <summary>
+        /// Add <paramref name="operand"/> to the operands of a <see cref="NamedMDNode"/>.
+        /// </summary>
+        /// <param name="name">The name of the node (i.e. <see cref="NamedMDNode.Name"/>).</param>
+        /// <param name="operand">The operand to append.</param>
         public void AddNamedMetadataOperand(string name, Value operand)
         {
             this.ModuleHandle.AddNamedMetadataOperand(name, operand.ValueHandle);
