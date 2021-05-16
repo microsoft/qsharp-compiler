@@ -10,7 +10,6 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Linq;
 using System.Threading;
 
 using LLVMSharp.Interop;
@@ -25,8 +24,16 @@ namespace Ubiquity.NET.Llvm
     /// </remarks>
     internal static class ContextCache
     {
+        /// <summary>
+        /// Ensures that <paramref name="context"/> is registed as the one and only <see cref="Context"/>
+        /// in the cache.
+        /// </summary>
+        /// <exception cref="NotSupportedException">
+        /// Another <see cref="Context"/> with a different LLVM handle has already been registered.
+        /// </exception>
+        /// <param name="context">The <see cref="Context"/> to register.</param>
         [Conditional("SINGLE_CONTEXT")]
-        private static void AddSingle(Context context)
+        private static void TryInitializeSingleton(Context context)
         {
             var single = Instance.Value.GetOrAdd(default, h => context);
             if (single.ContextHandle != context.ContextHandle)
@@ -36,6 +43,14 @@ namespace Ubiquity.NET.Llvm
         }
 
 #if SINGLE_CONTEXT
+        /// <summary>
+        /// Retrieves the <see cref="Context"/> singleton.
+        /// </summary>
+        /// <remarks>
+        /// (Q#) This method was added to workaround the absence of any native helper methods to get the context
+        /// of an <see cref="MDNode"/> or <see cref="MDString"/> (i.e. LLVM Metadata) in the LLVM C API.
+        /// </remarks>
+        /// <returns>The one and only <see cref="Context"/>.</returns>
         internal static Context Single()
         {
             if (Instance.Value.TryGetValue(default, out var result))
@@ -54,7 +69,7 @@ namespace Ubiquity.NET.Llvm
 
         internal static void Add(Context context)
         {
-            AddSingle(context);
+            TryInitializeSingleton(context);
             if (!Instance.Value.TryAdd(context.ContextHandle, context))
             {
                 throw new InternalCodeGeneratorException("Internal Error: Can't add context to Cache as it already exists!");
@@ -64,7 +79,7 @@ namespace Ubiquity.NET.Llvm
         internal static Context GetContextFor(LLVMContextRef contextRef)
         {
             var context = new Context(contextRef);
-            AddSingle(context);
+            TryInitializeSingleton(context);
             return Instance.Value.GetOrAdd(contextRef, h => context);
         }
 

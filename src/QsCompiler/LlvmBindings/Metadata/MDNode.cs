@@ -127,8 +127,9 @@ namespace Ubiquity.NET.Llvm
 
         private static Context GetMetadataContext( LLVMMetadataRef metadataHandle )
         {
-            // TODO: we currently expect exactly one context. Instead, this method
-            // should find a context that owns metadataHandle and return that.
+            // TODO (Q#): we currently expect exactly one context, since we have no way
+            // to map an MDNode to its context (this was done in Ubiquity via a custom
+            // native method).
             return ContextCache.Single();
         }
     }
