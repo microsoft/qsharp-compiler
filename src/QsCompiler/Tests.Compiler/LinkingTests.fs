@@ -244,7 +244,11 @@ type LinkingTests() =
         let source = (LinkingTests.ReadAndChunkSourceFile "SyntaxTreeTrim.qs").[testNumber - 1]
         let compilationDataStructures = this.BuildContent(compilationManager, source)
 
-        TrimSyntaxTree.Apply(compilationDataStructures.BuiltCompilation, keepIntrinsics, BuiltIn.RewriteStepDependencies)
+        TrimSyntaxTree.Apply(
+            compilationDataStructures.BuiltCompilation,
+            keepIntrinsics,
+            BuiltIn.RewriteStepDependencies
+        )
         |> Signatures.SignatureCheck
             [ Signatures.SyntaxTreeTrimmingNS ]
             Signatures.SyntaxTreeTrimmingSignatures.[testNumber - 1]
