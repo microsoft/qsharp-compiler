@@ -9,8 +9,8 @@
     @EntryPoint()
     operation RunExample() : String {
 
-        // TODO:
-        // Add code here
+        // Add additional code here
+        // for experimenting with and debugging QIR generation.
 
         return "Executed successfully!";
     }
