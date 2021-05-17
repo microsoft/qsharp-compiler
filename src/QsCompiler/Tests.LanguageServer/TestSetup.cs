@@ -16,7 +16,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 {
     public sealed partial class BasicFunctionality : IDisposable
     {
-        // basic setup
+        /* basic setup */
 
         private Connection? connection;
         private JsonRpc rpc = null!; // Initialized in SetupServerConnectionAsync.
@@ -36,6 +36,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
         public Task SetupAsync()
         {
             var initParams = TestUtils.GetInitializeParams();
+
             // Notify, because we should not ever have to wait for completion, except when verifying Initialize itself
             // IMPORTANT: if Initialize throws an exception, this exception will get lost when using Notify, and not result in a test failure!
             return this.rpc.NotifyWithParameterObjectAsync(Methods.Initialize.Name, initParams);
@@ -82,7 +83,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             this.Dispose();
         }
 
-        // Methods to listen to server replies
+        /* Methods to listen to server replies */
 
         [JsonRpcMethod(Methods.TextDocumentPublishDiagnosticsName)]
         public void CaptureDiagnostics(JToken arg)

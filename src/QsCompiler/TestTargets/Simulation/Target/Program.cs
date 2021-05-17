@@ -50,12 +50,13 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
                 {
                     Severity = CodeAnalysis.DiagnosticSeverity.Info,
                     Message = "Invokation of the Q# compiler extension for C# generation to demonstrate execution on the simulation framework.",
-                }
+                },
             };
 
             var success = true;
             var outputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) ? path : null;
             var allSources = GetSourceFiles.Apply(compilation.Namespaces) // also generate the code for referenced libraries...
+
                 // ... except when they are one of the packages that currently still already contains the C# code (temporary workaround):
                 .Where(s => !Path.GetFileName(s).StartsWith("Microsoft.Quantum"));
             foreach (var source in allSources)
@@ -70,12 +71,14 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
                     success = false;
                 }
             }
+
             transformed = compilation;
             return success;
         }
 
         /// <inheritdoc/>
         public bool PreconditionVerification(QsCompilation compilation) =>
+
             // todo: we should implement this and check for conjugations and invalid pieces
             throw new System.NotImplementedException();
 

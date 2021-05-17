@@ -49,7 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 new Lsp.Range
                 {
                     Start = CopyPosition(range.Start),
-                    End = CopyPosition(range.End)
+                    End = CopyPosition(range.End),
                 };
 
             // NB: The nullability metadata on Diagnostic.Range is incorrect,
@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Severity = message.Severity,
                     Code = message.Code,
                     Source = message.Source,
-                    Message = message.Message
+                    Message = message.Message,
                 };
             #nullable restore
         }
@@ -82,6 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public static Diagnostic WithLineNumOffset(this Diagnostic diagnostic, int offset)
         {
             var copy = diagnostic.Copy();
+
             // NB: Despite the nullability metadata, Range may be null here.
             //     We thus need to guard accordingly.
             if (copy.Range != null)
@@ -94,6 +95,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         nameof(offset), "Translated diagnostic has negative line numbers.");
                 }
             }
+
             return copy;
         }
 

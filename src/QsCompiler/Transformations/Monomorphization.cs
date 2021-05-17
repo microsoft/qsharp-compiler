@@ -45,6 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             var concreteNamesMap = new Dictionary<ConcreteCallGraphNode, QsQualifiedName>();
 
             var nodesWithResolutions = new ConcreteCallGraph(compilation).Nodes
+
                 // Remove specialization information so that we only deal with the full callables.
                 // Note: this only works fine if for all nodes in the call graph,
                 // all existing functor specializations and their dependencies are also in the call graph.
@@ -110,7 +111,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             return ReplaceTypeParamCalls.Apply(compWithImpls, getConcreteIdentifier, intrinsicsToKeep);
         }
 
-        // Rewrite Implementations
+        /* Rewrite Implementations */
 
         private static Access GetAccessModifier(ImmutableDictionary<QsQualifiedName, QsCustomType> userDefinedTypes, QsQualifiedName typeName)
         {
@@ -119,6 +120,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             {
                 throw new ArgumentException($"Couldn't find definition for user defined type: {typeName}");
             }
+
             return type.Access;
         }
 
@@ -133,8 +135,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly TypeParameterResolutions TypeParams;
-                public readonly GetAccessModifiers GetAccessModifiers;
+                public TypeParameterResolutions TypeParams { get; }
+
+                public GetAccessModifiers GetAccessModifiers { get; }
 
                 public TransformationState(TypeParameterResolutions typeParams, GetAccessModifiers getAccessModifiers)
                 {
@@ -221,6 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     {
                         return typeParam.Resolution;
                     }
+
                     return ResolvedTypeKind.NewTypeParameter(tp);
                 }
             }
@@ -235,13 +239,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                 {
                     this.OnType(res);
                 }
+
                 return this.SharedState.AccessModifiers.ToImmutableArray();
             }
 
             internal class TransformationState
             {
-                public readonly HashSet<Access> AccessModifiers = new HashSet<Access>();
-                public readonly Func<QsQualifiedName, Access> GetAccessModifier;
+                public HashSet<Access> AccessModifiers { get; } = new HashSet<Access>();
+
+                public Func<QsQualifiedName, Access> GetAccessModifier { get; }
 
                 public TransformationState(Func<QsQualifiedName, Access> getAccessModifier)
                 {
@@ -261,7 +267,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
             }
         }
 
-        // Rewrite Calls
+        /* Rewrite Calls */
 
         private static Identifier GetConcreteIdentifier(
             Dictionary<ConcreteCallGraphNode, QsQualifiedName> concreteNames,
@@ -302,10 +308,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
 
             public class TransformationState
             {
-                public readonly Stack<TypeParameterResolutions> CurrentTypeParamResolutions = new Stack<TypeParameterResolutions>();
-                public readonly GetConcreteIdentifierFunc GetConcreteIdentifier;
-                public readonly ImmutableHashSet<QsQualifiedName> IntrinsicsToKeep;
-                public TypeParameterResolutions? LastCalculatedTypeResolutions = null;
+                public Stack<TypeParameterResolutions> CurrentTypeParamResolutions { get; } = new Stack<TypeParameterResolutions>();
+
+                public GetConcreteIdentifierFunc GetConcreteIdentifier { get; }
+
+                public ImmutableHashSet<QsQualifiedName> IntrinsicsToKeep { get; }
+
+                public TypeParameterResolutions? LastCalculatedTypeResolutions { get; set; } = null;
 
                 public TransformationState(GetConcreteIdentifierFunc getConcreteIdentifier, ImmutableHashSet<QsQualifiedName> intrinsicsToKeep)
                 {
@@ -387,6 +396,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                             sym = this.SharedState.GetConcreteIdentifier(global, typeRes);
                             tArgs = QsNullable<ImmutableArray<ResolvedType>>.Null;
                         }
+
                         this.SharedState.CurrentTypeParamResolutions.Clear();
                     }
                     else if (sym is Identifier.LocalVariable && tArgs.IsValue && tArgs.Item.Any())
@@ -416,6 +426,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     {
                         return typeParam.Resolution;
                     }
+
                     return ResolvedTypeKind.NewTypeParameter(tp);
                 }
             }

@@ -76,6 +76,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 NotifyFilter = notifyOn,
                 Filter = pattern,
                 Path = folder,
+
                 // An entry is the buffer is 12 bytes plus the length of the file path times two.
                 // The default buffer size is 2*4096, which is around 15 events.
                 InternalBufferSize = 16 * 4096,
@@ -126,6 +127,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return Task.CompletedTask;
             }
+
             folder = folder.TrimEnd(Path.DirectorySeparatorChar);
 
             globPatterns = globPatterns.Distinct().ToArray();
@@ -147,6 +149,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                         var current = this.watchedDirectories.TryGetValue(entry.Key, out var c) ? c : ImmutableHashSet<string>.Empty;
                         this.watchedDirectories[entry.Key] = current.Union(entry.Value);
                     }
+
                     onInitialState?.Invoke(dictionary.ToImmutableDictionary());
                 }
 
@@ -164,14 +167,14 @@ namespace Microsoft.Quantum.QsLanguageServer
             });
         }
 
-        // routines called upon creation
+        /* routines called upon creation */
 
         private void OnCreatedFile(string fullPath)
         {
             this.FileEvent?.Invoke(new FileEvent
             {
                 Uri = new Uri(fullPath),
-                FileChangeType = FileChangeType.Created
+                FileChangeType = FileChangeType.Created,
             });
 
             var dir = new Uri(Path.GetDirectoryName(fullPath) ?? "");
@@ -211,17 +214,18 @@ namespace Microsoft.Quantum.QsLanguageServer
                     System.Threading.Thread.Sleep(1000);
                 }
             }
+
             _ = this.processing.QueueForExecutionAsync(() => this.RecurCreated(e.FullPath, directories));
         }
 
-        // routines called upon deletion
+        /* routines called upon deletion */
 
         private void OnDeletedFile(string fullPath)
         {
             this.FileEvent?.Invoke(new FileEvent
             {
                 Uri = new Uri(fullPath),
-                FileChangeType = FileChangeType.Deleted
+                FileChangeType = FileChangeType.Deleted,
             });
 
             var dir = new Uri(Path.GetDirectoryName(fullPath) ?? "");
@@ -239,6 +243,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     this.RecurDeleted(Path.Combine(fullPath, item));
                 }
+
                 this.watchedDirectories.Remove(new Uri(fullPath));
             }
             else
@@ -250,13 +255,13 @@ namespace Microsoft.Quantum.QsLanguageServer
         public void OnDeleted(object source, FileSystemEventArgs e) =>
             this.processing.QueueForExecutionAsync(() => this.RecurDeleted(e.FullPath));
 
-        // routines called upon changing
+        /* routines called upon changing */
 
         private void OnChangedFile(string fullPath) =>
             this.FileEvent?.Invoke(new FileEvent
             {
                 Uri = new Uri(fullPath),
-                FileChangeType = FileChangeType.Changed
+                FileChangeType = FileChangeType.Changed,
             });
 
         private void RecurChanged(string fullPath)
@@ -274,7 +279,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         public void OnChanged(object source, FileSystemEventArgs e) =>
             this.processing.QueueForExecutionAsync(() => this.RecurChanged(e.FullPath));
 
-        // routines called upon renaming
+        /* routines called upon renaming */
 
         private void OnRenamedFile(string fullPath, string oldFullPath)
         {
@@ -291,6 +296,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     this.RecurRenamed(Path.Combine(fullPath, item), Path.Combine(oldFullPath, item));
                 }
+
                 this.watchedDirectories.Remove(new Uri(oldFullPath));
             }
             else

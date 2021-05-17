@@ -60,6 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
         {
             var success = true;
             List<string> instructionNames = new List<string>();
+
             // populate the intruction names with all manually specified ones first
             foreach (var callable in compilation.Namespaces.Callables())
             {
@@ -83,6 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                     success = false;
                     return callable;
                 }
+
                 return callable.AddAttribute(
                     AttributeUtils.BuildAttribute(
                         BuiltIn.TargetInstruction.FullName,
@@ -108,7 +110,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
             return success;
         }
 
-        // private methods
+        /* private methods */
 
         private static ArgumentTuple BuildSpecArgTuple(ArgumentTuple callableArg, QsSpecializationKind specKind) =>
             specKind.IsQsControlled || specKind.IsQsControlledAdjoint
@@ -195,6 +197,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                     elements.Add(element);
                 }
             }
+
             return new QsNamespace(ns.Name, elements.ToImmutable(), ns.Documentation);
         }
 
@@ -256,7 +259,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
 
                                 // Create a separate callable for that specialization,
                                 // unless the specialization is not needed for a self-adjoint callable.
-
                                 var genCallableSignature = new ResolvedSignature(
                                     ImmutableArray<QsLocalSymbol>.Empty,
                                     spec.Signature.ArgumentType,
@@ -300,7 +302,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                                 // Create a specialization that calls into the generated callable,
                                 // or the corresponding callable no callable for the specialization
                                 // has been added due to hte operation being self-adjoint.
-
                                 var genCallableType =
                                     callable.Kind == QsCallableKind.Operation
                                     ? OperationTypeFromSignature(genCallableSignature)
@@ -323,7 +324,6 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
 
                             // Create a callable that contains all specializations that
                             // call into the generated callables for each specialization.
-
                             var inlineAttribute = AttributeUtils.BuildAttribute(BuiltIn.Inline.FullName, SyntaxGenerator.UnitValue);
                             var signature = new ResolvedSignature(
                                 ImmutableArray<QsLocalSymbol>.Empty,
@@ -361,6 +361,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Targeting
                     elements.Add(element);
                 }
             }
+
             return new QsNamespace(ns.Name, elements.ToImmutable(), ns.Documentation);
         }
     }
