@@ -13,7 +13,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 {
     public static class TrimSyntaxTree
     {
-        public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics, IEnumerable<QsQualifiedName>? dependencies)
+        public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics, IEnumerable<QsQualifiedName>? dependencies = null)
         {
             return TrimTree.Apply(compilation, keepAllIntrinsics, dependencies);
         }
