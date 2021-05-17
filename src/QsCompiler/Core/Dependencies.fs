@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsCompiler
 
+open System
 open System.Collections.Immutable
 open Microsoft.Quantum.QsCompiler.DataTypes
 open Microsoft.Quantum.QsCompiler.ReservedKeywords
@@ -43,26 +44,30 @@ type BuiltIn =
             BuiltIn.RangeReverse.FullName,
             BuiltIn.Length.FullName,
             BuiltIn.Inline.FullName,
-            BuiltIn.TargetInstruction.FullName
-            //BuiltIn.RequiresCapability.FullName
-            //BuiltIn.NoOp
-            //BuiltIn.ApplyConditionally
-            //BuiltIn.ApplyConditionallyA
-            //BuiltIn.ApplyConditionallyC
-            //BuiltIn.ApplyConditionallyCA
-            //BuiltIn.ApplyIfZero
-            //BuiltIn.ApplyIfZeroA
-            //BuiltIn.ApplyIfZeroC
-            //BuiltIn.ApplyIfZeroCA
-            //BuiltIn.ApplyIfOne
-            //BuiltIn.ApplyIfOneA
-            //BuiltIn.ApplyIfOneC
-            //BuiltIn.ApplyIfOneCA
-            //BuiltIn.ApplyIfElseR
-            //BuiltIn.ApplyIfElseRA
-            //BuiltIn.ApplyIfElseRC
-            //BuiltIn.ApplyIfElseRCA
+            BuiltIn.TargetInstruction.FullName,
+            BuiltIn.RequiresCapability.FullName,
+            BuiltIn.NoOp.FullName,
+            BuiltIn.ApplyConditionally.FullName,
+            BuiltIn.ApplyConditionallyA.FullName,
+            BuiltIn.ApplyConditionallyC.FullName,
+            BuiltIn.ApplyConditionallyCA.FullName,
+            BuiltIn.ApplyIfZero.FullName,
+            BuiltIn.ApplyIfZeroA.FullName,
+            BuiltIn.ApplyIfZeroC.FullName,
+            BuiltIn.ApplyIfZeroCA.FullName,
+            BuiltIn.ApplyIfOne.FullName,
+            BuiltIn.ApplyIfOneA.FullName,
+            BuiltIn.ApplyIfOneC.FullName,
+            BuiltIn.ApplyIfOneCA.FullName,
+            BuiltIn.ApplyIfElseR.FullName,
+            BuiltIn.ApplyIfElseRA.FullName,
+            BuiltIn.ApplyIfElseRC.FullName,
+            BuiltIn.ApplyIfElseRCA.FullName
         )
+
+    /// The set of all built in callables and attributes
+    [<Obsolete "Use RewriteStepDependencies instead.">]
+    static member AllBuiltIns = BuiltIn.RewriteStepDependencies
 
     /// Returns true if the given attribute marks the corresponding declaration as entry point.
     static member MarksEntryPoint(att: QsDeclarationAttribute) =

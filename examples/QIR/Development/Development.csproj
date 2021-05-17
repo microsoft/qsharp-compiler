@@ -8,10 +8,18 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Windows'))" Include="libLLVM.runtime.win-x64" Version="11.0.0" PrivateAssets="All" GeneratePathProperty="true" />
-    <PackageReference Condition="$([MSBuild]::IsOsPlatform('OSX'))" Include="libLLVM.runtime.osx-x64" Version="11.0.0" PrivateAssets="All" GeneratePathProperty="true" />
-    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'" Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" PrivateAssets="All" GeneratePathProperty="true" />
-    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'" Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0" PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Windows'))"
+                      Include="libLLVM.runtime.win-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('OSX'))"
+                      Include="libLLVM.runtime.osx-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'"
+                      Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
+    <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'"
+                      Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
+                      PrivateAssets="All" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.16.2105142080-alpha" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.16.2105142080-alpha" GeneratePathProperty="true" />
   </ItemGroup>
@@ -38,6 +46,9 @@
   we just do that here to make sure the Q# compilation is executed even when the Q# project did not change,
   and files with the generated QIR are deleted when the project is cleaned
   despite that we added them in a way that displays them as part of the project.
+  The C# driver is usually also provided by the Sdk, but we generate it manually for this project
+  since we disabled the usual mechanism for execution via QIR due to using the source code version
+  of the compiler and QIR generation.
   -->
 
   <Target Name="CleanQir" AfterTargets="QSharpClean" DependsOnTargets="Restore">
@@ -53,12 +64,6 @@
 
   <Target Name="BeforeQSharpCompile" DependsOnTargets="QSharpClean">
     <Message Text="Removed files from prior compilation." Importance="High" />
-    <PropertyGroup Condition="'$(LlvmLibsPath)' == ''">
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkglibLLVM_runtime_osx-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkglibLLVM_runtime_win-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' == '18.04'">$(PkglibLLVM_runtime_ubuntu_18_04-x64)</LlvmLibsPath>
-      <LlvmLibsPath Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'">$(PkglibLLVM_runtime_ubuntu_20_04-x64)</LlvmLibsPath>
-    </PropertyGroup>
   </Target>
 
   <Target Name="BeforeCSharpCompile">
@@ -86,8 +91,8 @@
   </Target>
 
   <!--
-  We provide a target that builds an executable in the qir folder.
-  This is all usually handled by the Sdk and only a temporary set for this example.
+  We provide a target that builds an executable in the build folder.
+  This is all usually handled by the Sdk and only a temporary set-up for this example.
   -->
 
   <Target Name="CreateCppDriver">
