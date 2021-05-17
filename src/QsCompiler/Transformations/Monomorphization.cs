@@ -90,8 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization
                     .Where(elem =>
                         !(elem is QsNamespaceElement.QsCallable call)
                         || !IsGeneric(call.Item)
-                        || (call.Item.IsIntrinsic && !monomorphizeIntrinsics)
-                        || BuiltIn.RewriteStepDependencies.Contains(call.Item.FullName))
+                        || (call.Item.IsIntrinsic && !monomorphizeIntrinsics))
                     .Concat(elemsToAdd)
                     .ToImmutableArray());
             }).ToImmutableArray();
