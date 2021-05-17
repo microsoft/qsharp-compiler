@@ -138,16 +138,19 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         {
                             return (0, spec);
                         }
+
                         if (spec.TypeArguments.Item.Count() != typeArgs.Item.Count())
                         {
                             throw new ArgumentException($"Incorrect number of type arguments in request for {request.CallableName}");
                         }
+
                         var specTypeArgs = spec.TypeArguments.Item.Select(StripPositionInfo.Apply).ToImmutableArray();
                         var mismatch = specTypeArgs.Where((tArg, idx) => !tArg.Resolution.IsMissingType && !tArg.Resolution.Equals(typeArgs.Item[idx])).Any();
                         if (mismatch)
                         {
                             return (-1, spec);
                         }
+
                         var matches = specTypeArgs.Where((tArg, idx) => !tArg.Resolution.IsMissingType && tArg.Resolution.Equals(typeArgs.Item[idx])).Count();
                         return (matches, spec);
                     });
@@ -181,10 +184,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
 
             private class TransformationState : CallGraphWalkerBase<ConcreteGraphBuilder, ConcreteCallGraphNode, ConcreteCallGraphEdge>.TransformationState
             {
-                public bool IsInCall = false;
-                public bool HasAdjointDependency = false;
-                public bool HasControlledDependency = false;
-                public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds = _ => Enumerable.Empty<QsSpecializationKind>();
+                public bool IsInCall { get; set; } = false;
+
+                public bool HasAdjointDependency { get; set; } = false;
+
+                public bool HasControlledDependency { get; set; } = false;
+
+                public Func<QsQualifiedName, IEnumerable<QsSpecializationKind>> GetSpecializationKinds { get; set; } =
+                    _ => Enumerable.Empty<QsSpecializationKind>();
+
                 private Range lastReferenceRange = Range.Zero; // This is used if a self-inverse generator directive is encountered.
 
                 internal TransformationState(ConcreteGraphBuilder graph)
@@ -209,6 +217,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     {
                         referenceRange = this.CurrentStatementOffset.Item + this.CurrentExpressionRange.Item;
                     }
+
                     this.lastReferenceRange = referenceRange;
 
                     void AddEdge(QsSpecializationKind kind) => this.AddEdge(identifier, kind, typeRes, referenceRange);

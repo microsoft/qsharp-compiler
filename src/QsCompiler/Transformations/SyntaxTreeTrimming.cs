@@ -67,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 
             public class TransformationState
             {
-                public readonly Func<QsNamespaceElement, bool> NamespaceElementFilter;
+                public Func<QsNamespaceElement, bool> NamespaceElementFilter { get; }
 
                 public TransformationState(Func<QsNamespaceElement, bool> namespaceElementFilter)
                 {

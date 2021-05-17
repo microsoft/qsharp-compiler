@@ -60,6 +60,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         break;
                     }
                 }
+
                 var docComments = file.DocumentingComments(tIndex.GetFragment().Range.Start);
                 var headerEntry = HeaderEntry<T>.From(getDeclaration, tIndex, attributes.ToImmutableArray(), docComments, keepInvalid);
                 return headerEntry?.Apply(entry => (tIndex, entry));
@@ -81,6 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException(nameof(pos));
             }
+
             bool RelevantToken(CodeFragment token) => !(ignorePrecedingAttributes && token.Kind is QsFragmentKind.DeclarationAttribute);
             bool IsDocCommentLine(string text) => text.StartsWith("///") || text == string.Empty;
 
@@ -124,6 +126,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>>.Null;
                     }
+
                     QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>> OpenedAs(string? a, QsNullable<Range> r) =>
                         QsNullable<Tuple<QsSymbol, (string?, QsNullable<Range>)>>.NewValue(new Tuple<QsSymbol, (string?, QsNullable<Range>)>(dir.Item.Item1, (a, r)));
 
@@ -132,6 +135,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return OpenedAs(null, QsNullable<Range>.Null);
                     }
+
                     var aliasName = alias.Item.Symbol.AsDeclarationName(null);
                     QsCompilerError.Verify(aliasName != null || alias.Item.Symbol.IsInvalidSymbol, "could not extract namespace short name");
                     return OpenedAs(aliasName, alias.Item.Range);
@@ -176,11 +180,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return @null;
             }
+
             var (specKind, generator) = (specDecl.Value.Item.Item1.Item1, specDecl.Value.Item.Item1.Item2);
             if (specKind == null)
             {
                 return @null;
             }
+
             var introRange = fragment.Kind.IsControlledAdjointDeclaration
                     ? Parsing.HeaderDelimiters(2).Invoke(fragment.Text)
                     : Parsing.HeaderDelimiters(1).Invoke(fragment.Text);
@@ -226,8 +232,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     itemsToCompile.Add((tIndex, headerItem));
                 }
+
                 diagnostics.AddRange(messages.Select(msg => Diagnostics.Generate(fileName, msg, headerItem.Position)));
             }
+
             return itemsToCompile;
         }
 
@@ -329,6 +337,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     compilation.GlobalSymbols.AddOrReplaceNamespace(ns);
                 }
+
                 return tokensToCompile.ToImmutableDictionary(entry => entry.Item1, entry => entry.Item2);
             }
             finally
@@ -378,6 +387,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     contentToCompile.Add(tIndex);
                 }
+
                 foreach (var msg in messages)
                 {
                     diagnostics.Add(Diagnostics.Generate(file.FileName, msg, position));
@@ -416,6 +426,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 QsCompilerError.Verify(!messages.Any(), "compiler returned diagnostic(s) for automatically inserted specialization");
                 contentToCompile.Add(parent.Item1);
             }
+
             return contentToCompile;
         }
 
@@ -443,6 +454,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     AddDiagnostics(fileName, declDiagnostics[fileName]);
                 }
+
                 if (cycleDiagnostics.Contains(fileName))
                 {
                     AddDiagnostics(fileName, cycleDiagnostics[fileName]);
@@ -454,6 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     AddDiagnostics(grouping.Key, grouping);
                 }
+
                 foreach (var grouping in cycleDiagnostics)
                 {
                     AddDiagnostics(grouping.Key, grouping);
@@ -545,6 +558,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 file.SyncRoot.EnterUpgradeableReadLock();
             }
+
             try
             {
                 // get the fragment trees for the declaration content of all files and callables
@@ -578,6 +592,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     file.SyncRoot.ExitUpgradeableReadLock();
                 }
+
                 compilation.ExitWriteLock();
             }
         }
@@ -700,6 +715,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -748,6 +764,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -823,6 +840,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentException("repeat header needs to be followed by an until-clause and a fixup-block");
                 }
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -872,6 +890,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -921,6 +940,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -996,6 +1016,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 statement = Statements.NewIfStatement(ifBlock.Item1, ifBlock.Item2, elifBlocks, elseBlock);
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -1059,6 +1080,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentException("within-block needs to be followed by an apply-block");
                 }
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -1104,6 +1126,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -1149,6 +1172,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -1194,6 +1218,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -1239,6 +1264,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -1284,6 +1310,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -1329,6 +1356,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 proceed = nodes.MoveNext();
                 return true;
             }
+
             (statement, proceed) = (null, true);
             return false;
         }
@@ -1422,6 +1450,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentException($"node of kind {nodes.Current.Fragment.Kind} is not a valid statement header");
                 }
             }
+
             return statements.ToImmutableArray();
         }
 
@@ -1621,6 +1650,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     throw new ArgumentException($"missing entry for {kind} specialization of {specsRoot.Namespace}.{specsRoot.Callable}");
                 }
+
                 var (directive, spec) = defined;
                 var implementation = directive.IsValue ? SpecializationImplementation.NewGenerated(directive.Item) : null;
 
@@ -1659,6 +1689,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return null;
                 }
+
                 bool InvalidCharacteristicsOrSupportedFunctors(params QsFunctor[] functors) =>
                     parentCharacteristics.AreInvalid || !functors.Any(f => !supportedFunctors.Contains(f));
                 if (!definedSpecs.Values.Any(d => d.Item2.Position is DeclarationHeader.Offset.Defined pos && pos.Item == root.Fragment.Range.Start))
@@ -1738,6 +1769,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     continue;
                 }
+
                 var implementation = directive.IsValue
                     ? SpecializationImplementation.NewGenerated(directive.Item)
                     : SpecializationImplementation.Intrinsic;
@@ -1754,6 +1786,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     QsCompilerError.Raise("unknown functor kind");
                 }
             }
+
             return existing.ToImmutableArray();
         }
 
@@ -1815,6 +1848,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return null;
                     }
+
                     var (parent, specs) = specItems;
                     var info = callableDeclarations[parent];
                     var declaredVariables = SyntaxGenerator.ExtractItems(info.ArgumentTuple);
@@ -1830,6 +1864,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             .Select(msg => Diagnostics.Generate(info.Source.AssemblyOrCodeFile, msg, offset));
                         diagnostics.AddRange(msgs);
                     }
+
                     symbolTracker.EndScope();
                     QsCompilerError.Verify(symbolTracker.AllScopesClosed, "all scopes should be closed");
                     return new QsCallable(
@@ -1863,6 +1898,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return null;
                 }
+
                 compilation.UpdateCallables(callables);
                 compilation.UpdateTypes(types);
                 UpdateDiagnosticsWithCycleVerification(compilation, diagnostics, callableDeclarations);
@@ -1935,6 +1971,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return (scope.KnownSymbols, scope.Statements);
             }
+
             var lastPreceding = precedingStatements[precedingStatements.Length - 1];
 
             QsScope? relevantScope = null;
@@ -1950,25 +1987,30 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var preceding = blocks.TakeWhile(block => BeforePosition(block.Location));
                 relevantScope = preceding.Any() ? preceding.Last().Body : null;
             }
+
             if (lastPreceding.Statement is QsStatementKind.QsForStatement forStatement)
             {
                 relevantScope = forStatement.Item.Body;
             }
+
             if (lastPreceding.Statement is QsStatementKind.QsWhileStatement whileStatement)
             {
                 relevantScope = whileStatement.Item.Body;
             }
+
             if (lastPreceding.Statement is QsStatementKind.QsRepeatStatement repeatStatement)
             {
                 var allContainedStatements = repeatStatement.Item.RepeatBlock.Body.Statements.Concat(repeatStatement.Item.FixupBlock.Body.Statements).ToImmutableArray();
                 relevantScope = new QsScope(allContainedStatements, repeatStatement.Item.RepeatBlock.Body.KnownSymbols);
             }
+
             if (lastPreceding.Statement is QsStatementKind.QsConjugation conjugation)
             {
                 relevantScope = BeforePosition(conjugation.Item.InnerTransformation.Location)
                     ? conjugation.Item.InnerTransformation.Body
                     : conjugation.Item.OuterTransformation.Body;
             }
+
             if (lastPreceding.Statement is QsStatementKind.QsQubitScope allocationScope)
             {
                 relevantScope = allocationScope.Item.Body;
@@ -2066,8 +2108,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 var diagnostics = new List<Diagnostic>();
                 var editedCallables = file.DequeueContentEditedCallables();
-                // note: we can't return here because even if no callables have been marked as edited, other things like types an open directives may have been...
 
+                // note: we can't return here because even if no callables have been marked as edited, other things like types an open directives may have been...
                 var (oldHeader, oldImports) = compilation.GlobalSymbols.HeaderHash(file.FileName);
                 var contentTokens = file.UpdateGlobalSymbols(compilation, diagnostics);
                 file.ImportGlobalSymbols(compilation, diagnostics);

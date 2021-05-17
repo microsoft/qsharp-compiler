@@ -39,6 +39,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 throw new ArgumentException("several specializations of the given kind exist");
             }
+
             return specs.Any() ? specs.Single() : null;
         }
 
@@ -65,16 +66,19 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 return null;
             }
+
             var noBodyException = new ArgumentException("no implementation provided for body");
             var bodyDecl = callable.Specializations.GetSpecialization(QsSpecializationKind.QsBody)?.Implementation ?? throw noBodyException;
             if (bodyDecl.IsGenerated)
             {
                 throw new ArgumentException("functor generator directive on body specialization");
             }
+
             if (bodyDecl.IsExternal || bodyDecl.IsIntrinsic)
             {
                 return null;
             }
+
             return GetContent(bodyDecl) ?? throw noBodyException;
         }
 
@@ -109,6 +113,7 @@ namespace Microsoft.Quantum.QsCompiler
                     SetImplementation(bodyImpl.GenerateAdjoint());
                 }
             }
+
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsAdjoint ? adj : s).ToImmutableArray());
         }
 
@@ -140,6 +145,7 @@ namespace Microsoft.Quantum.QsCompiler
                     SetImplementation(bodyImpl.GenerateControlled());
                 }
             }
+
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsControlled ? ctl : s).ToImmutableArray());
         }
 
@@ -185,6 +191,7 @@ namespace Microsoft.Quantum.QsCompiler
                     }
                 }
             }
+
             return callable.WithSpecializations(specs => specs.Select(s => s.Kind == QsSpecializationKind.QsControlledAdjoint ? ctlAdj : s).ToImmutableArray());
         }
 
