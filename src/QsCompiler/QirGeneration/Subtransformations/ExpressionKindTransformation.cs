@@ -594,6 +594,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     Value comma = CreateConstantString(", ");
                     var openParens = CreateConstantString("[");
+                    UpdateStringRefCount(openParens, 1); // added to avoid dangling pointer in comparison inside loop
                     var outputStr = sharedState.IterateThroughArray(array, openParens, (item, str) =>
                     {
                         var cond = sharedState.CurrentBuilder.Compare(IntPredicate.NotEqual, str!, openParens);
@@ -607,6 +608,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     outputStr = DoAppend(outputStr, CreateConstantString("]"));
                     UpdateStringRefCount(comma, -1);
+                    UpdateStringRefCount(openParens, -1);
                     return outputStr;
                 }
 
@@ -2094,7 +2096,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     else
                     {
                         var parArgsTuple = paArgsType.Resolution.IsUnitType
-                            ? this.SharedState.Values.FromTuple(parameters[1], ImmutableArray.Create(paArgsType)) // todo: this is a bit hacky...
+                            ? this.SharedState.Values.Unit
                             : this.SharedState.AsArgumentTuple(paArgsType, parameters[1]);
                         var typedInnerArg = partialArgs.BuildItem(captureTuple, parArgsTuple);
                         innerArg = typedInnerArg is TupleValue innerArgTuple
