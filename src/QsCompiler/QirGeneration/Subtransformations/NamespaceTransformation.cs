@@ -53,7 +53,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
         }
 
-        // public overrides
+        /* public overrides */
 
         public override void OnIntrinsicImplementation()
         {

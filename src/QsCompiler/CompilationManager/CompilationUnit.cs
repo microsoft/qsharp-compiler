@@ -26,9 +26,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         public class Headers
         {
-            public readonly ImmutableArray<CallableDeclarationHeader> Callables;
-            public readonly ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations;
-            public readonly ImmutableArray<TypeDeclarationHeader> Types;
+            public ImmutableArray<CallableDeclarationHeader> Callables { get; }
+
+            public ImmutableArray<(SpecializationDeclarationHeader, SpecializationImplementation)> Specializations { get; }
+
+            public ImmutableArray<TypeDeclarationHeader> Types { get; }
 
             internal Headers(
                 string source,
@@ -76,6 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             return serialization;
         };
 
@@ -162,9 +165,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Dictionary that maps the id of a referenced assembly (given by its location on disk) to the headers defined in that assembly.
         /// </summary>
-        public readonly ImmutableDictionary<string, Headers> Declarations;
+        public ImmutableDictionary<string, Headers> Declarations { get; }
 
-        public static References Empty =
+        public static References Empty { get; set; } =
             new References(ImmutableDictionary<string, Headers>.Empty);
 
         /// <summary>
@@ -181,6 +184,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("common references exist");
             }
+
             return new References(this.Declarations.AddRange(other.Declarations), onError: onError);
         }
 
@@ -224,6 +228,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return;
             }
+
             var conflicting = new List<(string, string)>();
             var callables = this.Declarations.Values.SelectMany(r => r.Callables).Select(c => (c.QualifiedName, c.Source.AssemblyOrCodeFile, c.Access));
             var types = this.Declarations.Values.SelectMany(r => r.Types).Select(t => (t.QualifiedName, t.Source.AssemblyOrCodeFile, t.Access));
@@ -291,6 +296,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return false;
             }
+
             combined = CompilationUnit.NewSyntaxTree(callables, types);
             return true;
         }
@@ -315,9 +321,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ReaderWriterLockSlim syncRoot;
         private readonly HashSet<ReaderWriterLockSlim> dependentLocks;
 
-        internal readonly RuntimeCapability RuntimeCapability;
-        internal readonly bool IsExecutable;
-        internal readonly string ProcessorArchitecture;
+        internal RuntimeCapability RuntimeCapability { get; }
+
+        internal bool IsExecutable { get; }
+
+        internal string ProcessorArchitecture { get; }
 
         /// <inheritdoc/>
         public void Dispose()
@@ -546,7 +554,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 // remove all types that are no listed in GlobalSymbols
-
                 var currentlyDefined = this.GlobalSymbols.DefinedTypes().ToImmutableDictionary(decl => decl.QualifiedName);
                 var keys = this.compiledTypes.Keys.ToImmutableArray();
                 foreach (var typeName in keys)
@@ -561,7 +568,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 // NOTE: type constructors are *callables* and hence there may be a temporary discrepancy
                 // between the declared types and the corresponding constructors that needs to be resolved before building
-
                 foreach (var declaration in currentlyDefined)
                 {
                     var (fullName, header) = (declaration.Key, declaration.Value);
@@ -606,7 +612,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
 
                 // remove all types and callables that are not listed in GlobalSymbols
-
                 var currentlyDefined = this.GlobalSymbols.DefinedCallables().ToImmutableDictionary(decl => decl.QualifiedName);
                 var keys = this.compiledCallables.Keys.ToImmutableArray();
                 foreach (var callableName in keys)
@@ -623,7 +628,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // Rather than a discrepancy, this is the case when a file has been modified during global type checking -
                 // in that case the global type checking does not yield a valid compilation for everything,
                 // but still needs to be able to update the compilations that are valid. The same goes for specializations.
-
                 foreach (var declaration in currentlyDefined)
                 {
                     var (fullName, header) = (declaration.Key, declaration.Value);
@@ -731,6 +735,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var specializations = this.GlobalSymbols
                 .ImportedSpecializations(header.QualifiedName)
                 .Where(specialization =>
+
                     // Either the callable is externally accessible, or all of its specializations must be defined in
                     // the same reference as the callable.
                     header.Access.IsAccessibleFrom(Proximity.OtherAssembly)
@@ -828,7 +833,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             try
             {
                 // verify that a compilation indeed exists for each type, callable and specialization currently defined in global symbols
-
                 foreach (var declaration in this.GlobalSymbols.DefinedTypes())
                 {
                     var compilationExists = this.compiledTypes.TryGetValue(declaration.QualifiedName, out QsCustomType compiled);
@@ -869,6 +873,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 // build the syntax tree
                 var callables = this.compiledCallables.Values.Concat(this.GlobalSymbols.ImportedCallables().Select(this.GetImportedCallable));
                 var types = this.compiledTypes.Values.Concat(this.GlobalSymbols.ImportedTypes().Select(this.GetImportedType));
+
                 // Rename imported internal declarations by tagging them with their source file to avoid potentially
                 // having duplicate names in the syntax tree.
                 var (taggedCallables, taggedTypes) = RenameInternalDeclarations(callables, types, predicate: source => this.Externals.Declarations.ContainsKey(source));
@@ -933,6 +938,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var root = file.TryGetClosestSpecialization(pos);
             if (root == null)
             {
@@ -949,14 +955,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return null;
                 }
+
                 if (!this.GetCallables().TryGetValue(fullName, out var qsCallable))
                 {
                     return null;
                 }
+
                 var compiled = qsCallable.Specializations.Where(spec => spec.Kind.Equals(kind));
                 QsCompilerError.Verify(compiled.Count() <= 1, "currently expecting at most one specialization per kind");
                 return compiled.SingleOrDefault();
             }
+
             var relevantSpecialization = GetSpecialization(callableName, specKind);
             if (relevantSpecialization == null || sPos == null || !relevantSpecialization.Implementation.IsProvided)
             {
@@ -989,6 +998,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return LocalDeclarations.Empty;
                 }
+
                 var definedVars = SyntaxGenerator.ExtractItems(qsCallable.ArgumentTuple).ValidDeclarations();
                 return new LocalDeclarations(definedVars);
             }
@@ -997,6 +1007,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return LocalDeclarations.Empty;
             }
+
             declarations ??= TryGetLocalDeclarations();
             return declarations.WithAbsolutePosition(
                 relOffset => relOffset.IsNull ? callablePos : specPos + relOffset.Item);
@@ -1052,15 +1063,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Func<string, bool>? predicate = null)
         {
             // Assign a unique ID to each reference.
-
             NameDecorator decorator = new NameDecorator($"QsRef");
             ImmutableDictionary<string, int> ids =
                 callables.Select(callable => callable.Source.AssemblyOrCodeFile)
                 .Concat(types.Select(type => type.Source.AssemblyOrCodeFile))
                 .Distinct()
                 .Where(source => predicate?.Invoke(source) ?? true)
+
                 // this setup will mean that internal declarations won't get replaced with target specific implementations
                 .Select((source, idx) => (source, idx))
+
                 // we need an id here that is uniquely associated with a source name
                 // to ensure that internal names are unique even when this is not called on the entire compilation
                 .ToImmutableDictionary(entry => entry.source, entry => entry.idx + additionalAssemblies);
@@ -1076,7 +1088,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         item => decorator.Decorate(item.Name, ids[item.Source]));
 
             // rename all internal declarations and their usages
-
             var transformations = callables
                 .Select(callable =>
                     (name: callable.FullName, source: callable.Source.AssemblyOrCodeFile, access: callable.Access))

@@ -35,6 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var namespaceDeclarations = file.NamespaceDeclarationsSymbolInfo();
             var typeDeclarations = file.TypeDeclarationsSymbolInfo();
             var callableDeclarations = file.CallableDeclarationsSymbolInfo();
@@ -87,10 +88,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             if (!file.TryGetReferences(compilation, position, out var declLocation, out var locations))
             {
                 return null;
             }
+
             return (context?.IncludeDeclaration ?? true) && declLocation != null
                 ? new[] { declLocation }.Concat(locations).ToArray()
                 : locations.ToArray();
@@ -110,6 +113,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var found = file.TryGetReferences(compilation, position, out var declLocation, out var locations);
             if (!found)
             {
@@ -120,6 +124,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 locations = new[] { declLocation }.Concat(locations);
             }
+
             var changes = locations.ToLookup(loc => loc.Uri, loc => new TextEdit { Range = loc.Range, NewText = newName });
             return new WorkspaceEdit
             {
@@ -127,13 +132,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .Select(change => new TextDocumentEdit
                     {
                         TextDocument = new VersionedTextDocumentIdentifier { Uri = change.Key, Version = 1 }, // setting version to null here won't work in VS Code ...
-                        Edits = change.ToArray()
+                        Edits = change.ToArray(),
                     })
                     .ToArray(),
 
                 Changes = changes.ToDictionary(
                     items => CompilationUnitManager.GetFileId(items.Key),
-                    items => items.ToArray())
+                    items => items.ToArray()),
             };
         }
 
@@ -151,6 +156,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var diagnostics = context?.Diagnostics ?? Array.Empty<Diagnostic>();
             return file.UnknownIdSuggestions(compilation, range.Start.Line, diagnostics)
                 .Concat(file.AmbiguousIdSuggestions(compilation, diagnostics))
@@ -181,6 +187,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var found = file.TryGetReferences(
                 compilation,
                 position,
@@ -221,7 +228,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             Hover? GetHover(string? info) => info == null ? null : new Hover
             {
                 Contents = new MarkupContent { Kind = format, Value = info },
-                Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() }
+                Range = new Lsp.Range { Start = position.ToLsp(), End = position.ToLsp() },
             };
 
             var markdown = format == MarkupKind.Markdown;
@@ -235,6 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return GetHover(symbolInfo.UsedLiterals.Single().LiteralInfo(markdown));
             }
+
             var locals = compilation.TryGetLocalDeclarations(file, position, out var cName, includeDeclaredAtPosition: true);
             var nsName = cName?.Namespace ?? file.TryGetNamespaceAt(position);
             if (nsName == null)
@@ -270,16 +278,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             MarkupKind format = MarkupKind.PlainText)
         {
             // getting the relevant token (if any)
-
             var fragment = file?.TryGetFragmentAt(position, out var _, includeEnd: true);
             if (file is null || position is null || fragment?.Kind == null || compilation == null)
             {
                 return null;
             }
+
             var fragmentStart = fragment.Range.Start;
 
             // getting the overlapping call expressions (if any), and determine the header of the called callable
-
             bool OverlapsWithPosition(Range symRange) => (fragmentStart + symRange).ContainsEnd(position);
 
             var overlappingEx = fragment.Kind.CallExpressions().Where(ex => ex.Range.IsValue && OverlapsWithPosition(ex.Range.Item)).ToList();
@@ -287,6 +294,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             overlappingEx.Sort((ex1, ex2) => // for nested call expressions, the last expressions (by range) is always the closest one
             {
                 var (x, y) = (ex1.Range.Item, ex2.Range.Item);
@@ -302,7 +310,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // getting the called identifier as well as what functors have been applied to it
-
             List<QsFunctor> FunctorApplications(ref QsExpression ex)
             {
                 var (next, inner) =
@@ -314,6 +321,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     fs.Add(next);
                 }
+
                 ex = inner ?? ex;
                 return fs;
             }
@@ -326,7 +334,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // extracting and adapting the relevant information for the called callable
-
             ResolutionResult<CallableDeclarationHeader>.Found? methodDecl = null;
             if (id.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol sym)
             {
@@ -361,7 +368,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // now that we now what callable is called we need to check which argument should come next
-
             bool BeforePosition(Range symRange) => fragmentStart + symRange.End < position;
 
             IEnumerable<(Range?, string?)> ExtractParameterRanges(
@@ -387,6 +393,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return new[] { @null };
                 }
+
                 if (exItems == null && declItems.Item.Length > 1)
                 {
                     return SingleItem(decl.PrintArgumentTuple());
@@ -409,12 +416,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
 
             // finally we can build the signature help information
-
             MarkupContent AsMarkupContent(string str) => new MarkupContent { Kind = format, Value = str };
             ParameterInformation AsParameterInfo(string? paramName) => new ParameterInformation
             {
                 Label = paramName ?? "<unknown parameter>",
-                Documentation = AsMarkupContent(documentation.ParameterDescription(paramName))
+                Documentation = AsMarkupContent(documentation.ParameterDescription(paramName)),
             };
 
             var signatureLabel = $"{methodDecl.Item.QualifiedName.Name} {argTuple.PrintArgumentTuple()}";
@@ -424,6 +430,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     signatureLabel = $"{Keywords.qsAdjointFunctor.id} {signatureLabel}";
                 }
+
                 if (f.IsControlled)
                 {
                     signatureLabel = $"{Keywords.qsControlledFunctor.id} {signatureLabel}";
@@ -435,7 +442,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 Documentation = AsMarkupContent(doc),
                 Label = signatureLabel, // Note: the label needs to be expressed in a way that the active parameter is detectable
-                Parameters = callArgs.Select(d => d.Item2).Select(AsParameterInfo).ToArray()
+                Parameters = callArgs.Select(d => d.Item2).Select(AsParameterInfo).ToArray(),
             };
             var precedingArgs = callArgs
                 .TakeWhile(item => item.Item1 == null || BeforePosition(item.Item1)) // skip args that have already been typed or - in the case of inner items - are missing
@@ -444,7 +451,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 Signatures = new[] { info }, // since we don't support overloading there is just one signature here
                 ActiveSignature = 0,
-                ActiveParameter = precedingArgs.Count()
+                ActiveParameter = precedingArgs.Count(),
             };
         }
     }

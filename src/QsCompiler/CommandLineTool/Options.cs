@@ -129,6 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                     success && !(pieces is null) && pieces.Length == 2 &&
                     parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"'));
             }
+
             return success;
         }
 
@@ -157,7 +158,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         public enum LogFormat
         {
             Default,
-            MsBuild
+            MsBuild,
         }
 
         // Note: items in one set are mutually exclusive with items from other sets
@@ -353,6 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 logger?.Log(ErrorCode.SnippetAndInputArguments, Enumerable.Empty<string>());
             }
+
             return ImmutableDictionary<Uri, string>.Empty;
         };
     }

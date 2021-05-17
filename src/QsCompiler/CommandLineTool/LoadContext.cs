@@ -1,9 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-// This unfortunately needs to live in this project
-// since the functionality is not available in netstandard2.1.
-
+// This unfortunately needs to live in this project since the functionality is not available in netstandard2.1.
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
@@ -22,10 +20,12 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public class LoadContext : AssemblyLoadContext
     {
-        internal static HashSet<string> ManagedDllPaths = new HashSet<string>();
-        internal static HashSet<string> UnmanagedDllPaths = new HashSet<string>();
+        internal static HashSet<string> ManagedDllPaths { get; set; } = new HashSet<string>();
 
-        public readonly string PathToParentAssembly;
+        internal static HashSet<string> UnmanagedDllPaths { get; set; } = new HashSet<string>();
+
+        public string PathToParentAssembly { get; }
+
         private readonly AssemblyDependencyResolver resolver;
         private readonly HashSet<string> fallbackPaths;
 
@@ -150,6 +150,7 @@ namespace Microsoft.Quantum.QsCompiler
                         {
                             tempContext.Unload();
                         }
+
                         return file;
                     }
                 }
@@ -158,10 +159,12 @@ namespace Microsoft.Quantum.QsCompiler
                     continue;
                 }
             }
+
             if (tempContext.IsCollectible)
             {
                 tempContext.Unload();
             }
+
             var matchesMajor = versions.Where(asm => name.Version.Major == asm.Item2?.Major);
             var matchesMinor = matchesMajor.Where(asm => name.Version.Minor == asm.Item2?.Minor);
             var matchesMajRev = matchesMinor.Where(asm => name.Version.MajorRevision == asm.Item2?.MajorRevision);
@@ -208,15 +211,18 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 throw new FileNotFoundException("Failed to create contex for \"path\". No such file exists.");
             }
+
             var context = new LoadContext(path);
             if (fallbackPaths != null)
             {
                 context.AddToPath(fallbackPaths);
             }
+
             foreach (var preload in UnmanagedDllPaths)
             {
                 context.LoadUnmanagedDllFromPath(preload);
             }
+
             foreach (var preload in ManagedDllPaths)
             {
                 context.LoadFromAssemblyPath(preload);

@@ -229,8 +229,9 @@ namespace Microsoft.Quantum.QIR.Emission
 
         public QsQualifiedName? TypeName => this.customType?.GetFullName();
 
-        internal readonly ImmutableArray<ResolvedType> ElementTypes;
-        public readonly IStructType StructType;
+        internal ImmutableArray<ResolvedType> ElementTypes { get; }
+
+        public IStructType StructType { get; }
 
         internal Value OpaquePointer =>
             this.opaquePointer.Load();
@@ -308,7 +309,7 @@ namespace Microsoft.Quantum.QIR.Emission
         {
         }
 
-        // private helpers
+        /* private helpers */
 
         private Value GetOpaquePointer() =>
             this.typedPointer.IsCached
@@ -347,6 +348,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 this.sharedState.ScopeMgr.RegisterValue(this);
             }
+
             return tuple;
         }
 
@@ -386,11 +388,14 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
         private readonly IValue.Cached<Value> length;
-        internal readonly ResolvedType QSharpElementType;
 
-        public readonly ITypeRef LlvmElementType;
-        public readonly uint? Count;
-        public readonly Value OpaquePointer;
+        internal ResolvedType QSharpElementType { get; }
+
+        public ITypeRef LlvmElementType { get; }
+
+        public uint? Count { get; }
+
+        public Value OpaquePointer { get; }
 
         public Value Value => this.OpaquePointer;
 
@@ -452,7 +457,7 @@ namespace Microsoft.Quantum.QIR.Emission
                 : this.CreateLengthCache(length);
         }
 
-        // private helpers
+        /* private helpers */
 
         private Value GetLength() => this.sharedState.CurrentBuilder.Call(
             this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayGetSize1d),
@@ -471,6 +476,7 @@ namespace Microsoft.Quantum.QIR.Emission
             {
                 this.sharedState.ScopeMgr.RegisterValue(this);
             }
+
             return pointer;
         }
 

@@ -58,11 +58,13 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         internal static YamlNode BuildStringNode(string? item)
         {
             var node = new YamlScalarNode(item);
+
             // Set the style to literal (YAML |-) if the string is multi-line
             if (item?.IndexOfAny(new char[] { '\n', '\r' }) >= 0)
             {
                 node.Style = YamlDotNet.Core.ScalarStyle.Literal;
             }
+
             return node;
         }
 
@@ -170,6 +172,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     ResolvedTypeToYaml(argType, argNode);
                     types.Add(argNode);
                 }
+
                 map.Add("input", input);
                 var otypes = new YamlSequenceNode();
                 var output = new YamlMappingNode();
@@ -220,6 +223,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     ResolvedTypeToYaml(element, node);
                     seq.Add(node);
                 }
+
                 map.Add(BuildStringNode("types"), seq);
             }
             else if (resolution.IsUserDefinedType)
@@ -286,6 +290,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     {
                         builder.Append('(');
                     }
+
                     // Assumes that the symbol will never be invalid
                     builder.Append(((QsLocalSymbol.ValidName)item.VariableName).Item);
                     builder.Append(" : ");
@@ -306,9 +311,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         {
                             builder.Append(", ");
                         }
+
                         first = false;
                         ProcessTuple(builder, item, false);
                     }
+
                     builder.Append(')');
                 }
             }
@@ -373,6 +380,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     yamlReader.Load(readStream);
                 }
+
                 fileNode = yamlReader.Documents[0].RootNode;
             });
             return fileNode;
@@ -418,6 +426,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     yamlReader.Load(readStream);
                 }
+
                 fileMap = yamlReader.Documents[0].RootNode as YamlMappingNode ?? fileMap;
             });
             foreach (var entry in map.Children)
@@ -425,6 +434,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 var key = (YamlScalarNode)entry.Key;
                 fileMap.Children[key] = entry.Value;
             }
+
             WriteYamlFile(fileMap, rootPath, fileBaseName);
         }
 

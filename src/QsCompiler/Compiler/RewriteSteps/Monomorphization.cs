@@ -58,6 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             {
                 return false;
             }
+
             return true;
         }
     }

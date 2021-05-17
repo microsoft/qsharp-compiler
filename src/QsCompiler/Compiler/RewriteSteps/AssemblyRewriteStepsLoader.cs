@@ -41,8 +41,8 @@ namespace Microsoft.Quantum.QsCompiler
                 }
                 catch (Exception ex)
                 {
-                    this.onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
-                    this.onException?.Invoke(ex);
+                    this.OnDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
+                    this.OnException?.Invoke(ex);
                     return null;
                 }
             }
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler
             var (foundDlls, notFoundDlls) = specifiedPluginDlls.Partition(step => File.Exists(step.path.LocalPath));
             foreach (var file in notFoundDlls.Select(step => step.path).Distinct())
             {
-                this.onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath));
+                this.OnDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnknownCompilerPlugin, new[] { file.LocalPath }, file.LocalPath));
             }
 
             var rewriteSteps = ImmutableArray.CreateBuilder<LoadedStep>();
@@ -97,8 +97,8 @@ namespace Microsoft.Quantum.QsCompiler
                 }
                 catch (BadImageFormatException ex)
                 {
-                    this.onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.FileIsNotAnAssembly, target.LocalPath));
-                    this.onException?.Invoke(ex);
+                    this.OnDiagnostic?.Invoke(this.LoadError(target, ErrorCode.FileIsNotAnAssembly, target.LocalPath));
+                    this.OnException?.Invoke(ex);
                 }
                 catch (ReflectionTypeLoadException ex)
                 {
@@ -110,6 +110,7 @@ namespace Microsoft.Quantum.QsCompiler
                         {
                             sb.AppendLine(msg);
                         }
+
                         if (exSub is FileNotFoundException exFileNotFound && !string.IsNullOrEmpty(exFileNotFound.FusionLog))
                         {
                             sb.AppendLine("Fusion Log:");
@@ -118,13 +119,13 @@ namespace Microsoft.Quantum.QsCompiler
                         }
                     }
 
-                    this.onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.TypeLoadExceptionInCompilerPlugin, target.LocalPath));
-                    this.onException?.Invoke(new TypeLoadException(sb.ToString(), ex.InnerException));
+                    this.OnDiagnostic?.Invoke(this.LoadError(target, ErrorCode.TypeLoadExceptionInCompilerPlugin, target.LocalPath));
+                    this.OnException?.Invoke(new TypeLoadException(sb.ToString(), ex.InnerException));
                 }
                 catch (Exception ex)
                 {
-                    this.onDiagnostic?.Invoke(this.LoadError(target, ErrorCode.CouldNotLoadCompilerPlugin, target.LocalPath));
-                    this.onException?.Invoke(ex);
+                    this.OnDiagnostic?.Invoke(this.LoadError(target, ErrorCode.CouldNotLoadCompilerPlugin, target.LocalPath));
+                    this.OnException?.Invoke(ex);
                 }
 
                 var loadedSteps = new List<LoadedStep>();
