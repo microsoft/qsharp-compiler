@@ -25,7 +25,7 @@ type BuiltIn =
     }
 
     static member CanonNamespace = "Microsoft.Quantum.Canon"
-    static member ClassicallyControlledNamespace = "Microsoft.Quantum.Simulation.QuantumProcessor.Extensions"
+    static member ClassicallyControlledNamespace = "Microsoft.Quantum.ClassicalControl"
     static member CoreNamespace = "Microsoft.Quantum.Core"
     static member DiagnosticsNamespace = "Microsoft.Quantum.Diagnostics"
     static member IntrinsicNamespace = "Microsoft.Quantum.Intrinsic"
@@ -286,7 +286,7 @@ type BuiltIn =
             Kind = Function(TypeParameters = ImmutableArray.Empty)
         }
 
-    // dependencies in Microsoft.Quantum.Simulation.QuantumProcessor.Extensions
+    // dependencies in Microsoft.Quantum.ClassicalControl
 
     // This is expected to have type <'T, 'U>((Result[], Result[], (('T => Unit), 'T) , (('U => Unit), 'U)) => Unit)
     static member ApplyConditionally =
