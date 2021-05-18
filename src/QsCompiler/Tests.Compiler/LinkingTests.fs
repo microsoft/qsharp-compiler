@@ -246,8 +246,7 @@ type LinkingTests() =
 
         TrimSyntaxTree.Apply(
             compilationDataStructures.BuiltCompilation,
-            keepIntrinsics,
-            BuiltIn.RewriteStepDependencies
+            keepIntrinsics
         )
         |> Signatures.SignatureCheck
             [ Signatures.SyntaxTreeTrimmingNS ]

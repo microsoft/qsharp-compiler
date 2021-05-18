@@ -39,6 +39,7 @@ type BuiltIn =
 
     /// Returns the set of callables that rewrite steps take dependencies on.
     /// These should be non-Generic callables only.
+    [<Obsolete "RewriteStepDependencies will be removed in favor of each rewrite step declaring its dependencies.">]
     static member RewriteStepDependencies =
         ImmutableHashSet.Create(
             BuiltIn.RangeReverse.FullName,
@@ -66,8 +67,55 @@ type BuiltIn =
         )
 
     /// The set of all built in callables and attributes
-    [<Obsolete "Use RewriteStepDependencies instead.">]
-    static member AllBuiltIns = BuiltIn.RewriteStepDependencies
+    [<Obsolete "AllBuiltIns will be removed in favor of each rewrite step being able to declare its dependencies.">]
+    static member AllBuiltIns =
+        [|
+            // in Microsoft.Quantum.Core
+            BuiltIn.Length
+            BuiltIn.RangeStart
+            BuiltIn.RangeStep
+            BuiltIn.RangeEnd
+            BuiltIn.RangeReverse
+            BuiltIn.Attribute
+            BuiltIn.EntryPoint
+            BuiltIn.Deprecated
+            BuiltIn.Inline
+            // in Microsoft.Quantum.Targeting
+            BuiltIn.TargetInstruction
+            BuiltIn.RequiresCapability
+            // in Microsoft.Quantum.Diagnostics
+            BuiltIn.Test
+            BuiltIn.EnableTestingViaName
+            BuiltIn.DumpMachine
+            BuiltIn.DumpRegister
+            // in Microsoft.Quantum.Canon
+            BuiltIn.NoOp
+            // in Microsoft.Quantum.Convert
+            BuiltIn.IntAsDouble
+            BuiltIn.DoubleAsInt
+            BuiltIn.IntAsBigInt
+            // in Microsoft.Quantum.Math
+            BuiltIn.Truncate
+            BuiltIn.ApplyConditionally
+            BuiltIn.ApplyConditionallyA
+            BuiltIn.ApplyConditionallyC
+            BuiltIn.ApplyConditionallyCA
+            BuiltIn.ApplyIfZero
+            BuiltIn.ApplyIfZeroA
+            BuiltIn.ApplyIfZeroC
+            BuiltIn.ApplyIfZeroCA
+            BuiltIn.ApplyIfOne
+            BuiltIn.ApplyIfOneA
+            BuiltIn.ApplyIfOneC
+            BuiltIn.ApplyIfOneCA
+            BuiltIn.ApplyIfElseR
+            BuiltIn.ApplyIfElseRA
+            BuiltIn.ApplyIfElseRC
+            BuiltIn.ApplyIfElseRCA
+            // in other namespaces (e.g. things used for code actions)
+            BuiltIn.IndexRange
+        |]
+        |> ImmutableHashSet.Create<BuiltIn>
 
     /// Returns true if the given attribute marks the corresponding declaration as entry point.
     static member MarksEntryPoint(att: QsDeclarationAttribute) =
