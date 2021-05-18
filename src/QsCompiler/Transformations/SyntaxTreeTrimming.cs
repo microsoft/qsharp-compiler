@@ -24,7 +24,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
             {
                 var globals = compilation.Namespaces.GlobalCallableResolutions();
                 var dependenciesToKeep = dependencies?.Where(globals.ContainsKey) ?? ImmutableArray<QsQualifiedName>.Empty;
-                var augmentedEntryPoints = dependenciesToKeep.Concat(compilation.EntryPoints).Distinct().ToImmutableArray();
+                var augmentedEntryPoints = dependenciesToKeep
+                    .Concat(compilation.EntryPoints)
+                    .Distinct()
+                    .ToImmutableArray();
                 var compilationWithBuiltIns = new QsCompilation(compilation.Namespaces, augmentedEntryPoints);
                 var callablesToKeep = new CallGraph(compilationWithBuiltIns, true).Nodes.Select(node => node.CallableName).ToImmutableHashSet();
 
