@@ -7,6 +7,9 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
+Write-Host "Installing LLVM version 11.1.0 ..."
+choco install llvm --version=11.1.0
+
 ##
 # Q# compiler and Sdk tools
 ##
