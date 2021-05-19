@@ -530,7 +530,7 @@ let private newArray =
 
     let withWarning (expr: QsExpression) =
         let range = expr.Range |> QsNullable.defaultValue Range.Zero
-        QsCompilerDiagnostic.Warning (WarningCode.DeprecatedNewArray, []) range |> pushDiagnostic >>% expr
+        QsCompilerDiagnostic.Warning(WarningCode.DeprecatedNewArray, []) range |> pushDiagnostic >>% expr
 
     arrayDecl.parse
     >>= fun headRange -> term body |>> toExpr headRange <|> (term invalid |>> fst)
