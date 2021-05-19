@@ -1,4 +1,4 @@
-define i2 @Microsoft__Quantum__Testing__QIR__TestPaulis__body(i2 %a, i2 %b) {
+define internal i2 @Microsoft__Quantum__Testing__QIR__TestPaulis__body(i2 %a, i2 %b) {
 entry:
   %0 = load i2, i2* @PauliX, align 1
   %1 = icmp eq i2 %a, %0

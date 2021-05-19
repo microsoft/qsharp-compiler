@@ -37,6 +37,17 @@ namespace Microsoft.Quantum.Testing.QIR{
         }
     }
 
+    function TestConditions(input : String, arr : Int[]) : Int {
+        if input == "true" {
+            let _ = true;
+        } elif input == "false" {
+            let _ = false;
+        } elif Length(arr) > 0 {
+            let _ = false;
+        }
+        return Length(arr);
+    }
+
     function Hello(withPunctuation : Bool) : String[] {
        let arr = ["Hello","World", ""];
        return withPunctuation ?
@@ -47,6 +58,7 @@ namespace Microsoft.Quantum.Testing.QIR{
     operation TestConditional (arg : Double[]) : Int {
         let _ = Hello(true);
         let _ = ReturnFromNested(true, false);
+        let _ = TestConditions("", []);
         let result = ReturnInt(CustomTuple([3.]));
         return result;
     }

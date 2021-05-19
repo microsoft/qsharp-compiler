@@ -1,4 +1,4 @@
-define void @Microsoft__Quantum__Testing__QIR__ArbitraryAllocation__body(i64 %max, %Qubit* %q) {
+define internal void @Microsoft__Quantum__Testing__QIR__ArbitraryAllocation__body(i64 %max, %Qubit* %q) {
 entry:
   %a = call %Qubit* @__quantum__rt__qubit_allocate()
   %b = call %Array* @__quantum__rt__qubit_allocate_array(i64 %max)

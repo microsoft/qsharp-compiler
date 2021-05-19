@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestRepeat__body(%Qubit* %q) {
+define internal i64 @Microsoft__Quantum__Testing__QIR__TestRepeat__body(%Qubit* %q) {
 entry:
   %n = alloca i64, align 8
   store i64 0, i64* %n, align 4

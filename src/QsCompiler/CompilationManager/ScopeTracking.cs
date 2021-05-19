@@ -28,12 +28,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     throw new ArgumentException($"the string delimiters need to be positive and sorted in ascending order");
                 }
+
                 last = delim;
             }
+
             if (last > text.Length)
             {
                 throw new ArgumentException("out of range string delimiter");
             }
+
             if ((delimiters.Count() & 1) != 0)
             {
                 throw new ArgumentException("expecting an even number of string delimiters");
@@ -57,12 +60,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     throw new ArgumentException($"the excess bracket positions need to be sorted in ascending order");
                 }
+
                 last = pos;
                 if (IndexExcludingStrings(pos, line.StringDelimiters) < 0)
                 {
                     throw new ArgumentException($"position for excess bracket is within a string");
                 }
             }
+
             if (last >= line.WithoutEnding.Length)
             {
                 throw new ArgumentException("out of range excess bracket position");
@@ -91,6 +96,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return 0;
             }
+
             var continuation = file.GetLine(continueAt);
             var updatedContinuation = ComputeCodeLines(new string[] { continuation.Text }, previous).Single();
             return updatedContinuation.Indentation - continuation.Indentation;
@@ -108,11 +114,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return false;
             }
+
             var delimiters = line.StringDelimiters;
             return delimiters.Count() != 0 && delimiters.Last() == line.Text.Length;
         }
 
-        // utils related to filtering irrelevant text for scope and error processing, and parsing
+        /* utils related to filtering irrelevant text for scope and error processing, and parsing */
 
         private static int StartDelimiter(int delimiter) => delimiter; // used to make sure RemoveStrings and IndexInFullString are in sync
 
@@ -143,6 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return -1;
                 }
             }
+
             return index;
         }
 
@@ -172,11 +180,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return -1;
                 }
+
                 if (pos < index)
                 {
                     --index;
                 }
             }
+
             return index;
         }
 
@@ -197,6 +207,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 iter.MoveNext();
                 index += EndDelimiter(iter.Current); // note: it should not be possible, that we ever have the case iter.Current == text.Length (unless indexInTrimmed and delimiters mismatch...)
             }
+
             return index;
         }
 
@@ -214,10 +225,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     ++index;
                 }
             }
+
             if (index >= line.WithoutEnding.Length)
             {
                 throw new ArgumentException("mismatch between the given index in the relevant code and the given line");
             }
+
             return index;
         }
 
@@ -241,6 +254,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var start = iter.MoveNext() ? StartDelimiter(iter.Current) : text.Length;
                 trimmed += text.Substring(end, start - end);
             }
+
             return trimmed;
         }
 
@@ -263,6 +277,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 stripped = stripped.Remove(index, 1);
             }
+
             return stripped;
         }
 
@@ -280,6 +295,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
+
             if (count < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
@@ -349,10 +365,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     count = line.WithoutEnding.Length - start;
                 }
+
                 var prefixText = line.WithoutEnding.Substring(start, count);
                 var prefixExcessClosings = line.ExcessBracketPositions
                     .Where(pos => start <= pos && pos < start + count)
                     .Select(pos => pos - start);
+
                 // line indentation and comment position are irrelevant here
                 return new CodeLine(
                     prefixText,
@@ -387,6 +405,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("given position is not within file");
             }
+
             var line = file.GetLine(pos.Line);
             var index = pos.Column;
 
@@ -396,6 +415,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return line.FinalIndentation(); // not necessary, but saves doing the rest of the computation
             }
+
             index = line.FindInCode(trimmed => trimmed.Length - 1, 0, pos.Column); // if the given position is within a string, then this is the most convenient way to get the closest position that isn't..
             if (index < 0)
             {
@@ -413,7 +433,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return indentation;
         }
 
-        // utils for computing indentations and excess closings
+        /* utils for computing indentations and excess closings */
 
         private static int NrIndents(string text) => text.Length - text.Replace("{", "").Length;
 
@@ -446,6 +466,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     nextOpen = unprocessed.Length;
                 }
+
                 var nextClose = unprocessed.IndexOf('}');
                 if (nextClose < 0)
                 {
@@ -458,6 +479,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         additionalExcessClosings.Add(IndexIncludingStrings(nextClose + relevantText.Length - unprocessed.Length, line.StringDelimiters));
                     }
+
                     unprocessed = unprocessed.Substring(nextClose + 1);
                 }
                 else if (nextOpen < nextClose)
@@ -470,6 +492,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     unprocessed = string.Empty;
                 }
             }
+
             return additionalExcessClosings.ToArray();
         }
 
@@ -562,14 +585,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
+
             if (count < 1 || start + count > file.NrLines())
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
+
             if (replacements.Length == 0)
             {
                 throw new ArgumentException("replacements cannot be empty");
             }
+
             var continueAtInFile = start + count;
             var remainingLines = file.GetLines(continueAtInFile, file.NrLines() - continueAtInFile);
 
@@ -607,11 +633,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("the number of lines in a file can never be zero");
             }
+
             var lastLine = file.GetLine(file.NrLines() - 1);
             if (lastLine.FinalIndentation() > 0)
             {
                 yield return Errors.MissingClosingBracketError(file.FileName, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
             }
+
             if (ContinueString(lastLine))
             {
                 yield return Errors.MissingStringDelimiterError(file.FileName, Position.Create(file.NrLines() - 1, lastLine.Text.Length));
@@ -631,10 +659,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     yield return Errors.ExcessBracketError(file.FileName, Position.Create(start, pos));
                 }
+
                 foreach (var pos in line.ErrorDelimiterPositions)
                 {
                     yield return Errors.InvalidCharacterInInterpolatedArgument(file.FileName, Position.Create(start, pos), file.GetLine(start).Text[pos]);
                 }
+
                 ++start;
             }
         }
@@ -688,6 +718,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         file.AddScopeDiagnostics(file.ComputeScopeDiagnostics(start));
                     }
+
                     file.AddScopeDiagnostics(file.CheckForMissingClosings());
                 },
                 "updating the scope diagnostics failed");

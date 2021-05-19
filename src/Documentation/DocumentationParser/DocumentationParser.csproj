@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -18,7 +17,9 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\Common\SigningConstants.cs" Link="Properties\SigningConstants.cs" />
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Tests.Microsoft.Quantum.QsDocumentationParser$(PublicKeySuffix)</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>

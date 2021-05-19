@@ -43,12 +43,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Used to log exceptions raised during processing.
         /// </summary>
-        public readonly Action<Exception> LogException;
+        public Action<Exception> LogException { get; }
 
         /// <summary>
         /// Called whenever diagnostics within a file have changed and are ready for publishing.
         /// </summary>
-        public readonly Action<PublishDiagnosticParams> PublishDiagnostics;
+        public Action<PublishDiagnosticParams> PublishDiagnostics { get; }
 
         /// <summary>
         /// Null if a global type checking has been queued but is not yet running.
@@ -64,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Used to synchronously execute all write access.
         /// </summary>
-        protected readonly ProcessingQueue Processing;
+        protected ProcessingQueue Processing { get; }
 
         /// <summary>
         /// Initializes a <see cref="CompilationUnitManager"/> instance for a project with the given properties.
@@ -163,6 +163,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.UnsubscribeFromFileManagerEvents(file);
                     this.PublishDiagnostics(new PublishDiagnosticParams { Uri = file.Uri, Diagnostics = Array.Empty<Diagnostic>() });
                 }
+
                 return null;
             });
         }
@@ -179,6 +180,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("The URI is not an absolute file URI.", nameof(uri));
             }
+
             return uri.LocalPath;
         }
 
@@ -194,6 +196,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 fileId = uri.LocalPath;
                 return true;
             }
+
             fileId = default;
             return false;
         }
@@ -256,6 +259,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 onException?.Invoke(ex);
             }
+
             publishDiagnostics?.Invoke(file.Diagnostics());
             return file;
         }
@@ -276,6 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("invalid TextDocumentIdentifier");
             }
+
             return files.AsParallel()
                 .WithDegreeOfParallelism(Environment.ProcessorCount > 1 ? Environment.ProcessorCount - 1 : Environment.ProcessorCount)
                 .WithExecutionMode(ParallelExecutionMode.ForceParallelism) // we are fine with a slower performance if the work is trivial
@@ -301,11 +306,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     file.ReplaceFileContent(updatedContent);
                 }
+
                 this.changedFiles.Add(file.FileName);
                 if (this.EnableVerification && this.waitForTypeCheck != null)
                 {
                     file.Verify(this.compilationUnit);
                 }
+
                 this.PublishDiagnostics(file.Diagnostics());
             });
 
@@ -331,6 +338,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.changedFiles.Add(file.FileName);
                     this.PublishDiagnostics(file.Diagnostics());
                 }
+
                 if (this.EnableVerification && !suppressVerification)
                 {
                     this.QueueGlobalTypeCheckingAsync();
@@ -365,6 +373,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         file.AddTimerTriggeredUpdateEvent();
                     }
+
                     this.PublishDiagnostics(file.Diagnostics());
                 }
                 else
@@ -405,6 +414,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     file.Verify(this.compilationUnit);
                 }
+
                 this.PublishDiagnostics(file.Diagnostics());
             });
         }
@@ -427,6 +437,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return;
                 }
+
                 this.changedFiles.Add(docKey);
                 this.compilationUnit.UnregisterDependentLock(file.SyncRoot); // do *not* dispose of the FileContentManager!
                 this.UnsubscribeFromFileManagerEvents(file);                 // ... but unsubscribe from all file events
@@ -435,6 +446,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = Array.Empty<Diagnostic>() });
                 }
+
                 if (this.EnableVerification)
                 {
                     this.QueueGlobalTypeCheckingAsync(); // we need to trigger a global type checking for the remaining files...
@@ -471,6 +483,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return;
                     }
+
                     this.changedFiles.Add(docKey);
                     this.compilationUnit.UnregisterDependentLock(file.SyncRoot); // do *not* dispose of the FileContentManager!
                     this.UnsubscribeFromFileManagerEvents(file);                 // ... but unsubscribe from all file events
@@ -479,11 +492,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         this.PublishDiagnostics(new PublishDiagnosticParams { Uri = uri, Diagnostics = Array.Empty<Diagnostic>() });
                     }
+
                     if (this.EnableVerification)
                     {
                         this.QueueGlobalTypeCheckingAsync(); // we need to trigger a global type checking for the remaining files...
                     }
                 }
+
                 if (this.EnableVerification && !suppressVerification)
                 {
                     this.QueueGlobalTypeCheckingAsync();
@@ -531,6 +546,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Task.CompletedTask; // type check is already queued
             }
+
             this.waitForTypeCheck.Cancel(); // cancel any ongoing type check...
             this.waitForTypeCheck = null;   // ... and queue a new type check
             return this.Processing.QueueForExecutionAsync(() =>
@@ -613,6 +629,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 task.Start();
             }
+
             return task;
         }
 
@@ -639,6 +656,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     file.SyncRoot.EnterUpgradeableReadLock();
                 }
+
                 this.changedFiles.SyncRoot.EnterReadLock(); // need to lock such that the content of the list remains the same during the execution of the block below
                 try
                 {
@@ -657,6 +675,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return;
                     }
+
                     var allDiagnostics = diagnostics.ToLookup(msg => msg.Source);
                     foreach (var file in this.fileContentManagers.Values)
                     {
@@ -664,6 +683,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             continue;
                         }
+
                         file.ReplaceSemanticDiagnostics(allDiagnostics[file.FileName]);
                         this.PublishDiagnostics(file.Diagnostics());
                     }
@@ -711,7 +731,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // NOTE: invalidating the right diagnostics is kind of error prone,
                 // so instead of calling file.UpdateTypeChecking the type checking for the entire file is simply recomputed.
-
                 var diagnostics = new List<Diagnostic>();
                 var contentToCompile = file.UpdateGlobalSymbols(this.compilationUnit, diagnostics);
                 file.ImportGlobalSymbols(this.compilationUnit, diagnostics);
@@ -792,10 +811,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     return null;
                 }
             }
+
             if (textDocument?.Uri is null || !textDocument.Uri.IsAbsoluteUri || !textDocument.Uri.IsFile)
             {
                 return null;
             }
+
             var docKey = GetFileId(textDocument.Uri);
             var isSource = this.fileContentManagers.TryGetValue(docKey, out FileContentManager file);
             return isSource ? TryQueryFile(file) : null;
@@ -900,34 +921,34 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <summary>
             /// Contains the file IDs assigned by the Q# compiler for all source files included in the compilation.
             /// </summary>
-            public readonly ImmutableHashSet<string> SourceFiles;
+            public ImmutableHashSet<string> SourceFiles { get; }
 
             /// <summary>
             /// Contains the IDs assigned by the Q# compiler for all assemblies referenced in the compilation.
             /// </summary>
-            public readonly ImmutableHashSet<string> References;
+            public ImmutableHashSet<string> References { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to the text representation of its content.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<string>> FileContent;
+            public ImmutableDictionary<string, ImmutableArray<string>> FileContent { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to the tokenization built based on its content.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization;
+            public ImmutableDictionary<string, ImmutableArray<ImmutableArray<CodeFragment>>> Tokenization { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the name of a namespace to the compiled Q# namespace.
             /// </summary>
-            public readonly ImmutableDictionary<string, QsNamespace> SyntaxTree;
+            public ImmutableDictionary<string, QsNamespace> SyntaxTree { get; }
 
             /// <summary>
             /// Contains the built Q# compilation.
             /// </summary>
-            public readonly QsCompilation BuiltCompilation;
+            public QsCompilation BuiltCompilation { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the name of each namespace defined in the compilation to a look-up
@@ -944,42 +965,42 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             /// <summary>
             /// Contains a dictionary that given the fully qualified name of a compiled callable returns its syntax tree.
             /// </summary>
-            public readonly ImmutableDictionary<QsQualifiedName, QsCallable> Callables;
+            public ImmutableDictionary<QsQualifiedName, QsCallable> Callables { get; }
 
             /// <summary>
             /// Contains a dictionary that given the fully qualified name of a compiled type returns its syntax tree.
             /// </summary>
-            public readonly ImmutableDictionary<QsQualifiedName, QsCustomType> Types;
+            public ImmutableDictionary<QsQualifiedName, QsCustomType> Types { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all scope-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> ScopeDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> ScopeDiagnostics { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all syntax-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> SyntaxDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> SyntaxDiagnostics { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all context-related diagnostics generated during compilation.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> ContextDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> ContextDiagnostics { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all diagnostics generated during compilation related to header information for declarations.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> HeaderDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> HeaderDiagnostics { get; }
 
             /// <summary>
             /// Contains a dictionary that maps the ID of a file included in the compilation
             /// to all semantic diagnostics generated during compilation for the specified implementations.
             /// </summary>
-            public readonly ImmutableDictionary<string, ImmutableArray<Diagnostic>> SemanticDiagnostics;
+            public ImmutableDictionary<string, ImmutableArray<Diagnostic>> SemanticDiagnostics { get; }
 
             /// <summary>
             /// Maps a <paramref name="file"/> ID assigned by the Q# compiler to all diagnostics generated during compilation.
@@ -1021,6 +1042,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return QsComments.Empty;
                 }
+
                 var declarations = namespaces.Where(token => token.Kind?.DeclaredNamespaceName(null) == nsName);
                 return declarations.Count() == 1 ? declarations.Single().Comments : QsComments.Empty;
             }

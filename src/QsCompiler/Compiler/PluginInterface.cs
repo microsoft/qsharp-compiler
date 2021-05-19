@@ -113,12 +113,12 @@ namespace Microsoft.Quantum.QsCompiler
                         VS.DiagnosticSeverity.Error => DiagnosticSeverity.Error,
                         VS.DiagnosticSeverity.Warning => DiagnosticSeverity.Warning,
                         VS.DiagnosticSeverity.Information => DiagnosticSeverity.Info,
-                        _ => DiagnosticSeverity.Hidden
+                        _ => DiagnosticSeverity.Hidden,
                     },
                     Message = d.Message,
                     Source = d.Source,
                     Stage = stage,
-                    Range = d.Range?.ToQSharp()
+                    Range = d.Range?.ToQSharp(),
                 };
         }
 

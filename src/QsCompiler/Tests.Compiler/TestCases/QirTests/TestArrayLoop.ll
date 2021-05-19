@@ -1,4 +1,4 @@
-define { i64, i64 }* @Microsoft__Quantum__Testing__QIR__TestArrayLoop__body(%Array* %a) {
+define internal { i64, i64 }* @Microsoft__Quantum__Testing__QIR__TestArrayLoop__body(%Array* %a) {
 entry:
   %0 = call i64 @__quantum__rt__array_get_size_1d(%Array* %a)
   %1 = sub i64 %0, 1

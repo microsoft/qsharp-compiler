@@ -18,12 +18,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 {
     internal class ProjectProperties
     {
-        public readonly string Version;
-        public readonly string OutputPath;
-        public readonly RuntimeCapability RuntimeCapability;
-        public readonly bool IsExecutable;
-        public readonly string ProcessorArchitecture;
-        public readonly bool ExposeReferencesViaTestNames;
+        public string Version { get; }
+
+        public string OutputPath { get; }
+
+        public RuntimeCapability RuntimeCapability { get; }
+
+        public bool IsExecutable { get; }
+
+        public string ProcessorArchitecture { get; }
+
+        public bool ExposeReferencesViaTestNames { get; }
 
         public ProjectProperties(
             string version,
@@ -46,10 +51,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         public delegate bool Loader(Uri projectFile, [NotNullWhen(true)] out ProjectInformation? projectInfo);
 
-        internal readonly ProjectProperties Properties;
-        public readonly ImmutableArray<string> SourceFiles;
-        public readonly ImmutableArray<string> ProjectReferences;
-        public readonly ImmutableArray<string> References;
+        internal ProjectProperties Properties { get; }
+
+        public ImmutableArray<string> SourceFiles { get; }
+
+        public ImmutableArray<string> ProjectReferences { get; }
+
+        public ImmutableArray<string> References { get; }
 
         internal static ProjectInformation Empty(
                 string version,
@@ -89,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         private class Project : IDisposable
         {
-            public readonly Uri ProjectFile;
+            public Uri ProjectFile { get; }
 
             public Uri? OutputPath { get; private set; }
 
@@ -131,7 +139,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             private References loadedProjectReferences;
 
             private readonly ProcessingQueue processing;
-            internal readonly CompilationUnitManager Manager;
+
+            internal CompilationUnitManager Manager { get; }
+
             private readonly Action<string, MessageType> log;
 
             /// <summary>
@@ -184,6 +194,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     version = new Version(0, 3);
                 }
+
                 var ignore = version == null || version < new Version(0, 3) ? true : false;
 
                 // We track the file contents for unsupported projects in case the files are migrated to newer projects while editing,
@@ -224,6 +235,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     outputPath = null;
                 }
+
                 var outputUri = Uri.TryCreate(outputPath, UriKind.Absolute, out Uri uri) ? uri : null;
                 this.OutputPath = outputUri;
 
@@ -262,6 +274,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return;
                 }
+
                 this.isLoaded = true;
 
                 this.log($"Loading project '{this.ProjectFile.LocalPath}'.", MessageType.Log);
@@ -272,6 +285,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         $"The full functionality will be available after updating the project to Q# version 0.3 or higher.",
                         MessageType.Warning);
                 }
+
                 this.LoadReferencedAssembliesAsync(this.specifiedReferences.Select(uri => uri.LocalPath), skipVerification: true);
                 this.LoadProjectReferencesAsync(projectOutputPaths, this.specifiedProjectReferences.Select(uri => uri.LocalPath), skipVerification: true);
                 this.LoadSourceFilesAsync(this.specifiedSourceFiles.Select(uri => uri.LocalPath), getExistingFileManagers, removeFiles, skipIfAlreadyLoaded: true)
@@ -302,6 +316,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         this.SetProjectInformation(projectInfo);
                     }
+
                     this.LoadProject(projectOutputPaths, getExistingFileManagers, removeFiles);
                 });
 
@@ -323,6 +338,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return referencedProj;
                 }
+
                 diagnostics.Add(Warnings.LoadWarning(WarningCode.ReferenceToUnknownProject, new[] { projFile.LocalPath }, MessageSource(projFile)));
                 return null;
             };
@@ -532,7 +548,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return new PublishDiagnosticParams
                 {
                     Uri = this.ProjectFile,
-                    Diagnostics = diagnostics
+                    Diagnostics = diagnostics,
                 };
             }
 
@@ -557,6 +573,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         this.ReloadProjectReference(projectOutputPaths, projFile);
                     }
+
                     this.ReloadReferencedAssembly(dllPath);
                 });
             }
@@ -637,6 +654,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             return false;
                         }
+
                         if (!this.isLoaded)
                         {
                             try
@@ -653,6 +671,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             return false;
                         }
+
                         executeTask(this.Manager);
                         return true;
                     },
@@ -749,6 +768,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     Task.WaitAll(removals); // we *need* to wait here in order to make sure that change notifications are processed in order!!
                 }
+
                 return openFiles;
             };
 
@@ -770,6 +790,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return;
                 }
+
                 filesRemovedFromProject ??= ImmutableHashSet<Uri>.Empty;
                 Task.WaitAll(removal); // we *need* to wait here in order to make sure that change notifications are processed in order!!
                 var openFiles = filesRemovedFromProject.SelectNotNull(openInEditor).ToImmutableHashSet();
@@ -778,6 +799,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     this.log?.Invoke($"The file {file.Uri.LocalPath} is no longer associated with a compilation unit. Only syntactic diagnostics will be generated.", MessageType.Log);
                     file.ClearVerification();
                 }
+
                 this.defaultManager.AddOrUpdateSourceFilesAsync(openFiles);
             };
 
@@ -805,6 +827,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         continue;
                     }
+
                     var project = new Project(file, info, this.logException, this.publishDiagnostics, this.log);
                     this.projects.AddOrUpdate(file, project, (k, v) => project);
                 }
@@ -816,6 +839,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         continue;
                     }
+
                     if (project.ContainsAnySourceFiles(uri => openInEditor(uri) != null))
                     {
                         project.LoadProjectAsync(outputPaths, this.MigrateToProject(openInEditor), null);
@@ -857,6 +881,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         this.ProjectReferenceChangedOnDiskChangeAsync(projectFile);
                     }
+
                     return;
                 }
 
@@ -935,6 +960,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var includedIn = this.projects.Values.Where(project => project.ContainsSourceFile(file));
             return includedIn.Count() == 1
                 ? includedIn.Single().Manager
@@ -983,6 +1009,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var success = this.load.QueueForExecution(
                 () =>
                 {
@@ -1020,7 +1047,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         { } edits => edits.Match(
                             simpleEdits => simpleEdits.Cast<SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>>(),
                             complexEdits => complexEdits),
-                        null => ImmutableList<SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>>.Empty
+                        null => ImmutableList<SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>>.Empty,
                     };
 
                 // if a file belongs to several compilation units, then this will fail
@@ -1193,6 +1220,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             this.load.QueueForExecution(
                 () =>
                 {
@@ -1236,6 +1264,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return this.defaultManager.GetDiagnostics();
                     }
+
                     if (this.projects.TryGetValue(file, out Project project))
                     {
                         return project.Manager?.GetDiagnostics();
@@ -1266,6 +1295,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             this.load.QueueForExecution(
                 () =>
                 {
@@ -1278,7 +1308,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             return content;
         }
 
-        // static routines related to loading the content needed for compilation
+        /* static routines related to loading the content needed for compilation */
 
         public static string MessageSource(Uri uri) =>
             uri.IsAbsoluteUri && uri.IsFile
@@ -1339,15 +1369,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 onDiagnostic?.Invoke(Warnings.LoadWarning(duplicateFileWarning, new[] { file.LocalPath }, MessageSource(file)));
             }
+
             foreach (var file in notFound)
             {
                 onDiagnostic?.Invoke(fileNotFoundDiagnostic(file.LocalPath, MessageSource(file)));
             }
+
             foreach (var (file, ex) in invalidPaths)
             {
                 onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.InvalidFilePath, new[] { file }, file));
                 onException?.Invoke(ex);
             }
+
             return distinctSources.Where(f => File.Exists(f.LocalPath)).ToImmutableArray();
         }
 
@@ -1426,10 +1459,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     // the file is already loaded -> we can ignore that one
                 }
+
                 if (!AssemblyLoader.LoadReferencedAssembly(asm, out var headers, ignoreDllResources))
                 {
                     onDiagnostic?.Invoke(Errors.LoadError(ErrorCode.UnrecognizedContentInReference, new[] { asm.LocalPath }, MessageSource(asm)));
                 }
+
                 return headers;
             }
             catch (BadImageFormatException ex)

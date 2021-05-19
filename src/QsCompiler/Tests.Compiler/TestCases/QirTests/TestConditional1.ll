@@ -1,4 +1,4 @@
-﻿define i64 @Microsoft__Quantum__Testing__QIR__ReturnInt__body({ %Array* }* %arg) {
+﻿define internal i64 @Microsoft__Quantum__Testing__QIR__ReturnInt__body({ %Array* }* %arg) {
 entry:
   %0 = getelementptr inbounds { %Array* }, { %Array* }* %arg, i32 0, i32 0
   %arg__1 = load %Array*, %Array** %0, align 8

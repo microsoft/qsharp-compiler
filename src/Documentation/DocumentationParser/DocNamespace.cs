@@ -77,6 +77,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         this.items.Add(new DocUdt(this.name, udt));
                     }
                 }
+
                 // ignore anything else
             }
 
@@ -106,6 +107,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         }
                     }
                 }
+
                 return false;
             }
 
@@ -158,6 +160,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     itemListNode = itemsNode as YamlSequenceNode;
                 }
             }
+
             if (itemListNode == null)
             {
                 itemListNode = new YamlSequenceNode();
@@ -206,6 +209,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     i.WriteToFile(text);
                 }
             }
+
             foreach (var item in this.items)
             {
                 Utils.DoTrackingExceptions(() => WriteItem(item), errors);
@@ -240,6 +244,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         }
                     }
                 }
+
                 return "";
             }
 
@@ -263,6 +268,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 if (rootNode.Children.TryGetValue(seqKey, out var typeNode))
                 {
                     var typeRoot = typeNode as YamlSequenceNode;
+
                     // We can safely assert here, since we know that the type
                     // node is always a mapping node. That said, it's better to
                     // be explicit and throw an exception instead if the cast
@@ -271,6 +277,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     {
                         throw new Exception($"Expected {itemType} to be a mapping node, was actually a {typeNode.GetType()}.");
                     }
+
                     foreach (var item in typeRoot)
                     {
                         var uid = GetItemUid(item);

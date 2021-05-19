@@ -28,11 +28,15 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
     /// </summary>
     public class TransformationContext
     {
-        public string? CurrentNamespace;
-        public ImmutableHashSet<string> OpenedNamespaces;
-        public ImmutableDictionary<string, string> NamespaceShortNames; // mapping namespace names to their short names
-        public ImmutableHashSet<string> SymbolsInCurrentNamespace;
-        public ImmutableHashSet<string> AmbiguousNames;
+        public string? CurrentNamespace { get; set; }
+
+        public ImmutableHashSet<string> OpenedNamespaces { get; set; }
+
+        public ImmutableDictionary<string, string> NamespaceShortNames { get; set; } // mapping namespace names to their short names
+
+        public ImmutableHashSet<string> SymbolsInCurrentNamespace { get; set; }
+
+        public ImmutableHashSet<string> AmbiguousNames { get; set; }
 
         public TransformationContext()
         {
@@ -62,23 +66,35 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 
         public class TransformationState
         {
-            public Action? BeforeInvalidType = null;
-            public Action? BeforeInvalidSet = null;
-            public Action? BeforeInvalidIdentifier = null;
-            public Action? BeforeInvalidExpression = null;
-            public Action? BeforeInvalidSymbol = null;
-            public Action? BeforeInvalidInitializer = null;
-            public Action? BeforeExternalImplementation = null;
-            public Action? BeforeInvalidFunctorGenerator = null;
+            public Action? BeforeInvalidType { get; set; } = null;
 
-            internal string? TypeOutputHandle = null;
-            internal string? ExpressionOutputHandle = null;
-            internal readonly List<string> StatementOutputHandle = new List<string>();
-            internal readonly List<string> NamespaceOutputHandle = new List<string>();
+            public Action? BeforeInvalidSet { get; set; } = null;
 
-            internal QsComments StatementComments = QsComments.Empty;
-            internal TransformationContext Context;
-            internal IEnumerable<string>? NamespaceDocumentation = null;
+            public Action? BeforeInvalidIdentifier { get; set; } = null;
+
+            public Action? BeforeInvalidExpression { get; set; } = null;
+
+            public Action? BeforeInvalidSymbol { get; set; } = null;
+
+            public Action? BeforeInvalidInitializer { get; set; } = null;
+
+            public Action? BeforeExternalImplementation { get; set; } = null;
+
+            public Action? BeforeInvalidFunctorGenerator { get; set; } = null;
+
+            internal string? TypeOutputHandle { get; set; } = null;
+
+            internal string? ExpressionOutputHandle { get; set; } = null;
+
+            internal List<string> StatementOutputHandle { get; } = new List<string>();
+
+            internal List<string> NamespaceOutputHandle { get; } = new List<string>();
+
+            internal QsComments StatementComments { get; set; } = QsComments.Empty;
+
+            internal TransformationContext Context { get; set; }
+
+            internal IEnumerable<string>? NamespaceDocumentation { get; set; } = null;
 
             public TransformationState(TransformationContext? context = null) =>
                 this.Context = context ?? new TransformationContext();
@@ -111,7 +127,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             this.Namespaces = new NamespaceTransformation(this);
         }
 
-        // public methods for convenience
+        /* public methods for convenience */
 
         public static SyntaxTreeToQsharp Default =>
             new SyntaxTreeToQsharp();
@@ -217,7 +233,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         OpenedNamespaces = openedNS,
                         NamespaceShortNames = nsShortNames,
                         SymbolsInCurrentNamespace = symbolsInNS[ns.Name],
-                        AmbiguousNames = ambiguousSymbols
+                        AmbiguousNames = ambiguousSymbols,
                     };
 
                     var totNrInvalid = 0;
@@ -231,10 +247,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     {
                         success = false;
                     }
+
                     nsInFile.Add(ns.Name, string.Join(Environment.NewLine, generator.SharedState.NamespaceOutputHandle));
                 }
+
                 generatedCode.Add(nsInFile.ToImmutableDictionary());
             }
+
             return success;
         }
 
@@ -268,7 +287,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     return this.SharedState.TypeOutputHandle;
                 };
 
-            // internal static methods
+            /* internal static methods */
 
             internal static string? CharacteristicsExpression(ResolvedCharacteristics characteristics, Action? onInvalidSet = null)
             {
@@ -305,6 +324,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         {
                             throw new NotImplementedException("unknown set name");
                         }
+
                         return SetPrecedenceAndReturn(int.MaxValue, setName);
                     }
                     else if (charEx.Expression is CharacteristicsKind<ResolvedCharacteristics>.Union u)
@@ -499,7 +519,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             : base(parent, TransformationOptions.NoRebuild) =>
                 this.typeToQs = parent.ToCode;
 
-            // private helper functions
+            /* private helper functions */
 
             private static string ReplaceInterpolatedArgs(string text, Func<int, string> replace)
             {
@@ -862,6 +882,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.Output = $"{this.Output}.0";
                 }
+
                 this.currentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewDoubleLiteral(d);
             }
@@ -877,6 +898,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.Output = Keywords.qsFalse.id;
                 }
+
                 this.currentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewBoolLiteral(b);
             }
@@ -915,6 +937,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     throw new NotImplementedException("unknown Result literal");
                 }
+
                 this.currentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewResultLiteral(r);
             }
@@ -942,6 +965,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     throw new NotImplementedException("unknown Pauli literal");
                 }
+
                 this.currentPrecedence = int.MaxValue;
                 return QsExpressionKind.NewPauliLiteral(p);
             }
@@ -1004,7 +1028,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             : base(parent, TransformationOptions.NoRebuild) =>
                 this.expressionToQs = parent.ToCode;
 
-            // private helper functions
+            /* private helper functions */
 
             private void AddToOutput(string line)
             {
@@ -1012,6 +1036,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     line = $"    {line}";
                 }
+
                 this.SharedState.StatementOutputHandle.Add(line);
             }
 
@@ -1030,6 +1055,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.AddToOutput("");
                 }
+
                 this.AddComments(comments.OpeningComments);
                 this.AddToOutput($"{stm};");
                 this.AddComments(comments.ClosingComments);
@@ -1046,6 +1072,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.AddToOutput("");
                 }
+
                 this.AddComments(comments.OpeningComments);
                 this.AddToOutput($"{intro} {"{"}");
                 ++this.currentIndendation;
@@ -1158,6 +1185,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.AddToOutput("");
                 }
+
                 foreach (var clause in stm.ConditionalBlocks)
                 {
                     this.SharedState.StatementComments = clause.Item2.Comments;
@@ -1165,11 +1193,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     this.AddBlockStatement(intro, clause.Item2.Body, false);
                     header = Keywords.qsElif.id;
                 }
+
                 if (stm.Default.IsValue)
                 {
                     this.SharedState.StatementComments = stm.Default.Item.Comments;
                     this.AddBlockStatement(Keywords.qsElse.id, stm.Default.Item.Body, false);
                 }
+
                 return QsStatementKind.NewQsConditionalStatement(stm);
             }
 
@@ -1273,7 +1303,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
             : base(parent, TransformationOptions.NoRebuild) =>
                 this.typeToQs = parent.ToCode;
 
-            // private helper functions
+            /* private helper functions */
 
             private void AddToOutput(string line)
             {
@@ -1281,6 +1311,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     line = $"    {line}";
                 }
+
                 this.Output.Add(line);
             }
 
@@ -1303,6 +1334,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     return;
                 }
+
                 foreach (var line in doc)
                 {
                     this.AddToOutput($"///{line}");
@@ -1321,6 +1353,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.Output[this.Output.Count - 1] += $" {opening}";
                 }
+
                 ++this.currentIndendation;
                 processBlock();
                 this.AddComments(comments.ClosingComments);
@@ -1337,6 +1370,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.OnNamespaceElement(t);
                 }
+
                 if (types.Any())
                 {
                     this.AddToOutput("");
@@ -1348,7 +1382,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 }
             }
 
-            // internal static methods
+            /* internal static methods */
 
             internal static string SymbolName(QsLocalSymbol sym, Action? onInvalidName)
             {
@@ -1373,6 +1407,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     return string.Empty;
                 }
+
                 return $"<{string.Join(", ", sign.TypeParameters.Select(tp => $"'{SymbolName(tp, onInvalidName)}"))}>";
             }
 
@@ -1428,6 +1463,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         this.AddToOutput(line);
                     }
                 }
+
                 if (this.nrSpecialzations != 1)
                 {
                     // todo: needs to be adapted once we support type specializations
@@ -1440,6 +1476,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     ProcessContent();
                     this.AddComments(comments.ClosingComments);
                 }
+
                 return new Tuple<QsTuple<LocalVariableDeclaration<QsLocalSymbol>>, QsScope>(argTuple, body);
             }
 
@@ -1510,12 +1547,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.AddToOutput("");
                 }
+
                 this.declarationComments = spec.Comments;
                 this.AddComments(spec.Comments.OpeningComments);
                 if (spec.Comments.OpeningComments.Any() && spec.Documentation.Any())
                 {
                     this.AddToOutput("");
                 }
+
                 this.AddDocumentation(spec.Documentation);
                 return base.OnSpecializationDeclaration(spec);
             }
@@ -1535,6 +1574,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.AddToOutput("");
                 }
+
                 this.AddDocumentation(c.Documentation);
                 foreach (var attribute in c.Attributes)
                 {
@@ -1559,6 +1599,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         {
                             return s.Kind.IsQsAdjoint;
                         }
+
                         if (s.Kind.IsQsControlled || s.Kind.IsQsAdjoint)
                         {
                             return false;
@@ -1573,10 +1614,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         {
                             return userDefAdj || !userDefCtl;
                         }
+
                         if (gen.Item.IsDistribute)
                         {
                             return userDefCtl && !userDefAdj;
                         }
+
                         return false;
                     }
                     else
@@ -1584,6 +1627,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         return !s.Implementation.IsIntrinsic;
                     }
                 }
+
                 c = c.WithSpecializations(specs => specs.Where(NeedsToBeExplicit).ToImmutableArray());
                 this.nrSpecialzations = c.Specializations.Length;
 
@@ -1597,6 +1641,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.AddToOutput($"{Keywords.qsCharacteristics.id} {characteristics}");
                 }
+
                 this.AddBlock(() => c.Specializations.Select(this.OnSpecializationDeclaration).ToImmutableArray());
                 this.AddToOutput("");
                 return c;
@@ -1612,6 +1657,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                 {
                     this.AddToOutput("");
                 }
+
                 this.AddDocumentation(t.Documentation);
                 foreach (var attribute in t.Attributes)
                 {
@@ -1633,6 +1679,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                         throw new NotImplementedException("unknown case for type item");
                     }
                 }
+
                 var udtTuple = ArgumentTuple(t.TypeItems, GetItemNameAndType, this.typeToQs);
                 this.AddDirective($"{Keywords.typeDeclHeader.id} {t.FullName.Name} = {udtTuple}");
                 return t;
@@ -1674,18 +1721,22 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
                     {
                         this.AddToOutput("");
                     }
+
                     foreach (var nsName in explicitImports.OrderBy(name => name))
                     {
                         this.AddDirective($"{Keywords.importDirectiveHeader.id} {nsName}");
                     }
+
                     foreach (var kv in context.NamespaceShortNames.OrderBy(pair => pair.Key))
                     {
                         this.AddDirective($"{Keywords.importDirectiveHeader.id} {kv.Key} {Keywords.importedAs.id} {kv.Value}");
                     }
+
                     if (explicitImports.Any() || context.NamespaceShortNames.Any())
                     {
                         this.AddToOutput("");
                     }
+
                     this.ProcessNamespaceElements(ns.Elements);
                 });
 

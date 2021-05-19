@@ -47,34 +47,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The context used for QIR generation.
         /// </summary>
         /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
-        public readonly Context Context;
+        public Context Context { get; }
 
         /// <summary>
         /// The module used for QIR generation.
         /// Generated functions to facilitate interoperability are created via <see cref="Interop"/>.
         /// </summary>
         /// <inheritdoc cref="BitcodeModule"/>
-        public readonly BitcodeModule Module;
+        public BitcodeModule Module { get; }
 
         /// <summary>
         /// The used QIR types.
         /// </summary>
-        public readonly Types Types;
+        public Types Types { get; }
 
         /// <summary>
         /// The used QIR constants.
         /// </summary>
-        public readonly Constants Constants;
+        public Constants Constants { get; }
 
         /// <summary>
         /// Tools to construct and handle values throughout QIR emission.
         /// </summary>
-        internal readonly QirValues Values;
+        internal QirValues Values { get; }
 
         /// <summary>
         /// Tools to invoke built-in functions.
         /// </summary>
-        internal readonly Functions Functions;
+        internal Functions Functions { get; }
 
         /// <summary>
         /// The syntax tree transformation that constructs QIR.
@@ -96,9 +96,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal InstructionBuilder CurrentBuilder { get; private set; }
         internal ITypeRef? BuiltType { get; set; }
 
-        internal readonly ScopeManager ScopeMgr;
-        internal readonly Stack<IValue> ValueStack;
-        internal readonly Stack<ResolvedType> ExpressionTypeStack;
+        internal ScopeManager ScopeMgr { get; }
+        internal Stack<IValue> ValueStack { get; }
+        internal Stack<ResolvedType> ExpressionTypeStack { get; }
 
         /// <summary>
         /// We support nested inlining and hence keep a stack with the information for each inline level.
@@ -146,6 +146,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return false;
             }
+
             var branchesWithinCurrentLoop = this.branchIds.TakeWhile(id => id >= currentLoopId);
             return branchesWithinCurrentLoop.Contains(branchId);
         }
@@ -499,6 +500,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.GenerateRequiredFunctions();
             }
+
             return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any();
         }
 
@@ -594,6 +596,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.CurrentFunction = this.RegisterFunction(spec);
+            this.CurrentFunction.Linkage = Linkage.Internal;
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
@@ -713,6 +716,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             var funcName = NameGeneration.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
             IrFunction func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
+            func.Linkage = Linkage.Internal;
             this.liftedPartialApplications.Add((func, body));
             return func;
         }
@@ -743,6 +747,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return function;
             }
+
             // Otherwise, we need to find the function's callable to get the signature,
             // and then register the function
             if (this.TryGetGlobalCallable(fullName, out QsCallable? callable))
@@ -750,6 +755,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
                 return this.RegisterFunction(spec);
             }
+
             // If we can't find the function at all, it's a problem...
             throw new KeyNotFoundException($"Can't find callable {fullName}");
         }
@@ -767,13 +773,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var funcs = new Constant[4];
             for (var index = 0; index < 4; index++)
             {
+<<<<<<< HEAD
                 funcs[index] = getSpec(NameGeneration.FunctionArray[index])
                     ?? Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
+=======
+                var func = getSpec(FunctionArray[index]);
+                if (func != null)
+                {
+                    func.Linkage = Linkage.Internal;
+                    funcs[index] = func;
+                }
+                else
+                {
+                    funcs[index] = Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
+                }
+>>>>>>> main
             }
 
             // Build the callable table
             var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
-            return this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
+            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
         }
 
         /// <inheritdoc cref="CreateCallableTable"/>
@@ -837,12 +856,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var name = this.GlobalName("MemoryManagement");
             var funcs = new Constant[2];
             var func = this.Module.CreateFunction($"{name}__RefCount", this.Types.CaptureCountFunction);
+            func.Linkage = Linkage.Internal;
             funcs[0] = func;
             func = this.Module.CreateFunction($"{name}__AliasCount", this.Types.CaptureCountFunction);
+            func.Linkage = Linkage.Internal;
             funcs[1] = func;
 
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
-            table = this.Module.AddGlobal(array.NativeType, true, Linkage.DllExport, array, name);
+            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
             this.memoryManagementTables.Add(type, table);
             this.pendingMemoryManagementTables.Add(type);
             return table;
@@ -887,6 +908,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.CurrentFunction.Parameters[i].Name = name;
                 }
             }
+
             this.SetCurrentBlock(this.CurrentFunction.AppendBasicBlock("entry"));
 
             this.ScopeMgr.OpenScope();
@@ -897,6 +919,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.CurrentBuilder.Return();
             }
+
             this.EndFunction(generatePending: false);
         }
 
@@ -1020,12 +1043,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
             }
+
             this.pendingCallableTables.Clear();
 
             foreach (var (func, body) in this.liftedPartialApplications)
             {
                 this.GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, body);
             }
+
             this.liftedPartialApplications.Clear();
 
             foreach (var type in this.pendingMemoryManagementTables)
@@ -1053,6 +1078,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
             }
+
             this.pendingMemoryManagementTables.Clear();
         }
 
@@ -1098,7 +1124,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // to be returned from that scope, meaning it either won't be dereferenced or its reference
             // count will increase by 1. The result of the expression is a phi node that we then properly
             // register with the scope manager, such that it will be unreferenced when going out of scope.
-
             this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
             var entryBlock = this.CurrentBlock!;
 
@@ -1228,7 +1253,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Header block:
                 // create a phi node for a loop output value if needed,
                 // create a phi node representing the iteration variable and evaluate the condition
-
                 this.SetCurrentBlock(headerBlock);
                 var outputValue = initialOutputValue == null ? null : this.CurrentBuilder.PhiNode(initialOutputValue.NativeType);
                 outputValue?.AddIncoming(initialOutputValue!, precedingBlock);
@@ -1291,6 +1315,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 executeBody(loopVar);
                 return null;
             }
+
             this.CreateForLoop(startValue, evaluateCondition, increment, null, ExecuteBody);
         }
 
@@ -1408,6 +1433,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 executeBody(arrayItem);
                 return null;
             }
+
             this.IterateThroughArray(array, null, ExecuteBody);
         }
 
@@ -1495,6 +1521,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Everything else we let getelementptr compute for us
                 var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
+
                 // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
                 var firstPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
                 var first = this.CurrentBuilder.PointerToInt(firstPtr, intType);
