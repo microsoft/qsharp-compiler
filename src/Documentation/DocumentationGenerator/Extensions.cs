@@ -144,8 +144,7 @@ namespace Microsoft.Quantum.Documentation
                     builder,
                     (acc, item) => acc.WithDocumentationAttribute(
                         attributeName,
-                        // The following populates all of the metadata needed for a
-                        // Q# literal of type (String, String).
+                        /* The following populates all of the metadata needed for a Q# literal of type (String, String). */
                         SyntaxGenerator.TupleLiteral(
                             ImmutableArray.Create(
                                 item.Key.AsLiteralExpression(),
@@ -159,8 +158,9 @@ namespace Microsoft.Quantum.Documentation
             {
                 { IsNull: true } => "",
                 { Item: { Count: 0 } } => "",
+
                 // Be sure to add the leading space before is!
-                { Item: var functors } => $" is {string.Join(" + ", functors.Select(functor => functor.ToSyntax()))}"
+                { Item: var functors } => $" is {string.Join(" + ", functors.Select(functor => functor.ToSyntax()))}",
             };
 
         internal static string ToSyntax(this QsFunctor functor) =>
@@ -168,7 +168,7 @@ namespace Microsoft.Quantum.Documentation
             {
                 QsFunctor.Tags.Adjoint => "Adj",
                 QsFunctor.Tags.Controlled => "Ctl",
-                _ => "__invalid__"
+                _ => "__invalid__",
             };
 
         internal static string ToSyntax(this QsCallable callable)
@@ -194,6 +194,7 @@ namespace Microsoft.Quantum.Documentation
             {
                 accumulatedDocument = document.WithSection(name, section);
             }
+
             return accumulatedDocument;
         }
 
@@ -255,7 +256,7 @@ namespace Microsoft.Quantum.Documentation
                         QsTypeItem.Named { Item: var named } =>
                             new List<(string, ResolvedType)>
                             {
-                                (named.VariableName, named.Type)
+                                (named.VariableName, named.Type),
                             },
                         _ => throw new ArgumentException($"Type item {item} is neither anonymous nor named.", nameof(typeItems)),
                     },
@@ -277,9 +278,9 @@ namespace Microsoft.Quantum.Documentation
                                 QsLocalSymbol.ValidName name => name.Item,
                                 _ => "__invalid__",
                             },
-                            item.Item.Type)
+                            item.Item.Type),
                     },
-                _ => throw new Exception()
+                _ => throw new Exception(),
             };
 
         internal static string ToMarkdownLink(this ResolvedType type) => type.Resolution switch
@@ -288,8 +289,8 @@ namespace Microsoft.Quantum.Documentation
                 ResolvedTypeKind.Function function =>
                     $"{function.Item1.ToMarkdownLink()} -> {function.Item2.ToMarkdownLink()}",
                 ResolvedTypeKind.Operation operation =>
-                    $@"{operation.Item1.Item1.ToMarkdownLink()} => {operation.Item1.Item2.ToMarkdownLink()} {
-                        operation.Item2.Characteristics.ToSyntax()}",
+                    $"{operation.Item1.Item1.ToMarkdownLink()} => {operation.Item1.Item2.ToMarkdownLink()} "
+                    + operation.Item2.Characteristics.ToSyntax(),
                 ResolvedTypeKind.TupleType tuple => "(" + string.Join(
                     ",", tuple.Item.Select(ToMarkdownLink)) + ")",
                 ResolvedTypeKind.UserDefinedType udt => udt.Item.ToMarkdownLink(),

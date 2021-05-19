@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 
         public class TransformationState
         {
-            public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
+            public ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet { get; }
 
             public TransformationState(ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
             {

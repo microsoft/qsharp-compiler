@@ -84,6 +84,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     value = ptr.LoadValue();
                 }
+
                 return value;
             }
 
@@ -113,6 +114,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                 }
                             }
                         }
+
                         yield return (value, false);
                     }
                     else
@@ -241,7 +243,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             internal void ExecutePendingCalls(params Scope[] parentScopes)
             {
                 // Not the most efficient way to go about this, but it will do for now.
-
                 var allScopes = parentScopes.Prepend(this);
                 var pendingAliasCounts = allScopes.SelectMany(s => s.variables).Select(kv => (kv.Value, true)).ToArray();
 
@@ -331,6 +332,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return RuntimeLibrary.CallableUpdateAliasCount;
                 }
             }
+
             return null;
         }
 
@@ -368,6 +370,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return RuntimeLibrary.BigIntUpdateReferenceCount;
                 }
             }
+
             return null;
         }
 
@@ -411,6 +414,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                 ProcessValue(itemFuncName, item);
                             }
                         }
+
                         arg = tuple.OpaquePointer;
                     }
                     else if (value is ArrayValue array)
@@ -420,6 +424,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         {
                             this.sharedState.IterateThroughArray(array, arrItem => ProcessValue(itemFuncName, arrItem));
                         }
+
                         arg = array.OpaquePointer;
                     }
                     else if (value is CallableValue callable && recurIntoInnerItems)
@@ -457,6 +462,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new InvalidOperationException("scope contains pending calls to increase reference counts");
             }
+
             current.ExecutePendingCalls();
         }
 
@@ -677,6 +683,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     return value;
                 }
             }
+
             throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
@@ -711,7 +718,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             //    returned value rather than e.g. to release qubits.
             // d) We can't modify the pending calls; they may be used by other execution paths that
             //    don't return the same value.
-
             this.IncreaseReferenceCount(returned);
             this.scopes.Peek().ExecutePendingCalls(this.scopes.Skip(1).ToArray());
         }
