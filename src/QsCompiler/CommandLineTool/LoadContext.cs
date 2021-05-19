@@ -217,18 +217,12 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 context.AddToPath(fallbackPaths);
             }
-<<<<<<< HEAD
-=======
 
->>>>>>> main
             foreach (var preload in UnmanagedDllPaths)
             {
                 context.LoadUnmanagedDllFromPath(preload);
             }
-<<<<<<< HEAD
-=======
 
->>>>>>> main
             foreach (var preload in ManagedDllPaths)
             {
                 context.LoadFromAssemblyPath(preload);

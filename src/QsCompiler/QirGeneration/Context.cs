@@ -229,6 +229,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return $"{name}__{index}";
         }
 
+        /// <summary>
+        /// Order of specializations in the constant array that contains the fours IrFunctions
+        /// associated with a callable.
+        /// </summary>
+        public static readonly ImmutableArray<QsSpecializationKind> FunctionArray = ImmutableArray.Create(
+            QsSpecializationKind.QsBody,
+            QsSpecializationKind.QsAdjoint,
+            QsSpecializationKind.QsControlled,
+            QsSpecializationKind.QsControlledAdjoint);
+
         #region Initialization and emission
 
         /// <summary>
@@ -773,10 +783,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var funcs = new Constant[4];
             for (var index = 0; index < 4; index++)
             {
-<<<<<<< HEAD
-                funcs[index] = getSpec(NameGeneration.FunctionArray[index])
-                    ?? Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
-=======
                 var func = getSpec(FunctionArray[index]);
                 if (func != null)
                 {
@@ -787,7 +793,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     funcs[index] = Constant.ConstPointerToNullFor(this.Types.FunctionSignature.CreatePointerType());
                 }
->>>>>>> main
             }
 
             // Build the callable table
