@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
     {
         public class TransformationsState
         {
-            public readonly QsFunctor FunctorToApply;
+            public QsFunctor FunctorToApply { get; }
 
             public TransformationsState(QsFunctor functor) => this.FunctorToApply = functor;
         }
@@ -40,12 +40,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             {
                 this.Statements = new BasicTransformations.AddVariableDeclarations<TransformationsState>(this, ControlQubitsDeclaration);
             }
+
             this.StatementKinds = new IgnoreOuterBlockInConjugations<TransformationsState>(this);
             this.ExpressionKinds = new ExpressionKindTransformation(this);
             this.Types = new TypeTransformation<TransformationsState>(this, TransformationOptions.Disabled);
         }
 
-        // static methods for convenience
+        /* static methods for convenience */
 
         private static readonly string ControlQubitsName = InternalUse.ControlQubitsName;
 
@@ -66,7 +67,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
         public static readonly Func<QsScope, QsScope> ApplyControlled =
             new ApplyFunctorToOperationCalls(QsFunctor.Controlled).Statements.OnScope;
 
-        // helper classes
+        /* helper classes */
 
         /// <summary>
         /// Replaces each operation call with a call to the operation after application of the given functor.
@@ -101,6 +102,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 {
                     throw new NotImplementedException("unsupported functor");
                 }
+
                 return base.OnOperationCall(method, arg);
             }
         }
@@ -165,20 +167,20 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             /// <summary>
             /// Accumulates statements that have been lifted from the current statement.
             /// </summary>
-            public List<QsStatement> AdditionalStatements = new List<QsStatement>();
+            public List<QsStatement> AdditionalStatements { get; set; } = new List<QsStatement>();
 
             /// <summary>
             /// Tracks the current expression that is being evaluated, keeping previous
             /// expressions in the stack so that we can return to those when leaving a nested
             /// evaluation.
             /// </summary>
-            public Stack<TypedExpression> CurrentExpression = new Stack<TypedExpression>();
+            public Stack<TypedExpression> CurrentExpression { get; set; } = new Stack<TypedExpression>();
 
             /// <summary>
             /// Allows us to remember the current statement location, and use that for the generated
             /// statements that get added when extracting nested expressions.
             /// </summary>
-            public QsNullable<QsLocation> StatementLocation = QsNullable<QsLocation>.Null;
+            public QsNullable<QsLocation> StatementLocation { get; set; } = QsNullable<QsLocation>.Null;
         }
 
         public ExtractNestedOperationCalls()
@@ -216,6 +218,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                         statements.Add(transformed);
                     }
                 }
+
                 return new QsScope(statements.ToImmutableArray(), scope.KnownSymbols);
             }
         }
@@ -286,7 +289,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
             this.Statements = new StatementTransformation(this);
         }
 
-        // helper classes
+        /* helper classes */
 
         private class StatementTransformation
         : StatementTransformation<ReverseOrderOfOperationCalls>
@@ -303,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                 foreach (var statement in scope.Statements)
                 {
                     var transformed = this.OnStatement(statement);
-                    if (this.subSelector?.SharedState.SatisfiesCondition ?? false)
+                    if (this.SubSelector?.SharedState.SatisfiesCondition ?? false)
                     {
                         topStatements.Add(statement);
                     }
@@ -312,6 +315,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.FunctorGeneration
                         bottomStatements.Add(transformed);
                     }
                 }
+
                 bottomStatements.Reverse();
                 return new QsScope(topStatements.Concat(bottomStatements).ToImmutableArray(), scope.KnownSymbols);
             }

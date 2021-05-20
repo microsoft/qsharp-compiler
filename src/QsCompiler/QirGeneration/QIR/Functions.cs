@@ -120,6 +120,7 @@ namespace Microsoft.Quantum.QIR
                 evaluated = optFunction(arg);
                 return true;
             }
+
             if (this.builtIn.TryGetValue(unmangledName, out var function))
             {
                 var value = this.sharedState.EvaluateSubexpression(arg);
@@ -180,10 +181,11 @@ namespace Microsoft.Quantum.QIR
                 var range = this.sharedState.EvaluateSubexpression(rangeEx);
                 (startValue, stepValue, endValue) = this.RangeItems(range);
             }
+
             return (startValue, stepValue, endValue);
         }
 
-        // private methods
+        /* private methods */
 
         private IValue Length(IValue arg) =>
             this.sharedState.Values.FromSimpleValue(((ArrayValue)arg).Length, Int);
@@ -331,6 +333,7 @@ namespace Microsoft.Quantum.QIR
                 arg1 = argTuple.GetTupleElement(1).Value;
                 arg2 = argTuple.GetTupleElement(2).Value;
             }
+
             return this.DumpRegister(arg1, arg2);
         }
     }

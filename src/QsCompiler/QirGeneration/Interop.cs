@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private Value[] PointerIndex(int index) => new[]
         {
             this.sharedState.Context.CreateConstant(0L),
-            this.sharedState.Context.CreateConstant(index)
+            this.sharedState.Context.CreateConstant(index),
         };
 
         /// <summary>
@@ -116,6 +116,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? context.CreateStructType(packed: false, itemTypes).CreatePointerType()
                     : null;
             }
+
             if (t.IsInteger)
             {
                 // covers Int, Bool, Pauli
@@ -167,6 +168,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var itemPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(itemIndex++));
                     return this.sharedState.CurrentBuilder.Load(Types.PointerElementType(itemPtr), itemPtr);
                 }
+
                 return itemTypes.Select(arg => ProcessGivenValue(arg, registerWithScopeManager, NextTupleItem)).ToArray();
             }
 
@@ -224,6 +226,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.sharedState.ScopeMgr.RegisterValue(value);
                     }
+
                     return value;
                 }
                 else if (type.Resolution.IsString)
@@ -235,6 +238,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.sharedState.ScopeMgr.RegisterValue(value);
                     }
+
                     return value;
                 }
                 else if (type.Resolution.IsResult)
@@ -324,6 +328,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 {
                     this.sharedState.CurrentBuilder.MemCpy(allocated, sourcePtr, size, false);
                 }
+
                 return this.sharedState.CurrentBuilder.BitCast(allocated, targetType);
             }
 
@@ -339,6 +344,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var tupleItem = this.sharedState.CastToType(tupleItems[itemIdx], mappedStructType.Members[itemIdx]);
                     this.sharedState.CurrentBuilder.Store(tupleItem, itemPtr);
                 }
+
                 return mappedTuple;
             }
 

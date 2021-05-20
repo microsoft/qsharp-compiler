@@ -61,7 +61,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             INVALID_ARGUMENTS = 2,
             MSBUILD_UNINITIALIZED = 3,
             CONNECTION_ERROR = 4,
-            UNEXPECTED_ERROR = 100
+            UNEXPECTED_ERROR = 100,
         }
 
         private static int LogAndExit(ReturnCode code, string? logFile = null, string? message = null)
@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             return (int)code;
         }
 
-        public static string? Version =
+        public static string? Version { get; set; } =
             typeof(Server).Assembly.GetCustomAttribute<AssemblyInformationalVersionAttribute>()?.InformationalVersion
             ?? typeof(Server).Assembly.GetName().Version?.ToString();
 
@@ -120,6 +120,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         return assemblyLoadContext.LoadFromAssemblyPath(path);
                     }
+
                     return null;
                 };
             }
@@ -186,11 +187,13 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 Log($"[ERROR] Connection attempted timed out.", logFile);
             }
+
             writerPipe.Connect(30000);
             if (!writerPipe.IsConnected)
             {
                 Log($"[ERROR] Connection attempted timed out.", logFile);
             }
+
             return new QsLanguageServer(writerPipe, readerPipe);
         }
 
@@ -207,6 +210,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 Log("[ERROR] Failed to get network stream.", logFile);
                 Log(ex.ToString(), logFile);
             }
+
             return new QsLanguageServer(stream, stream);
         }
     }

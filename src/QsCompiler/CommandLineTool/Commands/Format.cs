@@ -141,6 +141,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 var content = string.Join(Environment.NewLine, code.Select(block => $"{block}{Environment.NewLine}{Environment.NewLine}"));
                 CompilationLoader.GeneratedFile(fileName, outputFolder ?? "FormattedFiles", ".qs", content);
             }
+
             return true;
         }
 
@@ -180,12 +181,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 {
                     logger.Verbosity = DiagnosticSeverity.Information;
                 }
+
                 if (!GenerateFormattedQsFile(loaded.VerifiedCompilation, file, options.OutputFolder, logger))
                 {
                     success = false;
                 }
+
                 logger.Verbosity = verbosity;
             }
+
             return success ? ReturnCode.Success : ReturnCode.CodeGenerationErrors;
         }
     }

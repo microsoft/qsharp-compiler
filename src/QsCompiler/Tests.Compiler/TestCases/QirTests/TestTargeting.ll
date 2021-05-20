@@ -9,7 +9,7 @@ entry:
   %5 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR_____GUID___NoArgs, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   store %Callable* %5, %Callable** %3, align 8
   store %Qubit* %q, %Qubit** %4, align 8
-  call void @Microsoft__Quantum__Simulation__QuantumProcessor__Extensions_____GUID___ApplyIfOne__body(%Result* %0, { %Callable*, %Qubit* }* %2)
+  call void @Microsoft__Quantum__ClassicalControl_____GUID___ApplyIfOne__body(%Result* %0, { %Callable*, %Qubit* }* %2)
   call void @__quantum__rt__result_update_reference_count(%Result* %0, i32 -1)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %5, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %5, i32 -1)

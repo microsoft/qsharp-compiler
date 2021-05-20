@@ -24,7 +24,7 @@ namespace Microsoft.Quantum.Canon {
     operation NoOp<'T>(arg : 'T) : Unit is Adj + Ctl { }
 }
 
-namespace Microsoft.Quantum.Simulation.QuantumProcessor.Extensions {
+namespace Microsoft.Quantum.ClassicalControl {
 
     operation ApplyIfZero<'T>(measurementResult : Result, (onResultZeroOp : ('T => Unit), zeroArg : 'T)) : Unit { }
     operation ApplyIfZeroA<'T>(measurementResult : Result, (onResultZeroOp : ('T => Unit is Adj), zeroArg : 'T)) : Unit is Adj { }

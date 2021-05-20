@@ -62,7 +62,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private IStructType CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
             this.qirTypes.TypedTuple(items.Select(this.LlvmTypeFromQsharpType));
 
-        // public overrides
+        /* public overrides */
 
         public override QsResolvedTypeKind OnArrayType(ResolvedType b)
         {
@@ -165,6 +165,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new InvalidOperationException("unknown user defined type");
             }
+
             return QsResolvedTypeKind.InvalidType;
         }
 
