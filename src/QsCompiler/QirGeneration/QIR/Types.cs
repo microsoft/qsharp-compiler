@@ -113,9 +113,7 @@ namespace Microsoft.Quantum.QIR
 
         internal IArrayType CallableMemoryManagementTable { get; }
 
-        internal readonly QirTypeTransformation Transform;
-
-        // constructor
+        internal QirTypeTransformation Transform { get; }
 
         internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
         {
