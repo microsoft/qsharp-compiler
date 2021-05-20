@@ -32,53 +32,10 @@ namespace Microsoft.Quantum.Qir.Serialization
     [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
     public enum DataType
     {
-        BoolType,
-        IntegerType,
-        DoubleType,
-        PauliType,
-        RangeType,
-        ResultType,
-        StringType,
-        ArrayType,
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
-    public enum PauliValue
-    {
-        PauliI,
-        PauliX,
-        PauliY,
-        PauliZ,
-    }
-
-    [global::Bond.Schema]
-    [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
-    public partial class RangeValue
-    {
-        [global::Bond.Id(5)]
-        public long Start { get; set; }
-
-        [global::Bond.Id(10)]
-        public long Step { get; set; }
-
-        [global::Bond.Id(15)]
-        public long End { get; set; }
-
-        public RangeValue()
-            : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.RangeValue", "RangeValue")
-        {}
-
-        protected RangeValue(string fullName, string name)
-        {
-            
-        }
-    }
-
-    [System.CodeDom.Compiler.GeneratedCode("gbc", "0.12.1.0")]
-    public enum ResultValue
-    {
-        Zero,
-        One,
+        Integer,
+        Double,
+        BytePointer,
+        Collection,
     }
 
     [global::Bond.Schema]
@@ -94,8 +51,8 @@ namespace Microsoft.Quantum.Qir.Serialization
         [global::Bond.Id(15)]
         public DataType Type { get; set; }
 
-        [global::Bond.Id(20), global::Bond.Type(typeof(global::Bond.Tag.nullable<DataType>))]
-        public DataType? ArrayType { get; set; }
+        [global::Bond.Id(20), global::Bond.Type(typeof(global::Bond.Tag.nullable<List<DataType>>))]
+        public List<DataType> ElementTypes { get; set; }
 
         public Parameter()
             : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.Parameter", "Parameter")
@@ -104,7 +61,7 @@ namespace Microsoft.Quantum.Qir.Serialization
         protected Parameter(string fullName, string name)
         {
             Name = "";
-            Type = DataType.BoolType;
+            Type = DataType.BytePointer;
         }
     }
 
@@ -115,29 +72,17 @@ namespace Microsoft.Quantum.Qir.Serialization
         [global::Bond.Id(5)]
         public DataType Type { get; set; }
 
-        [global::Bond.Id(10), global::Bond.Type(typeof(global::Bond.Tag.nullable<bool>))]
-        public bool? Bool { get; set; }
-
-        [global::Bond.Id(15), global::Bond.Type(typeof(global::Bond.Tag.nullable<long>))]
+        [global::Bond.Id(10), global::Bond.Type(typeof(global::Bond.Tag.nullable<long>))]
         public long? Integer { get; set; }
 
-        [global::Bond.Id(20), global::Bond.Type(typeof(global::Bond.Tag.nullable<double>))]
+        [global::Bond.Id(15), global::Bond.Type(typeof(global::Bond.Tag.nullable<double>))]
         public double? Double { get; set; }
 
-        [global::Bond.Id(25), global::Bond.Type(typeof(global::Bond.Tag.nullable<PauliValue>))]
-        public PauliValue? Pauli { get; set; }
+        [global::Bond.Id(20), global::Bond.Type(typeof(global::Bond.Tag.nullable<List<byte>>))]
+        public List<byte> BytePointer { get; set; }
 
-        [global::Bond.Id(30), global::Bond.Type(typeof(global::Bond.Tag.nullable<RangeValue>))]
-        public RangeValue Range { get; set; }
-
-        [global::Bond.Id(35), global::Bond.Type(typeof(global::Bond.Tag.nullable<ResultValue>))]
-        public ResultValue? Result { get; set; }
-
-        [global::Bond.Id(40), global::Bond.Type(typeof(global::Bond.Tag.nullable<string>))]
-        public string String { get; set; }
-
-        [global::Bond.Id(45), global::Bond.Type(typeof(global::Bond.Tag.nullable<List<ArgumentValue>>))]
-        public List<ArgumentValue> Array { get; set; }
+        [global::Bond.Id(25), global::Bond.Type(typeof(global::Bond.Tag.nullable<List<ArgumentValue>>))]
+        public List<ArgumentValue> Collection { get; set; }
 
         public ArgumentValue()
             : this("Microsoft.Quantum.QsCompiler.BondSchemas.Execution.ArgumentValue", "ArgumentValue")
@@ -145,7 +90,7 @@ namespace Microsoft.Quantum.Qir.Serialization
 
         protected ArgumentValue(string fullName, string name)
         {
-            Type = DataType.BoolType;
+            Type = DataType.BytePointer;
         }
     }
 

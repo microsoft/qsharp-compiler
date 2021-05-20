@@ -29,14 +29,10 @@ namespace Microsoft.Quantum.Qir.Serialization
         public static bool ValueEquals(this ArgumentValue @this, ArgumentValue other)
         {
             return @this.Type == other.Type &&
-                   @this.Bool == other.Bool &&
-                   @this.Double == other.Double &&
                    @this.Integer == other.Integer &&
-                   @this.Pauli == other.Pauli &&
-                   @this.Result == other.Result &&
-                   AreNullablesEqual(@this.String, other.String, string.Equals) &&
-                   AreNullablesEqual(@this.Range, other.Range, ValueEquals) &&
-                   AreNullablesEqual(@this.Array, other.Array, (a, b) => AreCollectionsEqual(a, b, ValueEquals));
+                   @this.Double == other.Double &&
+                   AreNullablesEqual(@this.BytePointer, other.BytePointer, (a, b) => AreCollectionsEqual(a, b, (x, y) => x.Equals(y))) &&
+                   AreNullablesEqual(@this.Collection, other.Collection, (a, b) => AreCollectionsEqual(a, b, ValueEquals));
         }
 
         /// <summary>
@@ -65,27 +61,6 @@ namespace Microsoft.Quantum.Qir.Serialization
             return AreNullablesEqual(@this.Name, other.Name, string.Equals) &&
                    @this.Position == other.Position &&
                    @this.Type == other.Type;
-        }
-
-        /// <summary>
-        /// Determine whether the values of two object instances are equal.
-        /// </summary>
-        public static bool ValueEquals(this RangeValue rangeValueA, RangeValue rangeValueB)
-        {
-            if (rangeValueA.Start != rangeValueB.Start)
-            {
-                return false;
-            }
-            else if (rangeValueA.Step != rangeValueB.Step)
-            {
-                return false;
-            }
-            else if (rangeValueA.End != rangeValueB.End)
-            {
-                return false;
-            }
-
-            return true;
         }
 
         private static bool AreCollectionsEqual<T>(ICollection<T> collectionA, ICollection<T> collectionB, Func<T, T, bool> equalityFunction)

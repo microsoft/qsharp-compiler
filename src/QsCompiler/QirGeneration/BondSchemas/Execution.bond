@@ -5,37 +5,10 @@ namespace Microsoft.Quantum.Qir.Serialization;
 
 enum DataType
 {
-    BoolType,
-    IntegerType,
-    DoubleType,
-    PauliType,
-    RangeType,
-    ResultType,
-    StringType,
-    ArrayType
-}
-
-enum PauliValue
-{
-    PauliI,
-    PauliX,
-    PauliY,
-    PauliZ
-}
-
-struct RangeValue
-{
-    5: int64 Start;
-
-    10: int64 Step;
-
-    15: int64 End;
-}
-
-enum ResultValue
-{
-    Zero,
-    One
+    Integer,
+    Double,
+    BytePointer,
+    Collection
 }
 
 struct Parameter
@@ -44,38 +17,26 @@ struct Parameter
 
     10: int32 Position;
 
-    15: DataType Type = BoolType;
+    15: DataType Type = BytePointer;
 
-    20: nullable<DataType> ArrayType;
+    20: nullable<vector<DataType>> ElementTypes;
 }
 
 struct ArgumentValue
 {
-    5: DataType Type = BoolType;
+    5: DataType Type = BytePointer;
 
-    // Not null when Type is BoolType.
-    10: nullable<bool> Bool;
+    // Not null when Type is Integer.
+    10: nullable<int64> Integer;
 
-    // Not null when Type is IntegerType.
-    15: nullable<int64> Integer;
+    // Not null when Type is Double.
+    15: nullable<double> Double;
 
-    // Not null when Type is DoubleType.
-    20: nullable<double> Double;
+    // Not null when Type is BytePointer.
+    20: nullable<vector<byte>> BytePointer;
 
-    // Not null when Type is PauliType.
-    25: nullable<PauliValue> Pauli;
-
-    // Not null when Type is RangeType.
-    30: nullable<RangeValue> Range;
-
-    // Not null when Type is ResultType.
-    35: nullable<ResultValue> Result;
-
-    // Not null when Type is StringType.
-    40: nullable<string> String;
-
-    // Not null when Type is ArrayType.
-    45: nullable<vector<ArgumentValue>> Array;
+    // Not null when Type is Collection.
+    25: nullable<vector<ArgumentValue>> Collection;
 }
 
 struct EntryPointOperation
