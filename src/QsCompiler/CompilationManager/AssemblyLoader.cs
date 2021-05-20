@@ -189,6 +189,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 throw new FileNotFoundException($"The file '{assemblyPath}' given to the assembly loader does not exist.");
             }
+
             return new PEReader(File.OpenRead(assemblyPath));
         }
 
@@ -273,6 +274,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 isNewtonSoftResourcePresent = true;
             }
+
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
 
             // Use the correct method depending on the resource.
