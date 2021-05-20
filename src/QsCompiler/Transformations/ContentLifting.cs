@@ -26,19 +26,25 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
     {
         internal class CallableDetails
         {
-            internal readonly QsCallable Callable;
-            internal readonly QsSpecialization? Adjoint;
-            internal readonly QsSpecialization? Controlled;
-            internal readonly QsSpecialization? ControlledAdjoint;
-            internal readonly QsNullable<ImmutableArray<ResolvedType>> TypeParameters;
+            internal QsCallable Callable { get; }
+
+            internal QsSpecialization? Adjoint { get; }
+
+            internal QsSpecialization? Controlled { get; }
+
+            internal QsSpecialization? ControlledAdjoint { get; }
+
+            internal QsNullable<ImmutableArray<ResolvedType>> TypeParameters { get; }
 
             internal CallableDetails(QsCallable callable)
             {
                 this.Callable = callable;
+
                 // ToDo: this may need to be adapted once we support type specializations
                 this.Adjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsAdjoint);
                 this.Controlled = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlled);
                 this.ControlledAdjoint = callable.Specializations.FirstOrDefault(spec => spec.Kind == QsSpecializationKind.QsControlledAdjoint);
+
                 // ToDo: this may need to be per-specialization
                 this.TypeParameters = callable.Signature.TypeParameters.Any(param => param.IsValidName)
                 ? QsNullable<ImmutableArray<ResolvedType>>.NewValue(callable.Signature.TypeParameters
@@ -57,20 +63,26 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
         {
             // ToDo: It should be possible to make these three properties private,
             // if we absorb the corresponding logic into LiftBody.
-            public bool IsValidScope = true;
-            internal bool ContainsParamRef = false;
-            internal ImmutableArray<LocalVariableDeclaration<string>> GeneratedOpParams =
+            public bool IsValidScope { get; set; } = true;
+
+            internal bool ContainsParamRef { get; set; } = false;
+
+            internal ImmutableArray<LocalVariableDeclaration<string>> GeneratedOpParams { get; set; } =
                 ImmutableArray<LocalVariableDeclaration<string>>.Empty;
 
-            internal CallableDetails? CurrentCallable = null;
+            internal CallableDetails? CurrentCallable { get; set; } = null;
 
-            protected internal bool InBody = false;
-            protected internal bool InAdjoint = false;
-            protected internal bool InControlled = false;
-            protected internal bool InControlledAdjoint = false;
-            protected internal bool InWithinBlock = false;
+            protected internal bool InBody { get; set; } = false;
 
-            protected internal List<QsCallable>? GeneratedOperations = null;
+            protected internal bool InAdjoint { get; set; } = false;
+
+            protected internal bool InControlled { get; set; } = false;
+
+            protected internal bool InControlledAdjoint { get; set; } = false;
+
+            protected internal bool InWithinBlock { get; set; } = false;
+
+            protected internal List<QsCallable>? GeneratedOperations { get; set; } = null;
 
             private (ResolvedSignature, IEnumerable<QsSpecialization>) MakeSpecializations(
                 CallableDetails callable,
@@ -111,10 +123,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         addAdjoint = adjGen.Item.IsInvert;
                         isSelfAdjoint = adjGen.Item.IsSelfInverse;
                     }
+
                     if (ctl != null && ctl.Implementation is SpecializationImplementation.Generated ctlGen)
                     {
                         addControlled = ctlGen.Item.IsDistribute;
                     }
+
                     if (ctlAdj != null && ctlAdj.Implementation is SpecializationImplementation.Generated ctlAdjGen)
                     {
                         addAdjoint = addAdjoint || (ctlAdjGen.Item.IsInvert && (ctl?.Implementation.IsGenerated ?? true));
@@ -134,10 +148,12 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 {
                     props.Add(OpProperty.Adjointable);
                 }
+
                 if (addControlled)
                 {
                     props.Add(OpProperty.Controllable);
                 }
+
                 var newSig = new ResolvedSignature(
                     callable.Callable.Signature.TypeParameters,
                     paramsType,
@@ -344,10 +360,13 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
 
             public class TransformationState
             {
-                public bool IsRecursiveIdentifier = false;
-                public readonly ImmutableArray<LocalVariableDeclaration<string>> Parameters;
-                public readonly QsQualifiedName OldName;
-                public readonly QsQualifiedName NewName;
+                public bool IsRecursiveIdentifier { get; set; } = false;
+
+                public ImmutableArray<LocalVariableDeclaration<string>> Parameters { get; }
+
+                public QsQualifiedName OldName { get; }
+
+                public QsQualifiedName NewName { get; }
 
                 public TransformationState(ImmutableArray<LocalVariableDeclaration<string>> parameters, QsQualifiedName oldName, QsQualifiedName newName)
                 {
@@ -423,6 +442,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                         // operation's type parameters in the definition of the identifier.
                         this.SharedState.IsRecursiveIdentifier = true;
                     }
+
                     return rtrn;
                 }
             }
@@ -435,6 +455,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 }
 
                 public override ResolvedTypeKind OnTypeParameter(QsTypeParameter tp) =>
+
                     // Reroute a type parameter's origin to the newly generated operation
                     !this.SharedState.IsRecursiveIdentifier && this.SharedState.OldName.Equals(tp.Origin)
                         ? base.OnTypeParameter(tp.With(this.SharedState.NewName))
@@ -622,6 +643,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ContentLifting
                 {
                     this.SharedState.ContainsParamRef = true;
                 }
+
                 return base.OnIdentifier(sym, tArgs);
             }
         }

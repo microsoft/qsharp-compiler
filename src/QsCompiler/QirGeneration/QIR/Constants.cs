@@ -12,17 +12,22 @@ namespace Microsoft.Quantum.QIR
     /// </summary>
     public class Constants
     {
-        public readonly Value UnitValue;
-        public readonly Value PauliI;
-        public readonly Value PauliX;
-        public readonly Value PauliY;
-        public readonly Value PauliZ;
-        public readonly Value EmptyRange;
+        public Value UnitValue { get; }
+
+        public Value PauliI { get; }
+
+        public Value PauliX { get; }
+
+        public Value PauliY { get; }
+
+        public Value PauliZ { get; }
+
+        public Value EmptyRange { get; }
 
         internal Constants(Context context, BitcodeModule module, Types types)
         {
             Value CreatePauli(string name, ulong idx) =>
-                module.AddGlobal(types.Pauli, true, Linkage.External, context.CreateConstant(types.Pauli, idx, false), name);
+                module.AddGlobal(types.Pauli, true, Linkage.Internal, context.CreateConstant(types.Pauli, idx, false), name);
 
             this.UnitValue = types.Tuple.GetNullValue();
             this.PauliI = CreatePauli("PauliI", 0);

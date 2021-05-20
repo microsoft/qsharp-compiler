@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
     /// </summary>
     public sealed class CallGraph
     {
-        // Static Elements
+        /* Static Elements */
 
         private static IEnumerable<IEnumerable<T>> CartesianProduct<T>(IEnumerable<IEnumerable<T>> sequences)
         {
@@ -78,21 +78,22 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
                 // results needs to be evaluated before being assigned to avoid errors, so we use ToList
                 result = sequence.SelectMany(item => result, (item, seq) => seq.Concat(new[] { item })).ToList();
             }
+
             return result;
         }
 
-        // Member Fields
+        /* Member Fields */
 
         private readonly CallGraphBuilder<CallGraphNode, CallGraphEdge> graphBuilder = new CallGraphBuilder<CallGraphNode, CallGraphEdge>();
 
-        // Properties
+        /* Properties */
 
         /// <summary>
         /// A hash set of the nodes in the call graph.
         /// </summary>
         public ImmutableHashSet<CallGraphNode> Nodes => this.graphBuilder.Nodes;
 
-        // Constructors
+        /* Constructors */
 
         /// <summary>
         /// Constructs a call graph from a compilation. The optional trim argument may be
@@ -116,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         /// </summary>
         public CallGraph(IEnumerable<QsCallable> callables) => BuildCallGraph.PopulateGraph(this.graphBuilder, callables);
 
-        // Member Methods
+        /* Member Methods */
 
         /// <summary>
         /// Returns the children nodes of a given node. Each key in the returned lookup is a child
@@ -188,7 +189,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
         private IEnumerable<IEnumerable<(CallGraphEdge, QsQualifiedName)>> GetEdgesWithNames(ImmutableArray<CallGraphNode> cycle)
             => cycle.Select((curr, i) => this.GetDirectDependencies(curr)[cycle[(i + 1) % cycle.Length]].Select(x => (x, curr.CallableName)));
 
-        // Inner Classes
+        /* Inner Classes */
 
         /// <summary>
         /// Implementation of Johnson's algorithm for finding all simple cycles in a graph.
@@ -269,8 +270,10 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             /// </summary>
             private List<(HashSet<int> SCC, int MinNode)> TarjanSCC(Dictionary<int, List<int>> inputGraph, HashSet<int> filter)
             {
-                var index = 0; // The index represents the order in which the nodes are discovered by Tarjan's algorithm.
-                               // This is necessarily separate from the node's id value.
+                // The index represents the order in which the nodes are discovered by Tarjan's algorithm.
+                // This is necessarily separate from the node's id value.
+                var index = 0;
+
                 var nodeStack = new Stack<int>();
                 var nodeInfo = new Dictionary<int, (int Index, int LowLink, bool OnStack)>();
                 var stronglyConnectedComponents = new List<(HashSet<int> SCC, int MinNode)>();

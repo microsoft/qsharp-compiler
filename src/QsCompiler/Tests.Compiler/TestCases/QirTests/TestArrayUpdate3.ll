@@ -1,4 +1,4 @@
-define %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate3__body(%Array* %y, %String* %b) {
+define internal %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate3__body(%Array* %y, %String* %b) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %y, i32 1)
   %x = alloca %Array*, align 8

@@ -1,4 +1,4 @@
-define void @Microsoft__Quantum__Intrinsic_____GUID___Message__body__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
+define internal void @Microsoft__Quantum__Intrinsic_____GUID___Message__body__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
 entry:
   %0 = bitcast %Tuple* %arg-tuple to { %String* }*
   %1 = getelementptr inbounds { %String* }, { %String* }* %0, i32 0, i32 0

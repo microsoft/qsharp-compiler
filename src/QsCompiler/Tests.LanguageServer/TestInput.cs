@@ -62,6 +62,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                     this.InsertRandom(ref lines[nr], GetKeyword, 6);
                 }
             }
+
             return lines;
         }
 
@@ -77,10 +78,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                     {
                         sw.WriteLine(); // inserting a couple of empty lines as well
                     }
+
                     sw.WriteLine(line);
                 }
+
                 sw.Write(emptyLastLine ?? this.rnd.Next(0, 2) == 0 ? string.Empty : this.GetRandomLine());
             }
+
             return filename;
         }
 
@@ -101,7 +105,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var range = new VisualStudio.LanguageServer.Protocol.Range
             {
                 Start = new Position(startLine, startChar),
-                End = new Position(endLine, endChar)
+                End = new Position(endLine, endChar),
             };
             Assert.IsTrue(TestUtils.IsValidRange(range));
             return range;
@@ -119,7 +123,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             {
                 Range = changeRange,
                 RangeLength = changeLength,
-                Text = changeText
+                Text = changeText,
             };
         }
 
@@ -128,14 +132,14 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             var changeRange = new VisualStudio.LanguageServer.Protocol.Range
             {
                 Start = new Position(0, 0),
-                End = content.Any() ? new Position(content.Count - 1, content.Last().Length) : new Position(0, 0)
+                End = content.Any() ? new Position(content.Count - 1, content.Last().Length) : new Position(0, 0),
             };
             var changeLength = TestUtils.GetRangeLength(changeRange, content);
             return new TextDocumentContentChangeEvent
             {
                 Range = changeRange,
                 RangeLength = changeLength,
-                Text = string.Empty
+                Text = string.Empty,
             };
         }
 
@@ -147,11 +151,13 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             {
                 return edits;
             }
+
             for (var i = 0; i < edits.Length - 1; ++i)
             {
                 edits[i] = this.GetRandomEdit(content, expectedNrLines, withLanguageKeywords);
                 TestUtils.ApplyEdit(edits[i], ref content);
             }
+
             edits[edits.Length - 1] = this.DeleteAll(content);
             TestUtils.ApplyEdit(edits.Last(), ref content);
             return edits;

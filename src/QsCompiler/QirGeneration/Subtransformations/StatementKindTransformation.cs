@@ -155,10 +155,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.CurrentBuilder.Branch(continuation);
                 return true;
             }
+
             return false;
         }
 
-        // public overrides
+        /* public overrides */
 
         public override QsStatementKind OnQubitScope(QsQubitScope stm)
         {
@@ -213,6 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                 {
                                     AllocateAndAssign(syms.Item[i], inits.Item[i]);
                                 }
+
                                 break;
                             }
                             else
@@ -252,16 +254,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // continuation block if not.
             for (int n = 0; n < clauses.Length; n++)
             {
-                // Evaluate the test, which should be a Boolean at this point
-                var test = clauses[n].Item1;
-                var testValue = this.SharedState.EvaluateSubexpression(test).Value;
-                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
-                            this.SharedState.BlockName($"then{n}"), contBlock);
-
                 // If this is an intermediate clause, then the next block if the test fails
                 // is the next clause's test block.
                 // If this is the last clause, then the next block is the default clause's block
                 // if there is one, or the continue block if not.
+                var conditionalBlock = this.SharedState.CurrentFunction.InsertBasicBlock(
+                            this.SharedState.BlockName($"then{n}"), contBlock);
                 var nextConditional = n < clauses.Length - 1
                     ? this.SharedState.CurrentFunction.InsertBasicBlock(this.SharedState.BlockName($"test{n + 1}"), contBlock)
                     : (stm.Default.IsNull
@@ -270,14 +268,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                 this.SharedState.BlockName($"else"), contBlock));
                 contBlockUsed = contBlockUsed || nextConditional == contBlock;
 
-                // Create the branch
-                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
-
-                // Get a builder for the then block, make it current, and then process the block
+                // Evaluate the test, which should be a Boolean at this point, and create the branch.
+                // Note that we need to start the branching and create a scope for the condition
+                // to ensure that anything created as part of the condition is released as part of the condition,
+                // and the caching properly detects that things inside the condition are no longer accessible.
                 this.SharedState.StartBranch();
+                this.SharedState.ScopeMgr.OpenScope();
+                var testValue = this.SharedState.EvaluateSubexpression(clauses[n].Item1).Value;
+                this.SharedState.ScopeMgr.CloseScope(false);
+                this.SharedState.CurrentBuilder.Branch(testValue, conditionalBlock, nextConditional);
                 contBlockUsed = this.ProcessBlock(conditionalBlock, clauses[n].Item2.Body, contBlock) || contBlockUsed;
                 this.SharedState.EndBranch();
-
                 this.SharedState.SetCurrentBlock(nextConditional);
             }
 
@@ -297,6 +298,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // The additional code blocks that don't have any predecessors are better trimmed in a separate pass over the generated ir.
                 this.OnFailStatement(SyntaxGenerator.StringLiteral("reached unreachable code...", ImmutableArray<TypedExpression>.Empty));
             }
+
             return QsStatementKind.EmptyStatement;
         }
 
@@ -350,6 +352,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue);
                     }
+
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
@@ -390,7 +393,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // We could merge the repeat and the test into one block, but it seems that it might be easier to
             // analyze the loop later if we do it this way.
             // We need to be a bit careful about scopes here, though.
-
             var repeatBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("repeat"));
             var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("until"));
             var fixupBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("fixup"));
@@ -456,7 +458,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // the majority of cases. For the items that are updated, we need to make sure that the access
                 // count of the old item is decreased and the one of the new item is increased. CopyAndUpdate
                 // takes care of that when updateItemAliasCount is set to true.
-
                 var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
                 this.SharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow: true);
 
@@ -503,7 +504,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // The basic approach here is to put the evaluation of the test expression into one basic block,
             // the body of the loop in a second basic block, and then have a third basic block as the continuation.
-
             var testBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("while"));
             var bodyBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("do"));
             var contBlock = this.SharedState.CurrentFunction.AppendBasicBlock(this.SharedState.BlockName("wend"));

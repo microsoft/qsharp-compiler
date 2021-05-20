@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             {
                 DiagnosticSeverity.Error => (Console.Error, ConsoleColor.Red),
                 DiagnosticSeverity.Warning => (Console.Error, ConsoleColor.Yellow),
-                _ => (Console.Out, Console.ForegroundColor)
+                _ => (Console.Out, Console.ForegroundColor),
             };
 
             var consoleColor = Console.ForegroundColor;
@@ -82,6 +82,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
                 Console.WriteLine($"Q#: Success! ({errors}, {warnings}) {exceptions}\n");
                 return;
             }
+
             var color = Console.ForegroundColor;
             Console.ForegroundColor = ConsoleColor.Red;
             try

@@ -49,7 +49,7 @@
   </PropertyGroup>
 
   <ItemGroup Condition="$(IsCsProject)">
-    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.321" PrivateAssets="All" />
+    <PackageReference Include="StyleCop.Analyzers" Version="1.2.0-beta.333" PrivateAssets="All" />
     <AdditionalFiles Include="$(StyleCopJsonPath)" Link="stylecop.json" />
   </ItemGroup>
 

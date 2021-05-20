@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation.Testing
                     return new[]
                     {
                         QsNamespaceElement.NewQsCallable(callable),
-                        QsNamespaceElement.NewQsCustomType(type)
+                        QsNamespaceElement.NewQsCustomType(type),
                     };
                 });
             var emptyLookup = Array.Empty<ImmutableArray<string>>().ToLookup(x => "");

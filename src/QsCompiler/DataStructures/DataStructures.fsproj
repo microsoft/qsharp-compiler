@@ -1,7 +1,5 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
-  <Import Project="..\..\Common\AssemblyCommon.props" />
-
   <PropertyGroup>
     <OutputType>Library</OutputType>
     <TargetFramework>netstandard2.1</TargetFramework>
@@ -14,10 +12,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Compile Include="..\..\Common\DelaySign.fs">
-      <Link>DelaySign.fs</Link>
-    </Compile>
-    <Compile Include="AssemblyInfo.fs" />
     <Compile Include="ErrorHandling.fs" />
     <Compile Include="ReservedKeywords.fs" />
     <Compile Include="Diagnostics.fs" />
@@ -28,10 +22,19 @@
     <Compile Include="Documentation.fs" />
     <Compile Include="Serialization.fs" />
   </ItemGroup>
-  
+
   <ItemGroup>
     <PackageReference Update="FSharp.Core" Version="4.7.0" />
     <PackageReference Update="System.ValueTuple" Version="4.4.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Microsoft.Quantum.QsCore$(PublicKeySuffix)</_Parameter1>
+    </AssemblyAttribute>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Tests.Microsoft.Quantum.QsCompiler$(PublicKeySuffix)</_Parameter1>
+    </AssemblyAttribute>
   </ItemGroup>
 
 </Project>

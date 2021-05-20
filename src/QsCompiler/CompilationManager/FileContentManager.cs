@@ -28,8 +28,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </remarks>
     public class FileContentManager : IDisposable
     {
-        internal readonly Uri Uri;
-        public readonly string FileName;
+        internal Uri Uri { get; }
+
+        public string FileName { get; }
+
         private readonly ManagedList<CodeLine> content;
         private readonly ManagedList<ImmutableArray<CodeFragment>> tokens;
         private readonly FileHeader header;
@@ -55,7 +57,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private readonly ManagedList<QsQualifiedName> editedCallables;
 
         // properties containing different kinds of diagnostics:
-
         private readonly ManagedList<Diagnostic> scopeDiagnostics;
         private readonly ManagedList<Diagnostic> syntaxDiagnostics;
         private readonly ManagedList<Diagnostic> contextDiagnostics;
@@ -77,7 +78,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Used as sync root for all managed data structures.
         /// </summary>
-        internal readonly ReaderWriterLockSlim SyncRoot;
+        internal ReaderWriterLockSlim SyncRoot { get; }
 
         /// <summary>
         /// Used to periodically trigger processing the queued changes if no further editing takes place for a while.
@@ -105,7 +106,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal void TriggerGlobalTypeChecking() =>
             this.GlobalTypeCheckingEvent?.Invoke();
 
-        // constructors, "destructors" & property access:
+        /* constructors, "destructors" & property access: */
 
         internal FileContentManager(Uri uri, string fileName)
         {
@@ -199,8 +200,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 // remove all cycle related diagnostics
                 diagnostics.RemoveAll(DiagnosticTools.ErrorType(ErrorCode.InvalidCyclicTypeParameterResolution));
+
                 // remove any Diagnostic overlapping with the updated interval
                 diagnostics.RemoveAll(m => m.SelectByStart(syntaxCheckDelimiters) || m.SelectByEnd(syntaxCheckDelimiters));
+
                 // these are also no longer valid
                 diagnostics.RemoveAll(m => m.SelectByStart(Range.Create(Position.Zero, syntaxCheckDelimiters.Start)) && m.SelectByEnd(syntaxCheckDelimiters.End));
                 if (lineNrChange != 0)
@@ -258,10 +261,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
+
             if (count < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
+
             if (lineNrChange < -count || start + count + lineNrChange > this.NrLines())
             {
                 throw new ArgumentOutOfRangeException(nameof(lineNrChange));
@@ -346,10 +351,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
+
             if (count < 0)
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
+
             if (lineNrChange < -count || start + count + lineNrChange > this.NrLines())
             {
                 throw new ArgumentOutOfRangeException(nameof(lineNrChange));
@@ -438,7 +445,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return new PublishDiagnosticParams
                 {
                     Uri = this.Uri,
-                    Diagnostics = diagnostics
+                    Diagnostics = diagnostics,
                 };
             }
             finally
@@ -481,10 +488,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
+
             if (count < 1 || start + count > this.NrLines())
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
             }
+
             if (replacements.Count == 0)
             {
                 throw new ArgumentException("expecting at least on replacement");
@@ -496,6 +505,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("indentation needs to be zero for continuation");
             }
+
             // Note that the CodeLines themselves are verifies upon initialization - in particular their string delimiters and the positions of excess closing brackets
 
             // verify that all lines have the necessary line endings
@@ -613,6 +623,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("the range of the given token to update is not a valid range within the current file content");
             }
+
             ContextBuilder.VerifyTokenOrdering(fragments);
 
             // check that there are no overlapping fragments
@@ -663,6 +674,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         throw new ArgumentException($"{nameof(updatedTokens)} must not return null");
                     }
+
                     this.tokens.Transform(lineNr, _ => updated);
                 };
 
@@ -671,6 +683,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     throw new ArgumentException($"{nameof(modifiedTokens)} must not return null");
                 }
+
                 markEdited = () =>
                 {
                     this.editedTokens.Add(lineNr);
@@ -685,6 +698,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             this.editedTokens.Add(previous.Line);
                         }
+
                         if (next != null)
                         {
                             this.editedTokens.Add(next.Line);
@@ -738,6 +752,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     FilterAndMarkEdited(i, _ => false); // remove all
                 }
+
                 if (start != end)
                 {
                     FilterAndMarkEdited(end, ContextBuilder.TokensAfter(Position.Create(0, range.End.Column)));
@@ -835,6 +850,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             comments.Add(this.GetLine(lineNr).EndOfLineComment);
                         }
+
                         comments.Reverse();
                         merged[0] = merged[0].SetOpeningComments(comments); // will be overwritten again if there is just one token
                         if (merged.Count > 1)
@@ -848,10 +864,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         {
                             --relevantEndLine;
                         }
+
                         for (var lineNr = startLine; lineNr <= relevantEndLine; ++lineNr)
                         {
                             comments.Add(this.GetLine(lineNr).EndOfLineComment);
                         }
+
                         merged[merged.Count - 1] = merged[merged.Count - 1].SetOpeningComments(comments);
                         return merged.ToImmutableArray();
                     }
@@ -960,6 +978,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 textToInsert = null;
                 return false;
             }
+
             var change = this.unprocessedUpdates.Peek();
             lineNr = change.Range.Start.Line;
             var newText = this.GetLine(lineNr).Text;
@@ -969,6 +988,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 change = this.unprocessedUpdates.Dequeue();
                 newText = Utils.GetChangedText(newText, change.Range.Start.Character, change.Range.End.Character, change.Text);
             }
+
             textToInsert = newText;
             return true;
         }
@@ -1049,7 +1069,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             // NOTE: since there may be still unprocessed changes aggregated in UnprocessedChanges we cannot verify the range of the change against the current file content,
             // however, let's at least check that all entries are positive, and the range start is smaller than or equal to the range end
-
             this.timer.Stop(); // will be restarted if needed
             var range = change.Range.ToQSharp();
             var count = range.End.Line - range.Start.Line + 1;
@@ -1063,8 +1082,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 var trimmedText = change.Text.TrimStart(); // tabs etc inserted by the editor come squashed together with the next inserted character
                 if (change.Text == string.Empty ||
+
                     // let's not immediately trigger an update for these, hoping the matching one will come right after
                     trimmedText == "{" || trimmedText == "\"" ||
+
                     // ... and the same here
                     trimmedText == "\\" || trimmedText == "/")
                 {
@@ -1102,9 +1123,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var change = new TextDocumentContentChangeEvent
                 {
                     Range = new Lsp.Range { Start = new Lsp.Position(), End = this.End().ToLsp() },
+
                     // fixme: range length is not accurate, but also not used...
                     RangeLength = 0,
-                    Text = text
+                    Text = text,
                 };
                 this.PushChange(change, out bool processed);
                 if (!processed)
@@ -1151,6 +1173,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return new List<CodeFragment.TokenIndex>();
             }
+
             bool Filter(CodeFragment frag) => filterBy == null ? true : filterBy(frag);
             this.SyncRoot.EnterReadLock();
             try

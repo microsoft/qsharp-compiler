@@ -121,7 +121,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
             private class TransformationState : CallGraphWalkerBase<GraphBuilder, CallGraphNode, CallGraphEdge>.TransformationState
             {
                 // Flag indicating if the call graph is being limited to only include callables that are related to entry points.
-                internal bool WithTrimming = false;
+                internal bool WithTrimming { get; set; } = false;
 
                 internal TransformationState(GraphBuilder graph)
                     : base(graph)
@@ -149,6 +149,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     var called = new CallGraphNode(identifier);
                     var edge = new CallGraphEdge(typeRes, referenceRange);
                     this.Graph.AddDependency(this.CurrentNode, called, edge);
+
                     // If we are not processing all elements, then we need to keep track of what elements
                     // have been processed, and which elements still need to be processed.
                     if (this.WithTrimming
@@ -175,6 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                         this.SharedState.CurrentNode = node;
                         this.SharedState.Graph.AddNode(node);
                     }
+
                     return base.OnCallableDeclaration(c);
                 }
             }

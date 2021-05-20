@@ -31,6 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new ArgumentException("Unable to read the Q# syntax tree from the given DLL.");
             }
+
             return GenerateEntryPointOperations(compilation);
         }
 
@@ -41,7 +42,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return compilation.EntryPoints.Select(ep => new EntryPointOperation()
             {
                 Name = NameGeneration.InteropFriendlyWrapperName(ep),
-                Parameters = GetParams(globals[ep])
+                Parameters = GetParams(globals[ep]),
             }).ToList();
         }
 
@@ -71,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     ? name.Item
                     : throw new ArgumentException("Encountered invalid name for parameter."),
                 Type = type,
-                ArrayType = arrayType
+                ArrayType = arrayType,
             };
         }
 
@@ -85,7 +86,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             QsTypeKind.Tags.Result => DataType.ResultType,
             QsTypeKind.Tags.String => DataType.StringType,
             QsTypeKind.Tags.ArrayType => DataType.ArrayType,
-            _ => throw new ArgumentException($"Invalid type ({rt.Resolution.Tag}) for entry point parameter")
+            _ => throw new ArgumentException($"Invalid type ({rt.Resolution.Tag}) for entry point parameter"),
         };
     }
 }
