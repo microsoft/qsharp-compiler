@@ -12,10 +12,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DIMacro
         : DIMacroNode
     {
-        /* TODO: non-operand property
-        public uint Line { get; }
-        */
-
         /// <summary>Gets the name of the macro</summary>
         public string Name => GetOperandString( 0 );
 

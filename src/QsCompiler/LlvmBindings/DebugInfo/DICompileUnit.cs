@@ -13,13 +13,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DICompileUnit
         : DIScope
     {
-        /* TODO: non-operand properties
-        SourceLanguage SourceLanguage {get;}
-        bool IsOptimized {get;}
-        uint RunTimeVersion {get;}
-        ?? EmissionKind { get; }
-        */
-
         /// <summary>Gets the name of the producer of this unit</summary>
         public string Producer => GetOperandString( 1 );
 

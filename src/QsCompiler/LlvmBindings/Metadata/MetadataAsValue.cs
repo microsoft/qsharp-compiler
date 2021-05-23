@@ -28,14 +28,5 @@ namespace Ubiquity.NET.Llvm
                    ? value
                    : value.Kind == LLVMValueKind.LLVMMetadataAsValueValueKind ? value : default;
         }
-
-        /*
-        //public static implicit operator Metadata( MetadataAsValue self )
-        //{
-        //    // TODO: Add support to get the metadata ref from the value...
-        //    // e.g. call C++ MetadataAsValue.getMetadata()
-        //    throw new NotImplementedException();
-        //}
-        */
     }
 }

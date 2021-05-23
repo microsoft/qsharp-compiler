@@ -17,10 +17,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DIDerivedType
         : DIType
     {
-        /* TODO: non-operand properties
-            uint? AddressSpace { get; }
-        */
-
         /// <summary>Gets the base type of this type</summary>
         public DIType BaseType => GetOperand<DIType>( 3 )!;
 

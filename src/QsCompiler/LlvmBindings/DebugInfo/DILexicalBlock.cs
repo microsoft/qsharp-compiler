@@ -13,11 +13,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DILexicalBlock
         : DILexicalBlockBase
     {
-        /* TODO: non-operand properties
-        uint Line { get; }
-        uint Column { get; }
-        */
-
         internal DILexicalBlock( LLVMMetadataRef handle )
             : base( handle )
         {

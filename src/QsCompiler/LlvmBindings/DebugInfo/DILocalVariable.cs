@@ -13,13 +13,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DILocalVariable
         : DIVariable
     {
-        // ReSharper disable IdentifierTypo
-        /* TODO: non-operand properties
-        public DebugInfoFlags => LLVMDILocalVariableGetFlags( MetadataHandle );
-        public UInt16 ArgIndex => LLVMDILocalVariableGetArg( MetadataHandle );
-        public bool IsParameter => ArgIndex != 0;
-        */
-
         /// <summary>Gets the local scope containing this variable</summary>
         public new DILocalScope Scope => ( DILocalScope )base.Scope!;
 

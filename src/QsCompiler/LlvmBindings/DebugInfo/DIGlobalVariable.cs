@@ -13,11 +13,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DIGlobalVariable
         : DIVariable
     {
-        /* TODO: non-operand properties
-            bool IsLocalToUnit {get;}
-            bool IsDefinition {get;}
-        */
-
         /// <summary>Gets the display name for the variable</summary>
         public string DisplayName => GetOperandString( 4 );
 

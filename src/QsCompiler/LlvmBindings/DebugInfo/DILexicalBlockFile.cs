@@ -13,10 +13,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DILexicalBlockFile
         : DILexicalBlockBase
     {
-        /* TODO: non-operand property
-        unsigned Discriminator { get; }
-        */
-
         internal DILexicalBlockFile( LLVMMetadataRef handle )
             : base( handle )
         {

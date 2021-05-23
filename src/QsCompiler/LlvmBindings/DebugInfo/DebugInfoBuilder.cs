@@ -231,8 +231,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             return MDNode.FromHandle<DIFile>( handle )!;
         }
 
-        /* TODO: Extend CreateFile with checksum info and source text params (both optional) */
-
         /// <summary>Creates a new <see cref="DILexicalBlock"/></summary>
         /// <param name="scope"><see cref="DIScope"/> for the block</param>
         /// <param name="file"><see cref="DIFile"/> containing the block</param>
@@ -1249,7 +1247,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 uniqueId = string.Empty;
             }
 
-            // TODO: validate that tag is really valid for a composite type or document the result if it isn't (as long as LLVM won't crash at least)
             var handle = this.BuilderHandle.CreateReplaceableCompositeType(
                                                                       ( uint )tag
                                                                     , name

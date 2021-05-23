@@ -13,10 +13,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DISubroutineType
         : DIType
     {
-        /* TODO: non-operand properties
-            CallingConvention CallingConvention {get;}
-        */
-
         /// <summary>Gets the types for the sub routine</summary>
         public DITypeArray TypeArray => new DITypeArray( GetOperand<MDTuple>( 3 ) );
 

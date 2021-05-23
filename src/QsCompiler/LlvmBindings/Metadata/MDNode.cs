@@ -84,26 +84,6 @@ namespace Ubiquity.NET.Llvm
         public string GetOperandString( int index )
             => GetOperand<MDString>( index )?.ToString( ) ?? string.Empty;
 
-        /* TODO: Consider adding these additional properties/methods
-        public bool IsTBAAVTableAccess { get; }
-
-        public TempMDNode Clone() {...}
-
-        public void ReplaceOperandWith(unsigned i, LlvmMetadata other) {...}
-        public static MDNode Concat(MDNode a, MDNode b) {...}
-        public static MDNode Intersect(MDNode a, MDNode b) {...}
-        public static MDNode GetMostGenericTBAA(MDNode a, MDNode b) {...}
-        public static MDNode GetMostGenericFPMath(MDNode a, MDNode b) {...}
-        public static MDNode GetMostGenericRange(MDNode a, MDNode b) {...}
-        public static MDNode GetMostGenericAliasScope(MDNode a, MDNode b) {...}
-        public static MDNode GetModtGenericAlignmentOrDereferenceable(MDNode a, MDNode b) {...}
-
-        public static T ReplaceWithPermanent<T>() where T:MDNode
-        public static T ReplaceWithUniqued<T>() where T:MDNode
-        public static T ReplaceWithDistinct<T>() where T:MDNode
-        public static DeleteTemporary(MDNode node) {...}
-        */
-
         internal MDNode( LLVMMetadataRef handle )
             : base( handle )
         {

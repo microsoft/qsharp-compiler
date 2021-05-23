@@ -77,24 +77,6 @@ namespace Ubiquity.NET.Llvm
             return TypeRef.FromHandle(typeRef)!;
         }
 
-        /* TODO: Additional properties for DataLayout
-        bool IsLegalIntegerWidth(UInt64 width);
-        bool ExceedsNaturalStackAlignment(UInt64 width);
-        UInt32 StackAlignment { get; }
-        UInt32 AllocaAddrSpace { get; }
-        bool HasMicrosoftFastStdCallMangling { get; }
-        string LinkerPrivateGlobalPrefix { get; }
-        char GlobalPrefix { get; }
-        string PrivateGlobalPrefix { get; }
-        ImmutableList<UInt32> NonIntegralAddressSpaces { get; }
-        bool IsNonIntegralPointerType( IPointerType t );
-        ITypeRef GetSmallestLegalIntType( Context context, UInt32 width );
-        ITypeRef GetLargestLegalIntType( Context context, UInt32 width );
-        UInt32 GetLargestLegalIntTypeSizeInBits();
-        UInt64 GetIndexedOffsetInType(ITypeRef t, Value index0, param Value[] indices);
-        StructLayout GetStructLayout(IStructType t);
-        */
-
         /// <summary>Retrieves an LLVM integer type with the same bit width as
         /// a pointer for the given address space of the target</summary>
         /// <param name="context">LLVM <see cref="Context"/> that owns the definition of the pointer type to retrieve</param>

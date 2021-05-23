@@ -17,16 +17,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DISubProgram
         : DILocalScope
     {
-        /* TODO: Non-operand properties - need interop API to access these
-            uint line{ get;}
-            Virtuality Virtuality {get;}
-            uint VirtualIndex {get;}
-            int ThisAdjustment {get;}
-            int ScopeLine {get;}
-            DIFlags Flags {get;}
-            bool IsLocalToUnit {get;}
-        */
-
         /// <summary>Gets the source line associated with this <see cref="DISubProgram"/></summary>
         public uint Line => this.MetadataHandle.DISubprogramGetLine();
 
@@ -41,8 +31,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         /// <summary>Gets the <see cref="DICompileUnit"/> that contains this <see cref="DISubProgram"/></summary>
         public DICompileUnit CompileUnit => GetOperand<DICompileUnit>( 5 )!;
-
-        /* TODO: CompileUnit set => LLVMDISubProgramReplaceUnit() - needs new interop API */
 
         /// <summary>Gets the <see cref="DISubProgram"/> that declares this <see cref="DISubProgram"/></summary>
         public DISubProgram Declaration => GetOperand<DISubProgram>( 6 )!;

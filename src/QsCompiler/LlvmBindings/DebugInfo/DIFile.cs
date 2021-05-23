@@ -13,10 +13,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DIFile
         : DIScope
     {
-        /* TODO: non-operand properties
-            ChecksumKind CheckSumKind {get;}
-        */
-
         /// <summary>Gets the file name for this file</summary>
         public string FileName => this.MetadataHandle == default ? string.Empty : this.MetadataHandle.DIFileGetFilename() ?? string.Empty;
 

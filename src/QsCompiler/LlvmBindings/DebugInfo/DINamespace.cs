@@ -13,10 +13,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DINamespace
         : DIScope
     {
-        /* TODO: non-operand properties
-        public bool ExportSymbols => LLVMDINamespaceGetExportSymbols( MetadataHandle );
-        */
-
         /// <inheritdoc/>
         public override DIScope? Scope => GetOperand<DIScope>( 1 );
 
