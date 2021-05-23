@@ -17,6 +17,7 @@ namespace Ubiquity.NET.Llvm.Values
         public Constant Aliasee
         {
             get => this.IndirectSymbol!;
+            set => this.IndirectSymbol = value;
         }
 
         internal GlobalAlias(LLVMValueRef valueRef)
