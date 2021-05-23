@@ -140,6 +140,9 @@ namespace Ubiquity.NET.Llvm
                 return string.Empty;
             }
 
+            // Q#: we currently expect exactly one context, since we have no way
+            // to map an LLVM Metadata to its context (this was done in Ubiquity via a custom
+            // native method).
             var context = ContextCache.Single();
             var asValue = context.ContextHandle.MetadataAsValue(this.MetadataHandle);
             return asValue.PrintToString();
