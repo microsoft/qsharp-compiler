@@ -95,17 +95,28 @@ namespace Ubiquity.NET.Llvm
             {
                 ThrowIfDisposed();
                 var retVal = new Dictionary<string, ModuleFlag>();
-                (LLVMModuleFlagEntry flags, ulong len) = this.ModuleHandle.CopyModuleFlagsMetadata();
+                LLVMModuleFlagEntry flags = default;
+                ulong flagsLength;
 
-                for (uint i = 0; i < len; ++i)
+                try
                 {
-                    var behavior = flags.GetFlagBehavior(i);
-                    string key = flags.GetKey(i);
-                    var metadata = LlvmMetadata.FromHandle<LlvmMetadata>(this.Context, flags.GetMetadata(i));
-                    retVal.Add(key, new ModuleFlag((ModuleFlagBehavior)behavior, key, metadata!));
-                }
+                    (flags, flagsLength) = this.ModuleHandle.CopyModuleFlagsMetadata();
 
-                flags.Dispose();
+                    for (uint i = 0; i < flagsLength; ++i)
+                    {
+                        var behavior = flags.GetFlagBehavior(i);
+                        string key = flags.GetKey(i);
+                        var metadata = LlvmMetadata.FromHandle<LlvmMetadata>(this.Context, flags.GetMetadata(i));
+                        retVal.Add(key, new ModuleFlag((ModuleFlagBehavior)behavior, key, metadata!));
+                    }
+                }
+                finally
+                {
+                    if (flags != default)
+                    {
+                        flags.Dispose();
+                    }
+                }
 
                 return retVal;
             }
