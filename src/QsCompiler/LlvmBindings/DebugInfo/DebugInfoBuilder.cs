@@ -430,8 +430,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="baseType">Base type to add the qualifier to</param>
         /// <param name="tag">Qualifier to apply</param>
         /// <returns>Qualified type</returns>
-        /// <exception cref="System.ArgumentException"><paramref name="tag"/> is <see cref="QualifiedTypeTag.None"/></exception>
-        /// <exception cref="System.ArgumentNullException"><paramref name="baseType"/> is <see langword="null"/></exception>
+        /// <exception cref="ArgumentException"><paramref name="tag"/> is <see cref="QualifiedTypeTag.None"/></exception>
+        /// <exception cref="ArgumentNullException"><paramref name="baseType"/> is <see langword="null"/></exception>
         [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call")]
         public DIDerivedType CreateQualifiedType(DIType? baseType, QualifiedTypeTag tag)
         {
@@ -946,8 +946,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="storage">Value the declaration is bound to</param>
         /// <param name="varInfo"><see cref="DILocalVariable"/> for <paramref name="storage"/></param>
         /// <param name="location"><see cref="DILocation"/>for the variable</param>
-        /// <param name="insertBefore"><see cref="Instructions.Instruction"/> to insert the declaration before</param>
-        /// <returns><see cref="Instructions.CallInstruction"/> for the call to llvm.dbg.declare</returns>
+        /// <param name="insertBefore"><see cref="Instruction"/> to insert the declaration before</param>
+        /// <returns><see cref="CallInstruction"/> for the call to llvm.dbg.declare</returns>
         /// <remarks>
         /// This adds a call to the <see href="xref:llvm_sourcelevel_debugging#lvm-dbg-declare">llvm.dbg.declare</see> intrinsic.
         /// The call has no impact on the actual machine code generated, as it is removed or ignored for actual target instruction
@@ -967,8 +967,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="varInfo"><see cref="DILocalVariable"/> for <paramref name="storage"/></param>
         /// <param name="expression"><see cref="DIExpression"/> for a debugger to use when extracting the value</param>
         /// <param name="location"><see cref="DILocation"/>for the variable</param>
-        /// <param name="insertBefore"><see cref="Instructions.Instruction"/> to insert the declaration before</param>
-        /// <returns><see cref="Instructions.CallInstruction"/> for the call to llvm.dbg.declare</returns>
+        /// <param name="insertBefore"><see cref="Instruction"/> to insert the declaration before</param>
+        /// <returns><see cref="CallInstruction"/> for the call to llvm.dbg.declare</returns>
         /// <remarks>
         /// This adds a call to the <see href="xref:llvm_sourcelevel_debugging#lvm-dbg-declare">llvm.dbg.declare</see> intrinsic.
         /// The call has no impact on the actual machine code generated, as it is removed or ignored for actual target instruction
@@ -996,7 +996,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="varInfo"><see cref="DILocalVariable"/> for <paramref name="storage"/></param>
         /// <param name="location"><see cref="DILocation"/>for the variable</param>
         /// <param name="insertAtEnd"><see cref="BasicBlock"/> to insert the declaration at the end of</param>
-        /// <returns><see cref="Instructions.CallInstruction"/> for the call to llvm.dbg.declare</returns>
+        /// <returns><see cref="CallInstruction"/> for the call to llvm.dbg.declare</returns>
         /// <remarks>
         /// This adds a call to the <see href="xref:llvm_sourcelevel_debugging#lvm-dbg-declare">llvm.dbg.declare</see> intrinsic.
         /// The call has no impact on the actual machine code generated, as it is removed or ignored for actual target instruction
@@ -1017,7 +1017,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="expression"><see cref="DIExpression"/> for a debugger to use when extracting the value</param>
         /// <param name="location"><see cref="DILocation"/>for the variable</param>
         /// <param name="insertAtEnd"><see cref="BasicBlock"/> to insert the declaration at the end of</param>
-        /// <returns><see cref="Instructions.CallInstruction"/> for the call to llvm.dbg.declare</returns>
+        /// <returns><see cref="CallInstruction"/> for the call to llvm.dbg.declare</returns>
         /// <remarks>
         /// This adds a call to the <see href="xref:llvm_sourcelevel_debugging#lvm-dbg-declare">llvm.dbg.declare</see> intrinsic.
         /// <note type="note">
@@ -1051,7 +1051,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="varInfo"><see cref="DILocalVariable"/> describing the variable</param>
         /// <param name="location"><see cref="DILocation"/>for the assignment</param>
         /// <param name="insertBefore">Location to insert the intrinsic</param>
-        /// <returns><see cref="Instructions.CallInstruction"/> for the intrinsic</returns>
+        /// <returns><see cref="CallInstruction"/> for the intrinsic</returns>
         /// <remarks>
         /// This intrinsic provides information when a user source variable is set to a new value.
         /// <note type="note">
@@ -1078,7 +1078,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="expression"><see cref="DIExpression"/> for the variable</param>
         /// <param name="location"><see cref="DILocation"/>for the assignment</param>
         /// <param name="insertBefore">Location to insert the intrinsic</param>
-        /// <returns><see cref="Instructions.CallInstruction"/> for the intrinsic</returns>
+        /// <returns><see cref="CallInstruction"/> for the intrinsic</returns>
         /// <remarks>
         /// This intrinsic provides information when a user source variable is set to a new value.
         /// <note type="note">
@@ -1114,7 +1114,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="varInfo"><see cref="DILocalVariable"/> describing the variable</param>
         /// <param name="location"><see cref="DILocation"/>for the assignment</param>
         /// <param name="insertAtEnd">Block to append the intrinsic to the end of</param>
-        /// <returns><see cref="Instructions.CallInstruction"/> for the intrinsic</returns>
+        /// <returns><see cref="CallInstruction"/> for the intrinsic</returns>
         /// <remarks>
         /// This intrinsic provides information when a user source variable is set to a new value.
         /// <note type="note">
@@ -1141,7 +1141,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="expression"><see cref="DIExpression"/> for the variable</param>
         /// <param name="location"><see cref="DILocation"/>for the assignment</param>
         /// <param name="insertAtEnd">Block to append the intrinsic to the end of</param>
-        /// <returns><see cref="Instructions.CallInstruction"/> for the intrinsic</returns>
+        /// <returns><see cref="CallInstruction"/> for the intrinsic</returns>
         /// <remarks>
         /// This intrinsic provides information when a user source variable is set to a new value.
         /// <note type="note">

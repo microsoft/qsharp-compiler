@@ -8,7 +8,7 @@ using LLVMSharp.Interop;
 
 namespace Ubiquity.NET.Llvm
 {
-    /// <summary>Used to wrap an <see cref="Ubiquity.NET.Llvm.Values.Value"/> in the Metadata hierarchy</summary>
+    /// <summary>Used to wrap an <see cref="Values.Value"/> in the Metadata hierarchy</summary>
     public class ValueAsMetadata
         : LlvmMetadata
     {

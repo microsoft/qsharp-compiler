@@ -61,7 +61,7 @@ namespace Ubiquity.NET.Llvm.Types
         /// <summary>SIMD 'packed' format, or other <see cref="IVectorType"/> implementation.</summary>
         Vector = LLVMTypeKind.LLVMVectorTypeKind,
 
-        /// <summary><see cref="Llvm.LlvmMetadata"/>.</summary>
+        /// <summary><see cref="LlvmMetadata"/>.</summary>
         Metadata = LLVMTypeKind.LLVMMetadataTypeKind,
 
         /// <summary>x86 MMX data type.</summary>

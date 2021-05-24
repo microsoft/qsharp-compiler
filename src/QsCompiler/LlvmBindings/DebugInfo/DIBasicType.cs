@@ -9,7 +9,7 @@ using LLVMSharp.Interop;
 namespace Ubiquity.NET.Llvm.DebugInfo
 {
     /// <summary>Debug information for a basic type</summary>
-    /// <seealso cref="Ubiquity.NET.Llvm.DebugInfo.DebugInfoBuilder.CreateBasicType(string, ulong, DiTypeKind, DebugInfoFlags)"/>
+    /// <seealso cref="DebugInfoBuilder.CreateBasicType(string, ulong, DiTypeKind, DebugInfoFlags)"/>
     /// <seealso href="xref:llvm_langref#dibasictype">LLVM DIBasicType</seealso>
     public class DIBasicType
         : DIType

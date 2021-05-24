@@ -78,7 +78,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <para>Since setting this property will replace all uses with (RAUW) the new value then setting this property
         /// with <see langword="null"/> is not allowed. However, until set this property will be <see  langword="null"/></para>
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">The type is not <see langword="null"/> or not a temporary</exception>
+        /// <exception cref="InvalidOperationException">The type is not <see langword="null"/> or not a temporary</exception>
         [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "DIType", Justification = "It is spelled correctly 8^)")]
         public TDebug? DIType
         {
@@ -103,7 +103,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// Once the native type is set, it cannot be reset. Attempts to change the native
         /// type when it isn't <see langword="null"/> will result in an exception.
         /// </remarks>
-        /// <exception cref="System.InvalidOperationException">The native type was already set</exception>
+        /// <exception cref="InvalidOperationException">The native type was already set</exception>
         public TNative NativeType
         {
             get => NativeType_.ValueOrDefault;
@@ -247,7 +247,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         /// <summary>Convenience extensions for determining if the <see cref="DIType"/> property is valid</summary>
         /// <param name="debugType">Debug type to test for valid Debug information</param>
-        /// <remarks>In LLVM Debug information a <see langword="null"/> <see cref="Ubiquity.NET.Llvm.DebugInfo.DIType"/> is
+        /// <remarks>In LLVM Debug information a <see langword="null"/> <see cref="DIType"/> is
         /// used to represent the void type. Thus, looking only at the <see cref="DIType"/> property is
         /// insufficient to distinguish between a type with no debug information and one representing the void
         /// type. This property is used to disambiguate the two possibilities.

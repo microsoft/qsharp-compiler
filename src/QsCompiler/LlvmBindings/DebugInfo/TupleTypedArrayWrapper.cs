@@ -14,7 +14,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     /// <summary>Generic wrapper to treat an MDTuple as an array of elements of specific type</summary>
     /// <typeparam name="T">Type of elements</typeparam>
     /// <remarks>
-    /// This implements a facade pattern that presents an <see cref="System.Collections.Generic.IReadOnlyCollection{T}"/> for the
+    /// This implements a facade pattern that presents an <see cref="IReadOnlyCollection{T}"/> for the
     /// operands of an <see cref="MDTuple"/>. This allows treating the tuple like an array of nodes of a
     /// particular type.
     /// </remarks>
