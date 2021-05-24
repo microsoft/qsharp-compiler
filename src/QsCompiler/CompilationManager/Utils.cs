@@ -89,6 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 lines[i] = ((Match)found.Current).Value;
             }
+
             return lines;
         }
 
@@ -113,14 +114,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             if (startChar < 0 || startChar > lineText.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(startChar));
             }
+
             if (endChar < startChar || endChar > lineText.Length)
             {
                 throw new ArgumentOutOfRangeException(nameof(endChar));
             }
+
             return lineText.Remove(startChar, endChar - startChar).Insert(startChar, insert);
         }
 
@@ -204,7 +208,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         internal static bool ContainsRange(this FileContentManager file, Range range) =>
             file.ContainsPosition(range.Start) && file.ContainsPosition(range.End) && range.Start <= range.End;
 
-        // tools for debugging
+        /* tools for debugging */
 
         public static string DiagnosticString(this Range r) =>
             $"({r?.Start?.Line},{r?.Start?.Column}) - ({r?.End?.Line},{r?.End?.Column})";

@@ -66,6 +66,7 @@ exit__1:                                          ; preds = %header__1
   %48 = load { i64, i1 }*, { i64, i1 }** %43, align 8
   %49 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @1, i32 0, i32 0))
   %50 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @2, i32 0, i32 0))
+  call void @__quantum__rt__string_update_reference_count(%String* %50, i32 1)
   %51 = call i64 @__quantum__rt__array_get_size_1d(%Array* %44)
   %52 = sub i64 %51, 1
   br label %header__2
@@ -106,6 +107,7 @@ exit__2:                                          ; preds = %header__2
   call void @__quantum__rt__string_update_reference_count(%String* %53, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %65, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %49, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %50, i32 -1)
   %67 = call %String* @__quantum__rt__string_concatenate(%String* %38, %String* %66)
   call void @__quantum__rt__string_update_reference_count(%String* %38, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %66, i32 -1)

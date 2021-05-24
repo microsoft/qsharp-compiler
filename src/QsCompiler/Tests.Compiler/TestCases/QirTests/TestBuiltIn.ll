@@ -1,4 +1,4 @@
-define { double, i64, %BigInt*, i64 }* @Microsoft__Quantum__Testing__QIR__TestBuiltIn__body(i64 %arg) {
+define internal { double, i64, %BigInt*, i64 }* @Microsoft__Quantum__Testing__QIR__TestBuiltIn__body(i64 %arg) {
 entry:
   %d = sitofp i64 %arg to double
   %i = fptosi double %d to i64

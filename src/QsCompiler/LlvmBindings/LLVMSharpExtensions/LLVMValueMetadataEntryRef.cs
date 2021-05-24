@@ -11,7 +11,7 @@ namespace LLVMSharp.Interop
     public unsafe partial struct LLVMValueMetadataEntryRef : IEquatable<LLVMValueMetadataEntryRef>
     {
         /// <summary>Pointer to the underlying native type.</summary>
-        public IntPtr Handle;
+        public IntPtr Handle { get; set; }
 
         /// <summary>Initializes a new instance of the <see cref="LLVMValueMetadataEntryRef"/> struct.</summary>
         public LLVMValueMetadataEntryRef(IntPtr handle)

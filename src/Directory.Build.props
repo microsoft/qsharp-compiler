@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<Project xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+    <!--
+        This file is included in all projects automatically.
+        AssemblyCommon.props is included only in SDK projects, because non-SDK projects do not support PackageReferences and some other properties.
+     -->
+    <Import Project="$(MSBuildThisFileDirectory)\Common\AssemblyCommon.props" Condition="'$(UsingMicrosoftNETSdk)' == 'true'" />
+</Project>

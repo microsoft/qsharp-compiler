@@ -1,4 +1,4 @@
-﻿define void @Lifted__PartialApplication__2__adj__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
+﻿define internal void @Lifted__PartialApplication__2__adj__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
 entry:
   %0 = bitcast %Tuple* %capture-tuple to { %Callable*, { i64, double }* }*
   %1 = getelementptr inbounds { %Callable*, { i64, double }* }, { %Callable*, { i64, double }* }* %0, i32 0, i32 1
@@ -22,7 +22,7 @@ entry:
   ret void
 }
 
-define void @Lifted__PartialApplication__2__ctl__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
+define internal void @Lifted__PartialApplication__2__ctl__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
 entry:
   %0 = bitcast %Tuple* %arg-tuple to { %Array*, { %String*, %Qubit* }* }*
   %1 = getelementptr inbounds { %Array*, { %String*, %Qubit* }* }, { %Array*, { %String*, %Qubit* }* }* %0, i32 0, i32 0
@@ -57,7 +57,7 @@ entry:
   ret void
 }
 
-define void @Lifted__PartialApplication__2__ctladj__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
+define internal void @Lifted__PartialApplication__2__ctladj__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
 entry:
   %0 = bitcast %Tuple* %arg-tuple to { %Array*, { %String*, %Qubit* }* }*
   %1 = getelementptr inbounds { %Array*, { %String*, %Qubit* }* }, { %Array*, { %String*, %Qubit* }* }* %0, i32 0, i32 0

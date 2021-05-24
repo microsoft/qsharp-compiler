@@ -23,13 +23,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </summary>
     internal static class SymbolInfo
     {
-        // utils for getting the necessary information for editor commands
+        /* utils for getting the necessary information for editor commands */
 
         internal static Location AsLocation(string source, Position offset, Range relRange) =>
             new Location
             {
                 Uri = CompilationUnitManager.TryGetUri(source, out var uri) ? uri : throw new Exception($"Source location {source} could not be converted to a valid URI."),
-                Range = (offset + relRange).ToLsp()
+                Range = (offset + relRange).ToLsp(),
             };
 
         internal static Location AsLocation(IdentifierReferences.Location loc) =>
@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1,
                 ContainerName = "Namespace Declarations",
                 Kind = SymbolKind.Namespace,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() },
             });
 
         /// <summary>
@@ -56,7 +56,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1,
                 ContainerName = "Type Declarations",
                 Kind = SymbolKind.Struct,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() },
             });
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 Name = tuple.Item1,
                 ContainerName = "Operation and Function Declarations",
                 Kind = SymbolKind.Method,
-                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() }
+                Location = new Location { Uri = file.Uri, Range = tuple.Item2.ToLsp() },
             });
 
         /// <summary>
@@ -90,16 +90,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             out CodeFragment? fragment)
         {
             // getting the relevant token (if any)
-
             fragment = file?.TryGetFragmentAt(position, out _, includeEnd);
             if (fragment?.Kind == null)
             {
                 return null;
             }
+
             var fragmentStart = fragment.Range.Start;
 
             // getting the symbol information (if any), and return the overlapping items only
-
             bool OverlapsWithPosition(Range symRange)
             {
                 var absolute = fragmentStart + symRange;
@@ -196,6 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return false;
             }
+
             var symbolInfo = file.TryGetQsSymbolInfo(position, true, out var fragment); // includes the end position
             if (symbolInfo == null || fragment?.Kind is QsFragmentKind.NamespaceDeclaration)
             {
@@ -239,6 +239,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         nsName,
                         file.FileName);
                 }
+
                 var fullName = result is ResolutionResult<CallableDeclarationHeader>.Found header ? header.Item.QualifiedName : null;
 
                 return compilation.TryGetReferences(fullName, out declarationLocation, out referenceLocations, limitToSourceFiles);
@@ -249,6 +250,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return true;
             }
+
             var (defOffset, defRange) = (definition.Item.Item2, definition.Item.Item3);
 
             if (defOffset == callablePos)
@@ -258,6 +260,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return false;
                 }
+
                 referenceLocations = parent.Specializations
                     .Where(spec => spec.Source.AssemblyOrCodeFile == file.FileName)
                     .SelectMany(spec =>
@@ -278,6 +281,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var scope = new QsScope(statements.ToImmutableArray(), locals);
                 referenceLocations = IdentifierReferences.Find(definition.Item.Item1, scope, file.FileName, specPos).Select(AsLocation);
             }
+
             declarationLocation = AsLocation(file.FileName, definition.Item.Item2, defRange);
             return true;
         }

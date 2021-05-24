@@ -1,4 +1,4 @@
-define { %String*, %Array* }* @Microsoft__Quantum__Testing__QIR__TestPendingRefCountIncreases__body(i1 %cond) {
+define internal { %String*, %Array* }* @Microsoft__Quantum__Testing__QIR__TestPendingRefCountIncreases__body(i1 %cond) {
 entry:
   %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([2 x i8], [2 x i8]* @0, i32 0, i32 0))
   %1 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)

@@ -21,7 +21,7 @@ namespace Microsoft.Quantum.QIR.Emission
     {
         private readonly GenerationContext sharedState;
 
-        internal readonly IValue Unit;
+        internal IValue Unit { get; }
 
         internal QirValues(GenerationContext context, Constants constants)
         {

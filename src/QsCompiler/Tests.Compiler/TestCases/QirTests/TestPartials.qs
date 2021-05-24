@@ -20,13 +20,17 @@ namespace Microsoft.Quantum.Testing.QIR {
         bareOp(register!);
     }
 
+    operation Delay<'T, 'U> (op : ('T => 'U), arg : 'T, aux : Unit) : 'U {
+        return op(arg);
+    }
+
     @EntryPoint()
     operation TestPartials (a : Int, b : Double) : Bool {
         let rotate = Rz(0.25, _);
         let unrotate = Adjoint rotate;
 
-        for (i in 0..100) {
-            using (qb = Qubit()) {
+        for i in 0..100 {
+            use qb = Qubit() {
 
                 rotate(qb);
                 unrotate(qb);
@@ -46,6 +50,7 @@ namespace Microsoft.Quantum.Testing.QIR {
                 }
 
                 (ApplyToLittleEndian(Adjoint Dummy, _))(LittleEndian([qb]));
+                Delay(H, qb, _)();
             }
         }
 
