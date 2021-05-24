@@ -15,7 +15,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DINode
     {
         /// <summary>Gets the line for the variable</summary>
-        public UInt32 Line => this.MetadataHandle.DIVariableGetLine();
+        public uint Line => this.MetadataHandle.DIVariableGetLine();
 
         /// <summary>Gets the Debug information scope for this variable</summary>
         public DIScope? Scope => FromHandle<DIScope>(this.MetadataHandle.DIVariableGetScope());

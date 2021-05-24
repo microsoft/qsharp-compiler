@@ -271,9 +271,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new InvalidOperationException();
             }
 
-            UInt64 bitSize;
-            UInt32 bitAlign;
-            UInt64 bitOffset;
+            ulong bitSize;
+            uint bitAlign;
+            ulong bitOffset;
 
             // if explicit layout info provided, use it;
             // otherwise use module.Layout as the default

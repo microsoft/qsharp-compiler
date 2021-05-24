@@ -22,16 +22,16 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public override string Name => this.MetadataHandle == default ? string.Empty : GetOperand<MDString>( 2 )?.ToString() ?? string.Empty;
 
         /// <summary>Gets the source line for the type</summary>
-        public UInt32 Line => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetLine();
+        public uint Line => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetLine();
 
         /// <summary>Gets the size of the type in bits</summary>
-        public UInt64 BitSize => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetSizeInBits();
+        public ulong BitSize => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetSizeInBits();
 
         /// <summary>Gets the alignment of the type in bits</summary>
-        public UInt64 BitAlignment => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetAlignInBits();
+        public ulong BitAlignment => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetAlignInBits();
 
         /// <summary>Gets the offset of the type in bits</summary>
-        public UInt64 BitOffset => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetOffsetInBits();
+        public ulong BitOffset => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetOffsetInBits();
 
         /// <summary>Gets the flags that describe the behaviors for</summary>
         public DebugInfoFlags DebugInfoFlags => this.MetadataHandle == default ? 0 : (DebugInfoFlags)this.MetadataHandle.DITypeGetFlags();

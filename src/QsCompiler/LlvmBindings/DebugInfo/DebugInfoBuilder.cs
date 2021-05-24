@@ -401,7 +401,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="encoding"><see cref="DiTypeKind"/> encoding for the type</param>
         /// <param name="diFlags"><see cref="DebugInfoFlags"/> for the type</param>
         /// <returns>Basic type debugging information</returns>
-        public DIBasicType CreateBasicType( string name, UInt64 bitSize, DiTypeKind encoding, DebugInfoFlags diFlags = DebugInfoFlags.None )
+        public DIBasicType CreateBasicType( string name, ulong bitSize, DiTypeKind encoding, DebugInfoFlags diFlags = DebugInfoFlags.None )
         {
             var handle = this.BuilderHandle.CreateBasicType(name, bitSize, (uint)encoding, (LLVMDIFlags)diFlags );
             return MDNode.FromHandle<DIBasicType>( handle )!;
@@ -415,7 +415,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="addressSpace">Address space for the pointer</param>
         /// <returns>Pointer type</returns>
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
-        public DIDerivedType CreatePointerType( DIType? pointeeType, string? name, UInt64 bitSize, UInt32 bitAlign = 0, uint addressSpace = 0 )
+        public DIDerivedType CreatePointerType( DIType? pointeeType, string? name, ulong bitSize, uint bitAlign = 0, uint addressSpace = 0 )
         {
             var handle = this.BuilderHandle.CreatePointerType(
                 pointeeType?.MetadataHandle ?? default,
@@ -508,8 +508,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                , string name
                                                , DIFile? file
                                                , uint line
-                                               , UInt64 bitSize
-                                               , UInt32 bitAlign
+                                               , ulong bitSize
+                                               , uint bitAlign
                                                , DebugInfoFlags debugFlags
                                                , DIType? derivedFrom
                                                , params DINode[ ] elements
@@ -536,8 +536,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                , string name
                                                , DIFile? file
                                                , uint line
-                                               , UInt64 bitSize
-                                               , UInt32 bitAlign
+                                               , ulong bitSize
+                                               , uint bitAlign
                                                , DebugInfoFlags debugFlags
                                                , DIType? derivedFrom
                                                , IEnumerable<DINode> elements
@@ -580,8 +580,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                               , string name
                                               , DIFile? file
                                               , uint line
-                                              , UInt64 bitSize
-                                              , UInt32 bitAlign
+                                              , ulong bitSize
+                                              , uint bitAlign
                                               , DebugInfoFlags debugFlags
                                               , DINodeArray elements
                                               )
@@ -603,8 +603,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                               , string name
                                               , DIFile? file
                                               , uint line
-                                              , UInt64 bitSize
-                                              , UInt32 bitAlign
+                                              , ulong bitSize
+                                              , uint bitAlign
                                               , DebugInfoFlags debugFlags
                                               , params DINode[ ] elements
                                               )
@@ -628,8 +628,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                               , string name
                                               , DIFile? file
                                               , uint line
-                                              , UInt64 bitSize
-                                              , UInt32 bitAlign
+                                              , ulong bitSize
+                                              , uint bitAlign
                                               , DebugInfoFlags debugFlags
                                               , IEnumerable<DINode> elements
                                               , uint runTimeLang = 0
@@ -670,9 +670,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                              , string name
                                              , DIFile? file
                                              , uint line
-                                             , UInt64 bitSize
-                                             , UInt32 bitAlign
-                                             , UInt64 bitOffset
+                                             , ulong bitSize
+                                             , uint bitAlign
+                                             , ulong bitOffset
                                              , DebugInfoFlags debugFlags
                                              , DIType? type
                                              )
@@ -698,7 +698,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="subscripts">Dimensions for the array</param>
         /// <returns><see cref="DICompositeType"/> for the array</returns>
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
-        public DICompositeType CreateArrayType( UInt64 bitSize, UInt32 bitAlign, DIType elementType, DINodeArray subscripts )
+        public DICompositeType CreateArrayType(ulong bitSize, uint bitAlign, DIType elementType, DINodeArray subscripts )
         {
             return CreateArrayType( bitSize, bitAlign, elementType, ( IEnumerable<DINode> )subscripts );
         }
@@ -709,7 +709,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="elementType">Type of elements in the array</param>
         /// <param name="subscripts">Dimensions for the array</param>
         /// <returns><see cref="DICompositeType"/> for the array</returns>
-        public DICompositeType CreateArrayType( UInt64 bitSize, UInt32 bitAlign, DIType elementType, params DINode[ ] subscripts )
+        public DICompositeType CreateArrayType(ulong bitSize, uint bitAlign, DIType elementType, params DINode[ ] subscripts )
         {
             return CreateArrayType( bitSize, bitAlign, elementType, ( IEnumerable<DINode> )subscripts );
         }
@@ -720,7 +720,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="elementType">Type of elements in the array</param>
         /// <param name="subscripts">Dimensions for the array</param>
         /// <returns><see cref="DICompositeType"/> for the array</returns>
-        public DICompositeType CreateArrayType( UInt64 bitSize, UInt32 bitAlign, DIType elementType, IEnumerable<DINode> subscripts )
+        public DICompositeType CreateArrayType(ulong bitSize, uint bitAlign, DIType elementType, IEnumerable<DINode> subscripts )
         {
             var subScriptHandles = subscripts.Select( s => s.MetadataHandle ).ToArray( );
             var handle = this.BuilderHandle.CreateArrayType(bitSize, bitAlign, elementType.MetadataHandle, subScriptHandles, (uint)subScriptHandles.Length );
@@ -734,7 +734,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="subscripts">Dimensions for the Vector</param>
         /// <returns><see cref="DICompositeType"/> for the Vector</returns>
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
-        public DICompositeType CreateVectorType( UInt64 bitSize, UInt32 bitAlign, DIType elementType, DINodeArray subscripts )
+        public DICompositeType CreateVectorType(ulong bitSize, uint bitAlign, DIType elementType, DINodeArray subscripts )
         {
             return CreateVectorType( bitSize, bitAlign, elementType, ( IEnumerable<DINode> )subscripts );
         }
@@ -745,7 +745,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="elementType">Type of elements in the Vector</param>
         /// <param name="subscripts">Dimensions for the Vector</param>
         /// <returns><see cref="DICompositeType"/> for the Vector</returns>
-        public DICompositeType CreateVectorType( UInt64 bitSize, UInt32 bitAlign, DIType elementType, params DINode[ ] subscripts )
+        public DICompositeType CreateVectorType(ulong bitSize, uint bitAlign, DIType elementType, params DINode[ ] subscripts )
         {
             return CreateVectorType( bitSize, bitAlign, elementType, ( IEnumerable<DINode> )subscripts );
         }
@@ -756,7 +756,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="elementType">Type of elements in the Vector</param>
         /// <param name="subscripts">Dimensions for the Vector</param>
         /// <returns><see cref="DICompositeType"/> for the Vector</returns>
-        public DICompositeType CreateVectorType( UInt64 bitSize, UInt32 bitAlign, DIType elementType, IEnumerable<DINode> subscripts )
+        public DICompositeType CreateVectorType(ulong bitSize, uint bitAlign, DIType elementType, IEnumerable<DINode> subscripts )
         {
             var subScriptHandles = subscripts.Select( s => s.MetadataHandle ).ToArray( );
             var handle = this.BuilderHandle.CreateVectorType( bitSize, bitAlign, elementType.MetadataHandle, subScriptHandles, (uint)subScriptHandles.Length );
@@ -772,7 +772,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="alignInBits">Bit alignment for the type</param>
         /// <returns><see cref="DIDerivedType"/>for the alias</returns>
         [SuppressMessage( "Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call" )]
-        public DIDerivedType CreateTypedef( DIType? type, string name, DIFile? file, uint line, DINode? context, UInt32 alignInBits )
+        public DIDerivedType CreateTypedef( DIType? type, string name, DIFile? file, uint line, DINode? context, uint alignInBits )
         {
             var handle = this.BuilderHandle.CreateTypedef(
                 type?.MetadataHandle ?? default,
@@ -861,8 +861,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                     , string name
                                                     , DIFile? file
                                                     , uint lineNumber
-                                                    , UInt64 sizeInBits
-                                                    , UInt32 alignInBits
+                                                    , ulong sizeInBits
+                                                    , uint alignInBits
                                                     , IEnumerable<DIEnumerator> elements
                                                     , DIType? underlyingType
                                                     )
@@ -905,7 +905,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                                         , bool isLocalToUnit
                                                                         , DIExpression? value
                                                                         , DINode? declaration = null
-                                                                        , UInt32 bitAlign = 0
+                                                                        , uint bitAlign = 0
                                                                         )
         {
             if( string.IsNullOrWhiteSpace( linkageName ) )
@@ -1211,7 +1211,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Creates a <see cref="DIExpression"/> for a constant value</summary>
         /// <param name="value">Value of the expression</param>
         /// <returns><see cref="DIExpression"/></returns>
-        public DIExpression CreateConstantValueExpression( Int64 value )
+        public DIExpression CreateConstantValueExpression(long value )
         {
             LLVMMetadataRef handle = this.BuilderHandle.CreateConstantValueExpression(value);
             return MDNode.FromHandle<DIExpression>( handle )!;
@@ -1236,8 +1236,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                                                              , DIFile? file
                                                              , uint line
                                                              , uint lang = 0
-                                                             , UInt64 sizeInBits = 0
-                                                             , UInt32 alignBits = 0
+                                                             , ulong sizeInBits = 0
+                                                             , uint alignBits = 0
                                                              , DebugInfoFlags flags = DebugInfoFlags.None
                                                              , string uniqueId = ""
                                                              )

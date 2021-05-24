@@ -80,7 +80,7 @@ namespace Ubiquity.NET.Llvm
         public const string DwarfVersionValue = "Dwarf Version";
 
         /// <summary>Version of the Debug information Metadata</summary>
-        public const UInt32 DebugMetadataVersion = 3; /* DEBUG_METADATA_VERSION (for LLVM > v3.7.0) */
+        public const uint DebugMetadataVersion = 3; /* DEBUG_METADATA_VERSION (for LLVM > v3.7.0) */
 
         /// <summary>Gets a value indicating whether the module is disposed or not.</summary>
         public bool IsDisposed { get; private set; }
