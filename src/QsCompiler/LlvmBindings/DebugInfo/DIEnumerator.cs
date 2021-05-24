@@ -19,7 +19,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         */
 
         /// <summary>Gets the Name of the enumerated value</summary>
-        public string Name => GetOperandString(0);
+        public string Name => this.GetOperandString(0);
 
         /// <summary>Initializes a new instance of the <see cref="DIEnumerator"/> class from an LLVM handle</summary>
         /// <param name="handle">Native LLVM reference for an enumerator</param>

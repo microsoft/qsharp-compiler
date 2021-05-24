@@ -20,7 +20,7 @@ namespace Ubiquity.NET.Llvm
         internal MetadataAsValue(LLVMValueRef valueRef)
             : base(valueRef)
         {
-            Operands = new ValueOperandListCollection<Value>(this);
+            this.Operands = new ValueOperandListCollection<Value>(this);
         }
 
         internal static LLVMValueRef IsAMetadataAsValue(LLVMValueRef value)

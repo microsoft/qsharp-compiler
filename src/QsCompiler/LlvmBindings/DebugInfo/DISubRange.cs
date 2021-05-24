@@ -36,7 +36,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// then <see cref="ConstantCount"/> is not. (and vice versa)
         /// </remarks>
         public DIVariable? VariableCount
-            => (Operands[0] is DIVariable variable) ? variable : null;
+            => (this.Operands[0] is DIVariable variable) ? variable : null;
 
         internal DISubRange(LLVMMetadataRef handle)
             : base(handle)

@@ -14,7 +14,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIScope
     {
         /// <summary>Gets the parent scope as a <see cref="DILocalScope"/></summary>
-        public DILocalScope? LocalScope => Scope as DILocalScope;
+        public DILocalScope? LocalScope => this.Scope as DILocalScope;
 
         /// <summary>Gets the DISubprogram for this scope</summary>
         /// <remarks>If this scope is a <see cref="DISubProgram"/> then it is returned, otherwise

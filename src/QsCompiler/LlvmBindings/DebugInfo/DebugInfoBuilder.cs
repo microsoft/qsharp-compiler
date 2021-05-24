@@ -83,7 +83,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             string? compilationFlags,
             uint runtimeVersion)
         {
-            return CreateCompileUnit(
+            return this.CreateCompileUnit(
                 language,
                 Path.GetFileName(sourceFilePath),
                 Path.GetDirectoryName(sourceFilePath) ?? Environment.CurrentDirectory,
@@ -122,13 +122,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 compilationFlags = string.Empty;
             }
 
-            if (OwningModule.DICompileUnit != null)
+            if (this.OwningModule.DICompileUnit != null)
             {
                 throw new InvalidOperationException();
             }
 
-            var file = CreateFile(fileName, fileDirectory);
-            var handle = BuilderHandle.CreateCompileUnit(
+            var file = this.CreateFile(fileName, fileDirectory);
+            var handle = this.BuilderHandle.CreateCompileUnit(
                 (LLVMDWARFSourceLanguage)language,
                 file.MetadataHandle,
                 producer,
@@ -143,8 +143,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 string.Empty,
                 string.Empty);
 
-            OwningModule.DICompileUnit = MDNode.FromHandle<DICompileUnit>(handle)!;
-            return OwningModule.DICompileUnit;
+            this.OwningModule.DICompileUnit = MDNode.FromHandle<DICompileUnit>(handle)!;
+            return this.OwningModule.DICompileUnit;
         }
 
         /// <summary>Creates a debugging information temporary entry for a macro file</summary>
@@ -216,7 +216,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             string? fileName = path is null ? null : Path.GetFileName(path);
             string? directory = path is null ? null : Path.GetDirectoryName(path);
-            return CreateFile(fileName, directory);
+            return this.CreateFile(fileName, directory);
         }
 
         /// <summary>Creates a <see cref="DIFile"/></summary>
@@ -227,7 +227,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </returns>
         public DIFile CreateFile(string? fileName, string? directory)
         {
-            var handle = BuilderHandle.CreateFile(fileName, directory);
+            var handle = this.BuilderHandle.CreateFile(fileName, directory);
             return MDNode.FromHandle<DIFile>(handle)!;
         }
 
@@ -443,7 +443,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Create a debug metadata array of debug types</summary>
         /// <param name="types">Types to include in the array</param>
         /// <returns>Array containing the types</returns>
-        public DITypeArray CreateTypeArray(params DIType?[] types) => CreateTypeArray((IEnumerable<DIType?>)types);
+        public DITypeArray CreateTypeArray(params DIType?[] types) => this.CreateTypeArray((IEnumerable<DIType?>)types);
 
         /// <summary>Create a debug metadata array of debug types</summary>
         /// <param name="types">Types to include in the array</param>
@@ -461,7 +461,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DISubroutineType"/></returns>
         public DISubroutineType CreateSubroutineType(DebugInfoFlags debugFlags, params DIType?[] types)
         {
-            return CreateSubroutineType(debugFlags, (IEnumerable<DIType?>)types);
+            return this.CreateSubroutineType(debugFlags, (IEnumerable<DIType?>)types);
         }
 
         /// <summary>Creates a <see cref="DISubroutineType"/> to provide debug information for a function/procedure signature</summary>
@@ -471,7 +471,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DISubroutineType CreateSubroutineType(DebugInfoFlags debugFlags, IEnumerable<DIType?> types)
         {
             var handles = types.Select(t => t?.MetadataHandle ?? default).ToArray();
-            var handle = BuilderHandle.CreateSubroutineType(default, handles, (LLVMDIFlags)debugFlags);
+            var handle = this.BuilderHandle.CreateSubroutineType(default, handles, (LLVMDIFlags)debugFlags);
             return MDNode.FromHandle<DISubroutineType>(handle)!;
         }
 
@@ -480,7 +480,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DISubroutineType"/></returns>
         public DISubroutineType CreateSubroutineType(DebugInfoFlags debugFlags)
         {
-            return CreateSubroutineType(debugFlags, Array.Empty<DIType>());
+            return this.CreateSubroutineType(debugFlags, Array.Empty<DIType>());
         }
 
         /// <summary>Creates a <see cref="DISubroutineType"/> to provide debug information for a function/procedure signature</summary>
@@ -490,7 +490,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DISubroutineType"/></returns>
         public DISubroutineType CreateSubroutineType(DebugInfoFlags debugFlags, DIType? returnType, IEnumerable<DIType?> types)
         {
-            return CreateSubroutineType(debugFlags, returnType != null ? types.Prepend(returnType) : types);
+            return this.CreateSubroutineType(debugFlags, returnType != null ? types.Prepend(returnType) : types);
         }
 
         /// <summary>Creates debug description of a structure type</summary>
@@ -515,7 +515,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             DIType? derivedFrom,
             params DINode[] elements)
         {
-            return CreateStructType(scope, name, file, line, bitSize, bitAlign, debugFlags, derivedFrom, (IEnumerable<DINode>)elements);
+            return this.CreateStructType(scope, name, file, line, bitSize, bitAlign, debugFlags, derivedFrom, (IEnumerable<DINode>)elements);
         }
 
         /// <summary>Creates debug description of a structure type</summary>
@@ -586,7 +586,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             DebugInfoFlags debugFlags,
             DINodeArray elements)
         {
-            return CreateUnionType(scope, name, file, line, bitSize, bitAlign, debugFlags, (IEnumerable<DINode>)elements);
+            return this.CreateUnionType(scope, name, file, line, bitSize, bitAlign, debugFlags, (IEnumerable<DINode>)elements);
         }
 
         /// <summary>Creates debug description of a union type</summary>
@@ -609,7 +609,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             DebugInfoFlags debugFlags,
             params DINode[] elements)
         {
-            return CreateUnionType(scope, name, file, line, bitSize, bitAlign, debugFlags, (IEnumerable<DINode>)elements);
+            return this.CreateUnionType(scope, name, file, line, bitSize, bitAlign, debugFlags, (IEnumerable<DINode>)elements);
         }
 
         /// <summary>Creates debug description of a union type</summary>
@@ -698,7 +698,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call")]
         public DICompositeType CreateArrayType(ulong bitSize, uint bitAlign, DIType elementType, DINodeArray subscripts)
         {
-            return CreateArrayType(bitSize, bitAlign, elementType, (IEnumerable<DINode>)subscripts);
+            return this.CreateArrayType(bitSize, bitAlign, elementType, (IEnumerable<DINode>)subscripts);
         }
 
         /// <summary>Creates debug information for an array type</summary>
@@ -709,7 +709,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DICompositeType"/> for the array</returns>
         public DICompositeType CreateArrayType(ulong bitSize, uint bitAlign, DIType elementType, params DINode[] subscripts)
         {
-            return CreateArrayType(bitSize, bitAlign, elementType, (IEnumerable<DINode>)subscripts);
+            return this.CreateArrayType(bitSize, bitAlign, elementType, (IEnumerable<DINode>)subscripts);
         }
 
         /// <summary>Creates debug information for an array type</summary>
@@ -734,7 +734,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call")]
         public DICompositeType CreateVectorType(ulong bitSize, uint bitAlign, DIType elementType, DINodeArray subscripts)
         {
-            return CreateVectorType(bitSize, bitAlign, elementType, (IEnumerable<DINode>)subscripts);
+            return this.CreateVectorType(bitSize, bitAlign, elementType, (IEnumerable<DINode>)subscripts);
         }
 
         /// <summary>Creates debug information for a vector type</summary>
@@ -745,7 +745,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <returns><see cref="DICompositeType"/> for the Vector</returns>
         public DICompositeType CreateVectorType(ulong bitSize, uint bitAlign, DIType elementType, params DINode[] subscripts)
         {
-            return CreateVectorType(bitSize, bitAlign, elementType, (IEnumerable<DINode>)subscripts);
+            return this.CreateVectorType(bitSize, bitAlign, elementType, (IEnumerable<DINode>)subscripts);
         }
 
         /// <summary>Creates debug information for a vector type</summary>
@@ -814,14 +814,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             }
 
             // assume wrapped tuple is not null since underlying handle is already checked.
-            var tuple = LlvmMetadata.FromHandle<MDTuple>(OwningModule.Context, handle)!;
+            var tuple = LlvmMetadata.FromHandle<MDTuple>(this.OwningModule.Context, handle)!;
             return new DINodeArray(tuple);
         }
 
         /// <summary>Gets or creates a Type array with the specified types</summary>
         /// <param name="types">Types</param>
         /// <returns><see cref="DITypeArray"/></returns>
-        public DITypeArray GetOrCreateTypeArray(params DIType[] types) => GetOrCreateTypeArray((IEnumerable<DIType>)types);
+        public DITypeArray GetOrCreateTypeArray(params DIType[] types) => this.GetOrCreateTypeArray((IEnumerable<DIType>)types);
 
         /// <summary>Gets or creates a Type array with the specified types</summary>
         /// <param name="types">Types</param>
@@ -934,7 +934,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </remarks>
         public void Finish()
         {
-            if (isFinished)
+            if (this.isFinished)
             {
                 return;
             }
@@ -960,7 +960,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <seealso href="xref:llvm_sourcelevel_debugging#source-level-debugging-with-llvm">LLVM: Source Level Debugging with LLVM</seealso>
         public CallInstruction InsertDeclare(Value storage, DILocalVariable varInfo, DILocation location, Instruction insertBefore)
         {
-            return InsertDeclare(storage, varInfo, CreateExpression(), location, insertBefore);
+            return this.InsertDeclare(storage, varInfo, this.CreateExpression(), location, insertBefore);
         }
 
         /// <summary>Inserts an llvm.dbg.declare instruction before the given instruction</summary>
@@ -1009,7 +1009,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <seealso href="xref:llvm_sourcelevel_debugging#source-level-debugging-with-llvm">LLVM: Source Level Debugging with LLVM</seealso>
         public CallInstruction InsertDeclare(Value storage, DILocalVariable varInfo, DILocation location, BasicBlock insertAtEnd)
         {
-            return InsertDeclare(storage, varInfo, CreateExpression(), location, insertAtEnd);
+            return this.InsertDeclare(storage, varInfo, this.CreateExpression(), location, insertAtEnd);
         }
 
         /// <summary>Inserts an llvm.dbg.declare instruction before the given instruction</summary>
@@ -1070,7 +1070,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             DILocation location,
             Instruction insertBefore)
         {
-            return InsertValue(value, varInfo, null, location, insertBefore);
+            return this.InsertValue(value, varInfo, null, location, insertBefore);
         }
 
         /// <summary>Inserts a call to the llvm.dbg.value intrinsic before the specified instruction</summary>
@@ -1133,7 +1133,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             DILocation location,
             BasicBlock insertAtEnd)
         {
-            return InsertValue(value, varInfo, null, location, insertAtEnd);
+            return this.InsertValue(value, varInfo, null, location, insertAtEnd);
         }
 
         /// <summary>Inserts a call to the llvm.dbg.value intrinsic at the end of a basic block</summary>
@@ -1175,7 +1175,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             var handle = this.BuilderHandle.InsertDbgValueAtEnd(
                                                            value.ValueHandle,
                                                            varInfo.MetadataHandle,
-                                                           expression?.MetadataHandle ?? CreateExpression().MetadataHandle,
+                                                           expression?.MetadataHandle ?? this.CreateExpression().MetadataHandle,
                                                            location.MetadataHandle,
                                                            insertAtEnd.BlockHandle);
 
@@ -1188,7 +1188,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="operations">Operation sequence for the expression</param>
         /// <returns><see cref="DIExpression"/></returns>
         public DIExpression CreateExpression(params ExpressionOp[] operations)
-            => CreateExpression((IEnumerable<ExpressionOp>)operations);
+            => this.CreateExpression((IEnumerable<ExpressionOp>)operations);
 
         /// <summary>Creates a <see cref="DIExpression"/> from the provided <see cref="ExpressionOp"/>s</summary>
         /// <param name="operations">Operation sequence for the expression</param>
@@ -1264,11 +1264,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         // allowUnresolved == false
         private DebugInfoBuilder(BitcodeModule owningModule, bool allowUnresolved)
         {
-            BuilderHandle = allowUnresolved
+            this.BuilderHandle = allowUnresolved
                 ? owningModule.ModuleHandle.CreateDIBuilder()
                 : owningModule.ModuleHandle.CreateDIBuilderDisallowUnresolved();
 
-            OwningModule = owningModule;
+            this.OwningModule = owningModule;
         }
 
         private bool isFinished;

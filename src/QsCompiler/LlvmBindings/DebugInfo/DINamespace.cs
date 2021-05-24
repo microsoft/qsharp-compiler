@@ -15,10 +15,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIScope
     {
         /// <inheritdoc/>
-        public override DIScope? Scope => GetOperand<DIScope>(1);
+        public override DIScope? Scope => this.GetOperand<DIScope>(1);
 
         /// <inheritdoc/>
-        public override string Name => GetOperandString(2);
+        public override string Name => this.GetOperandString(2);
 
         internal DINamespace(LLVMMetadataRef handle)
             : base(handle)

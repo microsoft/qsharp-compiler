@@ -26,7 +26,7 @@ namespace Ubiquity.NET.Llvm
         /// <inheritdoc/>
         public LlvmMetadata? this[int index]
         {
-            get => GetOperand<LlvmMetadata>(index);
+            get => this.GetOperand<LlvmMetadata>(index);
         }
 
         /// <summary>Gets the count of operands in this collection</summary>
@@ -34,7 +34,7 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                var valueHandle = this.container.Context.ContextHandle.MetadataAsValue(container.MetadataHandle);
+                var valueHandle = this.container.Context.ContextHandle.MetadataAsValue(this.container.MetadataHandle);
                 return checked((int)valueHandle.GetMDNodeNumOperands());
             }
         }
@@ -43,15 +43,15 @@ namespace Ubiquity.NET.Llvm
         /// <returns>Enumerator of operands</returns>
         public IEnumerator<LlvmMetadata?> GetEnumerator()
         {
-            for (int i = 0; i < Count; ++i)
+            for (int i = 0; i < this.Count; ++i)
             {
-                yield return GetOperand<LlvmMetadata>(i);
+                yield return this.GetOperand<LlvmMetadata>(i);
             }
         }
 
         /// <summary>Gets an enumerator for the operands in this collection</summary>
         /// <returns>Enumerator of operands</returns>
-        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
+        IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
         /// <inheritdoc/>
         public bool Contains(LlvmMetadata? item) => this.Any(n => n == item);

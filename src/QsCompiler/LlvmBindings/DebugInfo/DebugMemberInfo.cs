@@ -36,13 +36,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             DebugInfoFlags debugInfoFlags = DebugInfoFlags.None,
             DebugMemberLayout? explicitLayout = null)
         {
-            Index = index;
-            Name = name;
-            File = file;
-            Line = line;
-            DebugType = debugType;
-            DebugInfoFlags = debugInfoFlags;
-            ExplicitLayout = explicitLayout;
+            this.Index = index;
+            this.Name = name;
+            this.File = file;
+            this.Line = line;
+            this.DebugType = debugType;
+            this.DebugInfoFlags = debugInfoFlags;
+            this.ExplicitLayout = explicitLayout;
         }
 
         /// <summary>Gets the LLVM structure element index this descriptor describes</summary>

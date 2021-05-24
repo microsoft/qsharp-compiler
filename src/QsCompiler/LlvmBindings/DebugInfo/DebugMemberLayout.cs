@@ -22,9 +22,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="bitOffset">Offset of the member in bits</param>
         public DebugMemberLayout(ulong bitSize, uint bitAlignment, ulong bitOffset)
         {
-            BitSize = bitSize;
-            BitAlignment = bitAlignment;
-            BitOffset = bitOffset;
+            this.BitSize = bitSize;
+            this.BitAlignment = bitAlignment;
+            this.BitOffset = bitOffset;
         }
 
         /// <summary>Gets the bit size for the field</summary>

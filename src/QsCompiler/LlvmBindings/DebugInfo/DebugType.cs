@@ -83,14 +83,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "DIType", Justification = "It is spelled correctly 8^)")]
         public TDebug? DIType
         {
-            get => rawDebugInfoType;
+            get => this.rawDebugInfoType;
             set
             {
                 TDebug v = value!;
-                if (rawDebugInfoType != null)
+                if (this.rawDebugInfoType != null)
                 {
-                    rawDebugInfoType.ReplaceAllUsesWith(v);
-                    rawDebugInfoType = v;
+                    this.rawDebugInfoType.ReplaceAllUsesWith(v);
+                    this.rawDebugInfoType = v;
                 }
                 else
                 {
@@ -107,101 +107,101 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <exception cref="InvalidOperationException">The native type was already set</exception>
         public TNative NativeType
         {
-            get => nativeType_.ValueOrDefault;
+            get => this.nativeType_.ValueOrDefault;
 
-            protected set => nativeType_.Value = value;
+            protected set => this.nativeType_.Value = value;
         }
 
         /// <summary>Gets an intentionally undocumented value</summary>
         /// <remarks>internal use only</remarks>
-        LLVMTypeRef ITypeHandleOwner.TypeHandle => NativeType.GetTypeRef();
+        LLVMTypeRef ITypeHandleOwner.TypeHandle => this.NativeType.GetTypeRef();
 
         /// <inheritdoc/>
-        public bool IsSized => NativeType.IsSized;
+        public bool IsSized => this.NativeType.IsSized;
 
         /// <inheritdoc/>
-        public TypeKind Kind => NativeType.Kind;
+        public TypeKind Kind => this.NativeType.Kind;
 
         /// <inheritdoc/>
-        public Context Context => NativeType.Context;
+        public Context Context => this.NativeType.Context;
 
         /// <inheritdoc/>
-        public uint IntegerBitWidth => NativeType.IntegerBitWidth;
+        public uint IntegerBitWidth => this.NativeType.IntegerBitWidth;
 
         /// <inheritdoc/>
-        public bool IsInteger => NativeType.IsInteger;
+        public bool IsInteger => this.NativeType.IsInteger;
 
         /// <inheritdoc/>
-        public bool IsFloat => NativeType.IsFloat;
+        public bool IsFloat => this.NativeType.IsFloat;
 
         /// <inheritdoc/>
-        public bool IsDouble => NativeType.IsDouble;
+        public bool IsDouble => this.NativeType.IsDouble;
 
         /// <inheritdoc/>
-        public bool IsVoid => NativeType.IsVoid;
+        public bool IsVoid => this.NativeType.IsVoid;
 
         /// <inheritdoc/>
-        public bool IsStruct => NativeType.IsStruct;
+        public bool IsStruct => this.NativeType.IsStruct;
 
         /// <inheritdoc/>
-        public bool IsPointer => NativeType.IsPointer;
+        public bool IsPointer => this.NativeType.IsPointer;
 
         /// <inheritdoc/>
-        public bool IsSequence => NativeType.IsSequence;
+        public bool IsSequence => this.NativeType.IsSequence;
 
         /// <inheritdoc/>
-        public bool IsFloatingPoint => NativeType.IsFloatingPoint;
+        public bool IsFloatingPoint => this.NativeType.IsFloatingPoint;
 
         /// <inheritdoc/>
-        public bool IsPointerPointer => NativeType.IsPointerPointer;
+        public bool IsPointerPointer => this.NativeType.IsPointerPointer;
 
         /// <inheritdoc/>
-        public Constant GetNullValue() => NativeType.GetNullValue();
+        public Constant GetNullValue() => this.NativeType.GetNullValue();
 
         /// <inheritdoc/>
-        public IArrayType CreateArrayType(uint count) => NativeType.CreateArrayType(count);
+        public IArrayType CreateArrayType(uint count) => this.NativeType.CreateArrayType(count);
 
         /// <inheritdoc/>
-        public IPointerType CreatePointerType() => NativeType.CreatePointerType();
+        public IPointerType CreatePointerType() => this.NativeType.CreatePointerType();
 
         /// <inheritdoc/>
-        public IPointerType CreatePointerType(uint addressSpace) => NativeType.CreatePointerType(addressSpace);
+        public IPointerType CreatePointerType(uint addressSpace) => this.NativeType.CreatePointerType(addressSpace);
 
         /// <inheritdoc/>
         public DebugPointerType CreatePointerType(BitcodeModule bitcodeModule, uint addressSpace)
         {
-            if (DIType == null)
+            if (this.DIType == null)
             {
                 throw new InvalidOperationException();
             }
 
-            var nativePointer = NativeType.CreatePointerType(addressSpace);
-            return new DebugPointerType(nativePointer, bitcodeModule, DIType, string.Empty);
+            var nativePointer = this.NativeType.CreatePointerType(addressSpace);
+            return new DebugPointerType(nativePointer, bitcodeModule, this.DIType, string.Empty);
         }
 
         /// <inheritdoc/>
         public DebugArrayType CreateArrayType(BitcodeModule bitcodeModule, uint lowerBound, uint count)
         {
-            if (DIType == null)
+            if (this.DIType == null)
             {
                 throw new InvalidOperationException();
             }
 
-            var llvmArray = NativeType.CreateArrayType(count);
-            return new DebugArrayType(llvmArray, bitcodeModule, DIType, count, lowerBound);
+            var llvmArray = this.NativeType.CreateArrayType(count);
+            return new DebugArrayType(llvmArray, bitcodeModule, this.DIType, count, lowerBound);
         }
 
         /// <inheritdoc/>
         public bool TryGetExtendedPropertyValue<TProperty>(string id, [MaybeNullWhen(false)] out TProperty value)
         {
-            return propertyContainer.TryGetExtendedPropertyValue(id, out value)
-                || NativeType.TryGetExtendedPropertyValue(id, out value);
+            return this.propertyContainer.TryGetExtendedPropertyValue(id, out value)
+                || this.NativeType.TryGetExtendedPropertyValue(id, out value);
         }
 
         /// <inheritdoc/>
         public void AddExtendedPropertyValue(string id, object? value)
         {
-            propertyContainer.AddExtendedPropertyValue(id, value);
+            this.propertyContainer.AddExtendedPropertyValue(id, value);
         }
 
         /// <summary>Converts a <see cref="DebugType{TNative, TDebug}"/> to <typeparamref name="TDebug"/> by accessing the <see cref="DIType"/> property</summary>
@@ -211,8 +211,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         internal DebugType(TNative llvmType, TDebug? debugInfoType)
         {
-            nativeType_.Value = llvmType;
-            rawDebugInfoType = debugInfoType;
+            this.nativeType_.Value = llvmType;
+            this.rawDebugInfoType = debugInfoType;
         }
 
         private TDebug? rawDebugInfoType;

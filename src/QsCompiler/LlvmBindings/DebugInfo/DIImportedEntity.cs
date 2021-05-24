@@ -19,16 +19,16 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         */
 
         /// <summary>Gets the <see cref="DIScope"/> for the imported entity</summary>
-        public DIScope Scope => GetOperand<DIScope>(0)!;
+        public DIScope Scope => this.GetOperand<DIScope>(0)!;
 
         /// <summary>Gets the entity imported</summary>
-        public DINode Entity => GetOperand<DINode>(1)!;
+        public DINode Entity => this.GetOperand<DINode>(1)!;
 
         /// <summary>Gets the name of the node</summary>
-        public string Name => GetOperandString(2);
+        public string Name => this.GetOperandString(2);
 
         /// <summary>Gets the <see cref="DIFile"/> for the imported entity</summary>
-        public DIFile File => GetOperand<DIFile>(3)!;
+        public DIFile File => this.GetOperand<DIFile>(3)!;
 
         internal DIImportedEntity(LLVMMetadataRef handle)
             : base(handle)

@@ -18,7 +18,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// The header is a, possibly empty, null separated string
         /// header that contains arbitrary fields.
         /// </remarks>
-        public string Header => GetOperandString(0);
+        public string Header => this.GetOperandString(0);
 
         internal GenericDINode(LLVMMetadataRef handle)
             : base(handle)

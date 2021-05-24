@@ -35,7 +35,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             uint alignment = 0)
             : base(llvmType, BuildDebugType(llvmType, elementType, module, count, lowerBound, alignment))
         {
-            DebugElementType = elementType;
+            this.DebugElementType = elementType;
         }
 
         /// <summary>Initializes a new instance of the <see cref="DebugArrayType"/> class.</summary>
@@ -68,10 +68,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public IDebugType<ITypeRef, DIType> DebugElementType { get; }
 
         /// <inheritdoc/>
-        public ITypeRef ElementType => DebugElementType;
+        public ITypeRef ElementType => this.DebugElementType;
 
         /// <inheritdoc/>
-        public uint Length => NativeType.Length;
+        public uint Length => this.NativeType.Length;
 
         /// <summary>Gets the lower bound of the array - usually, but not always, zero</summary>
         public uint LowerBound { get; } /*=> DIType.GetOperand<DISubRange>( 0 ).LowerBound;*/
@@ -91,13 +91,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new ArgumentNullException(nameof(diBuilder));
             }
 
-            if (DIType != null)
+            if (this.DIType != null)
             {
-                DIType = diBuilder.CreateArrayType(
-                    layout.BitSizeOf(NativeType),
-                    layout.AbiBitAlignmentOf(NativeType),
-                    DebugElementType.DIType!,
-                    diBuilder.CreateSubRange(LowerBound, NativeType.Length));
+                this.DIType = diBuilder.CreateArrayType(
+                    layout.BitSizeOf(this.NativeType),
+                    layout.AbiBitAlignmentOf(this.NativeType),
+                    this.DebugElementType.DIType!,
+                    diBuilder.CreateSubRange(this.LowerBound, this.NativeType.Length));
             }
         }
 

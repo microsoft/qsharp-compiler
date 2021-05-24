@@ -83,9 +83,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         }
 
         /// <inheritdoc/>
-        public uint AddressSpace => NativeType.AddressSpace;
+        public uint AddressSpace => this.NativeType.AddressSpace;
 
         /// <inheritdoc/>
-        public ITypeRef ElementType => NativeType.ElementType;
+        public ITypeRef ElementType => this.NativeType.ElementType;
     }
 }

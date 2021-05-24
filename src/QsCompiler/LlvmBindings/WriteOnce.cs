@@ -25,7 +25,7 @@ namespace Ubiquity.NET.Llvm
         /// <inheritdoc/>
         public override string ToString()
         {
-            return HasValue ? Convert.ToString(actualValue, CultureInfo.CurrentCulture) : string.Empty;
+            return this.HasValue ? Convert.ToString(this.actualValue, CultureInfo.CurrentCulture) : string.Empty;
         }
 
         /// <summary>Gets or sets the value for this instance</summary>
@@ -36,23 +36,23 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                if (!HasValue)
+                if (!this.HasValue)
                 {
                     throw new InvalidOperationException();
                 }
 
-                return actualValue;
+                return this.actualValue;
             }
 
             set
             {
-                if (HasValue)
+                if (this.HasValue)
                 {
                     throw new InvalidOperationException();
                 }
 
-                actualValue = value;
-                HasValue = true;
+                this.actualValue = value;
+                this.HasValue = true;
             }
         }
 
@@ -65,8 +65,8 @@ namespace Ubiquity.NET.Llvm
         /// <returns>This instance for fluent style use</returns>
         public WriteOnce<T> InitializeWith(Initializer initializer)
         {
-            initializer(out actualValue);
-            HasValue = true;
+            initializer(out this.actualValue);
+            this.HasValue = true;
             return this;
         }
 
@@ -74,7 +74,7 @@ namespace Ubiquity.NET.Llvm
         public bool HasValue { get; private set; }
 
         /// <summary>Gets the current value or the default value for <typeparamref name="T"/> if not yet set</summary>
-        public T ValueOrDefault => actualValue;
+        public T ValueOrDefault => this.actualValue;
 
         /// <summary>Convenience implicit cast as a wrapper around the <see cref="Value"/> parameter</summary>
         /// <param name="value"> <see cref="WriteOnce{T}"/> instance to extract a value from</param>

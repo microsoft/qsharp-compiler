@@ -17,10 +17,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIScope
     {
         /// <summary>Gets the containing scope for the type</summary>
-        public override DIScope? Scope => this.MetadataHandle == default ? null : GetOperand<DIScope>(1);
+        public override DIScope? Scope => this.MetadataHandle == default ? null : this.GetOperand<DIScope>(1);
 
         /// <summary>Gets the name of the type</summary>
-        public override string Name => this.MetadataHandle == default ? string.Empty : GetOperand<MDString>(2)?.ToString() ?? string.Empty;
+        public override string Name => this.MetadataHandle == default ? string.Empty : this.GetOperand<MDString>(2)?.ToString() ?? string.Empty;
 
         /// <summary>Gets the source line for the type</summary>
         public uint Line => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetLine();

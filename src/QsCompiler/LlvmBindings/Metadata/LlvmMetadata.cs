@@ -123,13 +123,13 @@ namespace Ubiquity.NET.Llvm
                 throw new ArgumentNullException(nameof(other));
             }
 
-            if (MetadataHandle == default)
+            if (this.MetadataHandle == default)
             {
                 throw new InvalidOperationException();
             }
 
-            MetadataHandle.ReplaceAllUsesWith(other.MetadataHandle);
-            MetadataHandle = default;
+            this.MetadataHandle.ReplaceAllUsesWith(other.MetadataHandle);
+            this.MetadataHandle = default;
         }
 
         /// <summary>Formats the metadata as a string</summary>
@@ -276,7 +276,7 @@ namespace Ubiquity.NET.Llvm
 
         private protected LlvmMetadata(LLVMMetadataRef handle)
         {
-            MetadataHandle = handle;
+            this.MetadataHandle = handle;
         }
     }
 }

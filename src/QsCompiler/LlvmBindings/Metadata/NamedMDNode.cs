@@ -28,7 +28,7 @@ namespace Ubiquity.NET.Llvm
 
         internal NamedMDNode(LLVMNamedMDNodeRef nativeNode)
         {
-            nativeHandle = nativeNode;
+            this.nativeHandle = nativeNode;
         }
 
         private readonly LLVMNamedMDNodeRef nativeHandle;

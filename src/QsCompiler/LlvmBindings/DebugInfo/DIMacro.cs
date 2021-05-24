@@ -14,10 +14,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIMacroNode
     {
         /// <summary>Gets the name of the macro</summary>
-        public string Name => GetOperandString(0);
+        public string Name => this.GetOperandString(0);
 
         /// <summary>Gets the value of the property</summary>
-        public string Value => GetOperandString(1);
+        public string Value => this.GetOperandString(1);
 
         internal DIMacro(LLVMMetadataRef handle)
             : base(handle)

@@ -54,7 +54,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 throw new ArgumentException();
             }
 
-            SetBody(module, scope, file, line, debugFlags, elements);
+            this.SetBody(module, scope, file, line, debugFlags, elements);
         }
 
         /// <summary>Initializes a new instance of the <see cref="DebugUnionType"/> class.</summary>
@@ -84,13 +84,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         }
 
         /// <inheritdoc/>
-        public bool IsOpaque => NativeType.IsOpaque;
+        public bool IsOpaque => this.NativeType.IsOpaque;
 
         /// <inheritdoc/>
-        public IReadOnlyList<ITypeRef> Members => NativeType.Members;
+        public IReadOnlyList<ITypeRef> Members => this.NativeType.Members;
 
         /// <inheritdoc/>
-        public string Name => NativeType.Name;
+        public string Name => this.NativeType.Name;
 
         /// <summary>Gets the description of each member of the type</summary>
         public IReadOnlyList<DebugMemberInfo> DebugMembers { get; private set; } = new List<DebugMemberInfo>().AsReadOnly();
@@ -135,13 +135,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 nativeMembers[0] = elem.DebugType;
             }
 
-            var nativeType = (IStructType)NativeType;
+            var nativeType = (IStructType)this.NativeType;
             nativeType.SetBody(false, nativeMembers);
 
             // Debug info contains details of each member of the union
-            DebugMembers = new ReadOnlyCollection<DebugMemberInfo>(debugElements as IList<DebugMemberInfo> ?? debugElements.ToList());
-            var memberTypes = (from memberInfo in DebugMembers
-                                select CreateMemberType(module, memberInfo))
+            this.DebugMembers = new ReadOnlyCollection<DebugMemberInfo>(debugElements as IList<DebugMemberInfo> ?? debugElements.ToList());
+            var memberTypes = (from memberInfo in this.DebugMembers
+                                select this.CreateMemberType(module, memberInfo))
                               .ToList<DIDerivedType>();
 
             var (unionBitSize, unionAlign)
@@ -150,14 +150,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                     (a, d) => (Math.Max(a.MaxSize, d.BitSize), Math.Max(a.MaxAlign, d.BitAlignment)));
             var concreteType = module.DIBuilder.CreateUnionType(
                 scope: scope,
-                name: DIType!.Name, // not null via construction
+                name: this.DIType!.Name, // not null via construction
                 file: file,
                 line: line,
                 bitSize: checked((uint)unionBitSize),
                 bitAlign: checked((uint)unionAlign),
                 debugFlags: debugFlags,
                 elements: memberTypes);
-            DIType = concreteType;
+            this.DIType = concreteType;
         }
 
         private DIDerivedType CreateMemberType(BitcodeModule module, DebugMemberInfo memberInfo)
@@ -177,7 +177,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             }
 
             return module.DIBuilder.CreateMemberType(
-                scope: DIType,
+                scope: this.DIType,
                 name: memberInfo.Name,
                 file: memberInfo.File,
                 line: memberInfo.Line,

@@ -200,27 +200,27 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets the byte size of a type</summary>
         /// <param name="llvmType">Type to determine the size of</param>
         /// <returns>Size of the type in bytes</returns>
-        public ulong ByteSizeOf(ITypeRef llvmType) => BitSizeOf(llvmType) / 8u;
+        public ulong ByteSizeOf(ITypeRef llvmType) => this.BitSizeOf(llvmType) / 8u;
 
         /// <summary>Gets the preferred alignment of the type in bits</summary>
         /// <param name="llvmType">Type to get the alignment of</param>
         /// <returns>Alignment of the type</returns>
-        public uint PreferredBitAlignmentOf(ITypeRef llvmType) => PreferredAlignmentOf(llvmType) * 8;
+        public uint PreferredBitAlignmentOf(ITypeRef llvmType) => this.PreferredAlignmentOf(llvmType) * 8;
 
         /// <summary>Gets the ABI alignment of the type in bits</summary>
         /// <param name="llvmType">Type to get the alignment of</param>
         /// <returns>Alignment of the type</returns>
-        public uint AbiBitAlignmentOf(ITypeRef llvmType) => AbiAlignmentOf(llvmType) * 8;
+        public uint AbiBitAlignmentOf(ITypeRef llvmType) => this.AbiAlignmentOf(llvmType) * 8;
 
         /// <summary>Gets the offset of a structure element in bits</summary>
         /// <param name="llvmType">Structure type to get the element offset of</param>
         /// <param name="element">Index of the element in the structure</param>
         /// <returns>Offset of the element in bits</returns>
-        public ulong BitOffsetOfElement(IStructType llvmType, uint element) => OffsetOfElement(llvmType, element) * 8;
+        public ulong BitOffsetOfElement(IStructType llvmType, uint element) => this.OffsetOfElement(llvmType, element) * 8;
 
         internal DataLayout(LLVMTargetDataRef targetDataHandle)
         {
-            DataLayoutHandle = targetDataHandle;
+            this.DataLayoutHandle = targetDataHandle;
         }
 
         internal static DataLayout FromHandle(LLVMTargetDataRef targetDataRef)

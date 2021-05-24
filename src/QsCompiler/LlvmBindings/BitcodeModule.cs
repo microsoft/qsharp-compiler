@@ -93,7 +93,7 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                ThrowIfDisposed();
+                this.ThrowIfDisposed();
                 var retVal = new Dictionary<string, ModuleFlag>();
                 LLVMModuleFlagEntry flags = default;
                 ulong flagsLength;
@@ -128,8 +128,8 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                ThrowIfDisposed();
-                return lazyDiBuilder.Value;
+                this.ThrowIfDisposed();
+                return this.lazyDiBuilder.Value;
             }
         }
 
@@ -149,8 +149,8 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                ThrowIfDisposed();
-                return Layout?.ToString() ?? string.Empty;
+                this.ThrowIfDisposed();
+                return this.Layout?.ToString() ?? string.Empty;
             }
         }
 
@@ -159,13 +159,13 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                ThrowIfDisposed();
+                this.ThrowIfDisposed();
                 return DataLayout.FromHandle(this.ModuleHandle.GetDataLayout());
             }
 
             set
             {
-                ThrowIfDisposed();
+                this.ThrowIfDisposed();
                 this.ModuleHandle.SetDataLayout(value.DataLayoutHandle);
             }
         }
@@ -736,7 +736,7 @@ namespace Ubiquity.NET.Llvm
                 string compilationFlags = "",
                 uint runtimeVersion = 0)
             {
-                var retVal = CreateBitcodeModule(moduleId);
+                var retVal = this.CreateBitcodeModule(moduleId);
                 retVal.DICompileUnit = retVal.DIBuilder.CreateCompileUnit(
                     language,
                     srcFilePath,

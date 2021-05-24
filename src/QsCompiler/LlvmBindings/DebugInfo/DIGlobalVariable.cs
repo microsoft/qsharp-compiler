@@ -15,13 +15,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIVariable
     {
         /// <summary>Gets the display name for the variable</summary>
-        public string DisplayName => GetOperandString(4);
+        public string DisplayName => this.GetOperandString(4);
 
         /// <summary>Gets the linkage name for the variable</summary>
-        public string LinkageName => GetOperandString(5);
+        public string LinkageName => this.GetOperandString(5);
 
         /// <summary>Gets the static data member declaration for the variable</summary>
-        public DIDerivedType? StaticDataMemberDeclaration => GetOperand<DIDerivedType>(6);
+        public DIDerivedType? StaticDataMemberDeclaration => this.GetOperand<DIDerivedType>(6);
 
         internal DIGlobalVariable(LLVMMetadataRef handle)
             : base(handle)

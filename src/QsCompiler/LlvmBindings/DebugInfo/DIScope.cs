@@ -19,7 +19,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             get
             {
-                if (MetadataHandle == default)
+                if (this.MetadataHandle == default)
                 {
                     return null;
                 }

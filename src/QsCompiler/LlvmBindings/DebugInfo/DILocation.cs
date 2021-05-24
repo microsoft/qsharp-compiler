@@ -53,7 +53,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <inheritdoc/>
         public override string ToString()
         {
-            return $"{Scope.File}({Line},{Column})";
+            return $"{this.Scope.File}({this.Line},{this.Column})";
         }
 
         internal DILocation(LLVMMetadataRef handle)

@@ -22,9 +22,9 @@ namespace Ubiquity.NET.Llvm
         /// <inheritdoc/>
         public void AddExtendedPropertyValue(string id, object? value)
         {
-            lock (items)
+            lock (this.items)
             {
-                if (items.TryGetValue(id, out object? currentValue))
+                if (this.items.TryGetValue(id, out object? currentValue))
                 {
                     if (currentValue != null && value != null && currentValue.GetType() != value.GetType())
                     {
@@ -32,7 +32,7 @@ namespace Ubiquity.NET.Llvm
                     }
                 }
 
-                items[id] = value;
+                this.items[id] = value;
             }
         }
 
@@ -41,9 +41,9 @@ namespace Ubiquity.NET.Llvm
         {
             value = default!;
             object? item;
-            lock (items)
+            lock (this.items)
             {
-                if (!items.TryGetValue(id, out item))
+                if (!this.items.TryGetValue(id, out item))
                 {
                     return false;
                 }

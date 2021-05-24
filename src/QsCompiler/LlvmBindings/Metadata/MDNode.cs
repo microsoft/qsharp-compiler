@@ -32,13 +32,13 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                ThrowIfDeleted();
-                return GetMetadataContext(MetadataHandle);
+                this.ThrowIfDeleted();
+                return GetMetadataContext(this.MetadataHandle);
             }
         }
 
         /// <summary>Gets a value indicating whether this node was deleted</summary>
-        public bool IsDeleted => MetadataHandle == default;
+        public bool IsDeleted => this.MetadataHandle == default;
 
         /// <summary>Gets the operands for this node, if any</summary>
         public MetadataOperandCollection Operands { get; }
@@ -47,19 +47,19 @@ namespace Ubiquity.NET.Llvm
         /// <param name="other">Node to replace this one with</param>
         public override void ReplaceAllUsesWith(LlvmMetadata other)
         {
-            if (MetadataHandle == default)
+            if (this.MetadataHandle == default)
             {
                 throw new InvalidOperationException();
             }
 
             // grab the context before replacement as replace deletes and invalidates the node
-            var context = Context;
+            var context = this.Context;
             this.MetadataHandle.ReplaceAllUsesWith(other.MetadataHandle);
 
             // remove current node mapping from the context.
             // It won't be valid for use after clearing the handle
             context!.RemoveDeletedNode(this);
-            MetadataHandle = default;
+            this.MetadataHandle = default;
         }
 
         /// <summary>Gets an operand by index as a specific type</summary>
@@ -83,12 +83,12 @@ namespace Ubiquity.NET.Llvm
         /// <param name="index">Index of the operand</param>
         /// <returns>String value of the operand</returns>
         public string GetOperandString(int index)
-            => GetOperand<MDString>(index)?.ToString() ?? string.Empty;
+            => this.GetOperand<MDString>(index)?.ToString() ?? string.Empty;
 
         internal MDNode(LLVMMetadataRef handle)
             : base(handle)
         {
-            Operands = new MetadataOperandCollection(this);
+            this.Operands = new MetadataOperandCollection(this);
         }
 
         [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Context created here is owned, and disposed of via the ContextCache")]
@@ -100,7 +100,7 @@ namespace Ubiquity.NET.Llvm
 
         private void ThrowIfDeleted()
         {
-            if (IsDeleted)
+            if (this.IsDeleted)
             {
                 throw new InvalidOperationException("Cannot operate on a deleted node");
             }

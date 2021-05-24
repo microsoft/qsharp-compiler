@@ -15,28 +15,28 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIScope
     {
         /// <summary>Gets the name of the producer of this unit</summary>
-        public string Producer => GetOperandString(1);
+        public string Producer => this.GetOperandString(1);
 
         /// <summary>Gets the compilation flags for this unit</summary>
-        public string Flags => GetOperandString(2);
+        public string Flags => this.GetOperandString(2);
 
         /// <summary>Gets the split debug file name for this unit</summary>
-        public string SplitDebugFileName => GetOperandString(3);
+        public string SplitDebugFileName => this.GetOperandString(3);
 
         /// <summary>Gets the enum types in this unit</summary>
-        public DICompositeTypeArray EnumTypes => new DICompositeTypeArray(GetOperand<MDTuple>(4));
+        public DICompositeTypeArray EnumTypes => new DICompositeTypeArray(this.GetOperand<MDTuple>(4));
 
         /// <summary>Gets the retained types for this unit</summary>
-        public DIScopeArray RetainedTypes => new DIScopeArray(GetOperand<MDTuple>(5));
+        public DIScopeArray RetainedTypes => new DIScopeArray(this.GetOperand<MDTuple>(5));
 
         /// <summary>Gets the global variable expressions for this unit</summary>
-        public DIGlobalVariableExpressionArray GlobalVariables => new DIGlobalVariableExpressionArray(GetOperand<MDTuple>(6));
+        public DIGlobalVariableExpressionArray GlobalVariables => new DIGlobalVariableExpressionArray(this.GetOperand<MDTuple>(6));
 
         /// <summary>Gets the imported entities for this unit</summary>
-        public DIImportedEntityArray ImportedEntities => new DIImportedEntityArray(GetOperand<MDTuple>(7));
+        public DIImportedEntityArray ImportedEntities => new DIImportedEntityArray(this.GetOperand<MDTuple>(7));
 
         /// <summary>Gets the macro information for the compile unit</summary>
-        public DIMacroNodeArray Macros => new DIMacroNodeArray(GetOperand<MDTuple>(8));
+        public DIMacroNodeArray Macros => new DIMacroNodeArray(this.GetOperand<MDTuple>(8));
 
         /// <summary>Initializes a new instance of the <see cref="DICompileUnit"/> class from a native <see cref="LLVMMetadataRef"/></summary>
         /// <param name="handle">native reference to wrap</param>

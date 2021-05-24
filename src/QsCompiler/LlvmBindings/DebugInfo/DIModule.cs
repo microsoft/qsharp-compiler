@@ -14,19 +14,19 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIScope
     {
         /// <inheritdoc/>
-        public override DIScope? Scope => GetOperand<DIScope>(0);
+        public override DIScope? Scope => this.GetOperand<DIScope>(0);
 
         /// <inheritdoc/>
-        public override string Name => GetOperandString(1);
+        public override string Name => this.GetOperandString(1);
 
         /// <summary>Gets the configuration macros for the module</summary>
-        public string ConfigurationMacros => GetOperandString(2);
+        public string ConfigurationMacros => this.GetOperandString(2);
 
         /// <summary>Gets the include path for the module</summary>
-        public string IncludePath => GetOperandString(3);
+        public string IncludePath => this.GetOperandString(3);
 
         /// <summary>Gets the ISysRoot for the module</summary>
-        public string SysRoot => GetOperandString(4);
+        public string SysRoot => this.GetOperandString(4);
 
         internal DIModule(LLVMMetadataRef handle)
             : base(handle)

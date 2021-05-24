@@ -64,13 +64,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         }
 
         /// <inheritdoc/>
-        public bool IsVarArg => NativeType.IsVarArg;
+        public bool IsVarArg => this.NativeType.IsVarArg;
 
         /// <inheritdoc/>
-        public ITypeRef ReturnType => NativeType.ReturnType;
+        public ITypeRef ReturnType => this.NativeType.ReturnType;
 
         /// <inheritdoc/>
-        public IReadOnlyList<ITypeRef> ParameterTypes => NativeType.ParameterTypes;
+        public IReadOnlyList<ITypeRef> ParameterTypes => this.NativeType.ParameterTypes;
 
         /// <summary>
         /// Initializes a new instance of the <see cref="DebugFunctionType"/> class from an LLVM type and <see cref="DISubroutineType"/></summary>

@@ -55,24 +55,24 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                       file,
                       line))
         {
-            DebugMembers = new ReadOnlyCollection<DebugMemberInfo>(members as IList<DebugMemberInfo> ?? members.ToList());
+            this.DebugMembers = new ReadOnlyCollection<DebugMemberInfo>(members as IList<DebugMemberInfo> ?? members.ToList());
 
-            var memberTypes = from memberInfo in DebugMembers
-                              select CreateMemberType(module, memberInfo);
+            var memberTypes = from memberInfo in this.DebugMembers
+                              select this.CreateMemberType(module, memberInfo);
 
             var concreteType = module.DIBuilder.CreateStructType(
                 scope: scope,
                 name: sourceName,
                 file: file,
                 line: line,
-                bitSize: bitSize ?? module.Layout.BitSizeOf(NativeType),
+                bitSize: bitSize ?? module.Layout.BitSizeOf(this.NativeType),
                 bitAlign: bitAlignment,
                 debugFlags: debugFlags,
                 derivedFrom: derivedFrom,
                 elements: memberTypes);
 
             // assignment performs RAUW
-            DIType = concreteType;
+            this.DIType = concreteType;
         }
 
         /// <summary>Initializes a new instance of the <see cref="DebugStructType"/> class.</summary>
@@ -171,30 +171,30 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         }
 
         /// <summary>Gets a value indicating whether the type is Opaque (e.g. has no body)</summary>
-        public bool IsOpaque => NativeType.IsOpaque;
+        public bool IsOpaque => this.NativeType.IsOpaque;
 
         /// <inheritdoc/>
-        public bool IsPacked => NativeType.IsPacked;
+        public bool IsPacked => this.NativeType.IsPacked;
 
         /// <summary>Gets the members of the type</summary>
-        public IReadOnlyList<ITypeRef> Members => NativeType.Members;
+        public IReadOnlyList<ITypeRef> Members => this.NativeType.Members;
 
         /// <summary>Gets the name of the type</summary>
-        public string Name => NativeType.Name ?? string.Empty;
+        public string Name => this.NativeType.Name ?? string.Empty;
 
         /// <summary>Gets the Source/Debug name</summary>
-        public string SourceName => DIType?.Name ?? string.Empty;
+        public string SourceName => this.DIType?.Name ?? string.Empty;
 
         /// <inheritdoc/>
         public void SetBody(bool packed, params ITypeRef[] elements)
         {
-            NativeType.SetBody(packed, elements);
+            this.NativeType.SetBody(packed, elements);
         }
 
         /// <inheritdoc/>
         public void SetBody(bool packed, IEnumerable<ITypeRef> elements)
         {
-            NativeType.SetBody(packed, elements);
+            this.NativeType.SetBody(packed, elements);
         }
 
         /// <summary>Set the body of a type</summary>
@@ -216,7 +216,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             var debugMembersArray = debugElements as IList<DebugMemberInfo> ?? debugElements.ToList();
             var nativeElements = debugMembersArray.Select(e => e.DebugType.NativeType);
-            SetBody(packed, module, scope, file, line, debugFlags, nativeElements, debugMembersArray);
+            this.SetBody(packed, module, scope, file, line, debugFlags, nativeElements, debugMembersArray);
         }
 
         /// <summary>Set the body of a type</summary>
@@ -244,22 +244,22 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             uint? bitSize = null,
             uint bitAlignment = 0)
         {
-            DebugMembers = new ReadOnlyCollection<DebugMemberInfo>(debugElements as IList<DebugMemberInfo> ?? debugElements.ToList());
-            SetBody(packed, nativeElements.ToArray());
-            var memberTypes = from memberInfo in DebugMembers
-                              select CreateMemberType(module, memberInfo);
+            this.DebugMembers = new ReadOnlyCollection<DebugMemberInfo>(debugElements as IList<DebugMemberInfo> ?? debugElements.ToList());
+            this.SetBody(packed, nativeElements.ToArray());
+            var memberTypes = from memberInfo in this.DebugMembers
+                              select this.CreateMemberType(module, memberInfo);
 
             var concreteType = module.DIBuilder.CreateStructType(
                 scope: scope,
-                name: DIType?.Name ?? string.Empty,
+                name: this.DIType?.Name ?? string.Empty,
                 file: file,
                 line: line,
-                bitSize: bitSize ?? module.Layout.BitSizeOf(NativeType),
+                bitSize: bitSize ?? module.Layout.BitSizeOf(this.NativeType),
                 bitAlign: bitAlignment,
                 debugFlags: debugFlags,
                 derivedFrom: derivedFrom,
                 elements: memberTypes);
-            DIType = concreteType;
+            this.DIType = concreteType;
         }
 
         /// <summary>Gets a list of descriptors for each members</summary>
@@ -267,7 +267,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         private DIDerivedType CreateMemberType(BitcodeModule module, DebugMemberInfo memberInfo)
         {
-            if (DIType == null)
+            if (this.DIType == null)
             {
                 throw new InvalidOperationException();
             }
@@ -288,11 +288,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             {
                 bitSize = module.Layout.BitSizeOf(memberInfo.DebugType.NativeType);
                 bitAlign = 0;
-                bitOffset = module.Layout.BitOffsetOfElement(NativeType, memberInfo.Index);
+                bitOffset = module.Layout.BitOffsetOfElement(this.NativeType, memberInfo.Index);
             }
 
             return module.DIBuilder.CreateMemberType(
-                scope: DIType,
+                scope: this.DIType,
                 name: memberInfo.Name,
                 file: memberInfo.File,
                 line: memberInfo.Line,
