@@ -933,13 +933,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// </remarks>
         public void Finish()
         {
-            if (IsFinished)
+            if (isFinished)
             {
                 return;
             }
 
             this.BuilderHandle.DIBuilderFinalize();
-            this.IsFinished = true;
+            this.isFinished = true;
         }
 
         /// <summary>Inserts an llvm.dbg.declare instruction before the given instruction</summary>
@@ -1270,6 +1270,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             OwningModule = owningModule;
         }
 
-        private bool IsFinished;
+        private bool isFinished;
     }
 }

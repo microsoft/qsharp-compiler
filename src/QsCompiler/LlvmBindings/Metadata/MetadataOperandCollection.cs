@@ -34,7 +34,7 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                var valueHandle = this.Container.Context.ContextHandle.MetadataAsValue(Container.MetadataHandle);
+                var valueHandle = this.container.Context.ContextHandle.MetadataAsValue(container.MetadataHandle);
                 return checked((int)valueHandle.GetMDNodeNumOperands());
             }
         }
@@ -72,7 +72,7 @@ namespace Ubiquity.NET.Llvm
             }
 
             var node = operand.ValueHandle.ValueAsMetadata();
-            return LlvmMetadata.FromHandle<TItem>(this.Container.Context, node);
+            return LlvmMetadata.FromHandle<TItem>(this.container.Context, node);
         }
 
         /// <summary>Indexer to get the element as a <see cref="Value"/>.</summary>
@@ -82,7 +82,7 @@ namespace Ubiquity.NET.Llvm
         public Value? GetOperandValue(Index i)
         {
             var offset = i.GetOffset(this.Count);
-            var valueHandle = this.Container.Context.ContextHandle.MetadataAsValue(this.Container.MetadataHandle);
+            var valueHandle = this.container.Context.ContextHandle.MetadataAsValue(this.container.MetadataHandle);
             var operands = valueHandle.GetMDNodeOperands();
 
             if (offset >= operands.Length)
@@ -102,9 +102,9 @@ namespace Ubiquity.NET.Llvm
 
         internal MetadataOperandCollection(MDNode container)
         {
-            Container = container;
+            this.container = container;
         }
 
-        private readonly MDNode Container;
+        private readonly MDNode container;
     }
 }

@@ -64,13 +64,13 @@ namespace Ubiquity.NET.Llvm
     {
         private LLVMModuleRef moduleHandle;
 
-        private readonly Lazy<DebugInfoBuilder> LazyDiBuilder;
+        private readonly Lazy<DebugInfoBuilder> lazyDiBuilder;
 
         private BitcodeModule(LLVMModuleRef handle)
         {
             this.moduleHandle = handle;
             this.Context = ContextCache.GetContextFor(handle.Context);
-            this.LazyDiBuilder = new Lazy<DebugInfoBuilder>(() => new DebugInfoBuilder(this));
+            this.lazyDiBuilder = new Lazy<DebugInfoBuilder>(() => new DebugInfoBuilder(this));
         }
 
         /// <summary>Name of the Debug Version information module flag</summary>
@@ -129,7 +129,7 @@ namespace Ubiquity.NET.Llvm
             get
             {
                 ThrowIfDisposed();
-                return LazyDiBuilder.Value;
+                return lazyDiBuilder.Value;
             }
         }
 

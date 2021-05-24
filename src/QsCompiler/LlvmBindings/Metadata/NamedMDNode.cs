@@ -23,13 +23,13 @@ namespace Ubiquity.NET.Llvm
     public class NamedMDNode
     {
         /// <summary>Gets the name of the node</summary>
-        public string Name => this.NativeHandle.Name();
+        public string Name => this.nativeHandle.Name();
 
         internal NamedMDNode(LLVMNamedMDNodeRef nativeNode)
         {
-            NativeHandle = nativeNode;
+            nativeHandle = nativeNode;
         }
 
-        private readonly LLVMNamedMDNodeRef NativeHandle;
+        private readonly LLVMNamedMDNodeRef nativeHandle;
     }
 }

@@ -82,14 +82,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "DIType", Justification = "It is spelled correctly 8^)")]
         public TDebug? DIType
         {
-            get => RawDebugInfoType;
+            get => rawDebugInfoType;
             set
             {
                 TDebug v = value!;
-                if (RawDebugInfoType != null)
+                if (rawDebugInfoType != null)
                 {
-                    RawDebugInfoType.ReplaceAllUsesWith(v);
-                    RawDebugInfoType = v;
+                    rawDebugInfoType.ReplaceAllUsesWith(v);
+                    rawDebugInfoType = v;
                 }
                 else
                 {
@@ -106,9 +106,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <exception cref="InvalidOperationException">The native type was already set</exception>
         public TNative NativeType
         {
-            get => NativeType_.ValueOrDefault;
+            get => nativeType_.ValueOrDefault;
 
-            protected set => NativeType_.Value = value;
+            protected set => nativeType_.Value = value;
         }
 
         /// <summary>Gets an intentionally undocumented value</summary>
@@ -193,14 +193,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <inheritdoc/>
         public bool TryGetExtendedPropertyValue<TProperty>(string id, [MaybeNullWhen(false)] out TProperty value)
         {
-            return PropertyContainer.TryGetExtendedPropertyValue(id, out value)
+            return propertyContainer.TryGetExtendedPropertyValue(id, out value)
                 || NativeType.TryGetExtendedPropertyValue(id, out value);
         }
 
         /// <inheritdoc/>
         public void AddExtendedPropertyValue(string id, object? value)
         {
-            PropertyContainer.AddExtendedPropertyValue(id, value);
+            propertyContainer.AddExtendedPropertyValue(id, value);
         }
 
         /// <summary>Converts a <see cref="DebugType{TNative, TDebug}"/> to <typeparamref name="TDebug"/> by accessing the <see cref="DIType"/> property</summary>
@@ -210,11 +210,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         internal DebugType(TNative llvmType, TDebug? debugInfoType)
         {
-            NativeType_.Value = llvmType;
-            RawDebugInfoType = debugInfoType;
+            nativeType_.Value = llvmType;
+            rawDebugInfoType = debugInfoType;
         }
 
-        private TDebug? RawDebugInfoType;
+        private TDebug? rawDebugInfoType;
 
         // This can't be an auto property as the setter needs Enforce Set Once semantics
         [SuppressMessage(
@@ -222,9 +222,9 @@ namespace Ubiquity.NET.Llvm.DebugInfo
             "SA1310:Field names must not contain underscore",
             Justification = "Trailing _ indicates value MUST NOT be written to directly, even internally")
         ]
-        private readonly WriteOnce<TNative> NativeType_ = new WriteOnce<TNative>();
+        private readonly WriteOnce<TNative> nativeType_ = new WriteOnce<TNative>();
 
-        private readonly ExtensiblePropertyContainer PropertyContainer = new ExtensiblePropertyContainer();
+        private readonly ExtensiblePropertyContainer propertyContainer = new ExtensiblePropertyContainer();
     }
 
     /// <summary>Utility class to provide mix-in type extensions and support for Debug Types</summary>

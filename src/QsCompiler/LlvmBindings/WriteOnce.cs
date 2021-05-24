@@ -24,7 +24,7 @@ namespace Ubiquity.NET.Llvm
         /// <inheritdoc/>
         public override string ToString()
         {
-            return HasValue ? Convert.ToString(ActualValue, CultureInfo.CurrentCulture) : string.Empty;
+            return HasValue ? Convert.ToString(actualValue, CultureInfo.CurrentCulture) : string.Empty;
         }
 
         /// <summary>Gets or sets the value for this instance</summary>
@@ -40,7 +40,7 @@ namespace Ubiquity.NET.Llvm
                     throw new InvalidOperationException();
                 }
 
-                return ActualValue;
+                return actualValue;
             }
 
             set
@@ -50,7 +50,7 @@ namespace Ubiquity.NET.Llvm
                     throw new InvalidOperationException();
                 }
 
-                ActualValue = value;
+                actualValue = value;
                 HasValue = true;
             }
         }
@@ -64,7 +64,7 @@ namespace Ubiquity.NET.Llvm
         /// <returns>This instance for fluent style use</returns>
         public WriteOnce<T> InitializeWith(Initializer initializer)
         {
-            initializer(out ActualValue);
+            initializer(out actualValue);
             HasValue = true;
             return this;
         }
@@ -73,13 +73,13 @@ namespace Ubiquity.NET.Llvm
         public bool HasValue { get; private set; }
 
         /// <summary>Gets the current value or the default value for <typeparamref name="T"/> if not yet set</summary>
-        public T ValueOrDefault => ActualValue;
+        public T ValueOrDefault => actualValue;
 
         /// <summary>Convenience implicit cast as a wrapper around the <see cref="Value"/> parameter</summary>
         /// <param name="value"> <see cref="WriteOnce{T}"/> instance to extract a value from</param>
         [return: MaybeNull]
         public static implicit operator T(WriteOnce<T> value) => value.Value;
 
-        private T ActualValue = default!;
+        private T actualValue = default!;
     }
 }

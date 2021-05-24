@@ -21,9 +21,9 @@ namespace Ubiquity.NET.Llvm
         /// <inheritdoc/>
         public void AddExtendedPropertyValue(string id, object? value)
         {
-            lock (Items)
+            lock (items)
             {
-                if (Items.TryGetValue(id, out object? currentValue))
+                if (items.TryGetValue(id, out object? currentValue))
                 {
                     if (currentValue != null && value != null && currentValue.GetType() != value.GetType())
                     {
@@ -31,7 +31,7 @@ namespace Ubiquity.NET.Llvm
                     }
                 }
 
-                Items[id] = value;
+                items[id] = value;
             }
         }
 
@@ -40,9 +40,9 @@ namespace Ubiquity.NET.Llvm
         {
             value = default!;
             object? item;
-            lock (Items)
+            lock (items)
             {
-                if (!Items.TryGetValue(id, out item))
+                if (!items.TryGetValue(id, out item))
                 {
                     return false;
                 }
@@ -57,6 +57,6 @@ namespace Ubiquity.NET.Llvm
             return true;
         }
 
-        private readonly Dictionary<string, object?> Items = new Dictionary<string, object?>();
+        private readonly Dictionary<string, object?> items = new Dictionary<string, object?>();
     }
 }

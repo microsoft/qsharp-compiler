@@ -111,10 +111,10 @@ namespace Ubiquity.NET.Llvm.Types
         }
 
         public bool TryGetExtendedPropertyValue<T>(string id, [MaybeNullWhen(false)] out T value)
-            => this.ExtensibleProperties.TryGetExtendedPropertyValue(id, out value);
+            => this.extensibleProperties.TryGetExtendedPropertyValue(id, out value);
 
         public void AddExtendedPropertyValue(string id, object? value)
-            => this.ExtensibleProperties.AddExtendedPropertyValue(id, value);
+            => this.extensibleProperties.AddExtendedPropertyValue(id, value);
 
         /// <summary>Builds a string representation for this type in LLVM assembly language form.</summary>
         /// <returns>Formatted string for this type.</returns>
@@ -165,6 +165,6 @@ namespace Ubiquity.NET.Llvm.Types
             }
         }
 
-        private readonly ExtensiblePropertyContainer ExtensibleProperties = new ExtensiblePropertyContainer();
+        private readonly ExtensiblePropertyContainer extensibleProperties = new ExtensiblePropertyContainer();
     }
 }
