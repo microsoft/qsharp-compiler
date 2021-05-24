@@ -23,9 +23,9 @@ namespace LLVMSharp.Interop
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.PointerSizeForAS"/>.</summary>
-        public static uint PointerSizeForAS(this LLVMTargetDataRef self, uint AS)
+        public static uint PointerSizeForAS(this LLVMTargetDataRef self, uint aS)
         {
-            return LLVM.PointerSizeForAS(self, AS);
+            return LLVM.PointerSizeForAS(self, aS);
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.CopyStringRepOfTargetData"/>.</summary>

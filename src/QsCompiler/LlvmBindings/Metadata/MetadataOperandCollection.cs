@@ -53,7 +53,6 @@ namespace Ubiquity.NET.Llvm
         /// <returns>Enumerator of operands</returns>
         IEnumerator IEnumerable.GetEnumerator() => this.GetEnumerator();
 
-        /// <inheritdoc/>
         public bool Contains(LlvmMetadata? item) => this.Any(n => n == item);
 
         /// <summary>Specialized indexer to get the element as a specific derived type</summary>
