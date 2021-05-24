@@ -21,10 +21,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DISubProgram? SubProgram => this is DILexicalBlockBase block ? block.LocalScope?.SubProgram : this as DISubProgram;
 
         /// <summary>Gets the first non-<see cref="DILexicalBlockFile"/> scope in the chain of parent scopes</summary>
-        public DILocalScope FirstNonLexicalBlockFileScope => this is DILexicalBlockFile file ? file.FirstNonLexicalBlockFileScope : ( this );
+        public DILocalScope FirstNonLexicalBlockFileScope => this is DILexicalBlockFile file ? file.FirstNonLexicalBlockFileScope : this;
 
-        internal DILocalScope( LLVMMetadataRef handle )
-            : base( handle )
+        internal DILocalScope(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

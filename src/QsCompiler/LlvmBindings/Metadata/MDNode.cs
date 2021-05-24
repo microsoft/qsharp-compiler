@@ -31,8 +31,8 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                ThrowIfDeleted( );
-                return GetMetadataContext( MetadataHandle );
+                ThrowIfDeleted();
+                return GetMetadataContext(MetadataHandle);
             }
         }
 
@@ -44,9 +44,9 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Replace all uses of this node with a new node</summary>
         /// <param name="other">Node to replace this one with</param>
-        public override void ReplaceAllUsesWith( LlvmMetadata other )
+        public override void ReplaceAllUsesWith(LlvmMetadata other)
         {
-            if( MetadataHandle == default )
+            if (MetadataHandle == default)
             {
                 throw new InvalidOperationException();
             }
@@ -57,7 +57,7 @@ namespace Ubiquity.NET.Llvm
 
             // remove current node mapping from the context.
             // It won't be valid for use after clearing the handle
-            context!.RemoveDeletedNode( this );
+            context!.RemoveDeletedNode(this);
             MetadataHandle = default;
         }
 
@@ -67,13 +67,13 @@ namespace Ubiquity.NET.Llvm
         /// <returns>Operand</returns>
         /// <exception cref="InvalidCastException">When the operand is not castable to <typeparamref name="T"/></exception>
         /// <exception cref="ArgumentOutOfRangeException">When the index is out of range for the operands of this node</exception>
-        public T? GetOperand<T>( int index )
+        public T? GetOperand<T>(int index)
             where T : LlvmMetadata
         {
-            return this.Operands.GetOperand<T>( index );
+            return this.Operands.GetOperand<T>(index);
         }
 
-        public Value? GetOperandValue( int index )
+        public Value? GetOperandValue(int index)
         {
             return this.Operands.GetOperandValue(index);
         }
@@ -81,31 +81,31 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets a string operand by index</summary>
         /// <param name="index">Index of the operand</param>
         /// <returns>String value of the operand</returns>
-        public string GetOperandString( int index )
-            => GetOperand<MDString>( index )?.ToString( ) ?? string.Empty;
+        public string GetOperandString(int index)
+            => GetOperand<MDString>(index)?.ToString() ?? string.Empty;
 
-        internal MDNode( LLVMMetadataRef handle )
-            : base( handle )
+        internal MDNode(LLVMMetadataRef handle)
+            : base(handle)
         {
-            Operands = new MetadataOperandCollection( this );
+            Operands = new MetadataOperandCollection(this);
         }
 
-        [SuppressMessage( "Reliability", "CA2000:Dispose objects before losing scope", Justification = "Context created here is owned, and disposed of via the ContextCache" )]
-        internal static T? FromHandle<T>( LLVMMetadataRef handle )
+        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Context created here is owned, and disposed of via the ContextCache")]
+        internal static T? FromHandle<T>(LLVMMetadataRef handle)
             where T : MDNode
         {
-            return handle == default ? null : FromHandle<T>( GetMetadataContext( handle ), handle );
+            return handle == default ? null : FromHandle<T>(GetMetadataContext(handle), handle);
         }
 
-        private void ThrowIfDeleted( )
+        private void ThrowIfDeleted()
         {
-            if( IsDeleted )
+            if (IsDeleted)
             {
-                throw new InvalidOperationException( "Cannot operate on a deleted node" );
+                throw new InvalidOperationException("Cannot operate on a deleted node");
             }
         }
 
-        private static Context GetMetadataContext( LLVMMetadataRef metadataHandle )
+        private static Context GetMetadataContext(LLVMMetadataRef metadataHandle)
         {
             // Q#: we currently expect exactly one context, since we have no way
             // to map an LLVM Metadata to its context (this was done in Ubiquity via a custom

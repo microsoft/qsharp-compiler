@@ -15,8 +15,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     /// <summary>Provides debug information binding between an <see cref="IArrayType"/> and a <see cref="DICompositeType"/></summary>
     /// <seealso href="xref:llvm_langref#dicompositetype">DICompositeType</seealso>
     public class DebugArrayType
-        : DebugType<IArrayType, DICompositeType>
-        , IArrayType
+        : DebugType<IArrayType, DICompositeType>,
+        IArrayType
     {
         /// <summary>Initializes a new instance of the <see cref="DebugArrayType"/> class</summary>
         /// <param name="llvmType">Underlying LLVM array type to bind debug info to</param>
@@ -25,14 +25,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="count">Number of elements in the array</param>
         /// <param name="lowerBound">Lower bound of the array [default = 0]</param>
         /// <param name="alignment">Alignment for the type</param>
-        public DebugArrayType( IArrayType llvmType
-                             , IDebugType<ITypeRef, DIType> elementType
-                             , BitcodeModule module
-                             , uint count
-                             , uint lowerBound = 0
-                             , uint alignment = 0
-                             )
-            : base( llvmType, BuildDebugType( llvmType, elementType, module, count, lowerBound, alignment ) )
+        public DebugArrayType(
+            IArrayType llvmType,
+            IDebugType<ITypeRef, DIType> elementType,
+            BitcodeModule module,
+            uint count,
+            uint lowerBound = 0,
+            uint alignment = 0)
+            : base(llvmType, BuildDebugType(llvmType, elementType, module, count, lowerBound, alignment))
         {
             DebugElementType = elementType;
         }
@@ -42,13 +42,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="module"><see cref="BitcodeModule"/> to use for the context of the debug information</param>
         /// <param name="count">Number of elements in the array</param>
         /// <param name="lowerBound"><see cref="LowerBound"/> value for the array indices [Default: 0]</param>
-        public DebugArrayType( IDebugType<ITypeRef, DIType> elementType, BitcodeModule module, uint count, uint lowerBound = 0 )
-            : this( elementType.CreateArrayType( count )
-                  , elementType
-                  , module
-                  , count
-                  , lowerBound
-                  )
+        public DebugArrayType(IDebugType<ITypeRef, DIType> elementType, BitcodeModule module, uint count, uint lowerBound = 0)
+            : this(
+                elementType.CreateArrayType(count),
+                elementType,
+                module,
+                count,
+                lowerBound)
         {
         }
 
@@ -58,8 +58,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="elementType">Debug type of the array elements</param>
         /// <param name="count">Number of elements in the array</param>
         /// <param name="lowerBound"><see cref="LowerBound"/> value for the array indices [Default: 0]</param>
-        public DebugArrayType( IArrayType llvmType, BitcodeModule module, DIType elementType, uint count, uint lowerBound = 0 )
-            : this( DebugType.Create( llvmType.ElementType, elementType ), module, count, lowerBound )
+        public DebugArrayType(IArrayType llvmType, BitcodeModule module, DIType elementType, uint count, uint lowerBound = 0)
+            : this(DebugType.Create(llvmType.ElementType, elementType), module, count, lowerBound)
         {
         }
 
@@ -78,56 +78,56 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Resolves a temporary metadata node for the array if full size information wasn't available at creation time</summary>
         /// <param name="layout">Type layout information</param>
         /// <param name="diBuilder">Debug information builder for creating the new debug information</param>
-        public void ResolveTemporary( DataLayout layout, DebugInfoBuilder diBuilder )
+        public void ResolveTemporary(DataLayout layout, DebugInfoBuilder diBuilder)
         {
-            if( layout == null )
+            if (layout == null)
             {
-                throw new ArgumentNullException( nameof( layout ) );
+                throw new ArgumentNullException(nameof(layout));
             }
 
-            if( diBuilder == null )
+            if (diBuilder == null)
             {
-                throw new ArgumentNullException( nameof( diBuilder ) );
+                throw new ArgumentNullException(nameof(diBuilder));
             }
 
-            if( DIType != null )
+            if (DIType != null)
             {
-                DIType = diBuilder.CreateArrayType( layout.BitSizeOf( NativeType )
-                                                  , layout.AbiBitAlignmentOf( NativeType )
-                                                  , DebugElementType.DIType!
-                                                  , diBuilder.CreateSubRange( LowerBound, NativeType.Length )
-                                                  );
+                DIType = diBuilder.CreateArrayType(
+                    layout.BitSizeOf(NativeType),
+                    layout.AbiBitAlignmentOf(NativeType),
+                    DebugElementType.DIType!,
+                    diBuilder.CreateSubRange(LowerBound, NativeType.Length));
             }
         }
 
-        private static DICompositeType BuildDebugType( IArrayType llvmType
-                                                     , IDebugType<ITypeRef, DIType> elementType
-                                                     ,  BitcodeModule module
-                                                     , uint count
-                                                     , uint lowerBound
-                                                     , uint alignment
-                                                     )
+        private static DICompositeType BuildDebugType(
+            IArrayType llvmType,
+            IDebugType<ITypeRef, DIType> elementType,
+            BitcodeModule module,
+            uint count,
+            uint lowerBound,
+            uint alignment)
         {
-            if( llvmType.ElementType.GetTypeRef( ) != elementType.GetTypeRef( ) )
+            if (llvmType.ElementType.GetTypeRef() != elementType.GetTypeRef())
             {
                 throw new ArgumentException();
             }
 
-            if( llvmType.IsSized )
+            if (llvmType.IsSized)
             {
-                return module.DIBuilder.CreateArrayType( module.Layout.BitSizeOf( llvmType )
-                                                       , alignment
-                                                       , elementType.DIType! // validated not null in constructor
-                                                       , module.DIBuilder.CreateSubRange( lowerBound, count )
-                                                       );
+                return module.DIBuilder.CreateArrayType(
+                    module.Layout.BitSizeOf(llvmType),
+                    alignment,
+                    elementType.DIType!, // validated not null in constructor
+                    module.DIBuilder.CreateSubRange(lowerBound, count));
             }
 
-            return module.DIBuilder.CreateReplaceableCompositeType( Tag.ArrayType
-                                                                  , string.Empty
-                                                                  , module.DICompileUnit ?? default
-                                                                  , default
-                                                                  , 0
-                                                                  );
+            return module.DIBuilder.CreateReplaceableCompositeType(
+                Tag.ArrayType,
+                string.Empty,
+                module.DICompileUnit ?? default,
+                default,
+                0);
         }
     }
 }

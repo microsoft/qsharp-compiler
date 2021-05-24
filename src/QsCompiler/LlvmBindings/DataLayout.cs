@@ -66,12 +66,12 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Retrieves the size of a pointer for a given address space of the target</summary>
         /// <param name="addressSpace">Address space for the pointer</param>
         /// <returns>Size of a pointer</returns>
-        public uint PointerSize( uint addressSpace ) => this.DataLayoutHandle.PointerSizeForAS(addressSpace);
+        public uint PointerSize(uint addressSpace) => this.DataLayoutHandle.PointerSizeForAS(addressSpace);
 
         /// <summary>Retrieves an LLVM integer type with the same bit width as a pointer for the default address space of the target</summary>
         /// <param name="context">LLVM <see cref="Context"/> that owns the definition of the pointer type to retrieve</param>
         /// <returns>Integer type matching the bit width of a native pointer in the target's default address space</returns>
-        public ITypeRef IntPtrType( Context context )
+        public ITypeRef IntPtrType(Context context)
         {
             LLVMTypeRef typeRef = context.ContextHandle.GetIntPtrType(this.DataLayoutHandle);
             return TypeRef.FromHandle(typeRef)!;
@@ -82,9 +82,9 @@ namespace Ubiquity.NET.Llvm
         /// <param name="context">LLVM <see cref="Context"/> that owns the definition of the pointer type to retrieve</param>
         /// <param name="addressSpace">Address space for the pointer</param>
         /// <returns>Integer type matching the bit width of a native pointer in the target's address space</returns>
-        public ITypeRef IntPtrType( Context context, uint addressSpace )
+        public ITypeRef IntPtrType(Context context, uint addressSpace)
         {
-            var typeHandle = context.ContextHandle.GetIntPtrTypeForAS(this.DataLayoutHandle, addressSpace );
+            var typeHandle = context.ContextHandle.GetIntPtrTypeForAS(this.DataLayoutHandle, addressSpace);
             return TypeRef.FromHandle(typeHandle)!;
         }
 
@@ -96,9 +96,9 @@ namespace Ubiquity.NET.Llvm
         /// and stack size due to various target alignment requirements.</para>
         /// </remarks>
         /// <returns>Size of the type in bits</returns>
-        public ulong BitSizeOf( ITypeRef typeRef )
+        public ulong BitSizeOf(ITypeRef typeRef)
         {
-            VerifySized( typeRef, nameof( typeRef ) );
+            VerifySized(typeRef, nameof(typeRef));
             return this.DataLayoutHandle.SizeOfTypeInBits(typeRef.GetTypeRef());
         }
 
@@ -111,10 +111,10 @@ namespace Ubiquity.NET.Llvm
         /// storage size is whatever the minimum number of bits that the target requires to store a value
         /// of the given type)
         /// </remarks>
-        public ulong StoreSizeOf( ITypeRef typeRef )
+        public ulong StoreSizeOf(ITypeRef typeRef)
         {
-            VerifySized( typeRef, nameof( typeRef ) );
-            return this.DataLayoutHandle.StoreSizeOfType(typeRef.GetTypeRef( ));
+            VerifySized(typeRef, nameof(typeRef));
+            return this.DataLayoutHandle.StoreSizeOfType(typeRef.GetTypeRef());
         }
 
         /// <summary>Retrieves the ABI specified size of the given type</summary>
@@ -124,50 +124,50 @@ namespace Ubiquity.NET.Llvm
         /// Returns the offset in bytes between successive objects of the
         /// specified type, including alignment padding
         /// </remarks>
-        public ulong AbiSizeOf( ITypeRef typeRef )
+        public ulong AbiSizeOf(ITypeRef typeRef)
         {
-            VerifySized( typeRef, nameof( typeRef ) );
+            VerifySized(typeRef, nameof(typeRef));
             return this.DataLayoutHandle.ABISizeOfType(typeRef.GetTypeRef());
         }
 
         /// <summary>Retrieves the ABI specified alignment, in bytes, for a specified type</summary>
         /// <param name="typeRef">Type to get the alignment for</param>
         /// <returns>ABI specified alignment</returns>
-        public uint AbiAlignmentOf( ITypeRef typeRef )
+        public uint AbiAlignmentOf(ITypeRef typeRef)
         {
-            VerifySized( typeRef, nameof( typeRef ) );
+            VerifySized(typeRef, nameof(typeRef));
             return this.DataLayoutHandle.ABIAlignmentOfType(typeRef.GetTypeRef());
         }
 
         /// <summary>Retrieves the call frame alignment for a given type</summary>
         /// <param name="typeRef">type to get the alignment of</param>
         /// <returns>Alignment for the type</returns>
-        public uint CallFrameAlignmentOf( ITypeRef typeRef )
+        public uint CallFrameAlignmentOf(ITypeRef typeRef)
         {
-            VerifySized( typeRef, nameof( typeRef ) );
+            VerifySized(typeRef, nameof(typeRef));
             return this.DataLayoutHandle.CallFrameAlignmentOfType(typeRef.GetTypeRef());
         }
 
         /// <summary>Gets the preferred alignment for an LLVM type</summary>
         /// <param name="typeRef">Type to get the alignment of</param>
         /// <returns>Preferred alignment</returns>
-        public uint PreferredAlignmentOf( ITypeRef typeRef )
+        public uint PreferredAlignmentOf(ITypeRef typeRef)
         {
-            VerifySized( typeRef, nameof( typeRef ) );
+            VerifySized(typeRef, nameof(typeRef));
             return this.DataLayoutHandle.PreferredAlignmentOfType(typeRef.GetTypeRef());
         }
 
         /// <summary>Gets the preferred alignment for a <see cref="Value"/></summary>
         /// <param name="value">Value to get the alignment of</param>
         /// <returns>Preferred alignment</returns>
-        public uint PreferredAlignmentOf( Value value )
+        public uint PreferredAlignmentOf(Value value)
         {
-            if( value == null )
+            if (value == null)
             {
-                throw new ArgumentNullException( nameof( value ) );
+                throw new ArgumentNullException(nameof(value));
             }
 
-            VerifySized( value.NativeType, nameof( value ) );
+            VerifySized(value.NativeType, nameof(value));
             return this.DataLayoutHandle.PreferredAlignmentOfGlobal(value.ValueHandle);
         }
 
@@ -175,9 +175,9 @@ namespace Ubiquity.NET.Llvm
         /// <param name="structType">Type of the structure</param>
         /// <param name="offset">Offset to determine the index of</param>
         /// <returns>Index of the element</returns>
-        public ulong ElementAtOffset( IStructType structType, ulong offset )
+        public ulong ElementAtOffset(IStructType structType, ulong offset)
         {
-            VerifySized( structType, nameof( structType ) );
+            VerifySized(structType, nameof(structType));
             return this.DataLayoutHandle.ElementAtOffset(structType.GetTypeRef(), offset);
         }
 
@@ -185,9 +185,9 @@ namespace Ubiquity.NET.Llvm
         /// <param name="structType">Type of the structure</param>
         /// <param name="element">index of the element in the structure</param>
         /// <returns>Offset of the element from the beginning of the structure</returns>
-        public ulong OffsetOfElement( IStructType structType, uint element )
+        public ulong OffsetOfElement(IStructType structType, uint element)
         {
-            VerifySized( structType, nameof( structType ) );
+            VerifySized(structType, nameof(structType));
             return this.DataLayoutHandle.OffsetOfElement(structType.GetTypeRef(), element);
         }
 
@@ -199,40 +199,40 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets the byte size of a type</summary>
         /// <param name="llvmType">Type to determine the size of</param>
         /// <returns>Size of the type in bytes</returns>
-        public ulong ByteSizeOf( ITypeRef llvmType ) => BitSizeOf( llvmType ) / 8u;
+        public ulong ByteSizeOf(ITypeRef llvmType) => BitSizeOf(llvmType) / 8u;
 
         /// <summary>Gets the preferred alignment of the type in bits</summary>
         /// <param name="llvmType">Type to get the alignment of</param>
         /// <returns>Alignment of the type</returns>
-        public uint PreferredBitAlignmentOf( ITypeRef llvmType ) => PreferredAlignmentOf( llvmType ) * 8;
+        public uint PreferredBitAlignmentOf(ITypeRef llvmType) => PreferredAlignmentOf(llvmType) * 8;
 
         /// <summary>Gets the ABI alignment of the type in bits</summary>
         /// <param name="llvmType">Type to get the alignment of</param>
         /// <returns>Alignment of the type</returns>
-        public uint AbiBitAlignmentOf( ITypeRef llvmType ) => AbiAlignmentOf( llvmType ) * 8;
+        public uint AbiBitAlignmentOf(ITypeRef llvmType) => AbiAlignmentOf(llvmType) * 8;
 
         /// <summary>Gets the offset of a structure element in bits</summary>
         /// <param name="llvmType">Structure type to get the element offset of</param>
         /// <param name="element">Index of the element in the structure</param>
         /// <returns>Offset of the element in bits</returns>
-        public ulong BitOffsetOfElement( IStructType llvmType, uint element ) => OffsetOfElement( llvmType, element ) * 8;
+        public ulong BitOffsetOfElement(IStructType llvmType, uint element) => OffsetOfElement(llvmType, element) * 8;
 
-        internal DataLayout( LLVMTargetDataRef targetDataHandle )
+        internal DataLayout(LLVMTargetDataRef targetDataHandle)
         {
             DataLayoutHandle = targetDataHandle;
         }
 
-        internal static DataLayout FromHandle( LLVMTargetDataRef targetDataRef )
+        internal static DataLayout FromHandle(LLVMTargetDataRef targetDataRef)
         {
-            lock( TargetDataMap )
+            lock (TargetDataMap)
             {
-                if( TargetDataMap.TryGetValue( targetDataRef, out DataLayout retVal ) )
+                if (TargetDataMap.TryGetValue(targetDataRef, out DataLayout retVal))
                 {
                     return retVal;
                 }
 
-                retVal = new DataLayout( targetDataRef );
-                TargetDataMap.Add( targetDataRef, retVal );
+                retVal = new DataLayout(targetDataRef);
+                TargetDataMap.Add(targetDataRef, retVal);
 
                 return retVal;
             }
@@ -240,19 +240,19 @@ namespace Ubiquity.NET.Llvm
 
         internal LLVMTargetDataRef DataLayoutHandle { get; }
 
-        private static void VerifySized(ITypeRef type, string name )
+        private static void VerifySized(ITypeRef type, string name)
         {
-            if( type == null )
+            if (type == null)
             {
-                throw new ArgumentNullException( name );
+                throw new ArgumentNullException(name);
             }
 
-            if( !type.IsSized )
+            if (!type.IsSized)
             {
                 throw new ArgumentException();
             }
         }
 
-        private static readonly Dictionary<LLVMTargetDataRef, DataLayout> TargetDataMap = new Dictionary<LLVMTargetDataRef, DataLayout>( );
+        private static readonly Dictionary<LLVMTargetDataRef, DataLayout> TargetDataMap = new Dictionary<LLVMTargetDataRef, DataLayout>();
     }
 }

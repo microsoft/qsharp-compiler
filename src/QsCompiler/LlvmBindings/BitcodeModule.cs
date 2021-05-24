@@ -727,23 +727,23 @@ namespace Ubiquity.NET.Llvm
                 return this.GetOrCreateItem(hContext);
             }
 
-            public BitcodeModule CreateBitcodeModule(string moduleId
-                                                    , SourceLanguage language
-                                                    , string srcFilePath
-                                                    , string producer
-                                                    , bool optimized = false
-                                                    , string compilationFlags = ""
-                                                    , uint runtimeVersion = 0
-                                                    )
+            public BitcodeModule CreateBitcodeModule(
+                string moduleId,
+                SourceLanguage language,
+                string srcFilePath,
+                string producer,
+                bool optimized = false,
+                string compilationFlags = "",
+                uint runtimeVersion = 0)
             {
                 var retVal = CreateBitcodeModule(moduleId);
-                retVal.DICompileUnit = retVal.DIBuilder.CreateCompileUnit(language
-                                                                         , srcFilePath
-                                                                         , producer
-                                                                         , optimized
-                                                                         , compilationFlags
-                                                                         , runtimeVersion
-                                                                         );
+                retVal.DICompileUnit = retVal.DIBuilder.CreateCompileUnit(
+                    language,
+                    srcFilePath,
+                    producer,
+                    optimized,
+                    compilationFlags,
+                    runtimeVersion);
 
                 return retVal;
             }

@@ -15,7 +15,7 @@ namespace Ubiquity.NET.Llvm
         /// <param name="behavior">Behavior for the flag</param>
         /// <param name="name">Name of the flag</param>
         /// <param name="metadata">Metadata for the flag</param>
-        public ModuleFlag( ModuleFlagBehavior behavior, string name, LlvmMetadata metadata )
+        public ModuleFlag(ModuleFlagBehavior behavior, string name, LlvmMetadata metadata)
         {
             Behavior = behavior;
             Name = name;

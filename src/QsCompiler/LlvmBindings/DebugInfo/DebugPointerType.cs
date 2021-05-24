@@ -11,8 +11,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     /// <summary>Binding between a <see cref="DIDerivedType"/> and an <see cref="IPointerType"/></summary>
     /// <seealso href="xref:llvm_langref#diderivedtype">LLVM DIDerivedType</seealso>
     public class DebugPointerType
-        : DebugType<IPointerType, DIDerivedType>
-        , IPointerType
+        : DebugType<IPointerType, DIDerivedType>,
+        IPointerType
     {
         /// <summary>Initializes a new instance of the <see cref="DebugPointerType"/> class.</summary>
         /// <param name="debugElementType">Debug type of the pointee</param>
@@ -20,14 +20,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="addressSpace">Target address space for the pointer [Default: 0]</param>
         /// <param name="name">Name of the type [Default: null]</param>
         /// <param name="alignment">Alignment on pointer</param>
-        public DebugPointerType( IDebugType<ITypeRef, DIType> debugElementType, BitcodeModule module, uint addressSpace = 0, string? name = null, uint alignment = 0 )
-            : this( debugElementType.NativeType
-                  , module
-                  , debugElementType.DIType
-                  , addressSpace
-                  , name
-                  , alignment
-                  )
+        public DebugPointerType(IDebugType<ITypeRef, DIType> debugElementType, BitcodeModule module, uint addressSpace = 0, string? name = null, uint alignment = 0)
+            : this(
+                debugElementType.NativeType,
+                module,
+                debugElementType.DIType,
+                addressSpace,
+                name,
+                alignment)
         {
         }
 
@@ -38,13 +38,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="addressSpace">Target address space for the pointer [Default: 0]</param>
         /// <param name="name">Name of the type [Default: null]</param>
         /// <param name="alignment">Alignment of pointer</param>
-        public DebugPointerType( ITypeRef llvmElementType, BitcodeModule module, DIType? elementType, uint addressSpace = 0, string? name = null, uint alignment = 0 )
-            : this( llvmElementType.CreatePointerType( addressSpace )
-                  , module
-                  , elementType
-                  , name
-                  , alignment
-                  )
+        public DebugPointerType(ITypeRef llvmElementType, BitcodeModule module, DIType? elementType, uint addressSpace = 0, string? name = null, uint alignment = 0)
+            : this(
+                llvmElementType.CreatePointerType(addressSpace),
+                module,
+                elementType,
+                name,
+                alignment)
         {
         }
 
@@ -54,15 +54,15 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="elementType">Debug type of the pointee</param>
         /// <param name="name">Name of the type [Default: null]</param>
         /// <param name="alignment">Alignment for pointer type</param>
-        public DebugPointerType( IPointerType llvmPtrType, BitcodeModule module, DIType? elementType, string? name = null, uint alignment = 0 )
-            : base( llvmPtrType,
-                    module.DIBuilder
-                          .CreatePointerType( elementType
-                                            , name
-                                            , module.Layout.BitSizeOf( llvmPtrType )
-                                            , alignment
-                                            )
-                  )
+        public DebugPointerType(IPointerType llvmPtrType, BitcodeModule module, DIType? elementType, string? name = null, uint alignment = 0)
+            : base(
+                llvmPtrType,
+                module.DIBuilder
+                          .CreatePointerType(
+                              elementType,
+                              name,
+                              module.Layout.BitSizeOf(llvmPtrType),
+                              alignment))
         {
         }
 
@@ -76,8 +76,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// information in the LLVM Debug information (they are implicitly in the global
         /// namespace)
         /// </remarks>
-        public DebugPointerType( IPointerType llvmPtrType, DIDerivedType debugType )
-            : base( llvmPtrType, debugType )
+        public DebugPointerType(IPointerType llvmPtrType, DIDerivedType debugType)
+            : base(llvmPtrType, debugType)
         {
         }
 

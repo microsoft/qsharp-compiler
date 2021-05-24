@@ -16,10 +16,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIScope
     {
         /// <summary>Gets the containing scope for the type</summary>
-        public override DIScope? Scope => this.MetadataHandle == default ? null : GetOperand<DIScope>( 1 );
+        public override DIScope? Scope => this.MetadataHandle == default ? null : GetOperand<DIScope>(1);
 
         /// <summary>Gets the name of the type</summary>
-        public override string Name => this.MetadataHandle == default ? string.Empty : GetOperand<MDString>( 2 )?.ToString() ?? string.Empty;
+        public override string Name => this.MetadataHandle == default ? string.Empty : GetOperand<MDString>(2)?.ToString() ?? string.Empty;
 
         /// <summary>Gets the source line for the type</summary>
         public uint Line => this.MetadataHandle == default ? 0 : this.MetadataHandle.DITypeGetLine();
@@ -36,8 +36,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Gets the flags that describe the behaviors for</summary>
         public DebugInfoFlags DebugInfoFlags => this.MetadataHandle == default ? 0 : (DebugInfoFlags)this.MetadataHandle.DITypeGetFlags();
 
-        internal DIType( LLVMMetadataRef handle )
-            : base( handle )
+        internal DIType(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

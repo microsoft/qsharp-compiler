@@ -14,8 +14,8 @@ namespace Ubiquity.NET.Llvm
     /// </remarks>
     public class MDTuple : MDNode
     {
-        internal MDTuple( LLVMMetadataRef handle )
-            : base( handle )
+        internal MDTuple(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

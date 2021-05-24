@@ -12,8 +12,8 @@ namespace Ubiquity.NET.Llvm
     public class ValueAsMetadata
         : LlvmMetadata
     {
-        private protected ValueAsMetadata( LLVMMetadataRef handle )
-            : base( handle )
+        private protected ValueAsMetadata(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

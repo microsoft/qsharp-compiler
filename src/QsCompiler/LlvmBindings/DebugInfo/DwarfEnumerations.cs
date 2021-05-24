@@ -76,7 +76,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     }
 
     /// <summary>Tag kind for the debug information discriminated union nodes</summary>
-    [SuppressMessage( "Microsoft.Design", "CA1028:EnumStorageShouldBeInt32", Justification = "matches interop type from native code" )]
+    [SuppressMessage("Microsoft.Design", "CA1028:EnumStorageShouldBeInt32", Justification = "matches interop type from native code")]
     public enum Tag : ushort
     {
         None = 0,
@@ -226,7 +226,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     /// The three accessibility flags are mutually exclusive and rolled together
     /// in the first two bits.
     /// </remarks>
-    [SuppressMessage( "Microsoft.Naming", "CA1726:UsePreferredTerms", MessageId = "Flags", Justification = "Matches the underlying wrapped API" )]
+    [SuppressMessage("Microsoft.Naming", "CA1726:UsePreferredTerms", MessageId = "Flags", Justification = "Matches the underlying wrapped API")]
     [Flags]
     public enum DebugInfoFlags
     {
@@ -267,7 +267,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     }
 
     /// <summary>Debug information expression operator</summary>
-    [SuppressMessage( "Microsoft.Design", "CA1028:EnumStorageShouldBeInt32", Justification = "Matches underlying interop type" )]
+    [SuppressMessage("Microsoft.Design", "CA1028:EnumStorageShouldBeInt32", Justification = "Matches underlying interop type")]
     public enum ExpressionOp : long
     {
         Invalid = 0,

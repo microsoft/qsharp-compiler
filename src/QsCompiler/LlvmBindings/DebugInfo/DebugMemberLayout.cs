@@ -19,7 +19,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="bitSize">Size of the member in bits</param>
         /// <param name="bitAlignment">Alignment of the member in bits</param>
         /// <param name="bitOffset">Offset of the member in bits</param>
-        public DebugMemberLayout( ulong bitSize, uint bitAlignment, ulong bitOffset )
+        public DebugMemberLayout(ulong bitSize, uint bitAlignment, ulong bitOffset)
         {
             BitSize = bitSize;
             BitAlignment = bitAlignment;

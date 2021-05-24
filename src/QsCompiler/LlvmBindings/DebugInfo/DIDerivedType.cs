@@ -18,36 +18,36 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIType
     {
         /// <summary>Gets the base type of this type</summary>
-        public DIType BaseType => GetOperand<DIType>( 3 )!;
+        public DIType BaseType => GetOperand<DIType>(3)!;
 
         /// <summary>Gets the extra data, if any, attached to this derived type</summary>
-        public LlvmMetadata? ExtraData => Operands[ 4 ];
+        public LlvmMetadata? ExtraData => Operands[4];
 
         /// <summary>Gets the Class type extra data for a pointer to member type</summary>
-        public DIType? ClassType => GetOperand<DIType>( 4 );
+        public DIType? ClassType => GetOperand<DIType>(4);
 
         /// <summary>Gets the ObjCProperty extra data</summary>
-        public DIObjCProperty? ObjCProperty => GetOperand<DIObjCProperty>( 4 );
+        public DIObjCProperty? ObjCProperty => GetOperand<DIObjCProperty>(4);
 
         /// <summary>Gets the storage offset of the type in bits</summary>
         /// <remarks>This provides the bit offset for a bit field and is <see langword="null"/>
         /// if <see cref="DebugInfoFlags.BitField"/> is not set in <see cref="DebugInfoFlags"/>
         /// </remarks>
         public Constant? StorageOffsetInBits
-            => DebugInfoFlags.HasFlag( DebugInfoFlags.BitField )
-                    ? this.GetOperandValue( 4 ) as Constant
+            => DebugInfoFlags.HasFlag(DebugInfoFlags.BitField)
+                    ? this.GetOperandValue(4) as Constant
                     : null;
 
         /// <summary>Gets the constant for a static member</summary>
         public Constant? Constant
-            => DebugInfoFlags.HasFlag( DebugInfoFlags.StaticMember )
-                    ? this.GetOperandValue( 4 ) as Constant
+            => DebugInfoFlags.HasFlag(DebugInfoFlags.StaticMember)
+                    ? this.GetOperandValue(4) as Constant
                     : null;
 
         /// <summary>Initializes a new instance of the <see cref="DIDerivedType"/> class from an <see cref="LLVMMetadataRef"/></summary>
         /// <param name="handle">Handle to wrap</param>
-        internal DIDerivedType( LLVMMetadataRef handle )
-            : base( handle )
+        internal DIDerivedType(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

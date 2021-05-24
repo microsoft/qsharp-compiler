@@ -16,8 +16,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     {
         /// <summary>Initializes a new instance of the <see cref="DIBasicType"/> class.</summary>
         /// <param name="handle"><see cref="LLVMMetadataRef"/> for a  DIBasicType to wrap</param>
-        internal DIBasicType( LLVMMetadataRef handle )
-            : base( handle )
+        internal DIBasicType(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

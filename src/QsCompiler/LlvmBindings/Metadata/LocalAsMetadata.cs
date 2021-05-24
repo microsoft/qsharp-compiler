@@ -12,8 +12,8 @@ namespace Ubiquity.NET.Llvm
     public class LocalAsMetadata
         : ValueAsMetadata
     {
-        internal LocalAsMetadata( LLVMMetadataRef handle )
-            : base( handle )
+        internal LocalAsMetadata(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
 

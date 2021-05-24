@@ -13,8 +13,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DIExpression
         : MDNode
     {
-        internal DIExpression( LLVMMetadataRef handle )
-            : base( handle )
+        internal DIExpression(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

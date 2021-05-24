@@ -25,7 +25,7 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Gets the name of the node</summary>
         public string Name => this.NativeHandle.Name();
 
-        internal NamedMDNode( LLVMNamedMDNodeRef nativeNode )
+        internal NamedMDNode(LLVMNamedMDNodeRef nativeNode)
         {
             NativeHandle = nativeNode;
         }

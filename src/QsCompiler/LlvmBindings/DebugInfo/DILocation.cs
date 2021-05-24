@@ -17,8 +17,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="line">line number for the location</param>
         /// <param name="column">Column number for the location</param>
         /// <param name="scope">Containing scope for the location</param>
-        public DILocation( Context context, uint line, uint column, DILocalScope scope )
-            : this( context, line, column, scope, null )
+        public DILocation(Context context, uint line, uint column, DILocalScope scope)
+            : this(context, line, column, scope, null)
         {
         }
 
@@ -28,18 +28,17 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="column">Column number for the location</param>
         /// <param name="scope">Containing scope for the location</param>
         /// <param name="inlinedAt">Scope where this scope is inlined at/into</param>
-        public DILocation( Context context, uint line, uint column, DILocalScope scope, DILocation? inlinedAt )
-            : base( context.ContextHandle.CreateDebugLocation(line
-                                                    , column
-                                                    , scope.MetadataHandle
-                                                    , inlinedAt?.MetadataHandle ?? default
-                                                    )
-                  )
+        public DILocation(Context context, uint line, uint column, DILocalScope scope, DILocation? inlinedAt)
+            : base(context.ContextHandle.CreateDebugLocation(
+                line,
+                column,
+                scope.MetadataHandle,
+                inlinedAt?.MetadataHandle ?? default))
         {
         }
 
         /// <summary>Gets the scope for this location</summary>
-        public DILocalScope Scope => FromHandle<DILocalScope>( this.Context, this.MetadataHandle.DILocationGetScope())!;
+        public DILocalScope Scope => FromHandle<DILocalScope>(this.Context, this.MetadataHandle.DILocationGetScope())!;
 
         /// <summary>Gets the line for this location</summary>
         public uint Line => this.MetadataHandle.DILocationGetLine();
@@ -51,13 +50,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DILocation? InlinedAt => FromHandle<DILocation>(this.MetadataHandle.DILocationGetInlinedAt());
 
         /// <inheritdoc/>
-        public override string ToString( )
+        public override string ToString()
         {
             return $"{Scope.File}({Line},{Column})";
         }
 
-        internal DILocation( LLVMMetadataRef handle )
-            : base( handle )
+        internal DILocation(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

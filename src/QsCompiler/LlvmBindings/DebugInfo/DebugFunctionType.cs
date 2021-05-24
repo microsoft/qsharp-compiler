@@ -37,8 +37,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     /// </remarks>
     /// <seealso href="xref:llvm_langref#disubroutinetype">LLVM DISubroutineType</seealso>
     public class DebugFunctionType
-        : DebugType<IFunctionType, DISubroutineType>
-        , IFunctionType
+        : DebugType<IFunctionType, DISubroutineType>,
+        IFunctionType
     {
         /// <summary>Initializes a new instance of the <see cref="DebugFunctionType"/> class.</summary>
         /// <param name="llvmType">Native LLVM function signature</param>
@@ -46,19 +46,19 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="debugFlags"><see cref="DebugInfoFlags"/> for this signature</param>
         /// <param name="retType">Return type for the function</param>
         /// <param name="argTypes">Potentially empty set of argument types for the signature</param>
-        public DebugFunctionType( IFunctionType llvmType
-                                , BitcodeModule module
-                                , DebugInfoFlags debugFlags
-                                , IDebugType<ITypeRef, DIType> retType
-                                , params IDebugType<ITypeRef, DIType>[ ] argTypes
-                                )
-            : base( llvmType
-                  , module
-                          .DIBuilder.CreateSubroutineType( debugFlags
-                                                         , retType.DIType
-                                                         , argTypes.Select( t => t.DIType )
-                                                         )
-                  )
+        public DebugFunctionType(
+            IFunctionType llvmType,
+            BitcodeModule module,
+            DebugInfoFlags debugFlags,
+            IDebugType<ITypeRef, DIType> retType,
+            params IDebugType<ITypeRef, DIType>[] argTypes)
+            : base(
+                llvmType,
+                module
+                          .DIBuilder.CreateSubroutineType(
+                              debugFlags,
+                              retType.DIType,
+                              argTypes.Select(t => t.DIType)))
         {
         }
 
@@ -75,8 +75,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// Initializes a new instance of the <see cref="DebugFunctionType"/> class from an LLVM type and <see cref="DISubroutineType"/></summary>
         /// <param name="rawType">Raw native type</param>
         /// <param name="sub">Debug information to bind with the native type</param>
-        internal DebugFunctionType( IFunctionType rawType, DISubroutineType sub )
-            : base( rawType, sub )
+        internal DebugFunctionType(IFunctionType rawType, DISubroutineType sub)
+            : base(rawType, sub)
         {
         }
     }

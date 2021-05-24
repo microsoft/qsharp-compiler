@@ -12,8 +12,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DIMacroNode
         : MDNode
     {
-        internal DIMacroNode( LLVMMetadataRef handle )
-           : base( handle )
+        internal DIMacroNode(LLVMMetadataRef handle)
+           : base(handle)
         {
         }
     }

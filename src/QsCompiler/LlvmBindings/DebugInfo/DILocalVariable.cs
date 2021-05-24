@@ -14,10 +14,10 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DIVariable
     {
         /// <summary>Gets the local scope containing this variable</summary>
-        public new DILocalScope Scope => ( DILocalScope )base.Scope!;
+        public new DILocalScope Scope => (DILocalScope)base.Scope!;
 
-        internal DILocalVariable( LLVMMetadataRef handle )
-            : base( handle )
+        internal DILocalVariable(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

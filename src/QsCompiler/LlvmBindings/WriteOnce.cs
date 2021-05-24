@@ -18,13 +18,13 @@ namespace Ubiquity.NET.Llvm
     /// outside the context of a constructor, but once set should never be set again.
     /// Allowing a sort of lazy <see langword="readonly"/>.
     /// </remarks>
-    [DebuggerDisplay( "{" + nameof( ValueOrDefault ) + "}" )]
+    [DebuggerDisplay("{" + nameof(ValueOrDefault) + "}")]
     internal sealed class WriteOnce<T>
     {
         /// <inheritdoc/>
-        public override string ToString( )
+        public override string ToString()
         {
-            return HasValue ? Convert.ToString( ActualValue, CultureInfo.CurrentCulture ) : string.Empty;
+            return HasValue ? Convert.ToString(ActualValue, CultureInfo.CurrentCulture) : string.Empty;
         }
 
         /// <summary>Gets or sets the value for this instance</summary>
@@ -35,7 +35,7 @@ namespace Ubiquity.NET.Llvm
         {
             get
             {
-                if( !HasValue )
+                if (!HasValue)
                 {
                     throw new InvalidOperationException();
                 }
@@ -45,7 +45,7 @@ namespace Ubiquity.NET.Llvm
 
             set
             {
-                if( HasValue )
+                if (HasValue)
                 {
                     throw new InvalidOperationException();
                 }
@@ -57,14 +57,14 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Initializer</summary>
         /// <param name="value">value to initialize</param>
-        public delegate void Initializer( out T value );
+        public delegate void Initializer(out T value);
 
         /// <summary>Initializes the value via a delegate using an out parameter</summary>
         /// <param name="initializer">delegate to initialize the value from</param>
         /// <returns>This instance for fluent style use</returns>
-        public WriteOnce<T> InitializeWith( Initializer initializer )
+        public WriteOnce<T> InitializeWith(Initializer initializer)
         {
-            initializer( out ActualValue );
+            initializer(out ActualValue);
             HasValue = true;
             return this;
         }
@@ -78,7 +78,7 @@ namespace Ubiquity.NET.Llvm
         /// <summary>Convenience implicit cast as a wrapper around the <see cref="Value"/> parameter</summary>
         /// <param name="value"> <see cref="WriteOnce{T}"/> instance to extract a value from</param>
         [return: MaybeNull]
-        public static implicit operator T( WriteOnce<T> value ) => value.Value;
+        public static implicit operator T(WriteOnce<T> value) => value.Value;
 
         private T ActualValue = default!;
     }

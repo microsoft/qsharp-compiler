@@ -23,9 +23,9 @@ namespace Ubiquity.NET.Llvm
         : IOperandCollection<LlvmMetadata?>
     {
         /// <inheritdoc/>
-        public LlvmMetadata? this[ int index ]
+        public LlvmMetadata? this[int index]
         {
-            get => GetOperand<LlvmMetadata>( index );
+            get => GetOperand<LlvmMetadata>(index);
         }
 
         /// <summary>Gets the count of operands in this collection</summary>
@@ -40,20 +40,20 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Gets an enumerator for the operands in this collection</summary>
         /// <returns>Enumerator of operands</returns>
-        public IEnumerator<LlvmMetadata?> GetEnumerator( )
+        public IEnumerator<LlvmMetadata?> GetEnumerator()
         {
-            for( int i = 0; i < Count; ++i )
+            for (int i = 0; i < Count; ++i)
             {
-                yield return GetOperand<LlvmMetadata>( i );
+                yield return GetOperand<LlvmMetadata>(i);
             }
         }
 
         /// <summary>Gets an enumerator for the operands in this collection</summary>
         /// <returns>Enumerator of operands</returns>
-        IEnumerator IEnumerable.GetEnumerator( ) => GetEnumerator( );
+        IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
         /// <inheritdoc/>
-        public bool Contains( LlvmMetadata? item ) => this.Any( n => n == item );
+        public bool Contains(LlvmMetadata? item) => this.Any(n => n == item);
 
         /// <summary>Specialized indexer to get the element as a specific derived type</summary>
         /// <typeparam name="TItem">Type of the element (must be derived from <see cref="LlvmMetadata"/></typeparam>
@@ -61,7 +61,7 @@ namespace Ubiquity.NET.Llvm
         /// <returns>Item at the specified index</returns>
         /// <exception cref="ArgumentOutOfRangeException">index is out of range for the collection</exception>
         /// <exception cref="InvalidCastException">If the element at the index is not castable to <typeparamref name="TItem"/></exception>
-        public TItem? GetOperand<TItem>( Index i )
+        public TItem? GetOperand<TItem>(Index i)
             where TItem : LlvmMetadata
         {
             var operand = this.GetOperandValue(i);
@@ -71,7 +71,7 @@ namespace Ubiquity.NET.Llvm
             }
 
             var node = operand.ValueHandle.ValueAsMetadata();
-            return LlvmMetadata.FromHandle<TItem>( this.Container.Context, node );
+            return LlvmMetadata.FromHandle<TItem>(this.Container.Context, node);
         }
 
         /// <summary>Indexer to get the element as a <see cref="Value"/>.</summary>
@@ -99,7 +99,7 @@ namespace Ubiquity.NET.Llvm
             return Value.FromHandle(operand);
         }
 
-        internal MetadataOperandCollection( MDNode container )
+        internal MetadataOperandCollection(MDNode container)
         {
             Container = container;
         }

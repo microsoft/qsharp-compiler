@@ -23,8 +23,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DIExpression Expression
             => FromHandle<DIExpression>(this.MetadataHandle.DIGlobalVariableExpressionGetExpression())!;
 
-        internal DIGlobalVariableExpression( LLVMMetadataRef handle )
-            : base( handle )
+        internal DIGlobalVariableExpression(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

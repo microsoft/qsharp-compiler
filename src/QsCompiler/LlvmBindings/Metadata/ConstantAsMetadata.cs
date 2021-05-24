@@ -13,8 +13,8 @@ namespace Ubiquity.NET.Llvm
     public class ConstantAsMetadata
         : ValueAsMetadata
     {
-        internal ConstantAsMetadata( LLVMMetadataRef handle )
-            : base( handle )
+        internal ConstantAsMetadata(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

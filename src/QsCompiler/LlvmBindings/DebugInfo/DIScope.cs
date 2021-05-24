@@ -18,12 +18,12 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         {
             get
             {
-                if( MetadataHandle == default )
+                if (MetadataHandle == default)
                 {
                     return null;
                 }
 
-                
+
                 return this is DIFile file ? file : FromHandle<DIFile>(this.MetadataHandle.DIScopeGetFile());
             }
         }
@@ -34,8 +34,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>Gets the name of the scope or an empty string if the scope doesn't have a name</summary>
         public virtual string Name { get; } = string.Empty;
 
-        private protected DIScope( LLVMMetadataRef handle )
-            : base( handle )
+        private protected DIScope(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

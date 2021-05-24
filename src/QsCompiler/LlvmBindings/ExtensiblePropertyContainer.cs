@@ -19,41 +19,41 @@ namespace Ubiquity.NET.Llvm
         : IExtensiblePropertyContainer
     {
         /// <inheritdoc/>
-        public void AddExtendedPropertyValue( string id, object? value )
+        public void AddExtendedPropertyValue(string id, object? value)
         {
-            lock( Items )
+            lock (Items)
             {
-                if( Items.TryGetValue( id, out object? currentValue ) )
+                if (Items.TryGetValue(id, out object? currentValue))
                 {
-                    if( currentValue != null && value != null && currentValue.GetType( ) != value.GetType( ) )
+                    if (currentValue != null && value != null && currentValue.GetType() != value.GetType())
                     {
                         throw new ArgumentException();
                     }
                 }
 
-                Items[ id ] = value;
+                Items[id] = value;
             }
         }
 
         /// <inheritdoc/>
-        public bool TryGetExtendedPropertyValue<T>( string id, [MaybeNullWhen( false )] out T value )
+        public bool TryGetExtendedPropertyValue<T>(string id, [MaybeNullWhen(false)] out T value)
         {
             value = default!;
             object? item;
-            lock( Items )
+            lock (Items)
             {
-                if( !Items.TryGetValue( id, out item ) )
+                if (!Items.TryGetValue(id, out item))
                 {
                     return false;
                 }
             }
 
-            if( !( item is T ) )
+            if (!(item is T))
             {
                 return false;
             }
 
-            value = ( T )item;
+            value = (T)item;
             return true;
         }
 

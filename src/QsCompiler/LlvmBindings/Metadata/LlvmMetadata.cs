@@ -13,7 +13,7 @@ using LLVMSharp.Interop;
 namespace Ubiquity.NET.Llvm
 {
     /// <summary>Enumeration to define metadata type kind</summary>
-    [SuppressMessage( "Design", "CA1027:Mark enums with FlagsAttribute", Justification = "It's not a flags enum, get over it..." )]
+    [SuppressMessage("Design", "CA1027:Mark enums with FlagsAttribute", Justification = "It's not a flags enum, get over it...")]
     public enum MetadataKind
     {
         /// <summary>Metadata string</summary>
@@ -115,19 +115,19 @@ namespace Ubiquity.NET.Llvm
     {
         /// <summary>Replace all uses of this descriptor with another</summary>
         /// <param name="other">New descriptor to replace this one with</param>
-        public virtual void ReplaceAllUsesWith( LlvmMetadata other )
+        public virtual void ReplaceAllUsesWith(LlvmMetadata other)
         {
-            if( other == null )
+            if (other == null)
             {
-                throw new ArgumentNullException( nameof( other ) );
+                throw new ArgumentNullException(nameof(other));
             }
 
-            if( MetadataHandle == default )
+            if (MetadataHandle == default)
             {
                 throw new InvalidOperationException();
             }
 
-            MetadataHandle.ReplaceAllUsesWith( other.MetadataHandle );
+            MetadataHandle.ReplaceAllUsesWith(other.MetadataHandle);
             MetadataHandle = default;
         }
 
@@ -149,131 +149,131 @@ namespace Ubiquity.NET.Llvm
         }
 
         /// <summary>Gets a value indicating this metadata's kind</summary>
-        public MetadataKind Kind => ( MetadataKind )this.MetadataHandle.GetMetadataKind();
+        public MetadataKind Kind => (MetadataKind)this.MetadataHandle.GetMetadataKind();
 
         internal LLVMMetadataRef MetadataHandle { get; /*protected*/ set; }
 
-        internal static T? FromHandle<T>( Context context, LLVMMetadataRef handle )
+        internal static T? FromHandle<T>(Context context, LLVMMetadataRef handle)
             where T : LlvmMetadata
         {
-            return handle == default ? null : ( T )context.GetNodeFor( handle );
+            return handle == default ? null : (T)context.GetNodeFor(handle);
         }
 
         internal class InterningFactory
             : HandleInterningMap<LLVMMetadataRef, LlvmMetadata>
         {
-            internal InterningFactory( Context context )
-                : base( context )
+            internal InterningFactory(Context context)
+                : base(context)
             {
             }
 
-            [SuppressMessage( "Maintainability", "CA1502:Avoid excessive complexity", Justification = "This is an internal factory method for mapping to a managed type" )]
-            private protected override LlvmMetadata ItemFactory( LLVMMetadataRef handle )
+            [SuppressMessage("Maintainability", "CA1502:Avoid excessive complexity", Justification = "This is an internal factory method for mapping to a managed type")]
+            private protected override LlvmMetadata ItemFactory(LLVMMetadataRef handle)
             {
                 // use the native kind value to determine the managed type
                 // that should wrap this particular handle
-                var kind = ( MetadataKind ) handle.GetMetadataKind();
-                switch( kind )
+                var kind = (MetadataKind)handle.GetMetadataKind();
+                switch (kind)
                 {
                 case MetadataKind.MDString:
-                    return new MDString( handle );
+                    return new MDString(handle);
 
                 case MetadataKind.ConstantAsMetadata:
-                    return new ConstantAsMetadata( handle );
+                    return new ConstantAsMetadata(handle);
 
                 case MetadataKind.LocalAsMetadata:
-                    return new LocalAsMetadata( handle );
+                    return new LocalAsMetadata(handle);
 
                 case MetadataKind.DistinctMDOperandPlaceholder:
-                    throw new NotSupportedException( ); // return new DistinctMDOperandPlaceHodler( handle );
+                    throw new NotSupportedException(); // return new DistinctMDOperandPlaceHodler( handle );
 
                 case MetadataKind.MDTuple:
-                    return new MDTuple( handle );
+                    return new MDTuple(handle);
 
                 case MetadataKind.DILocation:
-                    return new DILocation( handle );
+                    return new DILocation(handle);
 
                 case MetadataKind.DIExpression:
-                    return new DIExpression( handle );
+                    return new DIExpression(handle);
 
                 case MetadataKind.DIGlobalVariableExpression:
-                    return new DIGlobalVariableExpression( handle );
+                    return new DIGlobalVariableExpression(handle);
 
                 case MetadataKind.GenericDINode:
-                    return new GenericDINode( handle );
+                    return new GenericDINode(handle);
 
                 case MetadataKind.DISubrange:
-                    return new DISubRange( handle );
+                    return new DISubRange(handle);
 
                 case MetadataKind.DIEnumerator:
-                    return new DIEnumerator( handle );
+                    return new DIEnumerator(handle);
 
                 case MetadataKind.DIBasicType:
-                    return new DIBasicType( handle );
+                    return new DIBasicType(handle);
 
                 case MetadataKind.DIDerivedType:
-                    return new DIDerivedType( handle );
+                    return new DIDerivedType(handle);
 
                 case MetadataKind.DICompositeType:
-                    return new DICompositeType( handle );
+                    return new DICompositeType(handle);
 
                 case MetadataKind.DISubroutineType:
-                    return new DISubroutineType( handle );
+                    return new DISubroutineType(handle);
 
                 case MetadataKind.DIFile:
-                    return new DIFile( handle );
+                    return new DIFile(handle);
 
                 case MetadataKind.DICompileUnit:
-                    return new DICompileUnit( handle );
+                    return new DICompileUnit(handle);
 
                 case MetadataKind.DISubprogram:
-                    return new DISubProgram( handle );
+                    return new DISubProgram(handle);
 
                 case MetadataKind.DILexicalBlock:
-                    return new DILexicalBlock( handle );
+                    return new DILexicalBlock(handle);
 
                 case MetadataKind.DILexicalBlockFile:
-                    return new DILexicalBlockFile( handle );
+                    return new DILexicalBlockFile(handle);
 
                 case MetadataKind.DINamespace:
-                    return new DINamespace( handle );
+                    return new DINamespace(handle);
 
                 case MetadataKind.DIModule:
-                    return new DIModule( handle );
+                    return new DIModule(handle);
 
                 case MetadataKind.DITemplateTypeParameter:
-                    return new DITemplateTypeParameter( handle );
+                    return new DITemplateTypeParameter(handle);
 
                 case MetadataKind.DITemplateValueParameter:
-                    return new DITemplateValueParameter( handle );
+                    return new DITemplateValueParameter(handle);
 
                 case MetadataKind.DIGlobalVariable:
-                    return new DIGlobalVariable( handle );
+                    return new DIGlobalVariable(handle);
 
                 case MetadataKind.DILocalVariable:
-                    return new DILocalVariable( handle );
+                    return new DILocalVariable(handle);
 
                 case MetadataKind.DIObjCProperty:
-                    return new DIObjCProperty( handle );
+                    return new DIObjCProperty(handle);
 
                 case MetadataKind.DIImportedEntity:
-                    return new DIImportedEntity( handle );
+                    return new DIImportedEntity(handle);
 
                 case MetadataKind.DIMacro:
-                    return new DIMacro( handle );
+                    return new DIMacro(handle);
 
                 case MetadataKind.DIMacroFile:
-                    return new DIMacroFile( handle );
+                    return new DIMacroFile(handle);
 
                 default:
 #pragma warning disable RECS0083 // Intentional trigger to catch changes in underlying LLVM libs
-                    throw new NotImplementedException( );
+                    throw new NotImplementedException();
 #pragma warning restore RECS0083
                 }
             }
         }
 
-        private protected LlvmMetadata( LLVMMetadataRef handle )
+        private protected LlvmMetadata(LLVMMetadataRef handle)
         {
             MetadataHandle = handle;
         }

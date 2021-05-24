@@ -13,8 +13,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DILexicalBlock
         : DILexicalBlockBase
     {
-        internal DILexicalBlock( LLVMMetadataRef handle )
-            : base( handle )
+        internal DILexicalBlock(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

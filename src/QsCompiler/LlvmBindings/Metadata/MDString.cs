@@ -14,7 +14,7 @@ namespace Ubiquity.NET.Llvm
     {
         /// <summary>Gets the string from the metadata node</summary>
         /// <returns>String this node wraps</returns>
-        public override string ToString( )
+        public override string ToString()
         {
             // Q#: we currently expect exactly one context, since we have no way
             // to map an LLVM Metadata to its context (this was done in Ubiquity via a custom
@@ -24,8 +24,8 @@ namespace Ubiquity.NET.Llvm
             return asValue.GetMDString();
         }
 
-        internal MDString( LLVMMetadataRef handle )
-            : base( handle )
+        internal MDString(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

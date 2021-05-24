@@ -13,8 +13,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DITemplateTypeParameter
         : DITemplateParameter
     {
-        internal DITemplateTypeParameter( LLVMMetadataRef handle )
-            : base( handle )
+        internal DITemplateTypeParameter(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

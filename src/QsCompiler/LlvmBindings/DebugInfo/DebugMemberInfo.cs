@@ -26,14 +26,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="debugType">Debug type for the member</param>
         /// <param name="debugInfoFlags">Flags for the member</param>
         /// <param name="explicitLayout">Explicit layout information for this member, if any</param>
-        public DebugMemberInfo( uint index
-                              , string name
-                              , DIFile? file
-                              , uint line
-                              , IDebugType<ITypeRef, DIType> debugType
-                              , DebugInfoFlags debugInfoFlags = DebugInfoFlags.None
-                              , DebugMemberLayout? explicitLayout = null
-                              )
+        public DebugMemberInfo(
+            uint index,
+            string name,
+            DIFile? file,
+            uint line,
+            IDebugType<ITypeRef, DIType> debugType,
+            DebugInfoFlags debugInfoFlags = DebugInfoFlags.None,
+            DebugMemberLayout? explicitLayout = null)
         {
             Index = index;
             Name = name;

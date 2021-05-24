@@ -21,16 +21,16 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public DIScope? Scope => FromHandle<DIScope>(this.MetadataHandle.DIVariableGetScope());
 
         /// <summary>Gets the Debug information name for this variable</summary>
-        public string Name => ( Operands[ 1 ] as MDString )?.ToString( ) ?? string.Empty;
+        public string Name => (Operands[1] as MDString)?.ToString() ?? string.Empty;
 
         /// <summary>Gets the Debug information file for this variable</summary>
         public DIFile? File => FromHandle<DIFile>(this.MetadataHandle.DIVariableGetFile());
 
         /// <summary>Gets the Debug information type for this variable</summary>
-        public DIType? DIType => GetOperand<DIType>( 3 );
+        public DIType? DIType => GetOperand<DIType>(3);
 
-        internal DIVariable( LLVMMetadataRef handle )
-            : base( handle )
+        internal DIVariable(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

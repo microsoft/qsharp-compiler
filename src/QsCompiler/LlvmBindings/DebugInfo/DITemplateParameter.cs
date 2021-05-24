@@ -15,13 +15,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         : DINode
     {
         /// <summary>Gets the name of the template parameter</summary>
-        public string Name => GetOperandString( 0 );
+        public string Name => GetOperandString(0);
 
         /// <summary>Gets the type of the template parameter</summary>
-        public DIType? Type => GetOperand<DIType>( 1 );
+        public DIType? Type => GetOperand<DIType>(1);
 
-        internal DITemplateParameter( LLVMMetadataRef handle )
-            : base( handle )
+        internal DITemplateParameter(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

@@ -12,8 +12,8 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     public class DINode
         : MDNode
     {
-        internal DINode( LLVMMetadataRef handle )
-            : base( handle )
+        internal DINode(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }

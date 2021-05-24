@@ -50,23 +50,23 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="bitcodeModule">Module the debug type information belongs to</param>
         /// <param name="addressSpace">Address space for the pointer</param>
         /// <returns><see cref="DebugPointerType"/></returns>
-        DebugPointerType CreatePointerType( BitcodeModule bitcodeModule, uint addressSpace );
+        DebugPointerType CreatePointerType(BitcodeModule bitcodeModule, uint addressSpace);
 
         /// <summary>Creates a type defining an array of elements of this type</summary>
         /// <param name="bitcodeModule">Module the debug information belongs to</param>
         /// <param name="lowerBound">Lower bound of the array</param>
         /// <param name="count">Count of elements in the array</param>
         /// <returns><see cref="DebugArrayType"/></returns>
-        DebugArrayType CreateArrayType( BitcodeModule bitcodeModule, uint lowerBound, uint count );
+        DebugArrayType CreateArrayType(BitcodeModule bitcodeModule, uint lowerBound, uint count);
     }
 
     /// <summary>Base class for Debug types bound with an LLVM type</summary>
     /// <typeparam name="TNative">Native LLVM type</typeparam>
     /// <typeparam name="TDebug">Debug type</typeparam>
-    [SuppressMessage( "StyleCop.CSharp.MaintainabilityRules", "SA1402:File may only contain a single class", Justification = "Interface, Generic type and static extension methods form a common API surface" )]
+    [SuppressMessage("StyleCop.CSharp.MaintainabilityRules", "SA1402:File may only contain a single class", Justification = "Interface, Generic type and static extension methods form a common API surface")]
     public class DebugType<TNative, TDebug>
-        : IDebugType<TNative, TDebug>
-        , ITypeHandleOwner
+        : IDebugType<TNative, TDebug>,
+        ITypeHandleOwner
         where TNative : class, ITypeRef
         where TDebug : DIType
     {
@@ -79,16 +79,16 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// with <see langword="null"/> is not allowed. However, until set this property will be <see  langword="null"/></para>
         /// </remarks>
         /// <exception cref="System.InvalidOperationException">The type is not <see langword="null"/> or not a temporary</exception>
-        [SuppressMessage( "Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "DIType", Justification = "It is spelled correctly 8^)" )]
+        [SuppressMessage("Microsoft.Naming", "CA2204:Literals should be spelled correctly", MessageId = "DIType", Justification = "It is spelled correctly 8^)")]
         public TDebug? DIType
         {
             get => RawDebugInfoType;
             set
             {
                 TDebug v = value!;
-                if(RawDebugInfoType != null)
+                if (RawDebugInfoType != null)
                 {
-                    RawDebugInfoType.ReplaceAllUsesWith( v );
+                    RawDebugInfoType.ReplaceAllUsesWith(v);
                     RawDebugInfoType = v;
                 }
                 else
@@ -113,7 +113,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         /// <summary>Gets an intentionally undocumented value</summary>
         /// <remarks>internal use only</remarks>
-        LLVMTypeRef ITypeHandleOwner.TypeHandle => NativeType.GetTypeRef( );
+        LLVMTypeRef ITypeHandleOwner.TypeHandle => NativeType.GetTypeRef();
 
         /// <inheritdoc/>
         public bool IsSized => NativeType.IsSized;
@@ -155,60 +155,60 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public bool IsPointerPointer => NativeType.IsPointerPointer;
 
         /// <inheritdoc/>
-        public Constant GetNullValue( ) => NativeType.GetNullValue( );
+        public Constant GetNullValue() => NativeType.GetNullValue();
 
         /// <inheritdoc/>
-        public IArrayType CreateArrayType( uint count ) => NativeType.CreateArrayType( count );
+        public IArrayType CreateArrayType(uint count) => NativeType.CreateArrayType(count);
 
         /// <inheritdoc/>
-        public IPointerType CreatePointerType( ) => NativeType.CreatePointerType( );
+        public IPointerType CreatePointerType() => NativeType.CreatePointerType();
 
         /// <inheritdoc/>
-        public IPointerType CreatePointerType( uint addressSpace ) => NativeType.CreatePointerType( addressSpace );
+        public IPointerType CreatePointerType(uint addressSpace) => NativeType.CreatePointerType(addressSpace);
 
         /// <inheritdoc/>
-        public DebugPointerType CreatePointerType( BitcodeModule bitcodeModule, uint addressSpace )
+        public DebugPointerType CreatePointerType(BitcodeModule bitcodeModule, uint addressSpace)
         {
-            if( DIType == null )
+            if (DIType == null)
             {
                 throw new InvalidOperationException();
             }
 
-            var nativePointer = NativeType.CreatePointerType( addressSpace );
-            return new DebugPointerType( nativePointer, bitcodeModule, DIType, string.Empty );
+            var nativePointer = NativeType.CreatePointerType(addressSpace);
+            return new DebugPointerType(nativePointer, bitcodeModule, DIType, string.Empty);
         }
 
         /// <inheritdoc/>
-        public DebugArrayType CreateArrayType( BitcodeModule bitcodeModule, uint lowerBound, uint count )
+        public DebugArrayType CreateArrayType(BitcodeModule bitcodeModule, uint lowerBound, uint count)
         {
-            if( DIType == null )
+            if (DIType == null)
             {
                 throw new InvalidOperationException();
             }
 
-            var llvmArray = NativeType.CreateArrayType( count );
-            return new DebugArrayType( llvmArray, bitcodeModule, DIType, count, lowerBound );
+            var llvmArray = NativeType.CreateArrayType(count);
+            return new DebugArrayType(llvmArray, bitcodeModule, DIType, count, lowerBound);
         }
 
         /// <inheritdoc/>
-        public bool TryGetExtendedPropertyValue<TProperty>( string id, [MaybeNullWhen(false)] out TProperty value )
+        public bool TryGetExtendedPropertyValue<TProperty>(string id, [MaybeNullWhen(false)] out TProperty value)
         {
-            return PropertyContainer.TryGetExtendedPropertyValue( id, out value )
-                || NativeType.TryGetExtendedPropertyValue( id, out value );
+            return PropertyContainer.TryGetExtendedPropertyValue(id, out value)
+                || NativeType.TryGetExtendedPropertyValue(id, out value);
         }
 
         /// <inheritdoc/>
-        public void AddExtendedPropertyValue( string id, object? value )
+        public void AddExtendedPropertyValue(string id, object? value)
         {
-            PropertyContainer.AddExtendedPropertyValue( id, value );
+            PropertyContainer.AddExtendedPropertyValue(id, value);
         }
 
         /// <summary>Converts a <see cref="DebugType{TNative, TDebug}"/> to <typeparamref name="TDebug"/> by accessing the <see cref="DIType"/> property</summary>
         /// <param name="self">The type to convert</param>
-        [SuppressMessage( "Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "DIType is available as a property, this is for convenience" )]
-        public static implicit operator TDebug?( DebugType<TNative, TDebug> self ) => self.DIType;
+        [SuppressMessage("Microsoft.Usage", "CA2225:OperatorOverloadsHaveNamedAlternates", Justification = "DIType is available as a property, this is for convenience")]
+        public static implicit operator TDebug?(DebugType<TNative, TDebug> self) => self.DIType;
 
-        internal DebugType( TNative llvmType, TDebug? debugInfoType )
+        internal DebugType(TNative llvmType, TDebug? debugInfoType)
         {
             NativeType_.Value = llvmType;
             RawDebugInfoType = debugInfoType;
@@ -217,14 +217,14 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         private TDebug? RawDebugInfoType;
 
         // This can't be an auto property as the setter needs Enforce Set Once semantics
-        [SuppressMessage( "StyleCop.CSharp.NamingRules"
-                        , "SA1310:Field names must not contain underscore"
-                        , Justification = "Trailing _ indicates value MUST NOT be written to directly, even internally"
-                        )
+        [SuppressMessage(
+            "StyleCop.CSharp.NamingRules",
+            "SA1310:Field names must not contain underscore",
+            Justification = "Trailing _ indicates value MUST NOT be written to directly, even internally")
         ]
         private readonly WriteOnce<TNative> NativeType_ = new WriteOnce<TNative>();
 
-        private readonly ExtensiblePropertyContainer PropertyContainer = new ExtensiblePropertyContainer( );
+        private readonly ExtensiblePropertyContainer PropertyContainer = new ExtensiblePropertyContainer();
     }
 
     /// <summary>Utility class to provide mix-in type extensions and support for Debug Types</summary>
@@ -236,13 +236,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <param name="nativeType"><typeparamref name="TNative"/> type instance for this association</param>
         /// <param name="debugType"><typeparamref name="TDebug"/> type instance for this association (use <see langword="null"/> for void)</param>
         /// <returns><see cref="IDebugType{NativeT, DebugT}"/> implementation for the specified association</returns>
-        public static IDebugType<TNative, TDebug> Create<TNative, TDebug>( TNative nativeType
-                                                                         , TDebug? debugType
-                                                                         )
+        public static IDebugType<TNative, TDebug> Create<TNative, TDebug>(
+            TNative nativeType,
+            TDebug? debugType)
             where TNative : class, ITypeRef
             where TDebug : DIType
         {
-            return new DebugType<TNative, TDebug>( nativeType, debugType );
+            return new DebugType<TNative, TDebug>(nativeType, debugType);
         }
 
         /// <summary>Convenience extensions for determining if the <see cref="DIType"/> property is valid</summary>
@@ -253,7 +253,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// type. This property is used to disambiguate the two possibilities.
         /// </remarks>
         /// <returns><see langword="true"/> if the type has debug information</returns>
-        public static bool HasDebugInfo( this IDebugType<ITypeRef, DIType> debugType )
+        public static bool HasDebugInfo(this IDebugType<ITypeRef, DIType> debugType)
         {
             return debugType.DIType != null || debugType.NativeType.IsVoid;
         }

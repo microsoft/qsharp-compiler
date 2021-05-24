@@ -23,13 +23,13 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         public string Source => this.MetadataHandle == default ? string.Empty : this.MetadataHandle.DIFileGetSource() ?? string.Empty;
 
         /// <summary>Gets the Checksum for this file</summary>
-        public string CheckSum => MetadataHandle == default ? string.Empty : GetOperandString( 2 );
+        public string CheckSum => MetadataHandle == default ? string.Empty : GetOperandString(2);
 
         /// <summary>Gets the full path for this file</summary>
-        public string Path => MetadataHandle == default ? string.Empty : System.IO.Path.Combine( Directory, FileName );
+        public string Path => MetadataHandle == default ? string.Empty : System.IO.Path.Combine(Directory, FileName);
 
-        internal DIFile( LLVMMetadataRef handle )
-            : base( handle )
+        internal DIFile(LLVMMetadataRef handle)
+            : base(handle)
         {
         }
     }
