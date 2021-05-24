@@ -64,14 +64,14 @@ namespace LLVMSharp.Interop
         /// <summary>Convenience wrapper for <see cref="LLVM.GetMDNodeOperands"/>.</summary>
         public static LLVMValueRef[] GetMDNodeOperands(this LLVMValueRef self)
         {
-            var Dest = new LLVMValueRef[self.GetMDNodeNumOperands()];
+            var dest = new LLVMValueRef[self.GetMDNodeNumOperands()];
 
-            fixed (LLVMValueRef* pDest = Dest)
+            fixed (LLVMValueRef* pDest = dest)
             {
                 LLVM.GetMDNodeOperands(self, (LLVMOpaqueValue**)pDest);
             }
 
-            return Dest;
+            return dest;
         }
 
         /// <summary>Convenience wrapper for <see cref="LLVM.GetMDNodeNumOperands"/>.</summary>
