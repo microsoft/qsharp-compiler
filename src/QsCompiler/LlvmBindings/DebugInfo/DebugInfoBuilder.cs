@@ -12,9 +12,8 @@ using System.Globalization;
 using System.IO;
 using System.Linq;
 using System.Text;
-
-using Ubiquity.NET.Llvm.Instructions;
 using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Values;
 
 namespace Ubiquity.NET.Llvm.DebugInfo

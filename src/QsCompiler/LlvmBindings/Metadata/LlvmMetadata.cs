@@ -7,9 +7,8 @@
 
 using System;
 using System.Diagnostics.CodeAnalysis;
-
-using Ubiquity.NET.Llvm.DebugInfo;
 using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.DebugInfo;
 
 namespace Ubiquity.NET.Llvm
 {
