@@ -28,7 +28,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         Full,
 
         /// <summary>Emit line tables only</summary>
-        LineTablesOnly
+        LineTablesOnly,
     }
 
     /// <summary>Describes the kind of macro declaration</summary>

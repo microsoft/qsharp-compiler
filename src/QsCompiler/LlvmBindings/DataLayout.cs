@@ -21,7 +21,7 @@ namespace Ubiquity.NET.Llvm
         LittleEndian = LLVMByteOrdering.LLVMLittleEndian,
 
         /// <summary>Big-Endian layout format</summary>
-        BigEndian = LLVMByteOrdering.LLVMBigEndian
+        BigEndian = LLVMByteOrdering.LLVMBigEndian,
     }
 
     /// <summary>Provides access to LLVM target data layout information</summary>

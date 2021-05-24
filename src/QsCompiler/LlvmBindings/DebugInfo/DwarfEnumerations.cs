@@ -73,7 +73,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         ILAsm = UserMin + 0x01001,
 
         /// <summary>Max Value for unofficial language ids</summary>
-        UserMax = 0xffff
+        UserMax = 0xffff,
     }
 
     /// <summary>Tag kind for the debug information discriminated union nodes</summary>
@@ -183,7 +183,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     {
         None = 0,
         Const = Tag.ConstType,
-        Volatile = Tag.VolatileType
+        Volatile = Tag.VolatileType,
     }
 
     /// <summary>Primitive type supported by the debug information</summary>
@@ -219,7 +219,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         // From LLVM.NET LibLLVM
         LoUser = 0x80,
-        HiUser = 0xff
+        HiUser = 0xff,
     }
 
     /// <summary>Debug information flags</summary>
@@ -432,6 +432,6 @@ namespace Ubiquity.NET.Llvm.DebugInfo
 
         // Extensions for Fission proposal.
         GnuAddrIndex = 0xfb,
-        GnuConstIndex = 0xfc
+        GnuConstIndex = 0xfc,
     }
 }
