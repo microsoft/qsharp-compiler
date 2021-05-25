@@ -108,10 +108,7 @@ namespace Ubiquity.NET.Llvm
 
         private static Context GetMetadataContext(LLVMMetadataRef metadataHandle)
         {
-            // Q#: we currently expect exactly one context, since we have no way
-            // to map an LLVM Metadata to its context (this was done in Ubiquity via a custom
-            // native method).
-            return ContextCache.Single();
+            return ThreadContextCache.Get();
         }
     }
 }

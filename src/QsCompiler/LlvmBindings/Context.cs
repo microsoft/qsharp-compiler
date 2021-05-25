@@ -53,7 +53,7 @@ namespace Ubiquity.NET.Llvm
         public Context()
             : this(LLVM.ContextCreate())
         {
-            ContextCache.Add(this);
+            ThreadContextCache.Register(this);
         }
 
         internal Context(LLVMContextRef contextRef)
@@ -701,7 +701,7 @@ namespace Ubiquity.NET.Llvm
             LLVM.ContextSetDiagnosticHandler(this.ContextHandle, default, (void*)default);
             this.activeHandler.Dispose();
 
-            ContextCache.TryRemove(this.ContextHandle);
+            ThreadContextCache.Unregister(this.ContextHandle);
 
             this.ContextHandle.Dispose();
         }

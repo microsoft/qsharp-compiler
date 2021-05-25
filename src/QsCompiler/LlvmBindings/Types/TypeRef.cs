@@ -139,7 +139,7 @@ namespace Ubiquity.NET.Llvm.Types
             }
 
             var hContext = handle.Context;
-            return ContextCache.GetContextFor(hContext);
+            return ThreadContextCache.GetOrCreateAndRegister(hContext);
         }
 
         internal class InterningFactory

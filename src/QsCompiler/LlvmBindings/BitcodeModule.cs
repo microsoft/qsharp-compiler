@@ -69,7 +69,7 @@ namespace Ubiquity.NET.Llvm
         private BitcodeModule(LLVMModuleRef handle)
         {
             this.moduleHandle = handle;
-            this.Context = ContextCache.GetContextFor(handle.Context);
+            this.Context = ThreadContextCache.GetOrCreateAndRegister(handle.Context);
             this.lazyDiBuilder = new Lazy<DebugInfoBuilder>(() => new DebugInfoBuilder(this));
         }
 
@@ -689,7 +689,7 @@ namespace Ubiquity.NET.Llvm
         internal static BitcodeModule FromHandle(LLVMModuleRef nativeHandle)
         {
             var contextRef = nativeHandle.Context;
-            Context context = ContextCache.GetContextFor(contextRef);
+            Context context = ThreadContextCache.GetOrCreateAndRegister(contextRef);
             return context.GetModuleFor(nativeHandle);
         }
 
