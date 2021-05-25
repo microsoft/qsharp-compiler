@@ -81,6 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.DependencyAnalysis
             {
                 hash.Add(kvp);
             }
+
             return hash.ToHashCode();
         }
     }

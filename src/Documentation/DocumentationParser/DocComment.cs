@@ -132,6 +132,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     sb.Append(item);
                 }
+
                 return sb.ToString();
             }
 
@@ -142,6 +143,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     sb.Append(item);
                 }
+
                 return sb.ToString();
             }
 
@@ -155,6 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     renderer.Render(block);
                 }
+
                 // We convert \n to \r because the YAML serialization will eventually
                 // output \n\n for \n, but \r\n for \r.
                 return writer.ToString().TrimEnd().Replace('\n', '\r');
@@ -177,6 +180,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                                 result.Add((key, accum));
                                 accum = new List<Block>();
                             }
+
                             key = GetHeadingText(heading);
                         }
                         else
@@ -215,6 +219,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                                     var itemText = lowerCase ? GetParagraphText(leaf).ToLowerInvariant() : GetParagraphText(leaf);
                                     literal.Content = new Markdig.Helpers.StringSlice(itemText);
                                 }
+
                                 accum.Add(ToMarkdown(new Block[] { item }));
                             }
                         }
@@ -247,6 +252,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         inMatch = GetHeadingText(heading).Equals(name);
                         skip = true;
                     }
+
                     if (inMatch)
                     {
                         if (!skip)
@@ -288,6 +294,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                         case "Summary":
                             this.Summary = ToMarkdown(section);
                             summarySection.AddRange(section);
+
                             // For now, the short hover information gets the first paragraph of the summary.
                             this.ShortSummary = ToMarkdown(section.GetRange(0, 1));
                             break;
@@ -304,6 +311,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                             {
                                 deprecationDetails = ToMarkdown(section);
                             }
+
                             deprecated = true;
                             break;
                         case "Description":
@@ -331,6 +339,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                             {
                                 this.Examples = this.Examples.Add(ToMarkdown(examples));
                             }
+
                             this.Remarks = ToMarkdown(remarks);
                             break;
                         case "See Also":

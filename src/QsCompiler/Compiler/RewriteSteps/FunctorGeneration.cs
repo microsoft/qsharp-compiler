@@ -48,7 +48,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
             var requiredBuiltIns = new HashSet<QsQualifiedName>()
             {
                 BuiltIn.Length.FullName,
-                BuiltIn.RangeReverse.FullName
+                BuiltIn.RangeReverse.FullName,
             };
 
             return requiredBuiltIns.IsSubsetOf(providedOperations);

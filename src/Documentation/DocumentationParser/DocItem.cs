@@ -15,28 +15,28 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
     /// </summary>
     internal abstract class DocItem
     {
-        protected readonly string namespaceName;
-        protected readonly string name;
-        protected readonly string uid;
-        protected readonly string itemType;
-        protected readonly DocComment comments;
-        protected readonly bool deprecated;
-        protected readonly string replacement;
+        protected string NamespaceName { get; }
+
+        protected DocComment Comments { get; }
+
+        protected bool Deprecated { get; }
+
+        protected string Replacement { get; }
 
         /// <summary>
         /// The item's kind, as a string (Utils.OperationKind, .FunctionKind, or .UdtKind)
         /// </summary>
-        internal string ItemType => this.itemType;
+        internal string ItemType { get; }
 
         /// <summary>
         /// The unique internal ID of the item
         /// </summary>
-        internal string Uid => this.uid;
+        internal string Uid { get; }
 
         /// <summary>
         /// The name of the item
         /// </summary>
-        internal string Name => this.name;
+        internal string Name { get; }
 
         /// <summary>
         /// Constructs a documented item.
@@ -52,14 +52,14 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             ImmutableArray<string> documentation,
             IEnumerable<QsDeclarationAttribute> attributes)
         {
-            this.namespaceName = nsName;
-            this.name = itemName;
-            this.uid = (this.namespaceName + "." + this.name).ToLowerInvariant();
-            this.itemType = kind;
+            this.NamespaceName = nsName;
+            this.Name = itemName;
+            this.Uid = (this.NamespaceName + "." + this.Name).ToLowerInvariant();
+            this.ItemType = kind;
             var res = SymbolResolution.TryFindRedirect(attributes);
-            this.deprecated = res.IsValue;
-            this.replacement = res.ValueOr("");
-            this.comments = new DocComment(documentation, this.name, this.deprecated, this.replacement);
+            this.Deprecated = res.IsValue;
+            this.Replacement = res.ValueOr("");
+            this.Comments = new DocComment(documentation, this.Name, this.Deprecated, this.Replacement);
         }
 
         /// <summary>
@@ -67,13 +67,13 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
         /// </summary>
         /// <returns>A new YAML mapping node that describes this item</returns>
         internal YamlMappingNode ToNamespaceItem() =>
-            Utils.BuildMappingNode(Utils.UidKey, this.uid, Utils.SummaryKey, this.comments.ShortSummary);
+            Utils.BuildMappingNode(Utils.UidKey, this.Uid, Utils.SummaryKey, this.Comments.ShortSummary);
 
         /// <summary>
         /// Returns a YAML node describing this item suitable for inclusion in a table of contents.
         /// </summary>
         /// <returns>A new YAML mapping node that describes this item</returns>
-        internal YamlMappingNode ToTocItem() => Utils.BuildMappingNode(Utils.UidKey, this.uid, Utils.NameKey, this.name);
+        internal YamlMappingNode ToTocItem() => Utils.BuildMappingNode(Utils.UidKey, this.Uid, Utils.NameKey, this.Name);
 
         /// <summary>
         /// Writes a full YAML representation of this item to the given text stream.

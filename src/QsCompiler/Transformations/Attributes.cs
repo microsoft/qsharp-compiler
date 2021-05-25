@@ -101,7 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
         {
             internal class TransformationState
             {
-                internal readonly ImmutableArray<(QsDeclarationAttribute, CallablePredicate)> AttributeSelection;
+                internal ImmutableArray<(QsDeclarationAttribute, CallablePredicate)> AttributeSelection { get; }
 
                 internal TransformationState(IEnumerable<(QsDeclarationAttribute, CallablePredicate)> selections) =>
                     this.AttributeSelection = selections.ToImmutableArray();
@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations
                 this.Types = new Core.TypeTransformation<TransformationState>(this, Core.TransformationOptions.Disabled);
             }
 
-            // helper classes
+            /* helper classes */
 
             private class NamespaceTransformation
             : Core.NamespaceTransformation<TransformationState>
