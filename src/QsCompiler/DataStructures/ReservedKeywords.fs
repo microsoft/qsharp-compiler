@@ -259,6 +259,7 @@ module AssemblyConstants =
     let PerfDataOutputPath = "PerfDataOutputPath"
     let DocsOutputPath = "DocsOutputPath"
     let DocsPackageId = "DocsPackageId"
+    let DocsLintingRules = "DocsLintingRules"
     let GenerateConcreteIntrinsic = "GenerateConcreteIntrinsic"
 
     /// The runtime capabilities supported by an execution target. The names of the capabilities here match the ones
