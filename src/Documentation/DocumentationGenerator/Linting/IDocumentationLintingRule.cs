@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.Documentation.Linting
                 Range = this.Range,
                 Severity = severity,
                 Stage = IRewriteStep.Stage.Transformation,
-                Source = this.Source
+                Source = this.Source,
             };
     }
 
@@ -131,6 +131,7 @@ namespace Microsoft.Quantum.Documentation.Linting
         {
             var callableName =
                 $"{callable.FullName.Namespace}.{callable.FullName.Name}";
+
             // Validate input and type parameter names.
             var inputDeclarations = callable.ArgumentTuple.ToDictionaryOfDeclarations();
             var inputMessages = this.ValidateNames(

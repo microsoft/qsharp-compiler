@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.Documentation
     /// </summary>
     public class DocumentationGeneration : IRewriteStep
     {
-        private static readonly ImmutableDictionary<string, (bool EnableByDefault, IDocumentationLintingRule Rule)> lintingRules;
+        private static readonly ImmutableDictionary<string, (bool EnableByDefault, IDocumentationLintingRule Rule)> LintingRules;
 
         static DocumentationGeneration()
         {
@@ -27,7 +27,7 @@ namespace Microsoft.Quantum.Documentation
             rules.Add("require-correct-input-names", (true, new RequireCorrectInputNames()));
             rules.Add("require-examples", (EnableByDefault: false, new RequireExamplesOnPublicDeclarations()));
             rules.Add("no-math-in-summary", (true, new NoMathInSummary()));
-            lintingRules = rules.ToImmutableDictionary();
+            LintingRules = rules.ToImmutableDictionary();
         }
 
         private string docsOutputPath = "";
@@ -130,7 +130,7 @@ namespace Microsoft.Quantum.Documentation
             // now.
             foreach ((var ruleName, var severity) in lintingRulesConfig)
             {
-                if (!DocumentationGeneration.lintingRules.ContainsKey(ruleName))
+                if (!DocumentationGeneration.LintingRules.ContainsKey(ruleName))
                 {
                     this.diagnostics.Add(new IRewriteStep.Diagnostic
                     {
@@ -143,7 +143,7 @@ namespace Microsoft.Quantum.Documentation
 
             // Actually populate the rules now.
             var lintingRules = DocumentationGeneration
-                .lintingRules
+                .LintingRules
                 .Select(
                     rule => (
                         Name: rule.Key,
@@ -167,7 +167,7 @@ namespace Microsoft.Quantum.Documentation
                                 // If we get down to this point, something went
                                 // wrong; the given severity wasn't recognized.
                                 (_, var unknown) => throw new Exception(
-                                    $"Documentation linting severity for rule {rule.Key} was set to {unknown}, but expected one of \"error\", \"warning\", or \"ignore\"")
+                                    $"Documentation linting severity for rule {rule.Key} was set to {unknown}, but expected one of \"error\", \"warning\", or \"ignore\""),
                             },
                         Rule: rule.Value.Rule))
                 .Where(rule => rule.Severity != DiagnosticSeverity.Hidden)
