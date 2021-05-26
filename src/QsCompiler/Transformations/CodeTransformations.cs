@@ -76,6 +76,7 @@ namespace Microsoft.Quantum.QsCompiler
                 evaluated = compilation;
                 return false;
             }
+
             return true;
         }
     }

@@ -47,12 +47,13 @@ namespace Ubiquity.NET.Llvm
         private readonly BitcodeModule.InterningFactory moduleCache;
         private readonly TypeRef.InterningFactory typeCache;
         private readonly AttributeValue.InterningFactory attributeValueCache;
+        private readonly LlvmMetadata.InterningFactory metadataCache;
 
         /// <summary>Initializes a new instance of the <see cref="Context"/> class.Creates a new context.</summary>
         public Context()
             : this(LLVM.ContextCreate())
         {
-            ContextCache.Add(this);
+            ThreadContextCache.Register(this);
         }
 
         internal Context(LLVMContextRef contextRef)
@@ -68,6 +69,7 @@ namespace Ubiquity.NET.Llvm
             this.moduleCache = new BitcodeModule.InterningFactory(this);
             this.typeCache = new TypeRef.InterningFactory(this);
             this.attributeValueCache = new AttributeValue.InterningFactory(this);
+            this.metadataCache = new LlvmMetadata.InterningFactory(this);
 
             LLVM.ContextSetDiagnosticHandler(this.ContextHandle, this.activeHandler, (void*)default);
         }
@@ -116,6 +118,9 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Gets the LLVM PPC 128-bit floating point type.</summary>
         public ITypeRef PpcFloat128Type => TypeRef.FromHandle(LLVM.PPCFP128TypeInContext(this.ContextHandle))!;
+
+        /// <summary>Gets an enumerable collection of all the metadata created in this context</summary>
+        public IEnumerable<LlvmMetadata> Metadata => this.metadataCache;
 
         /// <summary>Gets the modules created in this context.</summary>
         public IEnumerable<BitcodeModule> Modules => this.moduleCache;
@@ -638,6 +643,11 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
+        internal void RemoveDeletedNode(MDNode node)
+        {
+            this.metadataCache.Remove(node.MetadataHandle);
+        }
+
         internal BitcodeModule GetModuleFor(LLVMModuleRef moduleRef)
         {
             if (moduleRef == default)
@@ -665,6 +675,11 @@ namespace Ubiquity.NET.Llvm
             return this.typeCache.GetOrCreateItem(typeRef);
         }
 
+        internal LlvmMetadata GetNodeFor(LLVMMetadataRef handle)
+        {
+            return this.metadataCache.GetOrCreateItem(handle);
+        }
+
         /// <summary>Disposes the context to release unmanaged resources deterministically.</summary>
         /// <param name="disposing">Indicates whether this is from a call to Dispose (<see langword="true"/>) or if from a finalizer.</param>
         /// <remarks>
@@ -686,7 +701,7 @@ namespace Ubiquity.NET.Llvm
             LLVM.ContextSetDiagnosticHandler(this.ContextHandle, default, (void*)default);
             this.activeHandler.Dispose();
 
-            ContextCache.TryRemove(this.ContextHandle);
+            ThreadContextCache.Unregister(this.ContextHandle);
 
             this.ContextHandle.Dispose();
         }

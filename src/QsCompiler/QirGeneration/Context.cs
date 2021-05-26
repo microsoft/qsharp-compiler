@@ -10,7 +10,6 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Instructions;
@@ -47,34 +46,34 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// The context used for QIR generation.
         /// </summary>
         /// <inheritdoc cref="Ubiquity.NET.Llvm.Context"/>
-        public readonly Context Context;
+        public Context Context { get; }
 
         /// <summary>
         /// The module used for QIR generation.
         /// Generated functions to facilitate interoperability are created via <see cref="Interop"/>.
         /// </summary>
         /// <inheritdoc cref="BitcodeModule"/>
-        public readonly BitcodeModule Module;
+        public BitcodeModule Module { get; }
 
         /// <summary>
         /// The used QIR types.
         /// </summary>
-        public readonly Types Types;
+        public Types Types { get; }
 
         /// <summary>
         /// The used QIR constants.
         /// </summary>
-        public readonly Constants Constants;
+        public Constants Constants { get; }
 
         /// <summary>
         /// Tools to construct and handle values throughout QIR emission.
         /// </summary>
-        internal readonly QirValues Values;
+        internal QirValues Values { get; }
 
         /// <summary>
         /// Tools to invoke built-in functions.
         /// </summary>
-        internal readonly Functions Functions;
+        internal Functions Functions { get; }
 
         /// <summary>
         /// The syntax tree transformation that constructs QIR.
@@ -94,11 +93,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
-        internal ITypeRef? BuiltType { get; set; }
 
-        internal readonly ScopeManager ScopeMgr;
-        internal readonly Stack<IValue> ValueStack;
-        internal readonly Stack<ResolvedType> ExpressionTypeStack;
+        internal ScopeManager ScopeMgr { get; }
+        internal Stack<IValue> ValueStack { get; }
+        internal Stack<ResolvedType> ExpressionTypeStack { get; }
 
         /// <summary>
         /// We support nested inlining and hence keep a stack with the information for each inline level.
@@ -146,6 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return false;
             }
+
             var branchesWithinCurrentLoop = this.branchIds.TakeWhile(id => id >= currentLoopId);
             return branchesWithinCurrentLoop.Contains(branchId);
         }
@@ -178,10 +177,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         internal GenerationContext(IEnumerable<QsNamespace> syntaxTree)
         {
+            this.globalCallables = syntaxTree.GlobalCallableResolutions();
+            this.globalTypes = syntaxTree.GlobalTypeResolutions();
+
             this.Context = new Context();
             this.Module = this.Context.CreateBitcodeModule();
 
-            this.Types = new Types(this.Context);
+            this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.Types);
             this.Values = new QirValues(this, this.Constants);
             this.Functions = new Functions(this);
@@ -192,9 +194,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.ExpressionTypeStack = new Stack<ResolvedType>();
             this.inlineLevels = new Stack<IValue>();
             this.ScopeMgr = new ScopeManager(this);
-
-            this.globalCallables = syntaxTree.GlobalCallableResolutions();
-            this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
             this.runtimeLibrary = new FunctionLibrary(
                 this.Module,
@@ -577,6 +576,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.GenerateRequiredFunctions();
             }
+
             return this.ScopeMgr.IsEmpty && !this.inlineLevels.Any();
         }
 
@@ -823,6 +823,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return function;
             }
+
             // Otherwise, we need to find the function's callable to get the signature,
             // and then register the function
             if (this.TryGetGlobalCallable(fullName, out QsCallable? callable))
@@ -830,6 +831,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var spec = callable.Specializations.First(spec => spec.Kind == kind);
                 return this.RegisterFunction(spec);
             }
+
             // If we can't find the function at all, it's a problem...
             throw new KeyNotFoundException($"Can't find callable {fullName}");
         }
@@ -977,6 +979,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.CurrentFunction.Parameters[i].Name = name;
                 }
             }
+
             this.SetCurrentBlock(this.CurrentFunction.AppendBasicBlock("entry"));
 
             this.ScopeMgr.OpenScope();
@@ -987,6 +990,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 this.CurrentBuilder.Return();
             }
+
             this.EndFunction(generatePending: false);
         }
 
@@ -1110,12 +1114,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
             }
+
             this.pendingCallableTables.Clear();
 
             foreach (var (func, body) in this.liftedPartialApplications)
             {
                 this.GenerateFunction(func, new[] { "capture-tuple", "arg-tuple", "result-tuple" }, body);
             }
+
             this.liftedPartialApplications.Clear();
 
             foreach (var type in this.pendingMemoryManagementTables)
@@ -1143,6 +1149,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                 }
             }
+
             this.pendingMemoryManagementTables.Clear();
         }
 
@@ -1188,7 +1195,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // to be returned from that scope, meaning it either won't be dereferenced or its reference
             // count will increase by 1. The result of the expression is a phi node that we then properly
             // register with the scope manager, such that it will be unreferenced when going out of scope.
-
             this.CurrentBuilder.Branch(condition, trueBlock, falseBlock);
             var entryBlock = this.CurrentBlock!;
 
@@ -1318,7 +1324,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Header block:
                 // create a phi node for a loop output value if needed,
                 // create a phi node representing the iteration variable and evaluate the condition
-
                 this.SetCurrentBlock(headerBlock);
                 var outputValue = initialOutputValue == null ? null : this.CurrentBuilder.PhiNode(initialOutputValue.NativeType);
                 outputValue?.AddIncoming(initialOutputValue!, precedingBlock);
@@ -1381,6 +1386,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 executeBody(loopVar);
                 return null;
             }
+
             this.CreateForLoop(startValue, evaluateCondition, increment, null, ExecuteBody);
         }
 
@@ -1498,6 +1504,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 executeBody(arrayItem);
                 return null;
             }
+
             this.IterateThroughArray(array, null, ExecuteBody);
         }
 
@@ -1522,38 +1529,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal ITypeRef CurrentLlvmExpressionType() =>
             this.LlvmTypeFromQsharpType(this.ExpressionTypeStack.Peek());
 
-        /// <summary>
-        /// Gets the QIR equivalent for a Q# type.
-        /// Tuples are represented as QirTuplePointer, arrays as QirArray, and callables as QirCallable.
-        /// </summary>
-        /// <param name="resolvedType">The Q# type</param>
-        /// <returns>The equivalent QIR type</returns>
-        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType)
-        {
-            this.BuiltType = null;
-            this.Transformation.Types.OnType(resolvedType);
-            return this.BuiltType ?? throw new NotImplementedException(
-                $"Llvm type for {SyntaxTreeToQsharp.Default.ToCode(resolvedType)} could not be constructed.");
-        }
-
-        /// <summary>
-        /// Gets the QIR equivalent for a Q# type, as a structure.
-        /// Tuples are represented as an anonymous LLVM structure type with a TupleHeader as the first element.
-        /// Other types are represented as anonymous LLVM structure types with a TupleHeader in the first element
-        /// and the "normal" converted type as the second element.
-        /// </summary>
-        /// <param name="resolvedType">The Q# type</param>
-        /// <returns>The equivalent QIR structure type</returns>
-        internal IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType) =>
-            resolvedType.Resolution is ResolvedTypeKind.TupleType tuple
-                ? this.CreateConcreteTupleType(tuple.Item)
-                : this.CreateConcreteTupleType(new[] { resolvedType });
-
-        /// <summary>
-        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
-        /// </summary>
-        internal IStructType CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
-            this.Types.TypedTuple(items.Select(this.LlvmTypeFromQsharpType));
+        /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType)"/>
+        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
+            this.Types.Transform.LlvmTypeFromQsharpType(resolvedType);
 
         /// <summary>
         /// Computes the size in bytes of an LLVM type as an LLVM value.
@@ -1585,6 +1563,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 // Everything else we let getelementptr compute for us
                 var basePointer = Constant.ConstPointerToNullFor(type.CreatePointerType());
+
                 // Note that we can't use this.GetTupleElementPtr here because we want to get a pointer to a second structure instance
                 var firstPtr = this.CurrentBuilder.GetElementPtr(type, basePointer, new[] { this.Context.CreateConstant(0) });
                 var first = this.CurrentBuilder.PointerToInt(firstPtr, intType);

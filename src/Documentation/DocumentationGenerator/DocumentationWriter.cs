@@ -286,7 +286,7 @@ Namespace: [{type.FullName.Namespace}](xref:{type.FullName.Namespace})
                 QsCallableKind.Tags.Function => "function ",
                 QsCallableKind.Tags.Operation => "operation ",
                 QsCallableKind.Tags.TypeConstructor => "newtype ",
-                _ => ""
+                _ => "",
             };
             var document = $@"
 # {title}
@@ -315,14 +315,17 @@ Namespace: [{callable.FullName.Namespace}](xref:{callable.FullName.Namespace})
             .WithSection($"Output : {callable.Signature.ReturnType.ToMarkdownLink()}", docComment.Output)
             .MaybeWithSection(
                 "Type Parameters",
-                string.Join("\n", callable.Signature.TypeParameters.Select(
-                    typeParam =>
-                        typeParam is QsLocalSymbol.ValidName name
-                        ? $@"### '{name.Item}{"\n\n"}{(
-                            docComment.TypeParameters.TryGetValue($"'{name.Item}", out var comment)
-                            ? comment
-                            : string.Empty)}"
-                        : string.Empty)))
+                string.Join("\n", callable.Signature.TypeParameters.Select(typeParam =>
+                {
+                    if (typeParam is QsLocalSymbol.ValidName name)
+                    {
+                        var paramComment =
+                            docComment.TypeParameters.TryGetValue($"'{name.Item}", out var comment) ? comment : "";
+                        return $@"### '{name.Item}{"\n\n"}{paramComment}";
+                    }
+
+                    return "";
+                })))
             .WithSectionForEach("Example", docComment.Examples)
             .MaybeWithSection("Remarks", docComment.Remarks)
             .MaybeWithSection("References", docComment.References)

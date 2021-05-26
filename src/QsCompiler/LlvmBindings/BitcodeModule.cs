@@ -15,6 +15,7 @@ using System.Linq;
 
 using LLVMSharp.Interop;
 
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -63,17 +64,111 @@ namespace Ubiquity.NET.Llvm
     {
         private LLVMModuleRef moduleHandle;
 
+        private readonly Lazy<DebugInfoBuilder> lazyDiBuilder;
+
         private BitcodeModule(LLVMModuleRef handle)
         {
             this.moduleHandle = handle;
-            this.Context = ContextCache.GetContextFor(handle.Context);
+            this.Context = ThreadContextCache.GetOrCreateAndRegister(handle.Context);
+            this.lazyDiBuilder = new Lazy<DebugInfoBuilder>(() => new DebugInfoBuilder(this));
         }
+
+        /// <summary>Name of the Debug Version information module flag</summary>
+        public const string DebugVersionValue = "Debug Info Version";
+
+        /// <summary>Name of the Dwarf Version module flag</summary>
+        public const string DwarfVersionValue = "Dwarf Version";
+
+        /// <summary>Version of the Debug information Metadata</summary>
+        public const uint DebugMetadataVersion = 3; /* DEBUG_METADATA_VERSION (for LLVM > v3.7.0) */
 
         /// <summary>Gets a value indicating whether the module is disposed or not.</summary>
         public bool IsDisposed { get; private set; }
 
         /// <summary>Gets the <see cref="Context"/> this module belongs to.</summary>
         public Context Context { get; }
+
+        /// <summary>Gets the Metadata for module level flags</summary>
+        public IReadOnlyDictionary<string, ModuleFlag> ModuleFlags
+        {
+            get
+            {
+                this.ThrowIfDisposed();
+                var retVal = new Dictionary<string, ModuleFlag>();
+                LLVMModuleFlagEntry flags = default;
+                ulong flagsLength;
+
+                try
+                {
+                    (flags, flagsLength) = this.ModuleHandle.CopyModuleFlagsMetadata();
+
+                    for (uint i = 0; i < flagsLength; ++i)
+                    {
+                        var behavior = flags.GetFlagBehavior(i);
+                        string key = flags.GetKey(i);
+                        var metadata = LlvmMetadata.FromHandle<LlvmMetadata>(this.Context, flags.GetMetadata(i));
+                        retVal.Add(key, new ModuleFlag((ModuleFlagBehavior)behavior, key, metadata!));
+                    }
+                }
+                finally
+                {
+                    if (flags != default)
+                    {
+                        flags.Dispose();
+                    }
+                }
+
+                return retVal;
+            }
+        }
+
+        /// <summary>Gets the <see cref="DebugInfoBuilder"/> used to create debug information for this module</summary>
+        /// <remarks>The builder returned from this property is lazy constructed on first access so doesn't consume resources unless used.</remarks>
+        public DebugInfoBuilder DIBuilder
+        {
+            get
+            {
+                this.ThrowIfDisposed();
+                return this.lazyDiBuilder.Value;
+            }
+        }
+
+        /// <summary>Gets the Debug Compile unit for this module</summary>
+        public DICompileUnit? DICompileUnit { get; internal set; }
+
+        /// <summary>Gets the Data layout string for this module</summary>
+        /// <remarks>
+        /// <note type="note">The data layout string doesn't do what seems obvious.
+        /// That is, it doesn't force the target back-end to generate code
+        /// or types with a particular layout. Rather, the layout string has
+        /// to match the implicit layout of the target. Thus it should only
+        /// come from the actual <see cref="TargetMachine"/> the code is
+        /// targeting.</note>
+        /// </remarks>
+        public string DataLayoutString
+        {
+            get
+            {
+                this.ThrowIfDisposed();
+                return this.Layout?.ToString() ?? string.Empty;
+            }
+        }
+
+        /// <summary>Gets or sets the target data layout for this module</summary>
+        public DataLayout Layout
+        {
+            get
+            {
+                this.ThrowIfDisposed();
+                return DataLayout.FromHandle(this.ModuleHandle.GetDataLayout());
+            }
+
+            set
+            {
+                this.ThrowIfDisposed();
+                this.ModuleHandle.SetDataLayout(value.DataLayoutHandle);
+            }
+        }
 
         /// <summary>Gets or sets the Target Triple describing the target, ABI and OS.</summary>
         public string TargetTriple
@@ -494,6 +589,40 @@ namespace Ubiquity.NET.Llvm
             return hGlobal == default ? default : Value.FromHandle<GlobalVariable>(hGlobal);
         }
 
+        /// <summary>
+        /// Get the operands of a <see cref="NamedMDNode"/>.
+        /// </summary>
+        /// <remarks>
+        /// For metadata operands, use <see cref="LLVMValueRefExtensions.ValueAsMetadata(LLVMValueRef)"/> to
+        /// unwrap <see cref="Value"/> to its underlying <see cref="LlvmMetadata"/>.
+        /// </remarks>
+        /// <param name="name">The name of the node (i.e. <see cref="NamedMDNode.Name"/>).</param>
+        /// <returns>The operands.</returns>
+        public Value[] GetNamedMetadataOperands(string name)
+        {
+            return this.ModuleHandle.GetNamedMetadataOperands(name).Select(r => Value.FromHandle(r)).ToArray();
+        }
+
+        /// <summary>
+        /// Get the number of operands of a <see cref="NamedMDNode"/>.
+        /// </summary>
+        /// <param name="name">The name of the node (i.e. <see cref="NamedMDNode.Name"/>).</param>
+        /// <returns>The number of operands.</returns>
+        public uint GetNamedMetadataNumOperands(string name)
+        {
+            return this.ModuleHandle.GetNamedMetadataOperandsCount(name);
+        }
+
+        /// <summary>
+        /// Add <paramref name="operand"/> to the operands of a <see cref="NamedMDNode"/>.
+        /// </summary>
+        /// <param name="name">The name of the node (i.e. <see cref="NamedMDNode.Name"/>).</param>
+        /// <param name="operand">The operand to append.</param>
+        public void AddNamedMetadataOperand(string name, Value operand)
+        {
+            this.ModuleHandle.AddNamedMetadataOperand(name, operand.ValueHandle);
+        }
+
         /// <summary>Gets a declaration for an LLVM intrinsic function.</summary>
         /// <param name="name">Name of the intrinsic.</param>
         /// <param name="args">Args for the intrinsic.</param>
@@ -560,7 +689,7 @@ namespace Ubiquity.NET.Llvm
         internal static BitcodeModule FromHandle(LLVMModuleRef nativeHandle)
         {
             var contextRef = nativeHandle.Context;
-            Context context = ContextCache.GetContextFor(contextRef);
+            Context context = ThreadContextCache.GetOrCreateAndRegister(contextRef);
             return context.GetModuleFor(nativeHandle);
         }
 
@@ -596,6 +725,27 @@ namespace Ubiquity.NET.Llvm
             {
                 var hContext = this.Context.ContextHandle.CreateModuleWithName(moduleId);
                 return this.GetOrCreateItem(hContext);
+            }
+
+            public BitcodeModule CreateBitcodeModule(
+                string moduleId,
+                SourceLanguage language,
+                string srcFilePath,
+                string producer,
+                bool optimized = false,
+                string compilationFlags = "",
+                uint runtimeVersion = 0)
+            {
+                var retVal = this.CreateBitcodeModule(moduleId);
+                retVal.DICompileUnit = retVal.DIBuilder.CreateCompileUnit(
+                    language,
+                    srcFilePath,
+                    producer,
+                    optimized,
+                    compilationFlags,
+                    runtimeVersion);
+
+                return retVal;
             }
 
             private protected override BitcodeModule ItemFactory(LLVMModuleRef handle)

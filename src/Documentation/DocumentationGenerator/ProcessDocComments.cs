@@ -34,7 +34,7 @@ namespace Microsoft.Quantum.Documentation
         /// </summary>
         public event Action<IRewriteStep.Diagnostic>? OnDiagnostic;
 
-        internal readonly DocumentationWriter Writer;
+        internal DocumentationWriter Writer { get; }
 
         /// <summary>
         /// Initializes a new instance of the <see cref="ProcessDocComments"/> class.
@@ -98,7 +98,7 @@ namespace Microsoft.Quantum.Documentation
                         {
                             QsNamespaceElement.QsCallable { Item: var callable } => callable.Access.IsPublic,
                             QsNamespaceElement.QsCustomType { Item: var type } => type.Access.IsPublic,
-                            _ => false
+                            _ => false,
                         }))
                     {
                         this.writer?.WriteOutput(ns, comment)?.Wait();
@@ -111,6 +111,7 @@ namespace Microsoft.Quantum.Documentation
             public override QsCustomType OnTypeDeclaration(QsCustomType type)
             {
                 type = base.OnTypeDeclaration(type);
+
                 // If the UDT didn't come from a Q# source file, then it
                 // came in from a reference, and shouldn't be documented in this
                 // project.
@@ -151,6 +152,7 @@ namespace Microsoft.Quantum.Documentation
             public override QsCallable OnCallableDeclaration(QsCallable callable)
             {
                 callable = base.OnCallableDeclaration(callable);
+
                 // If the callable didn't come from a Q# source file, then it
                 // came in from a reference, and shouldn't be documented in this
                 // project.

@@ -137,7 +137,7 @@
   <Target Name="QSharpCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
           Inputs="@(QSharpCompile);@(ReferencePath);@(QscCommandArgsFile)"
-          Outputs="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).*"
+          Outputs="$(GeneratedFilesOutputPath)$(PathCompatibleAssemblyName).bson"
           DependsOnTargets="PrepareQSharpCompile"
           BeforeTargets="PrepareCSharpCompileAfterCSharpGeneration">
     <ItemGroup>

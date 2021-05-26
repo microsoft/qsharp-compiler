@@ -11,7 +11,7 @@ namespace LLVMSharp.Interop
     public unsafe partial struct LLVMValueMetadataEntryRef : IEquatable<LLVMValueMetadataEntryRef>
     {
         /// <summary>Pointer to the underlying native type.</summary>
-        public IntPtr Handle;
+        public IntPtr Handle { get; set; }
 
         /// <summary>Initializes a new instance of the <see cref="LLVMValueMetadataEntryRef"/> struct.</summary>
         public LLVMValueMetadataEntryRef(IntPtr handle)
@@ -43,7 +43,7 @@ namespace LLVMSharp.Interop
         /// <summary>Basic string representation support.</summary>
         public override string ToString() => $"{nameof(LLVMValueMetadataEntryRef)}: {this.Handle:X}";
 
-        /// <summary>Convenience wrapper for LLVm.ValueMetadataEntriesGetMetadata.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.ValueMetadataEntriesGetMetadata"/>.</summary>
         public LLVMMetadataRef ValueMetadataEntriesGetMetadata(uint i) => (this.Handle != default) ? LLVM.ValueMetadataEntriesGetMetadata(this, i) : default;
     }
 }

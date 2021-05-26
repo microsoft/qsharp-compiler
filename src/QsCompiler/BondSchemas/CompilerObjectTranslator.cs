@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 AccessModifier.DefaultAccess => SyntaxTokens.Access.Public,
                 AccessModifier.Internal => SyntaxTokens.Access.Internal,
-                _ => throw new ArgumentException($"Unsupported Bond AccessModifier '{bondAccessModifier}'")
+                _ => throw new ArgumentException($"Unsupported Bond AccessModifier '{bondAccessModifier}'"),
             };
 
         private static SyntaxTokens.CharacteristicsKind<SyntaxTree.ResolvedCharacteristics> ToCompilerObject(
@@ -65,7 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 QsGeneratorDirective.InvalidGenerator => SyntaxTokens.QsGeneratorDirective.InvalidGenerator,
                 QsGeneratorDirective.Invert => SyntaxTokens.QsGeneratorDirective.Invert,
                 QsGeneratorDirective.SelfInverse => SyntaxTokens.QsGeneratorDirective.SelfInverse,
-                _ => throw new ArgumentException($"Unsupported Bond QsGeneratorDirective '{bondQsGeneratorDirective}'")
+                _ => throw new ArgumentException($"Unsupported Bond QsGeneratorDirective '{bondQsGeneratorDirective}'"),
             };
 
         private static SyntaxTokens.QsInitializerKind<SyntaxTree.ResolvedInitializer, SyntaxTree.TypedExpression> ToCompilerObject(
@@ -79,7 +79,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 OpProperty.Adjointable => SyntaxTokens.OpProperty.Adjointable,
                 OpProperty.Controllable => SyntaxTokens.OpProperty.Controllable,
-                _ => throw new ArgumentException($"Unsupported Bond OpProperty '{bondOpProperty}'")
+                _ => throw new ArgumentException($"Unsupported Bond OpProperty '{bondOpProperty}'"),
             };
 
         private static SyntaxTokens.QsPauli ToCompilerObject(this QsPauli bondQsPauli) =>
@@ -89,7 +89,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 QsPauli.PauliX => SyntaxTokens.QsPauli.PauliX,
                 QsPauli.PauliY => SyntaxTokens.QsPauli.PauliY,
                 QsPauli.PauliZ => SyntaxTokens.QsPauli.PauliZ,
-                _ => throw new ArgumentException($"Unsupported Bond QsPauli '{bondQsPauli}'")
+                _ => throw new ArgumentException($"Unsupported Bond QsPauli '{bondQsPauli}'"),
             };
 
         private static SyntaxTokens.QsResult ToCompilerObject(this QsResult bondQsResult) =>
@@ -97,7 +97,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 QsResult.Zero => SyntaxTokens.QsResult.Zero,
                 QsResult.One => SyntaxTokens.QsResult.One,
-                _ => throw new ArgumentException($"Unsupported Bond QsResult '{bondQsResult}'")
+                _ => throw new ArgumentException($"Unsupported Bond QsResult '{bondQsResult}'"),
             };
 
         private static SyntaxTokens.QsTuple<SyntaxTree.LocalVariableDeclaration<SyntaxTree.QsLocalSymbol>> ToCompilerObject(
@@ -186,7 +186,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 QsBindingKind.ImmutableBinding => SyntaxTree.QsBindingKind.ImmutableBinding,
                 QsBindingKind.MutableBinding => SyntaxTree.QsBindingKind.MutableBinding,
-                _ => throw new ArgumentException($"Unsupported Bond QsBindingKind '{bondQsBindingKind}'")
+                _ => throw new ArgumentException($"Unsupported Bond QsBindingKind '{bondQsBindingKind}'"),
             };
 
         private static SyntaxTree.QsCallable ToCompilerObject(this QsCallable bondQsCallable) =>
@@ -211,7 +211,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 QsCallableKind.Operation => SyntaxTree.QsCallableKind.Operation,
                 QsCallableKind.Function => SyntaxTree.QsCallableKind.Function,
                 QsCallableKind.TypeConstructor => SyntaxTree.QsCallableKind.TypeConstructor,
-                _ => throw new ArgumentException($"Unsupported Bond QsCallableKind '{bondQsCallableKind}'")
+                _ => throw new ArgumentException($"Unsupported Bond QsCallableKind '{bondQsCallableKind}'"),
             };
 
         private static SyntaxTree.QsComments ToCompilerObject(this QsComments bondQsComments) =>
@@ -276,7 +276,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 return bondQsLocalSymbol.Kind switch
                 {
                     QsLocalSymbolKind.InvalidName => SyntaxTree.QsLocalSymbol.InvalidName,
-                    _ => throw new ArgumentException($"Unsupported Bond QsLocalSymbolKind '{bondQsLocalSymbol.Kind}'")
+                    _ => throw new ArgumentException($"Unsupported Bond QsLocalSymbolKind '{bondQsLocalSymbol.Kind}'"),
                 };
             }
         }
@@ -345,7 +345,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
             {
                 QsQubitScopeKind.Allocate => SyntaxTree.QsQubitScopeKind.Allocate,
                 QsQubitScopeKind.Borrow => SyntaxTree.QsQubitScopeKind.Borrow,
-                _ => throw new ArgumentException($"Unsupported Bond QsQubitScopeKind '{bondQsQubitScopeKind}'")
+                _ => throw new ArgumentException($"Unsupported Bond QsQubitScopeKind '{bondQsQubitScopeKind}'"),
             };
 
         private static SyntaxTree.QsRepeatStatement ToCompilerObject(this QsRepeatStatement bondQsRepeatStatement) =>
@@ -383,7 +383,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 QsSpecializationKind.QsBody => SyntaxTree.QsSpecializationKind.QsBody,
                 QsSpecializationKind.QsControlled => SyntaxTree.QsSpecializationKind.QsControlled,
                 QsSpecializationKind.QsControlledAdjoint => SyntaxTree.QsSpecializationKind.QsControlledAdjoint,
-                _ => throw new ArgumentException($"Unsupported Bond QsSpecializationKind '{bondQsSpecializationKind}'")
+                _ => throw new ArgumentException($"Unsupported Bond QsSpecializationKind '{bondQsSpecializationKind}'"),
             };
 
         private static SyntaxTree.QsStatement ToCompilerObject(this QsStatement bondQsStatement) =>
@@ -421,7 +421,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         item: compilerTypedExpression),
                     QsStatementKind.QsFailStatement => SyntaxTree.QsStatementKind.NewQsFailStatement(
                         item: compilerTypedExpression),
-                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("TypedExpression"))
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("TypedExpression")),
                 };
             }
             else if (bondQsStatementKindComposition.Kind == QsStatementKind.QsVariableDeclaration)
@@ -598,7 +598,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 {
                     SpecializationImplementationKind.External => SyntaxTree.SpecializationImplementation.External,
                     SpecializationImplementationKind.Intrinsic => SyntaxTree.SpecializationImplementation.Intrinsic,
-                    _ => throw new ArgumentException($"Unsupported Bond SpecializationImplementationKind '{bondSpecializationImplementation.Kind}'")
+                    _ => throw new ArgumentException($"Unsupported Bond SpecializationImplementationKind '{bondSpecializationImplementation.Kind}'"),
                 };
             }
         }
@@ -631,7 +631,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 {
                     SymbolTupleKind.DiscardedItem => SyntaxTree.SymbolTuple.DiscardedItem,
                     SymbolTupleKind.InvalidItem => SyntaxTree.SymbolTuple.InvalidItem,
-                    _ => throw new ArgumentException($"Unsupported Bond SymbolTupleKind '{bondSymbolTuple.Kind}'")
+                    _ => throw new ArgumentException($"Unsupported Bond SymbolTupleKind '{bondSymbolTuple.Kind}'"),
                 };
             }
         }
@@ -701,7 +701,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                     CharacteristicsKind.Intersection => SyntaxTokens.CharacteristicsKind<TCompiler>.NewIntersection(
                         item1: compilerSet1,
                         item2: compilerSet2),
-                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("SetOperation"))
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("SetOperation")),
                 };
             }
             else
@@ -710,7 +710,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                 {
                     CharacteristicsKind.EmptySet => SyntaxTokens.CharacteristicsKind<TCompiler>.EmptySet,
                     CharacteristicsKind.InvalidSetExpr => SyntaxTokens.CharacteristicsKind<TCompiler>.InvalidSetExpr,
-                    _ => throw new ArgumentException($"Unsupported Bond CharacteristicsKind '{bondCharacteristicsKindComposition.Kind}'")
+                    _ => throw new ArgumentException($"Unsupported Bond CharacteristicsKind '{bondCharacteristicsKindComposition.Kind}'"),
                 };
             }
         }
@@ -860,7 +860,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         NewAdjointApplication(item: compilerExpression),
                     QsExpressionKind.ControlledApplication => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewControlledApplication(item: compilerExpression),
-                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("Expression"))
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("Expression")),
                 };
             }
             else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.RangeLiteral) ||
@@ -941,7 +941,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         NewRSHIFT(item1: compilerExpression1, item2: compilerExpression2),
                     QsExpressionKind.CallLikeExpression => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewCallLikeExpression(item1: compilerExpression1, item2: compilerExpression2),
-                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionDouble"))
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionDouble")),
                 };
             }
             else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.CONDITIONAL) ||
@@ -960,7 +960,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         NewCONDITIONAL(item1: compilerExpression1, item2: compilerExpression2, item3: compilerExpression3),
                     QsExpressionKind.CopyAndUpdate => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewCopyAndUpdate(item1: compilerExpression1, item2: compilerExpression2, item3: compilerExpression3),
-                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionTriple"))
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionTriple")),
                 };
             }
             else if ((bondQsExpressionKindComposition.Kind == QsExpressionKind.ValueTuple) ||
@@ -977,7 +977,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         NewValueTuple(item: compilerExpressionArray),
                     QsExpressionKind.ValueArray => SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.
                         NewValueArray(item: compilerExpressionArray),
-                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionArray"))
+                    _ => throw new InvalidOperationException(InvalidKindForFieldMessage("ExpressionArray")),
                 };
             }
             else
@@ -990,7 +990,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.MissingExpr,
                     QsExpressionKind.InvalidExpr =>
                         SyntaxTokens.QsExpressionKind<TCompilerExpression, TCompilerSymbol, TCompilerType>.InvalidExpr,
-                    _ => throw new ArgumentException($"Unsupported Bond QsExpressionKind '{bondQsExpressionKindComposition.Kind}'")
+                    _ => throw new ArgumentException($"Unsupported Bond QsExpressionKind '{bondQsExpressionKindComposition.Kind}'"),
                 };
             }
         }
@@ -1033,7 +1033,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression>.InvalidInitializer,
                     QsInitializerKind.SingleQubitAllocation =>
                         SyntaxTokens.QsInitializerKind<TCompilerInitializer, TCompilerExpression>.SingleQubitAllocation,
-                    _ => throw new ArgumentException($"Unsupported Bond QsInitializer kind '{bondQsInitializerKindComposition.Kind}'")
+                    _ => throw new ArgumentException($"Unsupported Bond QsInitializer kind '{bondQsInitializerKindComposition.Kind}'"),
                 };
             }
         }
@@ -1172,7 +1172,7 @@ namespace Microsoft.Quantum.QsCompiler.BondSchemas
                         SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.MissingType,
                     QsTypeKind.InvalidType =>
                         SyntaxTokens.QsTypeKind<TCompilerType, TCompilerUdt, TCompilerParam, TCompilerCharacteristics>.InvalidType,
-                    _ => throw new ArgumentException($"Unsupported Bond QsTypeKind {bondQsTypeKindComposition.Kind}")
+                    _ => throw new ArgumentException($"Unsupported Bond QsTypeKind {bondQsTypeKindComposition.Kind}"),
                 };
 
                 return simpleQsTypeKind;

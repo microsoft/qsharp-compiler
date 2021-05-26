@@ -51,6 +51,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     this.functors.Add(Functors.Controlled);
                 }
             }
+
             this.callable = callableObj;
         }
 
@@ -75,10 +76,11 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                     var argNode = new YamlMappingNode();
                     var argName = ((QsLocalSymbol.ValidName)declaration.VariableName).Item;
                     argNode.AddStringMapping(Utils.NameKey, argName);
-                    if (this.comments.Input.TryGetValue(argName, out string summary))
+                    if (this.Comments.Input.TryGetValue(argName, out string summary))
                     {
                         argNode.AddStringMapping(Utils.SummaryKey, summary);
                     }
+
                     Utils.ResolvedTypeToYaml(declaration.Type, argNode);
                     typesNode.Add(argNode);
                 }
@@ -98,50 +100,57 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 var outputTypeNode = new YamlMappingNode();
                 typesNode.Add(outputTypeNode);
 
-                if (!string.IsNullOrEmpty(this.comments.Output))
+                if (!string.IsNullOrEmpty(this.Comments.Output))
                 {
-                    outputTypeNode.AddStringMapping(Utils.SummaryKey, this.comments.Output);
+                    outputTypeNode.AddStringMapping(Utils.SummaryKey, this.Comments.Output);
                 }
+
                 Utils.ResolvedTypeToYaml(this.callable.Signature.ReturnType, outputTypeNode);
 
                 return outputNode;
             }
 
             var rootNode = new YamlMappingNode();
-            rootNode.AddStringMapping(Utils.UidKey, this.uid);
-            rootNode.AddStringMapping(Utils.NameKey, this.name);
-            rootNode.AddStringMapping(Utils.TypeKey, this.itemType);
-            rootNode.AddStringMapping(Utils.NamespaceKey, this.namespaceName.AsObsoleteUid());
-            if (!string.IsNullOrWhiteSpace(this.comments.Documentation))
+            rootNode.AddStringMapping(Utils.UidKey, this.Uid);
+            rootNode.AddStringMapping(Utils.NameKey, this.Name);
+            rootNode.AddStringMapping(Utils.TypeKey, this.ItemType);
+            rootNode.AddStringMapping(Utils.NamespaceKey, this.NamespaceName.AsObsoleteUid());
+            if (!string.IsNullOrWhiteSpace(this.Comments.Documentation))
             {
-                rootNode.AddStringMapping(Utils.SummaryKey, this.comments.Documentation);
+                rootNode.AddStringMapping(Utils.SummaryKey, this.Comments.Documentation);
             }
-            if (!string.IsNullOrWhiteSpace(this.comments.Remarks))
+
+            if (!string.IsNullOrWhiteSpace(this.Comments.Remarks))
             {
-                rootNode.AddStringMapping(Utils.RemarksKey, this.comments.Remarks);
+                rootNode.AddStringMapping(Utils.RemarksKey, this.Comments.Remarks);
             }
-            if (!string.IsNullOrWhiteSpace(this.comments.Example))
+
+            if (!string.IsNullOrWhiteSpace(this.Comments.Example))
             {
-                rootNode.AddStringMapping(Utils.ExamplesKey, this.comments.Example);
+                rootNode.AddStringMapping(Utils.ExamplesKey, this.Comments.Example);
             }
+
             rootNode.AddStringMapping(Utils.SyntaxKey, this.syntax);
-            if (!string.IsNullOrWhiteSpace(this.comments.References))
+            if (!string.IsNullOrWhiteSpace(this.Comments.References))
             {
-                rootNode.AddStringMapping(Utils.ReferencesKey, this.comments.References);
+                rootNode.AddStringMapping(Utils.ReferencesKey, this.Comments.References);
             }
+
             rootNode.Add(Utils.InputKey, BuildInputNode());
             rootNode.Add(Utils.OutputKey, BuildOutputNode());
-            if (this.comments.TypeParameters.Count > 0)
+            if (this.Comments.TypeParameters.Count > 0)
             {
-                rootNode.Add(Utils.TypeParamsKey, Utils.BuildSequenceMappingNode(this.comments.TypeParameters));
+                rootNode.Add(Utils.TypeParamsKey, Utils.BuildSequenceMappingNode(this.Comments.TypeParameters));
             }
+
             if (this.functors.Count > 0)
             {
                 rootNode.Add(Utils.FunctorsKey, Utils.BuildSequenceNode(this.functors));
             }
-            if (this.comments.SeeAlso.Count > 0)
+
+            if (this.Comments.SeeAlso.Count > 0)
             {
-                rootNode.Add(Utils.SeeAlsoKey, Utils.BuildSequenceNode(this.comments.SeeAlso));
+                rootNode.Add(Utils.SeeAlsoKey, Utils.BuildSequenceNode(this.Comments.SeeAlso));
             }
 
             var doc = new YamlDocument(rootNode);

@@ -33,7 +33,9 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
             {
                 throw new ArgumentException("Root path must be provided and may not be empty", nameof(rootPath));
             }
+
             this.rootDocPath = rootPath;
+
             // Sort namespaces in alphabetical order for the TOC
             this.namespaces = tree.Select(qns => new DocNamespace(qns, sources)).Where(ns => ns.IsNotEmpty).OrderBy(ns => ns.Name).ToList();
         }
@@ -61,6 +63,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     errors.AddRange(ex.InnerExceptions);
                 }
+
                 Utils.DoTrackingExceptions(() => ns.WriteToFile(this.rootDocPath), errors);
                 Utils.DoTrackingExceptions(() => ns.MergeNamespaceIntoToc(rootNode), errors);
             }
@@ -101,6 +104,7 @@ namespace Microsoft.Quantum.QsCompiler.Documentation
                 {
                     onException?.Invoke(inner);
                 }
+
                 return false;
             }
         }

@@ -28,6 +28,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 {
                     return assemblyLoadContext.LoadFromAssemblyPath(path);
                 }
+
                 return null;
             };
         }
@@ -81,6 +82,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 {
                     actual = null;
                 }
+
                 Assert.AreEqual(expected, actual);
             }
 
@@ -99,7 +101,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 ("test10", "netcoreapp2.1"),
                 ("test11", "netcoreapp3.0"),
                 ("test12", "netstandard2.1"),
-                ("test13", "netcoreapp3.1")
+                ("test13", "netcoreapp3.1"),
             };
 
             foreach (var (project, framework) in testProjects)
@@ -159,7 +161,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Path.Combine(projDir, "Operation3a.qs"),
                 Path.Combine(projDir, "Operation3b.qs"),
                 Path.Combine(projDir, "sub1", "Operation3b.qs"),
-                Path.Combine(projDir, "sub1", "sub2", "Operation3a.qs")
+                Path.Combine(projDir, "sub1", "sub2", "Operation3a.qs"),
             };
 
             Assert.IsTrue(context.UsesIntrinsics());
@@ -178,7 +180,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Path.Combine(projDir, "Operation12a.qs"),
                 Path.Combine(projDir, "Operation12b.qs"),
                 Path.Combine(projDir, "sub1", "Operation12b.qs"),
-                Path.Combine(projDir, "sub1", "sub2", "Operation12a.qs")
+                Path.Combine(projDir, "sub1", "sub2", "Operation12a.qs"),
             };
 
             Assert.IsTrue(context.UsesIntrinsics());
@@ -198,7 +200,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             var qsFiles = new string[]
             {
-                Path.Combine(projDir, "Operation.qs")
+                Path.Combine(projDir, "Operation.qs"),
             };
 
             Assert.IsTrue(context.UsesIntrinsics());
@@ -218,7 +220,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             var qsFiles = new string[]
             {
-                Path.Combine(projDir, "Operation4.qs")
+                Path.Combine(projDir, "Operation4.qs"),
             };
 
             Assert.IsTrue(context.UsesIntrinsics());
@@ -235,7 +237,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             qsFiles = new string[]
             {
-                Path.Combine(projDir, "Operation10.qs")
+                Path.Combine(projDir, "Operation10.qs"),
             };
 
             Assert.IsTrue(context.UsesIntrinsics());
@@ -250,7 +252,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
 
             qsFiles = new string[]
             {
-                Path.Combine(projDir, "Operation11.qs")
+                Path.Combine(projDir, "Operation11.qs"),
             };
 
             Assert.IsTrue(context.UsesIntrinsics());
@@ -271,7 +273,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             {
                 // Compilation target set to none for "Operation5.qs",
                 Path.Combine(projDir, "Tests5.qs"),
-                Path.Combine(projDir, "test.folder", "Operation5.qs")
+                Path.Combine(projDir, "test.folder", "Operation5.qs"),
             };
 
             Assert.IsTrue(context.UsesIntrinsics());

@@ -18,7 +18,8 @@ namespace Microsoft.Quantum.QsCompiler
 {
     internal class QirGeneration : IRewriteStep
     {
-        internal static int EmissionPriority = -10;
+        internal const int EmissionPriority = -10;
+
         private readonly List<IRewriteStep.Diagnostic> diagnostics;
 
         public QirGeneration()
@@ -63,7 +64,7 @@ namespace Microsoft.Quantum.QsCompiler
                     Severity = DiagnosticSeverity.Error,
                     Stage = IRewriteStep.Stage.PreconditionVerification,
                     Message = DiagnosticItem.Message(ErrorCode.SyntaxTreeNotMonomorphized, Array.Empty<string>()),
-                    Source = Assembly.GetExecutingAssembly().Location
+                    Source = Assembly.GetExecutingAssembly().Location,
                 });
                 return false;
             }
@@ -73,23 +74,27 @@ namespace Microsoft.Quantum.QsCompiler
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             transformed = compilation;
-            var generator = new Generator(transformed);
-            generator.Apply();
+            using (var generationContext = new GenerationContext(compilation.Namespaces))
+            {
+                var generator = new Generator(transformed, generationContext);
+                generator.Apply();
 
-            // write generated QIR to disk
-            var assemblyName = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.AssemblyName, out var asmName) ? asmName : null;
-            var targetFile = Path.GetFullPath(string.IsNullOrWhiteSpace(assemblyName) ? "main.txt" : $"{Path.GetFileName(assemblyName)}.txt");
+                // write generated QIR to disk
+                var assemblyName = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.AssemblyName, out var asmName) ? asmName : null;
+                var targetFile = Path.GetFullPath(string.IsNullOrWhiteSpace(assemblyName) ? "main.txt" : $"{Path.GetFileName(assemblyName)}.txt");
 
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.BitcodeGeneration);
-            var bcOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
-            var bcFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(bcOutputFolder), ".bc", "");
-            generator.Emit(bcFile, emitBitcode: true);
-            PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
+                PerformanceTracking.TaskStart(PerformanceTracking.Task.BitcodeGeneration);
+                var bcOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
+                var bcFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(bcOutputFolder), ".bc", "");
+                generator.Emit(bcFile, emitBitcode: true);
+                PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
 
-            // create the human readable version as well
-            var sourceOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QirOutputPath, out path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
-            var llvmSourceFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(sourceOutputFolder), ".ll", "");
-            generator.Emit(llvmSourceFile, emitBitcode: false);
+                // create the human readable version as well
+                var sourceOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QirOutputPath, out path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
+                var llvmSourceFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(sourceOutputFolder), ".ll", "");
+                generator.Emit(llvmSourceFile, emitBitcode: false);
+            }
+
             return true;
         }
 
@@ -165,6 +170,7 @@ namespace Microsoft.Quantum.QsCompiler
                     Stage = IRewriteStep.Stage.Transformation,
                 });
             }
+
             return true;
         }
 

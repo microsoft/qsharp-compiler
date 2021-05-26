@@ -36,6 +36,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 property.Converter = this.rokConverter;
             }
+
             return property;
         }
     }
@@ -48,6 +49,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new JsonSerializationException($"Expected array start, got {reader.TokenType}.");
             }
+
             var values = new List<ResourceOperationKind>();
             while (reader.Read())
             {
@@ -61,9 +63,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                     "create" => ResourceOperationKind.Create,
                     "delete" => ResourceOperationKind.Delete,
                     "rename" => ResourceOperationKind.Delete,
-                    var badValue => throw new JsonSerializationException($"Could not deserialize {badValue} as ResourceOperationKind.")
+                    var badValue => throw new JsonSerializationException($"Could not deserialize {badValue} as ResourceOperationKind."),
                 });
             }
+
             return values.ToArray();
         }
 
@@ -77,21 +80,23 @@ namespace Microsoft.Quantum.QsLanguageServer
                     ResourceOperationKind.Create => "create",
                     ResourceOperationKind.Delete => "delete",
                     ResourceOperationKind.Rename => "rename",
-                    _ => throw new JsonSerializationException($"Could not serialize {value} as ResourceOperationKind.")
+                    _ => throw new JsonSerializationException($"Could not serialize {value} as ResourceOperationKind."),
                 });
             }
+
             writer.WriteEndArray();
         }
     }
 
     public static class Utils
     {
-        // language server tools -
-        // wrapping these into a try .. catch .. to make sure errors don't go unnoticed as they otherwise would
+        /* language server tools -
+         * wrapping these into a try .. catch .. to make sure errors don't go unnoticed as they otherwise would
+         */
 
         public static readonly JsonSerializer JsonSerializer = new JsonSerializer()
         {
-            ContractResolver = new ResourceOperationKindContractResolver()
+            ContractResolver = new ResourceOperationKindContractResolver(),
         };
 
         public static T? TryJTokenAs<T>(JToken arg)
@@ -121,7 +126,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     Message = text,
                     MessageType = severity,
-                    Actions = actionItems
+                    Actions = actionItems,
                 };
             return await server.InvokeAsync<MessageActionItem>(Methods.WindowShowMessageRequestName, message);
         }

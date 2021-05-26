@@ -4,7 +4,6 @@
 using System;
 using System.IO;
 using System.Linq;
-using System.Text;
 
 namespace Microsoft.Quantum.Sdk.Tools
 {
@@ -56,7 +55,7 @@ namespace Microsoft.Quantum.Sdk.Tools
                 return ReturnCode.INVALID_ARGUMENTS;
             }
 
-            return BuildConfiguration.WriteConfigFile(options.OutputFile, orderedQscReferences, verbose)
+            return WriteConfigFile(options.OutputFile, orderedQscReferences, verbose)
                 ? ReturnCode.SUCCESS
                 : ReturnCode.IO_EXCEPTION;
         }
