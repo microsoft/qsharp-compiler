@@ -117,9 +117,15 @@ namespace Microsoft.Quantum.Documentation
                         ? config ?? ""
                         : "")
                 .Split(",")
+                .Where(rule => !string.IsNullOrWhiteSpace(rule))
                 .Select(rule =>
                     {
                         var ruleParts = rule.Split(":", 2);
+                        if (ruleParts.Length != 2)
+                        {
+                            throw new Exception($"Error parsing documentation linting rule specification \"{rule}\"; expected a specification of the form \"severity:rule-name\".");
+                        }
+
                         return (severity: ruleParts[0], ruleName: ruleParts[1]);
                     })
                 .ToDictionary(
@@ -130,7 +136,7 @@ namespace Microsoft.Quantum.Documentation
             // now.
             foreach ((var ruleName, var severity) in lintingRulesConfig)
             {
-                if (!DocumentationGeneration.LintingRules.ContainsKey(ruleName))
+                if (!LintingRules.ContainsKey(ruleName))
                 {
                     this.diagnostics.Add(new IRewriteStep.Diagnostic
                     {
@@ -142,8 +148,7 @@ namespace Microsoft.Quantum.Documentation
             }
 
             // Actually populate the rules now.
-            var lintingRules = DocumentationGeneration
-                .LintingRules
+            var lintingRules = LintingRules
                 .Select(
                     rule => (
                         Name: rule.Key,
