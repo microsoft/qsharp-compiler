@@ -113,7 +113,7 @@ namespace Microsoft.Quantum.Documentation
             // or "error:", indicating the level of severity for each.
             var lintingRulesConfig = (
                 this.AssemblyConstants
-                    .TryGetValue(QsAssemblyConstants.DocsPackageId, out var config)
+                    .TryGetValue(QsAssemblyConstants.DocsLintingRules, out var config)
                         ? config ?? ""
                         : "")
                 .Split(",")
