@@ -23,7 +23,7 @@
   <!-- Q# package references included by default. -->
   <ItemGroup>
     <!-- Packages and libraries included for all execution targets. -->
-    <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.16.2105140327-beta" />
+    <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.QSharp.Core" Version="0.16.2105140327-beta" /> <!-- TODO: replace all the version numbers with what you need -->
     <PackageReference Condition="$(IncludeQSharpCorePackages)" Include="Microsoft.Quantum.Standard" Version="0.16.2105140327-beta" />
     <!-- Packages included for specific execution targets. -->
     <PackageReference Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor' And $(IncludeProviderPackages)" Include="Microsoft.Quantum.Providers.Honeywell" Version="0.16.2105140327-beta" />

@@ -65,7 +65,6 @@
     <PerfDataGeneration Condition="'$(PerfDataOutputPath)' == '' And '$(PerfDataGeneration)' == 'default'">false</PerfDataGeneration>
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' != '' And '$(QSharpDocsGeneration)' == 'default'">true</QSharpDocsGeneration>
     <QSharpDocsGeneration Condition="'$(QSharpDocsOutputPath)' == '' And '$(QSharpDocsGeneration)' == 'default'">false</QSharpDocsGeneration>
-    <CSharpGeneration Condition="$(QirGeneration)">false</CSharpGeneration>
     <!-- path compatible assembly name -->
     <PathCompatibleAssemblyName>$([System.String]::Copy('$(AssemblyName)').Replace(' ',''))</PathCompatibleAssemblyName>
     <!-- output path for files generated during compilation -->
