@@ -6,9 +6,9 @@
     operation Prepare(target : Qubit) : Unit {
         H(target);
     }
-
+    
     operation Iterate(time : Double, theta : Double, target : Qubit) : Result {
-
+    
         use aux = Qubit();
         within {
             H(aux);
@@ -21,9 +21,12 @@
 
     @EntryPoint()
     operation EstimatePhaseByRandomWalk(nrIter : Int) : Double {
-            
+        Message("EstimatePhaseByRandomWalk");
+        Message($"nrIter: {nrIter}");
         mutable mu = 0.7951;
         mutable sigma = 0.6065;
+        Message($"mu: {mu}");
+        Message($"sigma: {sigma}");
 
         use target = Qubit(); 
         Prepare(target);

@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/1.0.6">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/1.0.10">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -22,7 +22,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Providers.Core" Version="0.17.2105143977-alpha" />
+    <PackageReference Include="Microsoft.Quantum.Providers.Core" Version="1.0.10" />
   </ItemGroup>
   
   <PropertyGroup>
