@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.16.2105140327-beta">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/1.0.6">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -20,16 +20,18 @@
                       Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
                       PrivateAssets="All" GeneratePathProperty="true" />
   </ItemGroup>
-    
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Providers.Core" Version="0.17.2105143977-alpha" />
+  </ItemGroup>
+  
   <PropertyGroup>
-    <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
   </PropertyGroup>
     
   <ItemGroup>
     <UpToDateCheckInput Include="@(None)" />
     <None Include="$(QirOutputPath)**" />
-    <Compile Remove="Main.cs" />
   </ItemGroup>
     
   <ItemGroup>
@@ -59,12 +61,6 @@
     <Message Text="Removed files from prior compilation." Importance="High" />
   </Target>
 
-  <Target Name="BeforeCSharpCompile">
-    <ItemGroup>
-      <Compile Include="Main.cs">
-        <Visible>false</Visible>
-      </Compile>
-    </ItemGroup>
-  </Target>
+  
 
 </Project>
