@@ -60,9 +60,10 @@ module Type =
     let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
         match context with
         | null -> None
-        | context -> Some (
-                            {
-                                IsKeyword = context.is |> Node.toTerminal tokens
-                                Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
-                            }
-                        )
+        | context ->
+            Some(
+                {
+                    IsKeyword = context.is |> Node.toTerminal tokens
+                    Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
+                }
+            )
