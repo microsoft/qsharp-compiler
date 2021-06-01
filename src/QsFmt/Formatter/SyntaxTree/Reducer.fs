@@ -42,8 +42,9 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal callable.Name
             reducer.SymbolBinding callable.Parameters
             reducer.TypeAnnotation callable.ReturnType
-            reducer.Block(reducer.Statement, callable.Block)
         ]
+        @ (callable.CharacteristicSection |> Option.map reducer.CharacteristicSection |> Option.toList)
+        @ [ reducer.Block(reducer.Statement, callable.Block) ]
         |> reduce
 
     abstract Type : typ: Type -> 'result

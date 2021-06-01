@@ -61,7 +61,7 @@ namedItem : name=Identifier colon=':' itemType=type;
 callableDeclaration
     : declarationPrefix keyword=('function' | 'operation')
       name=Identifier typeParameterBinding? tuple=parameterTuple
-      colon=':' returnType=type characteristics?
+      colon=':' returnType=type returnChar=characteristics?
       body=callableBody
     ;
 
@@ -74,14 +74,14 @@ parameter
     | parameterTuple # TupledParameter
     ;
 
-characteristics : 'is' characteristicsExpression;
+characteristics : is='is' charExp=characteristicsExpression;
 
 characteristicsExpression
-    : 'Adj'
-    | 'Ctl'
-    | '(' characteristicsExpression ')'
-    | characteristicsExpression '*' characteristicsExpression
-    | characteristicsExpression '+' characteristicsExpression
+    : 'Adj' # AdjointCharacteristics
+    | 'Ctl' # ControlledCharacteristics
+    | openParen='(' charExp=characteristicsExpression closeParen=')' # CharacteristicGroup
+    | left=characteristicsExpression '*' right=characteristicsExpression # AsteriskCharacteristics
+    | left=characteristicsExpression '+' right=characteristicsExpression # PlusCharacteristics
     ;
 
 callableBody

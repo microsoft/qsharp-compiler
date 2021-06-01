@@ -6,6 +6,41 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
+type CharacteristicVisitor(tokens) =
+    inherit QSharpParserBaseVisitor<Characteristic>()
+
+    override _.DefaultResult = failwith "Unknown characteristic."
+
+    override _.VisitAdjointCharacteristics context =
+        context.Adj().Symbol |> Node.toTerminal tokens |> Adjoint
+
+    override _.VisitControlledCharacteristics context =
+        context.Ctl().Symbol |> Node.toTerminal tokens |> Controlled
+
+    override visitor.VisitCharacteristicGroup context =
+        {
+            OpenParen = context.openParen |> Node.toTerminal tokens
+            Characteristic = visitor.Visit context.charExp
+            CloseParen = context.closeParen |> Node.toTerminal tokens
+        }
+        |> Group
+
+    override visitor.VisitAsteriskCharacteristics context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.Asterisk().Symbol |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> Characteristic.BinaryOperator
+
+    override visitor.VisitPlusCharacteristics context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.Plus().Symbol |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> Characteristic.BinaryOperator
+
 type TypeVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Type>()
 
@@ -20,3 +55,14 @@ type TypeVisitor(tokens) =
     override _.VisitUserDefinedType context =
         { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
         |> UserDefined
+
+module Type =
+    let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
+        match context with
+        | null -> None
+        | context -> Some (
+                            {
+                                IsKeyword = context.is |> Node.toTerminal tokens
+                                Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
+                            }
+                        )
