@@ -252,7 +252,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 
             var loaded = new CompilationLoader(
                 options.LoadSourcesOrSnippet(logger),
-                options.References ?? Enumerable.Empty<string>(),
+                options.References.Except(options.TargetSpecificDecompositions) ?? Enumerable.Empty<string>(),
                 loadOptions,
                 logger);
             if (options.PerfOutputFolder != null)
