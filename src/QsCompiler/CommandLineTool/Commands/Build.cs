@@ -250,9 +250,10 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 PerformanceTracking.CompilationTaskEvent += CompilationTracker.OnCompilationTaskEvent;
             }
 
+            // Only pass references to the compileation loader that are not already target decompositions.
             var loaded = new CompilationLoader(
                 options.LoadSourcesOrSnippet(logger),
-                options.References.Except(options.TargetSpecificDecompositions) ?? Enumerable.Empty<string>(),
+                options.References.Where(r => !options.TargetSpecificDecompositions.Any(decomp => decomp.Contains(Path.GetFileName(r)))) ?? Enumerable.Empty<string>(),
                 loadOptions,
                 logger);
             if (options.PerfOutputFolder != null)
