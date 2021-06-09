@@ -11,7 +11,8 @@ module TryCatchTests =
         let m = host_in_method "void" [ t ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -29,6 +30,7 @@ module TryCatchTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -46,7 +48,8 @@ module TryCatchTests =
         let m = host_in_method "string" [ a; t; r ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -68,6 +71,7 @@ module TryCatchTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -88,7 +92,8 @@ module TryCatchTests =
         let m = host_in_method "void" [ a; t ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -119,4 +124,5 @@ module TryCatchTests =
         }
     }
 }"
+
         are_equal expected actual

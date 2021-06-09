@@ -10,7 +10,8 @@ module InterfaceTests =
         let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -18,6 +19,7 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -25,7 +27,8 @@ module InterfaceTests =
         let i = ``interface`` "I" ``<<`` [ "T" ] ``>>`` ``:`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -33,6 +36,7 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -40,7 +44,8 @@ module InterfaceTests =
         let i = ``interface`` "I" ``<<`` [ "R"; "S" ] ``>>`` ``:`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -48,6 +53,7 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -57,7 +63,8 @@ module InterfaceTests =
 
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -65,6 +72,7 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -72,7 +80,8 @@ module InterfaceTests =
         let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``private`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -80,6 +89,7 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -87,7 +97,8 @@ module InterfaceTests =
         let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``static`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -95,6 +106,7 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -102,7 +114,8 @@ module InterfaceTests =
         let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``internal`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -110,6 +123,7 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -117,7 +131,8 @@ module InterfaceTests =
         let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ partial ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -125,6 +140,7 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -132,7 +148,8 @@ module InterfaceTests =
         let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``private``; ``static``; partial ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -140,4 +157,5 @@ module InterfaceTests =
     {
     }
 }"
+
         are_equal expected actual

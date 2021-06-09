@@ -11,7 +11,8 @@ module FieldTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -20,6 +21,7 @@ module FieldTests =
         private string m_Name;
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -29,7 +31,8 @@ module FieldTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -38,4 +41,5 @@ module FieldTests =
         private string m_Name = ""John"";
     }
 }"
+
         are_equal expected actual

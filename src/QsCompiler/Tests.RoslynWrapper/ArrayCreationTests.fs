@@ -13,7 +13,8 @@ module ArrayCreationTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -25,6 +26,7 @@ module ArrayCreationTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -37,7 +39,8 @@ module ArrayCreationTests =
         let m = host_in_method "void" [ s1; s2 ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -50,6 +53,7 @@ module ArrayCreationTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -61,7 +65,8 @@ module ArrayCreationTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -73,6 +78,7 @@ module ArrayCreationTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -82,7 +88,8 @@ module ArrayCreationTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -94,6 +101,7 @@ module ArrayCreationTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -102,7 +110,8 @@ module ArrayCreationTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -114,6 +123,7 @@ module ArrayCreationTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -124,7 +134,8 @@ module ArrayCreationTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -136,6 +147,7 @@ module ArrayCreationTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -144,7 +156,8 @@ module ArrayCreationTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -156,6 +169,7 @@ module ArrayCreationTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -168,7 +182,8 @@ module ArrayCreationTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -180,4 +195,5 @@ module ArrayCreationTests =
         }
     }
 }"
+
         are_equal expected actual

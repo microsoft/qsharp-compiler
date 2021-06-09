@@ -31,7 +31,8 @@ module SimulationCode =
 
     [<Fact>]
     let ``Pure roslyn`` () =
-        let code = "
+        let code =
+            "
         namespace N1
         {
         enum E { A, b, C }
@@ -43,7 +44,8 @@ module SimulationCode =
         }
 "
 
-        let expected = "
+        let expected =
+            "
 namespace N1
 {
     enum E { A, b, C }
@@ -54,6 +56,7 @@ namespace N1
     }
 }
 "
+
         let root = SyntaxFactory.ParseCompilationUnit(code)
         let ws = new AdhocWorkspace()
         let formattedRoot = Formatter.Format(root, ws)
@@ -126,7 +129,8 @@ namespace N1
             let functorGenSuccessful = CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation)
             // todo: we might want to raise an error here if the functor generation fails (which will be the case for incorrect code)
             compilation
-        with e -> sprintf "compilation threw exception: \n%s" e.Message |> failwith // should never happen (all exceptions are caught by the compiler)
+        with
+        | e -> sprintf "compilation threw exception: \n%s" e.Message |> failwith // should never happen (all exceptions are caught by the compiler)
 
     let syntaxTree =
         parse [ (Path.Combine("Circuits", "Intrinsic.qs"))

@@ -11,7 +11,8 @@ module EqualityOperatorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -20,6 +21,7 @@ module EqualityOperatorTests =
         public static bool operator ==(string left, string right) => true;
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -28,7 +30,8 @@ module EqualityOperatorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -37,4 +40,5 @@ module EqualityOperatorTests =
         public static bool operator !=(string left, string right) => true;
     }
 }"
+
         are_equal expected actual

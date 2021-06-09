@@ -10,7 +10,8 @@ module ClassTests =
         let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -18,6 +19,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -27,7 +29,8 @@ module ClassTests =
 
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -35,6 +38,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
 
@@ -43,7 +47,8 @@ module ClassTests =
         let c = ``class`` "C" ``<<`` [ "T" ] ``>>`` ``:`` None ``,`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -51,6 +56,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -58,7 +64,8 @@ module ClassTests =
         let c = ``class`` "C" ``<<`` [ "R"; "S" ] ``>>`` ``:`` None ``,`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -66,6 +73,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -87,7 +95,8 @@ module ClassTests =
 
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -95,6 +104,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -116,7 +126,8 @@ module ClassTests =
 
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -124,6 +135,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -131,7 +143,8 @@ module ClassTests =
         let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``private`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -139,6 +152,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -146,7 +160,8 @@ module ClassTests =
         let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``static`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -154,6 +169,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -161,7 +177,8 @@ module ClassTests =
         let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``internal`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -169,6 +186,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -176,7 +194,8 @@ module ClassTests =
         let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ partial ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -184,6 +203,7 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -193,7 +213,8 @@ module ClassTests =
 
         let actual = to_namespace_member_code c
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -201,4 +222,5 @@ module ClassTests =
     {
     }
 }"
+
         are_equal expected actual

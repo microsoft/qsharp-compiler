@@ -12,7 +12,8 @@ module MiscellaneousTests =
         let m = return_from_arrow_method (``type name`` t) s
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -21,6 +22,7 @@ module MiscellaneousTests =
         protected internal string Host() => new string();
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -30,7 +32,8 @@ module MiscellaneousTests =
         let m = return_from_arrow_method (``type name`` t) s
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -39,6 +42,7 @@ module MiscellaneousTests =
         protected internal System.String Host() => new System.String();
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -60,7 +64,8 @@ module MiscellaneousTests =
         let m = return_from_arrow_method (``type name`` t) s
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -69,4 +74,5 @@ module MiscellaneousTests =
         protected internal System.Collections.Generic.List<T> Host() => new System.Collections.Generic.List<T>();
     }
 }"
+
         are_equal expected actual

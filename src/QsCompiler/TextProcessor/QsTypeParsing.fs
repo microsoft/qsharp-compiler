@@ -129,8 +129,8 @@ let private userDefinedType =
     multiSegmentSymbol ErrorCode.InvalidTypeName
     |>> asQualifiedSymbol
     |>> function
-    | { Symbol = InvalidSymbol } -> (InvalidType, Null) |> QsType.New
-    | symbol -> (UserDefinedType symbol, symbol.Range) |> QsType.New
+        | { Symbol = InvalidSymbol } -> (InvalidType, Null) |> QsType.New
+        | symbol -> (UserDefinedType symbol, symbol.Range) |> QsType.New
 
 
 // composite types

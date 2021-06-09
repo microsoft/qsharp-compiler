@@ -11,7 +11,8 @@ module ConstructorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -22,6 +23,7 @@ module ConstructorTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -31,7 +33,8 @@ module ConstructorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -42,6 +45,7 @@ module ConstructorTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -61,7 +65,8 @@ module ConstructorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -72,6 +77,7 @@ module ConstructorTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -91,7 +97,8 @@ module ConstructorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -102,6 +109,7 @@ module ConstructorTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -121,7 +129,8 @@ module ConstructorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -132,6 +141,7 @@ module ConstructorTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -140,7 +150,8 @@ module ConstructorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -151,4 +162,5 @@ module ConstructorTests =
         }
     }
 }"
+
         are_equal expected actual

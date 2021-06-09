@@ -14,7 +14,8 @@ module StatementTests =
         let m = return_from_arrow_method (``type name`` t) s
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -23,6 +24,7 @@ module StatementTests =
         protected internal List<int> Host() => new List<int>();
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -31,7 +33,8 @@ module StatementTests =
         let m = return_from_arrow_method "String" s
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -40,6 +43,7 @@ module StatementTests =
         protected internal String Host() => new System.String(""A"");
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -50,7 +54,8 @@ module StatementTests =
         let m = return_from_arrow_method (``type name`` t) s
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -60,6 +65,7 @@ module StatementTests =
         {1, 2, 3};
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -70,7 +76,8 @@ module StatementTests =
         let m = host_in_method "void" [ s1 ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -82,6 +89,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -106,7 +114,8 @@ module StatementTests =
         let m = host_in_method "void" [ s1 ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -118,6 +127,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -126,7 +136,8 @@ module StatementTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -138,6 +149,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -147,7 +159,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -159,6 +172,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -169,7 +183,8 @@ module StatementTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -181,6 +196,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -190,7 +206,8 @@ module StatementTests =
         let m = host_in_method "void" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -202,6 +219,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -212,7 +230,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -224,6 +243,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -233,7 +253,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -245,6 +266,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -254,7 +276,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -266,6 +289,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -275,7 +299,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -287,6 +312,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -296,7 +322,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -308,6 +335,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -317,7 +345,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -329,6 +358,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -338,7 +368,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -350,6 +381,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -359,7 +391,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -371,6 +404,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -380,7 +414,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -392,6 +427,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -401,7 +437,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -413,6 +450,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -422,7 +460,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -434,6 +473,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -443,7 +483,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -455,6 +496,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -464,7 +506,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -476,6 +519,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -485,7 +529,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -497,6 +542,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -506,7 +552,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -518,6 +565,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -527,7 +575,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -539,6 +588,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -548,7 +598,8 @@ module StatementTests =
         let m = host_in_method "int" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -560,6 +611,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -568,7 +620,8 @@ module StatementTests =
         let m = host_in_method "int" [ statement ma ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -580,6 +633,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -588,7 +642,8 @@ module StatementTests =
         let m = host_in_method "int" [ statement ma ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -600,6 +655,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -612,7 +668,8 @@ module StatementTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -624,6 +681,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -634,7 +692,8 @@ module StatementTests =
         let m = host_in_method "int" [ statement ma ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -646,6 +705,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -672,7 +732,8 @@ module StatementTests =
         let m = host_in_method "void" ss
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -697,6 +758,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -706,7 +768,8 @@ module StatementTests =
         let m = return_from_arrow_method "Func<int, float>" s
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -715,6 +778,7 @@ module StatementTests =
         protected internal Func<int, float> Host() => b => b as float;
     }
 }"
+
         are_equal expected actual
 
 
@@ -725,7 +789,8 @@ module StatementTests =
         let m = return_from_arrow_method "Func<int, float>" s
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -734,6 +799,7 @@ module StatementTests =
         protected internal Func<int, float> Host() => (a, b) => b as float;
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -751,7 +817,8 @@ module StatementTests =
         let m = host_in_method "void" ss
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -767,6 +834,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -777,7 +845,8 @@ module StatementTests =
         let m = host_in_method "void" [ stmt ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -792,6 +861,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -810,7 +880,8 @@ module StatementTests =
         let m = host_in_method "void" [ stmt ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -830,6 +901,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -853,7 +925,8 @@ module StatementTests =
         let m = host_in_method "void" [ stmt ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -881,6 +954,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -906,7 +980,8 @@ module StatementTests =
         let m = host_in_method "void" [ stmt1; stmt2 ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -931,6 +1006,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
 
@@ -943,7 +1019,8 @@ module StatementTests =
         let m = host_in_method "string" [ s ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -955,6 +1032,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -973,7 +1051,8 @@ module StatementTests =
         let m = host_in_method "void" [ stmt ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -991,6 +1070,7 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -1008,7 +1088,8 @@ module StatementTests =
         let m = host_in_method "void" [ stmt ]
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -1025,4 +1106,5 @@ module StatementTests =
         }
     }
 }"
+
         are_equal expected actual

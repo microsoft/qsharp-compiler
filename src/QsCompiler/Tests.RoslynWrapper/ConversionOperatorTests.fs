@@ -18,7 +18,8 @@ module ConversionOperatorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -27,6 +28,7 @@ module ConversionOperatorTests =
         public static implicit operator string(C value) => value.ToString();
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -42,7 +44,8 @@ module ConversionOperatorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -51,6 +54,7 @@ module ConversionOperatorTests =
         public static implicit operator string(C value) => value.ToString();
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -65,7 +69,8 @@ module ConversionOperatorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -74,6 +79,7 @@ module ConversionOperatorTests =
         public static explicit operator string(C value) => value.ToString();
     }
 }"
+
         are_equal expected actual
 
 
@@ -90,7 +96,8 @@ module ConversionOperatorTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -99,4 +106,5 @@ module ConversionOperatorTests =
         public static explicit operator C(string value) => new C(value);
     }
 }"
+
         are_equal expected actual

@@ -11,9 +11,11 @@ module NamespaceTests =
         let n = ``namespace`` "Foo" ``{`` [] [] ``}``
         let actual = to_namespace_code n
 
-        let expected = @"namespace Foo
+        let expected =
+            @"namespace Foo
 {
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -21,10 +23,12 @@ module NamespaceTests =
         let n = ``namespace`` "Foo" ``{`` [ using "System.Collections" ] [] ``}``
         let actual = to_namespace_code n
 
-        let expected = @"namespace Foo
+        let expected =
+            @"namespace Foo
 {
     using System.Collections;
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -33,7 +37,8 @@ module NamespaceTests =
         let n = ``namespace`` "Foo" ``{`` [ using "System"; using "System.Collections" ] [ c ] ``}``
         let actual = to_namespace_code n
 
-        let expected = @"namespace Foo
+        let expected =
+            @"namespace Foo
 {
     using System;
     using System.Collections;
@@ -42,6 +47,7 @@ module NamespaceTests =
     {
     }
 }"
+
         are_equal expected actual
 
 
@@ -50,10 +56,12 @@ module NamespaceTests =
         let n = ``namespace`` "Foo" ``{`` [ using "System"; using "System.Collections"; alias "Foo" "Int" ] [] ``}``
         let actual = to_namespace_code n
 
-        let expected = @"namespace Foo
+        let expected =
+            @"namespace Foo
 {
     using System;
     using System.Collections;
     using Foo = Int;
 }"
+
         are_equal expected actual

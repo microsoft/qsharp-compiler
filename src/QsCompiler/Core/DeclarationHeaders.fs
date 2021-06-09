@@ -109,7 +109,8 @@ module DeclarationHeader =
 
         try
             true, Serializer |> deserialize
-        with _ -> false, PermissiveSerializer |> deserialize
+        with
+        | _ -> false, PermissiveSerializer |> deserialize
 
     let internal ToJson obj =
         let builder = new StringBuilder()
@@ -344,12 +345,12 @@ type CallableDeclarationHeader =
         let header = { header with ArgumentTuple = header.ArgumentTuple |> setInferredInfo }
 
         if
-            Object.ReferenceEquals(header.Signature.Information, null)
-            || Object.ReferenceEquals
+            Object.ReferenceEquals
                 (
-                    header.Signature.Information.Characteristics,
+                    header.Signature.Information,
                     null
                 )
+            || Object.ReferenceEquals(header.Signature.Information.Characteristics, null)
         then
             false, { header with Signature = { header.Signature with Information = CallableInformation.Invalid } }
         else

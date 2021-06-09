@@ -11,7 +11,8 @@ module MethodTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -20,6 +21,7 @@ module MethodTests =
         public abstract void M();
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -28,7 +30,8 @@ module MethodTests =
 
         let actual = to_interface_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -37,6 +40,7 @@ module MethodTests =
         void M();
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -45,7 +49,8 @@ module MethodTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -54,6 +59,7 @@ module MethodTests =
         public abstract void M<T>();
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -73,7 +79,8 @@ module MethodTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -82,6 +89,7 @@ module MethodTests =
         public abstract void M<T>(object thing);
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -103,7 +111,8 @@ module MethodTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -112,6 +121,7 @@ module MethodTests =
         public virtual object M<T>(object thing) => thing;
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -131,7 +141,8 @@ module MethodTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -140,6 +151,7 @@ module MethodTests =
         public abstract void M<T>(object[] thing);
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -153,7 +165,8 @@ module MethodTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -163,6 +176,7 @@ module MethodTests =
         public abstract void M<T>(string p1, out object[] p2);
     }
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -187,7 +201,8 @@ module MethodTests =
 
         let actual = to_class_members_code [ m ]
 
-        let expected = @"namespace N
+        let expected =
+            @"namespace N
 {
     using System;
 
@@ -203,4 +218,5 @@ module MethodTests =
         }
     }
 }"
+
         are_equal expected actual

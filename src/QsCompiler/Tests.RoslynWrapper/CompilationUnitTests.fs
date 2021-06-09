@@ -18,10 +18,12 @@ module CompilationUnitTests =
         let input = ``compilation unit`` [] [] [ n ]
         let actual = generateCodeToString input
 
-        let expected = @"namespace Foo
+        let expected =
+            @"namespace Foo
 {
     using System;
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -31,13 +33,15 @@ module CompilationUnitTests =
         let input = ``compilation unit`` [] usings [ n ]
         let actual = generateCodeToString input
 
-        let expected = @"using System.IO;
+        let expected =
+            @"using System.IO;
 using System.Linq;
 using System.Text;
 
 namespace Foo
 {
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -49,7 +53,8 @@ namespace Foo
         let input = ``compilation unit`` [] usings [ n1; n2 ]
         let actual = generateCodeToString input
 
-        let expected = @"using System.IO;
+        let expected =
+            @"using System.IO;
 using System.Linq;
 
 namespace Foo
@@ -61,6 +66,7 @@ namespace Bar
 {
     using System.Web;
 }"
+
         are_equal expected actual
 
     [<Fact>]
@@ -78,7 +84,8 @@ namespace Bar
         let input = ``compilation unit`` attributes usings [ n ]
         let actual = generateCodeToString input
 
-        let expected = """using System.IO;
+        let expected =
+            """using System.IO;
 using System.Reflection;
 
 [assembly: AssemblyTitleAttribute("MyAssembly")]
@@ -93,6 +100,7 @@ namespace Foo
     {
     }
 }"""
+
         are_equal expected actual
 
 
@@ -102,8 +110,10 @@ namespace Foo
         let input = ``compilation unit`` [] [] [ n ] |> pragmaDisableWarning 1591
         let actual = generateCodeToString input
 
-        let expected = @"#pragma warning disable 1591
+        let expected =
+            @"#pragma warning disable 1591
 namespace Foo
 {
 }"
+
         are_equal expected actual
