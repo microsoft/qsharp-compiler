@@ -92,6 +92,7 @@ Publish-One '../src/QuantumSdk/Tools/DefaultEntryPoint/DefaultEntryPoint.csproj'
 
 Pack-One '../src/QsCompiler/Compiler/Compiler.csproj' '-IncludeReferencedProjects'
 Pack-One '../src/QsCompiler/QirGeneration/QirGeneration.csproj'
+Pack-One '../src/QsCompiler/CSharpGeneration/Microsoft.Quantum.CSharpGeneration.fsproj' '-IncludeReferencedProjects'
 Pack-Dotnet '../src/Documentation/DocumentationGenerator/DocumentationGenerator.csproj'
 Pack-One '../src/ProjectTemplates/Microsoft.Quantum.ProjectTemplates.nuspec'
 Pack-One '../src/QuantumSdk/QuantumSdk.nuspec'
