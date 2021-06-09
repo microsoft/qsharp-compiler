@@ -7,16 +7,16 @@ using System;
 
 namespace LLVMSharp.Interop
 {
-    /// <summary>Extensions for the LLVMSharp.Interop.LLVMUseRef.</summary>
+    /// <summary>Extensions for <see cref="LLVMUseRef"/>.</summary>
     public static unsafe class LLVMUseRefExtensions
     {
-        /// <summary>Convenience wrapper for LLVM.GetNextUse.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.GetNextUse"/>.</summary>
         public static LLVMUseRef Next(this LLVMUseRef self) => (self.Handle != default) ? LLVM.GetNextUse(self) : default;
 
-        /// <summary>Convenience wrapper for LLVM.GetUser.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.GetUser"/>.</summary>
         public static LLVMValueRef GetUser(this LLVMUseRef self) => (self.Handle != default) ? LLVM.GetUser(self) : default;
 
-        /// <summary>Convenience wrapper for LLVM.GetUsedValue.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.GetUsedValue"/>.</summary>
         public static LLVMValueRef GetUsedValue(this LLVMUseRef self) => (self.Handle != default) ? LLVM.GetUsedValue(self) : default;
     }
 }
