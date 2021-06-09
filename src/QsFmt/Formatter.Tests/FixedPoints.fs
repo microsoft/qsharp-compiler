@@ -123,3 +123,21 @@ let ``Array literal`` = """namespace Foo {
         let xs = [1, 2, 3];
     }
 }"""
+
+[<FixedPoint>]
+let ``Declare type parameter`` = """namespace Foo {
+    function Bar<'a>() : Unit {}
+}
+"""
+
+[<FixedPoint>]
+let ``Declare 2 type parameters`` = """namespace Foo {
+    function Bar<'a, 'b>() : Unit {}
+}
+"""
+
+[<FixedPoint>]
+let ``Declare 3 type parameters`` = """namespace Foo {
+    function Bar<'a, 'b, 'c>() : Unit {}
+}
+"""
