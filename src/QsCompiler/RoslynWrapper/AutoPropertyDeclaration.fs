@@ -3,67 +3,59 @@
 /// <summary>
 /// Use this module to specify the syntax for a <code>class or interface property</code>
 /// </summary>
-#nowarn "1182"    // Unused parameters
+#nowarn "1182" // Unused parameters
+
 [<AutoOpen>]
 module PropertyDeclaration =
     open Microsoft.CodeAnalysis
     open Microsoft.CodeAnalysis.CSharp
     open Microsoft.CodeAnalysis.CSharp.Syntax
 
-    let private setModifiers modifiers (pd : PropertyDeclarationSyntax) =
-        modifiers
-        |> Seq.map SyntaxFactory.Token
-        |> SyntaxFactory.TokenList
-        |> pd.WithModifiers
+    let private setModifiers modifiers (pd: PropertyDeclarationSyntax) =
+        modifiers |> Seq.map SyntaxFactory.Token |> SyntaxFactory.TokenList |> pd.WithModifiers
 
-    let private setBodyBlock bodyBlockStatements (ad : AccessorDeclarationSyntax) =    
+    let private setBodyBlock bodyBlockStatements (ad: AccessorDeclarationSyntax) =
         match bodyBlockStatements with
-        | Some body ->
-            body
-            |> (Seq.toArray >> SyntaxFactory.Block)
-            |> ad.WithBody
-        | None ->
-            SyntaxKind.SemicolonToken
-            |> SyntaxFactory.Token
-            |> ad.WithSemicolonToken
+        | Some body -> body |> (Seq.toArray >> SyntaxFactory.Block) |> ad.WithBody
+        | None -> SyntaxKind.SemicolonToken |> SyntaxFactory.Token |> ad.WithSemicolonToken
 
-    let private setArrowBody body (ad : AccessorDeclarationSyntax) =    
+    let private setArrowBody body (ad: AccessorDeclarationSyntax) =
         body
         |> ad.WithExpressionBody
-        |> (fun ad ->
-            SyntaxKind.SemicolonToken
-            |> SyntaxFactory.Token
-            |> ad.WithSemicolonToken)
+        |> (fun ad -> SyntaxKind.SemicolonToken |> SyntaxFactory.Token |> ad.WithSemicolonToken)
 
-    let private setGetAccessor bodyBlockStatements (pd : PropertyDeclarationSyntax) =
+    let private setGetAccessor bodyBlockStatements (pd: PropertyDeclarationSyntax) =
         SyntaxKind.GetAccessorDeclaration
         |> SyntaxFactory.AccessorDeclaration
         |> setBodyBlock bodyBlockStatements
         |> (fun ad -> pd.AddAccessorListAccessors ad)
 
-    let private setArrowGetAccessor body (pd : PropertyDeclarationSyntax) =
+    let private setArrowGetAccessor body (pd: PropertyDeclarationSyntax) =
         body
         |> pd.WithExpressionBody
-        |> (fun pd ->
-            SyntaxKind.SemicolonToken
-            |> SyntaxFactory.Token
-            |> pd.WithSemicolonToken)
+        |> (fun pd -> SyntaxKind.SemicolonToken |> SyntaxFactory.Token |> pd.WithSemicolonToken)
 
-    let private setSetAccessor bodyBlockStatements (pd : PropertyDeclarationSyntax) =
+    let private setSetAccessor bodyBlockStatements (pd: PropertyDeclarationSyntax) =
         SyntaxKind.SetAccessorDeclaration
         |> SyntaxFactory.AccessorDeclaration
         |> setBodyBlock bodyBlockStatements
         |> (fun ad -> pd.AddAccessorListAccessors ad)
 
-    let private setArrowSetAccessor body (pd : PropertyDeclarationSyntax) =
+    let private setArrowSetAccessor body (pd: PropertyDeclarationSyntax) =
         SyntaxKind.SetAccessorDeclaration
         |> SyntaxFactory.AccessorDeclaration
         |> setArrowBody body
         |> (fun ad -> pd.AddAccessorListAccessors ad)
 
-        
 
-    let private createPropertyDeclaration propertyType propertyName modifiers getBodyBlockStatements setBodyBlockStatements =
+
+    let private createPropertyDeclaration
+        propertyType
+        propertyName
+        modifiers
+        getBodyBlockStatements
+        setBodyBlockStatements
+        =
         (propertyType |> ident, propertyName |> SyntaxFactory.Identifier)
         |> SyntaxFactory.PropertyDeclaration
         |> setModifiers modifiers
@@ -81,25 +73,19 @@ module PropertyDeclaration =
         |> SyntaxFactory.PropertyDeclaration
         |> setModifiers modifiers
         |> setArrowGetAccessor getBody
-        
-    let ``property`` propertyType propertyName modifiers
-            ``get``       
-                    getBodyBlockStatements
-            ``set``
-                    setBodyBlockStatements
-            =
-        createPropertyDeclaration propertyType propertyName modifiers (Some getBodyBlockStatements) (Some setBodyBlockStatements)
-        
-    let ``property-get`` propertyType propertyName modifiers         
-            ``get``       
-                    getBodyBlockStatements
-            =
+
+    let ``property`` propertyType propertyName modifiers get getBodyBlockStatements set setBodyBlockStatements =
+        createPropertyDeclaration
+            propertyType
+            propertyName
+            modifiers
+            (Some getBodyBlockStatements)
+            (Some setBodyBlockStatements)
+
+    let ``property-get`` propertyType propertyName modifiers get getBodyBlockStatements =
         createGetPropertyDeclaration propertyType propertyName modifiers (Some getBodyBlockStatements)
 
-    let ``property-arrow_get`` propertyType propertyName modifiers         
-            ``get``       
-                    getBody 
-            =
+    let ``property-arrow_get`` propertyType propertyName modifiers get getBody =
         createArrowGetPropertyDeclaration propertyType propertyName modifiers getBody
 
     let ``prop`` propertyType propertyName modifiers =

@@ -6,15 +6,10 @@ open Microsoft.Quantum.RoslynWrapper
 
 module InterfaceTests =
     [<Fact>]
-    let ``interface: empty``() =
-        let i =
-            ``interface`` "I" ``<<`` [] ``>>``
-                ``:`` []
-                [``public``]
-                ``{``
-                    []
-                ``}``
+    let ``interface: empty`` () =
+        let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -26,15 +21,10 @@ module InterfaceTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``interface: generic``() =
-        let i =
-            ``interface`` "I" ``<<`` [ "T" ] ``>>``
-                ``:`` []
-                [``public``]
-                ``{``
-                    []
-                ``}``
+    let ``interface: generic`` () =
+        let i = ``interface`` "I" ``<<`` [ "T" ] ``>>`` ``:`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -46,15 +36,10 @@ module InterfaceTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``interface: generic 2``() =
-        let i =
-            ``interface`` "I" ``<<`` [ "R"; "S" ] ``>>``
-                ``:`` []
-                [``public``]
-                ``{``
-                    []
-                ``}``
+    let ``interface: generic 2`` () =
+        let i = ``interface`` "I" ``<<`` [ "R"; "S" ] ``>>`` ``:`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -66,15 +51,12 @@ module InterfaceTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``interface: base interfaces``() =
+    let ``interface: base interfaces`` () =
         let i =
-            ``interface`` "I" ``<<`` [] ``>>``
-                ``:`` [ "IEnumerable"; "ISerializable" ]
-                [``public``]
-                ``{``
-                    []
-                ``}``
+            ``interface`` "I" ``<<`` [] ``>>`` ``:`` [ "IEnumerable"; "ISerializable" ] [ ``public`` ] ``{`` [] ``}``
+
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -86,15 +68,10 @@ module InterfaceTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``interface: private``() =
-        let i =
-            ``interface`` "I" ``<<`` [] ``>>``
-                ``:`` []
-                [``private``]
-                ``{``
-                    []
-                ``}``
+    let ``interface: private`` () =
+        let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``private`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -106,15 +83,10 @@ module InterfaceTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``interface: static``() =
-        let i =
-            ``interface`` "I" ``<<`` [] ``>>``
-                ``:`` []
-                [``static``]
-                ``{``
-                    []
-                ``}``
+    let ``interface: static`` () =
+        let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``static`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -126,15 +98,10 @@ module InterfaceTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``interface: internal``() =
-        let i =
-            ``interface`` "I" ``<<`` [] ``>>``
-                ``:`` []
-                [``internal``]
-                ``{``
-                    []
-                ``}``
+    let ``interface: internal`` () =
+        let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``internal`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -144,17 +111,12 @@ module InterfaceTests =
     }
 }"
         are_equal expected actual
-        
+
     [<Fact>]
-    let ``interface: partial``() =
-        let i =
-            ``interface`` "I" ``<<`` [] ``>>``
-                ``:`` []
-                [``partial``]
-                ``{``
-                    []
-                ``}``
+    let ``interface: partial`` () =
+        let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ partial ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -166,15 +128,10 @@ module InterfaceTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``interface: private static partial``() =
-        let i =
-            ``interface`` "I" ``<<`` [] ``>>``
-                ``:`` []
-                [``private``; ``static``; ``partial``]
-                ``{``
-                    []
-                ``}``
+    let ``interface: private static partial`` () =
+        let i = ``interface`` "I" ``<<`` [] ``>>`` ``:`` [] [ ``private``; ``static``; partial ] ``{`` [] ``}``
         let actual = to_namespace_member_code i
+
         let expected = @"namespace N
 {
     using System;
@@ -184,4 +141,3 @@ module InterfaceTests =
     }
 }"
         are_equal expected actual
-

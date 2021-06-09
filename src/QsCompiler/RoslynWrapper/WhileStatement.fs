@@ -3,7 +3,8 @@
 /// <summary>
 /// Generate while statements
 /// </summary>
-#nowarn "1182"    // Unused parameters
+#nowarn "1182" // Unused parameters
+
 [<AutoOpen>]
 module WhileStatement =
     open Microsoft.CodeAnalysis
@@ -11,12 +12,9 @@ module WhileStatement =
     open Microsoft.CodeAnalysis.CSharp.Syntax
 
     let private createBlock (stmts: StatementSyntax list) =
-        stmts
-        |> (Seq.toArray >> SyntaxFactory.Block)   
-        
-        
-    // while (condition) { statements } 
+        stmts |> (Seq.toArray >> SyntaxFactory.Block)
+
+
+    // while (condition) { statements }
     let ``while`` ``(`` condition ``)`` statements =
-        (condition, createBlock statements)
-        |> SyntaxFactory.WhileStatement
-        :> StatementSyntax
+        (condition, createBlock statements) |> SyntaxFactory.WhileStatement :> StatementSyntax

@@ -14,120 +14,144 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 open Microsoft.Quantum.QsCompiler.Transformations.Core
 
 
-module internal DeclarationLocations = 
-    
-    type TransformationState() = 
+module internal DeclarationLocations =
+
+    type TransformationState() =
 
         member val internal CurrentSource = null with get, set
         member val internal DeclarationLocations = new List<string * Position>()
 
-    type NamespaceTransformation(parent : SyntaxTreeTransformation<TransformationState>) = 
+    type NamespaceTransformation(parent: SyntaxTreeTransformation<TransformationState>) =
         inherit NamespaceTransformation<TransformationState>(parent)
 
-        override this.OnSourceFile file = 
+        override this.OnSourceFile file =
             this.SharedState.CurrentSource <- file
             file
 
-        override this.OnLocation sourceLocation = 
-            match sourceLocation with 
-            | Value (loc : QsLocation) when this.SharedState.CurrentSource <> null -> 
-                this.SharedState.DeclarationLocations.Add (this.SharedState.CurrentSource, loc.Offset)
+        override this.OnLocation sourceLocation =
+            match sourceLocation with
+            | Value (loc: QsLocation) when this.SharedState.CurrentSource <> null ->
+                this.SharedState.DeclarationLocations.Add(this.SharedState.CurrentSource, loc.Offset)
             | _ -> ()
+
             sourceLocation
 
 
-    type internal SyntaxTreeTransformation private(_private_) = 
+    type internal SyntaxTreeTransformation private (_private_) =
         inherit SyntaxTreeTransformation<TransformationState>(new TransformationState(), TransformationOptions.NoRebuild)
 
-        new () as this = 
-            new SyntaxTreeTransformation("_private_") then
+        new() as this =
+            new SyntaxTreeTransformation("_private_")
+            then
                 this.Namespaces <- new NamespaceTransformation(this)
-                this.Statements <- new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled)
-                this.Expressions <- new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled)
+
+                this.Statements <-
+                    new StatementTransformation<TransformationState>(this, TransformationOptions.Disabled)
+
+                this.Expressions <-
+                    new ExpressionTransformation<TransformationState>(this, TransformationOptions.Disabled)
+
                 this.Types <- TypeTransformation<TransformationState>(this, TransformationOptions.Disabled)
 
-        member this.DeclarationLocations = 
-            this.SharedState.DeclarationLocations.ToLookup (fst, snd)
+        member this.DeclarationLocations = this.SharedState.DeclarationLocations.ToLookup(fst, snd)
 
-    let Accumulate (syntaxTree : IEnumerable<QsNamespace>) = 
+    let Accumulate (syntaxTree: IEnumerable<QsNamespace>) =
         let walker = new SyntaxTreeTransformation()
-        for ns in syntaxTree do walker.Namespaces.OnNamespace ns |> ignore
+
+        for ns in syntaxTree do
+            walker.Namespaces.OnNamespace ns |> ignore
+
         walker.DeclarationLocations
 
 
-type CodegenContext = { 
-    assemblyConstants       : IDictionary<string, string>
-    allQsElements           : IEnumerable<QsNamespace>
-    allUdts                 : ImmutableDictionary<QsQualifiedName,QsCustomType>
-    allCallables            : ImmutableDictionary<QsQualifiedName,QsCallable>
-    declarationPositions    : ImmutableDictionary<string, ImmutableSortedSet<Position>>
-    byName                  : ImmutableDictionary<string, (string * QsCallable) list>
-    current                 : QsQualifiedName option
-    signature               : ResolvedSignature option
-    fileName                : string option
-    entryPoints             : IEnumerable<QsQualifiedName>
-}
-    with
-    static member public Create (syntaxTree, assemblyConstants) = 
+type CodegenContext =
+    {
+        assemblyConstants: IDictionary<string, string>
+        allQsElements: IEnumerable<QsNamespace>
+        allUdts: ImmutableDictionary<QsQualifiedName, QsCustomType>
+        allCallables: ImmutableDictionary<QsQualifiedName, QsCallable>
+        declarationPositions: ImmutableDictionary<string, ImmutableSortedSet<Position>>
+        byName: ImmutableDictionary<string, (string * QsCallable) list>
+        current: QsQualifiedName option
+        signature: ResolvedSignature option
+        fileName: string option
+        entryPoints: IEnumerable<QsQualifiedName>
+    }
+    static member public Create(syntaxTree, assemblyConstants) =
         let udts = GlobalTypeResolutions syntaxTree
         let callables = GlobalCallableResolutions syntaxTree
         let positionInfos = DeclarationLocations.Accumulate syntaxTree
-        let callablesByName = 
+
+        let callablesByName =
             let result = new Dictionary<string, (string * QsCallable) list>()
-            syntaxTree |> Seq.collect (fun ns -> ns.Elements |> Seq.choose (function
-            | QsCallable c -> Some (ns, c)
-            | _ -> None))
-            |> Seq.iter (fun (ns:QsNamespace,c:QsCallable) -> 
-                if result.ContainsKey c.FullName.Name then result.[c.FullName.Name] <- (ns.Name, c) :: (result.[c.FullName.Name]) 
-                else result.[c.FullName.Name] <- [ns.Name, c])
+
+            syntaxTree
+            |> Seq.collect
+                (fun ns ->
+                    ns.Elements
+                    |> Seq.choose
+                        (function
+                        | QsCallable c -> Some(ns, c)
+                        | _ -> None))
+            |> Seq.iter
+                (fun (ns: QsNamespace, c: QsCallable) ->
+                    if result.ContainsKey c.FullName.Name then
+                        result.[c.FullName.Name] <- (ns.Name, c) :: (result.[c.FullName.Name])
+                    else
+                        result.[c.FullName.Name] <- [ ns.Name, c ])
+
             result.ToImmutableDictionary()
-    
-        { 
-            assemblyConstants = assemblyConstants;
-            allQsElements = syntaxTree; 
-            byName = callablesByName; 
-            allUdts = udts; 
-            allCallables = callables; 
-            declarationPositions = positionInfos.ToImmutableDictionary((fun g -> g.Key), (fun g -> g.ToImmutableSortedSet()))
-            current = None; 
-            fileName = None;
-            signature = None;
+
+        {
+            assemblyConstants = assemblyConstants
+            allQsElements = syntaxTree
+            byName = callablesByName
+            allUdts = udts
+            allCallables = callables
+            declarationPositions =
+                positionInfos.ToImmutableDictionary((fun g -> g.Key), (fun g -> g.ToImmutableSortedSet()))
+            current = None
+            fileName = None
+            signature = None
             entryPoints = ImmutableArray.Empty
         }
 
-    static member public Create (compilation : QsCompilation, assemblyConstants) =        
-        {CodegenContext.Create(compilation.Namespaces, assemblyConstants) with entryPoints = compilation.EntryPoints}
+    static member public Create(compilation: QsCompilation, assemblyConstants) =
+        { CodegenContext.Create(compilation.Namespaces, assemblyConstants) with entryPoints = compilation.EntryPoints }
 
-    static member public Create (compilation : QsCompilation) = 
+    static member public Create(compilation: QsCompilation) =
         CodegenContext.Create(compilation, ImmutableDictionary.Empty)
 
-    static member public Create (syntaxTree : ImmutableArray<QsNamespace>) = 
+    static member public Create(syntaxTree: ImmutableArray<QsNamespace>) =
         CodegenContext.Create(syntaxTree, ImmutableDictionary.Empty)
 
-    member public this.ProcessorArchitecture = 
-        match this.assemblyConstants.TryGetValue AssemblyConstants.ProcessorArchitecture with 
+    member public this.ProcessorArchitecture =
+        match this.assemblyConstants.TryGetValue AssemblyConstants.ProcessorArchitecture with
         | true, name -> name
         | false, _ -> null
 
-    member public this.ExecutionTarget = 
-        match this.assemblyConstants.TryGetValue AssemblyConstants.ExecutionTarget with 
+    member public this.ExecutionTarget =
+        match this.assemblyConstants.TryGetValue AssemblyConstants.ExecutionTarget with
         | true, name -> name
         | false, _ -> null
 
-    member public this.AssemblyName = 
+    member public this.AssemblyName =
         match this.assemblyConstants.TryGetValue AssemblyConstants.AssemblyName with
         | true, name -> name
         | false, _ -> null
 
-    member public this.ExposeReferencesViaTestNames = 
-        match this.assemblyConstants.TryGetValue AssemblyConstants.ExposeReferencesViaTestNames with 
+    member public this.ExposeReferencesViaTestNames =
+        match this.assemblyConstants.TryGetValue AssemblyConstants.ExposeReferencesViaTestNames with
         | true, propVal -> propVal = "true"
         | false, _ -> false
 
-    member internal this.GenerateCodeForSource (fileName : string) =
-        let targetsQuantumProcessor = 
+    member internal this.GenerateCodeForSource(fileName: string) =
+        let targetsQuantumProcessor =
             match this.assemblyConstants.TryGetValue AssemblyConstants.ProcessorArchitecture with
-            | true, target -> target = AssemblyConstants.HoneywellProcessor || target = AssemblyConstants.IonQProcessor || target = AssemblyConstants.QCIProcessor
+            | true, target ->
+                target = AssemblyConstants.HoneywellProcessor
+                || target = AssemblyConstants.IonQProcessor
+                || target = AssemblyConstants.QCIProcessor
             | _ -> false
-        not (fileName.EndsWith ".dll") || targetsQuantumProcessor
 
+        not (fileName.EndsWith ".dll") || targetsQuantumProcessor

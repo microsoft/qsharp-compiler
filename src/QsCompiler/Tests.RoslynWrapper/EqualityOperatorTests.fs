@@ -7,11 +7,10 @@ open Microsoft.Quantum.RoslynWrapper
 module EqualityOperatorTests =
     [<Fact>]
     let ``equality operator: ==`` () =
-        let m = 
-            ``operator ==`` ("left", "right", ``type`` "string")
-                (``=>`` ``true``)
+        let m = ``operator ==`` ("left", "right", ``type`` "string") (``=>`` ``true``)
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -25,11 +24,10 @@ module EqualityOperatorTests =
 
     [<Fact>]
     let ``equality operator: !=`` () =
-        let m = 
-            ``operator !=`` ("left", "right", ``type`` "string")
-                (``=>`` ``true``)
+        let m = ``operator !=`` ("left", "right", ``type`` "string") (``=>`` ``true``)
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;

@@ -6,15 +6,10 @@ open Microsoft.Quantum.RoslynWrapper
 
 module ClassTests =
     [<Fact>]
-    let ``class: empty``() =
-        let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` None ``,`` []
-                [``public``]
-                ``{``
-                    []
-                ``}``
+    let ``class: empty`` () =
+        let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -26,15 +21,12 @@ module ClassTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``class: base class``() =
+    let ``class: base class`` () =
         let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` (Some ("B" |> simpleBase)) ``,`` []
-                [``public``]
-                ``{``
-                    []
-                ``}``
+            ``class`` "C" ``<<`` [] ``>>`` ``:`` (Some("B" |> simpleBase)) ``,`` [] [ ``public`` ] ``{`` [] ``}``
+
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -47,15 +39,10 @@ module ClassTests =
 
 
     [<Fact>]
-    let ``class: generic``() =
-        let c =
-            ``class`` "C" ``<<`` [ "T" ] ``>>``
-                ``:`` None ``,`` []
-                [``public``]
-                ``{``
-                    []
-                ``}``
+    let ``class: generic`` () =
+        let c = ``class`` "C" ``<<`` [ "T" ] ``>>`` ``:`` None ``,`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -67,15 +54,10 @@ module ClassTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``class: generic 2``() =
-        let c =
-            ``class`` "C" ``<<`` [ "R"; "S" ] ``>>``
-                ``:`` None ``,`` []
-                [``public``]
-                ``{``
-                    []
-                ``}``
+    let ``class: generic 2`` () =
+        let c = ``class`` "C" ``<<`` [ "R"; "S" ] ``>>`` ``:`` None ``,`` [] [ ``public`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -87,15 +69,24 @@ module ClassTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``class: interfaces``() =
+    let ``class: interfaces`` () =
         let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` None ``,`` [ "IEnumerable" |> simpleBase; "ISerializable" |> simpleBase]
-                [``public``]
+            ``class``
+                "C"
+                ``<<``
+                []
+                ``>>``
+                ``:``
+                None
+                ``,``
+                [ "IEnumerable" |> simpleBase; "ISerializable" |> simpleBase ]
+                [ ``public`` ]
                 ``{``
-                    []
+                []
                 ``}``
+
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -107,15 +98,24 @@ module ClassTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``class: base and interfaces``() =
+    let ``class: base and interfaces`` () =
         let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` (Some ("B" |> simpleBase)) ``,`` [ "IEnumerable" |> simpleBase; "ISerializable" |> simpleBase ]
-                [``public``]
+            ``class``
+                "C"
+                ``<<``
+                []
+                ``>>``
+                ``:``
+                (Some("B" |> simpleBase))
+                ``,``
+                [ "IEnumerable" |> simpleBase; "ISerializable" |> simpleBase ]
+                [ ``public`` ]
                 ``{``
-                    []
+                []
                 ``}``
+
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -127,15 +127,10 @@ module ClassTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``class: private``() =
-        let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` None ``,`` []
-                [``private``]
-                ``{``
-                    []
-                ``}``
+    let ``class: private`` () =
+        let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``private`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -147,15 +142,10 @@ module ClassTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``class: static``() =
-        let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` None ``,`` []
-                [``static``]
-                ``{``
-                    []
-                ``}``
+    let ``class: static`` () =
+        let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``static`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -167,15 +157,10 @@ module ClassTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``class: internal``() =
-        let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` None ``,`` []
-                [``internal``]
-                ``{``
-                    []
-                ``}``
+    let ``class: internal`` () =
+        let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``internal`` ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -185,17 +170,12 @@ module ClassTests =
     }
 }"
         are_equal expected actual
-        
+
     [<Fact>]
-    let ``class: partial``() =
-        let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` None ``,`` []
-                [``partial``]
-                ``{``
-                    []
-                ``}``
+    let ``class: partial`` () =
+        let c = ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ partial ] ``{`` [] ``}``
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -207,15 +187,12 @@ module ClassTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``class: private static partial``() =
+    let ``class: private static partial`` () =
         let c =
-            ``class`` "C" ``<<`` [] ``>>``
-                ``:`` None ``,`` []
-                [``private``; ``static``; ``partial``]
-                ``{``
-                    []
-                ``}``
+            ``class`` "C" ``<<`` [] ``>>`` ``:`` None ``,`` [] [ ``private``; ``static``; partial ] ``{`` [] ``}``
+
         let actual = to_namespace_member_code c
+
         let expected = @"namespace N
 {
     using System;
@@ -225,4 +202,3 @@ module ClassTests =
     }
 }"
         are_equal expected actual
-

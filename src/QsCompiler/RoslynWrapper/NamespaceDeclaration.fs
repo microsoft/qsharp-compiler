@@ -3,23 +3,20 @@
 /// <summary>
 /// Use this module to specify the syntax for a <code>namespace</code>
 /// </summary>
-#nowarn "1182"    // Unused parameters
+#nowarn "1182" // Unused parameters
+
 [<AutoOpen>]
 module NamespaceDeclaration =
     open Microsoft.CodeAnalysis
     open Microsoft.CodeAnalysis.CSharp
     open Microsoft.CodeAnalysis.CSharp.Syntax
-    
-        
-    let private setUsings usings (nd : NamespaceDeclarationSyntax) =
-        usings
-        |> SyntaxFactory.List
-        |> nd.WithUsings
-        
-    let private setMembers members (nd : NamespaceDeclarationSyntax) =
-        members
-        |> (Seq.toArray >> SyntaxFactory.List)
-        |> nd.WithMembers
+
+
+    let private setUsings usings (nd: NamespaceDeclarationSyntax) =
+        usings |> SyntaxFactory.List |> nd.WithUsings
+
+    let private setMembers members (nd: NamespaceDeclarationSyntax) =
+        members |> (Seq.toArray >> SyntaxFactory.List) |> nd.WithMembers
 
     /// This function creates a 'namespace' with the given name and contents:
     ///
@@ -55,24 +52,15 @@ module NamespaceDeclaration =
     /// * The `System` namespace is always included by default
     /// * You may pass a sequence of these namespaces to ``compilation unit`` and generate code from it
     ///
-    let ``namespace`` namespaceName
-            ``{``
-                usings
-                members
-            ``}`` =
+    let ``namespace`` namespaceName ``{`` usings members ``}`` =
         namespaceName
         |> (ident >> SyntaxFactory.NamespaceDeclaration)
         |> setUsings usings
         |> setMembers members
 
-        
-    let ``using`` (typeName : string) = 
-        typeName
-        |> (ident >> SyntaxFactory.UsingDirective)
 
-    let ``alias`` (aliasName : string) (typeName : string) = 
-        SyntaxFactory.UsingDirective( 
-            SyntaxFactory.NameEquals (aliasName), 
-            SyntaxFactory.IdentifierName (typeName)
-            )
+    let ``using`` (typeName: string) =
+        typeName |> (ident >> SyntaxFactory.UsingDirective)
 
+    let ``alias`` (aliasName: string) (typeName: string) =
+        SyntaxFactory.UsingDirective(SyntaxFactory.NameEquals(aliasName), SyntaxFactory.IdentifierName(typeName))

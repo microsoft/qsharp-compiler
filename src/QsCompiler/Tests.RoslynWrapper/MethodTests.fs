@@ -6,13 +6,11 @@ open Microsoft.Quantum.RoslynWrapper
 
 module MethodTests =
     [<Fact>]
-    let ``arrow method: class abstract definition``() =
-        let m = 
-            ``arrow_method`` "void" "M" ``<<`` [] ``>>`` ``(`` [] ``)`` 
-                [``public``; ``abstract``]
-                None
+    let ``arrow method: class abstract definition`` () =
+        let m = arrow_method "void" "M" ``<<`` [] ``>>`` ``(`` [] ``)`` [ ``public``; ``abstract`` ] None
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -25,13 +23,11 @@ module MethodTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``arrow method: interface method declaration``() =
-        let m = 
-            ``arrow_method`` "void" "M" ``<<`` [] ``>>`` ``(`` [] ``)`` 
-                []
-                None
+    let ``arrow method: interface method declaration`` () =
+        let m = arrow_method "void" "M" ``<<`` [] ``>>`` ``(`` [] ``)`` [] None
 
-        let actual = to_interface_members_code [m]
+        let actual = to_interface_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -44,13 +40,11 @@ module MethodTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``arrow method: generic``() =
-        let m = 
-            ``arrow_method`` "void" "M" ``<<`` ["T"] ``>>`` ``(`` [] ``)`` 
-                [``public``; ``abstract``]
-                None
+    let ``arrow method: generic`` () =
+        let m = arrow_method "void" "M" ``<<`` [ "T" ] ``>>`` ``(`` [] ``)`` [ ``public``; ``abstract`` ] None
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -63,13 +57,22 @@ module MethodTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``arrow method: with parameter``() =
-        let m = 
-            ``arrow_method`` "void" "M" ``<<`` ["T"] ``>>`` ``(`` [ ``param`` "thing" ``of`` (``type`` "object") ] ``)`` 
-                [``public``; ``abstract``]
+    let ``arrow method: with parameter`` () =
+        let m =
+            arrow_method
+                "void"
+                "M"
+                ``<<``
+                [ "T" ]
+                ``>>``
+                ``(``
+                [ param "thing" ``of`` (``type`` "object") ]
+                ``)``
+                [ ``public``; ``abstract`` ]
                 None
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -82,14 +85,24 @@ module MethodTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``arrow method: with expression``() =
+    let ``arrow method: with expression`` () =
         let e = ``=>`` ("thing" |> ident)
-        let m = 
-            ``arrow_method`` "object" "M" ``<<`` ["T"] ``>>`` ``(`` [ ``param`` "thing" ``of`` (``type`` "object") ] ``)`` 
-                [``public``; ``virtual``]
+
+        let m =
+            arrow_method
+                "object"
+                "M"
+                ``<<``
+                [ "T" ]
+                ``>>``
+                ``(``
+                [ param "thing" ``of`` (``type`` "object") ]
+                ``)``
+                [ ``public``; ``virtual`` ]
                 (Some e)
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -102,13 +115,22 @@ module MethodTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``arrow method: with array parameter``() =
-        let m = 
-            ``arrow_method`` "void" "M" ``<<`` ["T"] ``>>`` ``(`` [ ``param`` "thing" ``of`` (``array type`` "object" None) ] ``)`` 
-                [``public``; ``abstract``]
+    let ``arrow method: with array parameter`` () =
+        let m =
+            arrow_method
+                "void"
+                "M"
+                ``<<``
+                [ "T" ]
+                ``>>``
+                ``(``
+                [ param "thing" ``of`` (``array type`` "object" None) ]
+                ``)``
+                [ ``public``; ``abstract`` ]
                 None
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -121,16 +143,16 @@ module MethodTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``arrow method: with two parameters``() =
-        let p1 = ``param`` "p1" ``of`` (``type`` "string")
+    let ``arrow method: with two parameters`` () =
+        let p1 = param "p1" ``of`` (``type`` "string")
         let p2 = ``out param`` "p2" ``of`` (``array type`` "object" None)
-        let m = 
-            ``//`` " Method comment" <|
-            ``arrow_method`` "void" "M" ``<<`` ["T"] ``>>`` ``(`` [ p1;p2 ] ``)`` 
-                [``public``; ``abstract``]
-                None
-                
-        let actual = to_class_members_code [m]
+
+        let m =
+            ``//`` " Method comment"
+            <| arrow_method "void" "M" ``<<`` [ "T" ] ``>>`` ``(`` [ p1; p2 ] ``)`` [ ``public``; ``abstract`` ] None
+
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -144,21 +166,27 @@ module MethodTests =
         are_equal expected actual
 
     [<Fact>]
-    let ``method: with body``() =
-        let m = 
-            ``method`` "void" "M" ``<<`` ["T"] ``>>`` ``(`` [ ``param`` "thing" ``of`` (``type`` "object") ] ``)`` 
-                [``private``; ``static``]
+    let ``method: with body`` () =
+        let m =
+            method
+                "void"
+                "M"
+                ``<<``
+                [ "T" ]
+                ``>>``
+                ``(``
+                [ param "thing" ``of`` (``type`` "object") ]
+                ``)``
+                [ ``private``; ``static`` ]
                 ``{``
-                    [
-                        ``#line hidden`` <| (
-                            ``//`` " First line" <| (
-                                ``//`` " Second line" <| (
-                                    ``#line`` 5 "foo.cpp" <| 
-                                        ``return`` None)))
-                    ]
+                [
+                    ``#line hidden``
+                    <| (``//`` " First line" <| (``//`` " Second line" <| (``#line`` 5 "foo.cpp" <| ``return`` None)))
+                ]
                 ``}``
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -176,4 +204,3 @@ module MethodTests =
     }
 }"
         are_equal expected actual
-

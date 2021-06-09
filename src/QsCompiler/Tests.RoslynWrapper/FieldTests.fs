@@ -7,12 +7,10 @@ open Microsoft.Quantum.RoslynWrapper
 module FieldTests =
     [<Fact>]
     let ``field: uninitialized`` () =
-        let m = 
-            ``field`` "string" "m_Name" 
-                [ ``private`` ] 
-                None
+        let m = field "string" "m_Name" [ ``private`` ] None
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -27,12 +25,10 @@ module FieldTests =
     [<Fact>]
     let ``field: initialized`` () =
         let e = ``:=`` <| literal "John"
-        let m = 
-            ``field`` "string" "m_Name" 
-                [ ``private`` ] 
-                (Some e)
+        let m = field "string" "m_Name" [ ``private`` ] (Some e)
 
-        let actual = to_class_members_code [m]
+        let actual = to_class_members_code [ m ]
+
         let expected = @"namespace N
 {
     using System;
@@ -43,4 +39,3 @@ module FieldTests =
     }
 }"
         are_equal expected actual
-

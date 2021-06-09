@@ -26,13 +26,11 @@ open Microsoft.Quantum.QsCompiler.SyntaxTree
 module SimulationCode =
     open Microsoft.Quantum.QsCompiler
 
-    let clearFormatting (str:string) =
-        str
-        |> Seq.filter (not << Char.IsWhiteSpace)
-        |> String.Concat
+    let clearFormatting (str: string) =
+        str |> Seq.filter (not << Char.IsWhiteSpace) |> String.Concat
 
     [<Fact>]
-    let ``Pure roslyn``() =
+    let ``Pure roslyn`` () =
         let code = "
         namespace N1
         {
@@ -66,52 +64,74 @@ namespace N1
     let ``doubles in different locales`` () =
         let cases =
             [
-                1.1,       "1.1D"
-                1000.001,  "1000.001D"
+                1.1, "1.1D"
+                1000.001, "1000.001D"
                 -1000.001, "-1000.001D"
-                float 1,   "1D"
-                float 0,   "0D"
-                float -1,  "-1D"
+                float 1, "1D"
+                float 0, "0D"
+                float -1, "-1D"
             ]
-        let values   = cases |> List.map fst
+
+        let values = cases |> List.map fst
         let expected = cases |> List.map snd
+
         let testCulture c =
             // The prefix is just to make the error tell which culture failed
-            let addPrefix v =  c + ": " + v
+            let addPrefix v = c + ": " + v
             let savedCulture = CultureInfo.CurrentCulture
             CultureInfo.CurrentCulture <- CultureInfo(c)
             let actual = values |> List.map floatToString
             CultureInfo.CurrentCulture <- savedCulture
-            List.zip (expected |> List.map addPrefix) (actual |> List.map addPrefix)
-            |> List.iter Assert.Equal
-        [ "ru-RU"; "en-UD"; "en-GB"; "fr-FR"; "da-DK"; "nl-NL"; "zh-CN"; "es-ES"; "ta-LK" ] |> List.iter testCulture
+            List.zip (expected |> List.map addPrefix) (actual |> List.map addPrefix) |> List.iter Assert.Equal
+
+        [
+            "ru-RU"
+            "en-UD"
+            "en-GB"
+            "fr-FR"
+            "da-DK"
+            "nl-NL"
+            "zh-CN"
+            "es-ES"
+            "ta-LK"
+        ]
+        |> List.iter testCulture
 
     let parse files =
-        let mutable errors = [] : Diagnostic list
-        let addError (diag : Diagnostic) =
+        let mutable errors : Diagnostic list = []
+
+        let addError (diag: Diagnostic) =
             if diag.Severity.HasValue then
                 match diag.Severity.Value with
                 | DiagnosticSeverity.Error -> errors <- diag :: errors
                 | _ -> ()
-        let addSourceFile (mgr:CompilationUnitManager) fileName =
+
+        let addSourceFile (mgr: CompilationUnitManager) fileName =
             let fileId = new Uri(Path.GetFullPath fileName)
             let file = CompilationUnitManager.InitializeFileManager(fileId, File.ReadAllText fileName)
             mgr.AddOrUpdateSourceFileAsync file |> ignore
-            // TODO: catch compilation errors and fail
-        let mgr   = new CompilationUnitManager(null, fun ps -> ps.Diagnostics |> Array.iter addError)
+        // TODO: catch compilation errors and fail
+        let mgr = new CompilationUnitManager(null, (fun ps -> ps.Diagnostics |> Array.iter addError))
         files |> List.iter (addSourceFile mgr)
-        try let mutable compilation = mgr.Build().BuiltCompilation
+
+        try
+            let mutable compilation = mgr.Build().BuiltCompilation
+
             if not errors.IsEmpty then
                 errors
                 |> List.map (fun e -> sprintf "%s at %s, line %d" e.Message e.Source (e.Range.Start.Line + 1))
                 |> String.concat "\n"
                 |> failwith
+
             let functorGenSuccessful = CodeGeneration.GenerateFunctorSpecializations(compilation, &compilation)
             // todo: we might want to raise an error here if the functor generation fails (which will be the case for incorrect code)
             compilation
-        with | e -> sprintf "compilation threw exception: \n%s" e.Message |> failwith // should never happen (all exceptions are caught by the compiler)
+        with e -> sprintf "compilation threw exception: \n%s" e.Message |> failwith // should never happen (all exceptions are caught by the compiler)
 
-    let syntaxTree = parse [ (Path.Combine("Circuits", "Intrinsic.qs")); (Path.Combine("Circuits", "CodegenTests.qs")) ] |> (fun compilation -> compilation.Namespaces)
+    let syntaxTree =
+        parse [ (Path.Combine("Circuits", "Intrinsic.qs"))
+                (Path.Combine("Circuits", "CodegenTests.qs")) ]
+        |> (fun compilation -> compilation.Namespaces)
 
     let globalContext = CodegenContext.Create syntaxTree
 
@@ -122,6 +142,7 @@ namespace N1
 
     let findUdt name =
         let key = globalContext.allUdts.Keys |> Seq.sort |> Seq.find (fun n -> n.Name = name)
+
         match globalContext.allUdts.TryGetValue key with
         | true, v -> key.Namespace, v
         | false, _ -> sprintf "no type with name %s has been successfully compiled" name |> failwith
@@ -129,128 +150,130 @@ namespace N1
     ////
     // Create some operations for our tests...
     ////
-    let emptyOperation                          = findCallable @"emptyOperation"
-    let zeroQubitOperation                      = findCallable @"zeroQubitOperation"
-    let oneQubitAbstractOperation               = findCallable @"oneQubitAbstractOperation"
-    let oneQubitSelfAdjointAbstractOperation    = findCallable @"oneQubitSelfAdjointAbstractOperation"
-    let randomAbstractOperation                 = findCallable @"randomAbstractOperation"
-    let oneQubitSelfAdjointOperation            = findCallable @"oneQubitSelfAdjointOperation"
-    let oneQubitOperation                       = findCallable @"oneQubitOperation"
-    let twoQubitOperation                       = findCallable @"twoQubitOperation"
-    let threeQubitOperation                     = findCallable @"threeQubitOperation"
-    let differentArgsOperation                  = findCallable @"differentArgsOperation"
-    let randomOperation                         = findCallable @"randomOperation"
-    let ifOperation                             = findCallable @"ifOperation"
-    let foreachOperation                        = findCallable @"foreachOperation"
-    let repeatOperation                         = findCallable @"repeatOperation"
-    let selfInvokingOperation                   = findCallable @"selfInvokingOperation"
-    let letsOperations                          = findCallable @"letsOperations"
-    let arraysOperations                        = findCallable @"arraysOperations"
-    let sliceOperations                         = findCallable @"sliceOperations"
-    let rangeOperations                         = findCallable @"rangeOperations"
-    let helloWorld                              = findCallable @"helloWorld"
-    let allocOperation                          = findCallable @"allocOperation"
-    let failedOperation                         = findCallable @"failedOperation"
-    let compareOps                              = findCallable @"compareOps"
-    let partialApplicationTest                  = findCallable @"partialApplicationTest"
-    let opParametersTest                        = findCallable @"opParametersTest"
-    let measureWithScratch                      = findCallable @"measureWithScratch"
-    let with1C                                  = findCallable @"With1C"
-    let genC1                                   = findCallable @"genC1"
-    let genC1a                                  = findCallable @"genC1a"
-    let genC2                                   = findCallable @"genC2"
-    let genAdj1                                 = findCallable @"genAdj1"
-    let genCtrl3                                = findCallable @"genCtrl3"
-    let genU1                                   = findCallable @"genU1"
-    let genU2                                   = findCallable @"genU2"
-    let genMapper                               = findCallable @"genMapper"
-    let genIter                                 = findCallable @"genIter"
-    let usesGenerics                            = findCallable @"usesGenerics"
-    let callsGenericWithMultipleTypeParams      = findCallable @"callsGenericWithMultipleTypeParams"
-    let duplicatedDefinitionsCaller             = findCallable @"duplicatedDefinitionsCaller"
-    let nestedArgTuple1                         = findCallable @"nestedArgTuple1"
-    let nestedArgTuple2                         = findCallable @"nestedArgTuple2"
-    let nestedArgTupleGeneric                   = findCallable @"nestedArgTupleGeneric"
-    let udtsTest                                = findCallable @"udtsTest"
-    let compose                                 = findCallable @"compose"
-    let composeImpl                             = findCallable @"composeImpl"
-    let callTests                               = findCallable @"callTests"
-    let udtTuple                                = findCallable @"udtTuple"
-    let emptyFunction                           = findCallable @"emptyFunction"
-    let intFunction                             = findCallable @"intFunction"
-    let powFunction                             = findCallable @"powFunction"
-    let bigPowFunction                          = findCallable @"bigPowFunction"
-    let factorial                               = findCallable @"factorial"
-    let genF1                                   = findCallable @"genF1"
-    let genRecursion                            = findCallable @"genRecursion"
-    let partialFunctionTest                     = findCallable @"partialFunctionTest"
-    let returnTest1                             = findCallable @"returnTest1"
-    let returnTest2                             = findCallable @"returnTest2"
-    let returnTest3                             = findCallable @"returnTest3"
-    let returnTest4                             = findCallable @"returnTest4"
-    let returnTest5                             = findCallable @"returnTest5"
-    let returnTest6                             = findCallable @"returnTest6"
-    let returnTest7                             = findCallable @"returnTest7"
-    let returnTest8                             = findCallable @"returnTest8"
-    let returnTest9                             = findCallable @"returnTest9"
-    let returnTest10                            = findCallable @"returnTest10"
-    let bitOperations                           = findCallable @"bitOperations"
-    let testLengthDependency                    = findCallable @"testLengthDependency"
-    let UpdateUdtItems                          = findCallable @"UpdateUdtItems"
-    let emptyInternalFunction                   = findCallable @"EmptyInternalFunction"
-    let emptyInternalOperation                  = findCallable @"EmptyInternalOperation"
-    let useInternalCallables                    = findCallable @"UseInternalCallables"
+    let emptyOperation = findCallable @"emptyOperation"
+    let zeroQubitOperation = findCallable @"zeroQubitOperation"
+    let oneQubitAbstractOperation = findCallable @"oneQubitAbstractOperation"
+    let oneQubitSelfAdjointAbstractOperation = findCallable @"oneQubitSelfAdjointAbstractOperation"
+    let randomAbstractOperation = findCallable @"randomAbstractOperation"
+    let oneQubitSelfAdjointOperation = findCallable @"oneQubitSelfAdjointOperation"
+    let oneQubitOperation = findCallable @"oneQubitOperation"
+    let twoQubitOperation = findCallable @"twoQubitOperation"
+    let threeQubitOperation = findCallable @"threeQubitOperation"
+    let differentArgsOperation = findCallable @"differentArgsOperation"
+    let randomOperation = findCallable @"randomOperation"
+    let ifOperation = findCallable @"ifOperation"
+    let foreachOperation = findCallable @"foreachOperation"
+    let repeatOperation = findCallable @"repeatOperation"
+    let selfInvokingOperation = findCallable @"selfInvokingOperation"
+    let letsOperations = findCallable @"letsOperations"
+    let arraysOperations = findCallable @"arraysOperations"
+    let sliceOperations = findCallable @"sliceOperations"
+    let rangeOperations = findCallable @"rangeOperations"
+    let helloWorld = findCallable @"helloWorld"
+    let allocOperation = findCallable @"allocOperation"
+    let failedOperation = findCallable @"failedOperation"
+    let compareOps = findCallable @"compareOps"
+    let partialApplicationTest = findCallable @"partialApplicationTest"
+    let opParametersTest = findCallable @"opParametersTest"
+    let measureWithScratch = findCallable @"measureWithScratch"
+    let with1C = findCallable @"With1C"
+    let genC1 = findCallable @"genC1"
+    let genC1a = findCallable @"genC1a"
+    let genC2 = findCallable @"genC2"
+    let genAdj1 = findCallable @"genAdj1"
+    let genCtrl3 = findCallable @"genCtrl3"
+    let genU1 = findCallable @"genU1"
+    let genU2 = findCallable @"genU2"
+    let genMapper = findCallable @"genMapper"
+    let genIter = findCallable @"genIter"
+    let usesGenerics = findCallable @"usesGenerics"
+    let callsGenericWithMultipleTypeParams = findCallable @"callsGenericWithMultipleTypeParams"
+    let duplicatedDefinitionsCaller = findCallable @"duplicatedDefinitionsCaller"
+    let nestedArgTuple1 = findCallable @"nestedArgTuple1"
+    let nestedArgTuple2 = findCallable @"nestedArgTuple2"
+    let nestedArgTupleGeneric = findCallable @"nestedArgTupleGeneric"
+    let udtsTest = findCallable @"udtsTest"
+    let compose = findCallable @"compose"
+    let composeImpl = findCallable @"composeImpl"
+    let callTests = findCallable @"callTests"
+    let udtTuple = findCallable @"udtTuple"
+    let emptyFunction = findCallable @"emptyFunction"
+    let intFunction = findCallable @"intFunction"
+    let powFunction = findCallable @"powFunction"
+    let bigPowFunction = findCallable @"bigPowFunction"
+    let factorial = findCallable @"factorial"
+    let genF1 = findCallable @"genF1"
+    let genRecursion = findCallable @"genRecursion"
+    let partialFunctionTest = findCallable @"partialFunctionTest"
+    let returnTest1 = findCallable @"returnTest1"
+    let returnTest2 = findCallable @"returnTest2"
+    let returnTest3 = findCallable @"returnTest3"
+    let returnTest4 = findCallable @"returnTest4"
+    let returnTest5 = findCallable @"returnTest5"
+    let returnTest6 = findCallable @"returnTest6"
+    let returnTest7 = findCallable @"returnTest7"
+    let returnTest8 = findCallable @"returnTest8"
+    let returnTest9 = findCallable @"returnTest9"
+    let returnTest10 = findCallable @"returnTest10"
+    let bitOperations = findCallable @"bitOperations"
+    let testLengthDependency = findCallable @"testLengthDependency"
+    let UpdateUdtItems = findCallable @"UpdateUdtItems"
+    let emptyInternalFunction = findCallable @"EmptyInternalFunction"
+    let emptyInternalOperation = findCallable @"EmptyInternalOperation"
+    let useInternalCallables = findCallable @"UseInternalCallables"
 
-    let udt_args0                               = findUdt @"udt_args0"
-    let udt_args1                               = findUdt @"udt_args1"
-    let udt_A                                   = findUdt @"A"
-    let udt_AA                                  = findUdt @"AA"
-    let udt_U                                   = findUdt @"U"
-    let udt_Q                                   = findUdt @"Q"
-    let udt_QQ                                  = findUdt @"QQ"
-    let udt_Qubits                              = findUdt @"Qubits"
-    let udt_Real                                = findUdt @"udt_Real"
-    let udt_Complex                             = findUdt @"udt_Complex"
-    let udt_TwoDimArray                         = findUdt @"udt_TwoDimArray"
-    let udt_InternalType                        = findUdt @"InternalType"
-    let udt_NamedTuple                          = findUdt @"NamedTuple"
+    let udt_args0 = findUdt @"udt_args0"
+    let udt_args1 = findUdt @"udt_args1"
+    let udt_A = findUdt @"A"
+    let udt_AA = findUdt @"AA"
+    let udt_U = findUdt @"U"
+    let udt_Q = findUdt @"Q"
+    let udt_QQ = findUdt @"QQ"
+    let udt_Qubits = findUdt @"Qubits"
+    let udt_Real = findUdt @"udt_Real"
+    let udt_Complex = findUdt @"udt_Complex"
+    let udt_TwoDimArray = findUdt @"udt_TwoDimArray"
+    let udt_InternalType = findUdt @"InternalType"
+    let udt_NamedTuple = findUdt @"NamedTuple"
 
     let createTestContext op = globalContext.setCallable op
 
 
-    let testOneFile fileName (expected:string) =
+    let testOneFile fileName (expected: string) =
         let fullPath = Path.GetFullPath fileName
-        let escapeCSharpString (s : string) = SymbolDisplay.FormatLiteral (s, false)
+        let escapeCSharpString (s: string) = SymbolDisplay.FormatLiteral(s, false)
+
         let expected =
             expected
             |> (fun s -> s.Replace("%%%", fullPath |> HttpUtility.JavaScriptStringEncode |> escapeCSharpString))
             |> (fun s -> s.Replace("%%", fullPath |> escapeCSharpString))
-        let compilation = parse [Path.Combine ("Circuits", "Intrinsic.qs"); fileName]
+
+        let compilation =
+            parse [ Path.Combine("Circuits", "Intrinsic.qs")
+                    fileName ]
+
         let actual =
-            CodegenContext.Create (compilation, ImmutableDictionary.Empty)
+            CodegenContext.Create(compilation, ImmutableDictionary.Empty)
             |> generate (Path.GetFullPath fileName)
+
         Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
 
-    let testOneBody (builder:SyntaxBuilder) (expected: string list) =
-        let actual =
-            builder.BuiltStatements
-            |> List.map (fun s -> s.ToFullString())
+    let testOneBody (builder: SyntaxBuilder) (expected: string list) =
+        let actual = builder.BuiltStatements |> List.map (fun s -> s.ToFullString())
         Assert.Equal(expected.Length, actual.Length)
-        List.zip (expected |> List.map clearFormatting) (actual |> List.map clearFormatting) |> List.iter Assert.Equal
+
+        List.zip (expected |> List.map clearFormatting) (actual |> List.map clearFormatting)
+        |> List.iter Assert.Equal
 
     let testOneList op (build: CodegenContext -> 'X -> 'Y List) (arg: 'X) (clean: 'Y -> 'Z) (expected: 'Z list) =
         let context = createTestContext op
-        let actual =
-            arg
-            |> build context
-            |> List.map clean
+        let actual = arg |> build context |> List.map clean
 
-        List.zip expected actual
-        |> List.iter Assert.Equal<'Z>
+        List.zip expected actual |> List.iter Assert.Equal<'Z>
 
     [<Fact>]
     let ``testGeneratedFileNames`` () =
-        
+
         let outputDir = "output" |> Path.GetFullPath
         let outputDirSrc = Path.Combine(outputDir, "src")
 
@@ -260,31 +283,30 @@ namespace N1
         let helloOther = Path.Combine(outputDirSrc, "HelloOther.g.cs")
 
         let deleteFile filePath =
-            if File.Exists filePath then
-                File.Delete filePath
-        
+            if File.Exists filePath then File.Delete filePath
+
         intrinsic |> deleteFile
         helloWorld |> deleteFile
         helloWorld1 |> deleteFile
         helloOther |> deleteFile
-        
-        let compilation = parse [
-                Path.Combine("Circuits", "Intrinsic.qs")
-                Path.Combine("Circuits", "HelloWorld.qs")
-                Path.Combine("Circuits", "SubDirectory", "HelloWorld.qs")
-                Path.Combine("Circuits", "SubDirectory", "HelloOther.qs")
-                ]
-        let transformed = ref { Namespaces = ImmutableArray<QsNamespace>.Empty; EntryPoints = ImmutableArray<QsQualifiedName>.Empty }
+
+        let compilation =
+            parse [ Path.Combine("Circuits", "Intrinsic.qs")
+                    Path.Combine("Circuits", "HelloWorld.qs")
+                    Path.Combine("Circuits", "SubDirectory", "HelloWorld.qs")
+                    Path.Combine("Circuits", "SubDirectory", "HelloOther.qs") ]
+
+        let transformed =
+            ref { Namespaces = ImmutableArray<QsNamespace>.Empty; EntryPoints = ImmutableArray<QsQualifiedName>.Empty }
+
         let rewriteStep = Emitter() :> IRewriteStep
         rewriteStep.AssemblyConstants.Add(AssemblyConstants.OutputPath, outputDir)
         rewriteStep.Transformation(compilation, transformed) |> ignore
 
         let mutable allFilesFound = true
+
         let checkAndDeleteFile filePath =
-            if File.Exists filePath then
-                File.Delete filePath
-            else
-                allFilesFound <- false
+            if File.Exists filePath then File.Delete filePath else allFilesFound <- false
 
         intrinsic |> checkAndDeleteFile
         helloWorld |> checkAndDeleteFile
@@ -299,40 +321,31 @@ namespace N1
         outputDir |> deleteDir
 
         Assert.True allFilesFound
-    
+
     [<Fact>]
     let ``tupleBaseClassName test`` () =
         let testOne (_, udt) expected =
             let context = (CodegenContext.Create syntaxTree).setUdt udt
             let actual = tupleBaseClassName context udt.Type
-            Assert.Equal (expected |> clearFormatting, actual |> clearFormatting)
+            Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
 
-        "QTuple<IQArray<Qubit>>"
-        |> testOne udt_args0
+        "QTuple<IQArray<Qubit>>" |> testOne udt_args0
 
-        "QTuple<(Int64, IQArray<Qubit>)>"
-        |> testOne udt_args1
+        "QTuple<(Int64, IQArray<Qubit>)>" |> testOne udt_args1
 
-        "QTuple<ICallable>"
-        |> testOne udt_A
+        "QTuple<ICallable>" |> testOne udt_A
 
-        "QTuple<A>"
-        |> testOne udt_AA
+        "QTuple<A>" |> testOne udt_AA
 
-        "QTuple<IUnitary>"
-        |> testOne udt_U
+        "QTuple<IUnitary>" |> testOne udt_U
 
-        "QTuple<Qubit>"
-        |> testOne udt_Q
+        "QTuple<Qubit>" |> testOne udt_Q
 
-        "QTuple<Double>"
-        |> testOne udt_Real
+        "QTuple<Double>" |> testOne udt_Real
 
-        "QTuple<(udt_Real,udt_Real)>"
-        |> testOne udt_Complex
+        "QTuple<(udt_Real,udt_Real)>" |> testOne udt_Complex
 
-        "QTuple<IQArray<IQArray<Result>>>"
-        |> testOne udt_TwoDimArray
+        "QTuple<IQArray<IQArray<Result>>>" |> testOne udt_TwoDimArray
 
     [<Fact>]
     let ``operationDependencies test`` () =
@@ -342,91 +355,78 @@ namespace N1
         let NSO = "Microsoft.Quantum.Overrides"
         let NSC = "Microsoft.Quantum.Core"
 
-        let testOne (_,op) expected =
+        let testOne (_, op) expected =
             let context = createTestContext op
-            let sortByNames l = l |> List.sortBy (fun ((n,_),_) -> n) |> List.sortBy (fun ((_,ns),_) -> ns)
+
+            let sortByNames l =
+                l |> List.sortBy (fun ((n, _), _) -> n) |> List.sortBy (fun ((_, ns), _) -> ns)
+
             let actual =
                 op
                 |> operationDependencies
                 |> List.map (fun n -> ((n.Namespace, n.Name), (n |> roslynCallableTypeName context)))
 
-            List.zip (expected |> sortByNames) (actual |> sortByNames)
-            |> List.iter Assert.Equal
+            List.zip (expected |> sortByNames) (actual |> sortByNames) |> List.iter Assert.Equal
 
-        []
-        |> testOne emptyOperation
+        [] |> testOne emptyOperation
 
-        []
-        |> testOne oneQubitAbstractOperation
+        [] |> testOne oneQubitAbstractOperation
 
         [
-            ((NS2, "CNOT"    ),  "IAdjointable<(Qubit,Qubit)>")
-            ((NS2, "R"       ),  "IAdjointable<(Double,Qubit)>")
+            ((NS2, "CNOT"), "IAdjointable<(Qubit,Qubit)>")
+            ((NS2, "R"), "IAdjointable<(Double,Qubit)>")
         ]
         |> testOne twoQubitOperation
 
-        [
-            ((NS1,"three_op1"),   "IUnitary<(Qubit,Qubit)>")
-        ]
-        |> testOne threeQubitOperation
+        [ ((NS1, "three_op1"), "IUnitary<(Qubit,Qubit)>") ] |> testOne threeQubitOperation
 
-        []
-        |> testOne randomAbstractOperation
+        [] |> testOne randomAbstractOperation
 
         [
-            ((NS2, "Z"),                        "IUnitary<Qubit>")
-            ((NS1, "selfInvokingOperation"),    "IAdjointable<Qubit>")
+            ((NS2, "Z"), "IUnitary<Qubit>")
+            ((NS1, "selfInvokingOperation"), "IAdjointable<Qubit>")
         ]
         |> testOne selfInvokingOperation
 
-        [
-            ((NSG, "genRecursion"),       "ICallable")
-        ]
-        |> testOne genRecursion
+        [ ((NSG, "genRecursion"), "ICallable") ] |> testOne genRecursion
 
         [
-            ((NS2, "M"       ),    "ICallable<Qubit, Result>")
-            ((NS1, "let_f0"  ),    "ICallable<Int64, QRange>")
+            ((NS2, "M"), "ICallable<Qubit, Result>")
+            ((NS1, "let_f0"), "ICallable<Int64, QRange>")
         ]
         |> testOne letsOperations
 
-        []
-        |> testOne helloWorld
+        [] |> testOne helloWorld
 
         [
-            ((NS2, "Allocate"    ),  "Allocate")
-            ((NS2, "Borrow"      ),  "Borrow")
-            ((NS2, "X"           ),  "IUnitary<Qubit>")
-            ((NS2, "Z"           ),  "IUnitary<Qubit>")
-            ((NS2, "Release"     ),  "Release")
-            ((NS2, "Return"      ),  "Return")
-            ((NS1, "alloc_op0"   ),  "ICallable<Qubit, QVoid>")
+            ((NS2, "Allocate"), "Allocate")
+            ((NS2, "Borrow"), "Borrow")
+            ((NS2, "X"), "IUnitary<Qubit>")
+            ((NS2, "Z"), "IUnitary<Qubit>")
+            ((NS2, "Release"), "Release")
+            ((NS2, "Return"), "Return")
+            ((NS1, "alloc_op0"), "ICallable<Qubit, QVoid>")
         ]
         |> testOne allocOperation
 
-        []
-        |> testOne failedOperation
+        [] |> testOne failedOperation
 
-        []
-        |> testOne compareOps
+        [] |> testOne compareOps
 
-        [
-            ((NS1, "if_f0"),       "ICallable<QVoid, Int64>")
-        ]
-        |> testOne ifOperation
+        [ ((NS1, "if_f0"), "ICallable<QVoid, Int64>") ] |> testOne ifOperation
 
         [
-            ((NSC, "RangeEnd"),    "ICallable<QRange, Int64>")
-            ((NS1, "foreach_f2"),  "ICallable<(Int64,Int64), Int64>")
+            ((NSC, "RangeEnd"), "ICallable<QRange, Int64>")
+            ((NS1, "foreach_f2"), "ICallable<(Int64,Int64), Int64>")
         ]
         |> testOne foreachOperation
 
         [
-            ((NS2, "Allocate"),    "Allocate")
-            ((NS2, "Release"),     "Release")
-            ((NS1, "repeat_op0"),  "ICallable<repeat_udt0, Result>")
-            ((NS1, "repeat_op1"),  "ICallable<(Int64,IQArray<Qubit>), Result>")
-            ((NS1, "repeat_op2"),  "ICallable<(Double,repeat_udt0), Result>")
+            ((NS2, "Allocate"), "Allocate")
+            ((NS2, "Release"), "Release")
+            ((NS1, "repeat_op0"), "ICallable<repeat_udt0, Result>")
+            ((NS1, "repeat_op1"), "ICallable<(Int64,IQArray<Qubit>), Result>")
+            ((NS1, "repeat_op2"), "ICallable<(Double,repeat_udt0), Result>")
             ((NS1, "repeat_udt0"), "ICallable<(Int64,IQArray<Qubit>), repeat_udt0>")
         ]
         |> testOne repeatOperation
@@ -437,94 +437,81 @@ namespace N1
             ((NS1, "partialGeneric1"), "ICallable")
             ((NS1, "partialGeneric2"), "ICallable")
             ((NS1, "partialInnerTuple"), "ICallable<(Int64,(Double,Result)), QVoid>")
-            ((NS1, "partialNestedArgsOp"), "ICallable<((Int64,Int64,Int64),((Double,Double),(Result,Result,Result))), QVoid>")
+            ((NS1, "partialNestedArgsOp"),
+             "ICallable<((Int64,Int64,Int64),((Double,Double),(Result,Result,Result))), QVoid>")
         ]
         |> testOne partialApplicationTest
 
-        [
-            ((NS1, "OP_1"),         "ICallable<Qubit, Result>")
-        ]
-        |> testOne opParametersTest
+        [ ((NS1, "OP_1"), "ICallable<Qubit, Result>") ] |> testOne opParametersTest
 
         [
-            ((NS2, "Allocate"    ),  "Allocate")
-            ((NS2, "Borrow"      ),  "Borrow")
-            ((NSC, "Length"      ),  "ICallable")
-            ((NS2, "Release"     ),  "Release")
-            ((NS2, "Return"      ),  "Return")
-            ((NS1, "random_f1"   ),  "ICallable<(Int64,Int64), Int64>")
-            ((NS1, "random_op0"  ),  "ICallable<(Qubit,Int64), QVoid>")
-            ((NS1, "random_op1"  ),  "ICallable<Qubit, Result>")
-            ((NS1, "random_op10" ),  "ICallable<(Qubit,Int64), QVoid>")
-            ((NS1, "random_op2"  ),  "ICallable<Qubit, Result>")
-            ((NS1, "random_op3"  ),  "ICallable<(Qubit,Result,Pauli), QVoid>")
-            ((NS1, "random_op4"  ),  "ICallable<(Qubit,Pauli), QVoid>")
-            ((NS1, "random_op5"  ),  "IAdjointable<(Qubit,Pauli)>")
-            ((NS1, "random_op6"  ),  "ICallable<(Qubit,Pauli), QVoid>")
-            ((NS1, "random_op7"  ),  "IUnitary<(Qubit,Pauli)>")
-            ((NS1, "random_op8"  ),  "ICallable<(Qubit,Pauli), QVoid>")
-            ((NS1, "random_op9"  ),  "IUnitary<(Qubit,Pauli)>")
+            ((NS2, "Allocate"), "Allocate")
+            ((NS2, "Borrow"), "Borrow")
+            ((NSC, "Length"), "ICallable")
+            ((NS2, "Release"), "Release")
+            ((NS2, "Return"), "Return")
+            ((NS1, "random_f1"), "ICallable<(Int64,Int64), Int64>")
+            ((NS1, "random_op0"), "ICallable<(Qubit,Int64), QVoid>")
+            ((NS1, "random_op1"), "ICallable<Qubit, Result>")
+            ((NS1, "random_op10"), "ICallable<(Qubit,Int64), QVoid>")
+            ((NS1, "random_op2"), "ICallable<Qubit, Result>")
+            ((NS1, "random_op3"), "ICallable<(Qubit,Result,Pauli), QVoid>")
+            ((NS1, "random_op4"), "ICallable<(Qubit,Pauli), QVoid>")
+            ((NS1, "random_op5"), "IAdjointable<(Qubit,Pauli)>")
+            ((NS1, "random_op6"), "ICallable<(Qubit,Pauli), QVoid>")
+            ((NS1, "random_op7"), "IUnitary<(Qubit,Pauli)>")
+            ((NS1, "random_op8"), "ICallable<(Qubit,Pauli), QVoid>")
+            ((NS1, "random_op9"), "IUnitary<(Qubit,Pauli)>")
         ]
         |> testOne randomOperation
 
         [
-            ((NS2, "Allocate"    ), "Allocate")
-            ((NS2, "H"           ), "IUnitary<Qubit>")
-            ((NSC, "Length"      ),  "ICallable")
-            ((NS2, "M"           ), "ICallable<Qubit, Result>")
-            ((NS2, "Release"     ), "Release")
-            ((NS2, "S"           ), "IUnitary<Qubit>")
-            ((NS1, "With1C"      ), "IControllable<(IAdjointable,IControllable,Qubit)>")
-            ((NS2, "X"           ), "IUnitary<Qubit>")
+            ((NS2, "Allocate"), "Allocate")
+            ((NS2, "H"), "IUnitary<Qubit>")
+            ((NSC, "Length"), "ICallable")
+            ((NS2, "M"), "ICallable<Qubit, Result>")
+            ((NS2, "Release"), "Release")
+            ((NS2, "S"), "IUnitary<Qubit>")
+            ((NS1, "With1C"), "IControllable<(IAdjointable,IControllable,Qubit)>")
+            ((NS2, "X"), "IUnitary<Qubit>")
         ]
         |> testOne measureWithScratch
 
-        []
-        |> testOne genC1
+        [] |> testOne genC1
+
+        [ ((NSG, "genC2"), "ICallable") ] |> testOne genU1
+
+        [] |> testOne genCtrl3
 
         [
-            ((NSG, "genC2"          ), "ICallable")
-        ]
-        |> testOne genU1
-
-        []
-        |> testOne genCtrl3
-
-        [
-            ((NS2, "Allocate"       ), "Allocate")
-            ((NS2, "CNOT"           ), "IAdjointable<(Qubit,Qubit)>")
-            ((NS1, "Hold"           ), "ICallable")
-            ((NS2, "Release"        ), "Release")
-            ((NSG, "ResultToString" ), "ICallable<Result, String>")
-            ((NS2, "X"              ), "IUnitary<Qubit>")
-            ((NSG, "genIter"        ), "IUnitary")
-            ((NSG, "genMapper"      ), "ICallable")
-            ((NSG, "genU1"          ), "IUnitary")
-            ((NS1, "noOpGeneric"    ), "IUnitary")
-            ((NS1, "noOpResult"     ), "IUnitary<Result>")
+            ((NS2, "Allocate"), "Allocate")
+            ((NS2, "CNOT"), "IAdjointable<(Qubit,Qubit)>")
+            ((NS1, "Hold"), "ICallable")
+            ((NS2, "Release"), "Release")
+            ((NSG, "ResultToString"), "ICallable<Result, String>")
+            ((NS2, "X"), "IUnitary<Qubit>")
+            ((NSG, "genIter"), "IUnitary")
+            ((NSG, "genMapper"), "ICallable")
+            ((NSG, "genU1"), "IUnitary")
+            ((NS1, "noOpGeneric"), "IUnitary")
+            ((NS1, "noOpResult"), "IUnitary<Result>")
         ]
         |> testOne usesGenerics
 
-        [
-            ((NSG, "genericWithMultipleTypeParams"), "ICallable")
-        ]
+        [ ((NSG, "genericWithMultipleTypeParams"), "ICallable") ]
         |> testOne callsGenericWithMultipleTypeParams
 
         [
-            ((NS2, "Allocate"       ), "Allocate")
-            ((NS2, "H"              ), "IUnitary<Qubit>")
-            ((NS1, "H"              ), "ICallable<Qubit, QVoid>")
-            ((NS2, "Release"        ), "Release")
-            ((NS1, "emptyFunction"  ), "ICallable<QVoid, QVoid>")
-            ((NSO, "emptyFunction"  ), "ICallable<QVoid, QVoid>")
+            ((NS2, "Allocate"), "Allocate")
+            ((NS2, "H"), "IUnitary<Qubit>")
+            ((NS1, "H"), "ICallable<Qubit, QVoid>")
+            ((NS2, "Release"), "Release")
+            ((NS1, "emptyFunction"), "ICallable<QVoid, QVoid>")
+            ((NSO, "emptyFunction"), "ICallable<QVoid, QVoid>")
         ]
         |> testOne duplicatedDefinitionsCaller
 
-        [
-            ((NS1, "iter"),         "ICallable")
-            ((NSC, "Length"),       "ICallable")
-        ]
-        |> testOne testLengthDependency
+        [ ((NS1, "iter"), "ICallable"); ((NSC, "Length"), "ICallable") ] |> testOne testLengthDependency
 
 
     [<Fact>]
@@ -532,48 +519,26 @@ namespace N1
         let testOne (_, op: QsCallable) (expectedArgs: (string * string) list) =
             testOneList op flatArgumentsList op.ArgumentTuple id expectedArgs
 
-        []
-        |> testOne emptyOperation
+        [] |> testOne emptyOperation
 
-        [
-            ("n", "Int64")
-        ]
-        |> testOne helloWorld
+        [ ("n", "Int64") ] |> testOne helloWorld
 
-        [
-            ("q1", "Qubit")
-        ]
-        |> testOne oneQubitAbstractOperation
+        [ ("q1", "Qubit") ] |> testOne oneQubitAbstractOperation
 
-        [
-            "q1", "Qubit"
-            "t1", "(Qubit,Double)"
-        ]
-        |> testOne twoQubitOperation
+        [ "q1", "Qubit"; "t1", "(Qubit,Double)" ] |> testOne twoQubitOperation
 
 
-        [
-            "q1",   "Qubit"
-            "q2",   "Qubit"
-            "arr1", "Qubits"
-        ]
-        |> testOne threeQubitOperation
+        [ "q1", "Qubit"; "q2", "Qubit"; "arr1", "Qubits" ] |> testOne threeQubitOperation
 
         [
             "q1", "Qubit"
-            "b",  "Basis"
-            "t",  "(Pauli,IQArray<IQArray<Double>>,Boolean)"
-            "i",  "Int64"
+            "b", "Basis"
+            "t", "(Pauli,IQArray<IQArray<Double>>,Boolean)"
+            "i", "Int64"
         ]
         |> testOne randomAbstractOperation
 
-        [
-            "a", "Int64"
-            "b", "Int64"
-            "c", "Double"
-            "d", "Double"
-        ]
-        |> testOne nestedArgTuple1
+        [ "a", "Int64"; "b", "Int64"; "c", "Double"; "d", "Double" ] |> testOne nestedArgTuple1
 
         [
             "a", "(Int64,Int64)"
@@ -591,97 +556,43 @@ namespace N1
         ]
         |> testOne with1C
 
-        [
-            "a1", "__T__"
-        ]
-        |> testOne genC1
+        [ "a1", "__T__" ] |> testOne genC1
 
-        [
-            "arg1", "__X__"
-            "arg2", "(Int64,(__Y__,__Z__),Result)"
-        ]
-        |> testOne genCtrl3
+        [ "arg1", "__X__"; "arg2", "(Int64,(__Y__,__Z__),Result)" ] |> testOne genCtrl3
 
-        [
-            "second", "ICallable"
-            "first",  "ICallable"
-            "arg",    "__B__"
-        ]
-        |> testOne composeImpl
+        [ "second", "ICallable"; "first", "ICallable"; "arg", "__B__" ] |> testOne composeImpl
 
-        [
-            "mapper", "ICallable"
-            "source", "IQArray<__T__>"
-        ]
-        |> testOne genMapper
+        [ "mapper", "ICallable"; "source", "IQArray<__T__>" ] |> testOne genMapper
 
     [<Fact>]
     let ``findQubitFields test`` () =
-        let testOne (_,op) = testOneList op findQubitFields op.Signature.ArgumentType (snd >> formatSyntaxTree)
+        let testOne (_, op) =
+            testOneList op findQubitFields op.Signature.ArgumentType (snd >> formatSyntaxTree)
 
-        []
-        |> testOne emptyOperation
+        [] |> testOne emptyOperation
 
-        []
-        |> testOne helloWorld
+        [] |> testOne helloWorld
 
-        [
-            "Data"
-        ]
-        |> testOne oneQubitAbstractOperation
+        [ "Data" ] |> testOne oneQubitAbstractOperation
 
-        [
-            "Data.Item1"
-            "Data.Item2.Item1"
-        ]
-        |> testOne twoQubitOperation
+        [ "Data.Item1"; "Data.Item2.Item1" ] |> testOne twoQubitOperation
 
 
-        [
-            "Data.Item1"
-            "Data.Item2"
-            "Data.Item3?.Data"
-        ]
-        |> testOne threeQubitOperation
+        [ "Data.Item1"; "Data.Item2"; "Data.Item3?.Data" ] |> testOne threeQubitOperation
 
-        [
-            "Data.Item1"
-            "Data.Item2"
-            "Data.Item3"
-        ]
-        |> testOne differentArgsOperation
+        [ "Data.Item1"; "Data.Item2"; "Data.Item3" ] |> testOne differentArgsOperation
 
-        [
-            "Data.Item1"
-        ]
-        |> testOne randomOperation
+        [ "Data.Item1" ] |> testOne randomOperation
 
-        [
-            "Data.Item1"
-        ]
-        |> testOne randomAbstractOperation
+        [ "Data.Item1" ] |> testOne randomAbstractOperation
 
-        [
-        ]
-        |> testOne nestedArgTuple1
+        [] |> testOne nestedArgTuple1
 
-        [
-            "Data.Item2.Item2.Item2.Item1"
-            "Data.Item2.Item2.Item2.Item2"
-        ]
-        |> testOne nestedArgTuple2
+        [ "Data.Item2.Item2.Item2.Item1"; "Data.Item2.Item2.Item2.Item2" ] |> testOne nestedArgTuple2
 
-        [
-            "Data"
-        ]
-        |> testOne genU1
+        [ "Data" ] |> testOne genU1
 
-        [
-            "Data.Item1"
-            "Data.Item2.Item2.Item1"
-            "Data.Item2.Item2.Item2"
-        ]
-        |> testOne genCtrl3
+        [ "Data.Item1"; "Data.Item2.Item2.Item1"; "Data.Item2.Item2.Item2" ] |> testOne genCtrl3
 
         [
             "Data.Item2?.Data.Item2"
@@ -691,8 +602,7 @@ namespace N1
         ]
         |> testOne udtTuple
 
-        []
-        |> testOne emptyFunction
+        [] |> testOne emptyFunction
 
         [
             "Data.Item2.Item1?.Data"
@@ -705,17 +615,18 @@ namespace N1
 
     [<Fact>]
     let ``buildQubitsField test`` () =
-        let testOne (_,op) expected = testOneList op buildQubitsField op.Signature.ArgumentType (formatSyntaxTree >> clearFormatting) (expected |> List.map clearFormatting)
+        let testOne (_, op) expected =
+            testOneList
+                op
+                buildQubitsField
+                op.Signature.ArgumentType
+                (formatSyntaxTree >> clearFormatting)
+                (expected |> List.map clearFormatting)
 
-        [
-            "System.Collections.Generic.IEnumerable<Qubit> IApplyData.Qubits => null;"
-        ]
+        [ "System.Collections.Generic.IEnumerable<Qubit> IApplyData.Qubits => null;" ]
         |> testOne emptyOperation
 
-        [
-            "System.Collections.Generic.IEnumerable<Qubit> IApplyData.Qubits => null;"
-        ]
-        |> testOne helloWorld
+        [ "System.Collections.Generic.IEnumerable<Qubit> IApplyData.Qubits => null;" ] |> testOne helloWorld
 
         [
             "System.Collections.Generic.IEnumerable<Qubit> IApplyData.Qubits
@@ -782,9 +693,7 @@ namespace N1
         ]
         |> testOne randomOperation
 
-        [
-            "System.Collections.Generic.IEnumerable<Qubit> IApplyData.Qubits => null;"
-        ]
+        [ "System.Collections.Generic.IEnumerable<Qubit> IApplyData.Qubits => null;" ]
         |> testOne nestedArgTuple1
 
         [
@@ -840,7 +749,6 @@ namespace N1
                     return __temp1__?.GetQubits();
                 }
             }"
-
         ]
         |> testOne genU1
 
@@ -864,76 +772,60 @@ namespace N1
 
     [<Fact>]
     let ``areAllQubitArgs test`` () =
-        let testOne (_,op) expected =
+        let testOne (_, op) expected =
             let context = createTestContext op
-            let actual =
-                op.Signature.ArgumentType
-                |> findQubitFields context
-                |> List.map fst
-                |> areAllQubitArgs
-            Assert.Equal (expected, actual)
+            let actual = op.Signature.ArgumentType |> findQubitFields context |> List.map fst |> areAllQubitArgs
+            Assert.Equal(expected, actual)
 
-        true
-        |> testOne emptyOperation
+        true |> testOne emptyOperation
 
-        true
-        |> testOne helloWorld
+        true |> testOne helloWorld
 
-        true
-        |> testOne oneQubitAbstractOperation
+        true |> testOne oneQubitAbstractOperation
 
-        true
-        |> testOne twoQubitOperation
+        true |> testOne twoQubitOperation
 
-        false
-        |> testOne threeQubitOperation
+        false |> testOne threeQubitOperation
 
-        false
-        |> testOne differentArgsOperation
+        false |> testOne differentArgsOperation
 
-        true
-        |> testOne randomOperation
+        true |> testOne randomOperation
 
-        true
-        |> testOne randomAbstractOperation
+        true |> testOne randomAbstractOperation
 
-        true
-        |> testOne nestedArgTuple1
+        true |> testOne nestedArgTuple1
 
-        true
-        |> testOne nestedArgTuple2
+        true |> testOne nestedArgTuple2
 
 
-    let depsByName (l : QsQualifiedName list) = l |> List.sortBy (fun n -> n.Namespace) |> List.sortBy (fun n -> n.Name)
+    let depsByName (l: QsQualifiedName list) =
+        l |> List.sortBy (fun n -> n.Namespace) |> List.sortBy (fun n -> n.Name)
 
     [<Fact>]
     let ``buildInit test`` () =
-        let testOne (_,op) body =
-            let context  = createTestContext op
-            let deps     = op   |> operationDependencies |> depsByName
-            let actual   = deps |> buildInit context |> formatSyntaxTree
+        let testOne (_, op) body =
+            let context = createTestContext op
+            let deps = op |> operationDependencies |> depsByName
+            let actual = deps |> buildInit context |> formatSyntaxTree
             let expected = sprintf "public override void __Init__() { %s }" (String.concat "" body)
-            Assert.Equal (expected |> clearFormatting, actual |> clearFormatting)
+            Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
 
         let template = sprintf "this.%s = this.__Factory__.Get<%s>(typeof(%s));"
-        [
-        ]
-        |> testOne emptyOperation
+        [] |> testOne emptyOperation
 
-        [
-        ]
-        |> testOne oneQubitAbstractOperation
+        [] |> testOne oneQubitAbstractOperation
 
-        [
-        ]
-        |> testOne genU2
+        [] |> testOne genU2
 
         [
             template "Allocate__" "Allocate" "global::Microsoft.Quantum.Intrinsic.Allocate"
             template "Microsoft__Quantum__Intrinsic__H" "IUnitary<Qubit>" "global::Microsoft.Quantum.Intrinsic.H"
             template "H__" "ICallable<Qubit, QVoid>" "H"
             template "Release__" "Release" "global::Microsoft.Quantum.Intrinsic.Release"
-            template "Microsoft__Quantum__Overrides__emptyFunction" "ICallable<QVoid, QVoid>" "global::Microsoft.Quantum.Overrides.emptyFunction"
+            template
+                "Microsoft__Quantum__Overrides__emptyFunction"
+                "ICallable<QVoid, QVoid>"
+                "global::Microsoft.Quantum.Overrides.emptyFunction"
             template "emptyFunction__" "ICallable<QVoid, QVoid>" "emptyFunction"
         ]
         |> testOne duplicatedDefinitionsCaller
@@ -948,38 +840,40 @@ namespace N1
             template "genIter__" "IUnitary" "genIter<>"
             template "genMapper__" "ICallable" "genMapper<,>"
             template "genU1__" "IUnitary" "genU1<>"
-            template "Microsoft__Quantum__Testing__noOpGeneric" "IUnitary" "global::Microsoft.Quantum.Testing.noOpGeneric<>"
-            template "Microsoft__Quantum__Testing__noOpResult" "IUnitary<Result>" "global::Microsoft.Quantum.Testing.noOpResult"
+            template
+                "Microsoft__Quantum__Testing__noOpGeneric"
+                "IUnitary"
+                "global::Microsoft.Quantum.Testing.noOpGeneric<>"
+            template
+                "Microsoft__Quantum__Testing__noOpResult"
+                "IUnitary<Result>"
+                "global::Microsoft.Quantum.Testing.noOpResult"
         ]
         |> testOne usesGenerics
 
         [
-            template "genericWithMultipleTypeParams__"        "ICallable"                         "genericWithMultipleTypeParams<,,>"
+            template "genericWithMultipleTypeParams__" "ICallable" "genericWithMultipleTypeParams<,,>"
         ]
         |> testOne callsGenericWithMultipleTypeParams
 
         [
-            template "Z__"                                    "IUnitary<Qubit>"                   "global::Microsoft.Quantum.Intrinsic.Z"
+            template "Z__" "IUnitary<Qubit>" "global::Microsoft.Quantum.Intrinsic.Z"
             "this.self = this;"
         ]
         |> testOne selfInvokingOperation
 
-        [
-            template "self"                                 "ICallable"                         "genRecursion<>"
-        ]
-        |> testOne genRecursion
+        [ template "self" "ICallable" "genRecursion<>" ] |> testOne genRecursion
 
     [<Fact>]
     let ``getTypeOfOp test`` () =
-        let testOne (_,op) =
+        let testOne (_, op) =
             let dependendies context d =
-                operationDependencies d
-                |> List.map (getTypeOfOp context)
-                |> List.map formatSyntaxTree
-                |> List.sort
+                operationDependencies d |> List.map (getTypeOfOp context) |> List.map formatSyntaxTree |> List.sort
+
             testOneList op dependendies op id
 
         let template = sprintf "typeof(%s)"
+
         [
             template "global::Microsoft.Quantum.Intrinsic.Allocate"
             template "global::Microsoft.Quantum.Intrinsic.CNOT"
@@ -996,20 +890,11 @@ namespace N1
         |> List.sort
         |> testOne usesGenerics
 
-        [
-            template "genericWithMultipleTypeParams<,,>"
-        ]
-        |> testOne callsGenericWithMultipleTypeParams
+        [ template "genericWithMultipleTypeParams<,,>" ] |> testOne callsGenericWithMultipleTypeParams
 
-        [
-            template "composeImpl<,>"
-        ]
-        |> testOne compose
+        [ template "composeImpl<,>" ] |> testOne compose
 
-        [
-            template "genRecursion<>"
-        ]
-        |> testOne genRecursion
+        [ template "genRecursion<>" ] |> testOne genRecursion
 
         [
             template "global::Microsoft.Quantum.Intrinsic.Z"
@@ -1019,140 +904,137 @@ namespace N1
 
     [<Fact>]
     let ``buildOpsProperties test`` () =
-        let testOne (_,op) expected =
+        let testOne (_, op) expected =
             let context = createTestContext op
+
             let actual =
-                op
-                |> operationDependencies
-                |> depsByName
-                |> buildOpsProperties context
-                |> List.map formatSyntaxTree
-            List.zip (expected |> List.map clearFormatting) (actual  |> List.map clearFormatting) |> List.iter Assert.Equal
+                op |> operationDependencies |> depsByName |> buildOpsProperties context |> List.map formatSyntaxTree
+
+            List.zip (expected |> List.map clearFormatting) (actual |> List.map clearFormatting)
+            |> List.iter Assert.Equal
 
         let template = sprintf @"protected %s %s { get; set; }"
 
         [
-            template "Allocate"                     "Allocate__"
-            template "IAdjointable<(Qubit,Qubit)>"  "CNOT__"
-            template "ICallable"                    "Microsoft__Quantum__Testing__Hold"
-            template "Release"                      "Release__"
-            template "ICallable<Result, String>"    "ResultToString__"
-            template "IUnitary<Qubit>"              "X__"
-            template "IUnitary"                     "genIter__"
-            template "ICallable"                    "genMapper__"
-            template "IUnitary"                     "genU1__"
-            template "IUnitary"                     "Microsoft__Quantum__Testing__noOpGeneric"
-            template "IUnitary<Result>"             "Microsoft__Quantum__Testing__noOpResult"
+            template "Allocate" "Allocate__"
+            template "IAdjointable<(Qubit,Qubit)>" "CNOT__"
+            template "ICallable" "Microsoft__Quantum__Testing__Hold"
+            template "Release" "Release__"
+            template "ICallable<Result, String>" "ResultToString__"
+            template "IUnitary<Qubit>" "X__"
+            template "IUnitary" "genIter__"
+            template "ICallable" "genMapper__"
+            template "IUnitary" "genU1__"
+            template "IUnitary" "Microsoft__Quantum__Testing__noOpGeneric"
+            template "IUnitary<Result>" "Microsoft__Quantum__Testing__noOpResult"
         ]
         |> testOne usesGenerics
 
-        [
-            template "ICallable"                    "genericWithMultipleTypeParams__"
-        ]
+        [ template "ICallable" "genericWithMultipleTypeParams__" ]
         |> testOne callsGenericWithMultipleTypeParams
 
-        [
-            template "IUnitary<Qubit>"              "Z__"
-            template "IAdjointable<Qubit>"          "self"
-        ]
+        [ template "IUnitary<Qubit>" "Z__"; template "IAdjointable<Qubit>" "self" ]
         |> testOne selfInvokingOperation
 
-        [
-            template "ICallable"                    "self"
-        ]
-        |> testOne genRecursion
+        [ template "ICallable" "self" ] |> testOne genRecursion
 
     [<Fact>]
     let ``buildOperationInfoProperty test`` () =
         let testOne (_, op) expectedCodeString =
-            let context = {createTestContext op with entryPoints = ImmutableArray.Create op.FullName}
+            let context = { createTestContext op with entryPoints = ImmutableArray.Create op.FullName }
             let (_, operationName) = findClassName op
-            let inType   = op.Signature.ArgumentType |> roslynTypeName context
-            let outType  = op.Signature.ReturnType   |> roslynTypeName context
-            let codeString =
-                buildOperationInfoProperty context inType outType operationName
-                |> formatSyntaxTree
+            let inType = op.Signature.ArgumentType |> roslynTypeName context
+            let outType = op.Signature.ReturnType |> roslynTypeName context
+            let codeString = buildOperationInfoProperty context inType outType operationName |> formatSyntaxTree
             Assert.Equal(expectedCodeString |> clearFormatting, codeString |> clearFormatting)
 
         let template inType outType operationName =
-            sprintf @"public static EntryPointInfo<%s, %s> Info => new EntryPointInfo<%s, %s>(typeof(%s));" inType outType inType outType operationName
+            sprintf
+                @"public static EntryPointInfo<%s, %s> Info => new EntryPointInfo<%s, %s>(typeof(%s));"
+                inType
+                outType
+                inType
+                outType
+                operationName
 
-        template "QVoid" "QVoid" "emptyOperation"
-        |> testOne emptyOperation
+        template "QVoid" "QVoid" "emptyOperation" |> testOne emptyOperation
 
-        template "Qubit" "QVoid" "oneQubitAbstractOperation"
-        |> testOne oneQubitAbstractOperation
+        template "Qubit" "QVoid" "oneQubitAbstractOperation" |> testOne oneQubitAbstractOperation
 
-        template "Qubit" "QVoid" "oneQubitOperation"
-        |> testOne oneQubitOperation
+        template "Qubit" "QVoid" "oneQubitOperation" |> testOne oneQubitOperation
 
-        template "(Qubit,(Qubit,Double))" "QVoid" "twoQubitOperation"
-        |> testOne twoQubitOperation
+        template "(Qubit,(Qubit,Double))" "QVoid" "twoQubitOperation" |> testOne twoQubitOperation
 
-        template "(Qubit,Qubit,Qubits)" "QVoid" "threeQubitOperation"
-        |> testOne threeQubitOperation
+        template "(Qubit,Qubit,Qubits)" "QVoid" "threeQubitOperation" |> testOne threeQubitOperation
 
         template "(Qubit,Qubit,IQArray<Qubit>)" "QVoid" "differentArgsOperation"
         |> testOne differentArgsOperation
 
-        template "Int64" "Int64" "helloWorld"
-        |> testOne helloWorld
+        template "Int64" "Int64" "helloWorld" |> testOne helloWorld
 
-        template "(Qubit,ICallable,ICallable,IAdjointable,(IControllable,IUnitary),ICallable)" "ICallable" "opParametersTest"
+        template
+            "(Qubit,ICallable,ICallable,IAdjointable,(IControllable,IUnitary),ICallable)"
+            "ICallable"
+            "opParametersTest"
         |> testOne opParametersTest
 
-        template "QVoid" "QVoid" "emptyFunction"
-        |> testOne emptyFunction
+        template "QVoid" "QVoid" "emptyFunction" |> testOne emptyFunction
 
     let findBody op =
-        let isBody (sp:QsSpecialization) = match sp.Kind with | QsBody -> true | _ -> false
+        let isBody (sp: QsSpecialization) =
+            match sp.Kind with
+            | QsBody -> true
+            | _ -> false
+
         (op.Specializations |> Seq.find isBody)
 
     let findAdjoint op =
-        let isAdjoint (sp:QsSpecialization) = match sp.Kind with | QsAdjoint -> true | _ -> false
+        let isAdjoint (sp: QsSpecialization) =
+            match sp.Kind with
+            | QsAdjoint -> true
+            | _ -> false
+
         (op.Specializations |> Seq.find isAdjoint)
 
     let findControlled op =
-        let isControlled (sp:QsSpecialization) = match sp.Kind with | QsControlled -> true | _ -> false
+        let isControlled (sp: QsSpecialization) =
+            match sp.Kind with
+            | QsControlled -> true
+            | _ -> false
+
         (op.Specializations |> Seq.find isControlled)
 
     let findControlledAdjoint op =
-        let isControlledAdjoint (sp:QsSpecialization) = match sp.Kind with | QsControlledAdjoint -> true | _ -> false
+        let isControlledAdjoint (sp: QsSpecialization) =
+            match sp.Kind with
+            | QsControlledAdjoint -> true
+            | _ -> false
+
         (op.Specializations |> Seq.find isControlledAdjoint)
 
-    let createVisitor (_,op) (sp:QsSpecialization) =
+    let createVisitor (_, op) (sp: QsSpecialization) =
         let context = createTestContext op
         let builder = new SyntaxBuilder(context)
         builder.Namespaces.OnSpecializationDeclaration sp |> ignore
         builder
 
-    let applyVisitor (ns,op) =
-        createVisitor (ns,op) (findBody op)
+    let applyVisitor (ns, op) = createVisitor (ns, op) (findBody op)
 
-    let adjointVisitor (ns,op) =
-        createVisitor (ns,op) (findAdjoint op)
+    let adjointVisitor (ns, op) = createVisitor (ns, op) (findAdjoint op)
 
-    let controlledVisitor (ns,op) =
-        createVisitor (ns,op) (findControlled op)
+    let controlledVisitor (ns, op) =
+        createVisitor (ns, op) (findControlled op)
 
 
     [<Fact>]
     let ``basic body builder`` () =
         let testOne = testOneBody
 
-        [
-        ]
-        |> testOne (applyVisitor zeroQubitOperation)
+        [] |> testOne (applyVisitor zeroQubitOperation)
 
-        [
-            "X__.Apply(q1);"
-        ]
-        |> testOne (applyVisitor oneQubitOperation)
+        [ "X__.Apply(q1);" ] |> testOne (applyVisitor oneQubitOperation)
 
-        [
-            "X__.Adjoint.Apply(q1);"
-        ]
-        |> testOne (adjointVisitor oneQubitOperation)
+        [ "X__.Adjoint.Apply(q1);" ] |> testOne (adjointVisitor oneQubitOperation)
 
         [
             "var (q2, r) = t1;        "
@@ -1160,6 +1042,7 @@ namespace N1
             "R__.Apply((r,q1));           "
         ]
         |> testOne (applyVisitor twoQubitOperation)
+
         [
             "var (q2, r) = t1;        "
             "R__.Adjoint.Apply((r,q1));"
@@ -1174,11 +1057,7 @@ namespace N1
         ]
         |> testOne (applyVisitor threeQubitOperation)
 
-        [
-            "Z__.Adjoint.Apply(q1);"
-            "self.Apply(q1);"
-        ]
-        |> testOne (adjointVisitor selfInvokingOperation)
+        [ "Z__.Adjoint.Apply(q1);"; "self.Apply(q1);" ] |> testOne (adjointVisitor selfInvokingOperation)
 
     [<Fact>]
     let ``recursive functions body`` () =
@@ -1216,24 +1095,15 @@ namespace N1
     let ``generic functions body`` () =
         let testOne = testOneBody
 
-        [
-            "X__.Apply(q1);"
-        ]
-        |> testOne (applyVisitor oneQubitOperation)
+        [ "X__.Apply(q1);" ] |> testOne (applyVisitor oneQubitOperation)
 
     [<Fact>]
     let ``composed generic  body`` () =
         let testOne = testOneBody
 
-        [
-            "second.Apply(first.Apply<__A__>(arg));"
-        ]
-        |> testOne (applyVisitor composeImpl)
+        [ "second.Apply(first.Apply<__A__>(arg));" ] |> testOne (applyVisitor composeImpl)
 
-        [
-            "return composeImpl__.Partial((second, first, _));"
-        ]
-        |> testOne (applyVisitor compose)
+        [ "return composeImpl__.Partial((second, first, _));" ] |> testOne (applyVisitor compose)
 
 
     [<Fact>]
@@ -1372,11 +1242,7 @@ namespace N1
 
     [<Fact>]
     let ``helloWorld body`` () =
-        [
-            "var r = (n + 1L);"
-            "return r;"
-        ]
-        |> testOneBody (applyVisitor helloWorld)
+        [ "var r = (n + 1L);"; "return r;" ] |> testOneBody (applyVisitor helloWorld)
 
     [<Fact>]
     let ``if operations`` () =
@@ -1477,34 +1343,17 @@ namespace N1
 
     [<Fact>]
     let ``udt return values`` () =
-        [
-            "return QVoid.Instance;"
-        ]
-        |> testOneBody (applyVisitor returnTest1)
+        [ "return QVoid.Instance;" ] |> testOneBody (applyVisitor returnTest1)
 
-        [
-            "return 5L;"
-        ]
-        |> testOneBody (applyVisitor returnTest2)
+        [ "return 5L;" ] |> testOneBody (applyVisitor returnTest2)
 
-        [
-            "return (5L, 6L);"
-        ]
-        |> testOneBody (applyVisitor returnTest3)
+        [ "return (5L, 6L);" ] |> testOneBody (applyVisitor returnTest3)
 
-        [
-            "return new returnUdt0((7L, 8L));"
-        ]
-        |> testOneBody (applyVisitor returnTest4)
+        [ "return new returnUdt0((7L, 8L));" ] |> testOneBody (applyVisitor returnTest4)
 
-        [
-            "return new QArray<Int64>(9L, 10L);"
-        ]
-        |> testOneBody (applyVisitor returnTest5)
+        [ "return new QArray<Int64>(9L, 10L);" ] |> testOneBody (applyVisitor returnTest5)
 
-        [
-            "return new returnUdt1( new QArray<(Int64,Int64)>((1L, 2L), (3L, 4L)));"
-        ]
+        [ "return new returnUdt1( new QArray<(Int64,Int64)>((1L, 2L), (3L, 4L)));" ]
         |> testOneBody (applyVisitor returnTest6)
 
         [
@@ -1522,9 +1371,7 @@ namespace N1
         ]
         |> testOneBody (applyVisitor returnTest9)
 
-        [
-            "return new Microsoft.Quantum.Overrides.udt0((Result.Zero, Result.One));"
-        ]
+        [ "return new Microsoft.Quantum.Overrides.udt0((Result.Zero, Result.One));" ]
         |> testOneBody (applyVisitor returnTest10)
 
     [<Fact>]
@@ -1761,28 +1608,25 @@ namespace N1
         ]
         |> testOneBody (applyVisitor compareOps)
 
-    let testOneSpecialization pick (_,op) expected =
+    let testOneSpecialization pick (_, op) expected =
         let context = createTestContext op
-        let actual  = op |> pick |> buildSpecialization context op |> Option.map (fst >> formatSyntaxTree)
+        let actual = op |> pick |> buildSpecialization context op |> Option.map (fst >> formatSyntaxTree)
         Assert.Equal(expected |> Option.map clearFormatting, actual |> Option.map clearFormatting)
 
     [<Fact>]
     let ``buildSpecialization - apply`` () =
         let testOne = testOneSpecialization findBody
 
-        None
-        |> testOne emptyOperation
+        None |> testOne emptyOperation
 
-        None
-        |> testOne oneQubitAbstractOperation
+        None |> testOne oneQubitAbstractOperation
 
-        None
-        |> testOne oneQubitSelfAdjointAbstractOperation
+        None |> testOne oneQubitSelfAdjointAbstractOperation
 
-        None
-        |> testOne randomAbstractOperation
+        None |> testOne randomAbstractOperation
 
-        Some """
+        Some
+            """
         public override Func<QVoid,QVoid> __Body__ => (__in__) =>
         {
             #line hidden
@@ -1790,7 +1634,8 @@ namespace N1
         };"""
         |> testOne zeroQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<Qubit,QVoid> __Body__ => (__in__) =>
         {
             var q1 = __in__;
@@ -1802,7 +1647,8 @@ namespace N1
         """
         |> testOne oneQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<(Qubit,(Qubit,Double)), QVoid> __Body__ => (__in__) =>
         {
             var (q1,t1) = __in__;
@@ -1819,7 +1665,8 @@ namespace N1
         |> testOne twoQubitOperation
 
 
-        Some """
+        Some
+            """
         public override Func<(Qubit,Qubit,IQArray<Qubit>), QVoid> __Body__ => (__in__) =>
         {
             var (q1,q2,arr1) = __in__;
@@ -1839,14 +1686,17 @@ namespace N1
     let ``operation/function types`` () =
         let testOne = testOneSpecialization findBody
 
-        let ret = "ICallable";
-        let op0 = "ICallable";
-        let op1 = "ICallable";
-        let op2 = "IAdjointable";
-        let op3 = "IControllable";
-        let op4 = "IUnitary";
-        let f1  = "ICallable"
-        Some (sprintf """
+        let ret = "ICallable"
+        let op0 = "ICallable"
+        let op1 = "ICallable"
+        let op2 = "IAdjointable"
+        let op3 = "IControllable"
+        let op4 = "IUnitary"
+        let f1 = "ICallable"
+
+        Some(
+            sprintf
+                """
         public override Func<(Qubit, %s, %s, %s, (%s, %s), %s), %s> __Body__  => (__in__) =>
                 {
                     var (q1, op0, op1, op2, t1, f1) = __in__;
@@ -1857,7 +1707,15 @@ namespace N1
                     op3.Apply((new QArray<Qubit>(q1), (q1, q1)));
 
                     return op2.Partial(new Func<Qubit, (Qubit,Qubit)>((__arg1__) => (q1, __arg1__)));
-        };"""  op0 op1 op2 op3 op4 f1 ret)
+        };"""
+                op0
+                op1
+                op2
+                op3
+                op4
+                f1
+                ret
+        )
         |> testOne opParametersTest
 
     [<Fact>]
@@ -1922,70 +1780,46 @@ namespace N1
 
     [<Fact>]
     let ``range operations`` () =
-        [
-            "return ((r.Start + r.End) + r.Step);"
-        ]
-        |> testOneBody (applyVisitor rangeOperations)
+        [ "return ((r.Start + r.End) + r.Step);" ] |> testOneBody (applyVisitor rangeOperations)
 
     [<Fact>]
     let ``generic parameter types`` () =
-        let testOne (ns,op : QsCallable) (expected: string list) =
-            let actual =
-                op.Signature
-                |> typeParametersNames
+        let testOne (ns, op: QsCallable) (expected: string list) =
+            let actual = op.Signature |> typeParametersNames
+
             List.zip (expected |> List.map clearFormatting) (actual |> List.map clearFormatting)
             |> List.iter Assert.Equal
 
-        []
-        |> testOne emptyOperation
+        [] |> testOne emptyOperation
 
-        []
-        |> testOne oneQubitAbstractOperation
+        [] |> testOne oneQubitAbstractOperation
 
-        []
-        |> testOne randomAbstractOperation
+        [] |> testOne randomAbstractOperation
 
-        [
-            "__T__"
-        ]
-        |> testOne genC1
+        [ "__T__" ] |> testOne genC1
 
-        [
-            "__T__"
-            "__U__"
-        ]
-        |> testOne genC2
+        [ "__T__"; "__U__" ] |> testOne genC2
 
-        [
-            "__X__"
-            "__Y__"
-            "__Z__"
-        ]
-        |> testOne genCtrl3
+        [ "__X__"; "__Y__"; "__Z__" ] |> testOne genCtrl3
 
-        [
-            "__T__"
-            "__U__"
-        ]
-        |> testOne genMapper
+        [ "__T__"; "__U__" ] |> testOne genMapper
 
     [<Fact>]
     let ``buildSpecialization - adjoint`` () =
         let testOne = testOneSpecialization findAdjoint
 
-        None
-        |> testOne oneQubitAbstractOperation
+        None |> testOne oneQubitAbstractOperation
 
         Some "public override Func<Qubit, QVoid> __AdjointBody__ => __Body__;"
         |> testOne oneQubitSelfAdjointAbstractOperation
 
-        None
-        |> testOne randomAbstractOperation
+        None |> testOne randomAbstractOperation
 
         Some "public override Func<Qubit, QVoid> __AdjointBody__ => __Body__;"
         |> testOne oneQubitSelfAdjointOperation
 
-        Some """
+        Some
+            """
         public override Func<QVoid, QVoid> __AdjointBody__ => (__in__) =>
         {
             #line hidden
@@ -1993,7 +1827,8 @@ namespace N1
         };"""
         |> testOne zeroQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<Qubit, QVoid> __AdjointBody__ => (__in__) =>
         {
             var q1 = __in__;
@@ -2004,7 +1839,8 @@ namespace N1
         };"""
         |> testOne oneQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<(Qubit,(Qubit,Double)), QVoid> __AdjointBody__ => (__in__) =>
         {
             var (q1,t1) = __in__;
@@ -2019,7 +1855,8 @@ namespace N1
         };"""
         |> testOne twoQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<(Qubit,Qubit,Qubits), QVoid> __AdjointBody__ => (__in__) =>
         {
             var (q1,q2,arr1) = __in__;
@@ -2032,23 +1869,20 @@ namespace N1
         |> testOne threeQubitOperation
 
 
-        Some "public override Func<__T__, QVoid> __AdjointBody__ => __Body__;"
-        |> testOne genAdj1
+        Some "public override Func<__T__, QVoid> __AdjointBody__ => __Body__;" |> testOne genAdj1
 
     [<Fact>]
     let ``buildSpecialization - controlled`` () =
         let testOne = testOneSpecialization findControlled
 
-        None
-        |> testOne oneQubitAbstractOperation
+        None |> testOne oneQubitAbstractOperation
 
-        None
-        |> testOne oneQubitSelfAdjointAbstractOperation
+        None |> testOne oneQubitSelfAdjointAbstractOperation
 
-        None
-        |> testOne randomAbstractOperation
+        None |> testOne randomAbstractOperation
 
-        Some """
+        Some
+            """
         public override Func<(IQArray<Qubit>,QVoid), QVoid> __ControlledBody__ => (__in__) =>
         {
             var (__controlQubits__, __unitArg__) = __in__;
@@ -2058,7 +1892,8 @@ namespace N1
         };"""
         |> testOne zeroQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<(IQArray<Qubit>,Qubit), QVoid> __ControlledBody__ => (__in__) =>
         {
             var (c, q1) = __in__;
@@ -2070,7 +1905,8 @@ namespace N1
         };"""
         |> testOne oneQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<(IQArray<Qubit>,(Qubit,Qubit,Qubits)), QVoid> __ControlledBody__ => (__in__) =>
         {
             var (c, (q1, q2, arr1)) = __in__;
@@ -2088,16 +1924,15 @@ namespace N1
     let ``buildSpecialization - controlled-adjoint`` () =
         let testOne = testOneSpecialization findControlledAdjoint
 
-        None
-        |> testOne oneQubitAbstractOperation
+        None |> testOne oneQubitAbstractOperation
 
         Some "public override Func<(IQArray<Qubit>,Qubit), QVoid> __ControlledAdjointBody__ => __ControlledBody__;"
         |> testOne oneQubitSelfAdjointAbstractOperation
 
-        None
-        |> testOne randomAbstractOperation
+        None |> testOne randomAbstractOperation
 
-        Some """
+        Some
+            """
         public override Func<(IQArray<Qubit>,QVoid), QVoid> __ControlledAdjointBody__ => (__in__) =>
         {
             var (__controlQubits__, __unitArg__) = __in__;
@@ -2107,7 +1942,8 @@ namespace N1
         };"""
         |> testOne zeroQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<(IQArray<Qubit>, Qubit), QVoid> __ControlledAdjointBody__ => (__in__) =>
         {
             var (c,q1) = __in__;
@@ -2118,7 +1954,8 @@ namespace N1
 
         |> testOne oneQubitOperation
 
-        Some """
+        Some
+            """
         public override Func<(IQArray<Qubit>,(Qubit,Qubit,Qubits)), QVoid> __ControlledAdjointBody__ => (__in__) =>
         {
             var (c,(q1,q2,arr1)) = __in__;
@@ -2299,10 +2136,14 @@ namespace N1
 
     [<Fact>]
     let ``buildRun test`` () =
-        let testOne (_,op) expected =
+        let testOne (_, op) expected =
             let context = createTestContext op
             let _, nonGenericName = findClassName op
-            let actual = buildRun context nonGenericName op.ArgumentTuple op.Signature.ArgumentType op.Signature.ReturnType |> formatSyntaxTree
+
+            let actual =
+                buildRun context nonGenericName op.ArgumentTuple op.Signature.ArgumentType op.Signature.ReturnType
+                |> formatSyntaxTree
+
             Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
 
         "public static System.Threading.Tasks.Task<QVoid> Run(IOperationFactory __m__)
@@ -2383,14 +2224,14 @@ namespace N1
 
     [<Fact>]
     let ``is abstract`` () =
-        let testOne (_,op) expected =
+        let testOne (_, op) expected =
             let actual = op |> isIntrinsic
             Assert.Equal(expected, actual)
 
-        true  |> testOne emptyOperation
-        true  |> testOne oneQubitAbstractOperation
-        true  |> testOne oneQubitSelfAdjointAbstractOperation
-        true  |> testOne randomAbstractOperation
+        true |> testOne emptyOperation
+        true |> testOne oneQubitAbstractOperation
+        true |> testOne oneQubitSelfAdjointAbstractOperation
+        true |> testOne randomAbstractOperation
         false |> testOne zeroQubitOperation
         false |> testOne oneQubitSelfAdjointOperation
         false |> testOne oneQubitOperation
@@ -2399,14 +2240,16 @@ namespace N1
         false |> testOne differentArgsOperation
         false |> testOne randomOperation
 
-    let testOneClass (_,op : QsCallable) executionTarget (expected : string) =
+    let testOneClass (_, op: QsCallable) executionTarget (expected: string) =
         let expected = expected.Replace("%%%", HttpUtility.JavaScriptStringEncode op.SourceFile)
+
         let assemblyConstants =
-            new Collections.Generic.KeyValuePair<_,_> (AssemblyConstants.ProcessorArchitecture, executionTarget)
+            new Collections.Generic.KeyValuePair<_, _>(AssemblyConstants.ProcessorArchitecture, executionTarget)
             |> Seq.singleton
             |> ImmutableDictionary.CreateRange
-        let compilation = {Namespaces = syntaxTree; EntryPoints = ImmutableArray.Create op.FullName}
-        let context = CodegenContext.Create (compilation, assemblyConstants)
+
+        let compilation = { Namespaces = syntaxTree; EntryPoints = ImmutableArray.Create op.FullName }
+        let context = CodegenContext.Create(compilation, assemblyConstants)
         let actual = (buildOperationClass context op).ToFullString()
         Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
 
@@ -2776,28 +2619,27 @@ internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallab
 
         let expected =
             [
-                template "Allocate"                "Allocate__"
-                template "IUnitary<Qubit>"         "Microsoft__Quantum__Intrinsic__H"
+                template "Allocate" "Allocate__"
+                template "IUnitary<Qubit>" "Microsoft__Quantum__Intrinsic__H"
                 template "ICallable<Qubit, QVoid>" "H__"
-                template "Release"                 "Release__"
+                template "Release" "Release__"
                 template "ICallable<QVoid, QVoid>" "Microsoft__Quantum__Overrides__emptyFunction"
                 template "ICallable<QVoid, QVoid>" "emptyFunction__"
             ]
 
-        let (_,op) = duplicatedDefinitionsCaller
+        let (_, op) = duplicatedDefinitionsCaller
         let context = createTestContext op
-        let actual =
-            op
-            |> operationDependencies
-            |> depsByName
-            |> buildOpsProperties context
-            |> List.map formatSyntaxTree
 
-        List.zip (expected |> List.map clearFormatting) (actual  |> List.map clearFormatting) |> List.iter Assert.Equal
+        let actual =
+            op |> operationDependencies |> depsByName |> buildOpsProperties context |> List.map formatSyntaxTree
+
+        List.zip (expected |> List.map clearFormatting) (actual |> List.map clearFormatting)
+        |> List.iter Assert.Equal
 
     [<Fact>]
     let ``buildOpsProperties - internal callables`` () =
         let property = sprintf "private protected %s %s__ { get; set; }"
+
         let expected =
             [
                 property "ICallable<QVoid, QVoid>" "EmptyInternalFunction"
@@ -2805,13 +2647,16 @@ internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallab
                 property "ICallable<QVoid, InternalType>" "InternalType"
                 property "ICallable<QVoid, InternalType>" "MakeInternalType"
             ]
+
         let op = snd useInternalCallables
+
         let actual =
             op
             |> operationDependencies
             |> depsByName
             |> buildOpsProperties (createTestContext op)
             |> List.map formatSyntaxTree
+
         List.zip (List.map clearFormatting expected) (List.map clearFormatting actual)
         |> List.iter Assert.Equal
 
@@ -2980,9 +2825,9 @@ internal partial class EmptyInternalOperation : Operation<QVoid, QVoid>, ICallab
         |> testOneClass bigPowFunction null
 
 
-    let private testOneUdt (_,udt) expected =
+    let private testOneUdt (_, udt) expected =
         let context = CodegenContext.Create syntaxTree
-        let actual  = (buildUdtClass context udt).ToFullString()
+        let actual = (buildUdtClass context udt).ToFullString()
         Assert.Equal(expected |> clearFormatting, actual |> clearFormatting)
 
     [<Fact>]
@@ -3370,7 +3215,7 @@ namespace Microsoft.Quantum
         }
     }
 }"""
-        |> testOneFile (Path.Combine("Circuits","EmptyElements.qs"))
+        |> testOneFile (Path.Combine("Circuits", "EmptyElements.qs"))
 
     [<Fact>]
     let ``one file - UserDefinedTypes`` () =
@@ -3451,16 +3296,20 @@ namespace Microsoft.Quantum
     }
 }
         """
-        |> testOneFile (Path.Combine("Circuits","Types.qs"))
+        |> testOneFile (Path.Combine("Circuits", "Types.qs"))
 
     [<Fact>]
     let ``find local elements `` () =
-        let oneName = function | QsCustomType udt -> udt.FullName.Name | QsCallable  op -> op.FullName.Name
-        let expected = [ "H"; "M"; "Qubits"; "Qubits"; "R"; "S"; "X"; "Z"; ]     // Qubits is two times: one for UDT and one for constructor.
-        let local    = syntaxTree |> findLocalElements Some (Path.GetFullPath (Path.Combine("Circuits","Intrinsic.qs")))
+        let oneName =
+            function
+            | QsCustomType udt -> udt.FullName.Name
+            | QsCallable op -> op.FullName.Name
+
+        let expected = [ "H"; "M"; "Qubits"; "Qubits"; "R"; "S"; "X"; "Z" ] // Qubits is two times: one for UDT and one for constructor.
+        let local = syntaxTree |> findLocalElements Some (Path.GetFullPath(Path.Combine("Circuits", "Intrinsic.qs")))
         Assert.Equal(1, local.Length)
         Assert.Equal("Microsoft.Quantum.Intrinsic", (fst local.[0]))
-        let actual   = (snd local.[0]) |> List.map oneName |> List.sort
+        let actual = (snd local.[0]) |> List.map oneName |> List.sort
         List.zip expected actual |> List.iter Assert.Equal
 
     [<Fact>]
@@ -3518,8 +3367,7 @@ namespace Microsoft.Quantum.Tests.Inline
         }
     }
 }"""
-        |>
-        testOneFile (Path.Combine("Circuits","HelloWorld.qs"))
+        |> testOneFile (Path.Combine("Circuits", "HelloWorld.qs"))
 
 
     [<Fact>]
@@ -3643,8 +3491,7 @@ namespace Microsoft.Quantum.Tests.LineNumbers
         }
     }
 }"""
-        |>
-        testOneFile (Path.Combine("Circuits","LineNumbers.qs"))
+        |> testOneFile (Path.Combine("Circuits", "LineNumbers.qs"))
 
 
     [<Fact>]
@@ -3904,5 +3751,4 @@ namespace Microsoft.Quantum.Tests.UnitTests
     }
 }
 """
-        |>
-        testOneFile (Path.Combine("Circuits","UnitTests.qs"))
+        |> testOneFile (Path.Combine("Circuits", "UnitTests.qs"))
