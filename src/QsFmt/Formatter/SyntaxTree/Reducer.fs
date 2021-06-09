@@ -34,10 +34,16 @@ type internal 'result Reducer() as reducer =
         | CallableDeclaration callable -> reducer.CallableDeclaration callable
         | Unknown terminal -> reducer.Terminal terminal
 
+    abstract Attribute : attribute: Attribute -> 'result
+
+    default _.Attribute attribute =
+        [ reducer.Terminal attribute.At; reducer.Expression attribute.Expression ] |> reduce
+
     abstract CallableDeclaration : callable: CallableDeclaration -> 'result
 
     default _.CallableDeclaration callable =
-        [
+        (callable.Attributes |> List.map reducer.Attribute)
+        @ [
             reducer.Terminal callable.CallableKeyword
             reducer.Terminal callable.Name
             reducer.SymbolBinding callable.Parameters

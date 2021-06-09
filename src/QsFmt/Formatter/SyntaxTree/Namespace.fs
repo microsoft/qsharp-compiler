@@ -3,8 +3,11 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
+type Attribute = { At: Terminal; Expression: Expression }
+
 type CallableDeclaration =
     {
+        Attributes: Attribute list
         CallableKeyword: Terminal
         Name: Terminal
         Parameters: SymbolBinding

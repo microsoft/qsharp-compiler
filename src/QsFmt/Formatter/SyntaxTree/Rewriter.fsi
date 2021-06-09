@@ -32,6 +32,12 @@ type internal 'context Rewriter =
     default NamespaceItem: context:'context * item:NamespaceItem -> NamespaceItem
 
     /// <summary>
+    /// Rewrites an <see cref="Attribute"/> node.
+    /// </summary>
+    abstract Attribute: context:'context * attribute:Attribute -> Attribute
+    default Attribute: context:'context * attribute:Attribute -> Attribute
+
+    /// <summary>
     /// Rewrites a <see cref="CallableDeclaration"/> node.
     /// </summary>
     abstract CallableDeclaration: context:'context * callable:CallableDeclaration -> CallableDeclaration

@@ -56,7 +56,7 @@ let ``Function with two parameters`` = """namespace Foo {
     }
 }"""
 
-[<FixedPoint(Skip = "Not supported.")>]
+[<FixedPoint>]
 let ``Entry point and using statement`` = """namespace Microsoft.Quantum.Foo {
     @EntryPoint()
     operation RunProgram (nQubits : Int) : Unit {
@@ -74,7 +74,7 @@ let ``Open directives and operation`` = """namespace Foo {
     operation Spam () : Unit {}
 }"""
 
-[<FixedPoint(Skip = "Not supported.")>]
+[<FixedPoint>]
 let ``Open directive and entry point`` = """namespace Foo {
     open Test;
 

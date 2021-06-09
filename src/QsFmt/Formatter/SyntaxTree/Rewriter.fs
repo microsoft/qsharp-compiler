@@ -30,10 +30,19 @@ type 'context Rewriter() =
         | CallableDeclaration callable -> rewriter.CallableDeclaration(context, callable) |> CallableDeclaration
         | Unknown terminal -> rewriter.Terminal(context, terminal) |> Unknown
 
+    abstract Attribute : context: 'context * attribute: Attribute -> Attribute
+
+    default rewriter.Attribute(context, attribute) =
+        {
+            At = rewriter.Terminal(context, attribute.At)
+            Expression = rewriter.Expression(context, attribute.Expression)
+        }
+
     abstract CallableDeclaration : context: 'context * callable: CallableDeclaration -> CallableDeclaration
 
     default rewriter.CallableDeclaration(context, callable) =
         {
+            Attributes = callable.Attributes |> List.map (curry rewriter.Attribute context)
             CallableKeyword = rewriter.Terminal(context, callable.CallableKeyword)
             Name = rewriter.Terminal(context, callable.Name)
             Parameters = rewriter.SymbolBinding(context, callable.Parameters)

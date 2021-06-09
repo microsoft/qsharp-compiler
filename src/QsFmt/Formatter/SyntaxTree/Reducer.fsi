@@ -36,6 +36,12 @@ type internal 'result Reducer =
     default NamespaceItem: item:NamespaceItem -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="Attribute"/> node.
+    /// </summary>
+    abstract Attribute: attribute:Attribute -> 'result
+    default Attribute: attribute:Attribute -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="CallableDeclaration"/> node.
     /// </summary>
     abstract CallableDeclaration: callable:CallableDeclaration -> 'result

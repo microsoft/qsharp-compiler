@@ -3,10 +3,23 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
+/// An attribute.
+type internal Attribute =
+    {
+        /// The at symbol prefix.
+        At: Terminal
+
+        /// The attribute expression.
+        Expression: Expression
+    }
+
 /// A callable declaration.
-// TODO: Add attributes, type parameters, and specialization generators.
+// TODO: Add type parameters, and specialization generators.
 type internal CallableDeclaration =
     {
+        /// The attributes attached to the callable.
+        Attributes: Attribute list
+
         /// <summary>
         /// The declaration keyword (either <c>function</c> or <c>operation</c>).
         /// </summary>

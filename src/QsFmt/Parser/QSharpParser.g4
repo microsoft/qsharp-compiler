@@ -32,11 +32,11 @@ openDirective : 'open' qualifiedName ('as' qualifiedName)? ';';
 
 // Declaration
 
-attribute : '@' expression;
+attribute : at='@' expr=expression;
 
 access : 'internal';
 
-declarationPrefix : attribute* access?;
+declarationPrefix : attributes+=attribute* access?;
 
 // Type Declaration
 
@@ -59,7 +59,7 @@ namedItem : name=Identifier colon=':' itemType=type;
 // Callable Declaration
 
 callableDeclaration
-    : declarationPrefix keyword=('function' | 'operation')
+    : prefix=declarationPrefix keyword=('function' | 'operation')
       name=Identifier typeParameterBinding? tuple=parameterTuple
       colon=':' returnType=type characteristics?
       body=callableBody
