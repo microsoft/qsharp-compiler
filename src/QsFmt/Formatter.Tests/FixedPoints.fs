@@ -141,3 +141,34 @@ let ``Declare 3 type parameters`` = """namespace Foo {
     function Bar<'a, 'b, 'c>() : Unit {}
 }
 """
+
+[<FixedPoint>]
+let ``Intrinsic body specialization`` = """namespace Foo {
+    function Bar() : Unit {
+        body intrinsic;
+    }
+}
+"""
+
+[<FixedPoint>]
+let ``Intrinsic body and controlled specializations`` = """namespace Foo {
+    function Bar() : Unit {
+        body intrinsic;
+        controlled intrinsic;
+    }
+}
+"""
+
+[<FixedPoint>]
+let ``Explicit body and controlled specializations`` = """namespace Foo {
+    function Bar() : Unit {
+        body (...) {
+            Message("body");
+        }
+
+        controlled (cs, ...) {
+            Message("controlled");
+        }
+    }
+}
+"""
