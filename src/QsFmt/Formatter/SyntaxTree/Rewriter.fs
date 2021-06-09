@@ -56,8 +56,7 @@ type 'context Rewriter() =
     default rewriter.TypeParameterBinding(context, binding) =
         {
             OpenBracket = rewriter.Terminal(context, binding.OpenBracket)
-            Parameters =
-                binding.Parameters |> List.map (fun item -> rewriter.SequenceItem(context, rewriter.Terminal, item))
+            Parameters = binding.Parameters |> List.map (curry3 rewriter.SequenceItem context rewriter.Terminal)
             CloseBracket = rewriter.Terminal(context, binding.CloseBracket)
         }
 
@@ -223,7 +222,7 @@ type 'context Rewriter() =
     default rewriter.Tuple(context, mapper, tuple) =
         {
             OpenParen = rewriter.Terminal(context, tuple.OpenParen)
-            Items = tuple.Items |> List.map (fun item -> rewriter.SequenceItem(context, mapper, item))
+            Items = tuple.Items |> List.map (curry3 rewriter.SequenceItem context mapper)
             CloseParen = rewriter.Terminal(context, tuple.CloseParen)
         }
 
