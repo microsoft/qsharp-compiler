@@ -7,6 +7,13 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
+choco install llvm --version=11.1.0
+if (!(Get-Command clang -ErrorAction SilentlyContinue) -and (choco find --idonly -l llvm) -contains "llvm") {
+    # For some reason, adding to the path does not work on our build servers, even after calling refreshenv.
+    # LLVM was installed by Chocolatey, so add the install location to the path.
+    $env:PATH += ";$($env:SystemDrive)\Program Files\LLVM\bin"
+}
+
 ##
 # Q# compiler and Sdk tools
 ##
