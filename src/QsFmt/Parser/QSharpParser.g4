@@ -60,12 +60,13 @@ namedItem : name=Identifier colon=':' itemType=type;
 
 callableDeclaration
     : prefix=declarationPrefix keyword=('function' | 'operation')
-      name=Identifier typeParameterBinding? tuple=parameterTuple
+      name=Identifier typeParameters=typeParameterBinding? tuple=parameterTuple
       colon=':' returnType=type characteristics?
       body=callableBody
     ;
 
-typeParameterBinding : '<' (TypeParameter (',' TypeParameter)*)? '>';
+typeParameterBinding
+    : openBracket='<' (parameters+=TypeParameter (commas+=',' parameters+=TypeParameter)*)? closeBracket='>';
 
 parameterTuple : openParen='(' (parameters+=parameter (commas+=',' parameters+=parameter)*)? closeParen=')';
 

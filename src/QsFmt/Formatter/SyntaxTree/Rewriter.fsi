@@ -44,6 +44,12 @@ type internal 'context Rewriter =
     default CallableDeclaration: context:'context * callable:CallableDeclaration -> CallableDeclaration
 
     /// <summary>
+    /// Rewrites a <see cref="TypeParameterBinding"/> node.
+    /// </summary>
+    abstract TypeParameterBinding: context:'context * binding:TypeParameterBinding -> TypeParameterBinding
+    default TypeParameterBinding: context:'context * binding:TypeParameterBinding -> TypeParameterBinding
+
+    /// <summary>
     /// Rewrites a <see cref="Type"/> node.
     /// </summary>
     abstract Type: context:'context * typ:Type -> Type

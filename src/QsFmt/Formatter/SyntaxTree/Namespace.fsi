@@ -13,8 +13,21 @@ type internal Attribute =
         Expression: Expression
     }
 
+/// A type parameter binding sequence.
+type internal TypeParameterBinding =
+    {
+        /// The opening angle bracket.
+        OpenBracket: Terminal
+
+        /// The type parameters.
+        Parameters: Terminal SequenceItem list
+
+        /// The closing angle bracket.
+        CloseBracket: Terminal
+    }
+
 /// A callable declaration.
-// TODO: Add type parameters, and specialization generators.
+// TODO: Add specialization generators.
 type internal CallableDeclaration =
     {
         /// The attributes attached to the callable.
@@ -27,6 +40,9 @@ type internal CallableDeclaration =
 
         /// The name of the callable.
         Name: Terminal
+
+        /// The type parameters of the callable.
+        TypeParameters: TypeParameterBinding option
 
         /// The parameters of the callable.
         Parameters: SymbolBinding

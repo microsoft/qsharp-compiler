@@ -42,14 +42,25 @@ type internal 'result Reducer() as reducer =
     abstract CallableDeclaration : callable: CallableDeclaration -> 'result
 
     default _.CallableDeclaration callable =
-        (callable.Attributes |> List.map reducer.Attribute)
-        @ [
-            reducer.Terminal callable.CallableKeyword
-            reducer.Terminal callable.Name
-            reducer.SymbolBinding callable.Parameters
-            reducer.TypeAnnotation callable.ReturnType
-            reducer.Block(reducer.Statement, callable.Block)
+        [
+            callable.Attributes |> List.map reducer.Attribute
+            [ reducer.Terminal callable.CallableKeyword; reducer.Terminal callable.Name ]
+            callable.TypeParameters |> Option.map reducer.TypeParameterBinding |> Option.toList
+            [
+                reducer.SymbolBinding callable.Parameters
+                reducer.TypeAnnotation callable.ReturnType
+                reducer.Block(reducer.Statement, callable.Block)
+            ]
         ]
+        |> List.concat
+        |> reduce
+
+    abstract TypeParameterBinding : binding: TypeParameterBinding -> 'result
+
+    default _.TypeParameterBinding binding =
+        reducer.Terminal binding.OpenBracket
+        :: (binding.Parameters |> List.map (curry reducer.SequenceItem reducer.Terminal))
+        @ [ reducer.Terminal binding.CloseBracket ]
         |> reduce
 
     abstract Type : typ: Type -> 'result

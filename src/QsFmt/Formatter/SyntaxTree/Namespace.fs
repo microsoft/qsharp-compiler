@@ -5,11 +5,19 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 type Attribute = { At: Terminal; Expression: Expression }
 
+type TypeParameterBinding =
+    {
+        OpenBracket: Terminal
+        Parameters: Terminal SequenceItem list
+        CloseBracket: Terminal
+    }
+
 type CallableDeclaration =
     {
         Attributes: Attribute list
         CallableKeyword: Terminal
         Name: Terminal
+        TypeParameters: TypeParameterBinding option
         Parameters: SymbolBinding
         ReturnType: TypeAnnotation
         Block: Statement Block

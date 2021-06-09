@@ -45,9 +45,20 @@ type 'context Rewriter() =
             Attributes = callable.Attributes |> List.map (curry rewriter.Attribute context)
             CallableKeyword = rewriter.Terminal(context, callable.CallableKeyword)
             Name = rewriter.Terminal(context, callable.Name)
+            TypeParameters = callable.TypeParameters |> Option.map (curry rewriter.TypeParameterBinding context)
             Parameters = rewriter.SymbolBinding(context, callable.Parameters)
             ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
             Block = rewriter.Block(context, rewriter.Statement, callable.Block)
+        }
+
+    abstract TypeParameterBinding : context: 'context * binding: TypeParameterBinding -> TypeParameterBinding
+
+    default rewriter.TypeParameterBinding(context, binding) =
+        {
+            OpenBracket = rewriter.Terminal(context, binding.OpenBracket)
+            Parameters =
+                binding.Parameters |> List.map (fun item -> rewriter.SequenceItem(context, rewriter.Terminal, item))
+            CloseBracket = rewriter.Terminal(context, binding.CloseBracket)
         }
 
     abstract Type : context: 'context * typ: Type -> Type

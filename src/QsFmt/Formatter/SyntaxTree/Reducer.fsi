@@ -48,6 +48,12 @@ type internal 'result Reducer =
     default CallableDeclaration: callable:CallableDeclaration -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="TypeParameterBinding"/> node.
+    /// </summary>
+    abstract TypeParameterBinding: binding:TypeParameterBinding -> 'result
+    default TypeParameterBinding: binding:TypeParameterBinding -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="Type"/> node.
     /// </summary>
     abstract Type: typ:Type -> 'result

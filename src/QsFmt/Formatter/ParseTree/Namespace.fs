@@ -6,9 +6,21 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
-module Attribute =
-    let ofContext tokens (context: QSharpParser.AttributeContext) =
+module NamespaceContext =
+    let toAttribute tokens (context: QSharpParser.AttributeContext) =
         { At = Node.toTerminal tokens context.at; Expression = (ExpressionVisitor tokens).Visit context.expr }
+
+    let toTypeParameterBinding tokens (context: QSharpParser.TypeParameterBindingContext) =
+        let parameters =
+            Node.tupleItems
+                (context._parameters |> Seq.map (Node.toTerminal tokens))
+                (context._commas |> Seq.map (Node.toTerminal tokens))
+
+        {
+            OpenBracket = Node.toTerminal tokens context.openBracket
+            Parameters = parameters
+            CloseBracket = Node.toTerminal tokens context.closeBracket
+        }
 
 /// <summary>
 /// Creates syntax tree <see cref="SymbolBinding"/> nodes for callable parameters from a parse tree and the list of
@@ -66,9 +78,13 @@ type NamespaceItemVisitor(tokens) =
             failwith "Callables with specialization generators are not supported."
 
         {
-            Attributes = context.callable.prefix._attributes |> Seq.map (Attribute.ofContext tokens) |> List.ofSeq
+            Attributes =
+                context.callable.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> List.ofSeq
             CallableKeyword = context.callable.keyword |> Node.toTerminal tokens
             Name = context.callable.name |> Node.toTerminal tokens
+            TypeParameters =
+                Option.ofObj context.callable.typeParameters
+                |> Option.map (NamespaceContext.toTypeParameterBinding tokens)
             Parameters = parameterVisitor.Visit context.callable.tuple
             ReturnType =
                 {
