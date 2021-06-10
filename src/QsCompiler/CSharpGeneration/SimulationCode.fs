@@ -1255,7 +1255,7 @@ module SimulationCode =
                     let startLine = location.Offset.Line + 1
 
                     let endLine =
-                        match context.declarationPositions.TryGetValue sp.SourceFile with
+                        match context.declarationPositions.TryGetValue sp.Source.CodeFile with
                         | true, startPositions ->
                             let index = startPositions.IndexOf location.Offset
                             if index + 1 >= startPositions.Count then -1 else startPositions.[index + 1].Line + 1
@@ -1266,7 +1266,7 @@ module SimulationCode =
                         None
                         (ident "SourceLocation")
                         [
-                            literal sp.SourceFile
+                            literal sp.Source.CodeFile
                             ident "OperationFunctor" <|.|> ident bodyName
                             literal startLine
                             literal endLine
@@ -1662,7 +1662,7 @@ module SimulationCode =
 
         let methods =
             match op.Location with
-            | Value location -> [ buildUnitTest targetName opName location.Offset.Line op.SourceFile ]
+            | Value location -> [ buildUnitTest targetName opName location.Offset.Line op.Source.CodeFile ]
             // TODO: diagnostics
             | Null -> failwith "missing location for unit test"
 
@@ -2040,7 +2040,7 @@ module SimulationCode =
                     | Value origName ->
                         match context.allUdts.TryGetValue origName with
                         | true, collision ->
-                            if context.GenerateCodeForSource collision.SourceFile then
+                            if context.GenerateCodeForSource collision.Source.CodeFile then
                                 None
                             else
                                 Some(origName.Namespace, QsCustomType collision)
@@ -2051,7 +2051,7 @@ module SimulationCode =
                     | Value origName ->
                         match context.allCallables.TryGetValue origName with
                         | true, collision ->
-                            if context.GenerateCodeForSource collision.SourceFile then
+                            if context.GenerateCodeForSource collision.Source.CodeFile then
                                 None
                             else
                                 Some(origName.Namespace, QsCallable collision)
