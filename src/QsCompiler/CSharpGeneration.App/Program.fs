@@ -71,7 +71,7 @@ let generateFiles (options: Options) =
             DocumentationOutputFolder = options.DocFolder,
             BuildOutputFolder = outputFolder,
             ProjectName = options.QSTFileName,
-            RewriteSteps = [ struct (codeGenDll, null) ],
+            RewriteStepAssemblies = [ struct (codeGenDll, null) ],
             AssemblyConstants = assemblyConstants
         )
 
