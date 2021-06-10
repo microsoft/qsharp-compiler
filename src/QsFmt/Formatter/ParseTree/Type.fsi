@@ -38,4 +38,4 @@ module internal Type =
     /// Creates a syntax tree <see cref="CharacteristicSection"/> node from the parse tree <see cref="QSharpParser.CharacteristicsContext"/>
     /// node and the list of <paramref name="tokens"/>.
     /// </summary>
-    val toCharacteristicSection: tokens:IToken ImmutableArray -> context:QSharpParser.CharacteristicsContext -> CharacteristicSection Option
+    val toCharacteristicSection: tokens:IToken ImmutableArray -> context:QSharpParser.CharacteristicsContext -> CharacteristicSection

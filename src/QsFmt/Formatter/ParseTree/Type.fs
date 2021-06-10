@@ -25,7 +25,7 @@ type CharacteristicVisitor(tokens) =
         }
         |> Group
 
-    override visitor.VisitAsteriskCharacteristics context =
+    override visitor.VisitIntersectCharacteristics context =
         {
             Left = visitor.Visit context.left
             Operator = context.Asterisk().Symbol |> Node.toTerminal tokens
@@ -33,7 +33,7 @@ type CharacteristicVisitor(tokens) =
         }
         |> Characteristic.BinaryOperator
 
-    override visitor.VisitPlusCharacteristics context =
+    override visitor.VisitUnionCharacteristics context =
         {
             Left = visitor.Visit context.left
             Operator = context.Plus().Symbol |> Node.toTerminal tokens
@@ -58,12 +58,7 @@ type TypeVisitor(tokens) =
 
 module Type =
     let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
-        match context with
-        | null -> None
-        | context ->
-            Some(
-                {
-                    IsKeyword = context.is |> Node.toTerminal tokens
-                    Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
-                }
-            )
+        {
+            IsKeyword = context.is |> Node.toTerminal tokens
+            Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
+        }

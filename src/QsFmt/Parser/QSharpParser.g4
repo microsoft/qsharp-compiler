@@ -80,8 +80,8 @@ characteristicsExpression
     : 'Adj' # AdjointCharacteristics
     | 'Ctl' # ControlledCharacteristics
     | openParen='(' charExp=characteristicsExpression closeParen=')' # CharacteristicGroup
-    | left=characteristicsExpression '*' right=characteristicsExpression # AsteriskCharacteristics
-    | left=characteristicsExpression '+' right=characteristicsExpression # PlusCharacteristics
+    | left=characteristicsExpression '*' right=characteristicsExpression # IntersectCharacteristics
+    | left=characteristicsExpression '+' right=characteristicsExpression # UnionCharacteristics
     ;
 
 callableBody

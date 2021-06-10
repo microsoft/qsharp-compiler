@@ -71,7 +71,7 @@ type NamespaceItemVisitor(tokens) =
                     Colon = context.callable.colon |> Node.toTerminal tokens
                     Type = typeVisitor.Visit context.callable.returnType
                 }
-            CharacteristicSection = toCharacteristicSection tokens context.callable.returnChar
+            CharacteristicSection = Option.ofObj context.callable.returnChar |> Option.map (toCharacteristicSection tokens)
             Block =
                 {
                     OpenBrace = scope.openBrace |> Node.toTerminal tokens
