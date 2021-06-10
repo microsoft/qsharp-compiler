@@ -31,7 +31,7 @@ let private testCases () =
 [<Theory(Skip = "Not supported.")>]
 [<MemberData "testCases">]
 let ``Identity preserves original source code`` source =
-    Assert.Equal(Ok source, Formatter.identity source)
+    Assert.Equal(Ok source |> ShowResult, Formatter.identity source |> ShowResult)
 
 [<FixedPoint>]
 let ``Namespace comments`` = """/// The Foo namespace.
