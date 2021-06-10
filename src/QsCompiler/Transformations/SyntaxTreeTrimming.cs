@@ -5,8 +5,6 @@ using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
-using System.Text;
-using Microsoft.CodeAnalysis.Diagnostics;
 using Microsoft.Quantum.QsCompiler.DependencyAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
@@ -15,19 +13,18 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 {
     public static class TrimSyntaxTree
     {
-        public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
+        public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics, IEnumerable<QsQualifiedName>? dependencies = null)
         {
-            return TrimTree.Apply(compilation, keepAllIntrinsics);
+            return TrimTree.Apply(compilation, keepAllIntrinsics, dependencies);
         }
 
         private class TrimTree : SyntaxTreeTransformation<TrimTree.TransformationState>
         {
-            public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics)
+            public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics, IEnumerable<QsQualifiedName>? dependencies)
             {
                 var globals = compilation.Namespaces.GlobalCallableResolutions();
-                var augmentedEntryPoints = BuiltIn.AllBuiltIns
-                    .Where(bi => bi.Kind != BuiltInKind.Attribute && globals.ContainsKey(bi.FullName))
-                    .Select(bi => bi.FullName)
+                var dependenciesToKeep = dependencies?.Where(globals.ContainsKey) ?? ImmutableArray<QsQualifiedName>.Empty;
+                var augmentedEntryPoints = dependenciesToKeep
                     .Concat(compilation.EntryPoints)
                     .Distinct()
                     .ToImmutableArray();
