@@ -26,6 +26,32 @@ type internal TypeParameterBinding =
         CloseBracket: Terminal
     }
 
+/// A specialization generator.
+type internal SpecializationGenerator =
+    /// A built-in generator.
+    | BuiltIn of name: Terminal * semicolon: Terminal
+
+    /// A provided specialization.
+    | Provided of parameters: Terminal option * statements: Statement Block
+
+/// A specialization.
+type internal Specialization =
+    {
+        /// The names of the specialization.
+        Names: Terminal list
+
+        /// The specialization generator.
+        Generator: SpecializationGenerator
+    }
+
+/// The body of a callable declaration.
+type internal CallableBody =
+    /// An implicit body specialization with statements.
+    | Statements of Statement Block
+
+    /// A block of specializations.
+    | Specializations of Specialization Block
+
 /// A callable declaration.
 // TODO: Add specialization generators.
 type internal CallableDeclaration =
@@ -51,7 +77,7 @@ type internal CallableDeclaration =
         ReturnType: TypeAnnotation
 
         /// The body of the callable.
-        Block: Statement Block
+        Body: CallableBody
     }
 
 /// An item in a namespace.

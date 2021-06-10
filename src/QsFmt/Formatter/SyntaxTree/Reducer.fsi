@@ -96,6 +96,24 @@ type internal 'result Reducer =
     default Characteristic: characteristic:Characteristic -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="CallableBody"/> node.
+    /// </summary>
+    abstract CallableBody: body:CallableBody -> 'result
+    default CallableBody: body:CallableBody -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="Specialization"/> node.
+    /// </summary>
+    abstract Specialization: specialization:Specialization -> 'result
+    default Specialization: specialization:Specialization -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="SpecializationGenerator"/> node.
+    /// </summary>
+    abstract SpecializationGenerator: generator:SpecializationGenerator -> 'result
+    default SpecializationGenerator: generator:SpecializationGenerator -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="Statement"/> node.
     /// </summary>
     abstract Statement: statement:Statement -> 'result

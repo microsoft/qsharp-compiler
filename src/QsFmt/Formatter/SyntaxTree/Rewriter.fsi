@@ -92,6 +92,24 @@ type internal 'context Rewriter =
     default Characteristic: context:'context * characteristic:Characteristic -> Characteristic
 
     /// <summary>
+    /// Rewrites a <see cref="CallableBody"/> node.
+    /// </summary>
+    abstract CallableBody: context:'context * body:CallableBody -> CallableBody
+    default CallableBody: context:'context * body:CallableBody -> CallableBody
+
+    /// <summary>
+    /// Rewrites a <see cref="Specialization"/> node.
+    /// </summary>
+    abstract Specialization: context:'context * specialization:Specialization -> Specialization
+    default Specialization: context:'context * specialization:Specialization -> Specialization
+
+    /// <summary>
+    /// Rewrites a <see cref="SpecializationGenerator"/> node.
+    /// </summary>
+    abstract SpecializationGenerator: context:'context * generator:SpecializationGenerator -> SpecializationGenerator
+    default SpecializationGenerator: context:'context * generator:SpecializationGenerator -> SpecializationGenerator
+
+    /// <summary>
     /// Rewrites a <see cref="Statement"/> node.
     /// </summary>
     abstract Statement: context:'context * statement:Statement -> Statement

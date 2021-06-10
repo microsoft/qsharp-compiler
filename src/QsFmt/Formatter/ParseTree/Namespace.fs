@@ -6,6 +6,42 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
+type SpecializationGeneratorVisitor(tokens) =
+    inherit QSharpParserBaseVisitor<SpecializationGenerator>()
+
+    let statementVisitor = StatementVisitor tokens
+
+    let toBuiltIn name semicolon =
+        BuiltIn(name = Node.toTerminal tokens name, semicolon = Node.toTerminal tokens semicolon)
+
+    override _.DefaultResult = failwith "Unknown specialization generator."
+
+    override _.VisitAutoGenerator context =
+        toBuiltIn context.auto context.semicolon
+
+    override _.VisitSelfGenerator context =
+        toBuiltIn context.self context.semicolon
+
+    override _.VisitInvertGenerator context =
+        toBuiltIn context.invert context.semicolon
+
+    override _.VisitDistributeGenerator context =
+        toBuiltIn context.distribute context.semicolon
+
+    override _.VisitIntrinsicGenerator context =
+        toBuiltIn context.intrinsic context.semicolon
+
+    override _.VisitProvidedGenerator context =
+        Provided(
+            parameters = (Option.ofObj context.provided.parameters |> Option.map (Node.toUnknown tokens)),
+            statements =
+                {
+                    OpenBrace = context.provided.block.openBrace |> Node.toTerminal tokens
+                    Items = context.provided.block._statements |> Seq.map statementVisitor.Visit |> Seq.toList
+                    CloseBrace = context.provided.block.closeBrace |> Node.toTerminal tokens
+                }
+        )
+
 module NamespaceContext =
     let toAttribute tokens (context: QSharpParser.AttributeContext) =
         { At = Node.toTerminal tokens context.at; Expression = (ExpressionVisitor tokens).Visit context.expr }
@@ -20,6 +56,12 @@ module NamespaceContext =
             OpenBracket = Node.toTerminal tokens context.openBracket
             Parameters = parameters
             CloseBracket = Node.toTerminal tokens context.closeBracket
+        }
+
+    let toSpecialization tokens (context: QSharpParser.SpecializationContext) =
+        {
+            Names = context._names |> Seq.map (Node.toUnknown tokens) |> Seq.toList
+            Generator = (SpecializationGeneratorVisitor tokens).Visit context.generator
         }
 
 /// <summary>
@@ -56,6 +98,29 @@ type ParameterVisitor(tokens) =
         }
         |> SymbolTuple
 
+type CallableBodyVisitor(tokens) =
+    inherit QSharpParserBaseVisitor<CallableBody>()
+
+    let statementVisitor = StatementVisitor tokens
+
+    override _.DefaultResult = failwith "Unknown callable body."
+
+    override _.VisitCallableStatements context =
+        {
+            OpenBrace = context.block.openBrace |> Node.toTerminal tokens
+            Items = context.block._statements |> Seq.map statementVisitor.Visit |> Seq.toList
+            CloseBrace = context.block.closeBrace |> Node.toTerminal tokens
+        }
+        |> Statements
+
+    override _.VisitCallableSpecializations context =
+        {
+            OpenBrace = context.openBrace |> Node.toTerminal tokens
+            Items = context._specializations |> Seq.map (NamespaceContext.toSpecialization tokens) |> Seq.toList
+            CloseBrace = context.closeBrace |> Node.toTerminal tokens
+        }
+        |> Specializations
+
 /// <summary>
 /// Creates syntax tree <see cref="NamespaceItem"/> nodes from a parse tree and the list of tokens.
 /// </summary>
@@ -64,19 +129,13 @@ type NamespaceItemVisitor(tokens) =
 
     let parameterVisitor = ParameterVisitor tokens
     let typeVisitor = TypeVisitor tokens
-    let statementVisitor = StatementVisitor tokens
+    let callableBodyVisitor = CallableBodyVisitor tokens
 
     override _.DefaultResult = failwith "Unknown namespace element."
 
     override _.VisitChildren node = Node.toUnknown tokens node |> Unknown
 
     override _.VisitCallableElement context =
-        let scope = context.callable.body.scope ()
-
-        if isNull scope then
-            // TODO: Support specialization generators.
-            failwith "Callables with specialization generators are not supported."
-
         {
             Attributes =
                 context.callable.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> List.ofSeq
@@ -91,12 +150,7 @@ type NamespaceItemVisitor(tokens) =
                     Colon = context.callable.colon |> Node.toTerminal tokens
                     Type = typeVisitor.Visit context.callable.returnType
                 }
-            Block =
-                {
-                    OpenBrace = scope.openBrace |> Node.toTerminal tokens
-                    Items = scope._statements |> Seq.map statementVisitor.Visit |> List.ofSeq
-                    CloseBrace = scope.closeBrace |> Node.toTerminal tokens
-                }
+            Body = callableBodyVisitor.Visit context.callable.body
         }
         |> CallableDeclaration
 
@@ -114,7 +168,7 @@ module Namespace =
             Block =
                 {
                     OpenBrace = context.openBrace |> Node.toTerminal tokens
-                    Items = context._elements |> Seq.map visitor.Visit |> List.ofSeq
+                    Items = context._elements |> Seq.map visitor.Visit |> Seq.toList
                     CloseBrace = context.closeBrace |> Node.toTerminal tokens
                 }
         }

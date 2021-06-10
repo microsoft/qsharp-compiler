@@ -48,7 +48,7 @@ type 'context Rewriter() =
             TypeParameters = callable.TypeParameters |> Option.map (curry rewriter.TypeParameterBinding context)
             Parameters = rewriter.SymbolBinding(context, callable.Parameters)
             ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
-            Block = rewriter.Block(context, rewriter.Statement, callable.Block)
+            Body = rewriter.CallableBody(context, callable.Body)
         }
 
     abstract TypeParameterBinding : context: 'context * binding: TypeParameterBinding -> TypeParameterBinding
@@ -66,7 +66,7 @@ type 'context Rewriter() =
         match typ with
         | Type.Missing missing -> rewriter.Terminal(context, missing) |> Type.Missing
         | Parameter name -> rewriter.Terminal(context, name) |> Parameter
-        | BuiltIn name -> rewriter.Terminal(context, name) |> BuiltIn
+        | Type.BuiltIn name -> rewriter.Terminal(context, name) |> Type.BuiltIn
         | UserDefined name -> rewriter.Terminal(context, name) |> UserDefined
         | Type.Tuple tuple -> rewriter.Tuple(context, rewriter.Type, tuple) |> Type.Tuple
         | Array array -> rewriter.ArrayType(context, array) |> Array
@@ -123,6 +123,34 @@ type 'context Rewriter() =
         | Group group -> rewriter.CharacteristicGroup(context, group) |> Group
         | Characteristic.BinaryOperator operator ->
             rewriter.BinaryOperator(context, rewriter.Characteristic, operator) |> Characteristic.BinaryOperator
+
+    abstract CallableBody : context: 'context * body: CallableBody -> CallableBody
+
+    default rewriter.CallableBody(context, body) =
+        match body with
+        | Statements statements -> rewriter.Block(context, rewriter.Statement, statements) |> Statements
+        | Specializations specializations ->
+            rewriter.Block(context, rewriter.Specialization, specializations) |> Specializations
+
+    abstract Specialization : context: 'context * specialization: Specialization -> Specialization
+
+    default rewriter.Specialization(context, specialization) =
+        {
+            Names = specialization.Names |> List.map (curry rewriter.Terminal context)
+            Generator = rewriter.SpecializationGenerator(context, specialization.Generator)
+        }
+
+    abstract SpecializationGenerator : context: 'context * generator: SpecializationGenerator -> SpecializationGenerator
+
+    default rewriter.SpecializationGenerator(context, generator) =
+        match generator with
+        | BuiltIn (name, semicolon) ->
+            BuiltIn(name = rewriter.Terminal(context, name), semicolon = rewriter.Terminal(context, semicolon))
+        | Provided (parameters, statements) ->
+            Provided(
+                parameters = (parameters |> Option.map (curry rewriter.Terminal context)),
+                statements = rewriter.Block(context, rewriter.Statement, statements)
+            )
 
     abstract Statement : context: 'context * statement: Statement -> Statement
 

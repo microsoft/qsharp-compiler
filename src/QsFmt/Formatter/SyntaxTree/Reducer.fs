@@ -49,7 +49,7 @@ type internal 'result Reducer() as reducer =
             [
                 reducer.SymbolBinding callable.Parameters
                 reducer.TypeAnnotation callable.ReturnType
-                reducer.Block(reducer.Statement, callable.Block)
+                reducer.CallableBody callable.Body
             ]
         ]
         |> List.concat
@@ -69,7 +69,7 @@ type internal 'result Reducer() as reducer =
         match typ with
         | Type.Missing missing -> reducer.Terminal missing
         | Parameter name
-        | BuiltIn name
+        | Type.BuiltIn name
         | UserDefined name -> reducer.Terminal name
         | Type.Tuple tuple -> reducer.Tuple(reducer.Type, tuple)
         | Array array -> reducer.ArrayType array
@@ -129,6 +129,30 @@ type internal 'result Reducer() as reducer =
         | Controlled controlled -> reducer.Terminal controlled
         | Group group -> reducer.CharacteristicGroup group
         | Characteristic.BinaryOperator operator -> reducer.BinaryOperator(reducer.Characteristic, operator)
+
+    abstract CallableBody : body: CallableBody -> 'result
+
+    default _.CallableBody body =
+        match body with
+        | Statements statements -> reducer.Block(reducer.Statement, statements)
+        | Specializations specializations -> reducer.Block(reducer.Specialization, specializations)
+
+    abstract Specialization : specialization: Specialization -> 'result
+
+    default _.Specialization specialization =
+        (specialization.Names |> List.map reducer.Terminal)
+        @ [ reducer.SpecializationGenerator specialization.Generator ]
+        |> reduce
+
+    abstract SpecializationGenerator : generator: SpecializationGenerator -> 'result
+
+    default _.SpecializationGenerator generator =
+        match generator with
+        | BuiltIn (name, semicolon) -> [ reducer.Terminal name; reducer.Terminal semicolon ] |> reduce
+        | Provided (parameters, statements) ->
+            (parameters |> Option.map reducer.Terminal |> Option.toList)
+            @ [ reducer.Block(reducer.Statement, statements) ]
+            |> reduce
 
     abstract Statement : statement: Statement -> 'result
 

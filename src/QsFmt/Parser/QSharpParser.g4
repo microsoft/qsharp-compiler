@@ -86,11 +86,11 @@ characteristicsExpression
     ;
 
 callableBody
-    : scope
-    | BraceLeft specialization* BraceRight
+    : block=scope # CallableStatements
+    | openBrace=BraceLeft specializations+=specialization* closeBrace=BraceRight # CallableSpecializations
     ;
 
-specialization : specializationName+ specializationGenerator;
+specialization : names+=specializationName+ generator=specializationGenerator;
 
 specializationName
     : 'body'
@@ -99,15 +99,15 @@ specializationName
     ;
 
 specializationGenerator
-    : 'auto' ';'
-    | 'self' ';'
-    | 'invert' ';'
-    | 'distribute' ';'
-    | 'intrinsic' ';'
-    | providedSpecialization
+    : auto='auto' semicolon=';' # AutoGenerator
+    | self='self' semicolon=';' # SelfGenerator
+    | invert='invert' semicolon=';' # InvertGenerator
+    | distribute='distribute' semicolon=';' # DistributeGenerator
+    | intrinsic='intrinsic' semicolon=';' # IntrinsicGenerator
+    | provided=providedSpecialization # ProvidedGenerator
     ;
 
-providedSpecialization : specializationParameterTuple? scope;
+providedSpecialization : parameters=specializationParameterTuple? block=scope;
 
 specializationParameterTuple : '(' (specializationParameter (',' specializationParameter)*)? ')';
 
