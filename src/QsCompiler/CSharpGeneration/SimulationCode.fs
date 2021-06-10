@@ -402,21 +402,21 @@ module SimulationCode =
             | DoubleLiteral f -> ident (floatToString f) :> ExpressionSyntax
             | BoolLiteral b -> upcast (if b then ``true`` else ``false``)
             | ResultLiteral r ->
-                (ident "Result")
-                <|.|> (ident (
+                let name =
                     match r with
                     | Zero -> "Zero"
                     | One -> "One"
-                ))
+
+                ident "Result" <|.|> ident name
             | PauliLiteral p ->
-                (ident "Pauli")
-                <|.|> (ident (
+                let name =
                     match p with
                     | PauliI -> "PauliI"
                     | PauliX -> "PauliX"
                     | PauliY -> "PauliY"
                     | PauliZ -> "PauliZ"
-                ))
+
+                ident "Pauli" <|.|> ident name
             | Identifier (id, _) -> buildId id
             | StringLiteral (s, e) -> buildInterpolatedString s e
             | RangeLiteral (r, e) -> buildRange r e
