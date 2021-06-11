@@ -3,13 +3,15 @@
 
 using System;
 using System.Collections.Generic;
+using System.Collections.Immutable;
 using System.Linq;
+using Microsoft.Quantum.Documentation.Linting;
 using Microsoft.Quantum.QsCompiler;
 using Microsoft.Quantum.QsCompiler.Documentation;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
-
+using DiagnosticSeverity = Microsoft.CodeAnalysis.DiagnosticSeverity;
 using Range = Microsoft.Quantum.QsCompiler.DataTypes.Range;
 
 namespace Microsoft.Quantum.Documentation
@@ -45,7 +47,16 @@ namespace Microsoft.Quantum.Documentation
         ///     if the documentation to be written by this object does not
         ///     relate to a particular package.
         /// </param>
-        public ProcessDocComments(string outputPath, string? packageName = null)
+        /// <param name="lintingRules">
+        ///     A dictionary of named linting rules that will be applied to
+        ///     each different callable and UDT definition to yield additional
+        ///     diagnostics, as well as the severity that will be applied to
+        ///     each such diagnostic.
+        /// </param>
+        public ProcessDocComments(
+            string outputPath,
+            string? packageName = null,
+            IDictionary<string, (DiagnosticSeverity, IDocumentationLintingRule)>? lintingRules = null)
         : base(new TransformationState(), TransformationOptions.Disabled)
         {
             this.Writer = new DocumentationWriter(outputPath, packageName);
@@ -54,7 +65,7 @@ namespace Microsoft.Quantum.Documentation
                 this.OnDiagnostic?.Invoke(diagnostic);
 
             // We provide our own custom namespace transformation, and expression kind transformation.
-            this.Namespaces = new NamespaceTransformation(this, this.Writer);
+            this.Namespaces = new NamespaceTransformation(this, this.Writer, lintingRules);
         }
 
         private class NamespaceTransformation
@@ -62,35 +73,17 @@ namespace Microsoft.Quantum.Documentation
         {
             private readonly DocumentationWriter? writer;
 
-            internal NamespaceTransformation(ProcessDocComments parent, DocumentationWriter? writer)
+            private readonly ImmutableDictionary<string, (DiagnosticSeverity, IDocumentationLintingRule)> lintingRules;
+
+            internal NamespaceTransformation(
+                ProcessDocComments parent,
+                DocumentationWriter? writer,
+                IDictionary<string, (DiagnosticSeverity, IDocumentationLintingRule)>? lintingRules = null)
             : base(parent)
             {
                 this.writer = writer;
-            }
-
-            private void ValidateNames(
-                string symbolName,
-                string nameKind,
-                Func<string, bool> isNameValid,
-                IEnumerable<string> actualNames,
-                Range? range = null,
-                string? source = null)
-            {
-                foreach (var name in actualNames)
-                {
-                    if (!isNameValid(name))
-                    {
-                        (this.Transformation as ProcessDocComments)?.OnDiagnostic?.Invoke(
-                            new IRewriteStep.Diagnostic
-                            {
-                                Message = $"When documenting {symbolName}, found documentation for {nameKind} {name}, but no such {nameKind} exists.",
-                                Severity = CodeAnalysis.DiagnosticSeverity.Warning,
-                                Range = range,
-                                Source = source,
-                                Stage = IRewriteStep.Stage.Transformation,
-                            });
-                    }
-                }
+                this.lintingRules = lintingRules?.ToImmutableDictionary()
+                                    ?? ImmutableDictionary<string, (DiagnosticSeverity, IDocumentationLintingRule)>.Empty;
             }
 
             public override QsNamespace OnNamespace(QsNamespace ns)
@@ -134,15 +127,10 @@ namespace Microsoft.Quantum.Documentation
                     deprecated: isDeprecated,
                     replacement: replacement);
 
-                // Validate named item names.
-                var inputDeclarations = type.TypeItems.ToDictionaryOfDeclarations();
-                this.ValidateNames(
-                    $"{type.FullName.Namespace}.{type.FullName.Name}",
-                    "named item",
-                    name => inputDeclarations.ContainsKey(name),
-                    docComment.Input.Keys,
-                    range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: type.Source.AssemblyOrCodeFile);
+                this.lintingRules.InvokeRules(
+                    rule => rule.OnTypeDeclaration(type, docComment),
+                    (this.Transformation as ProcessDocComments)?.OnDiagnostic
+                    ?? ((_) => { }));
 
                 if (type.Access.IsPublic)
                 {
@@ -179,28 +167,11 @@ namespace Microsoft.Quantum.Documentation
                     callable.FullName.Name,
                     deprecated: isDeprecated,
                     replacement: replacement);
-                var callableName =
-                    $"{callable.FullName.Namespace}.{callable.FullName.Name}";
 
-                // Validate input and type parameter names.
-                var inputDeclarations = callable.ArgumentTuple.ToDictionaryOfDeclarations();
-                this.ValidateNames(
-                    callableName,
-                    "input",
-                    name => inputDeclarations.ContainsKey(name),
-                    docComment.Input.Keys,
-                    range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: callable.Source.AssemblyOrCodeFile);
-                this.ValidateNames(
-                    callableName,
-                    "type parameter",
-                    name => callable.Signature.TypeParameters.Any(
-                        typeParam =>
-                            typeParam is QsLocalSymbol.ValidName validName &&
-                            validName.Item == name.TrimStart('\'')),
-                    docComment.TypeParameters.Keys,
-                    range: null, // TODO: provide more exact locations once supported by DocParser.
-                    source: callable.Source.AssemblyOrCodeFile);
+                this.lintingRules.InvokeRules(
+                    rule => rule.OnCallableDeclaration(callable, docComment),
+                    (this.Transformation as ProcessDocComments)?.OnDiagnostic
+                    ?? ((_) => { }));
 
                 if (callable.Access.IsPublic)
                 {
