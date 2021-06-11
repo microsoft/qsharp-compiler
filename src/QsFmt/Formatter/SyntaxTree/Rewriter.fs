@@ -38,6 +38,8 @@ type 'context Rewriter() =
             Name = rewriter.Terminal(context, callable.Name)
             Parameters = rewriter.SymbolBinding(context, callable.Parameters)
             ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
+            CharacteristicSection =
+                callable.CharacteristicSection |> Option.map (curry rewriter.CharacteristicSection context)
             Block = rewriter.Block(context, rewriter.Statement, callable.Block)
         }
 
