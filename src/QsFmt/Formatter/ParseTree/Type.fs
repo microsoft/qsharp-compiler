@@ -63,11 +63,22 @@ type TypeVisitor(tokens) =
         { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
         |> UserDefined
 
+    override visitor.VisitTupleType context =
+        let items = context._items |> Seq.map visitor.Visit
+        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+
+        {
+            OpenParen = context.openParen |> Node.toTerminal tokens
+            Items = Node.tupleItems items commas
+            CloseParen = context.closeParen |> Node.toTerminal tokens
+        }
+        |> Type.Tuple
+
     override visitor.VisitCallableType context =
         {
             FromType = visitor.Visit context.fromType
             Arrow = context.arrow |> Node.toTerminal tokens
             ToType = visitor.Visit context.toType
-            Characteristics =  Option.ofObj context.character |> Option.map (Type.toCharacteristicSection tokens)
+            Characteristics = Option.ofObj context.character |> Option.map (Type.toCharacteristicSection tokens)
         }
         |> Type.Callable

@@ -119,7 +119,7 @@ specializationParameter
 
 type
     : '_' # MissingType
-    | '(' (type (',' type)* ','?)? ')' # TupleType
+    | openParen='(' (items+=type (commas+=',' items+=type)* commas+=','?)? closeParen=')' # TupleType
     | TypeParameter # TypeParameter
     | type '[' ']' # ArrayType
     | fromType=type arrow=('->' | '=>') toType=type character=characteristics? # CallableType
