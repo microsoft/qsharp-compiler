@@ -74,6 +74,14 @@ type TypeVisitor(tokens) =
         }
         |> Type.Tuple
 
+    override visitor.VisitArrayType context =
+        {
+            ItemType = visitor.Visit context.item
+            OpenBracket = context.openBracket |> Node.toTerminal tokens
+            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+        }
+        |> Array
+
     override visitor.VisitCallableType context =
         {
             FromType = visitor.Visit context.fromType

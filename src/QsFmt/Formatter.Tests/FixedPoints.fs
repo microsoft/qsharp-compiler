@@ -140,6 +140,11 @@ let ``Tuple type`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Array type`` = """namespace Foo {
+    function Bar (arg : Pauli[]) : Unit {}
+}"""
+
+[<FixedPoint>]
 let ``Function type`` = """namespace Foo {
     function Bar (arg : Unit => Unit is Adj) : Unit {}
 }"""
