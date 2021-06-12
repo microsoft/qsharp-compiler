@@ -59,6 +59,9 @@ type TypeVisitor(tokens) =
     override _.VisitIntType context =
         context.Int().Symbol |> Node.toTerminal tokens |> BuiltIn
 
+    override _.VisitTypeParameter context =
+        context.typeParameter |> Node.toTerminal tokens |> Parameter
+
     override _.VisitUserDefinedType context =
         { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
         |> UserDefined
@@ -76,7 +79,7 @@ type TypeVisitor(tokens) =
 
     override visitor.VisitArrayType context =
         {
-            ItemType = visitor.Visit context.item
+            ItemType = visitor.Visit context.itemType
             OpenBracket = context.openBracket |> Node.toTerminal tokens
             CloseBracket = context.closeBracket |> Node.toTerminal tokens
         }

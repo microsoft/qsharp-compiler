@@ -135,6 +135,11 @@ let ``Array literal`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Type parameter`` = """namespace Foo {
+    function Bar (arg : 't) : Unit {}
+}"""
+
+[<FixedPoint>]
 let ``Tuple type`` = """namespace Foo {
     function Bar (arg : (BigInt, Bool, (Double, Int))) : Unit {}
 }"""

@@ -120,8 +120,8 @@ specializationParameter
 type
     : '_' # MissingType
     | openParen='(' (items+=type (commas+=',' items+=type)* commas+=','?)? closeParen=')' # TupleType
-    | TypeParameter # TypeParameter
-    | item=type openBracket='[' closeBracket=']' # ArrayType
+    | typeParameter=TypeParameter # TypeParameter
+    | itemType=type openBracket='[' closeBracket=']' # ArrayType
     | fromType=type arrow=('->' | '=>') toType=type character=characteristics? # CallableType
     | 'BigInt' # BigIntType
     | 'Bool' # BoolType
