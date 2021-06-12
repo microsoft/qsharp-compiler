@@ -41,6 +41,13 @@ type CharacteristicVisitor(tokens) =
         }
         |> Characteristic.BinaryOperator
 
+module Type =
+    let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
+        {
+            IsKeyword = context.is |> Node.toTerminal tokens
+            Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
+        }
+
 type TypeVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Type>()
 
@@ -56,9 +63,11 @@ type TypeVisitor(tokens) =
         { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
         |> UserDefined
 
-module Type =
-    let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
+    override visitor.VisitCallableType context =
         {
-            IsKeyword = context.is |> Node.toTerminal tokens
-            Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
+            FromType = visitor.Visit context.fromType
+            Arrow = context.arrow |> Node.toTerminal tokens
+            ToType = visitor.Visit context.toType
+            Characteristics =  Option.ofObj context.character |> Option.map (Type.toCharacteristicSection tokens)
         }
+        |> Type.Callable

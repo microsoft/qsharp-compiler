@@ -122,7 +122,7 @@ type
     | '(' (type (',' type)* ','?)? ')' # TupleType
     | TypeParameter # TypeParameter
     | type '[' ']' # ArrayType
-    | type ('->' | '=>') type characteristics? # CallableType
+    | fromType=type arrow=('->' | '=>') toType=type character=characteristics? # CallableType
     | 'BigInt' # BigIntType
     | 'Bool' # BoolType
     | 'Double' # DoubleType

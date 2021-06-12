@@ -133,3 +133,8 @@ let ``Array literal`` = """namespace Foo {
         let xs = [1, 2, 3];
     }
 }"""
+
+[<FixedPoint>]
+let ``Function type`` = """namespace Foo {
+    function Bar (arg : Unit => Unit is Adj) : Unit {}
+}"""
