@@ -34,4 +34,9 @@ namespace Microsoft.Quantum.Testing.QIR {
         let t = Truncate(d);
         return (d, i, bi, t);
     }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestBuiltIn(0);
+    }
 }
