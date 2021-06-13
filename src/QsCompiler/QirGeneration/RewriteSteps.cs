@@ -55,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             try
             {
-                ValidateMonomorphization.Apply(compilation);
+                ValidateMonomorphization.Apply(compilation, allowTypeParametersForIntrinsics: true);
                 return true;
             }
             catch
