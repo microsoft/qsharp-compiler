@@ -82,9 +82,9 @@ let ``QIR reference counts`` () =
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
 
-//[<Fact>]
-//let ``QIR built-in intrinsics`` () =
-//    qirMultiTest false "TestBuiltInIntrinsics" [ "TestBuiltInIntrinsics1"; "TestBuiltInIntrinsics2" ]
+[<Fact>]
+let ``QIR built-in intrinsics`` () =
+    qirMultiTest false "TestBuiltInIntrinsics" [ "TestBuiltInIntrinsics1"; "TestBuiltInIntrinsics2" ]
 
 [<Fact>]
 let ``QIR array loop`` () = qirTest false "TestArrayLoop"
