@@ -88,10 +88,13 @@ namespace Microsoft.Quantum.QsCompiler
             generator.Emit(bcFile, emitBitcode: true);
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
 
-            // create the human readable version as well
-            var sourceOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QirOutputPath, out path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
-            var llvmSourceFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(sourceOutputFolder), ".ll", "");
-            generator.Emit(llvmSourceFile, emitBitcode: false);
+            if (this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QirOutputPath, out path) && !string.IsNullOrWhiteSpace(path))
+            {
+                // create the human readable version as well
+                var llvmSourceFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(path), ".ll", "");
+                generator.Emit(llvmSourceFile, emitBitcode: false);
+            }
+
             return true;
         }
 
