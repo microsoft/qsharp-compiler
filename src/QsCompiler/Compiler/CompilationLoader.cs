@@ -569,16 +569,12 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
             var qirEmissionEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
-            Console.WriteLine($"SkipMonomorphization: {this.config.SkipMonomorphization}");
-            Console.WriteLine($"SkipSyntaxTreeTrimming: {this.config.SkipSyntaxTreeTrimming}");
             if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
                 // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
                 var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: true), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
-                var rewriteStepRemoveIntrinsics = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: false), typeof(IRewriteStep), thisDllUri);
-                steps.Add((-2, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStepRemoveIntrinsics, ref this.compilationStatus.TreeTrimming)));
             }
 
             if (this.config.ConvertClassicalControl)
@@ -609,9 +605,6 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
-
-                // var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false), typeof(IRewriteStep), thisDllUri);
-                // steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
             if (!this.config.IsExecutable)
@@ -630,7 +623,6 @@ namespace Microsoft.Quantum.QsCompiler
             }
 
             SortRewriteSteps(steps, t => t.Item1);
-            Console.WriteLine("Execute Rewrite Steps");
             foreach (var (_, name, rewriteStep) in steps)
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SingleRewriteStep, name);
@@ -810,7 +802,6 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         private QsCompilation? ExecuteAsAtomicTransformation(LoadedStep rewriteStep, ref Status status)
         {
-            Console.WriteLine($"{rewriteStep.Name}: {rewriteStep.Priority}");
             QsCompilation? transformed = null;
             if (this.CompilationOutput is null || this.compilationStatus.Validation != Status.Succeeded)
             {

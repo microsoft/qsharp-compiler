@@ -12,6 +12,7 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
+using Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 
 namespace Microsoft.Quantum.QsCompiler
@@ -54,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             try
             {
-                // ValidateMonomorphization.Apply(compilation);
+                ValidateMonomorphization.Apply(compilation);
                 return true;
             }
             catch
@@ -100,7 +101,8 @@ namespace Microsoft.Quantum.QsCompiler
     }
 
     /// <summary>
-    /// Creates a separate callable for each intrinsic specialization.
+    /// First prunes unused intrinsics using <see cref="TrimSyntaxTree" /> and then
+    /// creates a separate callable for each intrinsic specialization.
     /// Adds a TargetInstruction attribute to each intrinsic callable that doesn't have one,
     /// unless the automatically determined target instruction name conflicts with another target instruction name.
     /// The automatically determined name of the target instruction is the lower case version of the unqualified callable name.
@@ -154,7 +156,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(compilation);
+            transformed = TrimSyntaxTree.Apply(compilation, keepAllIntrinsics: false);
+            transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(transformed);
             transformed = InferTargetInstructions.LiftIntrinsicSpecializations(transformed);
             var allAttributesAdded = InferTargetInstructions.TryAddMissingTargetInstructionAttributes(transformed, out transformed);
             if (!allAttributesAdded)
