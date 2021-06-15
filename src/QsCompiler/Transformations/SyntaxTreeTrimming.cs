@@ -19,7 +19,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
         /// <summary>
         /// Applies the transformation that removes from the syntax tree all callables that
         /// are unused, meaning they are not a descendant of at least one entry point in
-        /// the call graph. If keepAllIntrinsics is true, callables with a body intrinsic
+        /// the call graph. If keepAllIntrinsics is true, callables with an intrinsic body
         /// will not be trimmed, regardless of usage. Any callables that later
         /// transformations will depend on should be passed in and will not be trimmed,
         /// regardless of usage.
