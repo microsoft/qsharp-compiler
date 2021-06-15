@@ -22,7 +22,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
         /// the call graph. If keepAllIntrinsics is true, callables with an intrinsic body
         /// will not be trimmed, regardless of usage. Any callables that later
         /// transformations will depend on should be passed in and will not be trimmed,
-        /// regardless of usage.
+        /// regardless of usage. Note that unused type constructors will be subject to
+        /// trimming as any other callable.
         /// </summary>
         public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics, IEnumerable<QsQualifiedName>? dependencies = null)
         {
