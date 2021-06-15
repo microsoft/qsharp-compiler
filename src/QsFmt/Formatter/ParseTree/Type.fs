@@ -56,6 +56,9 @@ type TypeVisitor(tokens) =
     override _.VisitChildren node =
         Node.toUnknown tokens node |> Type.Unknown
 
+    override _.VisitMissingType context =
+        context.Underscore().Symbol |> Node.toTerminal tokens |> Type.Missing
+
     override _.VisitBigIntType context =
         context.BigInt().Symbol |> Node.toTerminal tokens |> BuiltIn
 

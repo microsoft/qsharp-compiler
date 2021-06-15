@@ -135,6 +135,11 @@ let ``Array literal`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Missing type`` = """namespace Foo {
+    function Bar (arg : _) : Unit {}
+}"""
+
+[<FixedPoint>]
 let ``Type parameter`` = """namespace Foo {
     function Bar (arg : 't) : Unit {}
 }"""
