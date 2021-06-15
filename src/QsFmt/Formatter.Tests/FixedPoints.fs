@@ -141,15 +141,15 @@ let ``Type parameter`` = """namespace Foo {
 
 [<FixedPoint>]
 let ``Tuple type`` = """namespace Foo {
-    function Bar (arg : (BigInt, Bool, (Double, Int))) : Unit {}
+    function Bar (arg : (BigInt, Bool, (Double, Int))) : Pauli {}
 }"""
 
 [<FixedPoint>]
 let ``Array type`` = """namespace Foo {
-    function Bar (arg : Pauli[]) : Unit {}
+    function Bar (arg : Qubit[]) : Range {}
 }"""
 
 [<FixedPoint>]
 let ``Function type`` = """namespace Foo {
-    function Bar (arg : Unit => Unit is Adj) : Unit {}
+    function Bar (arg : Result => String is Adj) : Unit {}
 }"""

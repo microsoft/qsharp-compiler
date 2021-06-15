@@ -56,8 +56,35 @@ type TypeVisitor(tokens) =
     override _.VisitChildren node =
         Node.toUnknown tokens node |> Type.Unknown
 
+    override _.VisitBigIntType context =
+        context.BigInt().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitBoolType context =
+        context.Bool().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitDoubleType context =
+        context.Double().Symbol |> Node.toTerminal tokens |> BuiltIn
+
     override _.VisitIntType context =
         context.Int().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitPauliType context =
+        context.Pauli().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitQubitType context =
+        context.Qubit().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitRangeType context =
+        context.Range().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitResultType context =
+        context.Result().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitStringType context =
+        context.String().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitUnitType context =
+        context.Unit().Symbol |> Node.toTerminal tokens |> BuiltIn
 
     override _.VisitTypeParameter context =
         context.typeParameter |> Node.toTerminal tokens |> Parameter
