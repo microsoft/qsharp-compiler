@@ -60,12 +60,14 @@ let ``Function with two parameters`` =
 }"""
 
 [<FixedPoint>]
-let ``Operation with Adj characteristic`` = """namespace Foo {
+let ``Operation with Adj characteristic`` =
+    """namespace Foo {
     operation Bar () : Unit is Adj {}
 }"""
 
 [<FixedPoint>]
-let ``Operation with Adj + Ctl characteristics`` = """namespace Foo {
+let ``Operation with Adj + Ctl characteristics`` =
+    """namespace Foo {
     operation Bar () : Unit is Adj + Ctl {}
 }"""
 
