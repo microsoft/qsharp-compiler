@@ -66,10 +66,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.Namespaces.OnNamespace(ns);
             }
 
-            foreach (var epName in this.Compilation.EntryPoints)
+            // Interop and Entry Point functions should only be generated for Exe projects.
+            if (!this.SharedState.IsLibrary)
             {
-                this.SharedState.CreateInteropFriendlyWrapper(epName);
-                this.SharedState.CreateEntryPoint(epName);
+                foreach (var epName in this.Compilation.EntryPoints)
+                {
+                    this.SharedState.CreateInteropFriendlyWrapper(epName);
+                    this.SharedState.CreateEntryPoint(epName);
+                }
             }
 
             this.SharedState.GenerateRequiredFunctions();

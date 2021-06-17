@@ -68,24 +68,6 @@ type NamespaceManager
 
         namespaces
 
-    /// Returns the full name of all entry points currently resolved in any of the tracked source files.
-    let GetEntryPoints () =
-        let entryPoints =
-            Namespaces.Values
-            |> Seq.collect
-                (fun ns ->
-                    ns.CallablesDefinedInAllSources()
-                    |> Seq.choose
-                        (fun kvPair ->
-                            let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
-
-                            if decl.ResolvedAttributes |> Seq.exists BuiltIn.MarksEntryPoint then
-                                Some({ Namespace = ns.Name; Name = cName }, source)
-                            else
-                                None))
-
-        entryPoints.ToImmutableArray()
-
     /// <summary>
     /// If a namespace with the given name exists, returns that namespace
     /// as well as all imported namespaces for that namespace in the given source file.

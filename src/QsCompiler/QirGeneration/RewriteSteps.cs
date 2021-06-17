@@ -74,7 +74,8 @@ namespace Microsoft.Quantum.QsCompiler
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             transformed = compilation;
-            using (var generationContext = new GenerationContext(compilation.Namespaces))
+            var isLibrary = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QsharpOutputType, out var outputType) && string.Equals(outputType, ReservedKeywords.AssemblyConstants.QsharpLibrary);
+            using (var generationContext = new GenerationContext(compilation.Namespaces, isLibrary))
             {
                 var generator = new Generator(transformed, generationContext);
                 generator.Apply();

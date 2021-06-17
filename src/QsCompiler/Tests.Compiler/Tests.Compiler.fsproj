@@ -213,6 +213,12 @@
     <Content Include="TestCases\QirTests\TestIntegers.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestLibraryGeneration.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestLibraryGeneration.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestLocalCallables1.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

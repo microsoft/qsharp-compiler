@@ -247,3 +247,16 @@ let ``QIR targeting`` () =
         |> Seq.toArray
 
     customTest "TestTargeting" compilerArgs [ "TestTargeting" ]
+
+[<Fact>]
+let ``QIR Library generation`` () =
+    let compilerArgs =
+        [
+            "--assembly-properties"
+            "QSharpOutputType:QSharpLibrary"
+        ]
+        |> Seq.append (compilerArgs true "TestLibraryGeneration")
+        |> Seq.filter (fun arg -> arg <> "--build-exe")
+        |> Seq.toArray
+    customTest "TestLibraryGeneration" compilerArgs [ "TestLibraryGeneration" ]
+    // qirTest false "TestLibraryGeneration"
