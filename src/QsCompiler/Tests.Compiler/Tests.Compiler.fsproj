@@ -213,7 +213,13 @@
     <Content Include="TestCases\QirTests\TestIntegers.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestLibraryGeneration.ll">
+    <Content Include="TestCases\QirTests\TestLibraryGeneration1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestLibraryGeneration2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestLibraryGeneration3.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestLibraryGeneration.qs">
