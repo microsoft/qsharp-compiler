@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.16.2105140327-beta">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/1.0.3">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -24,6 +24,7 @@
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
+    <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) QirOutputPath:"qir"</_QscCommandPredefinedAssemblyProperties>
   </PropertyGroup>
     
   <ItemGroup>
@@ -64,7 +65,10 @@
       <Compile Include="Main.cs">
         <Visible>false</Visible>
       </Compile>
+      <_QirOutputFiles Include="$(QirOutputPath)**" />    
     </ItemGroup>
+    <Error Condition="!Exists($(QirOutputPath))" Text="QIR output folder was not created." />
+    <Error Condition="@(_QirOutputFiles->Count()) &lt; 1" Text="QIR output files (.ll) were not created." />  
   </Target>
 
 </Project>
