@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/1.0.3">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.16.2105140327-beta">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -67,8 +67,11 @@
       </Compile>
       <_QirOutputFiles Include="$(QirOutputPath)**" />    
     </ItemGroup>
+    <!--
+    TODO: update Sdk version and uncomment these
     <Error Condition="!Exists($(QirOutputPath))" Text="QIR output folder was not created." />
-    <Error Condition="@(_QirOutputFiles->Count()) &lt; 1" Text="QIR output files (.ll) were not created." />  
+    <Error Condition="@(_QirOutputFiles->Count()) &lt; 1" Text="QIR output files (.ll) were not created." />
+    -->
   </Target>
 
 </Project>
