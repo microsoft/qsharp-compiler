@@ -7,10 +7,10 @@ using System;
 
 namespace LLVMSharp.Interop
 {
-    /// <summary>Extensions for the LLVMSharp.Interop.LLVMMemoryBufferRef class.</summary>
+    /// <summary>Extensions for <see cref="LLVMMemoryBufferRef"/>.</summary>
     public static unsafe class LLVMMemoryBufferRefExtensions
     {
-        /// <summary>Convenience wrapper for LLVM.GetErrorMessage.</summary>
+        /// <summary>Convenience wrapper for <see cref="LLVM.DisposeMemoryBuffer"/>.</summary>
         public static void Close(this LLVMMemoryBufferRef self)
         {
             LLVM.DisposeMemoryBuffer(self);

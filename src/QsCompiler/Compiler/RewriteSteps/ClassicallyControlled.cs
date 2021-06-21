@@ -47,7 +47,11 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
                 BuiltIn.ApplyIfElseR.FullName,
                 BuiltIn.ApplyIfElseRA.FullName,
                 BuiltIn.ApplyIfElseRC.FullName,
-                BuiltIn.ApplyIfElseRCA.FullName);
+                BuiltIn.ApplyIfElseRCA.FullName,
+                BuiltIn.ApplyConditionally.FullName,
+                BuiltIn.ApplyConditionallyA.FullName,
+                BuiltIn.ApplyConditionallyC.FullName,
+                BuiltIn.ApplyConditionallyCA.FullName);
 
             if (!this.CheckForRequired(compilation, BuiltIn.ClassicallyControlledNamespace, classicallyControlledRequired))
             {

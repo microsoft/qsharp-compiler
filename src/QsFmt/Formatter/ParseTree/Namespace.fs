@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 
+open Microsoft.Quantum.QsFmt.Formatter.ParseTree.Type
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
@@ -70,6 +71,8 @@ type NamespaceItemVisitor(tokens) =
                     Colon = context.callable.colon |> Node.toTerminal tokens
                     Type = typeVisitor.Visit context.callable.returnType
                 }
+            CharacteristicSection =
+                Option.ofObj context.callable.returnChar |> Option.map (toCharacteristicSection tokens)
             Block =
                 {
                     OpenBrace = scope.openBrace |> Node.toTerminal tokens

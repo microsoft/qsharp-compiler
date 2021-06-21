@@ -9,6 +9,7 @@ type CallableDeclaration =
         Name: Terminal
         Parameters: SymbolBinding
         ReturnType: TypeAnnotation
+        CharacteristicSection: CharacteristicSection Option
         Block: Statement Block
     }
 
