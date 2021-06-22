@@ -43,6 +43,7 @@ type 'context Rewriter() =
     default rewriter.CallableDeclaration(context, callable) =
         {
             Attributes = callable.Attributes |> List.map (curry rewriter.Attribute context)
+            Access = callable.Access |> Option.map (curry rewriter.Terminal context)
             CallableKeyword = rewriter.Terminal(context, callable.CallableKeyword)
             Name = rewriter.Terminal(context, callable.Name)
             TypeParameters = callable.TypeParameters |> Option.map (curry rewriter.TypeParameterBinding context)

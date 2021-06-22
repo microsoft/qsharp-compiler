@@ -44,6 +44,7 @@ type internal 'result Reducer() as reducer =
     default _.CallableDeclaration callable =
         [
             callable.Attributes |> List.map reducer.Attribute
+            callable.Access |> Option.map reducer.Terminal |> Option.toList
             [ reducer.Terminal callable.CallableKeyword; reducer.Terminal callable.Name ]
             callable.TypeParameters |> Option.map reducer.TypeParameterBinding |> Option.toList
             [

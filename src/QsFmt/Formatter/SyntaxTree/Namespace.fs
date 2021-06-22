@@ -25,6 +25,7 @@ type CallableBody =
 type CallableDeclaration =
     {
         Attributes: Attribute list
+        Access: Terminal option
         CallableKeyword: Terminal
         Name: Terminal
         TypeParameters: TypeParameterBinding option

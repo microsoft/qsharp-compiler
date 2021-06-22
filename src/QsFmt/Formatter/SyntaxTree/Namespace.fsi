@@ -59,6 +59,9 @@ type internal CallableDeclaration =
         /// The attributes attached to the callable.
         Attributes: Attribute list
 
+        /// The access modifier for the callable.
+        Access: Terminal option
+
         /// <summary>
         /// The declaration keyword (either <c>function</c> or <c>operation</c>).
         /// </summary>
