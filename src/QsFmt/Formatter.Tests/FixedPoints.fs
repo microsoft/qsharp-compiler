@@ -28,7 +28,7 @@ let private testCases () =
     |> Seq.filter isValidSyntax
     |> Seq.map (Array.create 1)
 
-[<Theory(Skip = "Not supported.")>]
+[<Theory>]
 [<MemberData "testCases">]
 let ``Identity preserves original source code`` source =
     Assert.Equal(Ok source |> ShowResult, Formatter.identity source |> ShowResult)
