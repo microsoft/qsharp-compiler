@@ -57,6 +57,16 @@ let ``Function with two parameters`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Operation with Adj characteristic`` = """namespace Foo {
+    operation Bar () : Unit is Adj {}
+}"""
+
+[<FixedPoint>]
+let ``Operation with Adj + Ctl characteristics`` = """namespace Foo {
+    operation Bar () : Unit is Adj + Ctl {}
+}"""
+
+[<FixedPoint>]
 let ``Entry point and using statement`` = """namespace Microsoft.Quantum.Foo {
     @EntryPoint()
     operation RunProgram (nQubits : Int) : Unit {

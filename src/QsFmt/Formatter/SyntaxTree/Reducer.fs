@@ -49,8 +49,9 @@ type internal 'result Reducer() as reducer =
             [
                 reducer.SymbolBinding callable.Parameters
                 reducer.TypeAnnotation callable.ReturnType
-                reducer.CallableBody callable.Body
             ]
+            callable.CharacteristicSection |> Option.map reducer.CharacteristicSection |> Option.toList
+            [ reducer.CallableBody callable.Body ]
         ]
         |> List.concat
         |> reduce

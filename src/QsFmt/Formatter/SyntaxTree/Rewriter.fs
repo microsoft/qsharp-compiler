@@ -48,6 +48,8 @@ type 'context Rewriter() =
             TypeParameters = callable.TypeParameters |> Option.map (curry rewriter.TypeParameterBinding context)
             Parameters = rewriter.SymbolBinding(context, callable.Parameters)
             ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
+            CharacteristicSection =
+                callable.CharacteristicSection |> Option.map (curry rewriter.CharacteristicSection context)
             Body = rewriter.CallableBody(context, callable.Body)
         }
 
