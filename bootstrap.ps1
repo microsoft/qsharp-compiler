@@ -60,7 +60,7 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#SEMVER_VERSION#", $SemverVersion).
                     Replace("#ENABLE_TELEMETRY#", $Telemetry)
             } `
-            | Set-Content $Target 
+            | Set-Content $Target
     }
 
 If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }
@@ -68,6 +68,14 @@ If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
 If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
 If ($Env:VSVSIX_VERSION -eq $null) { $Env:VSVSIX_VERSION ="$VsVsixVersion" }
 Write-Host "##vso[task.setvariable variable=VsVsix.Version]$VsVsixVersion"
+
+# Make sure that npm is up to date, as is required by our VS Code extension
+# build. We only want to do this when running on an agent, however, so as to
+# not modify local build environments in surprising ways.
+$IsCI = "$Env:TF_BUILD" -ne "" -or "$Env:CI" -eq "true";
+if ($IsCI) {
+    npm install -g npm@latest
+}
 
 Write-Host "##[info]Finding NuSpec references..."
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
