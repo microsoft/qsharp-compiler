@@ -74,10 +74,12 @@ type ParameterVisitor(tokens) =
 
     let typeVisitor = TypeVisitor tokens
 
-    override _.DefaultResult = failwith "Unknown symbol binding."
+    override _.DefaultResult = failwith "Unknown parameter symbol binding."
 
-    override visitor.VisitNamedParameter context =
-        context.namedItem () |> visitor.VisitNamedItem
+    override visitor.VisitNamedParameter context = context.namedItem () |> visitor.Visit
+
+    override visitor.VisitTupledParameter context =
+        context.parameterTuple () |> visitor.Visit
 
     override _.VisitNamedItem context =
         {
