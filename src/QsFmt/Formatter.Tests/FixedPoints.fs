@@ -182,3 +182,11 @@ let ``Explicit body and controlled specializations`` = """namespace Foo {
     }
 }
 """
+
+[<FixedPoint>]
+let ``Discard symbol`` = """namespace Foo {
+    function Bar() : Unit {
+        let _ = 0;
+    }
+}
+"""

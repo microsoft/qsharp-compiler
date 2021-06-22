@@ -14,6 +14,9 @@ type SymbolBindingVisitor(tokens) =
 
     override _.DefaultResult = failwith "Unknown symbol binding."
 
+    override _.VisitDiscardSymbol context =
+        { Name = context.discard |> Node.toTerminal tokens; Type = None } |> SymbolDeclaration
+
     override _.VisitSymbolName context =
         { Name = context.name |> Node.toTerminal tokens; Type = None } |> SymbolDeclaration
 

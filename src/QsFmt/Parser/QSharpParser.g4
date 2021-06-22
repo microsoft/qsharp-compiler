@@ -164,7 +164,7 @@ statement
 scope : openBrace=BraceLeft statements+=statement* closeBrace=BraceRight;
 
 symbolBinding
-    : '_' # DiscardSymbol
+    : discard='_' # DiscardSymbol
     | name=Identifier # SymbolName
     | openParen='(' (bindings+=symbolBinding (commas+=',' bindings+=symbolBinding)* ','?)? closeParen=')' # SymbolTuple
     ;
