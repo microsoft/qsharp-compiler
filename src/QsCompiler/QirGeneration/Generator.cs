@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -37,8 +36,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Instantiates a transformation capable of emitting QIR for the given compilation.
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
-        public Generator(QsCompilation compilation)
-        : base(new GenerationContext(compilation.Namespaces), TransformationOptions.NoRebuild)
+        public Generator(QsCompilation compilation, GenerationContext context)
+        : base(context, TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
 
@@ -46,7 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);
             this.ExpressionKinds = new QirExpressionKindTransformation(this, TransformationOptions.NoRebuild);
-            this.Types = new QirTypeTransformation(this, TransformationOptions.NoRebuild);
+            this.Types = new TypeTransformation<GenerationContext>(this, TransformationOptions.Disabled);
 
             // needs to be *after* the proper subtransformations are set
             this.SharedState.SetTransformation(this, out var runtimeLibrary, out var quantumInstructionSet);

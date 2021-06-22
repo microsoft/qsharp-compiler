@@ -4,6 +4,8 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using Microsoft.Quantum.QsCompiler.QIR;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
@@ -111,10 +113,12 @@ namespace Microsoft.Quantum.QIR
 
         internal IArrayType CallableMemoryManagementTable { get; }
 
-        // constructor
-        internal Types(Context context)
+        internal QirTypeTransformation Transform { get; }
+
+        internal Types(Context context, Func<QsQualifiedName, QsCustomType?> getTypeDecl)
         {
             this.context = context;
+            this.Transform = new QirTypeTransformation(this, getTypeDecl);
 
             this.Int = context.Int64Type;
             this.Double = context.DoubleType;
@@ -161,6 +165,16 @@ namespace Microsoft.Quantum.QIR
         /// </summary>
         internal IPointerType DataArrayPointer =>
             this.context.Int8Type.CreatePointerType();
+
+        /// <summary>
+        /// Generic pointer used to pass values of unknown type that need to be cast before use.
+        /// </summary>
+        internal IPointerType BytePointer =>
+            this.context.Int8Type.CreatePointerType();
+
+        /// <inheritdoc cref="Interop.MapToInteropType(Context, ITypeRef)"/>
+        internal ITypeRef? InteropType(ResolvedType type) =>
+            Interop.MapToInteropType(this.context, this.Transform.LlvmTypeFromQsharpType(type));
 
         // public members
 

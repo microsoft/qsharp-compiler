@@ -14,6 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     internal class SyntaxTreeTrimming : IRewriteStep
     {
         private readonly bool keepAllIntrinsics;
+        private readonly IEnumerable<QsQualifiedName>? dependencies;
 
         public string Name => "Syntax Tree Trimming";
 
@@ -33,16 +34,17 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// Constructor for the SyntaxTreeTrimming Rewrite Step.
         /// </summary>
         /// <param name="keepAllIntrinsics">When true, intrinsics will not be removed as part of the rewrite step.</param>
-        public SyntaxTreeTrimming(bool keepAllIntrinsics = true)
+        public SyntaxTreeTrimming(bool keepAllIntrinsics = true, IEnumerable<QsQualifiedName>? dependencies = null)
         {
             this.keepAllIntrinsics = keepAllIntrinsics;
+            this.dependencies = dependencies;
         }
 
         public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any();
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = TrimSyntaxTree.Apply(compilation, this.keepAllIntrinsics);
+            transformed = TrimSyntaxTree.Apply(compilation, this.keepAllIntrinsics, this.dependencies);
             return true;
         }
 
