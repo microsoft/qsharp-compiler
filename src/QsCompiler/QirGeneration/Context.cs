@@ -10,7 +10,6 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Instructions;
@@ -94,7 +93,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
         internal InstructionBuilder CurrentBuilder { get; private set; }
-        internal ITypeRef? BuiltType { get; set; }
 
         internal ScopeManager ScopeMgr { get; }
         internal Stack<IValue> ValueStack { get; }
@@ -179,10 +177,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         internal GenerationContext(IEnumerable<QsNamespace> syntaxTree)
         {
+            this.globalCallables = syntaxTree.GlobalCallableResolutions();
+            this.globalTypes = syntaxTree.GlobalTypeResolutions();
+
             this.Context = new Context();
             this.Module = this.Context.CreateBitcodeModule();
 
-            this.Types = new Types(this.Context);
+            this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.Types);
             this.Values = new QirValues(this, this.Constants);
             this.Functions = new Functions(this);
@@ -193,9 +194,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.ExpressionTypeStack = new Stack<ResolvedType>();
             this.inlineLevels = new Stack<IValue>();
             this.ScopeMgr = new ScopeManager(this);
-
-            this.globalCallables = syntaxTree.GlobalCallableResolutions();
-            this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
             this.runtimeLibrary = new FunctionLibrary(
                 this.Module,
@@ -1463,38 +1461,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal ITypeRef CurrentLlvmExpressionType() =>
             this.LlvmTypeFromQsharpType(this.ExpressionTypeStack.Peek());
 
-        /// <summary>
-        /// Gets the QIR equivalent for a Q# type.
-        /// Tuples are represented as QirTuplePointer, arrays as QirArray, and callables as QirCallable.
-        /// </summary>
-        /// <param name="resolvedType">The Q# type</param>
-        /// <returns>The equivalent QIR type</returns>
-        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType)
-        {
-            this.BuiltType = null;
-            this.Transformation.Types.OnType(resolvedType);
-            return this.BuiltType ?? throw new NotImplementedException(
-                $"Llvm type for {SyntaxTreeToQsharp.Default.ToCode(resolvedType)} could not be constructed.");
-        }
-
-        /// <summary>
-        /// Gets the QIR equivalent for a Q# type, as a structure.
-        /// Tuples are represented as an anonymous LLVM structure type with a TupleHeader as the first element.
-        /// Other types are represented as anonymous LLVM structure types with a TupleHeader in the first element
-        /// and the "normal" converted type as the second element.
-        /// </summary>
-        /// <param name="resolvedType">The Q# type</param>
-        /// <returns>The equivalent QIR structure type</returns>
-        internal IStructType LlvmStructTypeFromQsharpType(ResolvedType resolvedType) =>
-            resolvedType.Resolution is ResolvedTypeKind.TupleType tuple
-                ? this.CreateConcreteTupleType(tuple.Item)
-                : this.CreateConcreteTupleType(new[] { resolvedType });
-
-        /// <summary>
-        /// Creates the concrete type of a QIR tuple value that contains items of the given types.
-        /// </summary>
-        internal IStructType CreateConcreteTupleType(IEnumerable<ResolvedType> items) =>
-            this.Types.TypedTuple(items.Select(this.LlvmTypeFromQsharpType));
+        /// <inheritdoc cref="QirTypeTransformation.LlvmTypeFromQsharpType(ResolvedType)"/>
+        internal ITypeRef LlvmTypeFromQsharpType(ResolvedType resolvedType) =>
+            this.Types.Transform.LlvmTypeFromQsharpType(resolvedType);
 
         /// <summary>
         /// Computes the size in bytes of an LLVM type as an LLVM value.

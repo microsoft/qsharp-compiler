@@ -74,8 +74,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
+            using var generationContext = new GenerationContext(compilation.Namespaces);
             transformed = compilation;
-            var generator = new Generator(transformed);
+            var generator = new Generator(transformed, generationContext);
             generator.Apply();
 
             // write generated QIR to disk
