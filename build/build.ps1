@@ -48,6 +48,11 @@ function Build-One {
 ##
 function Build-VSCode() {
     Write-Host "##[info]Building VS Code extension..."
+    @{
+        "npm" = (npm --version);
+        "node" = (node --version);
+    } | Format-Table | Write-Output;
+
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
         Try {
