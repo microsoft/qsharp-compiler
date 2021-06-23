@@ -141,7 +141,7 @@ type NamespaceItemVisitor(tokens) =
     override _.VisitCallableElement context =
         {
             Attributes =
-                context.callable.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> List.ofSeq
+                context.callable.prefix._attributes |> Seq.map (NamespaceContext.toAttribute tokens) |> Seq.toList
             Access = context.callable.prefix.access () |> Option.ofObj |> Option.map (Node.toUnknown tokens)
             CallableKeyword = context.callable.keyword |> Node.toTerminal tokens
             Name = context.callable.name |> Node.toTerminal tokens
