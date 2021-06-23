@@ -61,7 +61,7 @@ namedItem : name=Identifier colon=':' itemType=type;
 callableDeclaration
     : declarationPrefix keyword=('function' | 'operation')
       name=Identifier typeParameterBinding? tuple=parameterTuple
-      colon=':' returnType=type characteristics?
+      colon=':' returnType=type returnChar=characteristics?
       body=callableBody
     ;
 
@@ -74,14 +74,14 @@ parameter
     | parameterTuple # TupledParameter
     ;
 
-characteristics : 'is' characteristicsExpression;
+characteristics : is='is' charExp=characteristicsExpression;
 
 characteristicsExpression
-    : 'Adj'
-    | 'Ctl'
-    | '(' characteristicsExpression ')'
-    | characteristicsExpression '*' characteristicsExpression
-    | characteristicsExpression '+' characteristicsExpression
+    : 'Adj' # AdjointCharacteristics
+    | 'Ctl' # ControlledCharacteristics
+    | openParen='(' charExp=characteristicsExpression closeParen=')' # CharacteristicGroup
+    | left=characteristicsExpression '*' right=characteristicsExpression # IntersectCharacteristics
+    | left=characteristicsExpression '+' right=characteristicsExpression # UnionCharacteristics
     ;
 
 callableBody
@@ -119,10 +119,10 @@ specializationParameter
 
 type
     : '_' # MissingType
-    | '(' (type (',' type)* ','?)? ')' # TupleType
-    | TypeParameter # TypeParameter
-    | type '[' ']' # ArrayType
-    | type ('->' | '=>') type characteristics? # CallableType
+    | openParen='(' (items+=type (commas+=',' items+=type)* commas+=','?)? closeParen=')' # TupleType
+    | typeParameter=TypeParameter # TypeParameter
+    | itemType=type openBracket='[' closeBracket=']' # ArrayType
+    | fromType=type arrow=('->' | '=>') toType=type character=characteristics? # CallableType
     | 'BigInt' # BigIntType
     | 'Bool' # BoolType
     | 'Double' # DoubleType
