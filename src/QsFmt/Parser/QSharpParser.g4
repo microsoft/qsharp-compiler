@@ -119,10 +119,10 @@ specializationParameter
 
 type
     : '_' # MissingType
-    | '(' (type (',' type)* ','?)? ')' # TupleType
-    | TypeParameter # TypeParameter
-    | type '[' ']' # ArrayType
-    | type ('->' | '=>') type characteristics? # CallableType
+    | openParen='(' (items+=type (commas+=',' items+=type)* commas+=','?)? closeParen=')' # TupleType
+    | typeParameter=TypeParameter # TypeParameter
+    | itemType=type openBracket='[' closeBracket=']' # ArrayType
+    | fromType=type arrow=('->' | '=>') toType=type character=characteristics? # CallableType
     | 'BigInt' # BigIntType
     | 'Bool' # BoolType
     | 'Double' # DoubleType
