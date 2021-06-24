@@ -2245,7 +2245,7 @@ namespace N1
         false |> testOne randomOperation
 
     let testOneClass (_, op: QsCallable) executionTarget (expected: string) =
-        let expected = expected.Replace("%%%", HttpUtility.JavaScriptStringEncode op.Source.CodeFile)
+        let expected = expected.Replace("%%%", HttpUtility.JavaScriptStringEncode op.Source.AssemblyOrCodeFile)
 
         let assemblyConstants =
             new Collections.Generic.KeyValuePair<_, _>(AssemblyConstants.ProcessorArchitecture, executionTarget)

@@ -90,7 +90,7 @@ type Emitter() =
 
                 let entryPointCallables = compilation.EntryPoints |> Seq.map (fun ep -> context.allCallables.[ep])
 
-                let entryPointSources = entryPointCallables |> Seq.groupBy (fun ep -> ep.Source.CodeFile)
+                let entryPointSources = entryPointCallables |> Seq.groupBy (fun ep -> ep.Source.AssemblyOrCodeFile)
 
                 let mainSourceFile =
                     (dir, "EntryPoint") |> Path.Combine |> Path.GetFullPath |> Uri |> CompilationUnitManager.GetFileId
