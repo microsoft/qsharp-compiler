@@ -148,26 +148,31 @@ let ``Array literal`` =
 }"""
 
 [<FixedPoint>]
-let ``Missing type`` = """namespace Foo {
+let ``Missing type`` =
+    """namespace Foo {
     function Bar (arg : _) : Unit {}
 }"""
 
 [<FixedPoint>]
-let ``Type parameter`` = """namespace Foo {
+let ``Type parameter`` =
+    """namespace Foo {
     function Bar (arg : 't) : Unit {}
 }"""
 
 [<FixedPoint>]
-let ``Tuple type`` = """namespace Foo {
+let ``Tuple type`` =
+    """namespace Foo {
     function Bar (arg : (BigInt, Bool, (Double, Int))) : Pauli {}
 }"""
 
 [<FixedPoint>]
-let ``Array type`` = """namespace Foo {
+let ``Array type`` =
+    """namespace Foo {
     function Bar (arg : Qubit[]) : Range {}
 }"""
 
 [<FixedPoint>]
-let ``Function type`` = """namespace Foo {
+let ``Function type`` =
+    """namespace Foo {
     function Bar (arg : Result => String is Adj) : Unit {}
 }"""

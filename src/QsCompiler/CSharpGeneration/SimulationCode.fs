@@ -1662,7 +1662,10 @@ module SimulationCode =
 
         let methods =
             match op.Location with
-            | Value location -> [ buildUnitTest targetName opName location.Offset.Line op.Source.AssemblyOrCodeFile ]
+            | Value location ->
+                [
+                    buildUnitTest targetName opName location.Offset.Line op.Source.AssemblyOrCodeFile
+                ]
             // TODO: diagnostics
             | Null -> failwith "missing location for unit test"
 
