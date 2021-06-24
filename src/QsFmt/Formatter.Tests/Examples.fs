@@ -62,7 +62,7 @@ let ``Removes extraneous spaces`` =
     """namespace     Foo {
     function Bar() : Int [     ] {
         let x= // Newlines are preserved.
-            (7 -   1) // Comments too.
+            (7 *   1) // Comments too.
             + 4;
         return  x w/ Foo <- (7, y);
     }
@@ -71,7 +71,7 @@ let ``Removes extraneous spaces`` =
     """namespace Foo {
     function Bar() : Int [ ] {
         let x = // Newlines are preserved.
-            (7 - 1) // Comments too.
+            (7 * 1) // Comments too.
             + 4;
         return x w/ Foo <- (7, y);
     }
