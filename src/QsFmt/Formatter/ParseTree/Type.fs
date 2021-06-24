@@ -41,6 +41,13 @@ type CharacteristicVisitor(tokens) =
         }
         |> Characteristic.BinaryOperator
 
+module Type =
+    let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
+        {
+            IsKeyword = context.is |> Node.toTerminal tokens
+            Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
+        }
+
 type TypeVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Type>()
 
@@ -49,16 +56,70 @@ type TypeVisitor(tokens) =
     override _.VisitChildren node =
         Node.toUnknown tokens node |> Type.Unknown
 
+    override _.VisitMissingType context =
+        context.Underscore().Symbol |> Node.toTerminal tokens |> Type.Missing
+
+    override _.VisitBigIntType context =
+        context.BigInt().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitBoolType context =
+        context.Bool().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitDoubleType context =
+        context.Double().Symbol |> Node.toTerminal tokens |> BuiltIn
+
     override _.VisitIntType context =
         context.Int().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitPauliType context =
+        context.Pauli().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitQubitType context =
+        context.Qubit().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitRangeType context =
+        context.Range().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitResultType context =
+        context.Result().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitStringType context =
+        context.String().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitUnitType context =
+        context.Unit().Symbol |> Node.toTerminal tokens |> BuiltIn
+
+    override _.VisitTypeParameter context =
+        context.typeParameter |> Node.toTerminal tokens |> Parameter
 
     override _.VisitUserDefinedType context =
         { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
         |> UserDefined
 
-module Type =
-    let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
+    override visitor.VisitTupleType context =
+        let items = context._items |> Seq.map visitor.Visit
+        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+
         {
-            IsKeyword = context.is |> Node.toTerminal tokens
-            Characteristic = (CharacteristicVisitor tokens).Visit context.charExp
+            OpenParen = context.openParen |> Node.toTerminal tokens
+            Items = Node.tupleItems items commas
+            CloseParen = context.closeParen |> Node.toTerminal tokens
         }
+        |> Type.Tuple
+
+    override visitor.VisitArrayType context =
+        {
+            ItemType = visitor.Visit context.itemType
+            OpenBracket = context.openBracket |> Node.toTerminal tokens
+            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+        }
+        |> Array
+
+    override visitor.VisitCallableType context =
+        {
+            FromType = visitor.Visit context.fromType
+            Arrow = context.arrow |> Node.toTerminal tokens
+            ToType = visitor.Visit context.toType
+            Characteristics = Option.ofObj context.character |> Option.map (Type.toCharacteristicSection tokens)
+        }
+        |> Type.Callable
