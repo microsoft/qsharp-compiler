@@ -100,11 +100,22 @@ export async function activate(context: vscode.ExtensionContext) {
 
     // Start the language server client.
     let languageServer = new LanguageServer(context, rootFolder);
-    await languageServer
+    languageServer
         .start()
+        // By setting a catch handler but not awaiting or setting a then, we
+        // explicitly tell Node's promise resolver to run this promise in the
+        // background. This technique is used, for example, in the python-vscode
+        // extension to ignore activation errors:
+        //
+        //     https://github.com/microsoft/vscode-python/blob/3698950c97982f31bb9dbfc19c4cd8308acda284/src/client/common/extensions.ts#L96
+        //
+        // As a result, we intentionally do not await this promise.
         .catch(
             err => {
                 console.log(`[qsharp-lsp] Language server failed to start: ${err}`);
+                sendTelemetryEvent(EventNames.activationError, {
+                    reason: err
+                });
                 let reportFeedbackItem = "Report feedback...";
                 vscode.window.showErrorMessage(
                     `Language server failed to start: ${err}`,

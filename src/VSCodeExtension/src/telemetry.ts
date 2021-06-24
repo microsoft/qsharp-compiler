@@ -29,6 +29,10 @@ export namespace EventNames {
     export const lspReady = "lsp-ready";
     export const lspStopped = "lsp-stopped";
     export const error = "error";
+    // We track errors in deferred activation separately, since the
+    // properties available for tracking errors at that point are not the
+    // same as when we know an exact exception type.
+    export const activationError = "activation-error";
 }
 
 // @ts-ignore
