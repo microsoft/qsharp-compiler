@@ -24,6 +24,12 @@ type ExpressionVisitor(tokens) =
     override _.VisitIntegerExpression context =
         context.value |> Node.toTerminal tokens |> Literal
 
+    override _.VisitBigIntegerExpression context =
+        context.value |> Node.toTerminal tokens |> Literal
+
+    override _.VisitDoubleExpression context =
+        context.value |> Node.toTerminal tokens |> Literal
+
     override visitor.VisitTupleExpression context =
         let expressions = context._items |> Seq.map visitor.Visit
 
@@ -36,7 +42,39 @@ type ExpressionVisitor(tokens) =
         }
         |> Tuple
 
+    override visitor.VisitExponentExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override visitor.VisitMultiplyExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
     override visitor.VisitAddExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override visitor.VisitShiftExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override visitor.VisitCompareExpression context =
         {
             Left = visitor.Visit context.left
             Operator = context.operator |> Node.toTerminal tokens
@@ -51,6 +89,57 @@ type ExpressionVisitor(tokens) =
             Right = visitor.Visit context.right
         }
         |> BinaryOperator
+
+    override visitor.VisitBitwiseAndExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override visitor.VisitBitwiseXorExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override visitor.VisitBitwiseOrExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override visitor.VisitAndExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override visitor.VisitOrExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override visitor.VisitRangeExpression context =
+        {
+            Left = visitor.Visit context.left
+            Operator = context.operator |> Node.toTerminal tokens
+            Right = visitor.Visit context.right
+        }
+        |> BinaryOperator
+
+    override _.VisitOpenRangeExpression context =
+        context.Ellipsis().Symbol |> Node.toTerminal tokens |> Missing
 
     override visitor.VisitUpdateExpression context =
         {

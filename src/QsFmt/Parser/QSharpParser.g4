@@ -200,8 +200,8 @@ expression
     : '_' # MissingExpression
     | name=qualifiedName ('<' (type (',' type)* ','?)? '>')? # IdentifierExpression
     | value=IntegerLiteral # IntegerExpression
-    | BigIntegerLiteral # BigIntegerExpression
-    | DoubleLiteral # DoubleExpression
+    | value=BigIntegerLiteral # BigIntegerExpression
+    | value=DoubleLiteral # DoubleExpression
     | DoubleQuote stringContent* StringDoubleQuote # StringExpression
     | DollarQuote interpStringContent* InterpDoubleQuote # InterpStringExpression
     | boolLiteral # BoolExpression
@@ -216,19 +216,19 @@ expression
     | <assoc=right> 'Adjoint' expression # AdjointExpression
     | expression '(' (expression (',' expression)* ','?)? ')' # CallExpression
     | <assoc=right> ('-' | 'not' | '~~~') expression # NegationExpression
-    | <assoc=right> expression '^' expression # ExponentExpression
-    | expression ('*' | '/' | '%') expression # MultiplyExpression
+    | <assoc=right> left=expression operator='^' right=expression # ExponentExpression
+    | left=expression operator=('*' | '/' | '%') right=expression # MultiplyExpression
     | left=expression operator=('+' | '-') right=expression # AddExpression
-    | expression ('>>>' | '<<<') expression # ShiftExpression
-    | expression ('>' | '<' | '>=' | '<=') expression # CompareExpression
+    | left=expression operator=('>>>' | '<<<') right=expression # ShiftExpression
+    | left=expression operator=('>' | '<' | '>=' | '<=') right=expression # CompareExpression
     | left=expression operator=('==' | '!=') right=expression # EqualsExpression
-    | expression '&&&' expression # BitwiseAndExpression
-    | expression '^^^' expression # BitwiseXorExpression
-    | expression '|||' expression # BitwiseOrExpression
-    | expression 'and' expression # AndExpression
-    | expression 'or' expression # OrExpression
+    | left=expression operator='&&&' right=expression # BitwiseAndExpression
+    | left=expression operator='^^^' right=expression # BitwiseXorExpression
+    | left=expression operator='|||' right=expression # BitwiseOrExpression
+    | left=expression operator='and' right=expression # AndExpression
+    | left=expression operator='or' right=expression # OrExpression
     | <assoc=right> expression '?' expression '|' expression # ConditionalExpression
-    | expression '..' expression # RangeExpression
+    | left=expression operator='..' right=expression # RangeExpression
     | expression '...' # RightOpenRangeExpression
     | '...' expression # LeftOpenRangeExpression
     | '...' # OpenRangeExpression
