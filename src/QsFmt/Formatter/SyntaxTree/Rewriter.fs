@@ -176,12 +176,24 @@ type 'context Rewriter() =
         | Missing terminal -> rewriter.Terminal(context, terminal) |> Missing
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
+        | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
         | PrefixOperator operator -> rewriter.PrefixOperator(context, rewriter.Expression, operator) |> PrefixOperator
         | PostfixOperator operator -> rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
         | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
         | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
         | Update update -> rewriter.Update(context, update) |> Update
         | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
+
+    abstract NewArray : context: 'context * newArray: NewArray -> NewArray
+
+    default rewriter.NewArray(context, newArray) =
+        {
+            New = rewriter.Terminal(context, newArray.New)
+            ArrayType = rewriter.Type(context, newArray.ArrayType)
+            OpenBracket = rewriter.Terminal(context, newArray.OpenBracket)
+            Length = rewriter.Expression(context, newArray.Length)
+            CloseBracket = rewriter.Terminal(context, newArray.CloseBracket)
+        }
 
     abstract Conditional : context: 'context * conditional: Conditional -> Conditional
 

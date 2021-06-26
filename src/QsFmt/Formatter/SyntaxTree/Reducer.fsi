@@ -132,6 +132,12 @@ type internal 'result Reducer =
     default Expression: expression:Expression -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="NewArray"/> expression node.
+    /// </summary>
+    abstract NewArray: newArray:NewArray -> 'result
+    default NewArray: newArray:NewArray -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Conditional"/> expression node.
     /// </summary>
     abstract Conditional: conditional:Conditional -> 'result

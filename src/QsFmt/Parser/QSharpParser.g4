@@ -209,7 +209,7 @@ expression
     | pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
-    | 'new' type '[' expression ']' # NewArrayExpression
+    | new='new' arrayType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
     | expression ('::' Identifier | '[' expression ']') # ItemAccessExpression
     | operand=expression operator='!' # UnwrapExpression
     | <assoc=right> functor='Controlled' operation=expression # ControlledExpression

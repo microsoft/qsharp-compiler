@@ -167,6 +167,13 @@ let ``Array expression`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``New array expression`` = """namespace Foo {
+    function Bar () : Int[] {
+        return new Int[3];
+    }
+}"""
+
+[<FixedPoint>]
 let ``Unwrap operator`` = """namespace Foo {
     function FetchFirst (tup: (Int, String)) : Int {
         let (first, second) = tup!;

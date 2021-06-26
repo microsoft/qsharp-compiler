@@ -3,7 +3,16 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-type Conditional =
+type NewArray =
+    {
+        New: Terminal
+        ArrayType: Type
+        OpenBracket: Terminal
+        Length: Expression
+        CloseBracket: Terminal
+    }
+
+and Conditional =
     {
         Condition: Expression
         Question: Terminal
@@ -25,6 +34,7 @@ and Expression =
     | Missing of Terminal
     | Literal of Terminal
     | Tuple of Expression Tuple
+    | NewArray of NewArray
     | PrefixOperator of Expression PrefixOperator
     | PostfixOperator of Expression PostfixOperator
     | BinaryOperator of Expression BinaryOperator

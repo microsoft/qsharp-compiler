@@ -9,6 +9,8 @@ open Microsoft.Quantum.QsFmt.Parser
 type ExpressionVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Expression>()
 
+    let typeVisitor = TypeVisitor tokens
+
     override _.DefaultResult = failwith "Unknown expression."
 
     override _.VisitChildren node =
@@ -53,6 +55,16 @@ type ExpressionVisitor(tokens) =
             CloseParen = context.closeBracket |> Node.toTerminal tokens
         }
         |> Tuple
+
+    override visitor.VisitNewArrayExpression context =
+        {
+            New = context.``new`` |> Node.toTerminal tokens
+            ArrayType = typeVisitor.Visit context.arrayType
+            OpenBracket = context.openBracket |> Node.toTerminal tokens
+            Length = visitor.Visit context.length
+            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+        }
+        |> NewArray
 
     override visitor.VisitUnwrapExpression context =
         {

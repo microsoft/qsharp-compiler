@@ -3,10 +3,33 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-/// A conditional expression.
-type internal Conditional =
+/// A new array expression.
+type internal NewArray =
     {
-        /// The condition
+        /// The `new` keyword.
+        New: Terminal
+
+        /// The type of the creating array.
+        ArrayType: Type
+
+        /// <summary>
+        /// The <c>[</c> symbol.
+        /// </summary>
+        OpenBracket: Terminal
+
+        /// The length of the creating array.
+        Length: Expression
+
+        /// <summary>
+        /// The <c>]</c> symbol.
+        /// </summary>
+        CloseBracket: Terminal
+    }
+
+/// A conditional expression.
+and internal Conditional =
+    {
+        /// The condition.
         Condition: Expression
 
         /// <summary>
@@ -57,6 +80,9 @@ and internal Expression =
 
     /// A tuple expression.
     | Tuple of Expression Tuple
+
+    /// A new array expression.
+    | NewArray of NewArray
 
     /// A prefix operator applied to an expression.
     | PrefixOperator of Expression PrefixOperator

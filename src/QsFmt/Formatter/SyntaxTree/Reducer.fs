@@ -186,12 +186,25 @@ type internal 'result Reducer() as reducer =
         | Missing terminal -> reducer.Terminal terminal
         | Literal literal -> reducer.Terminal literal
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
+        | NewArray newArray -> reducer.NewArray newArray
         | PrefixOperator operator -> reducer.PrefixOperator(reducer.Expression, operator)
         | PostfixOperator operator -> reducer.PostfixOperator(reducer.Expression, operator)
         | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
         | Conditional conditional -> reducer.Conditional conditional
         | Update update -> reducer.Update update
         | Expression.Unknown terminal -> reducer.Terminal terminal
+
+    abstract NewArray : newArray: NewArray -> 'result
+
+    default _.NewArray newArray =
+        [
+            reducer.Terminal newArray.New
+            reducer.Type newArray.ArrayType
+            reducer.Terminal newArray.OpenBracket
+            reducer.Expression newArray.Length
+            reducer.Terminal newArray.CloseBracket
+        ]
+        |> reduce
 
     abstract Conditional : conditional: Conditional -> 'result
 
