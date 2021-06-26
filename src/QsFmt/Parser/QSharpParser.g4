@@ -211,7 +211,7 @@ expression
     | '[' (expression (',' expression)* ','?)? ']' # ArrayExpression
     | 'new' type '[' expression ']' # NewArrayExpression
     | expression ('::' Identifier | '[' expression ']') # ItemAccessExpression
-    | expression '!' # UnwrapExpression
+    | operand=expression operator='!' # UnwrapExpression
     | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
     | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression
     | expression '(' (expression (',' expression)* ','?)? ')' # CallExpression

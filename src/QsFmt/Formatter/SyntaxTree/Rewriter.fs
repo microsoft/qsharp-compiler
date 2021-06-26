@@ -177,6 +177,7 @@ type 'context Rewriter() =
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
         | PrefixOperator operator -> rewriter.PrefixOperator(context, rewriter.Expression, operator) |> PrefixOperator
+        | PostfixOperator operator -> rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
         | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
         | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
         | Update update -> rewriter.Update(context, update) |> Update
@@ -235,8 +236,17 @@ type 'context Rewriter() =
 
     default rewriter.PrefixOperator(context, mapper, operator) =
         {
-            Operator = rewriter.Terminal(context, operator.Operator)
+            PrefixOperator = rewriter.Terminal(context, operator.PrefixOperator)
             Operand = mapper (context, operator.Operand)
+        }
+
+    abstract PostfixOperator :
+        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a PostfixOperator -> 'a PostfixOperator
+
+    default rewriter.PostfixOperator(context, mapper, operator) =
+        {
+            Operand = mapper (context, operator.Operand)
+            PostfixOperator = rewriter.Terminal(context, operator.PostfixOperator)
         }
 
     abstract BinaryOperator :

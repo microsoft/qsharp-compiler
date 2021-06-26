@@ -89,10 +89,20 @@ type internal 'a Tuple =
 type internal 'a PrefixOperator =
     {
         /// The operator.
-        Operator: Terminal
+        PrefixOperator: Terminal
 
         /// The operand.
         Operand: 'a
+    }
+
+/// A prefix operator. The operator is after the operand.
+type internal 'a PostfixOperator =
+    {
+        /// The operand.
+        Operand: 'a
+
+        /// The operator.
+        PostfixOperator: Terminal
     }
 
 /// A binary operator.

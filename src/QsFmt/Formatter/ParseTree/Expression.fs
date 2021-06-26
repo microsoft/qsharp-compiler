@@ -42,23 +42,30 @@ type ExpressionVisitor(tokens) =
         }
         |> Tuple
 
+    override visitor.VisitUnwrapExpression context =
+        {
+            Operand = visitor.Visit context.operand
+            PostfixOperator = context.operator |> Node.toTerminal tokens
+        }
+        |> PostfixOperator
+
     override visitor.VisitControlledExpression context =
         {
-            Operator = context.functor |> Node.toTerminal tokens
+            PrefixOperator = context.functor |> Node.toTerminal tokens
             Operand = visitor.Visit context.operation
         }
         |> PrefixOperator
 
     override visitor.VisitAdjointExpression context =
         {
-            Operator = context.functor |> Node.toTerminal tokens
+            PrefixOperator = context.functor |> Node.toTerminal tokens
             Operand = visitor.Visit context.operation
         }
         |> PrefixOperator
 
     override visitor.VisitNegationExpression context =
         {
-            Operator = context.operator |> Node.toTerminal tokens
+            PrefixOperator = context.operator |> Node.toTerminal tokens
             Operand = visitor.Visit context.operand
         }
         |> PrefixOperator
@@ -169,9 +176,16 @@ type ExpressionVisitor(tokens) =
         }
         |> Conditional
 
+    override visitor.VisitRightOpenRangeExpression context =
+        {
+            Operand = visitor.Visit context.left
+            PostfixOperator = context.ellipsis |> Node.toTerminal tokens
+        }
+        |> PostfixOperator
+
     override visitor.VisitLeftOpenRangeExpression context =
         {
-            Operator = context.ellipsis |> Node.toTerminal tokens
+            PrefixOperator = context.ellipsis |> Node.toTerminal tokens
             Operand = visitor.Visit context.right
         }
         |> PrefixOperator

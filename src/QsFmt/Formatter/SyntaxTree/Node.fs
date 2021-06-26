@@ -73,8 +73,14 @@ type 'a Tuple =
 
 type 'a PrefixOperator =
     {
-        Operator: Terminal
+        PrefixOperator: Terminal
         Operand: 'a
+    }
+
+type 'a PostfixOperator =
+    {
+        Operand: 'a
+        PostfixOperator: Terminal
     }
 
 type 'a BinaryOperator =

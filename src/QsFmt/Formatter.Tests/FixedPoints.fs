@@ -160,6 +160,14 @@ let ``Function type`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Unwrap operator`` = """namespace Foo {
+    function FetchFirst (tup: (Int, String)) : Int {
+        let (first, second) = tup!;
+        return first;
+    }
+}"""
+
+[<FixedPoint>]
 let ``Factor application`` = """namespace Foo {
     function Bar () : Unit {
         Controlled Adjoint Op([], ());
@@ -167,7 +175,7 @@ let ``Factor application`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
-let ``Prefix operator expression`` = """namespace Foo {
+let ``Prefix operator`` = """namespace Foo {
     function Bar () : Int {
         return -2;
     }
@@ -184,7 +192,8 @@ let ``Conditional expression`` = """namespace Foo {
 let ``Range expressions`` = """namespace Foo {
     function Bar () : Unit {
         let arr = [1,2,3,4,5,6];
-        let slice1 = arr[...2..3];
-        let slice2 = arr[...];
+        let slice1 = arr[3...];
+        let slice2 = arr[...2..3];
+        let slice3 = arr[...];
     }
 }"""

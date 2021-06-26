@@ -58,8 +58,11 @@ and internal Expression =
     /// A tuple expression.
     | Tuple of Expression Tuple
 
-    /// An operator applied to an expression.
+    /// A prefix operator applied to an expression.
     | PrefixOperator of Expression PrefixOperator
+
+    /// A postfix operator applied to an expression.
+    | PostfixOperator of Expression PostfixOperator
 
     /// An operator applied to two expressions.
     | BinaryOperator of Expression BinaryOperator

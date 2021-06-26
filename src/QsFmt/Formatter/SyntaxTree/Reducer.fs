@@ -187,6 +187,7 @@ type internal 'result Reducer() as reducer =
         | Literal literal -> reducer.Terminal literal
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
         | PrefixOperator operator -> reducer.PrefixOperator(reducer.Expression, operator)
+        | PostfixOperator operator -> reducer.PostfixOperator(reducer.Expression, operator)
         | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
         | Conditional conditional -> reducer.Conditional conditional
         | Update update -> reducer.Update update
@@ -241,8 +242,17 @@ type internal 'result Reducer() as reducer =
 
     default _.PrefixOperator(mapper, operator) =
         [
-            reducer.Terminal operator.Operator
+            reducer.Terminal operator.PrefixOperator
             mapper operator.Operand
+        ]
+        |> reduce
+
+    abstract PostfixOperator : mapper: ('a -> 'result) * operator: 'a PostfixOperator -> 'result
+
+    default _.PostfixOperator(mapper, operator) =
+        [
+            mapper operator.Operand
+            reducer.Terminal operator.PostfixOperator
         ]
         |> reduce
 

@@ -170,6 +170,18 @@ type internal 'context Rewriter =
                             -> 'a PrefixOperator
 
     /// <summary>
+    /// Rewrites a <see cref="PostfixOperator{a}"/> node, given a rewriter for the operand.
+    /// </summary>
+    abstract PostfixOperator: context:'context
+                             * mapper:('context * 'a -> 'a)
+                             * operator:'a PostfixOperator
+                             -> 'a PostfixOperator
+    default PostfixOperator: context:'context
+                            * mapper:('context * 'a -> 'a)
+                            * operator:'a PostfixOperator
+                            -> 'a PostfixOperator
+
+    /// <summary>
     /// Rewrites a <see cref="BinaryOperator{a}"/> node, given a rewriter for the operands.
     /// </summary>
     abstract BinaryOperator: context:'context

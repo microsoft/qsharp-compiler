@@ -168,6 +168,12 @@ type internal 'result Reducer =
     default PrefixOperator: mapper:('a -> 'result) * operator:'a PrefixOperator -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="PostfixOperator{a}"/> node, given a reducer for the operand.
+    /// </summary>
+    abstract PostfixOperator: mapper:('a -> 'result) * operator:'a PostfixOperator -> 'result
+    default PostfixOperator: mapper:('a -> 'result) * operator:'a PostfixOperator -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="BinaryOperator{a}"/> node, given a reducer for the operands.
     /// </summary>
     abstract BinaryOperator: mapper:('a -> 'result) * operator:'a BinaryOperator -> 'result
