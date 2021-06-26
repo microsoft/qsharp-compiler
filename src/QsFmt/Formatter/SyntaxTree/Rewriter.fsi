@@ -134,6 +134,18 @@ type internal 'context Rewriter =
     default NewArray: context:'context * newArray:NewArray -> NewArray
 
     /// <summary>
+    /// Rewrites an <see cref="NamedItemAccess"/> expression node.
+    /// </summary>
+    abstract NamedItemAccess: context:'context * namedItemAccess:NamedItemAccess -> NamedItemAccess
+    default NamedItemAccess: context:'context * namedItemAccess:NamedItemAccess -> NamedItemAccess
+
+    /// <summary>
+    /// Rewrites an <see cref="ArrayAccess"/> expression node.
+    /// </summary>
+    abstract ArrayAccess: context:'context * arrayAccess:ArrayAccess -> ArrayAccess
+    default ArrayAccess: context:'context * arrayAccess:ArrayAccess -> ArrayAccess
+
+    /// <summary>
     /// Rewrites an <see cref="Conditional"/> expression node.
     /// </summary>
     abstract Conditional: context:'context * conditional:Conditional -> Conditional

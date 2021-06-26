@@ -66,6 +66,23 @@ type ExpressionVisitor(tokens) =
         }
         |> NewArray
 
+    override visitor.VisitNamedItemAccessExpression context =
+        {
+            Object = visitor.Visit context.obj
+            Colon = context.colon |> Node.toTerminal tokens
+            Name = context.name |> Node.toTerminal tokens
+        }
+        |> NamedItemAccess
+
+    override visitor.VisitArrayAccessExpression context =
+        {
+            Array = visitor.Visit context.array
+            OpenBracket = context.openBracket |> Node.toTerminal tokens
+            Index = visitor.Visit context.index
+            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+        }
+        |> ArrayAccess
+
     override visitor.VisitUnwrapExpression context =
         {
             Operand = visitor.Visit context.operand

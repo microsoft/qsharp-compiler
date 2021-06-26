@@ -210,7 +210,8 @@ expression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
     | new='new' arrayType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
-    | expression ('::' Identifier | '[' expression ']') # ItemAccessExpression
+    | obj=expression colon='::' name=Identifier # NamedItemAccessExpression
+    | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression
     | operand=expression operator='!' # UnwrapExpression
     | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
     | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression

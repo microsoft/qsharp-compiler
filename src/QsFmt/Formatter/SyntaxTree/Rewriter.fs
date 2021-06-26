@@ -177,6 +177,8 @@ type 'context Rewriter() =
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
         | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
+        | NamedItemAccess namedItemAccess -> rewriter.NamedItemAccess(context, namedItemAccess) |> NamedItemAccess
+        | ArrayAccess arrayAccess -> rewriter.ArrayAccess(context, arrayAccess) |> ArrayAccess
         | PrefixOperator operator -> rewriter.PrefixOperator(context, rewriter.Expression, operator) |> PrefixOperator
         | PostfixOperator operator -> rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
         | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
@@ -193,6 +195,25 @@ type 'context Rewriter() =
             OpenBracket = rewriter.Terminal(context, newArray.OpenBracket)
             Length = rewriter.Expression(context, newArray.Length)
             CloseBracket = rewriter.Terminal(context, newArray.CloseBracket)
+        }
+
+    abstract NamedItemAccess : context: 'context * namedItemAccess: NamedItemAccess -> NamedItemAccess
+
+    default rewriter.NamedItemAccess(context, namedItemAccess) =
+        {
+            Object = rewriter.Expression(context, namedItemAccess.Object)
+            Colon = rewriter.Terminal(context, namedItemAccess.Colon)
+            Name = rewriter.Terminal(context, namedItemAccess.Name)
+        }
+
+    abstract ArrayAccess : context: 'context * arrayAccess: ArrayAccess -> ArrayAccess
+
+    default rewriter.ArrayAccess(context, arrayAccess) =
+        {
+            Array = rewriter.Expression(context, arrayAccess.Array)
+            OpenBracket = rewriter.Terminal(context, arrayAccess.OpenBracket)
+            Index = rewriter.Expression(context, arrayAccess.Index)
+            CloseBracket = rewriter.Terminal(context, arrayAccess.CloseBracket)
         }
 
     abstract Conditional : context: 'context * conditional: Conditional -> Conditional

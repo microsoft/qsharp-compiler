@@ -138,6 +138,18 @@ type internal 'result Reducer =
     default NewArray: newArray:NewArray -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="NamedItemAccess"/> expression node.
+    /// </summary>
+    abstract NamedItemAccess: namedItemAccess:NamedItemAccess -> 'result
+    default NamedItemAccess: namedItemAccess:NamedItemAccess -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="ArrayAccess"/> expression node.
+    /// </summary>
+    abstract ArrayAccess: arrayAccess:ArrayAccess -> 'result
+    default ArrayAccess: arrayAccess:ArrayAccess -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Conditional"/> expression node.
     /// </summary>
     abstract Conditional: conditional:Conditional -> 'result

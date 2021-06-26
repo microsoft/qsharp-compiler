@@ -174,6 +174,21 @@ let ``New array expression`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Named item access`` = """namespace Foo {
+    function Bar () : Double {
+        let complex = Complex(1.,0.);
+        return complex::Imaginary;
+    }
+}"""
+
+[<FixedPoint>]
+let ``Array item access`` = """namespace Foo {
+    function Bar (arr: Int[]) : Int {
+        return arr[0];
+    }
+}"""
+
+[<FixedPoint>]
 let ``Unwrap operator`` = """namespace Foo {
     function FetchFirst (tup: (Int, String)) : Int {
         let (first, second) = tup!;

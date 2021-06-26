@@ -187,6 +187,8 @@ type internal 'result Reducer() as reducer =
         | Literal literal -> reducer.Terminal literal
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
         | NewArray newArray -> reducer.NewArray newArray
+        | NamedItemAccess namedItemAccess -> reducer.NamedItemAccess namedItemAccess
+        | ArrayAccess arrayAccess -> reducer.ArrayAccess arrayAccess
         | PrefixOperator operator -> reducer.PrefixOperator(reducer.Expression, operator)
         | PostfixOperator operator -> reducer.PostfixOperator(reducer.Expression, operator)
         | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
@@ -203,6 +205,27 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal newArray.OpenBracket
             reducer.Expression newArray.Length
             reducer.Terminal newArray.CloseBracket
+        ]
+        |> reduce
+
+    abstract NamedItemAccess : namedItemAccess: NamedItemAccess -> 'result
+
+    default _.NamedItemAccess namedItemAccess =
+        [
+            reducer.Expression namedItemAccess.Object
+            reducer.Terminal namedItemAccess.Colon
+            reducer.Terminal namedItemAccess.Name
+        ]
+        |> reduce
+
+    abstract ArrayAccess : arrayAccess: ArrayAccess -> 'result
+
+    default _.ArrayAccess arrayAccess =
+        [
+            reducer.Expression arrayAccess.Array
+            reducer.Terminal arrayAccess.OpenBracket
+            reducer.Expression arrayAccess.Index
+            reducer.Terminal arrayAccess.CloseBracket
         ]
         |> reduce
 

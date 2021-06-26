@@ -12,6 +12,21 @@ type NewArray =
         CloseBracket: Terminal
     }
 
+and NamedItemAccess =
+    {
+        Object: Expression
+        Colon: Terminal
+        Name: Terminal
+    }
+
+and ArrayAccess =
+    {
+        Array: Expression
+        OpenBracket: Terminal
+        Index: Expression
+        CloseBracket: Terminal
+    }
+
 and Conditional =
     {
         Condition: Expression
@@ -35,6 +50,8 @@ and Expression =
     | Literal of Terminal
     | Tuple of Expression Tuple
     | NewArray of NewArray
+    | NamedItemAccess of NamedItemAccess
+    | ArrayAccess of ArrayAccess
     | PrefixOperator of Expression PrefixOperator
     | PostfixOperator of Expression PostfixOperator
     | BinaryOperator of Expression BinaryOperator

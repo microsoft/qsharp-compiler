@@ -26,6 +26,41 @@ type internal NewArray =
         CloseBracket: Terminal
     }
 
+/// A named-item-access expression.
+and internal NamedItemAccess =
+    {
+        /// The accessing object
+        Object: Expression
+
+        /// <summary>
+        /// The <c>::</c> symbol.
+        /// </summary>
+        Colon: Terminal
+
+        /// The accessing item name
+        Name: Terminal
+    }
+
+/// An array-item-access expression.
+and internal ArrayAccess =
+    {
+        /// The array
+        Array: Expression
+
+        /// <summary>
+        /// The <c>[</c> symbol.
+        /// </summary>
+        OpenBracket: Terminal
+
+        /// The index of the accessing item.
+        Index: Expression
+
+        /// <summary>
+        /// The <c>]</c> symbol.
+        /// </summary>
+        CloseBracket: Terminal
+    }
+
 /// A conditional expression.
 and internal Conditional =
     {
@@ -83,6 +118,12 @@ and internal Expression =
 
     /// A new array expression.
     | NewArray of NewArray
+
+    /// A named-item-access expression.
+    | NamedItemAccess of NamedItemAccess
+
+    /// An array-item-access expression.
+    | ArrayAccess of ArrayAccess
 
     /// A prefix operator applied to an expression.
     | PrefixOperator of Expression PrefixOperator
