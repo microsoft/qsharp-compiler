@@ -216,10 +216,10 @@ let internal getStringContent interpolArg =
             pstring "\\"
             >>. (anyOf "\\\"nrt{"
                  |>> function // Also supports escapting '{'
-                 | 'n' -> "\n"
-                 | 'r' -> "\r"
-                 | 't' -> "	"
-                 | c -> string c)
+                     | 'n' -> "\n"
+                     | 'r' -> "\r"
+                     | 't' -> "	"
+                     | c -> string c)
 
         let nonInterpol = (stringsSepBy interpolCharSnippet escapedChar)
         let interpol = (lCurly, rCurly) |> bracketDefinedContent interpolArg
@@ -238,10 +238,10 @@ let internal getStringContent interpolArg =
             pstring "\\"
             >>. (anyOf "\\\"nrt"
                  |>> function
-                 | 'n' -> "\n"
-                 | 'r' -> "\r"
-                 | 't' -> "	"
-                 | c -> string c)
+                     | 'n' -> "\n"
+                     | 'r' -> "\r"
+                     | 't' -> "	"
+                     | c -> string c)
 
         let content = (stringsSepBy normalCharSnippet escapedChar)
         (between delimiter delimiter content) |>> fun str -> (str, [])
@@ -446,8 +446,8 @@ let internal symbolNameLike errCode =
 let internal symbolLike errCode =
     term (symbolNameLike errCode)
     |>> function
-    | Some sym, range -> (Symbol sym, range) |> QsSymbol.New
-    | None, _ -> (InvalidSymbol, Null) |> QsSymbol.New
+        | Some sym, range -> (Symbol sym, range) |> QsSymbol.New
+        | None, _ -> (InvalidSymbol, Null) |> QsSymbol.New
 
 /// Given the path, the symbol and the range parsed by multiSegmentSymbol,
 /// returns a simple Symbol as QsSymbol if the given path is empty,
@@ -503,8 +503,8 @@ let internal typeParameterNameLike = pchar '\'' >>? symbolNameLike ErrorCode.Inv
 let internal typeParameterLike =
     term typeParameterNameLike
     |>> function
-    | Some sym, range -> ((Symbol sym, range) |> QsSymbol.New |> TypeParameter, range) |> QsType.New
-    | None, _ -> (InvalidType, Null) |> QsType.New
+        | Some sym, range -> ((Symbol sym, range) |> QsSymbol.New |> TypeParameter, range) |> QsType.New
+        | None, _ -> (InvalidType, Null) |> QsType.New
 
 
 // building an abstract representation of Q# code fragments

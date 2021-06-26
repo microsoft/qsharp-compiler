@@ -52,7 +52,9 @@ let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>)
         | NewArray _ -> true
         | Identifier _ when ex.ResolvedType.Resolution = Qubit -> true
         | CallLikeExpression ({ Expression = Identifier (GlobalCallable name, _) }, _) when
-            callables.[name].Kind = TypeConstructor -> true
+            callables.[name].Kind = TypeConstructor
+            ->
+            true
         | _ when TypedExpression.IsPartialApplication ex.Expression -> true
         | Identifier _
         | ArrayItem _
@@ -351,7 +353,7 @@ let rec internal isAllDiscarded =
 /// </summary>
 /// <exception cref="ArgumentException"><paramref name="i"/> is outside the allowed range.</exception>
 let internal safeCastInt64 (i: int64) : int =
-    if i > int64 (1 <<< 30) || i < -int64 (1 <<< 30) then
+    if i > int64 (1 <<< 30) || i < - int64(1 <<< 30) then
         ArgumentException "Integer is too large for 32 bits" |> raise
     else
         int i

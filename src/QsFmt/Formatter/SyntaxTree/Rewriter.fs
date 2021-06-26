@@ -218,8 +218,7 @@ type 'context Rewriter() =
         }
 
     abstract BinaryOperator :
-        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a BinaryOperator ->
-        'a BinaryOperator
+        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a BinaryOperator -> 'a BinaryOperator
 
     default rewriter.BinaryOperator(context, mapper, operator) =
         {

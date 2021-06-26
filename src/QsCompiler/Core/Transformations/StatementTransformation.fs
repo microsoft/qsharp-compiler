@@ -76,8 +76,7 @@ type StatementKindTransformationBase internal (options: TransformationOptions, _
         ResolvedInitializer.New |> Node.BuildOr init transformed
 
     abstract OnPositionedBlock :
-        QsNullable<TypedExpression> * QsPositionedBlock ->
-        QsNullable<TypedExpression> * QsPositionedBlock
+        QsNullable<TypedExpression> * QsPositionedBlock -> QsNullable<TypedExpression> * QsPositionedBlock
 
     default this.OnPositionedBlock(intro: QsNullable<TypedExpression>, block: QsPositionedBlock) =
         let location = this.Statements.OnLocation block.Location
