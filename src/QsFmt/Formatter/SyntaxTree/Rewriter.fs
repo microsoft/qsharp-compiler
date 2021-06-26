@@ -176,6 +176,7 @@ type 'context Rewriter() =
         | Missing terminal -> rewriter.Terminal(context, terminal) |> Missing
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
+        | PrefixOperator operator -> rewriter.PrefixOperator(context, rewriter.Expression, operator) |> PrefixOperator
         | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
         | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
         | Update update -> rewriter.Update(context, update) |> Update
@@ -227,6 +228,15 @@ type 'context Rewriter() =
         {
             Item = item.Item |> Option.map (curry mapper context)
             Comma = item.Comma |> Option.map (curry rewriter.Terminal context)
+        }
+
+    abstract PrefixOperator :
+        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a PrefixOperator -> 'a PrefixOperator
+
+    default rewriter.PrefixOperator(context, mapper, operator) =
+        {
+            Operator = rewriter.Terminal(context, operator.Operator)
+            Operand = mapper (context, operator.Operand)
         }
 
     abstract BinaryOperator :

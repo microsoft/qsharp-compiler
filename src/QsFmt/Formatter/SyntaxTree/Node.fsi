@@ -85,6 +85,16 @@ type internal 'a Tuple =
         CloseParen: Terminal
     }
 
+/// A prefix operator. The operator is in the front of the operand.
+type internal 'a PrefixOperator =
+    {
+        /// The operator.
+        Operator: Terminal
+
+        /// The operand.
+        Operand: 'a
+    }
+
 /// A binary operator.
 type internal 'a BinaryOperator =
     {

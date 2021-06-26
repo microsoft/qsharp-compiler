@@ -144,25 +144,31 @@ type internal 'result Reducer =
     default Update: update:Update -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Block{a}"/> node, given a rewriter for the block contents.
+    /// Reduces a <see cref="Block{a}"/> node, given a reducer for the block contents.
     /// </summary>
     abstract Block: mapper:('a -> 'result) * block:'a Block -> 'result
     default Block: mapper:('a -> 'result) * block:'a Block -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Tuple{a}"/> node, given a rewriter for the tuple contents.
+    /// Reduces a <see cref="Tuple{a}"/> node, given a reducer for the tuple contents.
     /// </summary>
     abstract Tuple: mapper:('a -> 'result) * tuple:'a Tuple -> 'result
     default Tuple: mapper:('a -> 'result) * tuple:'a Tuple -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="SequenceItem{a}"/> node, given a rewriter for the sequence items.
+    /// Reduces a <see cref="SequenceItem{a}"/> node, given a reducer for the sequence items.
     /// </summary>
     abstract SequenceItem: mapper:('a -> 'result) * item:'a SequenceItem -> 'result
     default SequenceItem: mapper:('a -> 'result) * item:'a SequenceItem -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="BinaryOperator{a}"/> node, given a rewriter for the operands.
+    /// Reduces a <see cref="PrefixOperator{a}"/> node, given a reducer for the operand.
+    /// </summary>
+    abstract PrefixOperator: mapper:('a -> 'result) * operator:'a PrefixOperator -> 'result
+    default PrefixOperator: mapper:('a -> 'result) * operator:'a PrefixOperator -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="BinaryOperator{a}"/> node, given a reducer for the operands.
     /// </summary>
     abstract BinaryOperator: mapper:('a -> 'result) * operator:'a BinaryOperator -> 'result
     default BinaryOperator: mapper:('a -> 'result) * operator:'a BinaryOperator -> 'result

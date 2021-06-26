@@ -158,6 +158,18 @@ type internal 'context Rewriter =
     default SequenceItem: context:'context * mapper:('context * 'a -> 'a) * item:'a SequenceItem -> 'a SequenceItem
 
     /// <summary>
+    /// Rewrites a <see cref="PrefixOperator{a}"/> node, given a rewriter for the operand.
+    /// </summary>
+    abstract PrefixOperator: context:'context
+                             * mapper:('context * 'a -> 'a)
+                             * operator:'a PrefixOperator
+                             -> 'a PrefixOperator
+    default PrefixOperator: context:'context
+                            * mapper:('context * 'a -> 'a)
+                            * operator:'a PrefixOperator
+                            -> 'a PrefixOperator
+
+    /// <summary>
     /// Rewrites a <see cref="BinaryOperator{a}"/> node, given a rewriter for the operands.
     /// </summary>
     abstract BinaryOperator: context:'context

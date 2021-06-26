@@ -25,6 +25,7 @@ and Expression =
     | Missing of Terminal
     | Literal of Terminal
     | Tuple of Expression Tuple
+    | PrefixOperator of Expression PrefixOperator
     | BinaryOperator of Expression BinaryOperator
     | Conditional of Conditional
     | Update of Update

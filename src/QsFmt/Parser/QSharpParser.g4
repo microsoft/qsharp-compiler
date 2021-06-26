@@ -212,10 +212,10 @@ expression
     | 'new' type '[' expression ']' # NewArrayExpression
     | expression ('::' Identifier | '[' expression ']') # ItemAccessExpression
     | expression '!' # UnwrapExpression
-    | <assoc=right> 'Controlled' expression # ControlledExpression
-    | <assoc=right> 'Adjoint' expression # AdjointExpression
+    | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
+    | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression
     | expression '(' (expression (',' expression)* ','?)? ')' # CallExpression
-    | <assoc=right> ('-' | 'not' | '~~~') expression # NegationExpression
+    | <assoc=right> operator=('-' | 'not' | '~~~') operand=expression # NegationExpression
     | <assoc=right> left=expression operator='^' right=expression # ExponentExpression
     | left=expression operator=('*' | '/' | '%') right=expression # MultiplyExpression
     | left=expression operator=('+' | '-') right=expression # AddExpression
@@ -228,9 +228,9 @@ expression
     | left=expression operator='and' right=expression # AndExpression
     | left=expression operator='or' right=expression # OrExpression
     | <assoc=right> cond=expression question='?' ifTrue=expression pipe='|' ifFalse=expression # ConditionalExpression
-    | left=expression operator='..' right=expression # RangeExpression
-    | expression '...' # RightOpenRangeExpression
-    | '...' expression # LeftOpenRangeExpression
+    | left=expression ellipsis='..' right=expression # RangeExpression
+    | left=expression ellipsis='...' # RightOpenRangeExpression
+    | ellipsis='...' right=expression # LeftOpenRangeExpression
     | '...' # OpenRangeExpression
     | record=expression with='w/' item=expression arrow='<-' value=expression # UpdateExpression
     ;

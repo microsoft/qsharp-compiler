@@ -71,6 +71,12 @@ type 'a Tuple =
         CloseParen: Terminal
     }
 
+type 'a PrefixOperator =
+    {
+        Operator: Terminal
+        Operand: 'a
+    }
+
 type 'a BinaryOperator =
     {
         Left: 'a

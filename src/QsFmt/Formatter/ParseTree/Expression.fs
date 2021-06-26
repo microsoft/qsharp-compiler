@@ -42,6 +42,27 @@ type ExpressionVisitor(tokens) =
         }
         |> Tuple
 
+    override visitor.VisitControlledExpression context =
+        {
+            Operator = context.functor |> Node.toTerminal tokens
+            Operand = visitor.Visit context.operation
+        }
+        |> PrefixOperator
+
+    override visitor.VisitAdjointExpression context =
+        {
+            Operator = context.functor |> Node.toTerminal tokens
+            Operand = visitor.Visit context.operation
+        }
+        |> PrefixOperator
+
+    override visitor.VisitNegationExpression context =
+        {
+            Operator = context.operator |> Node.toTerminal tokens
+            Operand = visitor.Visit context.operand
+        }
+        |> PrefixOperator
+
     override visitor.VisitExponentExpression context =
         {
             Left = visitor.Visit context.left
@@ -133,7 +154,7 @@ type ExpressionVisitor(tokens) =
     override visitor.VisitRangeExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            Operator = context.ellipsis |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
         |> BinaryOperator
@@ -147,6 +168,13 @@ type ExpressionVisitor(tokens) =
             IfFalse = visitor.Visit context.ifFalse
         }
         |> Conditional
+
+    override visitor.VisitLeftOpenRangeExpression context =
+        {
+            Operator = context.ellipsis |> Node.toTerminal tokens
+            Operand = visitor.Visit context.right
+        }
+        |> PrefixOperator
 
     override _.VisitOpenRangeExpression context =
         context.Ellipsis().Symbol |> Node.toTerminal tokens |> Missing

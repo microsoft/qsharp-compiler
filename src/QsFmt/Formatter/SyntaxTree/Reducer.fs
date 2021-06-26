@@ -186,6 +186,7 @@ type internal 'result Reducer() as reducer =
         | Missing terminal -> reducer.Terminal terminal
         | Literal literal -> reducer.Terminal literal
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
+        | PrefixOperator operator -> reducer.PrefixOperator(reducer.Expression, operator)
         | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
         | Conditional conditional -> reducer.Conditional conditional
         | Update update -> reducer.Update update
@@ -234,6 +235,15 @@ type internal 'result Reducer() as reducer =
     default _.SequenceItem(mapper, item) =
         (item.Item |> Option.map mapper |> Option.toList)
         @ (item.Comma |> Option.map reducer.Terminal |> Option.toList)
+        |> reduce
+
+    abstract PrefixOperator : mapper: ('a -> 'result) * operator: 'a PrefixOperator -> 'result
+
+    default _.PrefixOperator(mapper, operator) =
+        [
+            reducer.Terminal operator.Operator
+            mapper operator.Operand
+        ]
         |> reduce
 
     abstract BinaryOperator : mapper: ('a -> 'result) * operator: 'a BinaryOperator -> 'result

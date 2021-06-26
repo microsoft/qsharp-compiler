@@ -160,8 +160,31 @@ let ``Function type`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Factor application`` = """namespace Foo {
+    function Bar () : Unit {
+        Controlled Adjoint Op([], ());
+    }
+}"""
+
+[<FixedPoint>]
+let ``Prefix operator expression`` = """namespace Foo {
+    function Bar () : Int {
+        return -2;
+    }
+}"""
+
+[<FixedPoint>]
 let ``Conditional expression`` = """namespace Foo {
     function Bar () : Int {
         return true? 1 | 2;
+    }
+}"""
+
+[<FixedPoint>]
+let ``Range expressions`` = """namespace Foo {
+    function Bar () : Unit {
+        let arr = [1,2,3,4,5,6];
+        let slice1 = arr[...2..3];
+        let slice2 = arr[...];
     }
 }"""
