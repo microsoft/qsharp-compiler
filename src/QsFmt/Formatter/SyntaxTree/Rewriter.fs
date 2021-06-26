@@ -177,8 +177,20 @@ type 'context Rewriter() =
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
         | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
+        | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
         | Update update -> rewriter.Update(context, update) |> Update
         | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
+
+    abstract Conditional : context: 'context * conditional: Conditional -> Conditional
+
+    default rewriter.Conditional(context, conditional) =
+        {
+            Condition = rewriter.Expression(context, conditional.Condition)
+            Question = rewriter.Terminal(context, conditional.Question)
+            IfTrue = rewriter.Expression(context, conditional.IfTrue)
+            Pipe = rewriter.Terminal(context, conditional.Pipe)
+            IfFalse = rewriter.Expression(context, conditional.IfFalse)
+        }
 
     abstract Update : context: 'context * update: Update -> Update
 
@@ -218,8 +230,7 @@ type 'context Rewriter() =
         }
 
     abstract BinaryOperator :
-        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a BinaryOperator ->
-        'a BinaryOperator
+        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a BinaryOperator -> 'a BinaryOperator
 
     default rewriter.BinaryOperator(context, mapper, operator) =
         {

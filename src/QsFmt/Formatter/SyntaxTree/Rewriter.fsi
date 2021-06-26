@@ -128,6 +128,12 @@ type internal 'context Rewriter =
     default Expression: context:'context * expression:Expression -> Expression
 
     /// <summary>
+    /// Rewrites an <see cref="Conditional"/> expression node.
+    /// </summary>
+    abstract Conditional: context:'context * conditional:Conditional -> Conditional
+    default Conditional: context:'context * conditional:Conditional -> Conditional
+
+    /// <summary>
     /// Rewrites an <see cref="Update"/> expression node.
     /// </summary>
     abstract Update: context:'context * update:Update -> Update

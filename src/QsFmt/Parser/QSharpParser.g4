@@ -227,7 +227,7 @@ expression
     | left=expression operator='|||' right=expression # BitwiseOrExpression
     | left=expression operator='and' right=expression # AndExpression
     | left=expression operator='or' right=expression # OrExpression
-    | <assoc=right> expression '?' expression '|' expression # ConditionalExpression
+    | <assoc=right> cond=expression question='?' ifTrue=expression pipe='|' ifFalse=expression # ConditionalExpression
     | left=expression operator='..' right=expression # RangeExpression
     | expression '...' # RightOpenRangeExpression
     | '...' expression # LeftOpenRangeExpression

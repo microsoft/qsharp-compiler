@@ -187,8 +187,21 @@ type internal 'result Reducer() as reducer =
         | Literal literal -> reducer.Terminal literal
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
         | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
+        | Conditional conditional -> reducer.Conditional conditional
         | Update update -> reducer.Update update
         | Expression.Unknown terminal -> reducer.Terminal terminal
+
+    abstract Conditional : conditional: Conditional -> 'result
+
+    default _.Conditional conditional =
+        [
+            reducer.Expression conditional.Condition
+            reducer.Terminal conditional.Question
+            reducer.Expression conditional.IfTrue
+            reducer.Terminal conditional.Pipe
+            reducer.Expression conditional.IfFalse
+        ]
+        |> reduce
 
     abstract Update : update: Update -> 'result
 

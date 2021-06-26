@@ -3,8 +3,31 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
+/// A conditional expression.
+type internal Conditional =
+    {
+        /// The condition
+        Condition: Expression
+
+        /// <summary>
+        /// The <c>?</c> symbol.
+        /// </summary>
+        Question: Terminal
+
+        /// The expression value if the condition is true.
+        IfTrue: Expression
+
+        /// <summary>
+        /// The <c>|</c> symbol.
+        /// </summary>
+        Pipe: Terminal
+
+        /// The expression value if the condition is false.
+        IfFalse: Expression
+    }
+
 /// A copy-and-update expression.
-type internal Update =
+and internal Update =
     {
         /// The record to update.
         Record: Expression
@@ -37,6 +60,9 @@ and internal Expression =
 
     /// An operator applied to two expressions.
     | BinaryOperator of Expression BinaryOperator
+
+    /// A conditional expression.
+    | Conditional of Conditional
 
     /// A copy-and-update expression.
     | Update of Update

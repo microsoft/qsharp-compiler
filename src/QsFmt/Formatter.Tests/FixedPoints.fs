@@ -158,3 +158,10 @@ let ``Array type`` = """namespace Foo {
 let ``Function type`` = """namespace Foo {
     function Bar (arg : Result => String is Adj) : Unit {}
 }"""
+
+[<FixedPoint>]
+let ``Conditional expression`` = """namespace Foo {
+    function Bar () : Int {
+        return true? 1 | 2;
+    }
+}"""

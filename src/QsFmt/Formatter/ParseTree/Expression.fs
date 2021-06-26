@@ -138,6 +138,16 @@ type ExpressionVisitor(tokens) =
         }
         |> BinaryOperator
 
+     override visitor.VisitConditionalExpression context =
+        {
+            Condition = visitor.Visit context.cond
+            Question = context.question |> Node.toTerminal tokens
+            IfTrue = visitor.Visit context.ifTrue
+            Pipe = context.pipe |> Node.toTerminal tokens
+            IfFalse = visitor.Visit context.ifFalse
+        }
+        |> Conditional
+
     override _.VisitOpenRangeExpression context =
         context.Ellipsis().Symbol |> Node.toTerminal tokens |> Missing
 

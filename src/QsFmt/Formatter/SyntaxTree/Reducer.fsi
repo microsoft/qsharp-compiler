@@ -132,6 +132,12 @@ type internal 'result Reducer =
     default Expression: expression:Expression -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="Conditional"/> expression node.
+    /// </summary>
+    abstract Conditional: conditional:Conditional -> 'result
+    default Conditional: conditional:Conditional -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Update"/> expression node.
     /// </summary>
     abstract Update: update:Update -> 'result

@@ -3,7 +3,16 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-type Update =
+type Conditional =
+    {
+        Condition: Expression
+        Question: Terminal
+        IfTrue: Expression
+        Pipe: Terminal
+        IfFalse: Expression
+    }
+
+and Update =
     {
         Record: Expression
         With: Terminal
@@ -17,5 +26,6 @@ and Expression =
     | Literal of Terminal
     | Tuple of Expression Tuple
     | BinaryOperator of Expression BinaryOperator
+    | Conditional of Conditional
     | Update of Update
     | Unknown of Terminal
