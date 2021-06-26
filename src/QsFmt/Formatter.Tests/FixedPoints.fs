@@ -160,6 +160,13 @@ let ``Function type`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Array expression`` = """namespace Foo {
+    function Bar () : Int[] {
+        return [1, 2, 3];
+    }
+}"""
+
+[<FixedPoint>]
 let ``Unwrap operator`` = """namespace Foo {
     function FetchFirst (tup: (Int, String)) : Int {
         let (first, second) = tup!;

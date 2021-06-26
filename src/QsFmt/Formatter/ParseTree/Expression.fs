@@ -42,6 +42,18 @@ type ExpressionVisitor(tokens) =
         }
         |> Tuple
 
+    override visitor.VisitArrayExpression context =
+        let expressions = context._items |> Seq.map visitor.Visit
+
+        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+
+        {
+            OpenParen = context.openBracket |> Node.toTerminal tokens
+            Items = Node.tupleItems expressions commas
+            CloseParen = context.closeBracket |> Node.toTerminal tokens
+        }
+        |> Tuple
+
     override visitor.VisitUnwrapExpression context =
         {
             Operand = visitor.Visit context.operand

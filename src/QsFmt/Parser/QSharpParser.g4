@@ -208,7 +208,7 @@ expression
     | resultLiteral # ResultExpression
     | pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
-    | '[' (expression (',' expression)* ','?)? ']' # ArrayExpression
+    | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
     | 'new' type '[' expression ']' # NewArrayExpression
     | expression ('::' Identifier | '[' expression ']') # ItemAccessExpression
     | operand=expression operator='!' # UnwrapExpression
