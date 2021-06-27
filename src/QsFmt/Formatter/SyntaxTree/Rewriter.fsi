@@ -146,6 +146,12 @@ type internal 'context Rewriter =
     default ArrayAccess: context:'context * arrayAccess:ArrayAccess -> ArrayAccess
 
     /// <summary>
+    /// Rewrites an <see cref="Call"/> expression node.
+    /// </summary>
+    abstract Call: context:'context * call:Call -> Call
+    default Call: context:'context * call:Call -> Call
+
+    /// <summary>
     /// Rewrites an <see cref="Conditional"/> expression node.
     /// </summary>
     abstract Conditional: context:'context * conditional:Conditional -> Conditional

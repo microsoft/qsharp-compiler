@@ -61,6 +61,16 @@ and internal ArrayAccess =
         CloseBracket: Terminal
     }
 
+/// A function-call expression.
+and internal Call =
+    {
+        /// The function being called.
+        Function: Expression
+
+        /// The argument list of the function call.
+        Arguments: Expression Tuple
+    }
+
 /// A conditional expression.
 and internal Conditional =
     {
@@ -124,6 +134,9 @@ and internal Expression =
 
     /// An array-item-access expression.
     | ArrayAccess of ArrayAccess
+
+    /// A function-call expression.
+    | Call of Call
 
     /// A prefix operator applied to an expression.
     | PrefixOperator of Expression PrefixOperator

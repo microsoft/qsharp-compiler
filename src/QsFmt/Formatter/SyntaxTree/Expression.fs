@@ -27,6 +27,12 @@ and ArrayAccess =
         CloseBracket: Terminal
     }
 
+and Call =
+    {
+        Function: Expression
+        Arguments: Expression Tuple
+    }
+
 and Conditional =
     {
         Condition: Expression
@@ -52,6 +58,7 @@ and Expression =
     | NewArray of NewArray
     | NamedItemAccess of NamedItemAccess
     | ArrayAccess of ArrayAccess
+    | Call of Call
     | PrefixOperator of Expression PrefixOperator
     | PostfixOperator of Expression PostfixOperator
     | BinaryOperator of Expression BinaryOperator

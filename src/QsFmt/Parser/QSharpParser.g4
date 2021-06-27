@@ -215,7 +215,7 @@ expression
     | operand=expression operator='!' # UnwrapExpression
     | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
     | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression
-    | expression '(' (expression (',' expression)* ','?)? ')' # CallExpression
+    | fun=expression openParen='(' (arguments+=expression (commas+=',' arguments+=expression)* commas+=','?)? closeParen=')' # CallExpression
     | <assoc=right> operator=('-' | 'not' | '~~~') operand=expression # NegationExpression
     | <assoc=right> left=expression operator='^' right=expression # ExponentExpression
     | left=expression operator=('*' | '/' | '%') right=expression # MultiplyExpression

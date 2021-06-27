@@ -104,6 +104,22 @@ type ExpressionVisitor(tokens) =
         }
         |> PrefixOperator
 
+    override visitor.VisitCallExpression context =
+        let expressions = context._arguments |> Seq.map visitor.Visit
+
+        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+
+        {
+            Function = visitor.Visit context.``fun``
+            Arguments =
+                {
+                    OpenParen = context.openParen |> Node.toTerminal tokens
+                    Items = Node.tupleItems expressions commas
+                    CloseParen = context.closeParen |> Node.toTerminal tokens
+                }
+        }
+        |> Call
+
     override visitor.VisitNegationExpression context =
         {
             PrefixOperator = context.operator |> Node.toTerminal tokens

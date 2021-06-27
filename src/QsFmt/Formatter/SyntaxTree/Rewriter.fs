@@ -179,6 +179,7 @@ type 'context Rewriter() =
         | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
         | NamedItemAccess namedItemAccess -> rewriter.NamedItemAccess(context, namedItemAccess) |> NamedItemAccess
         | ArrayAccess arrayAccess -> rewriter.ArrayAccess(context, arrayAccess) |> ArrayAccess
+        | Call call -> rewriter.Call(context, call) |> Call
         | PrefixOperator operator -> rewriter.PrefixOperator(context, rewriter.Expression, operator) |> PrefixOperator
         | PostfixOperator operator -> rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
         | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
@@ -214,6 +215,14 @@ type 'context Rewriter() =
             OpenBracket = rewriter.Terminal(context, arrayAccess.OpenBracket)
             Index = rewriter.Expression(context, arrayAccess.Index)
             CloseBracket = rewriter.Terminal(context, arrayAccess.CloseBracket)
+        }
+
+    abstract Call : context: 'context * call: Call -> Call
+
+    default rewriter.Call(context, call) =
+        {
+            Function = rewriter.Expression(context, call.Function)
+            Arguments = rewriter.Tuple(context, rewriter.Expression, call.Arguments)
         }
 
     abstract Conditional : context: 'context * conditional: Conditional -> Conditional

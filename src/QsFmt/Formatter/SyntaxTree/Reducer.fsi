@@ -150,6 +150,12 @@ type internal 'result Reducer =
     default ArrayAccess: arrayAccess:ArrayAccess -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="Call"/> expression node.
+    /// </summary>
+    abstract Call: call:Call -> 'result
+    default Call: call:Call -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Conditional"/> expression node.
     /// </summary>
     abstract Conditional: conditional:Conditional -> 'result
