@@ -1,0 +1,37 @@
+{
+    "name": "Rust, Python, LLVM 11",
+    "dockerFile": "Dockerfile",
+    "runArgs": [
+        "--cap-add=SYS_PTRACE",
+        "--security-opt",
+        "seccomp=unconfined"
+    ],
+    "containerEnv": { "LLVM_SYS_110_PREFIX": "/usr/lib/llvm-11" },
+    // Set *default* container specific settings.json values on container create.
+    "settings": {
+        "lldb.executable": "/usr/bin/lldb",
+        // VS Code don't watch files under ./target
+        "files.watcherExclude": {
+            "**/target/**": true
+        }
+    },
+    // Add the IDs of extensions you want installed when the container is created.
+    "extensions": [
+        "rust-lang.rust",
+        "bungcip.better-toml",
+        "vadimcn.vscode-lldb",
+        "matklad.rust-analyzer",
+        "vsrs.cross-rust-analyzer",
+        // (Optional) Displays the current CPU stats, memory/disk consumption, clock freq. etc. of the container host in the VS Code status bar.
+        "mutantdino.resourcemonitor"
+    ],
+
+	// Use 'forwardPorts' to make a list of ports inside the container available locally.
+	// "forwardPorts": [],
+
+	// Use 'postCreateCommand' to run commands after the container is created.
+	// "postCreateCommand": "rustc --version",
+
+	// Comment out connect as root instead. More info: https://aka.ms/vscode-remote/containers/non-root.
+	"remoteUser": "vscode"
+}

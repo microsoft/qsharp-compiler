@@ -1,0 +1,4 @@
+setuptools-rust
+setuptools
+wheel
+pytest
