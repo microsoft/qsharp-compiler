@@ -1,0 +1,44 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>netstandard2.1</TargetFramework>
+    <AssemblyName>Microsoft.Quantum.RoslynWrapper</AssemblyName>
+    <PlatformTarget>x64</PlatformTarget>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="WhiteNoise.fs" />
+    <Compile Include="Common.fs" />
+    <Compile Include="Invocation.fs" />
+    <Compile Include="Literals.fs" />
+    <Compile Include="GenericName.fs" />
+    <Compile Include="ExpressionStatement.fs" />
+    <Compile Include="IfStatement.fs" />
+    <Compile Include="ForeachStatement.fs" />
+    <Compile Include="WhileStatement.fs" />
+    <Compile Include="TryStatement.fs" />
+    <Compile Include="ObjectCreation.fs" />
+    <Compile Include="Conversion.fs" />
+    <Compile Include="Equality.fs" />
+    <Compile Include="FieldDeclaration.fs" />
+    <Compile Include="LocalDeclaration.fs" />
+    <Compile Include="AutoPropertyDeclaration.fs" />
+    <Compile Include="MethodDeclaration.fs" />
+    <Compile Include="ConstructorDeclaration.fs" />
+    <Compile Include="InterfaceDeclaration.fs" />
+    <Compile Include="ClassDeclaration.fs" />
+    <Compile Include="NamespaceDeclaration.fs" />
+    <Compile Include="CompilationUnit.fs" />
+    <Compile Include="CodeGenerator.fs" />
+    <Content Include="App.config" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.CSharp.Workspaces" Version="3.6.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="FSharp.Core" Version="4.5.2" />
+  </ItemGroup>
+
+</Project>

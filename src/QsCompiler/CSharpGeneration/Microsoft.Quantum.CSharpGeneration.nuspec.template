@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2013/05/nuspec.xsd">
+  <metadata>
+    <id>Microsoft.Quantum.CSharpGeneration</id>
+    <version>$version$</version>
+    <title>$title$</title>
+    <authors>Microsoft</authors>
+    <owners>QuantumEngineering, Microsoft</owners>
+
+    <license type="expression">MIT</license>
+    <projectUrl>https://docs.microsoft.com/azure/quantum</projectUrl>
+    <icon>images\qdk-nuget-icon.png</icon>
+
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <description>C# code generation for executing Q# programs on a quantum simulator.</description>
+
+    <releaseNotes>See: https://docs.microsoft.com/azure/quantum/qdk-relnotes/</releaseNotes>
+
+    <copyright>$copyright$</copyright>
+    <tags>Quantum Q# QSharp</tags>
+  </metadata>
+  
+  <files>
+    <file src="RewriteStep.props" target="build\Microsoft.Quantum.CSharpGeneration.props" />
+    <file src="..\..\..\build\assets\qdk-nuget-icon.png" target="images" />
+  </files>
+</package>

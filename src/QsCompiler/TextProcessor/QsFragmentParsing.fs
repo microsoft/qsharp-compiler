@@ -86,8 +86,8 @@ let private expectedNamespaceName continuation =
     let namespaceName =
         namespaceName
         |>> function
-        | None, _ -> (InvalidSymbol, Null) |> QsSymbol.New
-        | Some name, range -> (Symbol name, range) |> QsSymbol.New
+            | None, _ -> (InvalidSymbol, Null) |> QsSymbol.New
+            | Some name, range -> (Symbol name, range) |> QsSymbol.New
 
     expected namespaceName ErrorCode.InvalidQualifiedSymbol ErrorCode.MissingQualifiedSymbol invalidSymbol continuation
 
@@ -182,8 +182,8 @@ let private signature =
 
             term (typeParameterNameLike <|> invalid)
             |>> function
-            | Some sym, range -> (Symbol sym, range) |> QsSymbol.New
-            | None, _ -> invalidSymbol
+                | Some sym, range -> (Symbol sym, range) |> QsSymbol.New
+                | None, _ -> invalidSymbol
 
         let validList =
             let typeParams =
