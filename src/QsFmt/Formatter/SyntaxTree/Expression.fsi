@@ -3,6 +3,18 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
+/// An identifier expression.
+/// It may represent a function name and the type arguments specified
+/// to call the function.
+type internal Identifier =
+    {
+        /// The name of the identifier
+        Name: Terminal
+
+        /// Optional type arguments
+        Arguments: Type Tuple Option
+    }
+
 /// A new array expression.
 type internal NewArray =
     {
@@ -122,6 +134,9 @@ and internal Expression =
 
     /// A literal.
     | Literal of Terminal
+
+    /// An identifier expression.
+    | Identifier of Identifier
 
     /// A tuple expression.
     | Tuple of Expression Tuple

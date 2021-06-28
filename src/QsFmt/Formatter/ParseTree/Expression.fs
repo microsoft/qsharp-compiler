@@ -20,8 +20,25 @@ type ExpressionVisitor(tokens) =
         context.Underscore().Symbol |> Node.toTerminal tokens |> Missing
 
     override _.VisitIdentifierExpression context =
-        { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
-        |> Literal
+        let types = context._typeArgs |> Seq.map typeVisitor.Visit
+
+        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+
+        {
+            Name = { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
+            Arguments =
+                match context.openBracket with
+                | null -> None
+                | _ ->
+                    Some(
+                        {
+                            OpenParen = context.openBracket |> Node.toTerminal tokens
+                            Items = Node.tupleItems types commas
+                            CloseParen = context.closeBracket |> Node.toTerminal tokens
+                        }
+                    )
+        }
+        |> Identifier
 
     override _.VisitIntegerExpression context =
         context.value |> Node.toTerminal tokens |> Literal
@@ -84,24 +101,15 @@ type ExpressionVisitor(tokens) =
         |> ArrayAccess
 
     override visitor.VisitUnwrapExpression context =
-        {
-            Operand = visitor.Visit context.operand
-            PostfixOperator = context.operator |> Node.toTerminal tokens
-        }
+        { Operand = visitor.Visit context.operand; PostfixOperator = context.operator |> Node.toTerminal tokens }
         |> PostfixOperator
 
     override visitor.VisitControlledExpression context =
-        {
-            PrefixOperator = context.functor |> Node.toTerminal tokens
-            Operand = visitor.Visit context.operation
-        }
+        { PrefixOperator = context.functor |> Node.toTerminal tokens; Operand = visitor.Visit context.operation }
         |> PrefixOperator
 
     override visitor.VisitAdjointExpression context =
-        {
-            PrefixOperator = context.functor |> Node.toTerminal tokens
-            Operand = visitor.Visit context.operation
-        }
+        { PrefixOperator = context.functor |> Node.toTerminal tokens; Operand = visitor.Visit context.operation }
         |> PrefixOperator
 
     override visitor.VisitCallExpression context =
@@ -121,10 +129,7 @@ type ExpressionVisitor(tokens) =
         |> Call
 
     override visitor.VisitNegationExpression context =
-        {
-            PrefixOperator = context.operator |> Node.toTerminal tokens
-            Operand = visitor.Visit context.operand
-        }
+        { PrefixOperator = context.operator |> Node.toTerminal tokens; Operand = visitor.Visit context.operand }
         |> PrefixOperator
 
     override visitor.VisitExponentExpression context =
@@ -223,7 +228,7 @@ type ExpressionVisitor(tokens) =
         }
         |> BinaryOperator
 
-     override visitor.VisitConditionalExpression context =
+    override visitor.VisitConditionalExpression context =
         {
             Condition = visitor.Visit context.cond
             Question = context.question |> Node.toTerminal tokens
@@ -234,17 +239,11 @@ type ExpressionVisitor(tokens) =
         |> Conditional
 
     override visitor.VisitRightOpenRangeExpression context =
-        {
-            Operand = visitor.Visit context.left
-            PostfixOperator = context.ellipsis |> Node.toTerminal tokens
-        }
+        { Operand = visitor.Visit context.left; PostfixOperator = context.ellipsis |> Node.toTerminal tokens }
         |> PostfixOperator
 
     override visitor.VisitLeftOpenRangeExpression context =
-        {
-            PrefixOperator = context.ellipsis |> Node.toTerminal tokens
-            Operand = visitor.Visit context.right
-        }
+        { PrefixOperator = context.ellipsis |> Node.toTerminal tokens; Operand = visitor.Visit context.right }
         |> PrefixOperator
 
     override _.VisitOpenRangeExpression context =

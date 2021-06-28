@@ -3,6 +3,12 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
+type internal Identifier =
+    {
+        Name: Terminal
+        Arguments: Type Tuple Option
+    }
+
 type NewArray =
     {
         New: Terminal
@@ -54,6 +60,7 @@ and Update =
 and Expression =
     | Missing of Terminal
     | Literal of Terminal
+    | Identifier of Identifier
     | Tuple of Expression Tuple
     | NewArray of NewArray
     | NamedItemAccess of NamedItemAccess

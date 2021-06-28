@@ -185,6 +185,7 @@ type internal 'result Reducer() as reducer =
         match expression with
         | Missing terminal -> reducer.Terminal terminal
         | Literal literal -> reducer.Terminal literal
+        | Identifier identifier -> reducer.Identifier identifier
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
         | NewArray newArray -> reducer.NewArray newArray
         | NamedItemAccess namedItemAccess -> reducer.NamedItemAccess namedItemAccess
@@ -196,6 +197,13 @@ type internal 'result Reducer() as reducer =
         | Conditional conditional -> reducer.Conditional conditional
         | Update update -> reducer.Update update
         | Expression.Unknown terminal -> reducer.Terminal terminal
+
+    abstract Identifier : identifier: Identifier -> 'result
+
+    default _.Identifier identifier =
+        reducer.Terminal identifier.Name
+        :: (identifier.Arguments |> Option.map (curry reducer.Tuple reducer.Type) |> Option.toList)
+        |> reduce
 
     abstract NewArray : newArray: NewArray -> 'result
 
@@ -287,20 +295,12 @@ type internal 'result Reducer() as reducer =
     abstract PrefixOperator : mapper: ('a -> 'result) * operator: 'a PrefixOperator -> 'result
 
     default _.PrefixOperator(mapper, operator) =
-        [
-            reducer.Terminal operator.PrefixOperator
-            mapper operator.Operand
-        ]
-        |> reduce
+        [ reducer.Terminal operator.PrefixOperator; mapper operator.Operand ] |> reduce
 
     abstract PostfixOperator : mapper: ('a -> 'result) * operator: 'a PostfixOperator -> 'result
 
     default _.PostfixOperator(mapper, operator) =
-        [
-            mapper operator.Operand
-            reducer.Terminal operator.PostfixOperator
-        ]
-        |> reduce
+        [ mapper operator.Operand; reducer.Terminal operator.PostfixOperator ] |> reduce
 
     abstract BinaryOperator : mapper: ('a -> 'result) * operator: 'a BinaryOperator -> 'result
 

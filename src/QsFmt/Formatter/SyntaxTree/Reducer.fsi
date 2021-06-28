@@ -132,6 +132,12 @@ type internal 'result Reducer =
     default Expression: expression:Expression -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="Identifier"/> expression node.
+    /// </summary>
+    abstract Identifier: identifier:Identifier -> 'result
+    default Identifier: identifier:Identifier -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="NewArray"/> expression node.
     /// </summary>
     abstract NewArray: newArray:NewArray -> 'result

@@ -175,17 +175,27 @@ type 'context Rewriter() =
         match expression with
         | Missing terminal -> rewriter.Terminal(context, terminal) |> Missing
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
+        | Identifier identifier -> rewriter.Identifier(context, identifier) |> Identifier
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
         | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
         | NamedItemAccess namedItemAccess -> rewriter.NamedItemAccess(context, namedItemAccess) |> NamedItemAccess
         | ArrayAccess arrayAccess -> rewriter.ArrayAccess(context, arrayAccess) |> ArrayAccess
         | Call call -> rewriter.Call(context, call) |> Call
         | PrefixOperator operator -> rewriter.PrefixOperator(context, rewriter.Expression, operator) |> PrefixOperator
-        | PostfixOperator operator -> rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
+        | PostfixOperator operator ->
+            rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
         | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
         | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
         | Update update -> rewriter.Update(context, update) |> Update
         | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
+
+    abstract Identifier : context: 'context * identifier: Identifier -> Identifier
+
+    default rewriter.Identifier(context, identifier) =
+        {
+            Name = rewriter.Terminal(context, identifier.Name)
+            Arguments = identifier.Arguments |> Option.map (curry3 rewriter.Tuple context rewriter.Type)
+        }
 
     abstract NewArray : context: 'context * newArray: NewArray -> NewArray
 

@@ -128,6 +128,12 @@ type internal 'context Rewriter =
     default Expression: context:'context * expression:Expression -> Expression
 
     /// <summary>
+    /// Rewrites an <see cref="Identifier"/> expression node.
+    /// </summary>
+    abstract Identifier: context:'context * identifier:Identifier -> Identifier
+    default Identifier: context:'context * identifier:Identifier -> Identifier
+
+    /// <summary>
     /// Rewrites an <see cref="NewArray"/> expression node.
     /// </summary>
     abstract NewArray: context:'context * newArray:NewArray -> NewArray

@@ -198,7 +198,7 @@ qubitInitializer
 
 expression
     : '_' # MissingExpression
-    | name=qualifiedName ('<' (type (',' type)* ','?)? '>')? # IdentifierExpression
+    | name=qualifiedName (openBracket='<' (typeArgs+=type (commas+=',' typeArgs+=type)* commas+=','?)? closeBracket='>')? # IdentifierExpression
     | value=IntegerLiteral # IntegerExpression
     | value=BigIntegerLiteral # BigIntegerExpression
     | value=DoubleLiteral # DoubleExpression

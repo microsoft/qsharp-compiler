@@ -63,7 +63,7 @@ let ``Removes extraneous spaces`` =
     function Bar() : Int [     ] {
         let x= // Newlines are preserved.
             (7 *   1) // Comments too.
-            + 4;
+            + 4 / Fun<Bool,     Double>();
         return  x w/ Foo <- (7, y);
     }
 }""",
@@ -72,7 +72,7 @@ let ``Removes extraneous spaces`` =
     function Bar() : Int [ ] {
         let x = // Newlines are preserved.
             (7 * 1) // Comments too.
-            + 4;
+            + 4 / Fun<Bool, Double>();
         return x w/ Foo <- (7, y);
     }
 }"""
