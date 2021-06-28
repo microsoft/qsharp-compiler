@@ -50,12 +50,10 @@ type ExpressionVisitor(tokens) =
         context.value |> Node.toTerminal tokens |> Literal
 
     override _.VisitStringExpression context =
-        { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() }
-        |> Literal
+        { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() } |> Literal
 
     override _.VisitInterpStringExpression context =
-        { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() }
-        |> Literal
+        { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() } |> Literal
 
     override _.VisitBoolExpression context =
         { Prefix = Node.prefix tokens context.value.Start.TokenIndex; Text = context.value.GetText() }

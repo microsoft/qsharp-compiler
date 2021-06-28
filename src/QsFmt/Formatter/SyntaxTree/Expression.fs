@@ -3,11 +3,7 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-type internal Identifier =
-    {
-        Name: Terminal
-        Arguments: Type Tuple Option
-    }
+type internal Identifier = { Name: Terminal; Arguments: Type Tuple Option }
 
 type NewArray =
     {
@@ -33,11 +29,7 @@ and ArrayAccess =
         CloseBracket: Terminal
     }
 
-and Call =
-    {
-        Function: Expression
-        Arguments: Expression Tuple
-    }
+and Call = { Function: Expression; Arguments: Expression Tuple }
 
 and Conditional =
     {
