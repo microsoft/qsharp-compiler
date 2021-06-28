@@ -163,7 +163,9 @@ type NamespaceManager
             match (ns.ImportedNamespaces source).TryGetValue builtIn.FullName.Namespace with
             | true, null when
                 not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.IsAccessible)
-                || nsName = builtIn.FullName.Namespace -> [ ""; builtIn.FullName.Namespace ]
+                || nsName = builtIn.FullName.Namespace
+                ->
+                [ ""; builtIn.FullName.Namespace ]
             | true, null -> [ builtIn.FullName.Namespace ] // the built-in type or callable is shadowed
             | true, alias -> [ alias; builtIn.FullName.Namespace ]
             | false, _ -> [ builtIn.FullName.Namespace ]
@@ -552,7 +554,8 @@ type NamespaceManager
 
                     match box decl.Defined with
                     | :? CallableSignature as signature when
-                        signature |> isUnitToUnit && not (signature.TypeParameters.Any()) ->
+                        signature |> isUnitToUnit && not (signature.TypeParameters.Any())
+                        ->
                         let arg =
                             att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument(fun ex -> ex.Expression)
 

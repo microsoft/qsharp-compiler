@@ -67,11 +67,9 @@
 
   <!-- Packages for execution on the simulation framework. -->
   <ItemGroup>
-    <PackageReference Condition="$(CSharpGeneration) And '$(ResolvedQSharpOutputType)' == 'QSharpExe'" 
-                      Include="Microsoft.Quantum.Simulators" Version="0.16.2105140327-beta" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CSharpGeneration)" 
+    <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime)" 
                       Include="Microsoft.Quantum.Runtime.Core" Version="0.16.2105140327-beta" IsImplicitlyDefined="true" />
-    <PackageReference Condition="$(CSharpGeneration) And '$(ResolvedQSharpOutputType)' == 'QSharpExe'"
+    <PackageReference Condition="$(CSharpGeneration) And $(IncludeCSharpRuntime) And '$(ResolvedQSharpOutputType)' == 'QSharpExe'"
                       Include="Microsoft.Quantum.EntryPointDriver" Version="0.16.2105140327-beta" IsImplicitlyDefined="true" />
     <PackageReference Condition="$(CSharpGeneration)"
                       Include="Microsoft.Quantum.CSharpGeneration" Version="0.16.2105140327-beta" IsImplicitlyDefined="true"

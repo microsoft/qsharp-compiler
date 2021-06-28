@@ -276,13 +276,15 @@ let private tryResolveWith resolve extract (currentNS, source) =
             match resolve sym (currentNS, source) with
             | Found decl -> Some decl, Some sym
             | _ -> None, Some sym
-        with :? ArgumentException -> None, Some sym
+        with
+        | :? ArgumentException -> None, Some sym
     | QsSymbolKind.QualifiedSymbol (ns, sym) ->
         try
             match extract { Namespace = ns; Name = sym } (currentNS, source) with
             | Found decl -> Some decl, Some sym
             | _ -> None, None
-        with :? ArgumentException -> None, None
+        with
+        | :? ArgumentException -> None, None
     | _ -> None, None
 
 let private globalTypeResolution (symbolTable: NamespaceManager) (currentNS, source) (udt: QsSymbol) =

@@ -56,7 +56,8 @@ let ``Shows help with no arguments`` () =
         {
             Code = 2
             Out = ""
-            Error = "ERROR: missing argument '<string>'.
+            Error =
+                "ERROR: missing argument '<string>'.
 
 INPUT:
 

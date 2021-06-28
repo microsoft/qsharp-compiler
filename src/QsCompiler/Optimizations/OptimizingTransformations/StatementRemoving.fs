@@ -95,5 +95,7 @@ and private VariableRemovalStatements(parent: StatementRemoval, removeFunctions)
             not c.HasQuantum
             && c2.ExternalMutations.IsEmpty
             && not c.HasInterrupts
-            && (not c.HasOutput || removeFunctions) -> Seq.empty
+            && (not c.HasOutput || removeFunctions)
+            ->
+            Seq.empty
         | a -> Seq.singleton a

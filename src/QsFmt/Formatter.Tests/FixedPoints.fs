@@ -34,7 +34,8 @@ let ``Identity preserves original source code`` source =
     Assert.Equal(Ok source, Formatter.identity source)
 
 [<FixedPoint>]
-let ``Namespace comments`` = """/// The Foo namespace.
+let ``Namespace comments`` =
+    """/// The Foo namespace.
 namespace Foo {}
 
 /// The Bar namespace.
@@ -43,31 +44,36 @@ namespace Bar {}
 // End of file."""
 
 [<FixedPoint>]
-let ``Function with one parameter`` = """namespace Foo {
+let ``Function with one parameter`` =
+    """namespace Foo {
     function Bar(x : Int) : Int {
         return x;
     }
 }"""
 
 [<FixedPoint>]
-let ``Function with two parameters`` = """namespace Foo {
+let ``Function with two parameters`` =
+    """namespace Foo {
     function Bar(x : Int, y : Int) : Int {
         return x + y;
     }
 }"""
 
 [<FixedPoint>]
-let ``Operation with Adj characteristic`` = """namespace Foo {
+let ``Operation with Adj characteristic`` =
+    """namespace Foo {
     operation Bar () : Unit is Adj {}
 }"""
 
 [<FixedPoint>]
-let ``Operation with Adj + Ctl characteristics`` = """namespace Foo {
+let ``Operation with Adj + Ctl characteristics`` =
+    """namespace Foo {
     operation Bar () : Unit is Adj + Ctl {}
 }"""
 
 [<FixedPoint(Skip = "Not supported.")>]
-let ``Entry point and using statement`` = """namespace Microsoft.Quantum.Foo {
+let ``Entry point and using statement`` =
+    """namespace Microsoft.Quantum.Foo {
     @EntryPoint()
     operation RunProgram (nQubits : Int) : Unit {
         using (register = Qubit[nQubits]) {
@@ -77,7 +83,8 @@ let ``Entry point and using statement`` = """namespace Microsoft.Quantum.Foo {
 }"""
 
 [<FixedPoint>]
-let ``Open directives and operation`` = """namespace Foo {
+let ``Open directives and operation`` =
+    """namespace Foo {
     open Bar;
     open Baz;
 
@@ -85,7 +92,8 @@ let ``Open directives and operation`` = """namespace Foo {
 }"""
 
 [<FixedPoint(Skip = "Not supported.")>]
-let ``Open directive and entry point`` = """namespace Foo {
+let ``Open directive and entry point`` =
+    """namespace Foo {
     open Test;
 
     @EntryPoint()
@@ -93,7 +101,8 @@ let ``Open directive and entry point`` = """namespace Foo {
 }"""
 
 [<FixedPoint(Skip = "Not supported.")>]
-let ``Operation with comments`` = """namespace Foo {
+let ``Operation with comments`` =
+    """namespace Foo {
     open Test;
 
     operation Bar () : Unit {
@@ -105,14 +114,16 @@ let ``Operation with comments`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
-let ``Mutable variable`` = """namespace Foo {
+let ``Mutable variable`` =
+    """namespace Foo {
     function Bar() : Unit {
         mutable x = 0;
     }
 }"""
 
 [<FixedPoint>]
-let ``Mutable variable after comment`` = """namespace Foo {
+let ``Mutable variable after comment`` =
+    """namespace Foo {
     function Bar() : Unit {
         // Hello world
         mutable x = 0;
@@ -120,7 +131,8 @@ let ``Mutable variable after comment`` = """namespace Foo {
 }"""
 
 [<FixedPoint(Skip = "Not supported.")>]
-let ``Mutable variable before comment`` = """namespace Foo {
+let ``Mutable variable before comment`` =
+    """namespace Foo {
     function Bar() : Unit {
         mutable x = 0;
         // Hello world
@@ -128,8 +140,39 @@ let ``Mutable variable before comment`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
-let ``Array literal`` = """namespace Foo {
+let ``Array literal`` =
+    """namespace Foo {
     function Bar() : Unit {
         let xs = [1, 2, 3];
     }
+}"""
+
+[<FixedPoint>]
+let ``Missing type`` =
+    """namespace Foo {
+    function Bar (arg : _) : Unit {}
+}"""
+
+[<FixedPoint>]
+let ``Type parameter`` =
+    """namespace Foo {
+    function Bar (arg : 't) : Unit {}
+}"""
+
+[<FixedPoint>]
+let ``Tuple type`` =
+    """namespace Foo {
+    function Bar (arg : (BigInt, Bool, (Double, Int))) : Pauli {}
+}"""
+
+[<FixedPoint>]
+let ``Array type`` =
+    """namespace Foo {
+    function Bar (arg : Qubit[]) : Range {}
+}"""
+
+[<FixedPoint>]
+let ``Function type`` =
+    """namespace Foo {
+    function Bar (arg : Result => String is Adj) : Unit {}
 }"""
