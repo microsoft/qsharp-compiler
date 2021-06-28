@@ -204,9 +204,9 @@ expression
     | value=DoubleLiteral # DoubleExpression
     | DoubleQuote stringContent* StringDoubleQuote # StringExpression
     | DollarQuote interpStringContent* InterpDoubleQuote # InterpStringExpression
-    | boolLiteral # BoolExpression
-    | resultLiteral # ResultExpression
-    | pauliLiteral # PauliExpression
+    | value=boolLiteral # BoolExpression
+    | value=resultLiteral # ResultExpression
+    | value=pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
     | new='new' arrayType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression

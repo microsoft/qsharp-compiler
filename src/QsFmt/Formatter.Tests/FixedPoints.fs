@@ -160,6 +160,20 @@ let ``Function type`` = """namespace Foo {
 }"""
 
 [<FixedPoint>]
+let ``Literals`` = """namespace Foo {
+    function Bar () : Unit {
+        let int = 1;
+        let big_int = 1234567890L;
+        let double = 1.23;
+        let string = "abc";
+        let interp_string = $"abc";
+        let bool = False;
+        let result = One;
+        let pauli = PauliI;
+    }
+}"""
+
+[<FixedPoint>]
 let ``Array expression`` = """namespace Foo {
     function Bar () : Int[] {
         return [1, 2, 3];

@@ -49,6 +49,26 @@ type ExpressionVisitor(tokens) =
     override _.VisitDoubleExpression context =
         context.value |> Node.toTerminal tokens |> Literal
 
+    override _.VisitStringExpression context =
+        { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() }
+        |> Literal
+
+    override _.VisitInterpStringExpression context =
+        { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() }
+        |> Literal
+
+    override _.VisitBoolExpression context =
+        { Prefix = Node.prefix tokens context.value.Start.TokenIndex; Text = context.value.GetText() }
+        |> Literal
+
+    override _.VisitResultExpression context =
+        { Prefix = Node.prefix tokens context.value.Start.TokenIndex; Text = context.value.GetText() }
+        |> Literal
+
+    override _.VisitPauliExpression context =
+        { Prefix = Node.prefix tokens context.value.Start.TokenIndex; Text = context.value.GetText() }
+        |> Literal
+
     override visitor.VisitTupleExpression context =
         let expressions = context._items |> Seq.map visitor.Visit
 
