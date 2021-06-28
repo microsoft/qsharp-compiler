@@ -124,8 +124,11 @@
     </PropertyGroup>
     <WriteLinesToFile File="$(BuildOutputPath)\Main.cpp" Overwrite="true" Lines="$(DriverCode)" />
   </Target>
-      
-  <Target Name="BuildExecutable" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="CreateCppDriver;Restore" AfterTargets="QSharpCompile;CoreBuild">
+
+  <!-- TODO: UNCOMMENT
+  Commenting out to get and e2e build such that the version number from that Sdk can be used in this project
+  -->
+  <!--Target Name="BuildExecutable" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="CreateCppDriver;Restore" AfterTargets="QSharpCompile;CoreBuild">
     <PropertyGroup>
       <QirRuntimeHeaders>$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/any/native/include</QirRuntimeHeaders>
       <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/osx-x64/native</QirRuntimeLibs>
@@ -144,6 +147,6 @@
     <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_QirRuntimeHeaderFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Exec Command="$(ClangCommand)" IgnoreExitCode="false" />
-  </Target>
+  </Target-->
 
 </Project>
