@@ -806,7 +806,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 throw new InvalidOperationException("Q# declaration for global callable not found");
             }
-            else if (GenerationContext.TryGetTargetInstructionName(callable, out var instructionName))
+            else if (NameGeneration.TryGetTargetInstructionName(callable, out var instructionName))
             {
                 // deal with functions that are part of the target specific instruction set
                 var targetInstruction = this.SharedState.GetOrCreateTargetInstruction(instructionName);
