@@ -117,7 +117,8 @@ let rec private toExpression (cc: CircuitContext, expr: TypedExpression) : (Circ
             | _ -> None)
             QubitArray
     | ExprKind.Identifier (LocalVariable name, _) when
-        expr.ResolvedType.Resolution = TypeKind.Qubit && cc.distinctNames.Contains name ->
+        expr.ResolvedType.Resolution = TypeKind.Qubit && cc.distinctNames.Contains name
+        ->
         let newQubits, i = ensureMatchingIndex cc.qubits
         Some({ cc with qubits = newQubits }, Qubit i)
     | _ when mightContainQubit expr.ResolvedType.Resolution -> None
@@ -290,6 +291,7 @@ let internal optimizeExprList callables distinctNames exprList =
         try
             let! newCircuit = optimizeCircuit circuit
             return fromCircuit cc newCircuit
-        with _ -> return! None
+        with
+        | _ -> return! None
     }
     |? exprList
