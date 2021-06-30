@@ -419,6 +419,7 @@ type WarningCode =
 
     | InvalidAssemblyProperties = 8101
     | MissingTargetInstructionName = 8102
+    | DuplicateAssemblyProperty = 8103
 
 
 type InformationCode =
@@ -1039,6 +1040,8 @@ type DiagnosticItem =
                 "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
             | WarningCode.MissingTargetInstructionName ->
                 "Missing target instruction name for intrinsic callable. The automatically determined name conflicts with another target instruction."
+            | WarningCode.DuplicateAssemblyProperty ->
+                "The assembly property \"{0}\" has been declared multiple times. Its value will be set to \"{1}\"."
             | _ -> ""
 
         DiagnosticItem.ApplyArguments args message

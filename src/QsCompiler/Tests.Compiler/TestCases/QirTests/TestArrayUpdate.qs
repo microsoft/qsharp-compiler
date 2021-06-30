@@ -73,4 +73,13 @@ namespace Microsoft.Quantum.Testing.QIR
 
         return arr;
     }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestArrayUpdate1("");
+        let _ = TestArrayUpdate2([], "");
+        let _ = TestArrayUpdate3([], "");
+        let _ = TestArrayUpdate4([]);
+        let _ = TestArrayUpdate5(true, []);
+    }
 }

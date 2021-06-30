@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    @EntryPoint()
     function TestRange () : Range
     {
         let x = 0..2..6;
@@ -10,7 +11,7 @@ namespace Microsoft.Quantum.Testing.QIR
         let b = a[x];
 
         let y = 0..4;
-        for (j in y)
+        for j in y
         {
             let m = 1;
         }
