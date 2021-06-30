@@ -36,36 +36,33 @@ The Python project uses [qiskit-terra](https://pypi.org/project/qiskit-terra/) f
 - [pytest](https://pypi.org/project/pytest/): The pytest framework makes it easy to write small tests, yet scales to support complex functional testing for applications and libraries.
   - MIT License
 
-Currently the build only works for the single Python version installed. Future work may include:
- - Creating ABI3 compatable wheels which can be installed across Python 3.5+ to minimize the number of builds which need to be created
- - Create Windows and Mac (x64 and aarch64) scripts
-
 ### IR
 
-The project uses `module.ll` produced from a minimal Q# compilation in `module.qs` and compiled with `llvm-as-11` to create `module.bc`. This module contains the `QIR` generated:
-
-```qsharp
-namespace QuantumApplication {
-    @EntryPoint()
-    operation Run() : Result[][] {
-        return [[Zero]];
-    }
-}
-```
+The project uses `module.ll` produced from a minimal Q# compilation in `module.qs` and compiled with `llvm-as-11` to create `module.bc`. This module contains the `QIR` generated.
 
 This should allow us to load the QIR and replace the entrypoint method body with the circuit translation.
 
 ## Building
 
-- Install LLVM 11 ([Ubuntu](https://apt.llvm.org/), Windows)
-- Install Rust
-- Install Python 3.6+
+This repo includes a dev container which will install all base requirements. If you with to build locally without a dev container, you'll need to install:
+
+- LLVM 11 ([Ubuntu](https://apt.llvm.org/), Windows)
+- Rust > 1.48
+- Python 3.6+
 
 ## Dev workflow
 
 ### Building and Running Tests
 
 In order to run the python tests, the module needs to be installed. This setup will generate and install an egg. The `./build_wheels.sh` script can also be run if you wish to build and install a wheel.
+
+If this is the first time you've loaded the code we need to install the python dev packages:
+
+```bash
+python3 -m pip install -r requirements-dev.txt
+```
+
+After which we can build everything and install the module locally:
 
 ```bash
 python3 setup.py install --user
@@ -77,3 +74,9 @@ Once installed, the tests can be run:
 pytest -v tests
 ```
 
+## TODO
+
+ - Automate IR Runtime definition dependency.
+ - Currently the build only works for the single Python version installed. Future work may include:
+   - Creating ABI3 compatable wheels which can be installed across Python 3.5+ to minimize the number of builds which need to be created
+   - Create Windows and Mac (x64 and aarch64) scripts
