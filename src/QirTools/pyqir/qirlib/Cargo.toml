@@ -6,6 +6,7 @@ edition = "2018"
 [dependencies]
 llvm-sys = "110"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm11-0"] }
+either = "1.6.1"
 
 [lib]
 name = "qirlib"
