@@ -993,8 +993,14 @@ namespace Microsoft.Quantum.QsCompiler
 
             // Skip loading any assemblies referenced as target packages. These will be included in a later
             // override step.
+            var filteredRefs = refs ?? Enumerable.Empty<string>();
+            if (this.config.TargetPackageAssemblies != null)
+            {
+                filteredRefs = filteredRefs.Except(this.config.TargetPackageAssemblies.Select(a => Path.GetFullPath(a)));
+            }
+
             var headers = ProjectManager.LoadReferencedAssembliesInParallel(
-                refs.Except(this.config.TargetPackageAssemblies.Select(a => Path.GetFullPath(a))) ?? Enumerable.Empty<string>(),
+                filteredRefs,
                 OnDiagnostic,
                 OnException,
                 ignoreDllResources);
