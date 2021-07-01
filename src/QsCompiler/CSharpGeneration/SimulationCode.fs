@@ -389,7 +389,8 @@ module SimulationCode =
         let rec buildExpression (ex: TypedExpression) =
             match ex.Expression with
             // TODO: Diagnostics
-            | InvalidExpr -> failwith "Can't generate code for error expression"
+            | InvalidExpr -> failwith "Can't generate code for invalid expression."
+            | Lambda _ -> failwith "Can't generate code for un-lifted lambda."
             | UnitValue -> (ident "QVoid") <|.|> (ident "Instance")
             | IntLiteral i -> literal i
             | BigIntLiteral b ->
