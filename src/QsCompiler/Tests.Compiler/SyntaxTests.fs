@@ -204,8 +204,8 @@ let ``Symbol name tests`` () =
     let parser =
         symbolNameLike ErrorCode.ExpectingUnqualifiedSymbol
         >>= function
-        | Some str -> preturn str
-        | None -> fail ""
+            | Some str -> preturn str
+            | None -> fail ""
 
     [
         ("a", true, "a", [])

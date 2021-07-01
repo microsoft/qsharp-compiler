@@ -58,7 +58,9 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
                 | SizedArray _
                 | NewArray _ -> true
                 | CallLikeExpression ({ Expression = Identifier (GlobalCallable name, _) }, _) when
-                    callables.[name].Kind = TypeConstructor -> true
+                    callables.[name].Kind = TypeConstructor
+                    ->
+                    true
                 | _ when TypedExpression.IsPartialApplication ex.Expression -> true
                 | UnitValue
                 | IntLiteral _

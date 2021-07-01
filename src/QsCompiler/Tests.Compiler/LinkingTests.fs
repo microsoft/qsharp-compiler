@@ -260,8 +260,9 @@ type LinkingTests() =
         |> compilationManager.AddOrUpdateSourceFileAsync
         |> ignore
 
-        for testCase in LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs"
-                        |> Seq.zip Signatures.MonomorphizationSignatures do
+        for testCase in
+            LinkingTests.ReadAndChunkSourceFile "Monomorphization.qs"
+            |> Seq.zip Signatures.MonomorphizationSignatures do
             this.CompileMonomorphization(snd testCase)
             |> Signatures.SignatureCheck [ Signatures.GenericsNS; Signatures.MonomorphizationNS ] (fst testCase)
 

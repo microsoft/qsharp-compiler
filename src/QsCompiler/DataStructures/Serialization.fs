@@ -79,7 +79,8 @@ type QsNullableLocationConverter(?ignoreSerializationException) =
                     loc |> Value
             else
                 Null
-        with :? JsonSerializationException as ex -> if ignoreSerializationException then Null else raise ex
+        with
+        | :? JsonSerializationException as ex -> if ignoreSerializationException then Null else raise ex
 
     override this.WriteJson(writer: JsonWriter, value: QsNullable<QsLocation>, serializer: JsonSerializer) =
         match value with
@@ -101,7 +102,8 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
                 Object.ReferenceEquals(c, null) || Object.ReferenceEquals(c.Characteristics, null) ->
                 JsonSerializationException "failed to deserialize operation characteristics" |> raise
             | _ -> resolvedType
-        with :? JsonSerializationException as ex ->
+        with
+        | :? JsonSerializationException as ex ->
             if ignoreSerializationException then ResolvedType.New InvalidType else raise ex
 
     override this.WriteJson(writer: JsonWriter, value: ResolvedType, serializer: JsonSerializer) =
@@ -124,7 +126,8 @@ type ResolvedCharacteristicsConverter(?ignoreSerializationException) =
         try
             serializer.Deserialize<CharacteristicsKind<ResolvedCharacteristics>>(reader)
             |> ResolvedCharacteristics.New
-        with :? JsonSerializationException as ex ->
+        with
+        | :? JsonSerializationException as ex ->
             if ignoreSerializationException then ResolvedCharacteristics.New InvalidSetExpr else raise ex
 
     override this.WriteJson(writer: JsonWriter, value: ResolvedCharacteristics, serializer: JsonSerializer) =

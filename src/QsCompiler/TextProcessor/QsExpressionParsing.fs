@@ -372,12 +372,14 @@ let internal numericLiteral =
                         >>. returnWithRange (doubleValue |> DoubleLiteral)
                     else
                         returnWithRange (doubleValue |> DoubleLiteral)
-                with :? System.OverflowException ->
+                with
+                | :? System.OverflowException ->
                     buildError (preturn range) ErrorCode.DoubleOverflow
                     >>. returnWithRange (System.Double.NaN |> DoubleLiteral)
             else
                 fail "invalid number format"
-        with _ -> fail "failed to initialize number literal"
+        with
+        | _ -> fail "failed to initialize number literal"
 
     let format = // not allowed are: infinity, NaN
         NumberLiteralOptions.AllowPlusSign // minus signs are processed by the corresponding unary operator
@@ -579,27 +581,27 @@ let private itemAccessExpr =
 
             getCharStreamState >>= fun state -> skipToTailingRangeOrEnd >>. slicingExpr state
             |>> fun ((pre, core: QsExpression), post) ->
-                let applyPost ex =
-                    match post with
-                    | None -> ex
+                    let applyPost ex =
+                        match post with
+                        | None -> ex
+                        | Some (_, range) ->
+                            buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)
+
+                    match pre with
+                    // we potentially need to re-construct the expression following the open range operator
+                    // to get the correct behavior (in terms of associativity and precedence)
                     | Some (_, range) ->
-                        buildCombinedExpr (RangeLiteral(ex, missingEx range.End)) (ex.Range, Value range)
+                        let combineWith right left =
+                            buildCombinedExpr (RangeLiteral(left, right)) (left.Range, right.Range)
 
-                match pre with
-                // we potentially need to re-construct the expression following the open range operator
-                // to get the correct behavior (in terms of associativity and precedence)
-                | Some (_, range) ->
-                    let combineWith right left =
-                        buildCombinedExpr (RangeLiteral(left, right)) (left.Range, right.Range)
-
-                    match core.Expression with
-                    // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence,
-                    // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it.
-                    | RangeLiteral (lex, rex) ->
-                        buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
-                        |> combineWith rex
-                    | _ -> missingEx range.End |> combineWith core |> applyPost
-                | None -> core |> applyPost
+                        match core.Expression with
+                        // range literals are the only expressions that need to be re-constructed, since only copy-and-update expressions have lower precedence,
+                        // but there is no way to get a correct slicing expression when ex is a copy-and-update expression unless there are parentheses around it.
+                        | RangeLiteral (lex, rex) ->
+                            buildCombinedExpr (RangeLiteral(missingEx range.End, lex)) (Value range, lex.Range)
+                            |> combineWith rex
+                        | _ -> missingEx range.End |> combineWith core |> applyPost
+                    | None -> core |> applyPost
 
         let arrayItemAccess = arrayBrackets (fullyOpenRange <|> closedOrHalfOpenRange) |>> ArrayItemAccessor
 
