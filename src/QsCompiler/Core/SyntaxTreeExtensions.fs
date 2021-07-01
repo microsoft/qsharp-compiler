@@ -235,6 +235,7 @@ type TypedExpression with
         | ValueTuple items
         | ValueArray items -> seq items
         | SizedArray (value, size) -> seq [ value; size ]
+        | Lambda (_, _, body) -> seq [ body ]
         | UnitValue
         | Identifier _
         | IntLiteral _

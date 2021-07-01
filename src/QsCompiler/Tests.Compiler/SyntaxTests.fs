@@ -821,43 +821,58 @@ let ``Modifier tests`` () = // modifiers can only be applied to identifiers, ari
 [<Fact>]
 let ``Function type tests`` () =
     [
-        "(Int -> Int)", toTupleType [ Function(toType Int, toType Int) |> toType ], []
+        "(Int -> Int)", toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ], []
 
         "(Int -> (Int -> Int))",
-        toTupleType [ Function(toType Int, toTupleType [ Function(toType Int, toType Int) |> toType ]) |> toType ],
+        toTupleType [ QsTypeKind.Function(
+                          toType Int,
+                          toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ]
+                      )
+                      |> toType ],
         []
 
         "((Int -> Int) -> Int)",
-        toTupleType [ Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType ],
+        toTupleType [ QsTypeKind.Function(
+                          toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ],
+                          toType Int
+                      )
+                      |> toType ],
         []
 
-        "Int -> Int", Function(toType Int, toType Int) |> toType, []
-        "Int -> Int -> Int", Function(toType Int, Function(toType Int, toType Int) |> toType) |> toType, []
+        "Int -> Int", QsTypeKind.Function(toType Int, toType Int) |> toType, []
+        "Int -> Int -> Int",
+        QsTypeKind.Function(toType Int, QsTypeKind.Function(toType Int, toType Int) |> toType) |> toType,
+        []
 
         "Int -> (Int -> Int)",
-        Function(toType Int, toTupleType [ Function(toType Int, toType Int) |> toType ]) |> toType,
+        QsTypeKind.Function(toType Int, toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ])
+        |> toType,
         []
 
         "(Int -> Int) -> Int",
-        Function(toTupleType [ Function(toType Int, toType Int) |> toType ], toType Int) |> toType,
+        QsTypeKind.Function(toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ], toType Int)
+        |> toType,
         []
 
-        "Unit -> 'a", Function(unitType, TypeParameter(toSymbol "a") |> toType) |> toType, []
-        "'a -> Unit", Function(TypeParameter(toSymbol "a") |> toType, unitType) |> toType, []
-        "'a -> 'a", Function(TypeParameter(toSymbol "a") |> toType, TypeParameter(toSymbol "a") |> toType) |> toType, []
+        "Unit -> 'a", QsTypeKind.Function(unitType, TypeParameter(toSymbol "a") |> toType) |> toType, []
+        "'a -> Unit", QsTypeKind.Function(TypeParameter(toSymbol "a") |> toType, unitType) |> toType, []
+        "'a -> 'a",
+        QsTypeKind.Function(TypeParameter(toSymbol "a") |> toType, TypeParameter(toSymbol "a") |> toType)
+        |> toType,
+        []
 
         "(Int -> Int, Int)",
-        toTupleType [ Function(toType Int, toType Int) |> toType
+        toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType
                       toType Int ],
         []
 
         "(Int, Int -> Int)",
         toTupleType [ toType Int
-                      Function(toType Int, toType Int) |> toType ],
+                      QsTypeKind.Function(toType Int, toType Int) |> toType ],
         []
 
         "('T => Unit)[] -> Unit",
-        Function(
+        QsTypeKind.Function(
             ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet ])
             |> toType,
             unitType
@@ -866,7 +881,7 @@ let ``Function type tests`` () =
         []
 
         "('T => Unit is Adj)[] -> Unit",
-        Function(
+        QsTypeKind.Function(
             ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType adjSet ])
             |> toType,
             unitType
@@ -875,7 +890,7 @@ let ``Function type tests`` () =
         []
 
         "(('T => Unit)[] -> Unit)",
-        toTupleType [ Function(
+        toTupleType [ QsTypeKind.Function(
                           ArrayType(toTupleType [ toOpType (TypeParameter(toSymbol "T") |> toType) unitType emptySet ])
                           |> toType,
                           unitType
@@ -888,12 +903,12 @@ let ``Function type tests`` () =
     [
         "new (Int -> Int)[0]",
         true,
-        toNewArray (toTupleType [ Function(toType Int, toType Int) |> toType ]) (toInt 0),
+        toNewArray (toTupleType [ QsTypeKind.Function(toType Int, toType Int) |> toType ]) (toInt 0),
         []
 
         "new Int -> Int[0]",
         true,
-        toNewArray (Function(toType Int, toType Int) |> toType) (toInt 0),
+        toNewArray (QsTypeKind.Function(toType Int, toType Int) |> toType) (toInt 0),
         [ Error ErrorCode.MissingLTupleBracket; Error ErrorCode.MissingRTupleBracket ]
     ]
     |> List.iter testExpr

@@ -336,6 +336,17 @@ let internal verifyAssignment (inference: InferenceContext) expectedType mismatc
                 (rangeOrDefault rhs)
     ]
 
+let private inferLambda (inference: InferenceContext) range kind (param: QsSymbol) body =
+    let input = inference.Fresh(rangeOrDefault body)
+    let output = inference.Fresh param.RangeOrDefault
+
+    let type_ =
+        match kind with
+        | LambdaKind.Function -> QsTypeKind.Function(input, output)
+        | LambdaKind.Operation -> QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
+
+    ResolvedType.create (TypeRange.inferred range) type_, inference.Unify(output, body.ResolvedType)
+
 // utils for building TypedExpressions from QsExpressions
 
 type QsExpression with
@@ -881,9 +892,14 @@ type QsExpression with
         | NEG ex -> verifyAndBuildWith NEG (verifySupportsArithmetic inference) ex
         | BNOT ex -> verifyAndBuildWith BNOT (verifyIsIntegral inference) ex
         | NOT ex ->
-            ex
-            |> verifyAndBuildWith
+            verifyAndBuildWith
                 NOT
-                (fun expr ->
+                (fun ex' ->
                     Bool |> ResolvedType.create (TypeRange.inferred this.Range),
-                    inference.Unify(ResolvedType.New Bool, expr.ResolvedType))
+                    inference.Unify(ResolvedType.New Bool, ex'.ResolvedType))
+                ex
+        | Lambda (kind, param, body) ->
+            verifyAndBuildWith
+                (fun body' -> Lambda(kind, param, body'))
+                (inferLambda inference this.Range kind param)
+                body

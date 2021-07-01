@@ -108,6 +108,9 @@ and private SymbolsFromExpr item : QsSymbol list * QsType list * QsExpression li
     | QsExpressionKind.RSHIFT (lhs, rhs) -> ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.CopyAndUpdate (lhs, acc, rhs) -> ([ lhs; rhs; acc ], []) |> collectWith SymbolsFromExpr
     | QsExpressionKind.CONDITIONAL (cond, case1, case2) -> ([ cond; case1; case2 ], []) |> collectWith SymbolsFromExpr
+    | QsExpressionKind.Lambda (_, param, body) ->
+        let symbols, types, expressions = collectWith SymbolsFromExpr ([ body ], [])
+        param :: symbols, types, expressions
     | QsExpressionKind.MissingExpr -> [], [], [ item ]
     | QsExpressionKind.InvalidExpr -> [], [], [ item ]
 

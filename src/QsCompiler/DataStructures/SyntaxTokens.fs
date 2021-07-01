@@ -98,6 +98,10 @@ type QsType =
 
 // Q# expressions
 
+type LambdaKind =
+    | Function
+    | Operation
+
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | UnitValue
     /// The immutable array is the (optional) type parameters.
@@ -150,6 +154,7 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | MissingExpr
     | InvalidExpr
     | SizedArray of value: 'Expr * size: 'Expr
+    | Lambda of kind: LambdaKind * param: QsSymbol * body: 'Expr
 
 type QsExpression =
     {

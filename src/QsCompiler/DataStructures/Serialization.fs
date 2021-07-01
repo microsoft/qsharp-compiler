@@ -97,7 +97,8 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
             let resolvedType = serializer.Deserialize<_> reader |> ResolvedType.New
 
             match resolvedType.Resolution with
-            | Operation (_, c) when Object.ReferenceEquals(c, null) || Object.ReferenceEquals(c.Characteristics, null) ->
+            | QsTypeKind.Operation (_, c) when
+                Object.ReferenceEquals(c, null) || Object.ReferenceEquals(c.Characteristics, null) ->
                 JsonSerializationException "failed to deserialize operation characteristics" |> raise
             | _ -> resolvedType
         with :? JsonSerializationException as ex ->

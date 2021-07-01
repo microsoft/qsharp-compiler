@@ -85,6 +85,7 @@ let rec internal isLiteral (callables: IDictionary<QsQualifiedName, QsCallable>)
         | AdjointApplication _
         | ControlledApplication _
         | CallLikeExpression _
+        | Lambda _
         | MissingExpr
         | InvalidExpr -> false
         && Seq.forall id sub

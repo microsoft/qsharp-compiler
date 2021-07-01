@@ -95,6 +95,7 @@ and private ConstantPropagationStatementKinds(parent: ConstantPropagation, calla
                 | AdjointApplication _
                 | ControlledApplication _
                 | CallLikeExpression _
+                | Lambda _
                 | MissingExpr _
                 | InvalidExpr _ -> false
                 && Seq.forall id sub)
