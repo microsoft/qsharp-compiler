@@ -52,12 +52,19 @@ impl Emitter {
         let ctx = Context::create();
         let module_ctx = ModuleContext::new(&ctx, model.name.as_str());
         let emitter_ctx = EmitterContext::new(&ctx, module_ctx);
-        
+
         //emitter_ctx.add_boilerplate();
         let entrypoint = Emitter::get_entry_function(&emitter_ctx);
         let entry = emitter_ctx.context.append_basic_block(entrypoint, "entry");
         emitter_ctx.module_ctx.builder.position_at_end(entry);
 
+        let registers_block = emitter_ctx
+            .context
+            .append_basic_block(entrypoint, "registers");
+        emitter_ctx
+            .module_ctx
+            .builder
+            .position_at_end(registers_block);
         Emitter::write_registers(&model, &emitter_ctx);
 
         emitter_ctx.emit_ir(file_name);
@@ -82,15 +89,30 @@ impl Emitter {
     }
 
     fn write_registers(model: &SemanticModel, context: &EmitterContext) {
-        for reg in model.registers.iter() {
-            match reg {
-                Register::Classical { name, size } => {
-                    let _ = emit_array_allocate1d(&context, size.clone(), 1, &name[..]);
+        let number_of_registers = model.registers.len() as u64;
+        if number_of_registers > 0 {
+            // %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 number_of_registers)
+            let results = emit_array_allocate1d(&context, 8, number_of_registers, "results");
+            let mut index = 0;
+            for reg in model.registers.iter() {
+                match reg {
+                    Register::Classical { name, size } => {
+                        let sub_result = emit_array_allocate1d(&context, 1, size.clone(), &name[..]);
+                        todo!("add Ref Counting, add assignment into parent array, add Zero initialization.");
+                    }
+                    _ => panic!("registers shouldn't container qubit registers"),
                 }
+                index += 1;
+            }
+        }
+
+        for reg in model.qubits.iter() {
+            match reg {
                 Register::Quantum { name, index } => {
                     let indexed_name = format!("{}_{}", &name[..], index);
-                    let _ = emit_allocate_qubit(&context,  indexed_name.as_str());
+                    let _ = emit_allocate_qubit(&context, indexed_name.as_str());
                 }
+                _ => panic!("qubits shouldn't container classical registers"),
             }
         }
     }
@@ -111,20 +133,20 @@ impl Emitter {
 
 fn emit_array_allocate1d<'ctx>(
     emitter_ctx: &EmitterContext<'ctx>,
-    length: u64,
     bits: u64,
+    length: u64,
     result_name: &str,
 ) -> BasicValueEnum<'ctx> {
     let args = &[
         emitter_ctx
             .context
             .i32_type()
-            .const_int(length, false)
+            .const_int(bits, false)
             .as_basic_value_enum(),
         emitter_ctx
             .types
             .int
-            .const_int(bits, false)
+            .const_int(length, false)
             .as_basic_value_enum(),
     ];
     let lhs = emitter_ctx
