@@ -27,6 +27,7 @@ pub enum Instruction {
 pub struct SemanticModel {
     pub name: String,
     pub registers: Vec<Register>,
+    pub qubits: Vec<Register>,
     pub instructions: Vec<Instruction>,
 }
 
@@ -35,12 +36,18 @@ impl SemanticModel {
         SemanticModel {
             name: name,
             registers: vec![],
+            qubits: vec![],
             instructions: vec![],
         }
     }
+
     pub fn add_reg(&mut self, reg: Register) {
-        self.registers.push(reg);
+        match &reg {
+            Register::Classical{ name, size } => self.registers.push(reg),
+            Register::Quantum {name, index} => self.qubits.push(reg),
+        }
     }
+
     pub fn add_inst(&mut self, inst: Instruction) {
         self.instructions.push(inst);
     }
