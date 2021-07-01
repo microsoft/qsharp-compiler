@@ -99,7 +99,8 @@ type ResolvedTypeConverter(?ignoreSerializationException) =
 
             match resolvedType.Resolution with
             | QsTypeKind.Operation (_, c) when
-                Object.ReferenceEquals(c, null) || Object.ReferenceEquals(c.Characteristics, null) ->
+                Object.ReferenceEquals(c, null) || Object.ReferenceEquals(c.Characteristics, null)
+                ->
                 JsonSerializationException "failed to deserialize operation characteristics" |> raise
             | _ -> resolvedType
         with
