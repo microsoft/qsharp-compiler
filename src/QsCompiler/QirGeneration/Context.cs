@@ -227,6 +227,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return $"{name}__{index}";
         }
 
+        /// <inheritdoc cref="NameGeneration.InteropFriendlyWrapperName(QsQualifiedName)"/>
+        [Obsolete("Please use NameGeneration.InteropFriendlyWrapperName instead.", true)]
+        public static string InteropFriendlyWrapperName(QsQualifiedName fullName) =>
+            NameGeneration.InteropFriendlyWrapperName(fullName);
+
+        /// <inheritdoc cref="NameGeneration.EntryPointName(QsQualifiedName)"/>
+        [Obsolete("Please use NameGeneration.EntryPointName instead.", true)]
+        public static string EntryPointName(QsQualifiedName fullName) =>
+            NameGeneration.EntryPointName(fullName);
+
+        /// <inheritdoc cref="NameGeneration.FunctionName(QsQualifiedName, QsSpecializationKind)"/>
+        [Obsolete("Please use NameGeneration.FunctionName instead.", true)]
+        public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind) =>
+            NameGeneration.FunctionName(fullName, kind);
+
+        /// <inheritdoc cref="NameGeneration.FunctionWrapperName(QsQualifiedName, QsSpecializationKind)"/>
+        [Obsolete("Please use NameGeneration.FunctionWrapperName instead.", true)]
+        public static string FunctionWrapperName(QsQualifiedName fullName, QsSpecializationKind kind) =>
+            NameGeneration.FunctionWrapperName(fullName, kind);
+
         /// <summary>
         /// Order of specializations in the constant array that contains the fours IrFunctions
         /// associated with a callable.

@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
@@ -73,15 +72,5 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return false;
             }
         }
-
-        /// <summary>
-        /// Order of specializations in the constant array that contains the fours IrFunctions
-        /// associated with a callable.
-        /// </summary>
-        public static readonly ImmutableArray<QsSpecializationKind> FunctionArray = ImmutableArray.Create(
-            QsSpecializationKind.QsBody,
-            QsSpecializationKind.QsAdjoint,
-            QsSpecializationKind.QsControlled,
-            QsSpecializationKind.QsControlledAdjoint);
     }
 }
