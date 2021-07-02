@@ -1,50 +1,21 @@
-use either::Either;
-use inkwell::memory_buffer::MemoryBuffer;
-use inkwell::module::Linkage;
-use inkwell::module::Module;
-use inkwell::types::BasicType;
-use inkwell::types::BasicTypeEnum;
-use inkwell::types::StructType;
-use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue};
-use inkwell::values::{GlobalValue, InstructionValue};
-use inkwell::AddressSpace;
-
 use crate::interop::Register;
+use crate::interop::Instruction;
 use inkwell::context::Context;
+use inkwell::values::BasicValueEnum;
 
+use self::intrinsics::Intrinsics;
 use self::runtime_library::RuntimeLibrary;
 use self::types::Types;
 
-use super::interop::{Instruction, SemanticModel};
+use super::interop::SemanticModel;
+use std::collections::BTreeMap;
 use std::path::Path;
 
 pub mod constants;
 mod intrinsics;
+mod qir;
 mod runtime_library;
 pub mod types;
-
-fn create_named_opaque_struct<'ctx>(
-    context: &'ctx Context,
-    name: &str,
-    field_types: &[BasicTypeEnum],
-) -> StructType<'ctx> {
-    let s = context.opaque_struct_type(name);
-    s.set_body(field_types, false);
-    s
-}
-
-pub struct ModuleContext<'ctx> {
-    pub context: &'ctx inkwell::context::Context,
-    pub module: inkwell::module::Module<'ctx>,
-    pub builder: inkwell::builder::Builder<'ctx>,
-}
-
-pub struct EmitterContext<'ctx> {
-    pub(crate) module_ctx: ModuleContext<'ctx>,
-    pub(crate) types: Types<'ctx>,
-    pub(crate) context: &'ctx inkwell::context::Context,
-    pub(crate) runtime_library: RuntimeLibrary<'ctx>,
-}
 
 pub struct Emitter {}
 impl Emitter {
@@ -53,168 +24,121 @@ impl Emitter {
         let module_ctx = ModuleContext::new(&ctx, model.name.as_str());
         let emitter_ctx = EmitterContext::new(&ctx, module_ctx);
 
-        //emitter_ctx.add_boilerplate();
-        let entrypoint = Emitter::get_entry_function(&emitter_ctx);
+        let entrypoint = qir::get_entry_function(&emitter_ctx);
         let entry = emitter_ctx.context.append_basic_block(entrypoint, "entry");
         emitter_ctx.module_ctx.builder.position_at_end(entry);
 
-        let registers_block = emitter_ctx
-            .context
-            .append_basic_block(entrypoint, "registers");
-        emitter_ctx
-            .module_ctx
-            .builder
-            .position_at_end(registers_block);
-        Emitter::write_registers(&model, &emitter_ctx);
+        let qubits = Emitter::write_qubits(&model, &emitter_ctx);
+
+        let registers = Emitter::write_registers(&model, &emitter_ctx);
+
+        let _ = Emitter::write_instructions(&model, &emitter_ctx, &qubits);
+
+        let output = registers.get("results").unwrap();
+        emitter_ctx.module_ctx.builder.build_return(Some(output));
 
         emitter_ctx.emit_ir(file_name);
     }
 
-    fn get_entry_function<'ctx>(emitter_ctx: &'ctx EmitterContext) -> FunctionValue<'ctx> {
-        let ns = "QuantumApplication";
-        let method = "Run";
-        let entrypoint_name = format!("{}__{}__body", ns, method);
-        let entrypoint = emitter_ctx
-            .module_ctx
-            .module
-            .get_function(&entrypoint_name)
-            .unwrap();
-
-        while let Some(bb) = entrypoint.get_last_basic_block() {
-            unsafe {
-                bb.delete().unwrap();
+    fn write_qubits<'ctx>(
+        model: &SemanticModel,
+        context: &EmitterContext<'ctx>,
+    ) -> BTreeMap<String, BasicValueEnum<'ctx>> {
+        let mut qubits = BTreeMap::new();
+        for reg in model.qubits.iter() {
+            match reg {
+                Register::Quantum { name, index } => {
+                    let indexed_name = format!("{}{}", &name[..], index);
+                    let value = qir::emit_allocate_qubit(&context, indexed_name.as_str());
+                    qubits.insert(indexed_name, value);
+                }
+                _ => panic!("qubits shouldn't container classical registers"),
             }
         }
-        entrypoint
+        qubits
     }
 
-    fn write_registers(model: &SemanticModel, context: &EmitterContext) {
+    fn write_registers<'ctx>(
+        model: &SemanticModel,
+        context: &EmitterContext<'ctx>,
+    ) -> BTreeMap<String, BasicValueEnum<'ctx>> {
+        let mut registers = BTreeMap::new();
         let number_of_registers = model.registers.len() as u64;
         if number_of_registers > 0 {
-            // %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 number_of_registers)
-            let results = emit_array_allocate1d(&context, 8, number_of_registers, "results");
+            let results =
+                qir::array1d::emit_array_allocate1d(&context, 8, number_of_registers, "results");
+            registers.insert(String::from("results"), results);
+            let mut sub_results = vec![];
             let mut index = 0;
             for reg in model.registers.iter() {
                 match reg {
                     Register::Classical { name, size } => {
-                        let sub_result = emit_array_allocate1d(&context, 1, size.clone(), &name[..]);
-                        todo!("add Ref Counting, add assignment into parent array, add Zero initialization.");
+                        let sub_result = qir::array1d::emit_array_1d(context, name, size.clone());
+                        sub_results.push(sub_result);
+                        registers.insert(name.to_owned(), sub_result);
                     }
                     _ => panic!("registers shouldn't container qubit registers"),
                 }
                 index += 1;
             }
-        }
-
-        for reg in model.qubits.iter() {
-            match reg {
-                Register::Quantum { name, index } => {
-                    let indexed_name = format!("{}_{}", &name[..], index);
-                    let _ = emit_allocate_qubit(&context, indexed_name.as_str());
-                }
-                _ => panic!("qubits shouldn't container classical registers"),
-            }
+            qir::array1d::set_elements(&context, &results, sub_results, "results");
+            registers
+        } else {
+            let results = qir::array1d::emit_empty_result_array_allocate1d(&context, "results");
+            registers.insert(String::from("results"), results);
+            registers
         }
     }
 
-    fn write_instructions(model: &SemanticModel, context: &EmitterContext) {
+    fn write_instructions<'ctx>(
+        model: &SemanticModel,
+        context: &EmitterContext<'ctx>,
+        qubits: &BTreeMap<String, BasicValueEnum<'ctx>>,
+    ) {
         for inst in model.instructions.iter() {
-            match inst {
-                Instruction::M { qubit, target } => {
-                    todo!("write measure")
-                }
-                _ => {
-                    todo!("write intrinsic")
-                }
-            }
+            qir::instructions::emit(context, inst, qubits);
         }
     }
 }
 
-fn emit_array_allocate1d<'ctx>(
-    emitter_ctx: &EmitterContext<'ctx>,
-    bits: u64,
-    length: u64,
-    result_name: &str,
-) -> BasicValueEnum<'ctx> {
-    let args = &[
-        emitter_ctx
-            .context
-            .i32_type()
-            .const_int(bits, false)
-            .as_basic_value_enum(),
-        emitter_ctx
-            .types
-            .int
-            .const_int(length, false)
-            .as_basic_value_enum(),
-    ];
-    let lhs = emitter_ctx
-        .module_ctx
-        .builder
-        .build_call(emitter_ctx.runtime_library.ArrayCreate1d, args, result_name)
-        .try_as_basic_value();
-    lhs.left().unwrap()
+pub struct ModuleContext<'ctx> {
+    pub context: &'ctx inkwell::context::Context,
+    pub module: inkwell::module::Module<'ctx>,
+    pub builder: inkwell::builder::Builder<'ctx>,
 }
 
-fn emit_allocate_qubit<'ctx>(
-    emitter_ctx: &EmitterContext<'ctx>,
-    result_name: &str,
-) -> BasicValueEnum<'ctx> {
-    let args = &[];
-    let lhs = emitter_ctx
-        .module_ctx
-        .builder
-        .build_call(emitter_ctx.runtime_library.QubitAllocate, args, result_name)
-        .try_as_basic_value();
-    lhs.left().unwrap()
-}
 
 impl<'ctx> ModuleContext<'ctx> {
     pub fn new(context: &'ctx Context, name: &'ctx str) -> Self {
         let builder = context.create_builder();
         ModuleContext {
             context: context,
-            module: EmitterContext::load_module_from_bitcode_file(&context, name),
+            module: qir::load_module_from_bitcode_file(&context, name),
             builder: builder,
         }
     }
+}
+
+pub struct EmitterContext<'ctx> {
+    pub(crate) module_ctx: ModuleContext<'ctx>,
+    pub(crate) types: Types<'ctx>,
+    pub(crate) context: &'ctx inkwell::context::Context,
+    pub(crate) runtime_library: RuntimeLibrary<'ctx>,
+    pub(crate) intrinsics: Intrinsics<'ctx>,
 }
 
 impl<'ctx> EmitterContext<'ctx> {
     pub fn new(context: &'ctx Context, module: ModuleContext<'ctx>) -> Self {
         let types = Types::new(&context, &module.module);
         let runtime_library = RuntimeLibrary::new(&module.module);
+        let intrinsics = Intrinsics::new(&module.module);
         EmitterContext {
             module_ctx: module,
             types: types,
             context: context,
             runtime_library: runtime_library,
+            intrinsics: intrinsics,
         }
-    }
-
-    pub fn load_module_from_bitcode_file(context: &'ctx Context, name: &'ctx str) -> Module<'ctx> {
-        let module_contents = include_bytes!("module.bc");
-        let buffer = MemoryBuffer::create_from_memory_range_copy(module_contents, name);
-        let module = Module::parse_bitcode_from_buffer(&buffer, context).unwrap();
-        module
-    }
-
-    pub fn add_global<T: BasicType<'ctx>>(
-        &self,
-        type_: T,
-        name: &str,
-        value: &dyn BasicValue<'ctx>,
-    ) -> GlobalValue<'ctx> {
-        let x = self
-            .module_ctx
-            .module
-            .add_global(type_, Some(AddressSpace::Const), name);
-        x.set_constant(true);
-        x.set_linkage(Linkage::Internal);
-
-        x.set_initializer(value);
-        x
     }
 
     pub fn add_boilerplate(&self) {
@@ -244,24 +168,58 @@ mod tests {
     use super::*;
 
     #[test]
-    fn smoke() {
-        let name = String::from("name");
-        let model = SemanticModel::new(name);
-        Emitter::write(&model, "file_name.ll");
-    }
-    #[test]
-    fn h_adjusts_context() {
-        let name = String::from("name");
+    fn bell_measure() {
+        let name = String::from("Bell circuit");
         let mut model = SemanticModel::new(name);
-        let inst = Instruction::H(String::from("input_0"));
-        model.add_inst(inst);
+        model.add_reg(Register::Quantum {
+            name: String::from("qr"),
+            index: 0,
+        });
+        model.add_reg(Register::Quantum {
+            name: String::from("qr"),
+            index: 1,
+        });
+        model.add_reg(Register::Classical {
+            name: String::from("qc"),
+            size: 2,
+        });
+        model.add_inst(Instruction::H(String::from("qr0")));
+        model.add_inst(Instruction::Cx {
+            control: String::from("qr0"),
+            target: String::from("qr1"),
+        });
+        model.add_inst(Instruction::M {
+            qubit: String::from("qr0"),
+            target: String::from("qc0"),
+        });
+        model.add_inst(Instruction::M {
+            qubit: String::from("qr1"),
+            target: String::from("qc1"),
+        });
+        Emitter::write(&model, "bell_measure.ll");
+    }
 
-        assert_eq!(model.instructions.len(), 1);
-        match model.instructions.into_iter().next().unwrap() {
-            Instruction::H(name) => {
-                assert_eq!("input_0", name);
-            }
-            _ => panic!(),
-        }
+    #[test]
+    fn bell_no_measure() {
+        let name = String::from("Bell circuit");
+        let mut model = SemanticModel::new(name);
+        model.add_reg(Register::Quantum {
+            name: String::from("qr"),
+            index: 0,
+        });
+        model.add_reg(Register::Quantum {
+            name: String::from("qr"),
+            index: 1,
+        });
+        model.add_reg(Register::Classical {
+            name: String::from("qc"),
+            size: 2,
+        });
+        model.add_inst(Instruction::H(String::from("qr0")));
+        model.add_inst(Instruction::Cx {
+            control: String::from("qr0"),
+            target: String::from("qr1"),
+        });
+        Emitter::write(&model, "bell_no_measure.ll");
     }
 }

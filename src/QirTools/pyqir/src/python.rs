@@ -160,10 +160,6 @@ impl PyQIR {
         Emitter::write(&self.model, file_name);
         Ok(())
     }
-
-    fn todo(&self) -> PyResult<()> {
-        todo!();
-    }
 }
 
 #[cfg(test)]
@@ -176,15 +172,26 @@ mod tests {
     }
 
     #[test]
-    fn h_adjusts_context() {
-        let mut pyqir = PyQIR::new(String::from("name"));
-        pyqir.h(String::from("sample"));
-        assert_eq!(pyqir.model.instructions.len(), 1);
-        match pyqir.model.instructions.into_iter().next().unwrap() {
-            Instruction::H(name) => {
-                assert_eq!("name", name);
-            }
-            _ => panic!(),
-        }
+    fn bell_measure() -> PyResult<()> {
+        let mut pyqir = PyQIR::new(String::from("Bell circuit"));
+        pyqir.add_quantum_register(String::from("qr"), 2)?;
+        pyqir.add_classical_register(String::from("qc"), 2)?;
+        pyqir.h(String::from("qr0"))?;
+        pyqir.cx(String::from("qr0"), String::from("qr1"))?;
+        pyqir.add_measurement(String::from("qr0"), String::from("qc0"))?;
+        pyqir.add_measurement(String::from("qr1"), String::from("qc1"))?;
+        pyqir.write("bell_measure.ll")?;
+        Ok(())
+    }
+
+    #[test]
+    fn bell_no_measure() -> PyResult<()> {
+        let mut pyqir = PyQIR::new(String::from("Bell circuit"));
+        pyqir.add_quantum_register(String::from("qr"), 2)?;
+        pyqir.add_classical_register(String::from("qc"), 2)?;
+        pyqir.h(String::from("qr0"))?;
+        pyqir.cx(String::from("qr0"), String::from("qr1"))?;
+        pyqir.write("bell_measure.ll")?;
+        Ok(())
     }
 }
