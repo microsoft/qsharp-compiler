@@ -1,11 +1,24 @@
 from pyqir import QirBuilder
 import pytest
 
-def test_answer():
-    builder = QirBuilder("sample")
-    builder.h("input")
+def test_bell():
+    builder = QirBuilder("Bell circuit")
+    builder.add_quantum_register("qr", 2)
+    builder.add_classical_register("qc", 2)
+    builder.h("qr0")
+    builder.cx("qr0", "qr1")
+    builder.m("qr0", "qc0")
+    builder.m("qr1", "qc1")
+    builder.build("bell_measure.ll")
 
-def test_simple():
+def test_bell_no_measure():
+    builder = QirBuilder("Bell circuit")
+    builder.add_quantum_register("qr", 2)
+    builder.h("qr0")
+    builder.cx("qr0", "qr1")
+    builder.build("bell_no_measure.ll")
+
+def test_all_gates():
     builder = QirBuilder("sample")
     builder.add_quantum_register("q", 4)
     builder.add_quantum_register("control", 1)

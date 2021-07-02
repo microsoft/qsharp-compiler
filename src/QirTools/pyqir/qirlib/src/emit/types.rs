@@ -51,7 +51,7 @@ impl<'ctx> Types<'ctx> {
             // todo: big_int isn't defined in the current template .ll
             //big_int: Types::get_struct_pointer(module, BigInt),
             tuple: Types::get_struct_pointer(module, Tuple),
-            array: Types::get_struct_pointer(module, Tuple),
+            array: Types::get_struct_pointer(module, Array),
             callable: Types::get_struct_pointer(module, Callable),
         }
     }
