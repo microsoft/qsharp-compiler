@@ -54,8 +54,8 @@ type QsNullable<'T> =
         |> Seq.choose (
             fct
             >> function
-            | Null -> None
-            | Value v -> Some v
+                | Null -> None
+                | Value v -> Some v
         )
 
     /// Converts the given F# option to a QsNullable.
