@@ -336,16 +336,66 @@ let internal verifyAssignment (inference: InferenceContext) expectedType mismatc
                 (rangeOrDefault rhs)
     ]
 
-let private inferLambda (inference: InferenceContext) range kind (param: QsSymbol) body =
-    let input = inference.Fresh(rangeOrDefault body)
-    let output = inference.Fresh param.RangeOrDefault
+let private inferLambda (inference: InferenceContext) range kind inputType body =
+    let outputType = inference.Fresh <| rangeOrDefault body
 
     let type_ =
         match kind with
-        | LambdaKind.Function -> QsTypeKind.Function(input, output)
-        | LambdaKind.Operation -> QsTypeKind.Operation((input, output), CallableInformation.NoInformation)
+        | LambdaKind.Function -> QsTypeKind.Function(inputType, outputType)
+        | LambdaKind.Operation -> QsTypeKind.Operation((inputType, outputType), CallableInformation.NoInformation)
 
-    ResolvedType.create (TypeRange.inferred range) type_, inference.Unify(output, body.ResolvedType)
+    ResolvedType.create (TypeRange.inferred range) type_, inference.Unify(outputType, body.ResolvedType)
+
+/// Given a Q# symbol, as well as the resolved type of the right hand side that is assigned to it,
+/// shape matches the symbol tuple with the type to determine whether the assignment is valid, and
+/// calls the given function tryBuildDeclaration on each symbol item and its matched type.
+/// The passed function tryBuildDeclaration is expected to take a symbol name and type as well as their respective ranges as argument,
+/// and return either the built declaration as Some - if it was built successfully - or None, as well as an array with diagnostics.
+/// Generates an ExpectingUnqualifiedSymbol error if the given symbol contains qualified symbol items.
+/// Generates a SymbolTupleShapeMismatch error for the corresponding range if the shape matching fails.
+/// Generates an ExpressionOfUnknownType error if the given type of the right hand side contains a missing type.
+/// If warnOnDiscard is set to true, generates a DiscardingItemInAssignment warning if a symbol on the left hand side is missing.
+/// Returns the resolved SymbolTuple, as well as an array with all local variable declarations returned by tryBuildDeclaration,
+/// along with an array containing all generated diagnostics.
+let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration (symbol, rhsType) warnOnDiscard =
+    let symbolTuple =
+        function
+        | [] -> failwith "Symbol tuple is empty."
+        | [ x ] -> x
+        | xs -> ImmutableArray.CreateRange xs |> VariableNameTuple
+
+    match symbol.Symbol with
+    | InvalidSymbol -> InvalidItem, [||], [||]
+    | MissingSymbol when warnOnDiscard ->
+        let warning = QsCompilerDiagnostic.Warning(WarningCode.DiscardingItemInAssignment, []) symbol.RangeOrDefault
+        DiscardedItem, [||], [| warning |]
+    | MissingSymbol -> DiscardedItem, [||], [||]
+    | OmittedSymbols
+    | QualifiedSymbol _ ->
+        let error = QsCompilerDiagnostic.Error(ErrorCode.ExpectingUnqualifiedSymbol, []) symbol.RangeOrDefault
+        InvalidItem, [||], [| error |]
+    | Symbol name ->
+        match tryBuildDeclaration (name, symbol.RangeOrDefault) rhsType with
+        | Some declaration, diagnostics -> VariableName name, [| declaration |], diagnostics
+        | None, diagnostics -> VariableName name, [||], diagnostics
+    | SymbolTuple symbols ->
+        let types = symbols |> Seq.map (fun symbol -> inference.Fresh symbol.RangeOrDefault) |> Seq.toList
+
+        let tupleType =
+            ImmutableArray.CreateRange types
+            |> TupleType
+            |> ResolvedType.create (TypeRange.inferred symbol.Range)
+
+        let unifyDiagnostics = inference.Unify(tupleType, rhsType)
+
+        let verify symbol symbolType =
+            verifyBinding inference tryBuildDeclaration (symbol, symbolType) warnOnDiscard
+
+        let combine (item, declarations1, diagnostics1) (items, declarations2, diagnostics2) =
+            item :: items, Array.append declarations1 declarations2, Array.append diagnostics1 diagnostics2
+
+        let items, declarations, diagnostics = Seq.foldBack combine (Seq.map2 verify symbols types) ([], [||], [||])
+        symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
 
 // utils for building TypedExpressions from QsExpressions
 
@@ -899,7 +949,24 @@ type QsExpression with
                     inference.Unify(ResolvedType.New Bool, ex'.ResolvedType))
                 ex
         | Lambda (kind, param, body) ->
-            verifyAndBuildWith
-                (fun body' -> Lambda(kind, param, body'))
-                (inferLambda inference this.Range kind param)
-                body
+            symbols.BeginScope ImmutableHashSet.Empty
+
+            let addBinding (name: string, range) type_ =
+                let _, diagnostics =
+                    LocalVariableDeclaration.New false ((Null, range), name, type_, true)
+                    |> symbols.TryAddVariableDeclartion
+
+                None, diagnostics
+
+            let inputType = inference.Fresh param.RangeOrDefault
+            let _, _, diagnostics = verifyBinding inference addBinding (param, inputType) false
+            Array.iter diagnose diagnostics
+
+            let lambda =
+                verifyAndBuildWith
+                    (fun body' -> Lambda(kind, param, body'))
+                    (inferLambda inference this.Range kind inputType)
+                    body
+
+            symbols.EndScope()
+            lambda
