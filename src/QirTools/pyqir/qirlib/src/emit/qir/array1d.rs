@@ -8,7 +8,7 @@ pub(crate) fn emit_array_1d<'ctx>(
     name: &str,
     size: u64,
 ) -> BasicValueEnum<'ctx> {
-    let sub_result_name = format!("{}_tmp", &name[..]);
+    let sub_result_name = format!("{}", &name[..]);
     let sub_result = emit_array_allocate1d(&context, 8, size, sub_result_name.as_str());
 
     for i in 0..size {
@@ -44,11 +44,7 @@ pub(crate) fn emit_array_1d<'ctx>(
             .builder
             .build_store(cast.into_pointer_value(), zero);
     }
-    let result = context
-        .module_ctx
-        .builder
-        .build_alloca(context.types.array, name);
-    let _ = context.module_ctx.builder.build_store(result, sub_result);
+    
     context.module_ctx.builder.build_call(
         context.runtime_library.ArrayUpdateAliasCount,
         &[
@@ -215,22 +211,16 @@ pub(crate) fn set_elements<'ctx>(
 ) -> () {
     for i in 0..sub_results.len() {
         let result_indexed_name = format!("{}_result_tmp", &name[..]);
-        let sub_result_indexed_name = format!("{}_subresult_tmp", &name[..]);
         let result_indexed = get_bitcast_array_pointer_element(
             context,
             i as u64,
             &results,
             result_indexed_name.as_str(),
         );
-        let sub_result_head = get_bitcast_array_element(
-            context,
-            0,
-            &sub_results[i],
-            sub_result_indexed_name.as_str(),
-        );
+        
         let _ = context
             .module_ctx
             .builder
-            .build_store(result_indexed.into_pointer_value(), sub_result_head);
+            .build_store(result_indexed.into_pointer_value(), sub_results[i]);
     }
 }
