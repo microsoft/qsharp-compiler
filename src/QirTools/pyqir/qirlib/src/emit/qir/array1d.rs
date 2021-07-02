@@ -136,18 +136,7 @@ pub(crate) fn emit_empty_result_array_allocate1d<'ctx>(
     context: &EmitterContext<'ctx>,
     result_name: &str,
 ) -> BasicValueEnum<'ctx> {
-    let results = emit_array_allocate1d(&context, 8, 1, &result_name[..]);
-    let sub_result = emit_array_1d(context, "sub_results", 1);
-    let result_indexed_name = format!("{}_result_tmp", &result_name[..]);
-    let sub_result_indexed_name = format!("{}_subresult_tmp", &result_name[..]);
-    let result_indexed =
-        get_bitcast_array_pointer_element(context, 0, &results, result_indexed_name.as_str());
-    let sub_result_head =
-        get_bitcast_array_element(context, 0, &sub_result, sub_result_indexed_name.as_str());
-    let _ = context
-        .module_ctx
-        .builder
-        .build_store(result_indexed.into_pointer_value(), sub_result_head);
+    let results = emit_array_allocate1d(&context, 8, 0, &result_name[..]);
     results
 }
 
