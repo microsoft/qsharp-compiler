@@ -84,6 +84,30 @@ fn get_bitcast_array_pointer_element<'ctx>(
     cast
 }
 
+fn get_bitcast_qubit_pointer_element<'ctx>(
+    context: &EmitterContext<'ctx>,
+    i: u64,
+    sub_result: &BasicValueEnum<'ctx>,
+    sub_result_name: &str,
+) -> BasicValueEnum<'ctx> {
+    let element_raw_ptr_name = format!("{}_{}_raw", sub_result_name, i);
+    let sub_result_element_ptr = emit_array_get_element_ptr_1d(
+        context,
+        i,
+        sub_result.as_basic_value_enum(),
+        element_raw_ptr_name.as_str(),
+    );
+
+    let element_result_ptr_name = format!("{}_result_{}", sub_result_name, i);
+    let target_type = context.types.qubit;
+    let cast = context.module_ctx.builder.build_bitcast(
+        sub_result_element_ptr,
+        target_type.ptr_type(AddressSpace::Generic),
+        element_result_ptr_name.as_str(),
+    );
+    cast
+}
+
 fn get_bitcast_array_element<'ctx>(
     context: &EmitterContext<'ctx>,
     i: u64,
@@ -212,4 +236,34 @@ pub(crate) fn set_elements<'ctx>(
             .builder
             .build_store(result_indexed.into_pointer_value(), sub_results[i]);
     }
+}
+
+pub(crate) fn create_ctl_wrapper<'ctx>(
+    context: &EmitterContext<'ctx>,
+    control_qubit: &BasicValueEnum<'ctx>
+) -> BasicValueEnum<'ctx> {
+    let name = String::from("__controlQubits__");
+    let control_qubits = emit_array_allocate1d(&context, 8, 1,&name[..]);
+    set_element(context, &control_qubits, control_qubit, format!("{}{}", name, 0).as_str());
+    control_qubits
+}
+
+pub(crate) fn set_element<'ctx>(
+    context: &EmitterContext<'ctx>,
+    results: &BasicValueEnum<'ctx>,
+    sub_results: &BasicValueEnum<'ctx>,
+    name: &str,
+) -> () {
+    let result_indexed_name = format!("{}_result_tmp", &name[..]);
+    let result_indexed = get_bitcast_qubit_pointer_element(
+        context,
+        0,
+        &results,
+        result_indexed_name.as_str(),
+    );
+    
+    let _ = context
+        .module_ctx
+        .builder
+        .build_store(result_indexed.into_pointer_value(), sub_results.as_basic_value_enum());
 }

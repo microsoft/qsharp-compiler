@@ -82,3 +82,16 @@ pub(crate) fn emit_allocate_qubit<'ctx>(
         .try_as_basic_value();
     lhs.left().unwrap()
 }
+
+pub(crate) fn emit_release_qubit<'ctx>(
+    emitter_ctx: &EmitterContext<'ctx>,
+    qubit: &BasicValueEnum<'ctx>,
+) {
+    let args = [qubit.as_basic_value_enum()];
+    let lhs = emitter_ctx
+        .module_ctx
+        .builder
+        .build_call(emitter_ctx.runtime_library.QubitRelease, &args, "")
+        .try_as_basic_value();
+    lhs.right().unwrap();
+}

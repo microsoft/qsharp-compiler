@@ -1,4 +1,4 @@
-use super::EmitterContext;
+use super::{array1d::create_ctl_wrapper, EmitterContext};
 use crate::interop::Instruction;
 use inkwell::values::{BasicValue, BasicValueEnum, FunctionValue};
 use std::collections::BTreeMap;
@@ -62,17 +62,17 @@ fn emit_call_for_instruction<'ctx>(
 ) {
     let intrinsics = &context.intrinsics;
     let find_qubit = |name| get_qubit(name, qubits);
-
+    let ctl = |value| create_ctl_wrapper(context, value);
     match inst {
         Instruction::Cx { control, target } => emit_call(
             context,
             intrinsics.X_Ctl,
-            &[find_qubit(control), find_qubit(target)],
+            &[ctl(&find_qubit(control)), find_qubit(target)],
         ),
         Instruction::Cz { control, target } => emit_call(
             context,
             intrinsics.Z_Ctl,
-            &[find_qubit(control), find_qubit(target)],
+            &[ctl(&find_qubit(control)), find_qubit(target)],
         ),
         Instruction::H(name) => emit_call(context, intrinsics.H, &[find_qubit(name)]),
         Instruction::M { qubit, target } => {
@@ -95,13 +95,9 @@ fn emit_call_for_instruction<'ctx>(
             &[get_f64_arg(context, theta), find_qubit(qubit)],
         ),
         Instruction::S(name) => emit_call(context, intrinsics.S, &[find_qubit(name)]),
-        Instruction::Sdg(name /*todo!*/) => {
-            emit_call(context, intrinsics.S_Adj, &[find_qubit(name)])
-        }
+        Instruction::Sdg(name) => emit_call(context, intrinsics.S_Adj, &[find_qubit(name)]),
         Instruction::T(name) => emit_call(context, intrinsics.T, &[find_qubit(name)]),
-        Instruction::Tdg(name /*todo!*/) => {
-            emit_call(context, intrinsics.T_Adj, &[find_qubit(name)])
-        }
+        Instruction::Tdg(name) => emit_call(context, intrinsics.T_Adj, &[find_qubit(name)]),
         Instruction::X(name) => emit_call(context, intrinsics.X, &[find_qubit(name)]),
         Instruction::Y(name) => emit_call(context, intrinsics.Y, &[find_qubit(name)]),
         Instruction::Z(name) => emit_call(context, intrinsics.Z, &[find_qubit(name)]),
