@@ -217,6 +217,23 @@ type 'context Rewriter() =
             Type = declaration.Type |> Option.map (curry rewriter.TypeAnnotation context)
         }
 
+    abstract InterpStringContent : context: 'context * interpStringContent: InterpStringContent -> InterpStringContent
+
+    default rewriter.InterpStringContent(context, interpStringContent) =
+        match interpStringContent with
+        | Text text -> rewriter.Terminal(context, text) |> Text
+        | InterpStringBrace interpStringBrace ->
+            rewriter.InterpStringBrace(context, interpStringBrace) |> InterpStringBrace
+
+    abstract InterpStringBrace : context: 'context * interpStringBrace: InterpStringBrace -> InterpStringBrace
+
+    default rewriter.InterpStringBrace(context, interpStringBrace) =
+        {
+            OpenBrace = rewriter.Terminal(context, interpStringBrace.OpenBrace)
+            Escaped = rewriter.Expression(context, interpStringBrace.Escaped)
+            CloseBrace = rewriter.Terminal(context, interpStringBrace.CloseBrace)
+        }
+
     abstract Expression : context: 'context * expression: Expression -> Expression
 
     default rewriter.Expression(context, expression) =
@@ -224,6 +241,7 @@ type 'context Rewriter() =
         | Missing terminal -> rewriter.Terminal(context, terminal) |> Missing
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
         | Identifier identifier -> rewriter.Identifier(context, identifier) |> Identifier
+        | InterpString interp -> rewriter.InterpString(context, interp) |> InterpString
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
         | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
         | NamedItemAccess namedItemAccess -> rewriter.NamedItemAccess(context, namedItemAccess) |> NamedItemAccess
@@ -243,6 +261,15 @@ type 'context Rewriter() =
         {
             Name = rewriter.Terminal(context, identifier.Name)
             Arguments = identifier.Arguments |> Option.map (curry3 rewriter.Tuple context rewriter.Type)
+        }
+
+    abstract InterpString : context: 'context * interpString: InterpString -> InterpString
+
+    default rewriter.InterpString(context, interpString) =
+        {
+            OpenQuote = rewriter.Terminal(context, interpString.OpenQuote)
+            Content = interpString.Content |> List.map (curry rewriter.InterpStringContent context)
+            CloseQuote = rewriter.Terminal(context, interpString.CloseQuote)
         }
 
     abstract NewArray : context: 'context * newArray: NewArray -> NewArray

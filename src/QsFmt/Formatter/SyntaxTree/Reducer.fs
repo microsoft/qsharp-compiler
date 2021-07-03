@@ -221,6 +221,23 @@ type internal 'result Reducer() as reducer =
         :: (declaration.Type |> Option.map reducer.TypeAnnotation |> Option.toList)
         |> reduce
 
+    abstract InterpStringContent : interpStringContent: InterpStringContent -> 'result
+
+    default _.InterpStringContent interpStringContent =
+        match interpStringContent with
+        | Text text -> reducer.Terminal text
+        | InterpStringBrace interpStringBrace -> reducer.InterpStringBrace interpStringBrace
+
+    abstract InterpStringBrace : interpStringBrace: InterpStringBrace -> 'result
+
+    default _.InterpStringBrace interpStringBrace =
+        [
+            reducer.Terminal interpStringBrace.OpenBrace
+            reducer.Expression interpStringBrace.Escaped
+            reducer.Terminal interpStringBrace.CloseBrace
+        ]
+        |> reduce
+
     abstract Expression : expression: Expression -> 'result
 
     default _.Expression expression =
@@ -228,6 +245,7 @@ type internal 'result Reducer() as reducer =
         | Missing terminal -> reducer.Terminal terminal
         | Literal literal -> reducer.Terminal literal
         | Identifier identifier -> reducer.Identifier identifier
+        | InterpString interpString -> reducer.InterpString interpString
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
         | NewArray newArray -> reducer.NewArray newArray
         | NamedItemAccess namedItemAccess -> reducer.NamedItemAccess namedItemAccess
@@ -245,6 +263,14 @@ type internal 'result Reducer() as reducer =
     default _.Identifier identifier =
         reducer.Terminal identifier.Name
         :: (identifier.Arguments |> Option.map (curry reducer.Tuple reducer.Type) |> Option.toList)
+        |> reduce
+
+    abstract InterpString : interpString: InterpString -> 'result
+
+    default _.InterpString interpString =
+        reducer.Terminal interpString.OpenQuote
+        :: (interpString.Content |> List.map reducer.InterpStringContent)
+        @ [ reducer.Terminal interpString.CloseQuote ]
         |> reduce
 
     abstract NewArray : newArray: NewArray -> 'result

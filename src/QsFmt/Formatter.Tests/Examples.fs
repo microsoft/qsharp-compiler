@@ -64,6 +64,7 @@ let ``Removes extraneous spaces`` =
         let x= // Newlines are preserved.
             (7 *   1) // Comments too.
             + 4 / Fun<Bool,     Double>();
+        let s = $"{ 1 +    2}";
         return  x w/ Foo <- (7, y);
     }
 }""",
@@ -73,6 +74,7 @@ let ``Removes extraneous spaces`` =
         let x = // Newlines are preserved.
             (7 * 1) // Comments too.
             + 4 / Fun<Bool, Double>();
+        let s = $"{ 1 + 2}";
         return x w/ Foo <- (7, y);
     }
 }"""

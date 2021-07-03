@@ -204,7 +204,7 @@ expression
     | value=BigIntegerLiteral # BigIntegerExpression
     | value=DoubleLiteral # DoubleExpression
     | DoubleQuote stringContent* StringDoubleQuote # StringExpression
-    | DollarQuote interpStringContent* InterpDoubleQuote # InterpStringExpression
+    | openQuote=DollarQuote content+=interpStringContent* closeQuote=InterpDoubleQuote # InterpStringExpression
     | value=boolLiteral # BoolExpression
     | value=resultLiteral # ResultExpression
     | value=pauliLiteral # PauliExpression
@@ -260,7 +260,7 @@ stringContent
     ;
 
 interpStringContent
-    : InterpStringEscape
-    | InterpBraceLeft expression BraceRight
-    | InterpStringText
+    : InterpStringEscape # InterpStringEscapeContent
+    | openBrace=InterpBraceLeft exp=expression closeBrace=BraceRight # InterpBraceContent
+    | InterpStringText # InterpTextContent
     ;

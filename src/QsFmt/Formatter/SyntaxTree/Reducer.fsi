@@ -156,6 +156,18 @@ type internal 'result Reducer =
     default SymbolDeclaration: declaration:SymbolDeclaration -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="InterpStringContent"/> node.
+    /// </summary>
+    abstract InterpStringContent: interpStringContent:InterpStringContent -> 'result
+    default InterpStringContent: interpStringContent:InterpStringContent -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="InterpStringBrace"/> node.
+    /// </summary>
+    abstract InterpStringBrace: interpStringBrace:InterpStringBrace -> 'result
+    default InterpStringBrace: interpStringBrace:InterpStringBrace -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Expression"/> node.
     /// </summary>
     abstract Expression: expression:Expression -> 'result
@@ -166,6 +178,12 @@ type internal 'result Reducer =
     /// </summary>
     abstract Identifier: identifier:Identifier -> 'result
     default Identifier: identifier:Identifier -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="InterpString"/> expression node.
+    /// </summary>
+    abstract InterpString: interpString:InterpString -> 'result
+    default InterpString: interpString:InterpString -> 'result
 
     /// <summary>
     /// Reduces an <see cref="NewArray"/> expression node.

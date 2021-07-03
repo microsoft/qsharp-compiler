@@ -3,9 +3,27 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-type internal Identifier = { Name: Terminal; Arguments: Type Tuple Option }
+type Identifier = { Name: Terminal; Arguments: Type Tuple Option }
 
-type NewArray =
+type InterpStringBrace =
+    {
+        OpenBrace: Terminal
+        Escaped: Expression
+        CloseBrace: Terminal
+    }
+
+and InterpStringContent =
+    | Text of Terminal
+    | InterpStringBrace of InterpStringBrace
+
+and InterpString =
+    {
+        OpenQuote: Terminal
+        Content: InterpStringContent list
+        CloseQuote: Terminal
+    }
+
+and NewArray =
     {
         New: Terminal
         ArrayType: Type
@@ -53,6 +71,7 @@ and Expression =
     | Missing of Terminal
     | Literal of Terminal
     | Identifier of Identifier
+    | InterpString of InterpString
     | Tuple of Expression Tuple
     | NewArray of NewArray
     | NamedItemAccess of NamedItemAccess

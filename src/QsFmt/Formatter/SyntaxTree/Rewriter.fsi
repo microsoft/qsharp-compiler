@@ -152,6 +152,18 @@ type internal 'context Rewriter =
     default SymbolDeclaration: context:'context * declaration:SymbolDeclaration -> SymbolDeclaration
 
     /// <summary>
+    /// Rewrites an <see cref="InterpStringContent"/> node.
+    /// </summary>
+    abstract InterpStringContent: context:'context * interpStringContent:InterpStringContent -> InterpStringContent
+    default InterpStringContent: context:'context * interpStringContent:InterpStringContent -> InterpStringContent
+
+    /// <summary>
+    /// Rewrites an <see cref="InterpStringBrace"/> node.
+    /// </summary>
+    abstract InterpStringBrace: context:'context * interpStringBrace:InterpStringBrace -> InterpStringBrace
+    default InterpStringBrace: context:'context * interpStringBrace:InterpStringBrace -> InterpStringBrace
+
+    /// <summary>
     /// Rewrites an <see cref="Expression"/> node.
     /// </summary>
     abstract Expression: context:'context * expression:Expression -> Expression
@@ -162,6 +174,12 @@ type internal 'context Rewriter =
     /// </summary>
     abstract Identifier: context:'context * identifier:Identifier -> Identifier
     default Identifier: context:'context * identifier:Identifier -> Identifier
+
+    /// <summary>
+    /// Rewrites an <see cref="InterpString"/> expression node.
+    /// </summary>
+    abstract InterpString: context:'context * interpString:InterpString -> InterpString
+    default InterpString: context:'context * interpString:InterpString -> InterpString
 
     /// <summary>
     /// Rewrites an <see cref="NewArray"/> expression node.

@@ -6,7 +6,24 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
-type ExpressionVisitor(tokens) =
+type InterpStringContentVisitor(tokens) =
+    inherit QSharpParserBaseVisitor<InterpStringContent>()
+
+    override _.VisitInterpStringEscapeContent context =
+        context.InterpStringEscape().Symbol |> Node.toTerminal tokens |> Text
+
+    override _.VisitInterpBraceContent context =
+        {
+            OpenBrace = context.openBrace |> Node.toTerminal tokens
+            Escaped = (ExpressionVisitor tokens).Visit context.exp
+            CloseBrace = context.closeBrace |> Node.toTerminal tokens
+        }
+        |> InterpStringBrace
+
+    override _.VisitInterpTextContent context =
+        context.InterpStringText().Symbol |> Node.toTerminal tokens |> Text
+
+and ExpressionVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Expression>()
 
     let typeVisitor = TypeVisitor tokens
@@ -53,7 +70,12 @@ type ExpressionVisitor(tokens) =
         { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() } |> Literal
 
     override _.VisitInterpStringExpression context =
-        { Prefix = Node.prefix tokens context.Start.TokenIndex; Text = context.GetText() } |> Literal
+        {
+            OpenQuote = context.openQuote |> Node.toTerminal tokens
+            Content = context._content |> Seq.map ((InterpStringContentVisitor tokens).Visit) |> List.ofSeq
+            CloseQuote = context.closeQuote |> Node.toTerminal tokens
+        }
+        |> InterpString
 
     override _.VisitBoolExpression context =
         { Prefix = Node.prefix tokens context.value.Start.TokenIndex; Text = context.value.GetText() }

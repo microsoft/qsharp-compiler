@@ -15,8 +15,49 @@ type internal Identifier =
         Arguments: Type Tuple Option
     }
 
+/// An escaped expression in an interpolated string
+type internal InterpStringBrace =
+    {
+        /// <summary>
+        /// The <c>{</c> symbol.
+        /// </summary>
+        OpenBrace: Terminal
+
+        /// The escaped expression
+        Escaped: Expression
+
+        /// <summary>
+        /// The <c>}</c> symbol.
+        /// </summary>
+        CloseBrace: Terminal
+    }
+
+and internal InterpStringContent =
+    /// A literal.
+    | Text of Terminal
+
+    /// An escaped expression
+    | InterpStringBrace of InterpStringBrace
+
+/// An interpolated string
+and internal InterpString =
+    {
+        /// <summary>
+        /// The <c>"</c> symbol.
+        /// </summary>
+        OpenQuote: Terminal
+
+        /// The content of the interpolated string
+        Content: InterpStringContent list
+
+        /// <summary>
+        /// The <c>"</c> symbol.
+        /// </summary>
+        CloseQuote: Terminal
+    }
+
 /// A new array expression.
-type internal NewArray =
+and internal NewArray =
     {
         /// The `new` keyword.
         New: Terminal
@@ -137,6 +178,9 @@ and internal Expression =
 
     /// An identifier expression.
     | Identifier of Identifier
+
+    /// An interpolated string
+    | InterpString of InterpString
 
     /// A tuple expression.
     | Tuple of Expression Tuple
