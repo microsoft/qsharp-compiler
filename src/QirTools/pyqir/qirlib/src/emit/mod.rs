@@ -1,5 +1,5 @@
-use crate::interop::Register;
 use crate::interop::Instruction;
+use crate::interop::Register;
 use inkwell::context::Context;
 use inkwell::values::BasicValueEnum;
 
@@ -34,10 +34,20 @@ impl Emitter {
 
         let _ = Emitter::write_instructions(&model, &emitter_ctx, &qubits);
 
+        Emitter::free_qubits(&emitter_ctx, &qubits);
         let output = registers.get("results").unwrap();
         emitter_ctx.module_ctx.builder.build_return(Some(output));
 
         emitter_ctx.emit_ir(file_name);
+    }
+
+    fn free_qubits<'ctx>(
+        context: &EmitterContext<'ctx>,
+        qubits: &BTreeMap<String, BasicValueEnum<'ctx>>,
+    ) {
+        for (name, value) in qubits.iter() {
+            qir::emit_release_qubit(context, value);
+        }
     }
 
     fn write_qubits<'ctx>(
@@ -106,7 +116,6 @@ pub struct ModuleContext<'ctx> {
     pub module: inkwell::module::Module<'ctx>,
     pub builder: inkwell::builder::Builder<'ctx>,
 }
-
 
 impl<'ctx> ModuleContext<'ctx> {
     pub fn new(context: &'ctx Context, name: &'ctx str) -> Self {
