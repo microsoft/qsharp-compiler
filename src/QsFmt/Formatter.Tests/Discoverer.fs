@@ -71,6 +71,12 @@ type FixedPointAttribute() =
     member val Skip: string = null with get, set
 
 /// <summary>
+/// A wrapper around <see cref="Result"/> with a <see cref="Object.ToString"/> implementation that uses structured
+/// formatting.
+/// </summary>
+type private ShowResult<'value, 'error> = private ShowResult of Result<'value, 'error>
+
+/// <summary>
 /// Test cases that are auto-discovered based on <see cref="ExampleAttribute"/> and <see cref="FixedPointAttribute"/>.
 /// </summary>
 module Discoverer =
@@ -145,7 +151,7 @@ module Discoverer =
     let ``Code is formatted correctly`` (example: Example) =
         match example.Skip with
         | Some reason -> Skip.If(true, reason)
-        | None -> Assert.Equal(Ok example.After, Formatter.format example.Before)
+        | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.format example.Before |> ShowResult)
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="FixedPoint"/> test cases are correct.
@@ -155,4 +161,4 @@ module Discoverer =
     let ``Formatted code is unchanged`` fixedPoint =
         match fixedPoint.Skip with
         | Some reason -> Skip.If(true, reason)
-        | None -> Assert.Equal(Ok fixedPoint.Source, Formatter.format fixedPoint.Source)
+        | None -> Assert.Equal(Ok fixedPoint.Source |> ShowResult, Formatter.format fixedPoint.Source |> ShowResult)
