@@ -34,17 +34,35 @@ type internal 'result Reducer() as reducer =
         | CallableDeclaration callable -> reducer.CallableDeclaration callable
         | Unknown terminal -> reducer.Terminal terminal
 
+    abstract Attribute : attribute: Attribute -> 'result
+
+    default _.Attribute attribute =
+        [ reducer.Terminal attribute.At; reducer.Expression attribute.Expression ] |> reduce
+
     abstract CallableDeclaration : callable: CallableDeclaration -> 'result
 
     default _.CallableDeclaration callable =
         [
-            reducer.Terminal callable.CallableKeyword
-            reducer.Terminal callable.Name
-            reducer.SymbolBinding callable.Parameters
-            reducer.TypeAnnotation callable.ReturnType
+            callable.Attributes |> List.map reducer.Attribute
+            callable.Access |> Option.map reducer.Terminal |> Option.toList
+            [ reducer.Terminal callable.CallableKeyword; reducer.Terminal callable.Name ]
+            callable.TypeParameters |> Option.map reducer.TypeParameterBinding |> Option.toList
+            [
+                reducer.SymbolBinding callable.Parameters
+                reducer.TypeAnnotation callable.ReturnType
+            ]
+            callable.CharacteristicSection |> Option.map reducer.CharacteristicSection |> Option.toList
+            [ reducer.CallableBody callable.Body ]
         ]
-        @ (callable.CharacteristicSection |> Option.map reducer.CharacteristicSection |> Option.toList)
-          @ [ reducer.Block(reducer.Statement, callable.Block) ]
+        |> List.concat
+        |> reduce
+
+    abstract TypeParameterBinding : binding: TypeParameterBinding -> 'result
+
+    default _.TypeParameterBinding binding =
+        reducer.Terminal binding.OpenBracket
+        :: (binding.Parameters |> List.map (curry reducer.SequenceItem reducer.Terminal))
+        @ [ reducer.Terminal binding.CloseBracket ]
         |> reduce
 
     abstract Type : typ: Type -> 'result
@@ -53,7 +71,7 @@ type internal 'result Reducer() as reducer =
         match typ with
         | Type.Missing missing -> reducer.Terminal missing
         | Parameter name
-        | BuiltIn name
+        | Type.BuiltIn name
         | UserDefined name -> reducer.Terminal name
         | Type.Tuple tuple -> reducer.Tuple(reducer.Type, tuple)
         | Array array -> reducer.ArrayType array
@@ -113,6 +131,30 @@ type internal 'result Reducer() as reducer =
         | Controlled controlled -> reducer.Terminal controlled
         | Group group -> reducer.CharacteristicGroup group
         | Characteristic.BinaryOperator operator -> reducer.BinaryOperator(reducer.Characteristic, operator)
+
+    abstract CallableBody : body: CallableBody -> 'result
+
+    default _.CallableBody body =
+        match body with
+        | Statements statements -> reducer.Block(reducer.Statement, statements)
+        | Specializations specializations -> reducer.Block(reducer.Specialization, specializations)
+
+    abstract Specialization : specialization: Specialization -> 'result
+
+    default _.Specialization specialization =
+        (specialization.Names |> List.map reducer.Terminal)
+        @ [ reducer.SpecializationGenerator specialization.Generator ]
+        |> reduce
+
+    abstract SpecializationGenerator : generator: SpecializationGenerator -> 'result
+
+    default _.SpecializationGenerator generator =
+        match generator with
+        | BuiltIn (name, semicolon) -> [ reducer.Terminal name; reducer.Terminal semicolon ] |> reduce
+        | Provided (parameters, statements) ->
+            (parameters |> Option.map reducer.Terminal |> Option.toList)
+            @ [ reducer.Block(reducer.Statement, statements) ]
+            |> reduce
 
     abstract Statement : statement: Statement -> 'result
 

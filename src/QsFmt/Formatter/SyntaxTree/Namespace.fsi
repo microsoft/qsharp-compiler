@@ -3,10 +3,65 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
+/// An attribute.
+type internal Attribute =
+    {
+        /// The at symbol prefix.
+        At: Terminal
+
+        /// The attribute expression.
+        Expression: Expression
+    }
+
+/// A type parameter binding sequence.
+type internal TypeParameterBinding =
+    {
+        /// The opening angle bracket.
+        OpenBracket: Terminal
+
+        /// The type parameters.
+        Parameters: Terminal SequenceItem list
+
+        /// The closing angle bracket.
+        CloseBracket: Terminal
+    }
+
+/// A specialization generator.
+type internal SpecializationGenerator =
+    /// A built-in generator.
+    | BuiltIn of name: Terminal * semicolon: Terminal
+
+    /// A provided specialization.
+    | Provided of parameters: Terminal option * statements: Statement Block
+
+/// A specialization.
+type internal Specialization =
+    {
+        /// The names of the specialization.
+        Names: Terminal list
+
+        /// The specialization generator.
+        Generator: SpecializationGenerator
+    }
+
+/// The body of a callable declaration.
+type internal CallableBody =
+    /// An implicit body specialization with statements.
+    | Statements of Statement Block
+
+    /// A block of specializations.
+    | Specializations of Specialization Block
+
 /// A callable declaration.
-// TODO: Add attributes, type parameters, and specialization generators.
+// TODO: Add specialization generators.
 type internal CallableDeclaration =
     {
+        /// The attributes attached to the callable.
+        Attributes: Attribute list
+
+        /// The access modifier for the callable.
+        Access: Terminal option
+
         /// <summary>
         /// The declaration keyword (either <c>function</c> or <c>operation</c>).
         /// </summary>
@@ -14,6 +69,9 @@ type internal CallableDeclaration =
 
         /// The name of the callable.
         Name: Terminal
+
+        /// The type parameters of the callable.
+        TypeParameters: TypeParameterBinding option
 
         /// The parameters of the callable.
         Parameters: SymbolBinding
@@ -25,7 +83,7 @@ type internal CallableDeclaration =
         CharacteristicSection: CharacteristicSection Option
 
         /// The body of the callable.
-        Block: Statement Block
+        Body: CallableBody
     }
 
 /// An item in a namespace.
