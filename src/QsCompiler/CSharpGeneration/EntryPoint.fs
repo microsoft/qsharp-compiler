@@ -136,23 +136,33 @@ let private callableTypeNames context (callable: QsCallable) =
 let private entryPointClassFullName (entryPoint: QsCallable) =
     { Namespace = entryPoint.FullName.Namespace; Name = entryPointClassName + entryPoint.FullName.Name }
 
+/// Invokes the given function with the corresponding type name if the given type is a simple type
+/// supported for entry point arguments and returns the computed ExpressionSyntax as Some.
+/// Returns None if the given type is not supported in entry points.
+/// Throws an exception if the given type is an array type.
+let private matchSimpleEntryPointType (processType : string -> ExpressionSyntax) (type_: ResolvedType) = 
+    match type_.Resolution with
+    | Bool -> processType "Bool"     |> Some
+    | Int -> processType "Int"       |> Some
+    | Double -> processType "Double" |> Some
+    | Pauli -> processType "Pauli"   |> Some
+    | Range -> processType "Range"   |> Some
+    | Result -> processType "Result" |> Some
+    | String -> processType "String" |> Some
+// TODO: diagnostics.
+    | ArrayType itemType -> failwith "unhandled array type in entry point"
+    | _ -> None
+
 /// The QIR argument type for the Q# type, or None if the Q# type is not supported in a QIR entry point.
 let rec private qirArgumentType (type_: ResolvedType) =
     let case name =
         "global::Microsoft.Quantum.Runtime.ArgumentType." + name |> ident
 
     match type_.Resolution with
-    | Bool -> case "Bool" :> ExpressionSyntax |> Some
-    | Int -> case "Int" :> ExpressionSyntax |> Some
-    | Double -> case "Double" :> ExpressionSyntax |> Some
-    | Pauli -> case "Pauli" :> ExpressionSyntax |> Some
-    | Range -> case "Range" :> ExpressionSyntax |> Some
-    | Result -> case "Result" :> ExpressionSyntax |> Some
-    | String -> case "String" :> ExpressionSyntax |> Some
     | ArrayType itemType ->
         qirArgumentType itemType
         |> Option.map (fun itemType -> ``new`` (case "Array") ``(`` [ itemType ] ``)``)
-    | _ -> None
+    | _ -> matchSimpleEntryPointType (fun typeName -> case typeName :> ExpressionSyntax) type_
 
 /// The QIR argument value for the Q# type and value expression, or None if the Q# type is not supported in a QIR entry
 /// point.
@@ -174,16 +184,9 @@ let rec private qirArgumentValue (type_: ResolvedType) (value: ExpressionSyntax)
         case "Array" <.> (ident "TryCreate", [ items; itemType ])
 
     match type_.Resolution with
-    | Bool -> ``new`` (case "Bool") ``(`` [ value ] ``)`` |> Some
-    | Int -> ``new`` (case "Int") ``(`` [ value ] ``)`` |> Some
-    | Double -> ``new`` (case "Double") ``(`` [ value ] ``)`` |> Some
-    | Pauli -> ``new`` (case "Pauli") ``(`` [ value ] ``)`` |> Some
-    | Range -> ``new`` (case "Range") ``(`` [ value ] ``)`` |> Some
-    | Result -> ``new`` (case "Result") ``(`` [ value ] ``)`` |> Some
-    | String -> ``new`` (case "String") ``(`` [ value ] ``)`` |> Some
     | ArrayType itemType ->
         Option.map2 arrayValue (ident "item" |> qirArgumentValue itemType) (qirArgumentType itemType)
-    | _ -> None
+    | _ -> matchSimpleEntryPointType (fun typeName -> ``new`` (case typeName) ``(`` [ value ] ``)``) type_
 
 /// The list of QIR arguments for the entry point parameters and the result of parsing the command-line arguments, or
 /// None if not all parameters are supported in a QIR entry point.

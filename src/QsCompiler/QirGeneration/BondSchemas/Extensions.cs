@@ -12,7 +12,7 @@ namespace Microsoft.Quantum.Qir.Serialization
     /// <summary>
     /// This class provides extension methods for objects in the Microsoft.Quantum.QsCompiler.BondSchemas.Execution namespace.
     /// </summary>
-    public static class Extensions
+    internal static class Extensions
     {
         /// <summary>
         /// Determine whether the values of two object instances are equal.
