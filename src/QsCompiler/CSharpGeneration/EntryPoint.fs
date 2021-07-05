@@ -140,16 +140,16 @@ let private entryPointClassFullName (entryPoint: QsCallable) =
 /// supported for entry point arguments and returns the computed ExpressionSyntax as Some.
 /// Returns None if the given type is not supported in entry points.
 /// Throws an exception if the given type is an array type.
-let private matchSimpleEntryPointType (processType : string -> ExpressionSyntax) (type_: ResolvedType) = 
+let private matchSimpleEntryPointType (processType: string -> ExpressionSyntax) (type_: ResolvedType) =
     match type_.Resolution with
-    | Bool -> processType "Bool"     |> Some
-    | Int -> processType "Int"       |> Some
+    | Bool -> processType "Bool" |> Some
+    | Int -> processType "Int" |> Some
     | Double -> processType "Double" |> Some
-    | Pauli -> processType "Pauli"   |> Some
-    | Range -> processType "Range"   |> Some
+    | Pauli -> processType "Pauli" |> Some
+    | Range -> processType "Range" |> Some
     | Result -> processType "Result" |> Some
     | String -> processType "String" |> Some
-// TODO: diagnostics.
+    // TODO: diagnostics.
     | ArrayType itemType -> failwith "unhandled array type in entry point"
     | _ -> None
 
