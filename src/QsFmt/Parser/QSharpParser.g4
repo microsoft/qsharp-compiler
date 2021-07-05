@@ -32,11 +32,11 @@ openDirective : 'open' qualifiedName ('as' qualifiedName)? ';';
 
 // Declaration
 
-attribute : '@' expression;
+attribute : at='@' expr=expression;
 
 access : 'internal';
 
-declarationPrefix : attribute* access?;
+declarationPrefix : attributes+=attribute* access?;
 
 // Type Declaration
 
@@ -59,13 +59,14 @@ namedItem : name=Identifier colon=':' itemType=type;
 // Callable Declaration
 
 callableDeclaration
-    : declarationPrefix keyword=('function' | 'operation')
-      name=Identifier typeParameterBinding? tuple=parameterTuple
+    : prefix=declarationPrefix keyword=('function' | 'operation')
+      name=Identifier typeParameters=typeParameterBinding? tuple=parameterTuple
       colon=':' returnType=type returnChar=characteristics?
       body=callableBody
     ;
 
-typeParameterBinding : '<' (TypeParameter (',' TypeParameter)*)? '>';
+typeParameterBinding
+    : openBracket='<' (parameters+=TypeParameter (commas+=',' parameters+=TypeParameter)*)? closeBracket='>';
 
 parameterTuple : openParen='(' (parameters+=parameter (commas+=',' parameters+=parameter)*)? closeParen=')';
 
@@ -85,11 +86,11 @@ characteristicsExpression
     ;
 
 callableBody
-    : scope
-    | BraceLeft specialization* BraceRight
+    : block=scope # CallableStatements
+    | openBrace=BraceLeft specializations+=specialization* closeBrace=BraceRight # CallableSpecializations
     ;
 
-specialization : specializationName+ specializationGenerator;
+specialization : names+=specializationName+ generator=specializationGenerator;
 
 specializationName
     : 'body'
@@ -98,15 +99,15 @@ specializationName
     ;
 
 specializationGenerator
-    : 'auto' ';'
-    | 'self' ';'
-    | 'invert' ';'
-    | 'distribute' ';'
-    | 'intrinsic' ';'
-    | providedSpecialization
+    : auto='auto' semicolon=';' # AutoGenerator
+    | self='self' semicolon=';' # SelfGenerator
+    | invert='invert' semicolon=';' # InvertGenerator
+    | distribute='distribute' semicolon=';' # DistributeGenerator
+    | intrinsic='intrinsic' semicolon=';' # IntrinsicGenerator
+    | provided=providedSpecialization # ProvidedGenerator
     ;
 
-providedSpecialization : specializationParameterTuple? scope;
+providedSpecialization : parameters=specializationParameterTuple? block=scope;
 
 specializationParameterTuple : '(' (specializationParameter (',' specializationParameter)*)? ')';
 
@@ -163,7 +164,7 @@ statement
 scope : openBrace=BraceLeft statements+=statement* closeBrace=BraceRight;
 
 symbolBinding
-    : '_' # DiscardSymbol
+    : discard='_' # DiscardSymbol
     | name=Identifier # SymbolName
     | openParen='(' (bindings+=symbolBinding (commas+=',' bindings+=symbolBinding)* ','?)? closeParen=')' # SymbolTuple
     ;

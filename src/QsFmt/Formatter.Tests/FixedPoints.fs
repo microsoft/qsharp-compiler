@@ -28,10 +28,10 @@ let private testCases () =
     |> Seq.filter isValidSyntax
     |> Seq.map (Array.create 1)
 
-[<Theory(Skip = "Not supported.")>]
+[<Theory>]
 [<MemberData "testCases">]
 let ``Identity preserves original source code`` source =
-    Assert.Equal(Ok source, Formatter.identity source)
+    Assert.Equal(Ok source |> ShowResult, Formatter.identity source |> ShowResult)
 
 [<FixedPoint>]
 let ``Namespace comments`` =
@@ -71,7 +71,7 @@ let ``Operation with Adj + Ctl characteristics`` =
     operation Bar () : Unit is Adj + Ctl {}
 }"""
 
-[<FixedPoint(Skip = "Not supported.")>]
+[<FixedPoint>]
 let ``Entry point and using statement`` =
     """namespace Microsoft.Quantum.Foo {
     @EntryPoint()
@@ -91,7 +91,7 @@ let ``Open directives and operation`` =
     operation Spam () : Unit {}
 }"""
 
-[<FixedPoint(Skip = "Not supported.")>]
+[<FixedPoint>]
 let ``Open directive and entry point`` =
     """namespace Foo {
     open Test;
@@ -146,6 +146,70 @@ let ``Array literal`` =
         let xs = [1, 2, 3];
     }
 }"""
+
+[<FixedPoint>]
+let ``Declare type parameter`` =
+    """namespace Foo {
+    function Bar<'a>() : Unit {}
+}
+"""
+
+[<FixedPoint>]
+let ``Declare 2 type parameters`` =
+    """namespace Foo {
+    function Bar<'a, 'b>() : Unit {}
+}
+"""
+
+[<FixedPoint>]
+let ``Declare 3 type parameters`` =
+    """namespace Foo {
+    function Bar<'a, 'b, 'c>() : Unit {}
+}
+"""
+
+[<FixedPoint>]
+let ``Intrinsic body specialization`` =
+    """namespace Foo {
+    function Bar() : Unit {
+        body intrinsic;
+    }
+}
+"""
+
+[<FixedPoint>]
+let ``Intrinsic body and controlled specializations`` =
+    """namespace Foo {
+    function Bar() : Unit {
+        body intrinsic;
+        controlled intrinsic;
+    }
+}
+"""
+
+[<FixedPoint>]
+let ``Explicit body and controlled specializations`` =
+    """namespace Foo {
+    function Bar() : Unit {
+        body (...) {
+            Message("body");
+        }
+
+        controlled (cs, ...) {
+            Message("controlled");
+        }
+    }
+}
+"""
+
+[<FixedPoint>]
+let ``Discard symbol`` =
+    """namespace Foo {
+    function Bar() : Unit {
+        let _ = 0;
+    }
+}
+"""
 
 [<FixedPoint>]
 let ``Missing type`` =
