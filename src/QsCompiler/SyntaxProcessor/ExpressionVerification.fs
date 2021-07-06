@@ -856,7 +856,7 @@ type QsExpression with
             let info = InferredExpressionInformation.New(isMutable = false, quantumDep = hasQuantumDependency)
             TypedExpression.New(callExpression, callable.TypeParameterResolutions, resultType, info, this.Range)
 
-        let buildLambda { Symbols = symbols; Inference = inference } kind (param: QsSymbol) body =
+        let buildLambda kind (param: QsSymbol) body =
             symbols.BeginScope ImmutableHashSet.Empty
 
             let addBinding (name: string, range) type_ =
@@ -971,4 +971,4 @@ type QsExpression with
                     Bool |> ResolvedType.create (TypeRange.inferred this.Range),
                     inference.Unify(ResolvedType.New Bool, ex'.ResolvedType))
                 ex
-        | Lambda (kind, param, body) -> buildLambda context kind param body
+        | Lambda (kind, param, body) -> buildLambda kind param body
