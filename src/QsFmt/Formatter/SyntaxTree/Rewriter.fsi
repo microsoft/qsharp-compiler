@@ -32,10 +32,22 @@ type internal 'context Rewriter =
     default NamespaceItem: context:'context * item:NamespaceItem -> NamespaceItem
 
     /// <summary>
+    /// Rewrites an <see cref="Attribute"/> node.
+    /// </summary>
+    abstract Attribute: context:'context * attribute:Attribute -> Attribute
+    default Attribute: context:'context * attribute:Attribute -> Attribute
+
+    /// <summary>
     /// Rewrites a <see cref="CallableDeclaration"/> node.
     /// </summary>
     abstract CallableDeclaration: context:'context * callable:CallableDeclaration -> CallableDeclaration
     default CallableDeclaration: context:'context * callable:CallableDeclaration -> CallableDeclaration
+
+    /// <summary>
+    /// Rewrites a <see cref="TypeParameterBinding"/> node.
+    /// </summary>
+    abstract TypeParameterBinding: context:'context * binding:TypeParameterBinding -> TypeParameterBinding
+    default TypeParameterBinding: context:'context * binding:TypeParameterBinding -> TypeParameterBinding
 
     /// <summary>
     /// Rewrites a <see cref="Type"/> node.
@@ -78,6 +90,24 @@ type internal 'context Rewriter =
     /// </summary>
     abstract Characteristic: context:'context * characteristic:Characteristic -> Characteristic
     default Characteristic: context:'context * characteristic:Characteristic -> Characteristic
+
+    /// <summary>
+    /// Rewrites a <see cref="CallableBody"/> node.
+    /// </summary>
+    abstract CallableBody: context:'context * body:CallableBody -> CallableBody
+    default CallableBody: context:'context * body:CallableBody -> CallableBody
+
+    /// <summary>
+    /// Rewrites a <see cref="Specialization"/> node.
+    /// </summary>
+    abstract Specialization: context:'context * specialization:Specialization -> Specialization
+    default Specialization: context:'context * specialization:Specialization -> Specialization
+
+    /// <summary>
+    /// Rewrites a <see cref="SpecializationGenerator"/> node.
+    /// </summary>
+    abstract SpecializationGenerator: context:'context * generator:SpecializationGenerator -> SpecializationGenerator
+    default SpecializationGenerator: context:'context * generator:SpecializationGenerator -> SpecializationGenerator
 
     /// <summary>
     /// Rewrites a <see cref="Statement"/> node.
