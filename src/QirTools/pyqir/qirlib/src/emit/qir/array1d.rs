@@ -1,91 +1,79 @@
 use inkwell::values::{BasicValue, BasicValueEnum};
 use inkwell::AddressSpace;
 
-use super::EmitterContext;
+use crate::emit::Context;
+use crate::emit::qir::basic_values;
+
+use super::calls;
 
 pub(crate) fn emit_array_1d<'ctx>(
-    context: &EmitterContext<'ctx>,
+    context: &Context<'ctx>,
     name: &str,
     size: u64,
 ) -> BasicValueEnum<'ctx> {
     let sub_result_name = format!("{}", &name[..]);
     let sub_result = emit_array_allocate1d(&context, 8, size, sub_result_name.as_str());
 
-    for i in 0..size {
+    for index in 0..size {
         let cast = get_bitcast_result_pointer_array_element(
             context,
-            i,
+            index,
             &sub_result,
             sub_result_name.as_str(),
         );
         let zero = context
-            .module_ctx
             .builder
             .build_call(
-                context.runtime_library.ResultGetZero,
+                context.runtime_library.result_get_zero,
                 &[],
-                format!("zero_{}", i).as_str(),
+                format!("zero_{}", index).as_str(),
             )
             .try_as_basic_value()
             .left()
             .unwrap();
-        let one = context
-            .context
-            .i32_type()
-            .const_int(1, false)
-            .as_basic_value_enum();
-        context.module_ctx.builder.build_call(
-            context.runtime_library.ResultUpdateReferenceCount,
+        let one = basic_values::u64_to_i32(context, 1);
+        context.builder.build_call(
+            context.runtime_library.result_update_reference_count,
             &[zero, one],
             name,
         );
-        context
-            .module_ctx
-            .builder
-            .build_store(cast.into_pointer_value(), zero);
+        context.builder.build_store(cast.into_pointer_value(), zero);
     }
-    
-    context.module_ctx.builder.build_call(
-        context.runtime_library.ArrayUpdateAliasCount,
-        &[
-            sub_result,
-            context
-                .context
-                .i32_type()
-                .const_int(1, false)
-                .as_basic_value_enum(),
-        ],
+
+    context.builder.build_call(
+        context.runtime_library.array_update_alias_count,
+        &[sub_result, basic_values::u64_to_i32(context, 1)],
         "",
     );
     sub_result
 }
 
 fn get_bitcast_array_pointer_element<'ctx>(
-    context: &EmitterContext<'ctx>,
-    i: u64,
+    context: &Context<'ctx>,
+    index: u64,
     sub_result: &BasicValueEnum<'ctx>,
     sub_result_name: &str,
 ) -> BasicValueEnum<'ctx> {
-    let element_raw_ptr_name = format!("{}_{}_raw", sub_result_name, i);
+    let element_raw_ptr_name = format!("{}_{}_raw", sub_result_name, index);
     let sub_result_element_ptr = emit_array_get_element_ptr_1d(
         context,
-        i,
+        index,
         sub_result.as_basic_value_enum(),
         element_raw_ptr_name.as_str(),
     );
 
-    let element_result_ptr_name = format!("{}_result_{}", sub_result_name, i);
-    let target_type = context.types.array;
-    let cast = context.module_ctx.builder.build_bitcast(
+    let element_result_ptr_name = format!("{}_result_{}", sub_result_name, index);
+    let target_type = context.types.array.ptr_type(AddressSpace::Generic);
+    let cast = context.builder.build_bitcast(
         sub_result_element_ptr,
-        target_type.ptr_type(AddressSpace::Generic),
+        target_type,
         element_result_ptr_name.as_str(),
     );
     cast
 }
 
 fn get_bitcast_qubit_pointer_element<'ctx>(
-    context: &EmitterContext<'ctx>,
+    context: &Context<'ctx>,
     i: u64,
     sub_result: &BasicValueEnum<'ctx>,
     sub_result_name: &str,
@@ -100,7 +88,7 @@ fn get_bitcast_qubit_pointer_element<'ctx>(
 
     let element_result_ptr_name = format!("{}_result_{}", sub_result_name, i);
     let target_type = context.types.qubit;
-    let cast = context.module_ctx.builder.build_bitcast(
+    let cast = context.builder.build_bitcast(
         sub_result_element_ptr,
         target_type.ptr_type(AddressSpace::Generic),
         element_result_ptr_name.as_str(),
@@ -109,22 +97,22 @@ fn get_bitcast_qubit_pointer_element<'ctx>(
 }
 
 fn get_bitcast_array_element<'ctx>(
-    context: &EmitterContext<'ctx>,
-    i: u64,
+    context: &Context<'ctx>,
+    index: u64,
     sub_result: &BasicValueEnum<'ctx>,
     sub_result_name: &str,
 ) -> BasicValueEnum<'ctx> {
-    let element_raw_ptr_name = format!("{}_{}_raw", sub_result_name, i);
+    let element_raw_ptr_name = format!("{}_{}_raw", sub_result_name, index);
     let sub_result_element_ptr = emit_array_get_element_ptr_1d(
         context,
-        i,
+        index,
         sub_result.as_basic_value_enum(),
         element_raw_ptr_name.as_str(),
     );
 
-    let element_result_ptr_name = format!("{}_result_{}", sub_result_name, i);
+    let element_result_ptr_name = format!("{}_result_{}", sub_result_name, index);
     let target_type = context.types.array;
-    let cast = context.module_ctx.builder.build_bitcast(
+    let cast = context.builder.build_bitcast(
         sub_result_element_ptr,
         target_type,
         element_result_ptr_name.as_str(),
@@ -133,31 +121,31 @@ fn get_bitcast_array_element<'ctx>(
 }
 
 fn get_bitcast_result_pointer_array_element<'ctx>(
-    context: &EmitterContext<'ctx>,
-    i: u64,
+    context: &Context<'ctx>,
+    index: u64,
     sub_result: &BasicValueEnum<'ctx>,
     sub_result_name: &str,
 ) -> BasicValueEnum<'ctx> {
-    let element_raw_ptr_name = format!("{}_{}_raw", sub_result_name, i);
+    let element_raw_ptr_name = format!("{}_{}_raw", sub_result_name, index);
     let sub_result_element_ptr = emit_array_get_element_ptr_1d(
         context,
-        i,
+        index,
         sub_result.as_basic_value_enum(),
         element_raw_ptr_name.as_str(),
     );
 
-    let element_result_ptr_name = format!("{}_result_{}", sub_result_name, i);
-    let target_type = context.types.result;
-    let cast = context.module_ctx.builder.build_bitcast(
+    let element_result_ptr_name = format!("{}_result_{}", sub_result_name, index);
+    let target_type = context.types.result.ptr_type(AddressSpace::Generic);
+    let cast = context.builder.build_bitcast(
         sub_result_element_ptr,
-        target_type.ptr_type(AddressSpace::Generic),
+        target_type,
         element_result_ptr_name.as_str(),
     );
     cast
 }
 
 pub(crate) fn emit_empty_result_array_allocate1d<'ctx>(
-    context: &EmitterContext<'ctx>,
+    context: &Context<'ctx>,
     result_name: &str,
 ) -> BasicValueEnum<'ctx> {
     let results = emit_array_allocate1d(&context, 8, 0, &result_name[..]);
@@ -165,105 +153,84 @@ pub(crate) fn emit_empty_result_array_allocate1d<'ctx>(
 }
 
 pub(crate) fn emit_array_allocate1d<'ctx>(
-    emitter_ctx: &EmitterContext<'ctx>,
+    context: &Context<'ctx>,
     bits: u64,
     length: u64,
     result_name: &str,
 ) -> BasicValueEnum<'ctx> {
     let args = &[
-        emitter_ctx
-            .context
-            .i32_type()
-            .const_int(bits, false)
-            .as_basic_value_enum(),
-        emitter_ctx
-            .types
-            .int
-            .const_int(length, false)
-            .as_basic_value_enum(),
+        basic_values::u64_to_i32(context, bits),
+        basic_values::u64_to_i64(context, length),
     ];
-    let lhs = emitter_ctx
-        .module_ctx
-        .builder
-        .build_call(emitter_ctx.runtime_library.ArrayCreate1d, args, result_name)
-        .try_as_basic_value();
-    lhs.left().unwrap()
+    calls::emit_call_with_return(context, context.runtime_library.array_create_1d, args, result_name)
 }
 
 pub(crate) fn emit_array_get_element_ptr_1d<'ctx>(
-    emitter_ctx: &EmitterContext<'ctx>,
+    context: &Context<'ctx>,
     index: u64,
     target: BasicValueEnum<'ctx>,
     result_name: &str,
 ) -> BasicValueEnum<'ctx> {
-    let args = &[
-        target,
-        emitter_ctx
-            .context
-            .i64_type()
-            .const_int(index, false)
-            .as_basic_value_enum(),
-    ];
-    let lhs = emitter_ctx
-        .module_ctx
+    let args = &[target, basic_values::u64_to_i64(context, index)];
+    let value = context
         .builder
         .build_call(
-            emitter_ctx.runtime_library.ArrayGetElementPtr1d,
+            context.runtime_library.array_get_element_ptr_1d,
             args,
             result_name,
         )
         .try_as_basic_value();
-    lhs.left().unwrap()
+    value.left().unwrap()
 }
 
 pub(crate) fn set_elements<'ctx>(
-    context: &EmitterContext<'ctx>,
+    context: &Context<'ctx>,
     results: &BasicValueEnum<'ctx>,
     sub_results: Vec<BasicValueEnum<'ctx>>,
     name: &str,
 ) -> () {
-    for i in 0..sub_results.len() {
+    for index in 0..sub_results.len() {
         let result_indexed_name = format!("{}_result_tmp", &name[..]);
         let result_indexed = get_bitcast_array_pointer_element(
             context,
-            i as u64,
+            index as u64,
             &results,
             result_indexed_name.as_str(),
         );
-        
+
         let _ = context
-            .module_ctx
             .builder
-            .build_store(result_indexed.into_pointer_value(), sub_results[i]);
+            .build_store(result_indexed.into_pointer_value(), sub_results[index]);
     }
 }
 
 pub(crate) fn create_ctl_wrapper<'ctx>(
-    context: &EmitterContext<'ctx>,
-    control_qubit: &BasicValueEnum<'ctx>
+    context: &Context<'ctx>,
+    control_qubit: &BasicValueEnum<'ctx>,
 ) -> BasicValueEnum<'ctx> {
     let name = String::from("__controlQubits__");
-    let control_qubits = emit_array_allocate1d(&context, 8, 1,&name[..]);
-    set_element(context, &control_qubits, control_qubit, format!("{}{}", name, 0).as_str());
+    let control_qubits = emit_array_allocate1d(&context, 8, 1, &name[..]);
+    wrap_value_in_array(
+        context,
+        &control_qubits,
+        control_qubit,
+        format!("{}{}", name, 0).as_str(),
+    );
     control_qubits
 }
 
-pub(crate) fn set_element<'ctx>(
-    context: &EmitterContext<'ctx>,
+pub(crate) fn wrap_value_in_array<'ctx>(
+    context: &Context<'ctx>,
     results: &BasicValueEnum<'ctx>,
     sub_results: &BasicValueEnum<'ctx>,
     name: &str,
 ) -> () {
     let result_indexed_name = format!("{}_result_tmp", &name[..]);
-    let result_indexed = get_bitcast_qubit_pointer_element(
-        context,
-        0,
-        &results,
-        result_indexed_name.as_str(),
+    let result_indexed =
+        get_bitcast_qubit_pointer_element(context, 0, &results, result_indexed_name.as_str());
+
+    let _ = context.builder.build_store(
+        result_indexed.into_pointer_value(),
+        sub_results.as_basic_value_enum(),
     );
-    
-    let _ = context
-        .module_ctx
-        .builder
-        .build_store(result_indexed.into_pointer_value(), sub_results.as_basic_value_enum());
 }

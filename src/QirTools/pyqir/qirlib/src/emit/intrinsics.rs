@@ -1,19 +1,11 @@
-use inkwell::context::Context;
 use inkwell::module::Module;
-use inkwell::types::FloatType;
-use inkwell::types::IntType;
-use inkwell::types::PointerType;
-use inkwell::types::StructType;
 use inkwell::values::FunctionValue;
-use inkwell::AddressSpace;
-
-use super::EmitterContext;
 
 pub const M: &str = "M";
-pub const Rx: &str = "Rx";
-pub const Ry: &str = "Ry";
-pub const Rz: &str = "Rz";
-pub const Reset: &str = "Reset";
+pub const R_X: &str = "Rx";
+pub const R_Y: &str = "Ry";
+pub const R_Z: &str = "Rz";
+pub const RESET: &str = "Reset";
 
 pub const H: &str = "H";
 
@@ -25,43 +17,43 @@ pub const S: &str = "S";
 pub const T: &str = "T";
 
 pub(crate) struct Intrinsics<'ctx> {
-    pub(crate) M: FunctionValue<'ctx>,
-    pub(crate) Rx: FunctionValue<'ctx>,
-    pub(crate) Ry: FunctionValue<'ctx>,
-    pub(crate) Rz: FunctionValue<'ctx>,
-    pub(crate) Reset: FunctionValue<'ctx>,
-    pub(crate) H: FunctionValue<'ctx>,
-    pub(crate) X: FunctionValue<'ctx>,
-    pub(crate) X_Ctl: FunctionValue<'ctx>,
-    pub(crate) Y: FunctionValue<'ctx>,
-    pub(crate) Y_Ctl: FunctionValue<'ctx>,
-    pub(crate) Z: FunctionValue<'ctx>,
-    pub(crate) Z_Ctl: FunctionValue<'ctx>,
-    pub(crate) S: FunctionValue<'ctx>,
-    pub(crate) S_Adj: FunctionValue<'ctx>,
-    pub(crate) T: FunctionValue<'ctx>,
-    pub(crate) T_Adj: FunctionValue<'ctx>,
+    pub(crate) m: FunctionValue<'ctx>,
+    pub(crate) r_x: FunctionValue<'ctx>,
+    pub(crate) r_y: FunctionValue<'ctx>,
+    pub(crate) r_z: FunctionValue<'ctx>,
+    pub(crate) reset: FunctionValue<'ctx>,
+    pub(crate) h: FunctionValue<'ctx>,
+    pub(crate) x: FunctionValue<'ctx>,
+    pub(crate) x_ctl: FunctionValue<'ctx>,
+    pub(crate) y: FunctionValue<'ctx>,
+    pub(crate) y_ctl: FunctionValue<'ctx>,
+    pub(crate) z: FunctionValue<'ctx>,
+    pub(crate) z_ctl: FunctionValue<'ctx>,
+    pub(crate) s: FunctionValue<'ctx>,
+    pub(crate) s_adj: FunctionValue<'ctx>,
+    pub(crate) t: FunctionValue<'ctx>,
+    pub(crate) t_adj: FunctionValue<'ctx>,
 }
 
 impl<'ctx> Intrinsics<'ctx> {
     pub fn new(module: &Module<'ctx>) -> Self {
         Intrinsics {
-            M: Intrinsics::get_intrinsic_function_body(module, M),
-            Rx: Intrinsics::get_intrinsic_function_body(module, Rx),
-            Ry: Intrinsics::get_intrinsic_function_body(module, Ry),
-            Rz: Intrinsics::get_intrinsic_function_body(module, Rz),
-            Reset: Intrinsics::get_intrinsic_function_body(module, Reset),
-            H: Intrinsics::get_intrinsic_function_body(module, H),
-            X: Intrinsics::get_intrinsic_function_body(module, X),
-            X_Ctl: Intrinsics::get_intrinsic_function_ctl(module, X),
-            Y: Intrinsics::get_intrinsic_function_body(module, Y),
-            Y_Ctl: Intrinsics::get_intrinsic_function_ctl(module, Y),
-            Z: Intrinsics::get_intrinsic_function_body(module, Z),
-            Z_Ctl: Intrinsics::get_intrinsic_function_ctl(module, Z),
-            S: Intrinsics::get_intrinsic_function_body(module, S),
-            S_Adj: Intrinsics::get_intrinsic_function_adj(module, S),
-            T: Intrinsics::get_intrinsic_function_body(module, T),
-            T_Adj: Intrinsics::get_intrinsic_function_adj(module, T),
+            m: Intrinsics::get_intrinsic_function_body(module, M),
+            r_x: Intrinsics::get_intrinsic_function_body(module, R_X),
+            r_y: Intrinsics::get_intrinsic_function_body(module, R_Y),
+            r_z: Intrinsics::get_intrinsic_function_body(module, R_Z),
+            reset: Intrinsics::get_intrinsic_function_body(module, RESET),
+            h: Intrinsics::get_intrinsic_function_body(module, H),
+            x: Intrinsics::get_intrinsic_function_body(module, X),
+            x_ctl: Intrinsics::get_intrinsic_function_ctl(module, X),
+            y: Intrinsics::get_intrinsic_function_body(module, Y),
+            y_ctl: Intrinsics::get_intrinsic_function_ctl(module, Y),
+            z: Intrinsics::get_intrinsic_function_body(module, Z),
+            z_ctl: Intrinsics::get_intrinsic_function_ctl(module, Z),
+            s: Intrinsics::get_intrinsic_function_body(module, S),
+            s_adj: Intrinsics::get_intrinsic_function_adj(module, S),
+            t: Intrinsics::get_intrinsic_function_body(module, T),
+            t_adj: Intrinsics::get_intrinsic_function_adj(module, T),
         }
     }
 
@@ -89,17 +81,15 @@ impl<'ctx> Intrinsics<'ctx> {
 
 #[cfg(test)]
 mod tests {
-    use inkwell::context::Context;
-
-    use crate::emit::ModuleContext;
+    use crate::emit::Context;
 
     use super::*;
 
     #[test]
     fn intrinsics_can_be_loaded() {
-        let ctx = Context::create();
+        let ctx = inkwell::context::Context::create();
         let name = "temp";
-        let module_ctx = ModuleContext::new(&ctx, name);
-        let _ = Intrinsics::new(&module_ctx.module);
+        let context = Context::new(&ctx, name);
+        let _ = Intrinsics::new(&context.module);
     }
 }
