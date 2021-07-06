@@ -388,11 +388,12 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
         symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
 
 let private inferLambda range kind inputType body =
+    let inOutTypes = inputType, body.ResolvedType
+
     let typeKind =
         match kind with
-        | LambdaKind.Function -> QsTypeKind.Function(inputType, body.ResolvedType)
-        | LambdaKind.Operation ->
-            QsTypeKind.Operation((inputType, body.ResolvedType), CallableInformation.NoInformation)
+        | LambdaKind.Function -> QsTypeKind.Function inOutTypes
+        | LambdaKind.Operation -> QsTypeKind.Operation(inOutTypes, CallableInformation.NoInformation)
 
     ResolvedType.create (TypeRange.inferred range) typeKind
 
