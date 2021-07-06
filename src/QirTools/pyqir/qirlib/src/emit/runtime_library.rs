@@ -2,55 +2,61 @@ use inkwell::module::Module;
 use inkwell::values::FunctionValue;
 
 // result functions
-pub const ResultGetZero: &str = "result_get_zero";
-pub const ResultGetOne: &str = "result_get_one";
-pub const ResultUpdateReferenceCount: &str = "result_update_reference_count";
-pub const ResultEqual: &str = "result_equal";
+const RESULT_GET_ZERO: &str = "result_get_zero";
+const RESULT_GET_ONE: &str = "result_get_one";
+const RESULT_UPDATE_REFERENCE_COUNT: &str = "result_update_reference_count";
+const RESULT_EQUAL: &str = "result_equal";
 
 // array functions
-pub const ArrayCreate1d: &str = "array_create_1d";
-pub const ArrayGetElementPtr1d: &str = "array_get_element_ptr_1d";
-pub const ArrayUpdateAliasCount: &str = "array_update_alias_count";
+const ARRAY_CREATE_1D: &str = "array_create_1d";
+const ARRAY_GET_ELEMENT_PTR_1D: &str = "array_get_element_ptr_1d";
+const ARRAY_UPDATE_ALIAS_COUNT: &str = "array_update_alias_count";
 
 // qubit functions
-pub const QubitAllocate: &str = "qubit_allocate";
-pub const QubitAllocateArray: &str = "qubit_allocate_array";
-pub const QubitRelease: &str = "qubit_release";
-pub const QubitReleaseArray: &str = "qubit_release_array";
+const QUBIT_ALLOCATE: &str = "qubit_allocate";
+const QUBIT_ALLOCATE_ARRAY: &str = "qubit_allocate_array";
+const QUBIT_RELEASE: &str = "qubit_release";
+const QUBIT_RELEASE_ARRAY: &str = "qubit_release_array";
 
-pub struct RuntimeLibrary<'ctx> {
-    pub(crate) ResultGetZero: FunctionValue<'ctx>,
-    pub(crate) ResultGetOne: FunctionValue<'ctx>,
-    pub(crate) ResultUpdateReferenceCount: FunctionValue<'ctx>,
-    pub(crate) ResultEqual: FunctionValue<'ctx>,
-    pub(crate) ArrayCreate1d: FunctionValue<'ctx>,
-    pub(crate) ArrayGetElementPtr1d: FunctionValue<'ctx>,
-    pub(crate) ArrayUpdateAliasCount: FunctionValue<'ctx>,
-    pub(crate) QubitAllocate: FunctionValue<'ctx>,
-    pub(crate) QubitAllocateArray: FunctionValue<'ctx>,
-    pub(crate) QubitRelease: FunctionValue<'ctx>,
-    //pub(crate) QubitReleaseArray: FunctionValue<'ctx>,
+pub(crate) struct RuntimeLibrary<'ctx> {
+    pub(crate) result_get_zero: FunctionValue<'ctx>,
+    pub(crate) result_get_one: FunctionValue<'ctx>,
+    pub(crate) result_update_reference_count: FunctionValue<'ctx>,
+    pub(crate) result_equal: FunctionValue<'ctx>,
+    pub(crate) array_create_1d: FunctionValue<'ctx>,
+    pub(crate) array_get_element_ptr_1d: FunctionValue<'ctx>,
+    pub(crate) array_update_alias_count: FunctionValue<'ctx>,
+    pub(crate) qubit_allocate: FunctionValue<'ctx>,
+    pub(crate) qubit_allocate_array: FunctionValue<'ctx>,
+    pub(crate) qubit_release: FunctionValue<'ctx>,
+    //pub(crate) qubit_release_array: FunctionValue<'ctx>,
 }
 
 impl<'ctx> RuntimeLibrary<'ctx> {
     pub fn new(module: &Module<'ctx>) -> Self {
         RuntimeLibrary {
-            ResultGetZero: RuntimeLibrary::get_function(module, ResultGetZero),
-            ResultGetOne: RuntimeLibrary::get_function(module, ResultGetOne),
-            ResultUpdateReferenceCount: RuntimeLibrary::get_function(
+            result_get_zero: RuntimeLibrary::get_function(module, RESULT_GET_ZERO),
+            result_get_one: RuntimeLibrary::get_function(module, RESULT_GET_ONE),
+            result_update_reference_count: RuntimeLibrary::get_function(
                 module,
-                ResultUpdateReferenceCount,
+                RESULT_UPDATE_REFERENCE_COUNT,
             ),
-            ResultEqual: RuntimeLibrary::get_function(module, ResultEqual),
+            result_equal: RuntimeLibrary::get_function(module, RESULT_EQUAL),
 
-            ArrayCreate1d: RuntimeLibrary::get_function(module, ArrayCreate1d),
-            ArrayGetElementPtr1d: RuntimeLibrary::get_function(module, ArrayGetElementPtr1d),
-            ArrayUpdateAliasCount: RuntimeLibrary::get_function(module, ArrayUpdateAliasCount),
+            array_create_1d: RuntimeLibrary::get_function(module, ARRAY_CREATE_1D),
+            array_get_element_ptr_1d: RuntimeLibrary::get_function(
+                module,
+                ARRAY_GET_ELEMENT_PTR_1D,
+            ),
+            array_update_alias_count: RuntimeLibrary::get_function(
+                module,
+                ARRAY_UPDATE_ALIAS_COUNT,
+            ),
 
-            QubitAllocate: RuntimeLibrary::get_function(module, QubitAllocate),
-            QubitAllocateArray: RuntimeLibrary::get_function(module, QubitAllocateArray),
-            QubitRelease: RuntimeLibrary::get_function(module, QubitRelease),
-            //QubitReleaseArray: RuntimeLibrary::get_function(module, QubitReleaseArray),
+            qubit_allocate: RuntimeLibrary::get_function(module, QUBIT_ALLOCATE),
+            qubit_allocate_array: RuntimeLibrary::get_function(module, QUBIT_ALLOCATE_ARRAY),
+            qubit_release: RuntimeLibrary::get_function(module, QUBIT_RELEASE),
+            //qubit_release_array: RuntimeLibrary::get_function(module, QUBIT_RELEASE_ARRAY),
         }
     }
 
@@ -65,17 +71,15 @@ impl<'ctx> RuntimeLibrary<'ctx> {
 
 #[cfg(test)]
 mod tests {
-    use inkwell::context::Context;
-
-    use crate::emit::ModuleContext;
+    use crate::emit::Context;
 
     use super::*;
 
     #[test]
     fn runtime_library_can_be_loaded() {
-        let ctx = Context::create();
+        let ctx = inkwell::context::Context::create();
         let name = "temp";
-        let module_ctx = ModuleContext::new(&ctx, name);
-        let _ = RuntimeLibrary::new(&module_ctx.module);
+        let context = Context::new(&ctx, name);
+        let _ = RuntimeLibrary::new(&context.module);
     }
 }

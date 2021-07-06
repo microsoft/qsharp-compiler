@@ -1,7 +1,9 @@
 use pyo3::prelude::*;
 
 use qirlib::emit::Emitter;
-use qirlib::interop::{Instruction, Register, SemanticModel};
+use qirlib::interop::{
+    ClassicalRegister, Controlled, Instruction, QuantumRegister, Rotated, SemanticModel, Single,
+};
 
 #[pymodule]
 fn pyqir(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -31,21 +33,24 @@ impl PyQIR {
 
     fn cx(&mut self, control: String, target: String) -> PyResult<()> {
         println!("cx {} => {}", control, target);
-        let inst = Instruction::Cx { control, target };
+        let controlled = Controlled::new(control, target);
+        let inst = Instruction::Cx(controlled);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn cz(&mut self, control: String, target: String) -> PyResult<()> {
         println!("cz {} => {}", control, target);
-        let inst = Instruction::Cz { control, target };
+        let controlled = Controlled::new(control, target);
+        let inst = Instruction::Cz(controlled);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn h(&mut self, qubit: String) -> PyResult<()> {
         println!("h => {}", qubit);
-        let inst = Instruction::H(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::H(single);
         self.model.add_inst(inst);
         Ok(())
     }
@@ -59,77 +64,88 @@ impl PyQIR {
 
     fn reset(&mut self, qubit: String) -> PyResult<()> {
         println!("reset => {}", qubit);
-        let inst = Instruction::Reset(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::Reset(single);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn rx(&mut self, theta: f64, qubit: String) -> PyResult<()> {
         println!("rx {} => {}", qubit, theta);
-        let inst = Instruction::Rx { theta, qubit };
+        let rotated = Rotated::new(theta, qubit);
+        let inst = Instruction::Rx(rotated);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn ry(&mut self, theta: f64, qubit: String) -> PyResult<()> {
         println!("ry {} => {}", qubit, theta);
-        let inst = Instruction::Ry { theta, qubit };
+        let rotated = Rotated::new(theta, qubit);
+        let inst = Instruction::Ry(rotated);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn rz(&mut self, theta: f64, qubit: String) -> PyResult<()> {
         println!("rz {} => {}", qubit, theta);
-        let inst = Instruction::Rz { theta, qubit };
+        let rotated = Rotated::new(theta, qubit);
+        let inst = Instruction::Rz(rotated);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn s(&mut self, qubit: String) -> PyResult<()> {
         println!("s => {}", qubit);
-        let inst = Instruction::S(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::S(single);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn s_adj(&mut self, qubit: String) -> PyResult<()> {
         println!("s_adj => {}", qubit);
-        let inst = Instruction::Sdg(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::Sdg(single);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn t(&mut self, qubit: String) -> PyResult<()> {
         println!("t => {}", qubit);
-        let inst = Instruction::T(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::T(single);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn t_adj(&mut self, qubit: String) -> PyResult<()> {
         println!("t_adj => {}", qubit);
-        let inst = Instruction::Tdg(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::Tdg(single);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn x(&mut self, qubit: String) -> PyResult<()> {
         println!("x => {}", qubit);
-        let inst = Instruction::X(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::X(single);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn y(&mut self, qubit: String) -> PyResult<()> {
         println!("y => {}", qubit);
-        let inst = Instruction::Y(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::Y(single);
         self.model.add_inst(inst);
         Ok(())
     }
 
     fn z(&mut self, qubit: String) -> PyResult<()> {
         println!("z => {}", qubit);
-        let inst = Instruction::Z(qubit);
+        let single = Single::new(qubit);
+        let inst = Instruction::Z(single);
         self.model.add_inst(inst);
         Ok(())
     }
@@ -139,20 +155,20 @@ impl PyQIR {
         for index in 0..size {
             let register_name = format!("{}[{}]", ns, index);
             println!("Adding {}", register_name);
-            let reg = Register::Quantum {
+            let reg = QuantumRegister {
                 name: String::from(ns),
                 index,
             };
-            self.model.add_reg(reg);
+            self.model.add_reg(reg.as_register());
         }
         Ok(())
     }
 
     fn add_classical_register(&mut self, name: String, size: u64) -> PyResult<()> {
         let ns = name.clone();
-        let reg = Register::Classical { name, size };
+        let reg = ClassicalRegister { name, size };
         println!("Adding {}({})", ns, size);
-        self.model.add_reg(reg);
+        self.model.add_reg(reg.as_register());
         Ok(())
     }
 

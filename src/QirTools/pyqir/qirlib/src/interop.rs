@@ -1,33 +1,100 @@
 #[derive(Clone, Debug, PartialEq, Eq)]
+pub struct QuantumRegister {
+    pub name: String,
+    pub index: u64,
+}
+
+impl QuantumRegister {
+    pub fn new(name: String, index: u64) -> Self {
+        QuantumRegister { name, index }
+    }
+
+    pub fn as_register(&self) -> Register {
+        Register::Quantum(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct ClassicalRegister {
+    pub name: String,
+    pub size: u64,
+}
+
+impl ClassicalRegister {
+    pub fn new(name: String, size: u64) -> Self {
+        ClassicalRegister { name, size }
+    }
+
+    pub fn as_register(&self) -> Register {
+        Register::Classical(self.clone())
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
 pub enum Register {
-    Quantum { name: String, index: u64 },
-    Classical { name: String, size: u64 },
+    Quantum(QuantumRegister),
+    Classical(ClassicalRegister),
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Controlled {
+    pub control: String,
+    pub target: String,
+}
+
+impl Controlled {
+    pub fn new(control: String, target: String) -> Self {
+        Controlled { control, target }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq)]
+pub struct Rotated {
+    pub theta: f64,
+    pub qubit: String,
+}
+
+impl Rotated {
+    pub fn new(theta: f64, qubit: String) -> Self {
+        Rotated { theta, qubit }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Single {
+    pub qubit: String,
+}
+
+impl Single {
+    pub fn new(qubit: String) -> Self {
+        Single { qubit }
+    }
 }
 
 // https://github.com/microsoft/qsharp-language/blob/ageller/profile/Specifications/QIR/Base-Profile.md
 #[derive(Clone, Debug, PartialEq)]
 pub enum Instruction {
-    Cx { control: String, target: String },
-    Cz { control: String, target: String },
-    H(String),
+    Cx(Controlled),
+    Cz(Controlled),
+    H(Single),
     M { qubit: String, target: String },
-    Reset(String),
-    Rx { theta: f64, qubit: String },
-    Ry { theta: f64, qubit: String },
-    Rz { theta: f64, qubit: String },
-    S(String),
-    Sdg(String),
-    T(String),
-    Tdg(String),
-    X(String),
-    Y(String),
-    Z(String),
+    Reset(Single),
+    Rx(Rotated),
+    Ry(Rotated),
+    Rz(Rotated),
+    S(Single),
+    Sdg(Single),
+    T(Single),
+    Tdg(Single),
+    X(Single),
+    Y(Single),
+    Z(Single),
 }
 
 pub struct SemanticModel {
     pub name: String,
-    pub registers: Vec<Register>,
-    pub qubits: Vec<Register>,
+    pub registers: Vec<ClassicalRegister>,
+    pub qubits: Vec<QuantumRegister>,
     pub instructions: Vec<Instruction>,
 }
 
@@ -43,8 +110,8 @@ impl SemanticModel {
 
     pub fn add_reg(&mut self, reg: Register) {
         match &reg {
-            Register::Classical{ name, size } => self.registers.push(reg),
-            Register::Quantum {name, index} => self.qubits.push(reg),
+            Register::Classical(creg) => self.registers.push(creg.to_owned()),
+            Register::Quantum(qreg) => self.qubits.push(qreg.to_owned()),
         }
     }
 

@@ -6,19 +6,18 @@ use inkwell::types::PointerType;
 use inkwell::types::StructType;
 use inkwell::AddressSpace;
 
-pub const Int: &str = "Int";
-pub const Double: &str = "Double";
-pub const Bool: &str = "Bool";
-pub const Pauli: &str = "Pauli";
-
-pub const Callable: &str = "Callable";
-pub const Result: &str = "Result";
-pub const Qubit: &str = "Qubit";
-pub const Range: &str = "Range";
-pub const BigInt: &str = "BigInt";
-pub const String: &str = "String";
-pub const Array: &str = "Array";
-pub const Tuple: &str = "Tuple";
+const INT: &str = "Int";
+const DOUBLE: &str = "Double";
+const BOOL: &str = "Bool";
+const PAULI: &str = "Pauli";
+const CALLABLE: &str = "Callable";
+const RESULT: &str = "Result";
+const QUBIT: &str = "Qubit";
+const RANGE: &str = "Range";
+const BIG_INT: &str = "BigInt";
+const STRING: &str = "String";
+const ARRAY: &str = "Array";
+const TUPLE: &str = "Tuple";
 
 pub struct Types<'ctx> {
     pub(crate) int: IntType<'ctx>,
@@ -43,16 +42,16 @@ impl<'ctx> Types<'ctx> {
             bool: context.bool_type(),
             pauli: context.custom_width_int_type(2),
 
-            range: Types::get_struct(module, Range),
+            range: Types::get_struct(module, RANGE),
 
-            result: Types::get_struct_pointer(module, Result),
-            qubit: Types::get_struct_pointer(module, Qubit),
-            string: Types::get_struct_pointer(module, String),
+            result: Types::get_struct_pointer(module, RESULT),
+            qubit: Types::get_struct_pointer(module, QUBIT),
+            string: Types::get_struct_pointer(module, STRING),
             // todo: big_int isn't defined in the current template .ll
-            //big_int: Types::get_struct_pointer(module, BigInt),
-            tuple: Types::get_struct_pointer(module, Tuple),
-            array: Types::get_struct_pointer(module, Array),
-            callable: Types::get_struct_pointer(module, Callable),
+            //big_int: Types::get_struct_pointer(module, BIG_INT),
+            tuple: Types::get_struct_pointer(module, TUPLE),
+            array: Types::get_struct_pointer(module, ARRAY),
+            callable: Types::get_struct_pointer(module, CALLABLE),
         }
     }
 
@@ -73,17 +72,15 @@ impl<'ctx> Types<'ctx> {
 
 #[cfg(test)]
 mod tests {
-    use inkwell::context::Context;
-
-    use crate::emit::ModuleContext;
+    use crate::emit::Context;
 
     use super::*;
 
     #[test]
     fn types_can_be_loaded() {
-        let ctx = Context::create();
+        let ctx = inkwell::context::Context::create();
         let name = "temp";
-        let module_ctx = ModuleContext::new(&ctx, name);
-        let _ = Types::new(&module_ctx.context, &module_ctx.module);
+        let context = Context::new(&ctx, name);
+        let _ = Types::new(&context.context, &context.module);
     }
 }

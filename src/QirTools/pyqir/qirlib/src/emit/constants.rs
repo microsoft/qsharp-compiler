@@ -1,31 +1,31 @@
+use super::types::Types;
+use inkwell::module::Module;
 use inkwell::values::GlobalValue;
 use inkwell::values::PointerValue;
 
-struct Constants<'ctx> {
-    Unit: PointerValue<'ctx>,
-    PauliI: GlobalValue<'ctx>,
-    PauliX: GlobalValue<'ctx>,
-    PauliY: GlobalValue<'ctx>,
-    PauliZ: GlobalValue<'ctx>,
-    EmptyRange: GlobalValue<'ctx>,
+pub(crate) struct Constants<'ctx> {
+    pub(crate) unit: PointerValue<'ctx>,
+    pub(crate) pauli_i: GlobalValue<'ctx>,
+    pub(crate) pauli_x: GlobalValue<'ctx>,
+    pub(crate) pauli_y: GlobalValue<'ctx>,
+    pub(crate) pauli_z: GlobalValue<'ctx>,
+    pub(crate) empty_range: GlobalValue<'ctx>,
 }
-use super::types::Types;
-use super::ModuleContext;
 
 impl<'ctx> Constants<'ctx> {
-    fn new(ctx: &ModuleContext<'ctx>, types: &Types<'ctx>) -> Self {
+    pub fn new(module: &Module<'ctx>, types: &Types<'ctx>) -> Self {
         Constants {
-            Unit: types.tuple.const_null(),
-            PauliI: Constants::get_global(ctx, "PauliI"),
-            PauliX: Constants::get_global(ctx, "PauliX"),
-            PauliY: Constants::get_global(ctx, "PauliY"),
-            PauliZ: Constants::get_global(ctx, "PauliZ"),
-            EmptyRange: Constants::get_global(ctx, "EmptyRange"),
+            unit: types.tuple.const_null(),
+            pauli_i: Constants::get_global(module, "PauliI"),
+            pauli_x: Constants::get_global(module, "PauliX"),
+            pauli_y: Constants::get_global(module, "PauliY"),
+            pauli_z: Constants::get_global(module, "PauliZ"),
+            empty_range: Constants::get_global(module, "EmptyRange"),
         }
     }
 
-    fn get_global(module_ctx: &ModuleContext<'ctx>, name: &str) -> GlobalValue<'ctx> {
-        if let Some(defined_global) = module_ctx.module.get_global(name) {
+    fn get_global(module: &Module<'ctx>, name: &str) -> GlobalValue<'ctx> {
+        if let Some(defined_global) = module.get_global(name) {
             return defined_global;
         }
         panic!("{} global constant was not defined in the module", name);
@@ -34,18 +34,16 @@ impl<'ctx> Constants<'ctx> {
 
 #[cfg(test)]
 mod tests {
-    use inkwell::context::Context;
-
-    use crate::emit::ModuleContext;
+    use crate::emit::Context;
 
     use super::*;
 
     #[test]
     fn constants_can_be_loaded() {
-        let ctx = Context::create();
+        let ctx = inkwell::context::Context::create();
         let name = "temp";
-        let module_ctx = ModuleContext::new(&ctx, name);
-        let types = Types::new(&module_ctx.context, &module_ctx.module);
-        let _ = Constants::new(&module_ctx, &types);
+        let context = Context::new(&ctx, name);
+        let types = Types::new(&context.context, &context.module);
+        let _ = Constants::new(&context.module, &types);
     }
 }
