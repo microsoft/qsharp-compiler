@@ -336,16 +336,6 @@ let internal verifyAssignment (inference: InferenceContext) expectedType mismatc
                 (rangeOrDefault rhs)
     ]
 
-let private inferLambda (inference: InferenceContext) range kind inputType body =
-    let outputType = inference.Fresh <| rangeOrDefault body
-
-    let type_ =
-        match kind with
-        | LambdaKind.Function -> QsTypeKind.Function(inputType, outputType)
-        | LambdaKind.Operation -> QsTypeKind.Operation((inputType, outputType), CallableInformation.NoInformation)
-
-    ResolvedType.create (TypeRange.inferred range) type_, inference.Unify(outputType, body.ResolvedType)
-
 /// Given a Q# symbol, as well as the resolved type of the right hand side that is assigned to it,
 /// shape matches the symbol tuple with the type to determine whether the assignment is valid, and
 /// calls the given function tryBuildDeclaration on each symbol item and its matched type.
@@ -396,6 +386,16 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
 
         let items, declarations, diagnostics = Seq.foldBack combine (Seq.map2 verify symbols types) ([], [||], [||])
         symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
+
+let private verifyLambda (inference: InferenceContext) range kind inputType body =
+    let outputType = inference.Fresh <| rangeOrDefault body
+
+    let type_ =
+        match kind with
+        | LambdaKind.Function -> QsTypeKind.Function(inputType, outputType)
+        | LambdaKind.Operation -> QsTypeKind.Operation((inputType, outputType), CallableInformation.NoInformation)
+
+    ResolvedType.create (TypeRange.inferred range) type_, inference.Unify(outputType, body.ResolvedType)
 
 // utils for building TypedExpressions from QsExpressions
 
@@ -856,6 +856,29 @@ type QsExpression with
             let info = InferredExpressionInformation.New(isMutable = false, quantumDep = hasQuantumDependency)
             TypedExpression.New(callExpression, callable.TypeParameterResolutions, resultType, info, this.Range)
 
+        let buildLambda { Symbols = symbols; Inference = inference } kind (param: QsSymbol) body =
+            symbols.BeginScope ImmutableHashSet.Empty
+
+            let addBinding (name: string, range) type_ =
+                let _, diagnostics =
+                    LocalVariableDeclaration.New false ((Null, range), name, type_, true)
+                    |> symbols.TryAddVariableDeclartion
+
+                None, diagnostics
+
+            let inputType = inference.Fresh param.RangeOrDefault
+            let _, _, diagnostics = verifyBinding inference addBinding (param, inputType) false
+            Array.iter diagnose diagnostics
+
+            let lambda =
+                verifyAndBuildWith
+                    (fun body' -> Lambda(kind, param, body'))
+                    (verifyLambda inference this.Range kind inputType)
+                    body
+
+            symbols.EndScope()
+            lambda
+
         match this.Expression with
         | InvalidExpr ->
             (InvalidExpr, InvalidType |> ResolvedType.create (TypeRange.inferred this.Range))
@@ -948,25 +971,4 @@ type QsExpression with
                     Bool |> ResolvedType.create (TypeRange.inferred this.Range),
                     inference.Unify(ResolvedType.New Bool, ex'.ResolvedType))
                 ex
-        | Lambda (kind, param, body) ->
-            symbols.BeginScope ImmutableHashSet.Empty
-
-            let addBinding (name: string, range) type_ =
-                let _, diagnostics =
-                    LocalVariableDeclaration.New false ((Null, range), name, type_, true)
-                    |> symbols.TryAddVariableDeclartion
-
-                None, diagnostics
-
-            let inputType = inference.Fresh param.RangeOrDefault
-            let _, _, diagnostics = verifyBinding inference addBinding (param, inputType) false
-            Array.iter diagnose diagnostics
-
-            let lambda =
-                verifyAndBuildWith
-                    (fun body' -> Lambda(kind, param, body'))
-                    (inferLambda inference this.Range kind inputType)
-                    body
-
-            symbols.EndScope()
-            lambda
+        | Lambda (kind, param, body) -> buildLambda context kind param body
