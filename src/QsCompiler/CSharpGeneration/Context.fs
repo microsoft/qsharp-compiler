@@ -152,6 +152,7 @@ type CodegenContext =
                 target = AssemblyConstants.HoneywellProcessor
                 || target = AssemblyConstants.IonQProcessor
                 || target = AssemblyConstants.QCIProcessor
+                || target = "AzureSimulator" // ToDo: We need to have an assembly constant for this.
             | _ -> false
 
         not (fileName.EndsWith ".dll") || targetsQuantumProcessor
