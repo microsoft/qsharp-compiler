@@ -387,15 +387,14 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
         let items, declarations, diagnostics = Seq.foldBack combine (Seq.map2 verify symbols types) ([], [||], [||])
         symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
 
-let private verifyLambda (inference: InferenceContext) range kind inputType body =
-    let outputType = inference.Fresh <| rangeOrDefault body
-
-    let type_ =
+let private inferLambda range kind inputType body =
+    let typeKind =
         match kind with
-        | LambdaKind.Function -> QsTypeKind.Function(inputType, outputType)
-        | LambdaKind.Operation -> QsTypeKind.Operation((inputType, outputType), CallableInformation.NoInformation)
+        | LambdaKind.Function -> QsTypeKind.Function(inputType, body.ResolvedType)
+        | LambdaKind.Operation ->
+            QsTypeKind.Operation((inputType, body.ResolvedType), CallableInformation.NoInformation)
 
-    ResolvedType.create (TypeRange.inferred range) type_, inference.Unify(outputType, body.ResolvedType)
+    ResolvedType.create (TypeRange.inferred range) typeKind
 
 // utils for building TypedExpressions from QsExpressions
 
@@ -873,7 +872,7 @@ type QsExpression with
             let lambda =
                 verifyAndBuildWith
                     (fun body' -> Lambda(kind, param, body'))
-                    (verifyLambda inference this.Range kind inputType)
+                    (fun body' -> inferLambda this.Range kind inputType body', [])
                     body
 
             symbols.EndScope()
