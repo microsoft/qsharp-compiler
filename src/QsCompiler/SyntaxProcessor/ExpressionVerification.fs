@@ -12,6 +12,7 @@ open Microsoft.Quantum.QsCompiler.SyntaxProcessing.TypeInference
 open Microsoft.Quantum.QsCompiler.SyntaxProcessing.VerificationTools
 open Microsoft.Quantum.QsCompiler.SyntaxTokens
 open Microsoft.Quantum.QsCompiler.SyntaxTree
+open Microsoft.Quantum.QsCompiler.Transformations.Core
 open Microsoft.Quantum.QsCompiler.Transformations.QsCodeOutput
 open System.Collections.Generic
 open System.Collections.Immutable
@@ -387,13 +388,46 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
         let items, declarations, diagnostics = Seq.foldBack combine (Seq.map2 verify symbols types) ([], [||], [||])
         symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
 
+let private characteristicsSet info =
+    info.Characteristics.SupportedFunctors
+    |> QsNullable.defaultValue ImmutableHashSet.Empty
+    |> Seq.map
+        (function
+        | Adjoint -> Adjointable
+        | Controlled -> Controllable)
+    |> Set.ofSeq
+
+let private lambdaCharacteristics (body: TypedExpression) =
+    let mutable characteristics = Set.ofList [ Adjointable; Controllable ]
+
+    let onCall =
+        function
+        | QsTypeKind.Operation (_, info) -> characteristics <- characteristicsSet info |> Set.intersect characteristics
+        | TypeParameter _ -> characteristics <- Set.empty
+        | _ -> ()
+
+    let transformation =
+        { new ExpressionKindTransformation() with
+            override _.OnCallLikeExpression(callable, arg) =
+                onCall callable.ResolvedType.Resolution
+                base.OnCallLikeExpression(callable, arg)
+
+            override _.OnLambda(kind, param, body) = Lambda(kind, param, body)
+        }
+
+    transformation.OnExpressionKind body.Expression |> ignore
+    characteristics
+
 let private inferLambda range kind inputType body =
     let inOutTypes = inputType, body.ResolvedType
 
     let typeKind =
         match kind with
         | LambdaKind.Function -> QsTypeKind.Function inOutTypes
-        | LambdaKind.Operation -> QsTypeKind.Operation(inOutTypes, CallableInformation.NoInformation)
+        | LambdaKind.Operation ->
+            let characteristics = lambdaCharacteristics body |> ResolvedCharacteristics.FromProperties
+            let info = CallableInformation.New(characteristics, InferredCallableInformation.NoInformation)
+            QsTypeKind.Operation(inOutTypes, info)
 
     ResolvedType.create (TypeRange.inferred range) typeKind
 
