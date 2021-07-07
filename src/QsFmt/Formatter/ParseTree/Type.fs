@@ -60,34 +60,34 @@ type TypeVisitor(tokens) =
         context.Underscore().Symbol |> Node.toTerminal tokens |> Type.Missing
 
     override _.VisitBigIntType context =
-        context.BigInt().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.BigInt().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitBoolType context =
-        context.Bool().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.Bool().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitDoubleType context =
-        context.Double().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.Double().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitIntType context =
-        context.Int().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.Int().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitPauliType context =
-        context.Pauli().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.Pauli().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitQubitType context =
-        context.Qubit().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.Qubit().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitRangeType context =
-        context.Range().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.Range().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitResultType context =
-        context.Result().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.Result().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitStringType context =
-        context.String().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.String().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitUnitType context =
-        context.Unit().Symbol |> Node.toTerminal tokens |> BuiltIn
+        context.Unit().Symbol |> Node.toTerminal tokens |> Type.BuiltIn
 
     override _.VisitTypeParameter context =
         context.typeParameter |> Node.toTerminal tokens |> Parameter

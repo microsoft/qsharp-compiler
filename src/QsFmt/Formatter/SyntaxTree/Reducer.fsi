@@ -36,10 +36,22 @@ type internal 'result Reducer =
     default NamespaceItem: item:NamespaceItem -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="Attribute"/> node.
+    /// </summary>
+    abstract Attribute: attribute:Attribute -> 'result
+    default Attribute: attribute:Attribute -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="CallableDeclaration"/> node.
     /// </summary>
     abstract CallableDeclaration: callable:CallableDeclaration -> 'result
     default CallableDeclaration: callable:CallableDeclaration -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="TypeParameterBinding"/> node.
+    /// </summary>
+    abstract TypeParameterBinding: binding:TypeParameterBinding -> 'result
+    default TypeParameterBinding: binding:TypeParameterBinding -> 'result
 
     /// <summary>
     /// Reduces a <see cref="Type"/> node.
@@ -82,6 +94,24 @@ type internal 'result Reducer =
     /// </summary>
     abstract Characteristic: characteristic:Characteristic -> 'result
     default Characteristic: characteristic:Characteristic -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="CallableBody"/> node.
+    /// </summary>
+    abstract CallableBody: body:CallableBody -> 'result
+    default CallableBody: body:CallableBody -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="Specialization"/> node.
+    /// </summary>
+    abstract Specialization: specialization:Specialization -> 'result
+    default Specialization: specialization:Specialization -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="SpecializationGenerator"/> node.
+    /// </summary>
+    abstract SpecializationGenerator: generator:SpecializationGenerator -> 'result
+    default SpecializationGenerator: generator:SpecializationGenerator -> 'result
 
     /// <summary>
     /// Reduces a <see cref="Statement"/> node.
