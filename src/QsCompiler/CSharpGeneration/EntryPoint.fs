@@ -216,7 +216,7 @@ let private qirSubmission (entryPoint: QsCallable) parameters parseResult =
 
     let submission args =
         ``new``
-            (driverNamespace + ".Azure.QirSubmission" |> ``type``)
+            (driverNamespace + ".QirSubmission" |> ``type``)
             ``(``
             [ streamVar :> ExpressionSyntax; string entryPoint.FullName |> literal; args ]
             ``)``
@@ -233,7 +233,7 @@ let private submitMethod context entryPoint parameters =
 
     let qsSubmission =
         ``new``
-            (generic (driverNamespace + ".Azure.QSharpSubmission") ``<<`` [ argTypeName; returnTypeName ] ``>>``)
+            (generic (driverNamespace + ".QSharpSubmission") ``<<`` [ argTypeName; returnTypeName ] ``>>``)
             ``(``
             [
                 ident callableName <|.|> ident "Info"
@@ -257,11 +257,11 @@ let private submitMethod context entryPoint parameters =
         ``(``
         [
             param parseResultParamName ``of`` (``type`` "System.CommandLine.Parsing.ParseResult")
-            param settingsParamName ``of`` (``type`` (driverNamespace + ".Azure.AzureSettings"))
+            param settingsParamName ``of`` (``type`` (driverNamespace + ".AzureSettings"))
         ]
         ``)``
         [ ``public`` ]
-        (Some(``=>`` (ident (driverNamespace + ".Azure.Azure") <.> (ident "Submit", args))))
+        (Some(``=>`` (ident (driverNamespace + ".Azure") <.> (ident "Submit", args))))
 
 /// Generates the Simulate method for an entry point class.
 let private simulateMethod context entryPoint =
