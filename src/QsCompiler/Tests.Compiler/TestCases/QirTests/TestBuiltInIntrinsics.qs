@@ -3,29 +3,47 @@
 
 namespace Microsoft.Quantum.Testing.QIR {
     open Microsoft.Quantum.Intrinsic;
+    open Microsoft.Quantum.Diagnostics;
 
     newtype Options = (
-        VerboseMessage: (String -> Unit)
+        SimpleMessage: (String -> Unit),
+        DumpToFile: (String -> Unit),
+        DumpToConsole: (Unit -> Unit)
     );
 
     function Ignore<'T> (arg : 'T) : Unit {}
 
     function DefaultOptions() : Options {
         return Options(
-            Ignore<String>
+            Ignore,
+            Ignore,
+            Ignore
         );
     }
 
     @EntryPoint()
     operation TestBuiltInIntrinsics() : Unit {
         let options = DefaultOptions()
-            w/ VerboseMessage <- Message;
+            w/ SimpleMessage <- Message
+            w/ DumpToFile <- DumpMachine
+            w/ DumpToConsole <- DumpMachine;
+
+        options::SimpleMessage("Hello");
+        options::DumpToFile("pathToFile");
+        options::DumpToConsole();
     }
 }
 
 namespace Microsoft.Quantum.Intrinsic {
 
-    function Message<'T> (arg : 'T) : Unit {
+    function Message (arg : String) : Unit {
+        body intrinsic;
+    }
+}
+
+namespace Microsoft.Quantum.Diagnostics {
+
+    function DumpMachine<'T> (arg : 'T) : Unit {
         body intrinsic;
     }
 }

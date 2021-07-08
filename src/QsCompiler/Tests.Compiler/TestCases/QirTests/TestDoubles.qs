@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    @EntryPoint()
     function TestDouble (x : Double, y : Double) : Double
     {
         let a = x + y - 2.0;

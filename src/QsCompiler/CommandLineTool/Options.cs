@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.IO;
 using System.Linq;
 using System.Reflection;
@@ -117,20 +118,37 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// Returns a dictionary with the specified assembly properties as out parameter.
         /// Returns a boolean indicating whether all specified properties were successfully added.
         /// </summary>
-        internal bool ParseAssemblyProperties(out Dictionary<string, string> parsed)
+        internal bool ParseAssemblyProperties(ILogger? logger, [MaybeNullWhen(false)] out Dictionary<string, string> asmProperties)
         {
-            var success = true;
-            parsed = new Dictionary<string, string>();
+            asmProperties = null;
+            var parsed = new Dictionary<string, string>();
+
             foreach (var keyValue in this.AdditionalAssemblyProperties ?? Array.Empty<string>())
             {
                 // NB: We use `count: 2` here to ensure that assembly constants can contain colons.
                 var pieces = keyValue?.Split(":", count: 2);
-                success =
-                    success && !(pieces is null) && pieces.Length == 2 &&
-                    parsed.TryAdd(pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"'));
+                if (pieces is null || pieces.Length != 2)
+                {
+                    logger?.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
+                    return false;
+                }
+
+                var (key, value) = (pieces[0].Trim().Trim('"'), pieces[1].Trim().Trim('"'));
+                if (string.IsNullOrWhiteSpace(key))
+                {
+                    logger?.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
+                    return false;
+                }
+
+                if (!parsed.TryAdd(key, value))
+                {
+                    logger?.Log(WarningCode.DuplicateAssemblyProperty, new[] { key, value });
+                    parsed[key] = value;
+                }
             }
 
-            return success;
+            asmProperties = parsed;
+            return true;
         }
 
         /// <summary>
