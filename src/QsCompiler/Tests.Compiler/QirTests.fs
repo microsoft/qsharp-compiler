@@ -44,6 +44,8 @@ let private compilerArgs target (name: string) =
             "Microsoft.Quantum.QirGeneration.dll"
         )
 
+        "--assembly-properties"
+        "QirOutputPath:qir"
         "--verbosity"
         "Diagnostic"
     }

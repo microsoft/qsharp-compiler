@@ -13,12 +13,17 @@ namespace Microsoft.Quantum.Testing.QIR {
 
         mutable energy = 0.0;
 
-        for (_ in 0 .. 10) {
-            for (j in 5 .. -1 .. 0) {
+        for _ in 0 .. 10 {
+            for j in 5 .. -1 .. 0 {
                 set energy += 0.5;
             }
         }
 
         return res w/ Abs <- energy;
+    }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestNestedLoops();
     }
 }

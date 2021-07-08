@@ -3,8 +3,6 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
-    //open Microsoft.Quantum.Intrinsic;
-
     function TestBigInts (a : BigInt, b : BigInt) : BigInt
     {
         let c = a > b ? a | b;
@@ -13,5 +11,10 @@ namespace Microsoft.Quantum.Testing.QIR
         let f = d ^ 5;
         let g = (e &&& f) ||| 0xffffL;
         return ~~~g;
+    }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestBigInts(0L, 0L);
     }
 }

@@ -29,4 +29,11 @@ namespace Microsoft.Quantum.Testing.QIR
 
         return namedValue;
     }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestUdtUpdate1("", 0);
+        let _ = TestUdtUpdate2(true, NamedValue("", Complex(0.,0.), Complex(0.,0.)));
+    }
+
 }

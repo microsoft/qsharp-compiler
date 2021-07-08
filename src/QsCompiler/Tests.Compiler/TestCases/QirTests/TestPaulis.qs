@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    @EntryPoint()
     function TestPaulis (a : Pauli, b : Pauli) : Pauli
     {
         if (a == PauliX)

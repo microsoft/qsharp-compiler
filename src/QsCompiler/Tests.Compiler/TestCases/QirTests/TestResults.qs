@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    @EntryPoint()
     function TestResults (a : Result, b : Result) : Result
     {
         if (a == b)
