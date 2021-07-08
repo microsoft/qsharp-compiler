@@ -503,27 +503,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // way to do this, but it's simple and clear, and strings are uncommon in Q#.
                 var cleanStr = s.Replace("\\{", "{").Replace("\\\\", "\\").Replace("\\n", "\n")
                     .Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\"", "\"");
+                var constantString = sharedState.Context.CreateConstantString(cleanStr, true);
+                var globalConstant = sharedState.Module.AddGlobal(
+                    constantString.NativeType, true, Linkage.Internal, constantString);
 
-                Value? constantArray = null;
-                if (cleanStr.Length > 0)
-                {
-                    var constantString = sharedState.Context.CreateConstantString(cleanStr, true);
-                    var globalConstant = sharedState.Module.AddGlobal(
-                        constantString.NativeType, true, Linkage.Internal, constantString);
-                    constantArray = sharedState.CurrentBuilder.GetElementPtr(
-                        sharedState.Context.Int8Type.CreateArrayType((uint)cleanStr.Length + 1), // +1 because zero terminated
-                        globalConstant,
-                        new[] { sharedState.Context.CreateConstant(0) });
-                }
-
-                var zeroLengthString = constantArray == null
-                    ? sharedState.Types.DataArrayPointer.GetNullValue()
-                    : sharedState.CurrentBuilder.BitCast(
-                        constantArray,
+                var sizedDataArrayPtr = sharedState.CurrentBuilder.GetElementPtr(
+                    sharedState.Context.Int8Type.CreateArrayType((uint)cleanStr.Length + 1), // +1 because zero terminated
+                    globalConstant,
+                    new[] { sharedState.Context.CreateConstant(0) });
+                var dataArrayPtr = sharedState.CurrentBuilder.BitCast(
+                        sizedDataArrayPtr,
                         sharedState.Types.DataArrayPointer);
 
                 var createString = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                return sharedState.CurrentBuilder.Call(createString, zeroLengthString);
+                return sharedState.CurrentBuilder.Call(createString, dataArrayPtr);
             }
 
             // Creates a new string with reference count 1 that needs to be queued for unreferencing
