@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.Testing.QIR
     {
         mutable sum = 0;
 
-        for (i in a)
+        for i in a
         {
             if (i > 5)
             {
@@ -27,12 +27,18 @@ namespace Microsoft.Quantum.Testing.QIR
                 set sum = sum + x;
             }
         }
-        for (i in a)
+        for i in a
         {
             set sum = sum + i;
         }
 
         let _ = Foo(1, _, _);
         return sum;
+    }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestScoping([]);
+        Bar();
     }
 }

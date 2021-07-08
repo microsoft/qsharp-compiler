@@ -44,13 +44,7 @@ namespace Microsoft.Quantum.QsCompiler
         public static bool LoadReferencedAssembly(Uri asm, out References.Headers headers, bool ignoreDllResources = false, Action<Exception>? onDeserializationException = null)
         {
             var id = CompilationUnitManager.GetFileId(asm);
-            if (!File.Exists(asm.LocalPath))
-            {
-                throw new FileNotFoundException($"The file '{asm.LocalPath}' given to the assembly loader does not exist.");
-            }
-
-            using var stream = File.OpenRead(asm.LocalPath);
-            using var assemblyFile = new PEReader(stream);
+            using var assemblyFile = GetAssemblyReader(asm.LocalPath);
             if (ignoreDllResources || !FromResource(assemblyFile, out var compilation, onDeserializationException))
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.HeaderAttributesLoading);
@@ -87,13 +81,7 @@ namespace Microsoft.Quantum.QsCompiler
             [NotNullWhen(true)] out QsCompilation? compilation,
             Action<Exception>? onException = null)
         {
-            if (!File.Exists(asmPath))
-            {
-                throw new FileNotFoundException($"The file '{asmPath}' does not exist.");
-            }
-
-            using var stream = File.OpenRead(asmPath);
-            using var assemblyFile = new PEReader(stream);
+            using var assemblyFile = GetAssemblyReader(asmPath);
             try
             {
                 return FromResource(assemblyFile, out compilation, onException);
@@ -172,6 +160,74 @@ namespace Microsoft.Quantum.QsCompiler
             return compilation != null && IsValidCompilation(compilation);
         }
 
+        /// <summary>
+        /// Loads any QIR bitcode included as a resource from <paramref name="assemblyFileInfo"/>.
+        /// </summary>
+        /// <param name="assemblyFileInfo">The file info of a .NET DLL from which to load the QIR bitcode.</param>
+        /// <param name="qirStream">A stream to store the QIR bitcode embedded to<paramref name="assemblyFileInfo"/> as a resource.</param>
+        /// <returns>
+        /// True if <paramref name="assemblyFileInfo"/> includes the QIR bitcode resource, false otherwise.
+        /// </returns>
+        /// <exception cref="FileNotFoundException"><paramref name="assemblyFileInfo"/> does not exist.</exception>
+        public static bool LoadQirBitcode(FileInfo assemblyFileInfo, Stream qirStream)
+        {
+            using var assemblyFile = GetAssemblyReader(assemblyFileInfo.FullName);
+            return LoadResource(DotnetCoreDll.ResourceNameQsDataQirV1, assemblyFile, qirStream);
+        }
+
+        /// <summary>
+        /// Gets a Portable Executable Reader object for the file specified by the path <paramref name="assemblyPath"/>.
+        /// </summary>
+        /// <param name="assemblyPath">The path to the file.</param>
+        /// <returns>
+        /// The PEReader for the given assembly.
+        /// </returns>
+        /// <exception cref="FileNotFoundException"><paramref name="assemblyPath"/> does not exist.</exception>
+        private static PEReader GetAssemblyReader(string assemblyPath)
+        {
+            if (!File.Exists(assemblyPath))
+            {
+                throw new FileNotFoundException($"The file '{assemblyPath}' given to the assembly loader does not exist.");
+            }
+
+            return new PEReader(File.OpenRead(assemblyPath));
+        }
+
+        /// <summary>
+        /// Loads a resource named <paramref name="resourceName"/> from <paramref name="assemblyReader"/> into the stream <paramref name="resourceStream"/>.
+        /// </summary>
+        /// <param name="resourceName">The name of the resource to load.</param>
+        /// <param name="assemblyReader">The Portable Executable Reader for the dll from which to load the resource.</param>
+        /// <param name="resourceStream">A stream for reading the resource as a bytes.</param>
+        /// <returns>
+        /// True if <paramref name="assemblyReader"/> includes the resource named by <paramref name="resourceName"/>, false otherwise.
+        /// </returns>
+        private static bool LoadResource(string resourceName, PEReader assemblyReader, Stream resourceStream)
+        {
+            // The offset of resources is relative to the resources directory.
+            // It is possible that there is no offset given because a valid dll allows for external resources.
+            var resourceDir = assemblyReader.PEHeaders.CorHeader.ResourcesDirectory;
+            var metadataReader = assemblyReader.GetMetadataReader();
+            if (!assemblyReader.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
+                !metadataReader.Resources().TryGetValue(resourceName, out var resource) ||
+                !resource.Implementation.IsNil)
+            {
+                return false;
+            }
+
+            var image = assemblyReader.GetEntireImage(); // uses int to denote the length and access parameters
+            var absResourceOffset = (int)resource.Offset + directoryOffset;
+
+            // The first four bytes of the resource denote how long the resource is, and are followed by the actual resource data.
+            var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
+            using var content = new MemoryStream(image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray());
+            content.CopyTo(resourceStream);
+            resourceStream.Flush();
+            resourceStream.Position = 0;
+
+            return true;
+        }
+
         private static bool IsValidCompilation(QsCompilation compilation) =>
             !compilation.Namespaces.IsDefault && !compilation.EntryPoints.IsDefault;
 
@@ -203,54 +259,33 @@ namespace Microsoft.Quantum.QsCompiler
             Action<Exception>? onDeserializationException = null)
         {
             compilation = null;
-            var metadataReader = assemblyFile.GetMetadataReader();
+
             bool isBondV1ResourcePresent = false;
             bool isNewtonSoftResourcePresent = false;
-            ManifestResource resource;
-            if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceNameQsDataBondV1, out resource))
+            using var resourceDataStream = new MemoryStream();
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
+            if (LoadResource(DotnetCoreDll.ResourceNameQsDataBondV1, assemblyFile, resourceDataStream))
             {
                 isBondV1ResourcePresent = true;
             }
 #pragma warning disable 618 // ResourceName is obsolete.
-            else if (metadataReader.Resources().TryGetValue(DotnetCoreDll.ResourceName, out resource))
+            else if (LoadResource(DotnetCoreDll.ResourceName, assemblyFile, resourceDataStream))
 #pragma warning restore 618
             {
                 isNewtonSoftResourcePresent = true;
             }
 
-            // The offset of resources is relative to the resources directory.
-            // It is possible that there is no offset given because a valid dll allows for extenal resources.
-            // In all Q# dlls there will be a resource with the specific name chosen by the compiler.
-            var isResourcePresent = isBondV1ResourcePresent || isNewtonSoftResourcePresent;
-            var resourceDir = assemblyFile.PEHeaders.CorHeader.ResourcesDirectory;
-            if (!assemblyFile.PEHeaders.TryGetDirectoryOffset(resourceDir, out var directoryOffset) ||
-                !isResourcePresent ||
-                !resource.Implementation.IsNil)
-            {
-                return false;
-            }
-
-            // This is going to be very slow, as it loads the entire assembly into a managed array, byte by byte.
-            // Due to the finite size of the managed array, that imposes a memory limitation of around 4GB.
-            // The other alternative would be to have an unsafe block, or to contribute a fix to PEMemoryBlock to expose a ReadOnlySpan.
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.LoadDataFromReferenceToStream);
-            var image = assemblyFile.GetEntireImage(); // uses int to denote the length and access parameters
-            var absResourceOffset = (int)resource.Offset + directoryOffset;
-
-            // the first four bytes of the resource denote how long the resource is, and are followed by the actual resource data
-            var resourceLength = BitConverter.ToInt32(image.GetContent(absResourceOffset, sizeof(int)).ToArray(), 0);
-            var resourceData = image.GetContent(absResourceOffset + sizeof(int), resourceLength).ToArray();
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
 
             // Use the correct method depending on the resource.
             if (isBondV1ResourcePresent)
             {
-                return LoadSyntaxTree(resourceData, out compilation, onDeserializationException);
+                return LoadSyntaxTree(resourceDataStream.ToArray(), out compilation, onDeserializationException);
             }
             else if (isNewtonSoftResourcePresent)
             {
 #pragma warning disable 618 // LoadSyntaxTree is obsolete.
-                return LoadSyntaxTree(new MemoryStream(resourceData), out compilation, onDeserializationException);
+                return LoadSyntaxTree(resourceDataStream, out compilation, onDeserializationException);
 #pragma warning restore 618
             }
 
