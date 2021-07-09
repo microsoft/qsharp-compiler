@@ -9,5 +9,8 @@ llvm-sys = "110"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", features = ["llvm11-0"] }
 either = "1.6.1"
 
+[dev-dependencies]
+serial_test = "0.5.1"
+
 [lib]
 name = "qirlib"

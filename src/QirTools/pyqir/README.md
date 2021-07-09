@@ -76,7 +76,6 @@ pytest -v tests
 
 ## TODO
 
- - Automate IR Runtime definition dependency.
  - Currently the build only works for the single Python version installed. Future work may include:
    - Creating ABI3 compatable wheels which can be installed across Python 3.5+ to minimize the number of builds which need to be created
    - Create Windows and Mac (x64 and aarch64) scripts

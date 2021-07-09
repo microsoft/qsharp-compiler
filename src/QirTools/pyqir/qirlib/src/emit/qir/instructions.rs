@@ -1,21 +1,24 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use super::{
     array1d::{self, create_ctl_wrapper},
     basic_values, calls,
 };
 use crate::{emit::Context, interop::Instruction};
 use inkwell::values::{BasicValueEnum, FunctionValue};
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 
 fn get_qubit<'ctx>(
     name: &String,
-    qubits: &BTreeMap<String, BasicValueEnum<'ctx>>,
+    qubits: &HashMap<String, BasicValueEnum<'ctx>>,
 ) -> BasicValueEnum<'ctx> {
     qubits.get(name).unwrap().to_owned()
 }
 
 fn get_register<'ctx>(
     name: &String,
-    registers: &BTreeMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
+    registers: &HashMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
 ) -> (BasicValueEnum<'ctx>, Option<u64>) {
     registers.get(name).unwrap().to_owned()
 }
@@ -23,8 +26,8 @@ fn get_register<'ctx>(
 pub(crate) fn emit<'ctx>(
     context: &Context<'ctx>,
     inst: &Instruction,
-    qubits: &BTreeMap<String, BasicValueEnum<'ctx>>,
-    registers: &BTreeMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
+    qubits: &HashMap<String, BasicValueEnum<'ctx>>,
+    registers: &HashMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
 ) -> () {
     let intrinsics = &context.intrinsics;
     let find_qubit = |name| get_qubit(name, qubits);
@@ -76,13 +79,13 @@ pub(crate) fn emit<'ctx>(
         Instruction::S(inst) => {
             calls::emit_void_call(context, intrinsics.s, &[find_qubit(&inst.qubit)])
         }
-        Instruction::Sdg(inst) => {
+        Instruction::SAdj(inst) => {
             calls::emit_void_call(context, intrinsics.s_adj, &[find_qubit(&inst.qubit)])
         }
         Instruction::T(inst) => {
             calls::emit_void_call(context, intrinsics.t, &[find_qubit(&inst.qubit)])
         }
-        Instruction::Tdg(inst) => {
+        Instruction::TAdj(inst) => {
             calls::emit_void_call(context, intrinsics.t_adj, &[find_qubit(&inst.qubit)])
         }
         Instruction::X(inst) => {
@@ -100,8 +103,8 @@ pub(crate) fn emit<'ctx>(
         context: &Context<'ctx>,
         qubit: &String,
         target: &String,
-        qubits: &BTreeMap<String, BasicValueEnum<'ctx>>,
-        registers: &BTreeMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
+        qubits: &HashMap<String, BasicValueEnum<'ctx>>,
+        registers: &HashMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
     ) {
         let find_qubit = |name| get_qubit(name, qubits);
         let find_register = |name| get_register(name, registers);

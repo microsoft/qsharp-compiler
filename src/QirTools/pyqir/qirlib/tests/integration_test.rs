@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use qirlib::{
     emit::Emitter,
     interop::{
@@ -7,8 +10,10 @@ use qirlib::{
 use std::io::{self, Write};
 use std::path::Path;
 use std::{env, fs};
+use serial_test::serial;
 
 #[test]
+#[serial]
 fn bell_circuit_with_measurement() {
     execute(
         "bell_measure",
@@ -18,16 +23,19 @@ fn bell_circuit_with_measurement() {
 }
 
 #[test]
+#[serial]
 fn bell_circuit_no_measurement() {
     execute("bell_no_measure", write_bell_no_measure, vec!["[]"]);
 }
 
 #[test]
+#[serial]
 fn empty_model() {
     execute("empty", write_empty_model, vec!["[]"]);
 }
 
 #[test]
+#[serial]
 fn model_with_only_qubit_allocations() {
     execute(
         "model_with_only_qubit_allocations",
@@ -36,6 +44,7 @@ fn model_with_only_qubit_allocations() {
     );
 }
 #[test]
+#[serial]
 fn model_with_only_result_allocations() {
     execute(
         "model_with_only_result_allocations",
@@ -45,6 +54,7 @@ fn model_with_only_result_allocations() {
 }
 
 #[test]
+#[serial]
 fn model_with_no_instructions() {
     execute(
         "model_with_no_instructions",
@@ -53,6 +63,7 @@ fn model_with_no_instructions() {
     );
 }
 #[test]
+#[serial]
 fn model_with_single_qubit_instructions() {
     execute(
         "model_with_single_qubit_instructions",
@@ -61,6 +72,7 @@ fn model_with_single_qubit_instructions() {
     );
 }
 #[test]
+#[serial]
 fn single_qubit_model_with_measurement() {
     execute(
         "single_qubit_model_with_measurement",
@@ -69,6 +81,7 @@ fn single_qubit_model_with_measurement() {
     );
 }
 #[test]
+#[serial]
 fn model_with_instruction_cx() {
     execute(
         "model_with_instruction_cx",
@@ -78,6 +91,7 @@ fn model_with_instruction_cx() {
 }
 
 #[test]
+#[serial]
 fn model_with_instruction_cz() {
     execute(
         "model_with_instruction_cz",
@@ -86,6 +100,7 @@ fn model_with_instruction_cz() {
     );
 }
 #[test]
+#[serial]
 fn bernstein_vazirani() {
     execute(
         "bernstein_vazirani",
@@ -211,6 +226,7 @@ fn execute_circuit(app: &str, expected_results: Vec<&str>) {
     let stderr = String::from_utf8(output.stderr).unwrap().trim().to_owned();
 
     println!("out: {}", stdout.as_str());
+    eprintln!("err: {}", stderr.as_str());
 
     assert!(output.status.success());
     assert!(expected_results.iter().any(|&x| x == stdout.as_str()));
@@ -232,9 +248,9 @@ fn write_model_with_single_qubit_instructions(file_name: &str) {
     model.add_inst(Instruction::Ry(Rotated::new(16.0, String::from("qr0"))));
     model.add_inst(Instruction::Rz(Rotated::new(17.0, String::from("qr0"))));
     model.add_inst(Instruction::S(Single::new(String::from("qr0"))));
-    model.add_inst(Instruction::Sdg(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::SAdj(Single::new(String::from("qr0"))));
     model.add_inst(Instruction::T(Single::new(String::from("qr0"))));
-    model.add_inst(Instruction::Tdg(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::TAdj(Single::new(String::from("qr0"))));
 
     Emitter::write(&model, file_name).unwrap();
 }

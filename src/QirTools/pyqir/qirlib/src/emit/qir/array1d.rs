@@ -1,7 +1,11 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use inkwell::values::{BasicValue, BasicValueEnum};
 use inkwell::AddressSpace;
 
 use crate::emit::qir::basic_values;
+
 use crate::emit::Context;
 
 use super::calls;

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use self::constants::Constants;
 use self::intrinsics::Intrinsics;
 use self::runtime_library::RuntimeLibrary;
@@ -5,11 +8,11 @@ use self::types::Types;
 use inkwell::values::BasicValueEnum;
 
 use super::interop::SemanticModel;
-use std::collections::BTreeMap;
+use std::collections::HashMap;
 use std::path::Path;
 
 pub mod constants;
-    mod intrinsics;
+mod intrinsics;
 pub mod qir;
 mod runtime_library;
 pub mod types;
@@ -35,7 +38,10 @@ impl Emitter {
         Ok(context.get_ir_string())
     }
 
-    pub fn build_entry_function(context: &Context<'_>, model: &SemanticModel) -> Result<(), String> {
+    pub fn build_entry_function(
+        context: &Context<'_>,
+        model: &SemanticModel,
+    ) -> Result<(), String> {
         let entrypoint = qir::get_entry_function(context);
 
         let entry = context.context.append_basic_block(entrypoint, "entry");
@@ -59,7 +65,7 @@ impl Emitter {
         Ok(())
     }
 
-    fn free_qubits<'ctx>(context: &Context<'ctx>, qubits: &BTreeMap<String, BasicValueEnum<'ctx>>) {
+    fn free_qubits<'ctx>(context: &Context<'ctx>, qubits: &HashMap<String, BasicValueEnum<'ctx>>) {
         for (_, value) in qubits.iter() {
             qir::qubits::emit_release(context, value);
         }
@@ -68,21 +74,25 @@ impl Emitter {
     fn write_qubits<'ctx>(
         model: &SemanticModel,
         context: &Context<'ctx>,
-    ) -> BTreeMap<String, BasicValueEnum<'ctx>> {
-        let mut qubits = BTreeMap::new();
-        for reg in model.qubits.iter() {
-            let indexed_name = format!("{}{}", &reg.name[..], reg.index);
-            let value = qir::qubits::emit_allocate(&context, indexed_name.as_str());
-            qubits.insert(indexed_name, value);
-        }
+    ) -> HashMap<String, BasicValueEnum<'ctx>> {
+        let qubits = model
+            .qubits
+            .iter()
+            .map(|reg| {
+                let indexed_name = format!("{}{}", &reg.name[..], reg.index);
+                let value = qir::qubits::emit_allocate(&context, indexed_name.as_str());
+                (indexed_name, value)
+            })
+            .collect();
+
         qubits
     }
 
     fn write_registers<'ctx>(
         model: &SemanticModel,
         context: &Context<'ctx>,
-    ) -> BTreeMap<String, (BasicValueEnum<'ctx>, Option<u64>)> {
-        let mut registers = BTreeMap::new();
+    ) -> HashMap<String, (BasicValueEnum<'ctx>, Option<u64>)> {
+        let mut registers = HashMap::new();
         let number_of_registers = model.registers.len() as u64;
         if number_of_registers > 0 {
             let results =
@@ -95,7 +105,7 @@ impl Emitter {
                 sub_results.push(sub_result);
                 registers.insert(reg.name.clone(), (sub_result, None));
                 for (index, _) in entries {
-                    registers.insert(format!("{}{}", reg.name, index), (sub_result, Some(index))); 
+                    registers.insert(format!("{}{}", reg.name, index), (sub_result, Some(index)));
                 }
             }
             qir::array1d::set_elements(&context, &results, sub_results, "results");
@@ -110,8 +120,8 @@ impl Emitter {
     fn write_instructions<'ctx>(
         model: &SemanticModel,
         context: &Context<'ctx>,
-        qubits: &BTreeMap<String, BasicValueEnum<'ctx>>,
-        registers: &BTreeMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
+        qubits: &HashMap<String, BasicValueEnum<'ctx>>,
+        registers: &HashMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
     ) {
         for inst in model.instructions.iter() {
             qir::instructions::emit(context, inst, qubits, registers);
@@ -128,6 +138,7 @@ pub struct Context<'ctx> {
     pub(crate) intrinsics: Intrinsics<'ctx>,
     pub(crate) constants: Constants<'ctx>,
 }
+
 impl<'ctx> Context<'ctx> {
     pub fn new(context: &'ctx inkwell::context::Context, name: &'ctx str) -> Self {
         let builder = context.create_builder();
@@ -139,13 +150,13 @@ impl<'ctx> Context<'ctx> {
         let intrinsics = Intrinsics::new(&module);
         let constants = Constants::new(&module, &types);
         Context {
-            builder: builder,
-            module: module,
-            types: types,
-            context: context,
-            runtime_library: runtime_library,
-            intrinsics: intrinsics,
-            constants: constants,
+            builder,
+            module,
+            types,
+            context,
+            runtime_library,
+            intrinsics,
+            constants,
         }
     }
 
@@ -165,112 +176,5 @@ impl<'ctx> Context<'ctx> {
         let ir = self.module.print_to_string();
         let result = ir.to_string();
         result
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use crate::interop::{ClassicalRegister, Controlled, Instruction, QuantumRegister, Single};
-
-    use super::*;
-    #[test]
-    fn bernstein_vazirani() {
-        let name = String::from("Bernstein-Vazirani circuit");
-        let mut model = SemanticModel::new(name);
-        model.add_reg(QuantumRegister::new(String::from("input_"), 0).as_register());
-        model.add_reg(QuantumRegister::new(String::from("input_"), 1).as_register());
-        model.add_reg(QuantumRegister::new(String::from("input_"), 2).as_register());
-        model.add_reg(QuantumRegister::new(String::from("input_"), 3).as_register());
-        model.add_reg(QuantumRegister::new(String::from("input_"), 4).as_register());
-        model.add_reg(QuantumRegister::new(String::from("target_"), 0).as_register());
-        model.add_reg(ClassicalRegister::new(String::from("output_"), 5).as_register());
-
-        model.add_inst(Instruction::X(Single::new(String::from("target_0"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_0"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_1"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_2"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_3"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_4"))));
-        model.add_inst(Instruction::H(Single::new(String::from("target_0"))));
-
-        // random chosen
-        model.add_inst(Instruction::Cx(Controlled::new(
-            String::from("input_2"),
-            String::from("target_0"),
-        )));
-        model.add_inst(Instruction::Cx(Controlled::new(
-            String::from("input_2"),
-            String::from("target_0"),
-        )));
-        model.add_inst(Instruction::H(Single::new(String::from("input_0"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_1"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_2"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_3"))));
-        model.add_inst(Instruction::H(Single::new(String::from("input_4"))));
-        model.add_inst(Instruction::M {
-            qubit: String::from("input_0"),
-            target: String::from("output_0"),
-        });
-        model.add_inst(Instruction::M {
-            qubit: String::from("input_1"),
-            target: String::from("output_1"),
-        });
-        model.add_inst(Instruction::M {
-            qubit: String::from("input_2"),
-            target: String::from("output_2"),
-        });
-        model.add_inst(Instruction::M {
-            qubit: String::from("input_3"),
-            target: String::from("output_3"),
-        });
-        model.add_inst(Instruction::M {
-            qubit: String::from("input_4"),
-            target: String::from("output_4"),
-        });
-        model.add_inst(Instruction::Reset(Single::new(String::from("input_0"))));
-        model.add_inst(Instruction::Reset(Single::new(String::from("input_1"))));
-        model.add_inst(Instruction::Reset(Single::new(String::from("input_2"))));
-        model.add_inst(Instruction::Reset(Single::new(String::from("input_3"))));
-        model.add_inst(Instruction::Reset(Single::new(String::from("input_4"))));
-        Emitter::write(&model, "BernsteinVazirani.ll").unwrap();
-    }
-    #[test]
-    fn bell_measure() {
-        let name = String::from("Bell circuit");
-        let mut model = SemanticModel::new(name);
-        model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
-        model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
-        model.add_reg(ClassicalRegister::new(String::from("qc"), 2).as_register());
-
-        model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
-        model.add_inst(Instruction::Cx(Controlled::new(
-            String::from("qr0"),
-            String::from("qr1"),
-        )));
-        model.add_inst(Instruction::M {
-            qubit: String::from("qr0"),
-            target: String::from("qc0"),
-        });
-        model.add_inst(Instruction::M {
-            qubit: String::from("qr1"),
-            target: String::from("qc1"),
-        });
-        Emitter::write(&model, "bell_measure.ll").unwrap();
-    }
-
-    #[test]
-    fn bell_no_measure() {
-        let name = String::from("Bell circuit");
-        let mut model = SemanticModel::new(name);
-        model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
-        model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
-        model.add_reg(ClassicalRegister::new(String::from("qc"), 2).as_register());
-
-        model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
-        model.add_inst(Instruction::Cx(Controlled::new(
-            String::from("qr0"),
-            String::from("qr1"),
-        )));
-        Emitter::write(&model, "bell_no_measure.ll").unwrap();
     }
 }

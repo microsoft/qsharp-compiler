@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use super::types::Types;
 use inkwell::module::Module;
 use inkwell::values::GlobalValue;

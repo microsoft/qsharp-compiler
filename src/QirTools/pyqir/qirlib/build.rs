@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use std::env;
 use std::error::Error;
 use std::io::{self, Write};
@@ -7,6 +10,13 @@ use std::process::Command;
 fn main() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-env-changed=TARGET");
     println!("cargo:rerun-if-changed=build.rs");
+
+    install_quantum_runtime_and_simulator()?;
+
+    Ok(())
+}
+
+fn install_quantum_runtime_and_simulator() -> Result<(), Box<dyn Error>> {
     println!("cargo:rerun-if-changed=runtime.csproj");
 
     let root_path = env::var("CARGO_MANIFEST_DIR")?;

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::types::FloatType;

@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use inkwell::values::{BasicValue, BasicValueEnum};
 
 use super::{calls, Context};
