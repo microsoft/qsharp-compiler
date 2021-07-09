@@ -263,7 +263,3 @@ attributes #1 = { "EntryPoint" }
 ```
 
 Check out the full list of [LLVM passes](https://llvm.org/docs/Passes.html) for other optimizations.
-
-## Running QIR
-
-To execute your QIR code in a simulator, you'll need to QIR runtime that is included as part of the QDK.
