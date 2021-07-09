@@ -14,7 +14,7 @@ The following software will be used in this walk-through:
 
 ### Installing the QDK
 
-The *Quantum Development Kit (QDK)* documentation provides detailed guides on [installing the QDK](https://docs.microsoft.com/en-us/azure/quantum/install-overview-qdk#install-the-qdk-for-quantum-computing-locally) for various setups.
+The *Quantum Development Kit (QDK)* documentation provides detailed guides on [installing the QDK](https://docs.microsoft.com/azure/quantum/install-overview-qdk#install-the-qdk-for-quantum-computing-locally) for various setups.
 This document will assume a command line setup for standalone Q# applications.
 
 Steps:
@@ -70,7 +70,7 @@ Parameters:
 * `-lang Q#` : load the templates for Q# projects
 * `-o hello` : the project name, all files will be generated inside a folder of this name
 
-Other configurations are also possible, such as [Q# libraries with a C# host program](https://docs.microsoft.com/en-us/azure/quantum/install-csharp-qdk?tabs=tabid-cmdline%2Ctabid-csharp#creating-a-q-library-and-a-net-host).
+Other configurations are also possible, such as [Q# libraries with a C# host program](https://docs.microsoft.com/azure/quantum/install-csharp-qdk?tabs=tabid-cmdline%2Ctabid-csharp#creating-a-q-library-and-a-net-host).
 
 The standard Q# template produces a hello world program in the file `Program.qs`:
 
