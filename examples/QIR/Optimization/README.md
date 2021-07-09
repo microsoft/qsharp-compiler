@@ -30,11 +30,16 @@ Depending on your platform, some LLVM tools may only be available by compiling f
 LLVM's [official release page](https://releases.llvm.org/download.html) provides sources and binaries of LLVM and Clang.
 It's recommended to use LLVM version 11.1.0, as this is the version used by the Q# compiler. 
 
-Here are some suggestions on how to obtain Clang for different platforms:
+Here are some suggestions on how to obtain Clang for different platforms.
+On Windows, the conda method is recommended since it's also able to install the LLVM optimizer (see next section).
+
+Package managers:
 
 * **Ubuntu** : `sudo apt install clang-11` (NOTE: this installs the command `clang-11` not `clang`)
 * **Windows** : `choco install llvm --version=11.1.0` using [chocolatey](https://chocolatey.org/)
 * **macOS** : `brew install llvm@11` using [homebrew](https://brew.sh/)
+
+* **all** : `conda install -c conda-forge clang=11.1.0 clangxx=11.1.0 llvm=11.1.0` using [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html)
 
 Pre-built binaries/installers:
 
@@ -44,11 +49,16 @@ Pre-built binaries/installers:
 
 ### Installing the LLVM optimizer
 
-If you followed the instructions above for Linux or macOS, your LLVM installation will have included the *LLVM optimizer*.
+If you followed the instructions above specific to Linux or macOS, your LLVM installation will have included the *LLVM optimizer*.
 You can test this by typing `opt` or `opt-11` in your terminal.
 
-Unfortunately, `opt` is not part of the official Windows distribution, which means you will to need to [compile LLVM from source](https://llvm.org/docs/GettingStarted.html) to get it.
-You can still follow most of the guide without it though.
+If not, you can use [conda](https://conda.io/projects/conda/en/latest/user-guide/install/index.html) as shown below to get it:
+
+```shell
+conda install -c conda-forge llvm-tools=11.1.0
+```
+
+Although a rather involved process, [compiling LLVM from source](https://llvm.org/docs/GettingStarted.html) is also available and provides access to all tools under the LLVM project.
 
 ## Generating QIR
 
