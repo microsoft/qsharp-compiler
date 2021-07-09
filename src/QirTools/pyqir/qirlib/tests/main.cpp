@@ -21,7 +21,7 @@ int main(int argc, char* argv[])
 {
     // Initialize simulator.
     auto sim = CreateFullstateSimulator();
-    QirContextScope qirctx(sim.get(), false /*trackAllocatedObjects*/);
+    QirContextScope qirctx(sim.get(), true /*trackAllocatedObjects*/);
 
     // Execute the entry point operation.
     QuantumApplication__Run();

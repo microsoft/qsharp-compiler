@@ -3,7 +3,7 @@ use super::{
     basic_values, calls,
 };
 use crate::{emit::Context, interop::Instruction};
-use inkwell::values::BasicValueEnum;
+use inkwell::values::{BasicValueEnum, FunctionValue};
 use std::collections::BTreeMap;
 
 fn get_qubit<'ctx>(
@@ -30,16 +30,16 @@ pub(crate) fn emit<'ctx>(
     let find_qubit = |name| get_qubit(name, qubits);
     let ctl = |value| create_ctl_wrapper(context, value);
     match inst {
-        Instruction::Cx(inst) => calls::emit_void_call(
-            context,
-            intrinsics.x_ctl,
-            &[ctl(&find_qubit(&inst.control)), find_qubit(&inst.target)],
-        ),
-        Instruction::Cz(inst) => calls::emit_void_call(
-            context,
-            intrinsics.z_ctl,
-            &[ctl(&find_qubit(&inst.control)), find_qubit(&inst.target)],
-        ),
+        Instruction::Cx(inst) => {
+            let control = ctl(&find_qubit(&inst.control));
+            let qubit = find_qubit(&inst.target);
+            controlled(context, intrinsics.x_ctl, control, qubit);
+        }
+        Instruction::Cz(inst) => {
+            let control = ctl(&find_qubit(&inst.control));
+            let qubit = find_qubit(&inst.target);
+            controlled(context, intrinsics.z_ctl, control, qubit);
+        }
         Instruction::H(inst) => {
             calls::emit_void_call(context, intrinsics.h, &[find_qubit(&inst.qubit)])
         }
@@ -148,5 +148,20 @@ pub(crate) fn emit<'ctx>(
         let _ = context
             .builder
             .build_store(bitcast_indexed_target_register.into_pointer_value(), result);
+    }
+
+    fn controlled<'ctx>(
+        context: &Context<'ctx>,
+        intrinsic: FunctionValue<'ctx>,
+        control: BasicValueEnum<'ctx>,
+        qubit: BasicValueEnum<'ctx>,
+    ) {
+        calls::emit_void_call(context, intrinsic, &[control, qubit]);
+        let minus_one = basic_values::i64_to_i32(context, -1);
+        context.builder.build_call(
+            context.runtime_library.array_update_reference_count,
+            &[control, minus_one],
+            "",
+        );
     }
 }
