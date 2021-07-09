@@ -1,4 +1,4 @@
-namespace hello {
+namespace Hello {
 
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
