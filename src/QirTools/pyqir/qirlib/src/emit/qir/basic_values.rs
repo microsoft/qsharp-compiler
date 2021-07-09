@@ -18,6 +18,17 @@ pub(crate) fn u64_to_i32<'ctx>(context: &Context<'ctx>, value: u64) -> BasicValu
         .as_basic_value_enum()
 }
 
+pub(crate) fn i64_to_i32<'ctx>(context: &Context<'ctx>, value: i64) -> BasicValueEnum<'ctx> {
+    // convert to capture negative values.
+    let target: u64 = value as u64;
+
+    context
+        .context
+        .i32_type()
+        .const_int(target, false)
+        .as_basic_value_enum()
+}
+
 pub(crate) fn u64_to_i64<'ctx>(context: &Context<'ctx>, value: u64) -> BasicValueEnum<'ctx> {
     context
         .types
