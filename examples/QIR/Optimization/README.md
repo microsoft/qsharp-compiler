@@ -8,16 +8,18 @@ This example is structured as a walk-through of the process covering installatio
 QIR generation is handled by the Q# compiler, while optimizations are performed at the LLVM level.
 The following software will be used in this walk-through:
 
-* Quantum Development Kit (QDK), containing the Q# compiler 
-* Clang, an LLVM based compiler for the C language family
-* LLVM optimizer, a tool to run custom optimization pipelines on LLVM IR code
+* *Quantum Development Kit (QDK)* : contains the Q# compiler 
+* *Clang* : LLVM based compiler for the C language family
+* *LLVM optimizer* : tool to run custom optimization pipelines on LLVM IR code
 
 ### Installing the QDK
 
 The *Quantum Development Kit (QDK)* documentation provides detailed guides on [installing the QDK](https://docs.microsoft.com/azure/quantum/install-overview-qdk#install-the-qdk-for-quantum-computing-locally) for various setups.
-This document will assume a command line setup for standalone Q# applications.
+This document will assume a **command line** setup for **Q# standalone** applications.
 
-Steps:
+Steps for QDK v0.18.2106 (June 2021):
+
+    NOTE: check the install guide linked above for most up-to-date instructions
 
 * Install the [.NET Core SDK 3.1](https://dotnet.microsoft.com/download) (NOTE: use `dotnet-sdk-3.1` instead of `dotnet-sdk-5.0` in the Linux guides)
 * Install the QDK with `dotnet new -i Microsoft.Quantum.ProjectTemplates`
