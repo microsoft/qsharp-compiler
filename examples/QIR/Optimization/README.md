@@ -1,15 +1,16 @@
 # QIR Generation and Optimization
 
-QIR generation from a Q# program is done via the Q# compiler.
-Since QIR is a specification of LLVM IR, it can then be manipulated via the usual LLVM toolchain, such as [Clang](https://clang.llvm.org/), the [LLVM optimizer](https://llvm.org/docs/CommandGuide/opt.html), the [LLVM static compiler](https://llvm.org/docs/CommandGuide/llc.html), and the [just-in-time (JIT) compiler](https://llvm.org/docs/CommandGuide/lli.html).
+Since QIR is a specification of LLVM IR, the IR code can be manipulated via the usual tools provided by LLVM, such as [Clang](https://clang.llvm.org/), the [LLVM optimizer](https://llvm.org/docs/CommandGuide/opt.html), the [LLVM static compiler](https://llvm.org/docs/CommandGuide/llc.html), and the [just-in-time (JIT) compiler](https://llvm.org/docs/CommandGuide/lli.html).
+This example is structured as a walk-through of the process covering installation, QIR generation, and running built-in and custom LLVM optimization pipelines.
 
 ## Prerequisites
 
-A straightforward way to optimize QIR code is to run it through Clang, which is demonstrated in this document.
-The following software is required:
+QIR generation is handled by the Q# compiler, while optimizations are performed at the LLVM level.
+The following software will be used in this walk-through:
 
 * Quantum Development Kit (QDK), containing the Q# compiler 
-* Clang, an LLVM based compiler for the C language family 
+* Clang, an LLVM based compiler for the C language family
+* LLVM optimizer, a tool to run custom optimization pipelines on LLVM IR code
 
 ### Installing the QDK
 
@@ -24,13 +25,14 @@ Steps:
 
 ### Installing Clang
 
-While some LLVM tools may only be available by compiling from source, *Clang* is readily available from package managers or as pre-compiled binaries on most systems.
+Depending on your platform, some LLVM tools may only be available by compiling from source.
+*Clang* however should be readily available from package managers or as pre-compiled binaries on most systems.
 LLVM's [official release page](https://releases.llvm.org/download.html) provides sources and binaries of LLVM and Clang.
 It's recommended to use LLVM version 11.1.0, as this is the version used by the Q# compiler. 
 
 Here are some suggestions on how to obtain Clang for different platforms:
 
-* **Ubuntu** : `apt install clang-11` (NOTE: this installs the command `clang-11` not `clang`)
+* **Ubuntu** : `sudo apt install clang-11` (NOTE: this installs the command `clang-11` not `clang`)
 * **Windows** : `choco install llvm --version=11.1.0` using [chocolatey](https://chocolatey.org/)
 * **macOS** : `brew install llvm@11` using [homebrew](https://brew.sh/)
 
@@ -39,6 +41,14 @@ Pre-built binaries/installers:
 * **Ubuntu** : get `clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-20.10.tar.xz` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.1.0)
 * **Windows** : get `LLVM-11.1.0-win64.exe` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.1.0)
 * **macOS** : get `clang+llvm-11.0.0-x86_64-apple-darwin.tar.xz` from the [11.0.0 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.0.0) (11.1.0 not released)
+
+### Installing the LLVM optimizer
+
+If you followed the instructions above for Linux or macOS, your LLVM installation will have included the *LLVM optimizer*.
+You can test this by typing `opt` or `opt-11` in your terminal.
+
+Unfortunately, `opt` is not part of the official Windows distribution, which means you will to need to [compile LLVM from source](https://llvm.org/docs/GettingStarted.html) to get it.
+You can still follow most of the guide without it though.
 
 ## Generating QIR
 
@@ -169,7 +179,6 @@ attributes #1 = { "EntryPoint" }
 
 Unfortunately, Clang is limited to a pre-configured set of optimization levels, such as `-03` used above.
 In order to specify a custom pass pipeline, the LLVM optimizer `opt` is required.
-If `opt` was not included in your LLVM installation (try `opt` or `opt-11` in your terminal), you'll need to [compile LLVM from source](https://llvm.org/docs/GettingStarted.html).
 
 On the hello world program, the *global dead code elimination (DCE)* pass should achieve very similar results compared to optimization via `-O3`.
 Invoke it as follows:
