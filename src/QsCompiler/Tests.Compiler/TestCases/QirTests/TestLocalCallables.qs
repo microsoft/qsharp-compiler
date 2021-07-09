@@ -11,6 +11,7 @@ namespace Microsoft.Quantum.Testing.QIR {
         return (arg, (1, 0.));
     }
 
+    @EntryPoint()
     operation TestLocalCallables () : (String, Double) {
 
         let arr = [DoNothing];

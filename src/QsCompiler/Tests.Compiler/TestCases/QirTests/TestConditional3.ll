@@ -12,7 +12,7 @@ else__2:                                          ; preds = %then0__1
   ret i64 2
 
 continue__2:                                      ; No predecessors!
-  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @3, i32 0, i32 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @4, i32 0, i32 0))
   call void @__quantum__rt__fail(%String* %0)
   unreachable
 
@@ -26,12 +26,12 @@ else__3:                                          ; preds = %else__1
   ret i64 4
 
 continue__3:                                      ; No predecessors!
-  %1 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @4, i32 0, i32 0))
+  %1 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @5, i32 0, i32 0))
   call void @__quantum__rt__fail(%String* %1)
   unreachable
 
 continue__1:                                      ; No predecessors!
-  %2 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @5, i32 0, i32 0))
+  %2 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @6, i32 0, i32 0))
   call void @__quantum__rt__fail(%String* %2)
   unreachable
 }
