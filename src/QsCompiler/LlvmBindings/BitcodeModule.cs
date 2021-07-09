@@ -326,18 +326,6 @@ namespace Ubiquity.NET.Llvm
             return this.moduleHandle.TryVerify(LLVMVerifierFailureAction.LLVMReturnStatusAction, out errorMessage);
         }
 
-        /// <summary>Gets a function by name from this module.</summary>
-        /// <param name="name">Name of the function to get.</param>
-        /// <returns>The function or default if not found.</returns>
-        [Obsolete("Use TryGetFunction instead")]
-        public IrFunction? GetFunction(string name)
-        {
-            this.ThrowIfDisposed();
-
-            var funcRef = this.moduleHandle.GetNamedFunction(name);
-            return funcRef == default ? default : Value.FromHandle<IrFunction>(funcRef);
-        }
-
         /// <summary>Looks up a function in the module by name.</summary>
         /// <param name="name">Name of the function.</param>
         /// <param name="function">The function or <see langword="default"/> if not found.</param>

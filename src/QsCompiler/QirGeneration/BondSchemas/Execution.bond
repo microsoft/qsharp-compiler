@@ -1,7 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-namespace Microsoft.Quantum.QsCompiler.BondSchemas.EntryPoint;
+namespace Microsoft.Quantum.Qir.Serialization;
 
 enum DataType
 {
@@ -38,29 +38,21 @@ enum ResultValue
     One
 }
 
-struct ArrayValue
+struct Parameter
 {
-    // Not null when Type is BoolType.
-    10: nullable<vector<bool>> Bool;
+    5: string Name;
 
-    // Not null when Type is IntegerType.
-    15: nullable<vector<int64>> Integer;
+    10: int32 Position;
 
-    // Not null when Type is DoubleType.
-    20: nullable<vector<double>> Double;
+    15: DataType Type = BoolType;
 
-    // Not null when Type is PauliType.
-    25: nullable<vector<PauliValue>> Pauli;
-
-    // Not null when Type is RangeType.
-    30: nullable<vector<RangeValue>> Range;
-
-    // Not null when Type is ResultType.
-    35: nullable<vector<ResultValue>> Result;
+    20: nullable<DataType> ArrayType;
 }
 
 struct ArgumentValue
 {
+    5: DataType Type = BoolType;
+
     // Not null when Type is BoolType.
     10: nullable<bool> Bool;
 
@@ -83,26 +75,26 @@ struct ArgumentValue
     40: nullable<string> String;
 
     // Not null when Type is ArrayType.
-    45: nullable<ArrayValue> Array;
-}
-
-struct Argument
-{
-    5: DataType Type = BoolType;
-
-    10: string Name;
-
-    15: int32 Position;
-
-    // Not null when Type is ArrayType.
-    20: nullable<DataType> ArrayType;
-
-    25: vector<ArgumentValue> Values;
+    45: nullable<vector<ArgumentValue>> Array;
 }
 
 struct EntryPointOperation
 {
     5: string Name;
 
-    10: vector<Argument> Arguments;
+    10: vector<Parameter> Parameters;
+}
+
+struct ExecutionInformation
+{
+    5: EntryPointOperation EntryPoint;
+
+    10: map<string, ArgumentValue> ArgumentValues;
+}
+
+struct QirExecutionWrapper
+{
+    5: vector<ExecutionInformation> Executions;
+
+    10: blob QirBytecode;
 }

@@ -45,7 +45,7 @@ condContinue__1:                                  ; preds = %condFalse__1, %entr
   %20 = bitcast %Tuple* %17 to { double, %String* }*
   store { double, %String* }* %20, { double, %String* }** %14, align 8
   %21 = getelementptr inbounds { double, %String* }, { double, %String* }* %20, i32 0, i32 1
-  %22 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @0, i32 0, i32 0))
+  %22 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i32 0, i32 0))
   call void @__quantum__rt__string_update_reference_count(%String* %22, i32 1)
   %23 = load %String*, %String** %21, align 8
   br i1 %12, label %condContinue__2, label %condFalse__2

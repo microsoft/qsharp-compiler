@@ -24,4 +24,11 @@ namespace Microsoft.Quantum.Testing.QIR {
             set ops w/= 0 <- new Int[3];
         }
     }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        let _ = TestPendingRefCountIncreases(true);
+        TestRefCountsForItemUpdate(true);
+    }
+
 }

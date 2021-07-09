@@ -12,4 +12,9 @@ namespace Microsoft.Quantum.Testing.QIR
     operation TestAliasCounts(coefficients : Complex[], qubits : LittleEndian) : Unit is Adj + Ctl {
         ApplyOp(0.0, coefficients, qubits);
     }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        TestAliasCounts([], LittleEndian([]));
+    }
 }

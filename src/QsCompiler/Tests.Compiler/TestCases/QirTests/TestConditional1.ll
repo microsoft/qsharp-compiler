@@ -22,7 +22,7 @@ else__1:                                          ; preds = %entry
   ret i64 0
 
 continue__1:                                      ; No predecessors!
-  %4 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @6, i32 0, i32 0))
+  %4 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([28 x i8], [28 x i8]* @7, i32 0, i32 0))
   call void @__quantum__rt__array_update_alias_count(%Array* %arg__1, i32 -1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %1, i32 -1)
   call void @__quantum__rt__fail(%String* %4)

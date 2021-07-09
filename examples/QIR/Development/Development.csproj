@@ -1,4 +1,4 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.16.2105142080-alpha">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.18.210628594-pull">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -20,13 +20,14 @@
     <PackageReference Condition="$([MSBuild]::IsOsPlatform('Linux')) And '$(UbuntuVersion)' != '18.04'"
                       Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0"
                       PrivateAssets="All" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.16.2105142080-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.16.2105142080-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.210628594-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.210628594-pull" GeneratePathProperty="true" />
   </ItemGroup>
     
   <PropertyGroup>
     <CSharpGeneration>false</CSharpGeneration>
     <QscExe>dotnet $(MSBuildThisFileDirectory)../../../src/QsCompiler/CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll</QscExe>
+    <_QscCommandPredefinedAssemblyProperties>$(_QscCommandPredefinedAssemblyProperties) QirOutputPath:"qir"</_QscCommandPredefinedAssemblyProperties>
   </PropertyGroup>
     
   <ItemGroup>
@@ -87,7 +88,10 @@
       <Compile Include="$(GeneratedFilesOutputPath)Main.cs">
         <Visible>false</Visible>
       </Compile>
+      <_QirOutputFiles Include="$(QirOutputPath)**" />    
     </ItemGroup>
+    <Error Condition="!Exists($(QirOutputPath))" Text="QIR output folder was not created." />
+    <Error Condition="@(_QirOutputFiles->Count()) &lt; 1" Text="QIR output files (.ll) were not created." />
   </Target>
 
   <!--
@@ -117,7 +121,7 @@
     </PropertyGroup>
     <WriteLinesToFile File="$(BuildOutputPath)\Main.cpp" Overwrite="true" Lines="$(DriverCode)" />
   </Target>
-      
+
   <Target Name="BuildExecutable" Condition="'$(DesignTimeBuild)' != 'true'" DependsOnTargets="CreateCppDriver;Restore" AfterTargets="QSharpCompile;CoreBuild">
     <PropertyGroup>
       <QirRuntimeHeaders>$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/any/native/include</QirRuntimeHeaders>

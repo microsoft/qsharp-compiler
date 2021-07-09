@@ -397,7 +397,10 @@ namespace Ubiquity.NET.Llvm
         public ConstantDataArray CreateConstantString(string value, bool nullTerminate)
         {
             var handle = LLVM.ConstStringInContext(this.ContextHandle, value.AsMarshaledString(), (uint)value.Length, !nullTerminate ? 1 : 0);
-            return Value.FromHandle<ConstantDataArray>(handle)!;
+            var created = Value.FromHandle(handle);
+            return created is ConstantDataArray dataArr
+                ? dataArr
+                : new ConstantDataArray(created.ValueHandle);
         }
 
         /// <summary>Creates a new <see cref="ConstantInt"/> with a bit length of 1.</summary>

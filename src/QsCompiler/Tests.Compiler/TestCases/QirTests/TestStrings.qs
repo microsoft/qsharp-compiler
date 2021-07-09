@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    @EntryPoint()
     function TestStrings(a : Int, b : Int, arr : Int[]) : String
     {
         let x = $"a is {a} \\ \r\n";

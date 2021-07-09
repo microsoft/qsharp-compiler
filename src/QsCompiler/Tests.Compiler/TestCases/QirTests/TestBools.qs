@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    @EntryPoint()
     function TestBools (a : Bool, b : Bool) : Bool
     {
         let c = a == b ? a | b;

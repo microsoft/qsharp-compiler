@@ -22,6 +22,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\RoslynWrapper\Microsoft.Quantum.RoslynWrapper.fsproj" />
+    <ProjectReference Include="..\RoslynWrapper\RoslynWrapper.fsproj" />
   </ItemGroup>
 </Project>

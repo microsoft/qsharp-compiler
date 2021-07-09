@@ -21,13 +21,13 @@
 
 using namespace System.IO
 
-$target = Join-Path $PSScriptRoot 'Microsoft.Quantum.CSharpGeneration.nuspec'
+$target = Join-Path $PSScriptRoot 'CSharpGeneration.nuspec'
 if (Test-Path $target) {
     Write-Host "$target exists. Skipping generating new one."
     exit
 }
 
-$nuspec = [Xml](Get-Content (Join-Path $PSScriptRoot 'Microsoft.Quantum.CSharpGeneration.nuspec.template'))
+$nuspec = [Xml](Get-Content (Join-Path $PSScriptRoot 'CSharpGeneration.nuspec.template'))
 $dependencies = $nuspec.CreateElement('dependencies', $nuspec.package.metadata.NamespaceURI)
 
 # Adds a dependency to the dependencies element if it does not already exist.
@@ -58,7 +58,7 @@ function Add-PackageReferenceDependencies($ProjectFileName) {
 }
 
 # Add dependencies for the projects included in this NuGet package.
-Add-PackageReferenceDependencies 'Microsoft.Quantum.CSharpGeneration.fsproj'
+Add-PackageReferenceDependencies 'CSharpGeneration.fsproj'
 $dependency = $dependencies.AppendChild($nuspec.CreateElement('dependency', $nuspec.package.metadata.NamespaceURI))
 $dependency.SetAttribute('id', 'Microsoft.Quantum.Compiler')
 $dependency.SetAttribute('version', '$version$')

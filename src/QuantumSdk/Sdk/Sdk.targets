@@ -94,21 +94,22 @@
       <_QscCommandReferencesFlag Condition="@(ResolvedQSharpReferences->Count()) &gt; 0">$(_NewLine)--references$(_NewLineIndent)"@(ResolvedQSharpReferences,'"$(_NewLineIndent)"')"</_QscCommandReferencesFlag>
       <_QscCommandLoadFlag Condition="@(_PrioritizedResolvedQscReferences->Count()) &gt; 0">$(_NewLine)--load$(_NewLineIndent)"@(_PrioritizedResolvedQscReferences,'"$(_NewLineIndent)"')"</_QscCommandLoadFlag>
       <_QscCommandRuntimeFlag>$(_NewLine)--runtime$(_NewLineIndent)$(ResolvedRuntimeCapabilities)</_QscCommandRuntimeFlag>
-      <_QscCommandSkipMonomorphization Condition="'$(ResolvedRuntimeCapabilities)' == 'FullComputation' And $(CSharpGeneration)">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
+      <_QscCommandSkipMonomorphization Condition="'$(ResolvedRuntimeCapabilities)' == 'FullComputation' And $(CSharpGeneration) And '$(ResolvedProcessorArchitecture)' != 'MicrosoftSimulator'">$(_NewLine)--skip-monomorphization</_QscCommandSkipMonomorphization>
       <_QscCommandPerfDataGenerationFlag Condition="$(PerfDataGeneration)">$(_NewLine)--perf$(_NewLineIndent)$(PerfDataOutputPath)</_QscCommandPerfDataGenerationFlag>
       <_QscCommandTargetDecompositionsFlag Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0">$(_NewLine)--target-specific-decompositions$(_NewLineIndent)"@(ResolvedTargetSpecificDecompositions,'"$(_NewLineIndent)"')"</_QscCommandTargetDecompositionsFlag>
       <_QscPackageLoadFallbackFoldersFlag Condition="@(ResolvedPackageLoadFallbackFolders->Count()) &gt; 0">$(_NewLine)--package-load-fallback-folders$(_NewLineIndent)"@(ResolvedPackageLoadFallbackFolders,'"$(_NewLineIndent)"')"</_QscPackageLoadFallbackFoldersFlag>
       <_QscCommandLlvmLibsPath Condition="'$(LlvmLibsPath)' != ''">$(_NewLine)--llvm-libs$(_NewLineIndent)$(LlvmLibsPath)</_QscCommandLlvmLibsPath>
       <_QscCommandTestNamesFlag Condition="$(ExposeReferencesViaTestNames)">$(_NewLine)--load-test-names</_QscCommandTestNamesFlag>
-      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)AssemblyName:$(PathCompatibleAssemblyName)$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DefaultSimulator:$(DefaultSimulator)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)ExecutionTarget:$(ExecutionTarget)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExposeReferencesViaTestNames)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)ExposeReferencesViaTestNames:true</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsPackageId:$(_QscDocsPackageId)</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(QirGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)QirOutputPath:"$(QirOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(QSharpDocsGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)DocsOutputPath:"$(QSharpDocsOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(PerfDataGeneration)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)PerfDataOutputPath:"$(PerfDataOutputPath)"</_QscCommandPredefinedAssemblyProperties>
-      <_QscCommandPredefinedAssemblyProperties Condition="'$(GenerateConcreteIntrinsic)'">$(_QscCommandPredefinedAssemblyProperties)$(_NewLineIndent)GenerateConcreteIntrinsic:$(GenerateConcreteIntrinsic)</_QscCommandPredefinedAssemblyProperties>
+      <!-- Appending the current content of _QscCommandPredefinedAssemblyProperties *after* new properties allows to effectively override them for development purposes -->
+      <_QscCommandPredefinedAssemblyProperties>$(_NewLineIndent)AssemblyName:$(PathCompatibleAssemblyName)$(_NewLineIndent)ProcessorArchitecture:$(ResolvedProcessorArchitecture)$(_NewLineIndent)QSharpOutputType:$(ResolvedQSharpOutputType)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(DefaultSimulator)' != ''">$(_NewLineIndent)DefaultSimulator:$(DefaultSimulator)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(ExecutionTarget)' != ''">$(_NewLineIndent)ExecutionTarget:$(ExecutionTarget)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(ExposeReferencesViaTestNames)">$(_NewLineIndent)ExposeReferencesViaTestNames:true$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="'$(_QscDocsPackageId)' != ''">$(_NewLineIndent)DocsPackageId:$(_QscDocsPackageId)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(QirGeneration)">$(_NewLineIndent)QirOutputPath:"$(QirOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(QSharpDocsGeneration)">$(_NewLineIndent)DocsOutputPath:"$(QSharpDocsOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(PerfDataGeneration)">$(_NewLineIndent)PerfDataOutputPath:"$(PerfDataOutputPath)"$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
+      <_QscCommandPredefinedAssemblyProperties Condition="$(GenerateConcreteIntrinsic)">$(_NewLineIndent)GenerateConcreteIntrinsic:$(GenerateConcreteIntrinsic)$(_QscCommandPredefinedAssemblyProperties)</_QscCommandPredefinedAssemblyProperties>
       <_QscCommandAssemblyPropertiesFlag>$(_NewLine)--assembly-properties$(_QscCommandPredefinedAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <_QscCommandAssemblyPropertiesFlag Condition="'$(QscCommandAssemblyProperties)' != ''">$(_QscCommandAssemblyPropertiesFlag)$(_NewLineIndent)$(QscCommandAssemblyProperties)</_QscCommandAssemblyPropertiesFlag>
       <AdditionalQscArguments Condition="'$(AdditionalQscArguments)' != ''">$(_NewLine)$(AdditionalQscArguments)</AdditionalQscArguments>
@@ -165,7 +166,7 @@
     <Exec Condition="$(_DefaultEntryPoint) != ''" Command="$(DefaultEntryPointGeneration) $(_DefaultEntryPoint)" IgnoreExitCode="false" />
     <ItemGroup>
       <EmbeddedResource Include="$(_GeneratedBinary).bson" LogicalName="__qsharp_data_bond_v1__.bson" Visible="false" />
-      <EmbeddedResource Condition="$(QirGeneration)" Include="$(_GeneratedBinary).bc" LogicalName="__qsharp_data_qir_v1__.bc" Visible="false" />
+      <EmbeddedResource Condition="$(QirGeneration) Or '$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'" Include="$(_GeneratedBinary).bc" LogicalName="__qsharp_data_qir_v1__.bc" Visible="false" />
       <Compile Condition="$(CSharpGeneration)" Include="$(GeneratedFilesOutputPath)**/*.cs" Exclude="@(Compile)" AutoGen="true" />
       <Compile Condition="$(_DefaultEntryPoint) != ''" Include="$(_DefaultEntryPoint)" AutoGen="true" />
     </ItemGroup>
