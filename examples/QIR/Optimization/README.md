@@ -61,21 +61,21 @@ The first step is to create a .NET project for a standalone Q# application.
 The QDK project templates facilitate this task, which can be invoked with:
 
 ```shell
-dotnet new console -lang Q# -o hello
+dotnet new console -lang Q# -o Hello
 ```
 
 Parameters: 
 
 * `console` : specify the project to be a standalone console application
 * `-lang Q#` : load the templates for Q# projects
-* `-o hello` : the project name, all files will be generated inside a folder of this name
+* `-o Hello` : the project name, all files will be generated inside a folder of this name
 
 Other configurations are also possible, such as [Q# libraries with a C# host program](https://docs.microsoft.com/azure/quantum/install-csharp-qdk?tabs=tabid-cmdline%2Ctabid-csharp#creating-a-q-library-and-a-net-host).
 
 The standard Q# template produces a hello world program in the file `Program.qs`:
 
 ```csharp
-namespace hello {
+namespace Hello {
 
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
@@ -121,26 +121,28 @@ Enabling QIR generation is a simple matter of adding the `<QirGeneration>` prope
 
 ### Building the project
 
-Build the project by running `dotnet build` from the project root folder, or specify the path manually as `dotnet build path/to/hello.csproj`. In addition to building the (simulator) executable, the compiler will also create a `qir` folder with an LLVM representation of the program (`hello.ll`).
+Build the project by running `dotnet build` from the project root folder, or specify the path manually as `dotnet build path/to/Hello.csproj`.
+In addition to building the (simulator) executable, the compiler will also create a `qir` folder with an LLVM representation of the program (`Hello.ll`).
 
-For small projects, such as the default hello world program, a lot of the generated QIR code may not actually be required to run the program. The next section describes how to run optimization passes on QIR, which can strip away unnecessary code or perform various other transformations written for LLVM.
+For small projects, such as the default hello world program, a lot of the generated QIR code may not actually be required to run the program.
+The next section describes how to run optimization passes on QIR, which can strip away unnecessary code or perform various other transformations written for LLVM.
 
 ## Optimizing QIR
 
 While Clang is typically used to compile and optimize e.g. C code, it can also be used to manipulate LLVM IR directly.
-The command below tells Clang to run a series of optimizations on the generated QIR code `hello.ll` and output back LLVM IR:
+The command below tells Clang to run a series of optimizations on the generated QIR code `Hello.ll` and output back LLVM IR:
 
 ```shell
-clang -S hello.ll -O3 -emit-llvm -o hello-o3.ll
+clang -S Hello.ll -O3 -emit-llvm -o Hello-o3.ll
 ```
 
 Parameters (see also the [clang man page](https://clang.llvm.org/docs/CommandGuide/clang.html)):
 
 * `-S` : turn off assembly and linking stages (since we want to stay at the IR level)
-* `hello.ll` : the input file (in this case human-readable LLVM IR)
+* `Hello.ll` : the input file (in this case human-readable LLVM IR)
 * `-O3` : LLVM optimization level, ranging from O0 to O3 (among others)
 * `-emit-llvm` : output LLVM IR instead of assembly code
-* `-o hello-o3.ll` : the output file
+* `-o Hello-o3.ll` : the output file
 
 The resulting QIR code is now significantly smaller, only containing the declarations and definitions used by the hello world program:
 
@@ -155,7 +157,7 @@ declare void @__quantum__rt__message(%String*) local_unnamed_addr
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32) local_unnamed_addr
 
-define void @hello__SayHello__Interop() local_unnamed_addr #0 {
+define void @Hello__SayHello__Interop() local_unnamed_addr #0 {
 entry:
   %0 = tail call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   tail call void @__quantum__rt__message(%String* %0)
@@ -163,7 +165,7 @@ entry:
   ret void
 }
 
-define void @hello__SayHello() local_unnamed_addr #1 {
+define void @Hello__SayHello() local_unnamed_addr #1 {
 entry:
   %0 = tail call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   tail call void @__quantum__rt__message(%String* %0)
@@ -184,15 +186,15 @@ On the hello world program, the *global dead code elimination (DCE)* pass should
 Invoke it as follows:
 
 ```shell
-opt -S hello.ll -globaldce -o hello-dce.ll
+opt -S Hello.ll -globaldce -o Hello-dce.ll
 ```
 
 Parameters (see also the [opt man page](https://llvm.org/docs/CommandGuide/opt.html)):
 
 * `-S` : output human-readable LLVM IR instead of bytecode
-* `hello.ll` : the input file
+* `Hello.ll` : the input file
 * `-globaldce` : global DCE pass, removes unused definitions/declarations
-* `-o hello-dce.ll` : the output file (stdout if omitted)
+* `-o Hello-dce.ll` : the output file (stdout if omitted)
 
 This produces the following code:
 
@@ -201,7 +203,7 @@ This produces the following code:
 
 @0 = internal constant [21 x i8] c"Hello quantum world!\00"
 
-define internal void @hello__SayHello__body() {
+define internal void @Hello__SayHello__body() {
 entry:
   %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   call void @__quantum__rt__message(%String* %0)
@@ -215,15 +217,15 @@ declare void @__quantum__rt__message(%String*)
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32)
 
-define void @hello__SayHello__Interop() #0 {
+define void @Hello__SayHello__Interop() #0 {
 entry:
-  call void @hello__HelloQ__body()
+  call void @Hello__HelloQ__body()
   ret void
 }
 
-define void @hello__SayHello() #1 {
+define void @Hello__SayHello() #1 {
 entry:
-  call void @hello__HelloQ__body()
+  call void @Hello__HelloQ__body()
   ret void
 }
 
@@ -231,11 +233,11 @@ attributes #0 = { "InteropFriendly" }
 attributes #1 = { "EntryPoint" }
 ```
 
-Note that compared to the output from `-O3`, the function `hello__SayHello__body` was not inlined, as well as some other small differences such as missing tail calls.
+Note that compared to the output from `-O3`, the function `Hello__SayHello__body` was not inlined, as well as some other small differences such as missing tail calls.
 Add *function inlining* with the following pass:
 
 ```shell
-opt -S hello.ll -globaldce -inline -o hello-dce.ll
+opt -S Hello.ll -globaldce -inline -o Hello-dce.ll
 ```
 
 Which produces:
@@ -251,7 +253,7 @@ declare void @__quantum__rt__message(%String*)
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32)
 
-define void @hello__SayHello__Interop() #0 {
+define void @Hello__SayHello__Interop() #0 {
 entry:
   %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   call void @__quantum__rt__message(%String* %0)
@@ -259,7 +261,7 @@ entry:
   ret void
 }
 
-define void @hello__SayHello() #1 {
+define void @Hello__SayHello() #1 {
 entry:
   %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   call void @__quantum__rt__message(%String* %0)
