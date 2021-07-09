@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use crate::emit::Context;
 use inkwell::values::{BasicValueEnum, FunctionValue};
 

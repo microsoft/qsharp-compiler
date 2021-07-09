@@ -1,8 +1,12 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use inkwell::values::{BasicValue, BasicValueEnum};
 use inkwell::AddressSpace;
 
-use crate::emit::Context;
 use crate::emit::qir::basic_values;
+
+use crate::emit::Context;
 
 use super::calls;
 
@@ -10,10 +14,10 @@ pub(crate) fn emit_array_1d<'ctx>(
     context: &Context<'ctx>,
     name: &str,
     size: u64,
-) -> BasicValueEnum<'ctx> {
+) -> (BasicValueEnum<'ctx>, Vec<(u64, BasicValueEnum<'ctx>)>) {
     let sub_result_name = format!("{}", &name[..]);
     let sub_result = emit_array_allocate1d(&context, 8, size, sub_result_name.as_str());
-
+    let mut items = vec![];
     for index in 0..size {
         let cast = get_bitcast_result_pointer_array_element(
             context,
@@ -21,6 +25,7 @@ pub(crate) fn emit_array_1d<'ctx>(
             &sub_result,
             sub_result_name.as_str(),
         );
+        items.push((index, cast));
         let zero = context
             .builder
             .build_call(
@@ -40,12 +45,7 @@ pub(crate) fn emit_array_1d<'ctx>(
         context.builder.build_store(cast.into_pointer_value(), zero);
     }
 
-    context.builder.build_call(
-        context.runtime_library.array_update_alias_count,
-        &[sub_result, basic_values::u64_to_i32(context, 1)],
-        "",
-    );
-    sub_result
+    (sub_result, items)
 }
 
 fn get_bitcast_array_pointer_element<'ctx>(
@@ -120,7 +120,7 @@ fn get_bitcast_array_element<'ctx>(
     cast
 }
 
-fn get_bitcast_result_pointer_array_element<'ctx>(
+pub fn get_bitcast_result_pointer_array_element<'ctx>(
     context: &Context<'ctx>,
     index: u64,
     sub_result: &BasicValueEnum<'ctx>,
@@ -162,7 +162,12 @@ pub(crate) fn emit_array_allocate1d<'ctx>(
         basic_values::u64_to_i32(context, bits),
         basic_values::u64_to_i64(context, length),
     ];
-    calls::emit_call_with_return(context, context.runtime_library.array_create_1d, args, result_name)
+    calls::emit_call_with_return(
+        context,
+        context.runtime_library.array_create_1d,
+        args,
+        result_name,
+    )
 }
 
 pub(crate) fn emit_array_get_element_ptr_1d<'ctx>(

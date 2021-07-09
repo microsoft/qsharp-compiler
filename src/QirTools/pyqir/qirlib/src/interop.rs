@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct QuantumRegister {
     pub name: String,
@@ -83,9 +86,9 @@ pub enum Instruction {
     Ry(Rotated),
     Rz(Rotated),
     S(Single),
-    Sdg(Single),
+    SAdj(Single),
     T(Single),
-    Tdg(Single),
+    TAdj(Single),
     X(Single),
     Y(Single),
     Z(Single),

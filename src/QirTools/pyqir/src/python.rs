@@ -1,3 +1,6 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use pyo3::prelude::*;
 
 use qirlib::emit::Emitter;
@@ -105,7 +108,7 @@ impl PyQIR {
     fn s_adj(&mut self, qubit: String) -> PyResult<()> {
         println!("s_adj => {}", qubit);
         let single = Single::new(qubit);
-        let inst = Instruction::Sdg(single);
+        let inst = Instruction::SAdj(single);
         self.model.add_inst(inst);
         Ok(())
     }
@@ -121,7 +124,7 @@ impl PyQIR {
     fn t_adj(&mut self, qubit: String) -> PyResult<()> {
         println!("t_adj => {}", qubit);
         let single = Single::new(qubit);
-        let inst = Instruction::Tdg(single);
+        let inst = Instruction::TAdj(single);
         self.model.add_inst(inst);
         Ok(())
     }
@@ -173,7 +176,7 @@ impl PyQIR {
     }
 
     fn write(&self, file_name: &str) -> PyResult<()> {
-        Emitter::write(&self.model, file_name);
+        let _ = Emitter::write(&self.model, file_name);
         Ok(())
     }
 }
