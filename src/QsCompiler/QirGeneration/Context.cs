@@ -216,8 +216,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             quantumInstructionSet = this.quantumInstructionSet;
         }
 
-        #region Static members
-
         /// <summary>
         /// Creates a new name by combining the given name with a unique identifier according to the given dictionary.
         /// Adds the name and the identifier to the given dictionary.
@@ -229,69 +227,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return $"{name}__{index}";
         }
 
-        /// <summary>
-        /// Cleans a namespace name by replacing periods with double underscores.
-        /// </summary>
-        /// <param name="namespaceName">The namespace name to clean</param>
-        /// <returns>The cleaned name</returns>
-        internal static string FlattenNamespaceName(string namespaceName) =>
-            namespaceName.Replace(".", "__");
-
-        /// <summary>
-        /// The name of the interop-friendly wrapper function for the callable.
-        /// </summary>
+        /// <inheritdoc cref="NameGeneration.InteropFriendlyWrapperName(QsQualifiedName)"/>
+        [Obsolete("Please use NameGeneration.InteropFriendlyWrapperName instead.", true)]
         public static string InteropFriendlyWrapperName(QsQualifiedName fullName) =>
-            $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}__Interop";
+            NameGeneration.InteropFriendlyWrapperName(fullName);
 
-        /// <summary>
-        /// The name of the entry point function calling into the body of the callable with the given name.
-        /// </summary>
+        /// <inheritdoc cref="NameGeneration.EntryPointName(QsQualifiedName)"/>
+        [Obsolete("Please use NameGeneration.EntryPointName instead.", true)]
         public static string EntryPointName(QsQualifiedName fullName) =>
-            $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}";
+            NameGeneration.EntryPointName(fullName);
 
-        /// <summary>
-        /// Generates a mangled name for a callable specialization.
-        /// QIR mangled names are the namespace name, with periods replaced by double underscores, followed
-        /// by a double underscore and the callable name, then another double underscore and the name of the
-        /// callable kind ("body", "adj", "ctl", or "ctladj").
-        /// </summary>
-        /// <param name="fullName">The callable's qualified name.</param>
-        /// <param name="kind">The specialization kind.</param>
-        /// <returns>The mangled name for the specialization.</returns>
-        public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind)
-        {
-            var suffix = InferTargetInstructions.SpecializationSuffix(kind).ToLowerInvariant();
-            return $"{FlattenNamespaceName(fullName.Namespace)}__{fullName.Name}{suffix}";
-        }
+        /// <inheritdoc cref="NameGeneration.FunctionName(QsQualifiedName, QsSpecializationKind)"/>
+        [Obsolete("Please use NameGeneration.FunctionName instead.", true)]
+        public static string FunctionName(QsQualifiedName fullName, QsSpecializationKind kind) =>
+            NameGeneration.FunctionName(fullName, kind);
 
-        /// <summary>
-        /// Generates a mangled name for a callable specialization wrapper.
-        /// Wrapper names are the mangled specialization name followed by double underscore and "wrapper".
-        /// </summary>
-        /// <param name="fullName">The callable's qualified name</param>
-        /// <param name="kind">The specialization kind.</param>
-        /// <returns>The mangled name for the wrapper.</returns>
+        /// <inheritdoc cref="NameGeneration.FunctionWrapperName(QsQualifiedName, QsSpecializationKind)"/>
+        [Obsolete("Please use NameGeneration.FunctionWrapperName instead.", true)]
         public static string FunctionWrapperName(QsQualifiedName fullName, QsSpecializationKind kind) =>
-            $"{FunctionName(fullName, kind)}__wrapper";
-
-        /// <returns>
-        /// Returns true and the target instruction name for the callable as out parameter
-        /// if a target instruction exists for the callable.
-        /// Returns false otherwise.
-        /// </returns>
-        internal static bool TryGetTargetInstructionName(QsCallable callable, [MaybeNullWhen(false)] out string instructionName)
-        {
-            if (SymbolResolution.TryGetTargetInstructionName(callable.Attributes) is var att && att.IsValue)
-            {
-                instructionName = att.Item;
-                return true;
-            }
-            else
-            {
-                instructionName = null;
-                return false;
-            }
-        }
+            NameGeneration.FunctionWrapperName(fullName, kind);
 
         /// <summary>
         /// Order of specializations in the constant array that contains the fours IrFunctions
@@ -302,8 +256,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             QsSpecializationKind.QsAdjoint,
             QsSpecializationKind.QsControlled,
             QsSpecializationKind.QsControlledAdjoint);
-
-        #endregion
 
         #region Initialization and emission
 
@@ -414,7 +366,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             foreach (var c in this.globalCallables.Values)
             {
-                if (TryGetTargetInstructionName(c, out var name))
+                if (NameGeneration.TryGetTargetInstructionName(c, out var name))
                 {
                     // Special handling for Unit since by default it turns into an empty tuple
                     var returnType = c.Signature.ReturnType.Resolution.IsUnitType
@@ -469,7 +421,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
         public void CreateInteropFriendlyWrapper(QsQualifiedName qualifiedName)
         {
-            string wrapperName = InteropFriendlyWrapperName(qualifiedName);
+            string wrapperName = NameGeneration.InteropFriendlyWrapperName(qualifiedName);
             IrFunction InteropWrapper(QsCallable callable, IrFunction implementation) =>
                 Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
             this.CreateBridgeFunction(qualifiedName, QsSpecializationKind.QsBody, InteropWrapper, AttributeNames.InteropFriendly);
@@ -484,7 +436,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
         internal void CreateEntryPoint(QsQualifiedName qualifiedName)
         {
-            string entryPointName = EntryPointName(qualifiedName);
+            string entryPointName = NameGeneration.EntryPointName(qualifiedName);
             IrFunction EntryPoint(QsCallable callable, IrFunction implementation) =>
                 Interop.GenerateEntryPoint(this, entryPointName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
             this.CreateBridgeFunction(qualifiedName, QsSpecializationKind.QsBody, EntryPoint, AttributeNames.EntryPoint);
@@ -624,7 +576,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="spec">The Q# specialization for which to register a function</param>
         internal IrFunction RegisterFunction(QsSpecialization spec)
         {
-            var name = FunctionName(spec.Parent, spec.Kind);
+            var name = NameGeneration.FunctionName(spec.Parent, spec.Kind);
             var returnTypeRef = spec.Signature.ReturnType.Resolution.IsUnitType
                 ? this.Context.VoidType
                 : this.LlvmTypeFromQsharpType(spec.Signature.ReturnType);
@@ -790,7 +742,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal IrFunction GeneratePartialApplication(string name, QsSpecializationKind kind, Action<IReadOnlyList<Argument>> body)
         {
-            var funcName = FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
+            var funcName = NameGeneration.FunctionWrapperName(new QsQualifiedName("Lifted", name), kind);
             IrFunction func = this.Module.CreateFunction(funcName, this.Types.FunctionSignature);
             func.Linkage = Linkage.Internal;
             this.liftedPartialApplications.Add((func, body));
@@ -807,7 +759,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>true if the function has already been declared/defined, or false otherwise.</returns>
         private bool TryGetFunction(QsQualifiedName callableName, QsSpecializationKind kind, [MaybeNullWhen(false)] out IrFunction function)
         {
-            var fullName = FunctionName(callableName, kind);
+            var fullName = NameGeneration.FunctionName(callableName, kind);
             return this.Module.TryGetFunction(fullName, out function);
         }
 
@@ -880,7 +832,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal GlobalVariable GetOrCreateCallableTable(QsCallable callable)
         {
-            var tableName = $"{FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
+            var tableName = $"{NameGeneration.FlattenNamespaceName(callable.FullName.Namespace)}__{callable.FullName.Name}";
             if (this.callableTables.TryGetValue(tableName, out (QsCallable, GlobalVariable) item))
             {
                 return item.Item2;
@@ -890,7 +842,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 IrFunction? BuildSpec(QsSpecializationKind kind) =>
                     callable.Specializations.Any(spec => spec.Kind == kind &&
                         (spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic))
-                            ? this.Module.CreateFunction(FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
+                            ? this.Module.CreateFunction(NameGeneration.FunctionWrapperName(callable.FullName, kind), this.Types.FunctionSignature)
                             : null;
 
                 var table = this.CreateCallableTable(tableName, BuildSpec);
@@ -1064,7 +1016,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
             {
-                if (TryGetTargetInstructionName(callable, out var name))
+                if (NameGeneration.TryGetTargetInstructionName(callable, out var name))
                 {
                     var func = this.GetOrCreateTargetInstruction(name);
                     return specKind == QsSpecializationKind.QsBody
@@ -1083,7 +1035,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var (callable, _) = this.callableTables[tableName];
                 foreach (var spec in callable.Specializations)
                 {
-                    var fullName = FunctionWrapperName(callable.FullName, spec.Kind);
+                    var fullName = NameGeneration.FunctionWrapperName(callable.FullName, spec.Kind);
                     if ((spec.Implementation.IsProvided || spec.Implementation.IsIntrinsic)
                         && this.Module.TryGetFunction(fullName, out IrFunction? func))
                     {

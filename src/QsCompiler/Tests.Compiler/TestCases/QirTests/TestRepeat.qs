@@ -40,4 +40,10 @@ namespace Microsoft.Quantum.Testing.QIR
         }
         return n;
     }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        use q = Qubit();
+        let _ = TestRepeat(q);
+    }
 }
