@@ -27,7 +27,7 @@
 @PartialApplication__11 = internal constant [4 x void (%Tuple*, %Tuple*, %Tuple*)*] [void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__11__body__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__11__adj__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__11__ctl__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__11__ctladj__wrapper]
 @PartialApplication__12 = internal constant [4 x void (%Tuple*, %Tuple*, %Tuple*)*] [void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__12__body__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__12__adj__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__12__ctl__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__12__ctladj__wrapper]
 
-define internal void @basic__SayHello__body() {
+define internal void @hello__SayHello__body() {
 entry:
   %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__message(%String* %0)
@@ -2007,15 +2007,15 @@ entry:
   ret { %String* }* %1
 }
 
-define void @basic__SayHello__Interop() #0 {
+define void @hello__SayHello__Interop() #0 {
 entry:
-  call void @basic__SayHello__body()
+  call void @hello__SayHello__body()
   ret void
 }
 
-define void @basic__SayHello() #1 {
+define void @hello__SayHello() #1 {
 entry:
-  call void @basic__SayHello__body()
+  call void @hello__SayHello__body()
   ret void
 }
 

@@ -13,7 +13,7 @@ declare void @__quantum__rt__message(%String*) local_unnamed_addr
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32) local_unnamed_addr
 
-define void @basic__SayHello__Interop() local_unnamed_addr #0 {
+define void @hello__SayHello__Interop() local_unnamed_addr #0 {
 entry:
   %0 = tail call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   tail call void @__quantum__rt__message(%String* %0)
@@ -21,7 +21,7 @@ entry:
   ret void
 }
 
-define void @basic__SayHello() local_unnamed_addr #1 {
+define void @hello__SayHello() local_unnamed_addr #1 {
 entry:
   %0 = tail call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   tail call void @__quantum__rt__message(%String* %0)
