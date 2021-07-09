@@ -1,6 +1,8 @@
 use qirlib::{
     emit::Emitter,
-    interop::{ClassicalRegister, Controlled, Instruction, QuantumRegister, SemanticModel, Single},
+    interop::{
+        ClassicalRegister, Controlled, Instruction, QuantumRegister, Rotated, SemanticModel, Single,
+    },
 };
 use std::io::{self, Write};
 use std::path::Path;
@@ -21,8 +23,75 @@ fn bell_circuit_no_measurement() {
 }
 
 #[test]
+fn empty_model() {
+    execute("empty", write_empty_model, vec!["[]"]);
+}
+
+#[test]
+fn model_with_only_qubit_allocations() {
+    execute(
+        "model_with_only_qubit_allocations",
+        write_model_with_only_qubit_allocations,
+        vec!["[]"],
+    );
+}
+#[test]
+fn model_with_only_result_allocations() {
+    execute(
+        "model_with_only_result_allocations",
+        write_model_with_only_result_allocations,
+        vec!["[[Zero, Zero, Zero, Zero], [Zero, Zero, Zero], [Zero, Zero]]"],
+    );
+}
+
+#[test]
+fn model_with_no_instructions() {
+    execute(
+        "model_with_no_instructions",
+        write_model_with_no_instructions,
+        vec!["[[Zero, Zero]]"],
+    );
+}
+#[test]
+fn model_with_single_qubit_instructions() {
+    execute(
+        "model_with_single_qubit_instructions",
+        write_model_with_single_qubit_instructions,
+        vec!["[]"],
+    );
+}
+#[test]
+fn single_qubit_model_with_measurement() {
+    execute(
+        "single_qubit_model_with_measurement",
+        write_single_qubit_model_with_measurement,
+        vec!["[[Zero]]"],
+    );
+}
+#[test]
+fn model_with_instruction_cx() {
+    execute(
+        "model_with_instruction_cx",
+        write_model_with_instruction_cx,
+        vec!["[]"],
+    );
+}
+
+#[test]
+fn model_with_instruction_cz() {
+    execute(
+        "model_with_instruction_cz",
+        write_model_with_instruction_cz,
+        vec!["[]"],
+    );
+}
+#[test]
 fn bernstein_vazirani() {
-    execute("bernstein_vazirani", write_bernstein_vazirani, vec!["[]"]);
+    execute(
+        "bernstein_vazirani",
+        write_bernstein_vazirani,
+        vec!["[[Zero, Zero, Zero, Zero, Zero]]"],
+    );
 }
 
 fn execute(name: &str, generator: fn(&str) -> (), expected_results: Vec<&str>) {
@@ -131,7 +200,7 @@ fn execute_circuit(app: &str, expected_results: Vec<&str>) {
     if let Ok(existing_value) = env::var("LD_LIBRARY_PATH") {
         ld_path = format!("{}:{}", parent.as_str(), existing_value);
     }
-    
+
     let mut command = std::process::Command::new(app);
     command.env("LD_LIBRARY_PATH", ld_path.as_str());
     println!("{:?}", command);
@@ -147,13 +216,78 @@ fn execute_circuit(app: &str, expected_results: Vec<&str>) {
     assert!(expected_results.iter().any(|&x| x == stdout.as_str()));
 }
 
-#[test]
-fn empty_models_produce_valid_module() {
+fn write_empty_model(file_name: &str) {
     let name = String::from("empty");
     let model = SemanticModel::new(name);
-    let _ = Emitter::get_ir_string(&model).unwrap();
+    Emitter::write(&model, file_name).unwrap();
+}
+fn write_model_with_single_qubit_instructions(file_name: &str) {
+    let name = String::from("model_with_single_qubit_instructions");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+
+    model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::Reset(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::Rx(Rotated::new(15.0, String::from("qr0"))));
+    model.add_inst(Instruction::Ry(Rotated::new(16.0, String::from("qr0"))));
+    model.add_inst(Instruction::Rz(Rotated::new(17.0, String::from("qr0"))));
+    model.add_inst(Instruction::S(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::Sdg(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::T(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::Tdg(Single::new(String::from("qr0"))));
+
+    Emitter::write(&model, file_name).unwrap();
+}
+fn write_model_with_instruction_cx(file_name: &str) {
+    let name = String::from("model_with_instruction_cx");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+    model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
+
+    model.add_inst(Instruction::Cx(Controlled::new(
+        String::from("qr0"),
+        String::from("qr1"),
+    )));
+
+    Emitter::write(&model, file_name).unwrap();
 }
 
+fn write_model_with_instruction_cz(file_name: &str) {
+    let name = String::from("model_with_instruction_cz");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+    model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
+
+    model.add_inst(Instruction::Cz(Controlled::new(
+        String::from("qr0"),
+        String::from("qr1"),
+    )));
+
+    Emitter::write(&model, file_name).unwrap();
+}
+fn write_model_with_only_qubit_allocations(file_name: &str) {
+    let name = String::from("model_with_only_qubit_allocations");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+    model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
+    Emitter::write(&model, file_name).unwrap();
+}
+fn write_model_with_only_result_allocations(file_name: &str) {
+    let name = String::from("model_with_only_result_allocations");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(ClassicalRegister::new(String::from("qa"), 4).as_register());
+    model.add_reg(ClassicalRegister::new(String::from("qb"), 3).as_register());
+    model.add_reg(ClassicalRegister::new(String::from("qc"), 2).as_register());
+    Emitter::write(&model, file_name).unwrap();
+}
+fn write_model_with_no_instructions(file_name: &str) {
+    let name = String::from("model_with_no_instructions");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+    model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
+    model.add_reg(ClassicalRegister::new(String::from("qc"), 2).as_register());
+    Emitter::write(&model, file_name).unwrap();
+}
 fn write_bell_no_measure(file_name: &str) {
     let name = String::from("Bell circuit");
     let mut model = SemanticModel::new(name);
@@ -165,6 +299,20 @@ fn write_bell_no_measure(file_name: &str) {
         String::from("qr0"),
         String::from("qr1"),
     )));
+    Emitter::write(&model, file_name).unwrap();
+}
+
+fn write_single_qubit_model_with_measurement(file_name: &str) {
+    let name = String::from("single_qubit_model_with_measurement");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+    model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
+
+    model.add_inst(Instruction::M {
+        qubit: String::from("qr0"),
+        target: String::from("qc0"),
+    });
+
     Emitter::write(&model, file_name).unwrap();
 }
 

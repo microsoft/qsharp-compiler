@@ -11,6 +11,7 @@ const RESULT_EQUAL: &str = "result_equal";
 const ARRAY_CREATE_1D: &str = "array_create_1d";
 const ARRAY_GET_ELEMENT_PTR_1D: &str = "array_get_element_ptr_1d";
 const ARRAY_UPDATE_ALIAS_COUNT: &str = "array_update_alias_count";
+const ARRAY_UPDATE_REFERENCE_COUNT: &str = "array_update_reference_count";
 
 // qubit functions
 const QUBIT_ALLOCATE: &str = "qubit_allocate";
@@ -26,6 +27,7 @@ pub(crate) struct RuntimeLibrary<'ctx> {
     pub(crate) array_create_1d: FunctionValue<'ctx>,
     pub(crate) array_get_element_ptr_1d: FunctionValue<'ctx>,
     pub(crate) array_update_alias_count: FunctionValue<'ctx>,
+    pub(crate) array_update_reference_count: FunctionValue<'ctx>,
     pub(crate) qubit_allocate: FunctionValue<'ctx>,
     pub(crate) qubit_allocate_array: FunctionValue<'ctx>,
     pub(crate) qubit_release: FunctionValue<'ctx>,
@@ -52,7 +54,10 @@ impl<'ctx> RuntimeLibrary<'ctx> {
                 module,
                 ARRAY_UPDATE_ALIAS_COUNT,
             ),
-
+            array_update_reference_count: RuntimeLibrary::get_function(
+                module,
+                ARRAY_UPDATE_REFERENCE_COUNT,
+            ),
             qubit_allocate: RuntimeLibrary::get_function(module, QUBIT_ALLOCATE),
             qubit_allocate_array: RuntimeLibrary::get_function(module, QUBIT_ALLOCATE_ARRAY),
             qubit_release: RuntimeLibrary::get_function(module, QUBIT_RELEASE),
