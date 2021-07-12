@@ -11,8 +11,20 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
 {
+    /// <summary>
+    /// Removes unused callables from the syntax tree.
+    /// </summary>
     public static class TrimSyntaxTree
     {
+        /// <summary>
+        /// Applies the transformation that removes from the syntax tree all callables that
+        /// are unused, meaning they are not a descendant of at least one entry point in
+        /// the call graph. If keepAllIntrinsics is true, callables with an intrinsic body
+        /// will not be trimmed, regardless of usage. Any callables that later
+        /// transformations will depend on should be passed in and will not be trimmed,
+        /// regardless of usage. Note that unused type constructors will be subject to
+        /// trimming as any other callable.
+        /// </summary>
         public static QsCompilation Apply(QsCompilation compilation, bool keepAllIntrinsics, IEnumerable<QsQualifiedName>? dependencies = null)
         {
             return TrimTree.Apply(compilation, keepAllIntrinsics, dependencies);
@@ -68,6 +80,9 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
                 }
             }
 
+            /// <summary>
+            /// Class representing the state of the transformation.
+            /// </summary>
             public class TransformationState
             {
                 public Func<QsNamespaceElement, bool> NamespaceElementFilter { get; }

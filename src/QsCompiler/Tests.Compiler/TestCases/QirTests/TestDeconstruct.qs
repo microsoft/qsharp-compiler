@@ -11,4 +11,9 @@ namespace Microsoft.Quantum.Testing.QIR
         set (b, c) = y;
         return x + b * c;
     }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestDeconstruct(0, (0, 0));
+    }
 }

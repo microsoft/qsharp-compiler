@@ -30,17 +30,37 @@ type 'context Rewriter() =
         | CallableDeclaration callable -> rewriter.CallableDeclaration(context, callable) |> CallableDeclaration
         | Unknown terminal -> rewriter.Terminal(context, terminal) |> Unknown
 
+    abstract Attribute : context: 'context * attribute: Attribute -> Attribute
+
+    default rewriter.Attribute(context, attribute) =
+        {
+            At = rewriter.Terminal(context, attribute.At)
+            Expression = rewriter.Expression(context, attribute.Expression)
+        }
+
     abstract CallableDeclaration : context: 'context * callable: CallableDeclaration -> CallableDeclaration
 
     default rewriter.CallableDeclaration(context, callable) =
         {
+            Attributes = callable.Attributes |> List.map (curry rewriter.Attribute context)
+            Access = callable.Access |> Option.map (curry rewriter.Terminal context)
             CallableKeyword = rewriter.Terminal(context, callable.CallableKeyword)
             Name = rewriter.Terminal(context, callable.Name)
+            TypeParameters = callable.TypeParameters |> Option.map (curry rewriter.TypeParameterBinding context)
             Parameters = rewriter.SymbolBinding(context, callable.Parameters)
             ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
             CharacteristicSection =
                 callable.CharacteristicSection |> Option.map (curry rewriter.CharacteristicSection context)
-            Block = rewriter.Block(context, rewriter.Statement, callable.Block)
+            Body = rewriter.CallableBody(context, callable.Body)
+        }
+
+    abstract TypeParameterBinding : context: 'context * binding: TypeParameterBinding -> TypeParameterBinding
+
+    default rewriter.TypeParameterBinding(context, binding) =
+        {
+            OpenBracket = rewriter.Terminal(context, binding.OpenBracket)
+            Parameters = binding.Parameters |> List.map (curry3 rewriter.SequenceItem context rewriter.Terminal)
+            CloseBracket = rewriter.Terminal(context, binding.CloseBracket)
         }
 
     abstract Type : context: 'context * typ: Type -> Type
@@ -49,7 +69,7 @@ type 'context Rewriter() =
         match typ with
         | Type.Missing missing -> rewriter.Terminal(context, missing) |> Type.Missing
         | Parameter name -> rewriter.Terminal(context, name) |> Parameter
-        | BuiltIn name -> rewriter.Terminal(context, name) |> BuiltIn
+        | Type.BuiltIn name -> rewriter.Terminal(context, name) |> Type.BuiltIn
         | UserDefined name -> rewriter.Terminal(context, name) |> UserDefined
         | Type.Tuple tuple -> rewriter.Tuple(context, rewriter.Type, tuple) |> Type.Tuple
         | Array array -> rewriter.ArrayType(context, array) |> Array
@@ -106,6 +126,34 @@ type 'context Rewriter() =
         | Group group -> rewriter.CharacteristicGroup(context, group) |> Group
         | Characteristic.BinaryOperator operator ->
             rewriter.BinaryOperator(context, rewriter.Characteristic, operator) |> Characteristic.BinaryOperator
+
+    abstract CallableBody : context: 'context * body: CallableBody -> CallableBody
+
+    default rewriter.CallableBody(context, body) =
+        match body with
+        | Statements statements -> rewriter.Block(context, rewriter.Statement, statements) |> Statements
+        | Specializations specializations ->
+            rewriter.Block(context, rewriter.Specialization, specializations) |> Specializations
+
+    abstract Specialization : context: 'context * specialization: Specialization -> Specialization
+
+    default rewriter.Specialization(context, specialization) =
+        {
+            Names = specialization.Names |> List.map (curry rewriter.Terminal context)
+            Generator = rewriter.SpecializationGenerator(context, specialization.Generator)
+        }
+
+    abstract SpecializationGenerator : context: 'context * generator: SpecializationGenerator -> SpecializationGenerator
+
+    default rewriter.SpecializationGenerator(context, generator) =
+        match generator with
+        | BuiltIn (name, semicolon) ->
+            BuiltIn(name = rewriter.Terminal(context, name), semicolon = rewriter.Terminal(context, semicolon))
+        | Provided (parameters, statements) ->
+            Provided(
+                parameters = (parameters |> Option.map (curry rewriter.Terminal context)),
+                statements = rewriter.Block(context, rewriter.Statement, statements)
+            )
 
     abstract Statement : context: 'context * statement: Statement -> Statement
 
@@ -205,7 +253,7 @@ type 'context Rewriter() =
     default rewriter.Tuple(context, mapper, tuple) =
         {
             OpenParen = rewriter.Terminal(context, tuple.OpenParen)
-            Items = tuple.Items |> List.map (fun item -> rewriter.SequenceItem(context, mapper, item))
+            Items = tuple.Items |> List.map (curry3 rewriter.SequenceItem context mapper)
             CloseParen = rewriter.Terminal(context, tuple.CloseParen)
         }
 

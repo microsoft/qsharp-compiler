@@ -569,14 +569,13 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
             var qirEmissionEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
-
             if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
                 // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
 #pragma warning disable CS0618 // Type or member is obsolete
                 // TODO: The dependencies for rewrite steps should be declared as part of IRewriteStep interface, and we should query those here.
-                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: !qirEmissionEnabled, BuiltIn.AllBuiltIns.Select(e => e.FullName)), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: true, BuiltIn.AllBuiltIns.Select(e => e.FullName)), typeof(IRewriteStep), thisDllUri);
 #pragma warning restore CS0618 // Type or member is obsolete
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
@@ -607,7 +606,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
-                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: qirEmissionEnabled), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 

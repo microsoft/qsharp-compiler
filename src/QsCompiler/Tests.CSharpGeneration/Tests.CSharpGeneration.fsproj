@@ -57,7 +57,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\CSharpGeneration\Microsoft.Quantum.CSharpGeneration.fsproj" />
+    <ProjectReference Include="..\CSharpGeneration\CSharpGeneration.fsproj" />
   </ItemGroup>
 
 </Project>
