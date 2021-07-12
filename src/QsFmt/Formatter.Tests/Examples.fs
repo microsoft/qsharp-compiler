@@ -60,7 +60,7 @@ let ``Adds newlines and indents`` =
 [<Example>]
 let ``Removes extraneous spaces`` =
     """namespace     Foo {
-    function Bar() : Int {
+    function Bar() : Int [     ] {
         let x= // Newlines are preserved.
             (7 -   1) // Comments too.
             + 4;
@@ -69,7 +69,7 @@ let ``Removes extraneous spaces`` =
 }""",
 
     """namespace Foo {
-    function Bar() : Int {
+    function Bar() : Int [ ] {
         let x = // Newlines are preserved.
             (7 - 1) // Comments too.
             + 4;

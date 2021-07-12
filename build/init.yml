@@ -24,3 +24,10 @@ steps:
   displayName: Use .NET Core SDK 3.1.405
   inputs:
     version: 3.1.405
+
+# Make sure that npm is up to date, as is required by our VS Code extension
+# build.
+- task: Npm@1
+  inputs:
+    command: 'custom'
+    customCommand: 'install -g npm@latest'

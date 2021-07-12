@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         public bool ImplementsPostconditionVerification => false;
 
         /// <summary>
-        /// Constructor for the SyntaxTreeTrimming Rewrite Step.
+        /// Initializes a new instance of the <see cref="SyntaxTreeTrimming"/> class.
         /// </summary>
         /// <param name="keepAllIntrinsics">When true, intrinsics will not be removed as part of the rewrite step.</param>
         /// <param name="isLibrary">When true, trimming will consider every public, non-generic callabe as an entry point.</param>

@@ -46,6 +46,8 @@ let private compilerArgs target (name: string) =
 
         "--verbosity"
         "Diagnostic"
+        "--assembly-properties"
+        "QirOutputPath:qir"
     }
 
 let private customTest name compilerArgs snippets =
@@ -251,8 +253,7 @@ let ``QIR targeting`` () =
 [<Fact>]
 let ``QIR Library generation`` () =
     let compilerArgs =
-        [ "--assembly-properties"; "QSharpOutputType:QSharpLibrary" ]
-        |> Seq.append (compilerArgs true "TestLibraryGeneration")
+        Seq.append (compilerArgs true "TestLibraryGeneration") [ "QSharpOutputType:QSharpLibrary" ]
         |> Seq.filter (fun arg -> arg <> "--build-exe")
         |> Seq.toArray
 

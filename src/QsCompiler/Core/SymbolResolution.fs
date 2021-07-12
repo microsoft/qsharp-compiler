@@ -175,10 +175,10 @@ module internal ResolutionResult =
     let internal AtMostOne<'T> : seq<ResolutionResult<'T>> -> ResolutionResult<'T> =
         TryAtMostOne(fun _ -> "")
         >> function
-        | Ambiguous _ ->
-            QsCompilerError.Raise "Resolution is ambiguous"
-            Exception() |> raise
-        | result -> result
+            | Ambiguous _ ->
+                QsCompilerError.Raise "Resolution is ambiguous"
+                Exception() |> raise
+            | result -> result
 
     /// Returns true if the resolution result indicates that a resolution exists (Found, Ambiguous or Inaccessible).
     let internal Exists =
@@ -235,8 +235,8 @@ module SymbolResolution =
         let argument =
             getArgument
             >> function
-            | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
-            | None -> None
+                | Some redirect -> redirect |> AttributeAnnotation.NonInterpolatedStringArgument getInner |> Some
+                | None -> None
 
         attributes |> Seq.choose argument
 
@@ -481,8 +481,8 @@ module SymbolResolution =
                 |> List.choose (
                     fst
                     >> function
-                    | ValidName name -> Some name
-                    | InvalidName -> None
+                        | ValidName name -> Some name
+                        | InvalidName -> None
                 )
 
             resolveType (validTpNames.ToImmutableArray())
