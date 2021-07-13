@@ -74,8 +74,9 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            using var generationContext = new GenerationContext(compilation.Namespaces);
             transformed = compilation;
+            var isLibrary = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QsharpOutputType, out var outputType) && string.Equals(outputType, ReservedKeywords.AssemblyConstants.QsharpLibrary);
+            using var generationContext = new GenerationContext(compilation.Namespaces, isLibrary);
             var generator = new Generator(transformed, generationContext);
             generator.Apply();
 
@@ -160,7 +161,10 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = TrimSyntaxTree.Apply(compilation, keepAllIntrinsics: false);
+            transformed = TrimSyntaxTree.Apply(
+                compilation,
+                keepAllIntrinsics: false,
+                isLibrary: this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QsharpOutputType, out var outputType) && string.Equals(outputType, ReservedKeywords.AssemblyConstants.QsharpLibrary));
             transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(transformed);
             transformed = InferTargetInstructions.LiftIntrinsicSpecializations(transformed);
             var allAttributesAdded = InferTargetInstructions.TryAddMissingTargetInstructionAttributes(transformed, out transformed);
