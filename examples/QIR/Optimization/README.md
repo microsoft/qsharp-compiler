@@ -492,6 +492,7 @@ Parameters:
 * `Main.cpp` : source file 2, the driver containing the program entry point (main)
 * `-Ibuild` : find header files in the `build` directory
 * `-Lbuild` : find libraries in the `build` directory
+* `-l'<libname>'` : link dynamic libraries copied earlier
 * `-o build/Hello.exe` : path of the generated executable, placed in the build directory so the system can easily find the dynamic libraries when launching the program
 
 Running the program should print the output `Hello quantum world!` to the terminal:
