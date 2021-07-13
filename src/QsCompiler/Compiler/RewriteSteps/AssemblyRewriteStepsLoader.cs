@@ -77,7 +77,7 @@ namespace Microsoft.Quantum.QsCompiler
                         if (possibleInterfaceMatches.Any())
                         {
                             // When we load via reflection into the current app domain, any dependencies by default are resolved by looking for dlls
-                            // relative to the root of the current application rather than relative to the root of the rewrite step dll, causing dependencies.
+                            // relative to the root of the current application rather than relative to the root of the rewrite step dll, causing dependencies to not be found.
                             // We hence add a custom handler to search the directory where the rewrite step is located if an assembly cannot be found otherwise.
                             AppDomain.CurrentDomain.AssemblyResolve += new ResolveEventHandler((sender, args) =>
                             {

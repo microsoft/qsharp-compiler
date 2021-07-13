@@ -20,9 +20,9 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     public class LoadContext : AssemblyLoadContext
     {
-        internal static HashSet<string> ManagedDllPaths { get; set; } = new HashSet<string>();
+        internal static HashSet<string> ManagedDllPaths { get; private set; } = new HashSet<string>();
 
-        internal static HashSet<string> UnmanagedDllPaths { get; set; } = new HashSet<string>();
+        internal static HashSet<string> UnmanagedDllPaths { get; private set; } = new HashSet<string>();
 
         public string PathToParentAssembly { get; }
 

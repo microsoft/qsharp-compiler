@@ -28,14 +28,15 @@
     <ValidOutputTypes>Possible values are 'Exe', or 'Library'.</ValidOutputTypes>
   </PropertyGroup>
 
-  <!-- Initializing the ResolvedProcessorArchitecture to either HoneywellProcessor, IonQProcessor, QCIProcessor or Unspecified.-->
+  <!-- Initializing the ResolvedProcessorArchitecture to either HoneywellProcessor, IonQProcessor, QCIProcessor, MicrosoftSimulator or Unspecified.-->
   <PropertyGroup>
     <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('honeywell'))">HoneywellProcessor</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('ionq'))">IonQProcessor</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('qci'))">QCIProcessor</ResolvedProcessorArchitecture>
+    <ResolvedProcessorArchitecture Condition="('$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true') And $(ExecutionTarget.StartsWith('microsoft.simulator'))">MicrosoftSimulator</ResolvedProcessorArchitecture>
     <ResolvedProcessorArchitecture Condition="'$(ExecutionTarget)' == 'Any'">Unspecified</ResolvedProcessorArchitecture>
-    <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'Unspecified'"></ResolvedProcessorArchitecture>
-    <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq*', 'honeywell*', 'qci*', or 'Any'.</ValidExecutionTargets>
+    <ResolvedProcessorArchitecture Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor' And '$(ResolvedProcessorArchitecture)' != 'Unspecified' And '$(ResolvedProcessorArchitecture)' != 'MicrosoftSimulator'"></ResolvedProcessorArchitecture>
+    <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpExe' Or '$(NoEntryPoint)' == 'true'">Possible values must match 'ionq*', 'honeywell*', 'qci*', 'microsoft.simulator*', or 'Any'.</ValidExecutionTargets>
     <ValidExecutionTargets Condition="'$(ResolvedQSharpOutputType)' == 'QSharpLibrary'">The execution target for a Q# library needs to be 'Any'.</ValidExecutionTargets>
   </PropertyGroup>
 
@@ -44,6 +45,7 @@
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'">Type1</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">Type2</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">Type3</ResolvedQuantumIntrinsics>
+    <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">Default</ResolvedQuantumIntrinsics>
     <ResolvedQuantumIntrinsics Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">Default</ResolvedQuantumIntrinsics>
   </PropertyGroup>
 
@@ -52,6 +54,7 @@
     <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'HoneywellProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
     <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'IonQProcessor'">BasicQuantumFunctionality</ResolvedRuntimeCapabilities>
     <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'QCIProcessor'">BasicMeasurementFeedback</ResolvedRuntimeCapabilities>
+    <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' == 'MicrosoftSimulator'">FullComputation</ResolvedRuntimeCapabilities>
     <ResolvedRuntimeCapabilities Condition="'$(ResolvedProcessorArchitecture)' != 'HoneywellProcessor' And '$(ResolvedProcessorArchitecture)' != 'IonQProcessor' And '$(ResolvedProcessorArchitecture)' != 'QCIProcessor'">FullComputation</ResolvedRuntimeCapabilities>
   </PropertyGroup>
 

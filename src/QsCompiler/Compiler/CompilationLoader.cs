@@ -569,14 +569,13 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
             var qirEmissionEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
-
             if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
                 // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
 #pragma warning disable CS0618 // Type or member is obsolete
                 // TODO: The dependencies for rewrite steps should be declared as part of IRewriteStep interface, and we should query those here.
-                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: !qirEmissionEnabled, BuiltIn.AllBuiltIns.Select(e => e.FullName)), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: true, BuiltIn.AllBuiltIns.Select(e => e.FullName)), typeof(IRewriteStep), thisDllUri);
 #pragma warning restore CS0618 // Type or member is obsolete
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
@@ -607,7 +606,7 @@ namespace Microsoft.Quantum.QsCompiler
 
             if (this.config.IsExecutable && !this.config.SkipMonomorphization)
             {
-                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: qirEmissionEnabled), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
@@ -990,7 +989,22 @@ namespace Microsoft.Quantum.QsCompiler
 
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.ReferenceLoading, d);
-            var headers = ProjectManager.LoadReferencedAssembliesInParallel(refs ?? Enumerable.Empty<string>(), OnDiagnostic, OnException, ignoreDllResources);
+
+            // Skip loading any assemblies referenced as target packages. These will be included in a later
+            // override step.
+            var filteredRefs = refs ?? Enumerable.Empty<string>();
+            if (this.config.TargetPackageAssemblies is object)
+            {
+                var targetPackagePaths = this.config.TargetPackageAssemblies.Select(a => Path.GetFullPath(a));
+                filteredRefs = filteredRefs.Except(targetPackagePaths);
+            }
+
+            var headers = ProjectManager.LoadReferencedAssembliesInParallel(
+                filteredRefs,
+                OnDiagnostic,
+                OnException,
+                ignoreDllResources);
+
             var projId = this.config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.config.ProjectNameWithExtension), "qsproj");
             var references = new References(headers, loadTestNames, (code, args) => OnDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
