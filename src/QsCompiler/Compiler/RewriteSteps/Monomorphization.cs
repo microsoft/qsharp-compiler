@@ -48,7 +48,8 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = Monomorphize.Apply(new QsCompilation(compilation.Namespaces, this.AugmentedEntryPoints(compilation)), this.monomorphizeIntrinsics);
+            var intermediate = Monomorphize.Apply(new QsCompilation(compilation.Namespaces, this.AugmentedEntryPoints(compilation)), this.monomorphizeIntrinsics);
+            transformed = new QsCompilation(intermediate.Namespaces, compilation.EntryPoints);
             return true;
         }
 
