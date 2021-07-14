@@ -174,98 +174,98 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitExponentExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitMultiplyExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitAddExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitShiftExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitCompareExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitEqualsExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitBitwiseAndExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitBitwiseXorExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitBitwiseOrExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitAndExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitOrExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.operator |> Node.toTerminal tokens
+            InfixOperator = context.operator |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitRangeExpression context =
         {
             Left = visitor.Visit context.left
-            Operator = context.ellipsis |> Node.toTerminal tokens
+            InfixOperator = context.ellipsis |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> BinaryOperator
+        |> InfixOperator
 
     override visitor.VisitConditionalExpression context =
         {

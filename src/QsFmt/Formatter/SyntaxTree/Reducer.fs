@@ -130,7 +130,7 @@ type internal 'result Reducer() as reducer =
         | Adjoint adjoint -> reducer.Terminal adjoint
         | Controlled controlled -> reducer.Terminal controlled
         | Group group -> reducer.CharacteristicGroup group
-        | Characteristic.BinaryOperator operator -> reducer.BinaryOperator(reducer.Characteristic, operator)
+        | Characteristic.InfixOperator operator -> reducer.InfixOperator(reducer.Characteristic, operator)
 
     abstract CallableBody : body: CallableBody -> 'result
 
@@ -253,7 +253,7 @@ type internal 'result Reducer() as reducer =
         | Call call -> reducer.Call call
         | PrefixOperator operator -> reducer.PrefixOperator(reducer.Expression, operator)
         | PostfixOperator operator -> reducer.PostfixOperator(reducer.Expression, operator)
-        | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
+        | InfixOperator operator -> reducer.InfixOperator(reducer.Expression, operator)
         | Conditional conditional -> reducer.Conditional conditional
         | FullOpenRange fullOpenRange -> reducer.Terminal fullOpenRange
         | Update update -> reducer.Update update
@@ -371,12 +371,12 @@ type internal 'result Reducer() as reducer =
     default _.PostfixOperator(mapper, operator) =
         [ mapper operator.Operand; reducer.Terminal operator.PostfixOperator ] |> reduce
 
-    abstract BinaryOperator : mapper: ('a -> 'result) * operator: 'a BinaryOperator -> 'result
+    abstract InfixOperator : mapper: ('a -> 'result) * operator: 'a InfixOperator -> 'result
 
-    default _.BinaryOperator(mapper, operator) =
+    default _.InfixOperator(mapper, operator) =
         [
             mapper operator.Left
-            reducer.Terminal operator.Operator
+            reducer.Terminal operator.InfixOperator
             mapper operator.Right
         ]
         |> reduce

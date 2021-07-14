@@ -204,7 +204,7 @@ and internal Expression =
     | PostfixOperator of Expression PostfixOperator
 
     /// An operator applied to two expressions.
-    | BinaryOperator of Expression BinaryOperator
+    | InfixOperator of Expression InfixOperator
 
     /// A conditional expression.
     | Conditional of Conditional

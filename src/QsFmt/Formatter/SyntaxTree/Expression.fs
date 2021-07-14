@@ -79,7 +79,7 @@ and Expression =
     | Call of Call
     | PrefixOperator of Expression PrefixOperator
     | PostfixOperator of Expression PostfixOperator
-    | BinaryOperator of Expression BinaryOperator
+    | InfixOperator of Expression InfixOperator
     | Conditional of Conditional
     | FullOpenRange of Terminal
     | Update of Update

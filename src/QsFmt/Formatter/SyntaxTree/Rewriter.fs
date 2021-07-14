@@ -124,8 +124,8 @@ type 'context Rewriter() =
         | Adjoint adjoint -> rewriter.Terminal(context, adjoint) |> Adjoint
         | Controlled controlled -> rewriter.Terminal(context, controlled) |> Controlled
         | Group group -> rewriter.CharacteristicGroup(context, group) |> Group
-        | Characteristic.BinaryOperator operator ->
-            rewriter.BinaryOperator(context, rewriter.Characteristic, operator) |> Characteristic.BinaryOperator
+        | Characteristic.InfixOperator operator ->
+            rewriter.InfixOperator(context, rewriter.Characteristic, operator) |> Characteristic.InfixOperator
 
     abstract CallableBody : context: 'context * body: CallableBody -> CallableBody
 
@@ -225,7 +225,8 @@ type 'context Rewriter() =
         | Expression interpStringExpression ->
             rewriter.InterpStringExpression(context, interpStringExpression) |> Expression
 
-    abstract InterpStringExpression : context: 'context * interpStringExpression: InterpStringExpression -> InterpStringExpression
+    abstract InterpStringExpression :
+        context: 'context * interpStringExpression: InterpStringExpression -> InterpStringExpression
 
     default rewriter.InterpStringExpression(context, interpStringExpression) =
         {
@@ -250,7 +251,7 @@ type 'context Rewriter() =
         | PrefixOperator operator -> rewriter.PrefixOperator(context, rewriter.Expression, operator) |> PrefixOperator
         | PostfixOperator operator ->
             rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
-        | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
+        | InfixOperator operator -> rewriter.InfixOperator(context, rewriter.Expression, operator) |> InfixOperator
         | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
         | FullOpenRange fullOpenRange -> rewriter.Terminal(context, fullOpenRange) |> FullOpenRange
         | Update update -> rewriter.Update(context, update) |> Update
@@ -377,13 +378,13 @@ type 'context Rewriter() =
             PostfixOperator = rewriter.Terminal(context, operator.PostfixOperator)
         }
 
-    abstract BinaryOperator :
-        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a BinaryOperator -> 'a BinaryOperator
+    abstract InfixOperator :
+        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a InfixOperator -> 'a InfixOperator
 
-    default rewriter.BinaryOperator(context, mapper, operator) =
+    default rewriter.InfixOperator(context, mapper, operator) =
         {
             Left = mapper (context, operator.Left)
-            Operator = rewriter.Terminal(context, operator.Operator)
+            InfixOperator = rewriter.Terminal(context, operator.InfixOperator)
             Right = mapper (context, operator.Right)
         }
 

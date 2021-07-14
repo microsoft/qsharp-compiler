@@ -106,13 +106,13 @@ type internal 'a PostfixOperator =
     }
 
 /// A binary operator.
-type internal 'a BinaryOperator =
+type internal 'a InfixOperator =
     {
         /// The left-hand side.
         Left: 'a
 
         /// The operator.
-        Operator: Terminal
+        InfixOperator: Terminal
 
         /// The right-hand side.
         Right: 'a

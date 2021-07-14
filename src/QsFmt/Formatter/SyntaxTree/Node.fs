@@ -75,10 +75,10 @@ type 'a PrefixOperator = { PrefixOperator: Terminal; Operand: 'a }
 
 type 'a PostfixOperator = { Operand: 'a; PostfixOperator: Terminal }
 
-type 'a BinaryOperator =
+type 'a InfixOperator =
     {
         Left: 'a
-        Operator: Terminal
+        InfixOperator: Terminal
         Right: 'a
     }
 
