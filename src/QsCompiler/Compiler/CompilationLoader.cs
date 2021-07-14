@@ -189,6 +189,11 @@ namespace Microsoft.Quantum.QsCompiler
             public IEnumerable<string>? TargetPackageAssemblies { get; set; }
 
             /// <summary>
+            /// Whether or not QIR Generation was requested for this compilation unit.
+            /// </summary>
+            public bool IsQirGenerationEnabled { get; set; }
+
+            /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
             /// This is the case if either the build output folder is specified or the dll output path is specified.
             /// </summary>
@@ -282,13 +287,13 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 this.WasSuccessful(true, this.Validation) &&
                 this.WasSuccessful(true, this.PluginLoading) &&
-                this.WasSuccessful(options.IsExecutable && !options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                this.WasSuccessful((options.IsExecutable || options.IsQirGenerationEnabled) && !options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 this.WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 this.WasSuccessful(!options.SkipConjugationInlining, this.ConjugationInlining) &&
                 this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
-                this.WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
+                this.WasSuccessful((options.IsExecutable || options.IsQirGenerationEnabled) && !options.SkipMonomorphization, this.Monomorphization) &&
                 this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
                 this.WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 this.WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
@@ -568,14 +573,15 @@ namespace Microsoft.Quantum.QsCompiler
             // executing the specified rewrite steps
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
-            var qirEmissionEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
-            if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
+            this.config.IsQirGenerationEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
+
+            if ((this.config.IsExecutable || this.config.IsQirGenerationEnabled) && !this.config.SkipSyntaxTreeTrimming)
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
                 // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
 #pragma warning disable CS0618 // Type or member is obsolete
                 // TODO: The dependencies for rewrite steps should be declared as part of IRewriteStep interface, and we should query those here.
-                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: true, BuiltIn.AllBuiltIns.Select(e => e.FullName)), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: !this.config.IsQirGenerationEnabled, BuiltIn.AllBuiltIns.Select(e => e.FullName), !this.config.IsExecutable), typeof(IRewriteStep), thisDllUri);
 #pragma warning restore CS0618 // Type or member is obsolete
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
@@ -604,9 +610,9 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
             }
 
-            if (this.config.IsExecutable && !this.config.SkipMonomorphization)
+            if ((this.config.IsExecutable || this.config.IsQirGenerationEnabled) && !this.config.SkipMonomorphization)
             {
-                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false, !this.config.IsExecutable), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 
@@ -989,7 +995,22 @@ namespace Microsoft.Quantum.QsCompiler
 
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.ReferenceLoading, d);
-            var headers = ProjectManager.LoadReferencedAssembliesInParallel(refs ?? Enumerable.Empty<string>(), OnDiagnostic, OnException, ignoreDllResources);
+
+            // Skip loading any assemblies referenced as target packages. These will be included in a later
+            // override step.
+            var filteredRefs = refs ?? Enumerable.Empty<string>();
+            if (this.config.TargetPackageAssemblies is object)
+            {
+                var targetPackagePaths = this.config.TargetPackageAssemblies.Select(a => Path.GetFullPath(a));
+                filteredRefs = filteredRefs.Except(targetPackagePaths);
+            }
+
+            var headers = ProjectManager.LoadReferencedAssembliesInParallel(
+                filteredRefs,
+                OnDiagnostic,
+                OnException,
+                ignoreDllResources);
+
             var projId = this.config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.config.ProjectNameWithExtension), "qsproj");
             var references = new References(headers, loadTestNames, (code, args) => OnDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
