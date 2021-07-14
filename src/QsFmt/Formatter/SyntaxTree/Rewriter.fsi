@@ -158,10 +158,10 @@ type internal 'context Rewriter =
     default InterpStringContent: context:'context * interpStringContent:InterpStringContent -> InterpStringContent
 
     /// <summary>
-    /// Rewrites an <see cref="InterpStringBrace"/> node.
+    /// Rewrites an <see cref="InterpStringExpression"/> node.
     /// </summary>
-    abstract InterpStringBrace: context:'context * interpStringBrace:InterpStringBrace -> InterpStringBrace
-    default InterpStringBrace: context:'context * interpStringBrace:InterpStringBrace -> InterpStringBrace
+    abstract InterpStringExpression: context:'context * interpStringExpression:InterpStringExpression -> InterpStringExpression
+    default InterpStringExpression: context:'context * interpStringExpression:InterpStringExpression -> InterpStringExpression
 
     /// <summary>
     /// Rewrites an <see cref="Expression"/> node.

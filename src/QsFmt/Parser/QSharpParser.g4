@@ -199,7 +199,7 @@ qubitInitializer
 
 expression
     : '_' # MissingExpression
-    | name=qualifiedName (openBracket='<' (typeArgs+=type (commas+=',' typeArgs+=type)* commas+=','?)? closeBracket='>')? # IdentifierExpression
+    | name=qualifiedName types=typeTuple? # IdentifierExpression
     | value=IntegerLiteral # IntegerExpression
     | value=BigIntegerLiteral # BigIntegerExpression
     | value=DoubleLiteral # DoubleExpression
@@ -211,12 +211,12 @@ expression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
     | new='new' arrayType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
-    | obj=expression colon='::' name=Identifier # NamedItemAccessExpression
+    | record=expression colon='::' name=Identifier # NamedItemAccessExpression
     | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression
     | operand=expression operator='!' # UnwrapExpression
     | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
     | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression
-    | fun=expression openParen='(' (arguments+=expression (commas+=',' arguments+=expression)* commas+=','?)? closeParen=')' # CallExpression
+    | callable=expression openParen='(' (arguments+=expression (commas+=',' arguments+=expression)* commas+=','?)? closeParen=')' # CallExpression
     | <assoc=right> operator=('-' | 'not' | '~~~') operand=expression # NegationExpression
     | <assoc=right> left=expression operator='^' right=expression # ExponentExpression
     | left=expression operator=('*' | '/' | '%') right=expression # MultiplyExpression
@@ -236,6 +236,8 @@ expression
     | '...' # OpenRangeExpression
     | record=expression with='w/' item=expression arrow='<-' value=expression # UpdateExpression
     ;
+
+typeTuple : openBracket='<' (typeArgs+=type (commas+=',' typeArgs+=type)* commas+=','?)? closeBracket='>';
 
 boolLiteral
     : 'false'
@@ -261,6 +263,6 @@ stringContent
 
 interpStringContent
     : InterpStringEscape # InterpStringEscapeContent
-    | openBrace=InterpBraceLeft exp=expression closeBrace=BraceRight # InterpBraceContent
+    | openBrace=InterpBraceLeft exp=expression closeBrace=BraceRight # InterpExpressionContent
     | InterpStringText # InterpTextContent
     ;

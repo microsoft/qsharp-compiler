@@ -162,10 +162,10 @@ type internal 'result Reducer =
     default InterpStringContent: interpStringContent:InterpStringContent -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="InterpStringBrace"/> node.
+    /// Reduces an <see cref="InterpStringExpression"/> node.
     /// </summary>
-    abstract InterpStringBrace: interpStringBrace:InterpStringBrace -> 'result
-    default InterpStringBrace: interpStringBrace:InterpStringBrace -> 'result
+    abstract InterpStringExpression: interpStringExpression:InterpStringExpression -> 'result
+    default InterpStringExpression: interpStringExpression:InterpStringExpression -> 'result
 
     /// <summary>
     /// Reduces an <see cref="Expression"/> node.

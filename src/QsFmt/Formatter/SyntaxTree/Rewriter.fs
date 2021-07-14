@@ -222,16 +222,16 @@ type 'context Rewriter() =
     default rewriter.InterpStringContent(context, interpStringContent) =
         match interpStringContent with
         | Text text -> rewriter.Terminal(context, text) |> Text
-        | InterpStringBrace interpStringBrace ->
-            rewriter.InterpStringBrace(context, interpStringBrace) |> InterpStringBrace
+        | Expression interpStringExpression ->
+            rewriter.InterpStringExpression(context, interpStringExpression) |> Expression
 
-    abstract InterpStringBrace : context: 'context * interpStringBrace: InterpStringBrace -> InterpStringBrace
+    abstract InterpStringExpression : context: 'context * interpStringExpression: InterpStringExpression -> InterpStringExpression
 
-    default rewriter.InterpStringBrace(context, interpStringBrace) =
+    default rewriter.InterpStringExpression(context, interpStringExpression) =
         {
-            OpenBrace = rewriter.Terminal(context, interpStringBrace.OpenBrace)
-            Escaped = rewriter.Expression(context, interpStringBrace.Escaped)
-            CloseBrace = rewriter.Terminal(context, interpStringBrace.CloseBrace)
+            OpenBrace = rewriter.Terminal(context, interpStringExpression.OpenBrace)
+            Expression = rewriter.Expression(context, interpStringExpression.Expression)
+            CloseBrace = rewriter.Terminal(context, interpStringExpression.CloseBrace)
         }
 
     abstract Expression : context: 'context * expression: Expression -> Expression
@@ -252,6 +252,7 @@ type 'context Rewriter() =
             rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
         | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
         | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
+        | FullOpenRange fullOpenRange -> rewriter.Terminal(context, fullOpenRange) |> FullOpenRange
         | Update update -> rewriter.Update(context, update) |> Update
         | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
 
@@ -260,7 +261,7 @@ type 'context Rewriter() =
     default rewriter.Identifier(context, identifier) =
         {
             Name = rewriter.Terminal(context, identifier.Name)
-            Arguments = identifier.Arguments |> Option.map (curry3 rewriter.Tuple context rewriter.Type)
+            TypeArgs = identifier.TypeArgs |> Option.map (curry3 rewriter.Tuple context rewriter.Type)
         }
 
     abstract InterpString : context: 'context * interpString: InterpString -> InterpString
@@ -287,8 +288,8 @@ type 'context Rewriter() =
 
     default rewriter.NamedItemAccess(context, namedItemAccess) =
         {
-            Object = rewriter.Expression(context, namedItemAccess.Object)
-            Colon = rewriter.Terminal(context, namedItemAccess.Colon)
+            Record = rewriter.Expression(context, namedItemAccess.Record)
+            DoubleColon = rewriter.Terminal(context, namedItemAccess.DoubleColon)
             Name = rewriter.Terminal(context, namedItemAccess.Name)
         }
 
@@ -306,7 +307,7 @@ type 'context Rewriter() =
 
     default rewriter.Call(context, call) =
         {
-            Function = rewriter.Expression(context, call.Function)
+            Callable = rewriter.Expression(context, call.Callable)
             Arguments = rewriter.Tuple(context, rewriter.Expression, call.Arguments)
         }
 

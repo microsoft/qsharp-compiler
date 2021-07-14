@@ -226,15 +226,15 @@ type internal 'result Reducer() as reducer =
     default _.InterpStringContent interpStringContent =
         match interpStringContent with
         | Text text -> reducer.Terminal text
-        | InterpStringBrace interpStringBrace -> reducer.InterpStringBrace interpStringBrace
+        | Expression interpStringExpression -> reducer.InterpStringExpression interpStringExpression
 
-    abstract InterpStringBrace : interpStringBrace: InterpStringBrace -> 'result
+    abstract InterpStringExpression : interpStringExpression: InterpStringExpression -> 'result
 
-    default _.InterpStringBrace interpStringBrace =
+    default _.InterpStringExpression interpStringExpression =
         [
-            reducer.Terminal interpStringBrace.OpenBrace
-            reducer.Expression interpStringBrace.Escaped
-            reducer.Terminal interpStringBrace.CloseBrace
+            reducer.Terminal interpStringExpression.OpenBrace
+            reducer.Expression interpStringExpression.Expression
+            reducer.Terminal interpStringExpression.CloseBrace
         ]
         |> reduce
 
@@ -255,6 +255,7 @@ type internal 'result Reducer() as reducer =
         | PostfixOperator operator -> reducer.PostfixOperator(reducer.Expression, operator)
         | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
         | Conditional conditional -> reducer.Conditional conditional
+        | FullOpenRange fullOpenRange -> reducer.Terminal fullOpenRange
         | Update update -> reducer.Update update
         | Expression.Unknown terminal -> reducer.Terminal terminal
 
@@ -262,7 +263,7 @@ type internal 'result Reducer() as reducer =
 
     default _.Identifier identifier =
         reducer.Terminal identifier.Name
-        :: (identifier.Arguments |> Option.map (curry reducer.Tuple reducer.Type) |> Option.toList)
+        :: (identifier.TypeArgs |> Option.map (curry reducer.Tuple reducer.Type) |> Option.toList)
         |> reduce
 
     abstract InterpString : interpString: InterpString -> 'result
@@ -289,8 +290,8 @@ type internal 'result Reducer() as reducer =
 
     default _.NamedItemAccess namedItemAccess =
         [
-            reducer.Expression namedItemAccess.Object
-            reducer.Terminal namedItemAccess.Colon
+            reducer.Expression namedItemAccess.Record
+            reducer.Terminal namedItemAccess.DoubleColon
             reducer.Terminal namedItemAccess.Name
         ]
         |> reduce
@@ -310,7 +311,7 @@ type internal 'result Reducer() as reducer =
 
     default _.Call call =
         [
-            reducer.Expression call.Function
+            reducer.Expression call.Callable
             reducer.Tuple(reducer.Expression, call.Arguments)
         ]
         |> reduce

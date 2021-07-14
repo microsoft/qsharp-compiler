@@ -3,18 +3,18 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-type Identifier = { Name: Terminal; Arguments: Type Tuple Option }
+type Identifier = { Name: Terminal; TypeArgs: Type Tuple Option }
 
-type InterpStringBrace =
+type InterpStringExpression =
     {
         OpenBrace: Terminal
-        Escaped: Expression
+        Expression: Expression
         CloseBrace: Terminal
     }
 
 and InterpStringContent =
     | Text of Terminal
-    | InterpStringBrace of InterpStringBrace
+    | Expression of InterpStringExpression
 
 and InterpString =
     {
@@ -34,8 +34,8 @@ and NewArray =
 
 and NamedItemAccess =
     {
-        Object: Expression
-        Colon: Terminal
+        Record: Expression
+        DoubleColon: Terminal
         Name: Terminal
     }
 
@@ -47,7 +47,7 @@ and ArrayAccess =
         CloseBracket: Terminal
     }
 
-and Call = { Function: Expression; Arguments: Expression Tuple }
+and Call = { Callable: Expression; Arguments: Expression Tuple }
 
 and Conditional =
     {
@@ -81,5 +81,6 @@ and Expression =
     | PostfixOperator of Expression PostfixOperator
     | BinaryOperator of Expression BinaryOperator
     | Conditional of Conditional
+    | FullOpenRange of Terminal
     | Update of Update
     | Unknown of Terminal

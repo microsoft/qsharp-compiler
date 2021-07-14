@@ -4,19 +4,19 @@
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 /// An identifier expression.
-/// It may represent a function name and the type arguments specified
-/// to call the function.
+/// It may represent a callable name and the type arguments specified
+/// to call the callable.
 type internal Identifier =
     {
         /// The name of the identifier
         Name: Terminal
 
         /// Optional type arguments
-        Arguments: Type Tuple Option
+        TypeArgs: Type Tuple Option
     }
 
 /// An escaped expression in an interpolated string
-type internal InterpStringBrace =
+type internal InterpStringExpression =
     {
         /// <summary>
         /// The <c>{</c> symbol.
@@ -24,7 +24,7 @@ type internal InterpStringBrace =
         OpenBrace: Terminal
 
         /// The escaped expression
-        Escaped: Expression
+        Expression: Expression
 
         /// <summary>
         /// The <c>}</c> symbol.
@@ -37,7 +37,7 @@ and internal InterpStringContent =
     | Text of Terminal
 
     /// An escaped expression
-    | InterpStringBrace of InterpStringBrace
+    | Expression of InterpStringExpression
 
 /// An interpolated string
 and internal InterpString =
@@ -62,7 +62,7 @@ and internal NewArray =
         /// The `new` keyword.
         New: Terminal
 
-        /// The type of the creating array.
+        /// The type of the created array.
         ArrayType: Type
 
         /// <summary>
@@ -70,7 +70,7 @@ and internal NewArray =
         /// </summary>
         OpenBracket: Terminal
 
-        /// The length of the creating array.
+        /// The length of the created array.
         Length: Expression
 
         /// <summary>
@@ -83,14 +83,14 @@ and internal NewArray =
 and internal NamedItemAccess =
     {
         /// The accessing object
-        Object: Expression
+        Record: Expression
 
         /// <summary>
         /// The <c>::</c> symbol.
         /// </summary>
-        Colon: Terminal
+        DoubleColon: Terminal
 
-        /// The accessing item name
+        /// The accessed item name
         Name: Terminal
     }
 
@@ -105,7 +105,7 @@ and internal ArrayAccess =
         /// </summary>
         OpenBracket: Terminal
 
-        /// The index of the accessing item.
+        /// The index of the accessed item.
         Index: Expression
 
         /// <summary>
@@ -114,13 +114,13 @@ and internal ArrayAccess =
         CloseBracket: Terminal
     }
 
-/// A function-call expression.
+/// A callable-call expression.
 and internal Call =
     {
-        /// The function being called.
-        Function: Expression
+        /// The callable being called.
+        Callable: Expression
 
-        /// The argument list of the function call.
+        /// The argument list of the callable call.
         Arguments: Expression Tuple
     }
 
@@ -194,7 +194,7 @@ and internal Expression =
     /// An array-item-access expression.
     | ArrayAccess of ArrayAccess
 
-    /// A function-call expression.
+    /// A callable-call expression.
     | Call of Call
 
     /// A prefix operator applied to an expression.
@@ -208,6 +208,9 @@ and internal Expression =
 
     /// A conditional expression.
     | Conditional of Conditional
+
+    /// A full-open-range expression.
+    | FullOpenRange of Terminal
 
     /// A copy-and-update expression.
     | Update of Update

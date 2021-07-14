@@ -6,19 +6,32 @@ namespace Microsoft.Quantum.QsFmt.Formatter.ParseTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Parser
 
+module Expression =
+    let toTypeArgs tokens (context: QSharpParser.TypeTupleContext) =
+        let typeArgs = context._typeArgs |> Seq.map (TypeVisitor tokens).Visit
+
+        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
+
+        {
+            OpenParen = context.openBracket |> Node.toTerminal tokens
+            Items = Node.tupleItems typeArgs commas
+            CloseParen = context.closeBracket |> Node.toTerminal tokens
+        }
+
+
 type InterpStringContentVisitor(tokens) =
     inherit QSharpParserBaseVisitor<InterpStringContent>()
 
     override _.VisitInterpStringEscapeContent context =
         context.InterpStringEscape().Symbol |> Node.toTerminal tokens |> Text
 
-    override _.VisitInterpBraceContent context =
+    override _.VisitInterpExpressionContent context =
         {
             OpenBrace = context.openBrace |> Node.toTerminal tokens
-            Escaped = (ExpressionVisitor tokens).Visit context.exp
+            Expression = (ExpressionVisitor tokens).Visit context.exp
             CloseBrace = context.closeBrace |> Node.toTerminal tokens
         }
-        |> InterpStringBrace
+        |> Expression
 
     override _.VisitInterpTextContent context =
         context.InterpStringText().Symbol |> Node.toTerminal tokens |> Text
@@ -37,23 +50,9 @@ and ExpressionVisitor(tokens) =
         context.Underscore().Symbol |> Node.toTerminal tokens |> Missing
 
     override _.VisitIdentifierExpression context =
-        let types = context._typeArgs |> Seq.map typeVisitor.Visit
-
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
-
         {
             Name = { Prefix = Node.prefix tokens context.name.Start.TokenIndex; Text = context.name.GetText() }
-            Arguments =
-                match context.openBracket with
-                | null -> None
-                | _ ->
-                    Some(
-                        {
-                            OpenParen = context.openBracket |> Node.toTerminal tokens
-                            Items = Node.tupleItems types commas
-                            CloseParen = context.closeBracket |> Node.toTerminal tokens
-                        }
-                    )
+            TypeArgs = Option.ofObj context.types |> Option.map (Expression.toTypeArgs tokens)
         }
         |> Identifier
 
@@ -125,8 +124,8 @@ and ExpressionVisitor(tokens) =
 
     override visitor.VisitNamedItemAccessExpression context =
         {
-            Object = visitor.Visit context.obj
-            Colon = context.colon |> Node.toTerminal tokens
+            Record = visitor.Visit context.record
+            DoubleColon = context.colon |> Node.toTerminal tokens
             Name = context.name |> Node.toTerminal tokens
         }
         |> NamedItemAccess
@@ -158,7 +157,7 @@ and ExpressionVisitor(tokens) =
         let commas = context._commas |> Seq.map (Node.toTerminal tokens)
 
         {
-            Function = visitor.Visit context.``fun``
+            Callable = visitor.Visit context.callable
             Arguments =
                 {
                     OpenParen = context.openParen |> Node.toTerminal tokens
@@ -287,7 +286,7 @@ and ExpressionVisitor(tokens) =
         |> PrefixOperator
 
     override _.VisitOpenRangeExpression context =
-        context.Ellipsis().Symbol |> Node.toTerminal tokens |> Missing
+        context.Ellipsis().Symbol |> Node.toTerminal tokens |> FullOpenRange
 
     override visitor.VisitUpdateExpression context =
         {
