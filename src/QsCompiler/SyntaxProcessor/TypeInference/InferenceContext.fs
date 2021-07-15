@@ -273,14 +273,14 @@ module private Inference =
     let typeParameters resolvedType =
         let mutable parameters = Set.empty
 
-        { new TypeTransformation() with
-            member this.OnTypeParameter param =
-                parameters <- parameters |> Set.add param
-                TypeParameter param
-        }
-            .OnType resolvedType
-        |> ignore
+        let transformation =
+            { new TypeTransformation() with
+                member this.OnTypeParameter param =
+                    parameters <- parameters |> Set.add param
+                    TypeParameter param
+            }
 
+        transformation.OnType resolvedType |> ignore
         parameters
 
 open Inference
