@@ -9,6 +9,7 @@ open System.Collections.Generic
 type ErrorCode =
     | TypeMismatch = 1
     | TypeIntersectionMismatch = 2
+    | InfiniteType = 3
 
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
@@ -465,9 +466,17 @@ type DiagnosticItem =
         let message =
             match code with
             | ErrorCode.TypeMismatch ->
-                "The type {1} does not match the type {0}.\nActual type:   {3}\nExpected type: {2}"
+                "The type {0} does not match the type {1}.\n\
+                 Expected type: {2}\n\
+                 Actual type:   {3}"
             | ErrorCode.TypeIntersectionMismatch ->
-                "The type {1} does not {0} the type {2}.\nLeft-hand type:  {3}\nRight-hand type: {4}"
+                "The type {1} does not {0} the type {2}.\n\
+                 Left-hand type:  {3}\n\
+                 Right-hand type: {4}"
+            | ErrorCode.InfiniteType ->
+                "The type {0} cannot be unified with {1} because it would create an infinite type.\n\
+                 Left-hand type:  {2}\n\
+                 Right-hand type: {3}"
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."

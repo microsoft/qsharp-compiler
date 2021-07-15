@@ -75,6 +75,11 @@ type private TypeContext =
         OriginalRight: ResolvedType
     }
 
+/// An error that can occur when binding a type parameter to another type during unification.
+type private BindError =
+    /// The binding would create an infinite type; i.e., the occurs check failed.
+    | InfiniteType
+
 module private TypeContext =
     /// <summary>
     /// Creates a type context originating with <paramref name="left"/> and <paramref name="right"/>.
@@ -286,11 +291,13 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     let mutable statementPosition = Position.Zero
 
     let bind param substitution =
-        if occursCheck param substitution |> not then failwith "Occurs check failed."
-        let variable = variables.[param]
-
-        if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
-        variables.[param] <- { variable with Substitution = Some substitution }
+        if occursCheck param substitution then
+            let variable = variables.[param]
+            if Option.isSome variable.Substitution then failwith "Type parameter is already bound."
+            variables.[param] <- { variable with Substitution = Some substitution }
+            Ok()
+        else
+            Result.Error InfiniteType
 
     let rememberErrors types diagnostics =
         if types |> Seq.contains (ResolvedType.New InvalidType) || List.isEmpty diagnostics |> not then
@@ -394,23 +401,24 @@ type InferenceContext(symbolTracker: SymbolTracker) =
     /// to the right-hand type.
     /// </summary>
     member private context.UnifyByOrdering(ordering, types) =
-        let error =
+        let error code =
             QsCompilerDiagnostic.Error
-                (ErrorCode.TypeMismatch, describeTypeContext types)
+                (code, describeTypeContext types)
                 (TypeRange.tryRange types.Right.Range |> QsNullable.defaultValue Range.Zero)
+
+        let tryBind param substitution =
+            match bind param substitution with
+            | Ok () -> context.ApplyConstraints(param, substitution)
+            | Result.Error InfiniteType -> [ error ErrorCode.InfiniteType ]
 
         match types.Left.Resolution, types.Right.Resolution with
         | _ when types.Left = types.Right -> []
-        | TypeParameter param, _ when variables.ContainsKey param ->
-            bind param types.Right
-            context.ApplyConstraints(param, types.Right)
-        | _, TypeParameter param when variables.ContainsKey param ->
-            bind param types.Left
-            context.ApplyConstraints(param, types.Left)
+        | TypeParameter param, _ when variables.ContainsKey param -> tryBind param types.Right
+        | _, TypeParameter param when variables.ContainsKey param -> tryBind param types.Left
         | ArrayType item1, ArrayType item2 -> context.UnifyByOrdering(Equal, types |> TypeContext.intoRight item1 item2)
         | TupleType items1, TupleType items2 ->
             [
-                if items1.Length <> items2.Length then error
+                if items1.Length <> items2.Length then error ErrorCode.TypeMismatch
                 for item1, item2 in Seq.zip items1 items2 do
                     let types = types |> TypeContext.intoRight (context.Resolve item1) (context.Resolve item2)
                     yield! context.UnifyByOrdering(ordering, types)
@@ -420,7 +428,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
                 if ordering = Equal && not (characteristicsEqual info1 info2)
                    || ordering = Supertype && not (isSubset info1 info2)
                    || ordering = Subtype && not (isSubset info2 info1) then
-                    [ error ]
+                    [ error ErrorCode.TypeMismatch ]
                 else
                     []
 
@@ -438,7 +446,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             )
         | QsTypeKind.Operation ((in1, out1), _), QsTypeKind.Function (in2, out2)
         | QsTypeKind.Function (in1, out1), QsTypeKind.Operation ((in2, out2), _) ->
-            error
+            error ErrorCode.TypeMismatch
             :: context.UnifyByOrdering(ordering, types |> TypeContext.swap |> TypeContext.intoRight in2 in1)
             @ context.UnifyByOrdering(
                 ordering,
@@ -448,7 +456,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         | MissingType, _
         | _, InvalidType
         | _, MissingType -> []
-        | _ -> [ error ]
+        | _ -> [ error ErrorCode.TypeMismatch ]
 
     /// <summary>
     /// Applies the <paramref name="typeConstraint"/> to the given <paramref name="resolvedType"/>.
