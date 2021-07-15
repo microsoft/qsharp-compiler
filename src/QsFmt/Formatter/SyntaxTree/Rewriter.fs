@@ -124,8 +124,8 @@ type 'context Rewriter() =
         | Adjoint adjoint -> rewriter.Terminal(context, adjoint) |> Adjoint
         | Controlled controlled -> rewriter.Terminal(context, controlled) |> Controlled
         | Group group -> rewriter.CharacteristicGroup(context, group) |> Group
-        | Characteristic.BinaryOperator operator ->
-            rewriter.BinaryOperator(context, rewriter.Characteristic, operator) |> Characteristic.BinaryOperator
+        | Characteristic.InfixOperator operator ->
+            rewriter.InfixOperator(context, rewriter.Characteristic, operator) |> Characteristic.InfixOperator
 
     abstract CallableBody : context: 'context * body: CallableBody -> CallableBody
 
@@ -217,16 +217,111 @@ type 'context Rewriter() =
             Type = declaration.Type |> Option.map (curry rewriter.TypeAnnotation context)
         }
 
+    abstract InterpStringContent : context: 'context * interpStringContent: InterpStringContent -> InterpStringContent
+
+    default rewriter.InterpStringContent(context, interpStringContent) =
+        match interpStringContent with
+        | Text text -> rewriter.Terminal(context, text) |> Text
+        | Expression interpStringExpression ->
+            rewriter.InterpStringExpression(context, interpStringExpression) |> Expression
+
+    abstract InterpStringExpression :
+        context: 'context * interpStringExpression: InterpStringExpression -> InterpStringExpression
+
+    default rewriter.InterpStringExpression(context, interpStringExpression) =
+        {
+            OpenBrace = rewriter.Terminal(context, interpStringExpression.OpenBrace)
+            Expression = rewriter.Expression(context, interpStringExpression.Expression)
+            CloseBrace = rewriter.Terminal(context, interpStringExpression.CloseBrace)
+        }
+
     abstract Expression : context: 'context * expression: Expression -> Expression
 
     default rewriter.Expression(context, expression) =
         match expression with
         | Missing terminal -> rewriter.Terminal(context, terminal) |> Missing
         | Literal literal -> rewriter.Terminal(context, literal) |> Literal
+        | Identifier identifier -> rewriter.Identifier(context, identifier) |> Identifier
+        | InterpString interp -> rewriter.InterpString(context, interp) |> InterpString
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
-        | BinaryOperator operator -> rewriter.BinaryOperator(context, rewriter.Expression, operator) |> BinaryOperator
+        | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
+        | NamedItemAccess namedItemAccess -> rewriter.NamedItemAccess(context, namedItemAccess) |> NamedItemAccess
+        | ArrayAccess arrayAccess -> rewriter.ArrayAccess(context, arrayAccess) |> ArrayAccess
+        | Call call -> rewriter.Call(context, call) |> Call
+        | PrefixOperator operator -> rewriter.PrefixOperator(context, rewriter.Expression, operator) |> PrefixOperator
+        | PostfixOperator operator ->
+            rewriter.PostfixOperator(context, rewriter.Expression, operator) |> PostfixOperator
+        | InfixOperator operator -> rewriter.InfixOperator(context, rewriter.Expression, operator) |> InfixOperator
+        | Conditional conditional -> rewriter.Conditional(context, conditional) |> Conditional
+        | FullOpenRange fullOpenRange -> rewriter.Terminal(context, fullOpenRange) |> FullOpenRange
         | Update update -> rewriter.Update(context, update) |> Update
         | Expression.Unknown terminal -> rewriter.Terminal(context, terminal) |> Expression.Unknown
+
+    abstract Identifier : context: 'context * identifier: Identifier -> Identifier
+
+    default rewriter.Identifier(context, identifier) =
+        {
+            Name = rewriter.Terminal(context, identifier.Name)
+            TypeArgs = identifier.TypeArgs |> Option.map (curry3 rewriter.Tuple context rewriter.Type)
+        }
+
+    abstract InterpString : context: 'context * interpString: InterpString -> InterpString
+
+    default rewriter.InterpString(context, interpString) =
+        {
+            OpenQuote = rewriter.Terminal(context, interpString.OpenQuote)
+            Content = interpString.Content |> List.map (curry rewriter.InterpStringContent context)
+            CloseQuote = rewriter.Terminal(context, interpString.CloseQuote)
+        }
+
+    abstract NewArray : context: 'context * newArray: NewArray -> NewArray
+
+    default rewriter.NewArray(context, newArray) =
+        {
+            New = rewriter.Terminal(context, newArray.New)
+            ItemType = rewriter.Type(context, newArray.ItemType)
+            OpenBracket = rewriter.Terminal(context, newArray.OpenBracket)
+            Length = rewriter.Expression(context, newArray.Length)
+            CloseBracket = rewriter.Terminal(context, newArray.CloseBracket)
+        }
+
+    abstract NamedItemAccess : context: 'context * namedItemAccess: NamedItemAccess -> NamedItemAccess
+
+    default rewriter.NamedItemAccess(context, namedItemAccess) =
+        {
+            Record = rewriter.Expression(context, namedItemAccess.Record)
+            DoubleColon = rewriter.Terminal(context, namedItemAccess.DoubleColon)
+            Name = rewriter.Terminal(context, namedItemAccess.Name)
+        }
+
+    abstract ArrayAccess : context: 'context * arrayAccess: ArrayAccess -> ArrayAccess
+
+    default rewriter.ArrayAccess(context, arrayAccess) =
+        {
+            Array = rewriter.Expression(context, arrayAccess.Array)
+            OpenBracket = rewriter.Terminal(context, arrayAccess.OpenBracket)
+            Index = rewriter.Expression(context, arrayAccess.Index)
+            CloseBracket = rewriter.Terminal(context, arrayAccess.CloseBracket)
+        }
+
+    abstract Call : context: 'context * call: Call -> Call
+
+    default rewriter.Call(context, call) =
+        {
+            Callable = rewriter.Expression(context, call.Callable)
+            Arguments = rewriter.Tuple(context, rewriter.Expression, call.Arguments)
+        }
+
+    abstract Conditional : context: 'context * conditional: Conditional -> Conditional
+
+    default rewriter.Conditional(context, conditional) =
+        {
+            Condition = rewriter.Expression(context, conditional.Condition)
+            Question = rewriter.Terminal(context, conditional.Question)
+            IfTrue = rewriter.Expression(context, conditional.IfTrue)
+            Pipe = rewriter.Terminal(context, conditional.Pipe)
+            IfFalse = rewriter.Expression(context, conditional.IfFalse)
+        }
 
     abstract Update : context: 'context * update: Update -> Update
 
@@ -265,13 +360,31 @@ type 'context Rewriter() =
             Comma = item.Comma |> Option.map (curry rewriter.Terminal context)
         }
 
-    abstract BinaryOperator :
-        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a BinaryOperator -> 'a BinaryOperator
+    abstract PrefixOperator :
+        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a PrefixOperator -> 'a PrefixOperator
 
-    default rewriter.BinaryOperator(context, mapper, operator) =
+    default rewriter.PrefixOperator(context, mapper, operator) =
+        {
+            PrefixOperator = rewriter.Terminal(context, operator.PrefixOperator)
+            Operand = mapper (context, operator.Operand)
+        }
+
+    abstract PostfixOperator :
+        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a PostfixOperator -> 'a PostfixOperator
+
+    default rewriter.PostfixOperator(context, mapper, operator) =
+        {
+            Operand = mapper (context, operator.Operand)
+            PostfixOperator = rewriter.Terminal(context, operator.PostfixOperator)
+        }
+
+    abstract InfixOperator :
+        context: 'context * mapper: ('context * 'a -> 'a) * operator: 'a InfixOperator -> 'a InfixOperator
+
+    default rewriter.InfixOperator(context, mapper, operator) =
         {
             Left = mapper (context, operator.Left)
-            Operator = rewriter.Terminal(context, operator.Operator)
+            InfixOperator = rewriter.Terminal(context, operator.InfixOperator)
             Right = mapper (context, operator.Right)
         }
 
