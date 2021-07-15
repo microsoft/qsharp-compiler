@@ -186,13 +186,13 @@ type internal 'result Reducer =
     default InterpString: interpString:InterpString -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="NewArray"/> expression node.
+    /// Reduces a <see cref="NewArray"/> expression node.
     /// </summary>
     abstract NewArray: newArray:NewArray -> 'result
     default NewArray: newArray:NewArray -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="NamedItemAccess"/> expression node.
+    /// Reduces a <see cref="NamedItemAccess"/> expression node.
     /// </summary>
     abstract NamedItemAccess: namedItemAccess:NamedItemAccess -> 'result
     default NamedItemAccess: namedItemAccess:NamedItemAccess -> 'result
@@ -204,13 +204,13 @@ type internal 'result Reducer =
     default ArrayAccess: arrayAccess:ArrayAccess -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Call"/> expression node.
+    /// Reduces a <see cref="Call"/> expression node.
     /// </summary>
     abstract Call: call:Call -> 'result
     default Call: call:Call -> 'result
 
     /// <summary>
-    /// Reduces an <see cref="Conditional"/> expression node.
+    /// Reduces a <see cref="Conditional"/> expression node.
     /// </summary>
     abstract Conditional: conditional:Conditional -> 'result
     default Conditional: conditional:Conditional -> 'result
@@ -252,7 +252,7 @@ type internal 'result Reducer =
     default PostfixOperator: mapper:('a -> 'result) * operator:'a PostfixOperator -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="InfixOperator{a}"/> node, given a reducer for the operands.
+    /// Reduces an <see cref="InfixOperator{a}"/> node, given a reducer for the operands.
     /// </summary>
     abstract InfixOperator: mapper:('a -> 'result) * operator:'a InfixOperator -> 'result
     default InfixOperator: mapper:('a -> 'result) * operator:'a InfixOperator -> 'result

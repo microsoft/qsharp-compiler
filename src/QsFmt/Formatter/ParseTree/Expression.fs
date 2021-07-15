@@ -115,7 +115,7 @@ and ExpressionVisitor(tokens) =
     override visitor.VisitNewArrayExpression context =
         {
             New = context.``new`` |> Node.toTerminal tokens
-            ArrayType = typeVisitor.Visit context.arrayType
+            ItemType = typeVisitor.Visit context.itemType
             OpenBracket = context.openBracket |> Node.toTerminal tokens
             Length = visitor.Visit context.length
             CloseBracket = context.closeBracket |> Node.toTerminal tokens

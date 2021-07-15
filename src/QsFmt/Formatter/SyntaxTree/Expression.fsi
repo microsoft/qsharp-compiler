@@ -63,7 +63,7 @@ and internal NewArray =
         New: Terminal
 
         /// The type of the created array.
-        ArrayType: Type
+        ItemType: Type
 
         /// <summary>
         /// The <c>[</c> symbol.
@@ -203,7 +203,7 @@ and internal Expression =
     /// A postfix operator applied to an expression.
     | PostfixOperator of Expression PostfixOperator
 
-    /// An operator applied to two expressions.
+    /// An infix operator applied to two expressions.
     | InfixOperator of Expression InfixOperator
 
     /// A conditional expression.

@@ -105,7 +105,7 @@ type internal 'a PostfixOperator =
         PostfixOperator: Terminal
     }
 
-/// A binary operator.
+/// An infix operator.
 type internal 'a InfixOperator =
     {
         /// The left-hand side.

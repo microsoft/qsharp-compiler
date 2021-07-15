@@ -210,7 +210,7 @@ expression
     | value=pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
-    | new='new' arrayType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
+    | new='new' itemType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
     | record=expression colon='::' name=Identifier # NamedItemAccessExpression
     | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression
     | operand=expression operator='!' # UnwrapExpression

@@ -26,7 +26,7 @@ and InterpString =
 and NewArray =
     {
         New: Terminal
-        ArrayType: Type
+        ItemType: Type
         OpenBracket: Terminal
         Length: Expression
         CloseBracket: Terminal

@@ -182,13 +182,13 @@ type internal 'context Rewriter =
     default InterpString: context:'context * interpString:InterpString -> InterpString
 
     /// <summary>
-    /// Rewrites an <see cref="NewArray"/> expression node.
+    /// Rewrites a <see cref="NewArray"/> expression node.
     /// </summary>
     abstract NewArray: context:'context * newArray:NewArray -> NewArray
     default NewArray: context:'context * newArray:NewArray -> NewArray
 
     /// <summary>
-    /// Rewrites an <see cref="NamedItemAccess"/> expression node.
+    /// Rewrites a <see cref="NamedItemAccess"/> expression node.
     /// </summary>
     abstract NamedItemAccess: context:'context * namedItemAccess:NamedItemAccess -> NamedItemAccess
     default NamedItemAccess: context:'context * namedItemAccess:NamedItemAccess -> NamedItemAccess
@@ -200,13 +200,13 @@ type internal 'context Rewriter =
     default ArrayAccess: context:'context * arrayAccess:ArrayAccess -> ArrayAccess
 
     /// <summary>
-    /// Rewrites an <see cref="Call"/> expression node.
+    /// Rewrites a <see cref="Call"/> expression node.
     /// </summary>
     abstract Call: context:'context * call:Call -> Call
     default Call: context:'context * call:Call -> Call
 
     /// <summary>
-    /// Rewrites an <see cref="Conditional"/> expression node.
+    /// Rewrites a <see cref="Conditional"/> expression node.
     /// </summary>
     abstract Conditional: context:'context * conditional:Conditional -> Conditional
     default Conditional: context:'context * conditional:Conditional -> Conditional
@@ -260,7 +260,7 @@ type internal 'context Rewriter =
                             -> 'a PostfixOperator
 
     /// <summary>
-    /// Rewrites a <see cref="InfixOperator{a}"/> node, given a rewriter for the operands.
+    /// Rewrites an <see cref="InfixOperator{a}"/> node, given a rewriter for the operands.
     /// </summary>
     abstract InfixOperator: context:'context
                              * mapper:('context * 'a -> 'a)

@@ -279,7 +279,7 @@ type 'context Rewriter() =
     default rewriter.NewArray(context, newArray) =
         {
             New = rewriter.Terminal(context, newArray.New)
-            ArrayType = rewriter.Type(context, newArray.ArrayType)
+            ItemType = rewriter.Type(context, newArray.ItemType)
             OpenBracket = rewriter.Terminal(context, newArray.OpenBracket)
             Length = rewriter.Expression(context, newArray.Length)
             CloseBracket = rewriter.Terminal(context, newArray.CloseBracket)

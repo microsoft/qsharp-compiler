@@ -279,7 +279,7 @@ type internal 'result Reducer() as reducer =
     default _.NewArray newArray =
         [
             reducer.Terminal newArray.New
-            reducer.Type newArray.ArrayType
+            reducer.Type newArray.ItemType
             reducer.Terminal newArray.OpenBracket
             reducer.Expression newArray.Length
             reducer.Terminal newArray.CloseBracket
