@@ -10,7 +10,6 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Interop;
@@ -178,7 +177,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
+        public GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();

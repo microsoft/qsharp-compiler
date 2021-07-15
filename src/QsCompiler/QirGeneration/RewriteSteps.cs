@@ -17,7 +17,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    internal class QirGeneration : IRewriteStep
+    public class QirGeneration : IRewriteStep
     {
         internal const int EmissionPriority = -10;
 
@@ -119,7 +119,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// or a non-intrinsic callable contains intrinsic specializations,
     /// or the a callable doesn't have a body specialization.
     /// </exception>
-    internal class TargetInstructionInference : IRewriteStep
+    public class TargetInstructionInference : IRewriteStep
     {
         private readonly List<IRewriteStep.Diagnostic> diagnostics = new List<IRewriteStep.Diagnostic>();
 
