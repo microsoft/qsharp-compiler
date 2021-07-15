@@ -177,7 +177,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        public GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();

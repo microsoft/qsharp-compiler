@@ -76,8 +76,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             transformed = compilation;
             var isLibrary = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QsharpOutputType, out var outputType) && string.Equals(outputType, ReservedKeywords.AssemblyConstants.QsharpLibrary);
-            using var generationContext = new GenerationContext(compilation.Namespaces, isLibrary);
-            var generator = new Generator(transformed, generationContext);
+            var generator = new Generator(transformed, isLibrary);
             generator.Apply();
 
             // write generated QIR to disk
