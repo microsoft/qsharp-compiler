@@ -4,7 +4,7 @@ namespace Hello {
     open Microsoft.Quantum.Intrinsic;
     
     @EntryPoint()
-    operation SayHello() : Unit {
+    operation HelloQ() : Unit {
         Message("Hello quantum world!");
     }
 }

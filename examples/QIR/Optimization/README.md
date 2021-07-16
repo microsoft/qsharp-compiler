@@ -146,7 +146,7 @@ Enabling QIR generation is a simple matter of adding the `<QirGeneration>` prope
 
 ### Building the project
 
-Build the project by running `dotnet build` from the project root folder, or specify the path manually as `dotnet build path/to/Hello.csproj`.
+Build the project by running `dotnet build` from the project root folder (`cd Hello`), or specify the path manually as `dotnet build path/to/Hello.csproj`.
 In addition to building the (simulator) executable, the compiler will also create a `qir` folder with an LLVM representation of the program (`Hello.ll`).
 
 For small projects, such as the default hello world program, a lot of the generated QIR code may not actually be required to run the program.
@@ -158,16 +158,16 @@ While Clang is typically used to compile and optimize e.g. C code, it can also b
 The command below tells Clang to run a series of optimizations on the generated QIR code `Hello.ll` and output back LLVM IR:
 
 ```shell
-clang -S Hello.ll -O3 -emit-llvm -o Hello-o3.ll
+clang -S qir/Hello.ll -O3 -emit-llvm -o qir/Hello-o3.ll
 ```
 
 Parameters (see also the [clang man page](https://clang.llvm.org/docs/CommandGuide/clang.html)):
 
 * `-S` : turn off assembly and linking stages (since we want to stay at the IR level)
-* `Hello.ll` : the input file (in this case human-readable LLVM IR)
+* `qir/Hello.ll` : the input file (in this case human-readable LLVM IR)
 * `-O3` : LLVM optimization level, ranging from O0 to O3 (among others)
 * `-emit-llvm` : output LLVM IR instead of assembly code
-* `-o Hello-o3.ll` : the output file
+* `-o qir/Hello-o3.ll` : the output file
 
 The resulting QIR code is now significantly smaller, only containing the declarations and definitions used by the hello world program:
 
@@ -182,7 +182,7 @@ declare void @__quantum__rt__message(%String*) local_unnamed_addr
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32) local_unnamed_addr
 
-define void @Hello__SayHello__Interop() local_unnamed_addr #0 {
+define void @Hello__HelloQ__Interop() local_unnamed_addr #0 {
 entry:
   %0 = tail call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   tail call void @__quantum__rt__message(%String* %0)
@@ -190,7 +190,7 @@ entry:
   ret void
 }
 
-define void @Hello__SayHello() local_unnamed_addr #1 {
+define void @Hello__HelloQ() local_unnamed_addr #1 {
 entry:
   %0 = tail call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
   tail call void @__quantum__rt__message(%String* %0)
@@ -211,15 +211,15 @@ On the hello world program, the *global dead code elimination (DCE)* pass should
 Invoke it as follows:
 
 ```shell
-opt -S Hello.ll -globaldce -o Hello-dce.ll
+opt -S qir/Hello.ll -globaldce -o qir/Hello-dce.ll
 ```
 
 Parameters (see also the [opt man page](https://llvm.org/docs/CommandGuide/opt.html)):
 
 * `-S` : output human-readable LLVM IR instead of bytecode
-* `Hello.ll` : the input file
+* `qir/Hello.ll` : the input file
 * `-globaldce` : global DCE pass, removes unused definitions/declarations
-* `-o Hello-dce.ll` : the output file (stdout if omitted)
+* `-o qir/Hello-dce.ll` : the output file (stdout if omitted)
 
 This produces the following code:
 
@@ -228,9 +228,9 @@ This produces the following code:
 
 @0 = internal constant [21 x i8] c"Hello quantum world!\00"
 
-define internal void @Hello__SayHello__body() {
+define internal void @Hello__HelloQ__body() {
 entry:
-  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__message(%String* %0)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
   ret void
@@ -242,13 +242,13 @@ declare void @__quantum__rt__message(%String*)
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32)
 
-define void @Hello__SayHello__Interop() #0 {
+define void @Hello__HelloQ__Interop() #0 {
 entry:
   call void @Hello__HelloQ__body()
   ret void
 }
 
-define void @Hello__SayHello() #1 {
+define void @Hello__HelloQ() #1 {
 entry:
   call void @Hello__HelloQ__body()
   ret void
@@ -262,7 +262,7 @@ Note that compared to the output from `-O3`, the function `Hello__SayHello__body
 Add *function inlining* with the following pass:
 
 ```shell
-opt -S Hello.ll -globaldce -inline -o Hello-dce.ll
+opt -S qir/Hello.ll -globaldce -inline -o qir/Hello-dce-inline.ll
 ```
 
 Which produces:
@@ -278,17 +278,17 @@ declare void @__quantum__rt__message(%String*)
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32)
 
-define void @Hello__SayHello__Interop() #0 {
+define void @Hello__HelloQ__Interop() #0 {
 entry:
-  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__message(%String* %0)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
   ret void
 }
 
-define void @Hello__SayHello() #1 {
+define void @Hello__HelloQ() #1 {
 entry:
-  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__message(%String* %0)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
   ret void

@@ -1,5 +1,5 @@
-; ModuleID = 'Hello.ll'
-source_filename = "Hello.ll"
+; ModuleID = 'qir/Hello.ll'
+source_filename = "qir/Hello.ll"
 
 %String = type opaque
 
@@ -11,17 +11,17 @@ declare void @__quantum__rt__message(%String*)
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32)
 
-define void @Hello__SayHello__Interop() #0 {
+define void @Hello__HelloQ__Interop() #0 {
 entry:
-  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__message(%String* %0)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
   ret void
 }
 
-define void @Hello__SayHello() #1 {
+define void @Hello__HelloQ() #1 {
 entry:
-  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i64 0, i64 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([21 x i8], [21 x i8]* @0, i32 0, i32 0))
   call void @__quantum__rt__message(%String* %0)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
   ret void
