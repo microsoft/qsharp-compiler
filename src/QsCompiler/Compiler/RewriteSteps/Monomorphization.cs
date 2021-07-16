@@ -1,6 +1,7 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Linq;
@@ -16,7 +17,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     internal class Monomorphization : IRewriteStep
     {
         private readonly bool monomorphizeIntrinsics;
-        private readonly bool isLibrary;
 
         public string Name => "Monomorphization";
 
@@ -26,7 +26,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => Enumerable.Empty<IRewriteStep.Diagnostic>();
 
-        public bool ImplementsPreconditionVerification => true;
+        public bool ImplementsPreconditionVerification => false;
 
         public bool ImplementsTransformation => true;
 
@@ -36,15 +36,14 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// Constructor for the Monomorphization Rewrite Step.
         /// </summary>
         /// <param name="monomorphizeIntrinsics">When true, intrinsics will be monomorphized as part of the rewrite step.</param>
-        /// <param name="isLibrary">When true, each public, non-generic callable will be treated as an entry point in the call graph.</param>
-        public Monomorphization(bool monomorphizeIntrinsics = false, bool isLibrary = false)
+        public Monomorphization(bool monomorphizeIntrinsics = false)
         {
             this.monomorphizeIntrinsics = monomorphizeIntrinsics;
             this.AssemblyConstants = new Dictionary<string, string?>();
-            this.isLibrary = isLibrary;
         }
 
-        public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any() || this.isLibrary;
+        public bool PreconditionVerification(QsCompilation compilation) =>
+            throw new NotImplementedException();
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
@@ -71,12 +70,12 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         {
             // If this compilation is for a library project, there are no defined entry points. Instead,
             // treat every public, non-generic callable as a possible entry point into the library.
-            return this.isLibrary ?
-                compilation.Namespaces.GlobalCallableResolutions()
+            return compilation.EntryPoints.Length == 0
+                ? compilation.Namespaces.GlobalCallableResolutions()
                     .Where(g => g.Value.Source.AssemblyFile.IsNull && g.Value.Signature.TypeParameters.IsEmpty && g.Value.Access.IsPublic)
                     .Select(e => e.Key)
-                    .ToImmutableArray() :
-                compilation.EntryPoints;
+                    .ToImmutableArray()
+                : compilation.EntryPoints;
         }
     }
 }
