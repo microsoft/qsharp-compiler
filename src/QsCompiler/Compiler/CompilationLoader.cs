@@ -189,9 +189,9 @@ namespace Microsoft.Quantum.QsCompiler
             public IEnumerable<string>? TargetPackageAssemblies { get; set; }
 
             /// <summary>
-            /// Whether or not QIR Generation was requested for this compilation unit.
+            /// Indicates whether the necessary compiler passes are executed for the compilation to be compatible with QIR generation.
             /// </summary>
-            public bool IsQirGenerationEnabled { get; set; }
+            public bool PrepareQirGeneration { get; set; }
 
             /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
@@ -199,6 +199,13 @@ namespace Microsoft.Quantum.QsCompiler
             /// </summary>
             internal bool SerializeSyntaxTree =>
                 this.BuildOutputFolder != null || this.DllOutputPath != null;
+
+            /// <summary>
+            /// Indicates whether the compilation needs to be monomorphized.
+            /// This value is never true if SkipMonomorphization is specified.
+            /// </summary>
+            internal bool Monomorphize =>
+                (this.IsExecutable || this.PrepareQirGeneration) && !this.SkipMonomorphization;
 
             /// <summary>
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
@@ -287,13 +294,13 @@ namespace Microsoft.Quantum.QsCompiler
                 this.ReferenceLoading <= 0 &&
                 this.WasSuccessful(true, this.Validation) &&
                 this.WasSuccessful(true, this.PluginLoading) &&
-                this.WasSuccessful((options.IsExecutable || options.IsQirGenerationEnabled) && !options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
+                this.WasSuccessful(options.IsExecutable && !options.SkipSyntaxTreeTrimming, this.TreeTrimming) &&
                 this.WasSuccessful(options.GenerateFunctorSupport, this.FunctorSupport) &&
                 this.WasSuccessful(!options.SkipConjugationInlining, this.ConjugationInlining) &&
                 this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
-                this.WasSuccessful((options.IsExecutable || options.IsQirGenerationEnabled) && !options.SkipMonomorphization, this.Monomorphization) &&
+                this.WasSuccessful(options.Monomorphize, this.Monomorphization) &&
                 this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
                 this.WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 this.WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
@@ -573,16 +580,17 @@ namespace Microsoft.Quantum.QsCompiler
             // executing the specified rewrite steps
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
-            this.config.IsQirGenerationEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
+            this.config.PrepareQirGeneration = this.config.PrepareQirGeneration || this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
 
-            if ((this.config.IsExecutable || this.config.IsQirGenerationEnabled) && !this.config.SkipSyntaxTreeTrimming)
+            if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
                 // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
 #pragma warning disable CS0618 // Type or member is obsolete
                 // TODO: The dependencies for rewrite steps should be declared as part of IRewriteStep interface, and we should query those here.
-                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: !this.config.IsQirGenerationEnabled, BuiltIn.AllBuiltIns.Select(e => e.FullName), !this.config.IsExecutable), typeof(IRewriteStep), thisDllUri);
+                var trimming = new SyntaxTreeTrimming(keepAllIntrinsics: true, BuiltIn.AllBuiltIns.Select(e => e.FullName));
 #pragma warning restore CS0618 // Type or member is obsolete
+                var rewriteStep = new LoadedStep(trimming, typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
 
@@ -610,9 +618,9 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
             }
 
-            if ((this.config.IsExecutable || this.config.IsQirGenerationEnabled) && !this.config.SkipMonomorphization)
+            if (this.config.Monomorphize)
             {
-                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false, !this.config.IsExecutable), typeof(IRewriteStep), thisDllUri);
+                var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
             }
 

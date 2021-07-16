@@ -17,7 +17,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    internal class QirGeneration : IRewriteStep
+    public class QirGeneration : IRewriteStep
     {
         internal const int EmissionPriority = -10;
 
@@ -75,9 +75,7 @@ namespace Microsoft.Quantum.QsCompiler
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             transformed = compilation;
-            var isLibrary = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QsharpOutputType, out var outputType) && string.Equals(outputType, ReservedKeywords.AssemblyConstants.QsharpLibrary);
-            using var generationContext = new GenerationContext(compilation.Namespaces, isLibrary);
-            var generator = new Generator(transformed, generationContext);
+            using var generator = new Generator(transformed);
             generator.Apply();
 
             // write generated QIR to disk
@@ -119,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// or a non-intrinsic callable contains intrinsic specializations,
     /// or the a callable doesn't have a body specialization.
     /// </exception>
-    internal class TargetInstructionInference : IRewriteStep
+    public class TargetInstructionInference : IRewriteStep
     {
         private readonly List<IRewriteStep.Diagnostic> diagnostics = new List<IRewriteStep.Diagnostic>();
 
@@ -161,10 +159,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = TrimSyntaxTree.Apply(
-                compilation,
-                keepAllIntrinsics: false,
-                isLibrary: this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QsharpOutputType, out var outputType) && string.Equals(outputType, ReservedKeywords.AssemblyConstants.QsharpLibrary));
+            transformed = TrimSyntaxTree.Apply(compilation, keepAllIntrinsics: false);
             transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(transformed);
             transformed = InferTargetInstructions.LiftIntrinsicSpecializations(transformed);
             var allAttributesAdded = InferTargetInstructions.TryAddMissingTargetInstructionAttributes(transformed, out transformed);
