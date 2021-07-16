@@ -674,9 +674,9 @@ let private lambda =
 
 let private termParser tupleExpr =
     // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
-    choice [ attempt lambda
+    choice [ attempt newArray
+             attempt lambda
              attempt unitValue
-             attempt newArray
              attempt callLikeExpr // needs to be after unitValue
              attempt itemAccessExpr // needs to be after callLikeExpr
              attempt valueArray // needs to be after arryItemExpr
