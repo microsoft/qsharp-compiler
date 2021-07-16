@@ -11,7 +11,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// <summary>
     /// Transformation class used to generate QIR.
     /// </summary>
-    public class Generator : SyntaxTreeTransformation<GenerationContext>
+    public class Generator : SyntaxTreeTransformation<GenerationContext>, IDisposable
     {
         /// <summary>
         /// The compilation unit for which QIR is generated.
@@ -102,5 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new IOException(errorMessage);
             }
         }
+
+        public void Dispose() =>
+            this.SharedState.Dispose();
     }
 }
