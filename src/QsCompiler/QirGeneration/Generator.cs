@@ -36,9 +36,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Instantiates a transformation capable of emitting QIR for the given compilation.
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
-        /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        public Generator(QsCompilation compilation, bool isLibrary)
-        : base(new GenerationContext(compilation.Namespaces, isLibrary), TransformationOptions.NoRebuild)
+        public Generator(QsCompilation compilation)
+        : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0), TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
 

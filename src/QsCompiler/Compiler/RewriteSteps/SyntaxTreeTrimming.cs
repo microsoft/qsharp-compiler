@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     internal class SyntaxTreeTrimming : IRewriteStep
     {
         private readonly bool keepAllIntrinsics;
-        private readonly bool isLibrary;
+        private readonly bool enabledForLibraries;
         private readonly IEnumerable<QsQualifiedName>? dependencies;
 
         public string Name => "Syntax Tree Trimming";
@@ -35,19 +35,19 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// Initializes a new instance of the <see cref="SyntaxTreeTrimming"/> class.
         /// </summary>
         /// <param name="keepAllIntrinsics">When true, intrinsics will not be removed as part of the rewrite step.</param>
-        /// <param name="isLibrary">When true, trimming will consider every public, non-generic callabe as an entry point.</param>
-        public SyntaxTreeTrimming(bool keepAllIntrinsics = true, IEnumerable<QsQualifiedName>? dependencies = null, bool isLibrary = false)
+        /// <param name="enabledForLibraries">When true, trimming will consider every public, non-generic callabe as an entry point.</param>
+        public SyntaxTreeTrimming(bool keepAllIntrinsics = true, IEnumerable<QsQualifiedName>? dependencies = null, bool enabledForLibraries = false)
         {
             this.keepAllIntrinsics = keepAllIntrinsics;
             this.dependencies = dependencies;
-            this.isLibrary = isLibrary;
+            this.enabledForLibraries = enabledForLibraries;
         }
 
-        public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any() || this.isLibrary;
+        public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any() || this.enabledForLibraries;
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = TrimSyntaxTree.Apply(compilation, this.keepAllIntrinsics, this.dependencies, this.isLibrary);
+            transformed = TrimSyntaxTree.Apply(compilation, this.keepAllIntrinsics, this.dependencies);
             return true;
         }
 

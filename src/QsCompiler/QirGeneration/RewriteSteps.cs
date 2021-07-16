@@ -75,8 +75,7 @@ namespace Microsoft.Quantum.QsCompiler
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             transformed = compilation;
-            var isLibrary = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QsharpOutputType, out var outputType) && string.Equals(outputType, ReservedKeywords.AssemblyConstants.QsharpLibrary);
-            var generator = new Generator(transformed, isLibrary);
+            var generator = new Generator(transformed);
             generator.Apply();
 
             // write generated QIR to disk
@@ -160,10 +159,7 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = TrimSyntaxTree.Apply(
-                compilation,
-                keepAllIntrinsics: false,
-                isLibrary: this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QsharpOutputType, out var outputType) && string.Equals(outputType, ReservedKeywords.AssemblyConstants.QsharpLibrary));
+            transformed = TrimSyntaxTree.Apply(compilation, keepAllIntrinsics: false);
             transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(transformed);
             transformed = InferTargetInstructions.LiftIntrinsicSpecializations(transformed);
             var allAttributesAdded = InferTargetInstructions.TryAddMissingTargetInstructionAttributes(transformed, out transformed);
