@@ -71,7 +71,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         {
             // If this compilation is for a library project, there are no defined entry points. Instead,
             // treat every public, non-generic callable as a possible entry point into the library.
-            return compilation.EntryPoints.Length == 0 ?
+            return this.enabledForLibraries && compilation.EntryPoints.Length == 0 ?
                 compilation.Namespaces.GlobalCallableResolutions()
                     .Where(g => g.Value.Source.AssemblyFile.IsNull && g.Value.Signature.TypeParameters.IsEmpty && g.Value.Access.IsPublic)
                     .Select(e => e.Key)
