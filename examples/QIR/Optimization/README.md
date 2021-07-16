@@ -23,7 +23,7 @@ Steps for QDK v0.18.2106 (June 2021):
 
 * Install the [.NET Core SDK 3.1](https://dotnet.microsoft.com/download) (NOTE: use `dotnet-sdk-3.1` instead of `dotnet-sdk-5.0` in the Linux guides)
 * Install the QDK with `dotnet new -i Microsoft.Quantum.ProjectTemplates`
-* (Linux only) Ensure the [GNU OpenMP support library](https://gcc.gnu.org/onlinedocs/libgomp/) is installed on your system, e.g. via `sudo apt install libgomp1`
+* (**Linux**) Ensure the [GNU OpenMP support library](https://gcc.gnu.org/onlinedocs/libgomp/) is installed on your system, e.g. via `sudo apt install libgomp1`
 
 ### Installing Clang
 
@@ -50,7 +50,7 @@ Pre-built binaries/installers:
 * **macOS** : get `clang+llvm-11.0.0-x86_64-apple-darwin.tar.xz` from the [11.0.0 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.0.0) (11.1.0 not released)
 
 
-On Linux, if installing via `apt`, the clang/llvm commands will have `-11` attached to their name.
+(**Linux**) If installing via `apt`, the clang/llvm commands will have `-11` attached to their name.
 It's convenient to define aliases for these commands so as not to have to type out the full name every time.
 If you want to skip this step, substitute `clang`/`clang++`/`opt` with `clang-11`/`clang++-11`/`opt-11` throughout the rest of this document.
 
@@ -426,6 +426,15 @@ build
 └── SimFactory.hpp
 ```
 
+(**Linux**) The `Microsoft.Quantum.Qir.*` dynamic libraries will already have the right naming scheme for Clang to use, but the `Microsoft.Quantum.Simulator.Runtime` library needs to be renamed.
+The proper name format is `lib<library-name>.so`.
+
+Execute the following command from the project root directory:
+
+```bash
+mv build/Microsoft.Quantum.Simulator.Runtime.dll build/libMicrosoft.Quantum.Simulator.Runtime.so
+```
+
 ### Adding a driver
 
 Trying to compile the QIR code in `Hello.ll` as is would present some problems, as it's missing a program entry point and the proper setup of the simulator.
@@ -477,34 +486,49 @@ The driver consists of the following elements:
 
 ### Compiling the program
 
-Multiple tools are available for this step, such as the LLVM static compiler + linker or the JIT compiler.
-Here, Clang is used again to compile and link the `Hello.ll` Q# program with the QIR runtime libraries.
+Multiple tools are available for this step, such as the LLVM static compiler + assembler + linker or the JIT compiler.
+Here, Clang is used again, this time to compile and link the `Hello.ll` Q# program with the driver and QIR runtime libraries.
 
-Invoke the following command:
+Invoke the following command on Windows:
 
-```shell
-clang++ qir/Hello.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -o build/Hello.exe 
+```powershell
+clang++ qir/Hello.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -o build/Hello.exe
+```
+
+On Linux:
+
+```bash
+clang++ qir/Hello.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe
 ```
 
 Parameters:
 
 * `qir/Hello.ll` : source file 1, the QIR execution unit containing the Q# code
 * `Main.cpp` : source file 2, the driver containing the program entry point (main)
+* `-Wl,-rpath=build` : add the `build` directory as a search path for dynamic libraries at runtime, `Wl,<arg>` is used to pass arguments to the linker (Linux only)
 * `-Ibuild` : find header files in the `build` directory
 * `-Lbuild` : find libraries in the `build` directory
 * `-l'<libname>'` : link dynamic libraries copied earlier
-* `-o build/Hello.exe` : path of the generated executable, placed in the build directory so the system can easily find the dynamic libraries when launching the program
+* `-o build/Hello.exe` : path of the generated executable, placed in the build directory so Windows can find the dynamic libraries at runtime
 
-Running the program should print the output `Hello quantum world!` to the terminal:
+Running the program should now print the output `Hello quantum world!` to the terminal:
 
 ```shell
 ./build/Hello.exe
 ```
 
-The same can be done with the optimized QIR code:
+The same can be done with the optimized QIR code.
 
-```shell
+On Windows:
+
+```powershell
 clang++ qir/Hello-dce-inline.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -o build/Hello.exe && ./build/Hello.exe
+```
+
+On Linux:
+
+```bash
+clang++ qir/Hello-dce-inline.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe && ./build/Hello.exe
 ```
 
 As a last example, let's modify the Q# program `Program.qs` with a random bit generator and run through the whole process:
@@ -531,5 +555,12 @@ Steps:
 
 * build the project `dotnet build`
 * optimize the code `clang -S qir/Hello.ll -O3 -emit-llvm -o qir/Hello-o3.ll`
-* compile the code `clang++ qir/Hello-o3.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -o build/Hello.exe`
+* compile the code on Windows
+    ```powershell
+    clang++ qir/Hello-o3.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -o build/Hello.exe
+    ```
+    or Linux
+    ```bash
+    clang++ qir/Hello.ll Main.cpp -Wl,-rpath=build -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'Microsoft.Quantum.Simulator.Runtime' -o build/Hello.exe
+    ```
 * simulate the program `./build/Hello.exe`
