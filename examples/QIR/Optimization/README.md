@@ -19,7 +19,7 @@ This document will assume a **command line** setup for **Q# standalone** applica
 
 Steps for QDK v0.18.2106 (June 2021):
 
-    NOTE: check the install guide linked above for most up-to-date instructions
+    NOTE: check the install guide linked above for the most up-to-date instructions
 
 * Install the [.NET Core SDK 3.1](https://dotnet.microsoft.com/download) (NOTE: use `dotnet-sdk-3.1` instead of `dotnet-sdk-5.0` in the Linux guides)
 * Install the QDK with `dotnet new -i Microsoft.Quantum.ProjectTemplates`
@@ -37,7 +37,7 @@ On Windows, the conda method is recommended since it's also able to install the 
 
 Package managers:
 
-* **Ubuntu** : `sudo apt install clang-11` (NOTE: this installs the command `clang-11` not `clang`)
+* **Ubuntu** : `sudo apt install clang-11`
 * **Windows** : `choco install llvm --version=11.1.0` using [chocolatey](https://chocolatey.org/)
 * **macOS** : `brew install llvm@11` using [homebrew](https://brew.sh/)
 
@@ -48,6 +48,19 @@ Pre-built binaries/installers:
 * **Ubuntu** : get `clang+llvm-11.1.0-x86_64-linux-gnu-ubuntu-20.10.tar.xz` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.1.0)
 * **Windows** : get `LLVM-11.1.0-win64.exe` from the [GitHub release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.1.0)
 * **macOS** : get `clang+llvm-11.0.0-x86_64-apple-darwin.tar.xz` from the [11.0.0 release](https://github.com/llvm/llvm-project/releases/tag/llvmorg-11.0.0) (11.1.0 not released)
+
+
+On Linux, if installing via `apt`, the clang/llvm commands will have `-11` attached to their name.
+It's convenient to define aliases for these commands so as not to have to type out the full name every time.
+If you want to skip this step, substitute `clang`/`clang++`/`opt` with `clang-11`/`clang++-11`/`opt-11` throughout the rest of this document.
+
+```bash
+echo 'alias clang=clang-11' >> ~/.bashrc
+echo 'alias clang++=clang++-11' >> ~/.bashrc
+echo 'alias clang=opt-11' >> ~/.bashrc
+```
+
+Restart the terminal for the aliases to take effect.
 
 ### Installing the LLVM optimizer
 
