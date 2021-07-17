@@ -12,9 +12,6 @@ open Microsoft.Quantum.QsFmt.Formatter.Utils
 open Microsoft.Quantum.QsFmt.Parser
 open System.Collections.Immutable
 
-/// <summary>
-/// Parses the Q# source code into a <see cref="QsFmt.Formatter.SyntaxTree.Document"/>.
-/// </summary>
 let parse (source: string) =
     let tokenStream = source |> AntlrInputStream |> QSharpLexer |> CommonTokenStream
 
@@ -31,17 +28,19 @@ let parse (source: string) =
     else
         errorListener.SyntaxErrors |> Error
 
+let unparse cst = printer.Document cst
+
+let formatDocument cst =
+    cst
+    |> curry collapsedSpaces.Document ()
+    |> curry operatorSpacing.Document ()
+    |> curry newLines.Document ()
+    |> curry indentation.Document 0
+    |> unparse
+
 [<CompiledName "Format">]
 let format source =
-    parse source
-    |> Result.map (
-        curry collapsedSpaces.Document ()
-        >> curry operatorSpacing.Document ()
-        >> curry newLines.Document ()
-        >> curry indentation.Document 0
-        >> printer.Document
-    )
+    parse source |> Result.map formatDocument
 
 [<CompiledName "Identity">]
-let identity source =
-    parse source |> Result.map printer.Document
+let identity source = parse source |> Result.map unparse

@@ -116,7 +116,7 @@ type internal Namespace =
     }
 
 /// A document representing a Q# file.
-type internal Document =
+type Document =
     {
         /// The namespaces in the document.
         Namespaces: Namespace list

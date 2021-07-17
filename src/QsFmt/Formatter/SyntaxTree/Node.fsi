@@ -47,7 +47,7 @@ module internal Trivia =
     val ofString: string -> Trivia list
 
 /// A terminal symbol has no child nodes and represents a token in the source code.
-type internal Terminal =
+type Terminal =
     {
         /// The trivia preceding the terminal.
         Prefix: Trivia list
