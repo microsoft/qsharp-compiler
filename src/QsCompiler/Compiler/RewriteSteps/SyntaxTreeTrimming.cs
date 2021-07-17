@@ -14,7 +14,6 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
     internal class SyntaxTreeTrimming : IRewriteStep
     {
         private readonly bool keepAllIntrinsics;
-        private readonly bool isLibrary;
         private readonly IEnumerable<QsQualifiedName>? dependencies;
 
         public string Name => "Syntax Tree Trimming";
@@ -25,7 +24,7 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
 
         public IEnumerable<IRewriteStep.Diagnostic> GeneratedDiagnostics => Enumerable.Empty<IRewriteStep.Diagnostic>();
 
-        public bool ImplementsPreconditionVerification => true;
+        public bool ImplementsPreconditionVerification => false;
 
         public bool ImplementsTransformation => true;
 
@@ -35,25 +34,22 @@ namespace Microsoft.Quantum.QsCompiler.BuiltInRewriteSteps
         /// Initializes a new instance of the <see cref="SyntaxTreeTrimming"/> class.
         /// </summary>
         /// <param name="keepAllIntrinsics">When true, intrinsics will not be removed as part of the rewrite step.</param>
-        /// <param name="isLibrary">When true, trimming will consider every public, non-generic callabe as an entry point.</param>
-        public SyntaxTreeTrimming(bool keepAllIntrinsics = true, IEnumerable<QsQualifiedName>? dependencies = null, bool isLibrary = false)
+        public SyntaxTreeTrimming(bool keepAllIntrinsics = true, IEnumerable<QsQualifiedName>? dependencies = null)
         {
             this.keepAllIntrinsics = keepAllIntrinsics;
             this.dependencies = dependencies;
-            this.isLibrary = isLibrary;
         }
 
-        public bool PreconditionVerification(QsCompilation compilation) => compilation.EntryPoints.Any() || this.isLibrary;
+        public bool PreconditionVerification(QsCompilation compilation) =>
+            throw new System.NotImplementedException();
 
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = TrimSyntaxTree.Apply(compilation, this.keepAllIntrinsics, this.dependencies, this.isLibrary);
+            transformed = TrimSyntaxTree.Apply(compilation, this.keepAllIntrinsics, this.dependencies);
             return true;
         }
 
-        public bool PostconditionVerification(QsCompilation compilation)
-        {
+        public bool PostconditionVerification(QsCompilation compilation) =>
             throw new System.NotImplementedException();
-        }
     }
 }
