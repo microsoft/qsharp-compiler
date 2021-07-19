@@ -10,7 +10,6 @@ using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Interop;
@@ -165,6 +164,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         internal bool IsInlined => this.inlineLevels.Any();
 
+        internal bool IsLibrary { get; private set; }
+
         #endregion
 
         /// <summary>
@@ -175,8 +176,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// 3.) the quantum instructions set needs to be registered by calling <see cref="RegisterQuantumInstructionSet"/>.
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree)
+        /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
         {
+            this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
             this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
@@ -595,7 +598,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="spec">The Q# specialization for which to register a function.</param>
         /// <param name="argTuple">The specialization's argument tuple.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true)
+        /// <param name="deconstuctArgument">Whether or not to deconstruct the argument tuple.</param>
+        /// <param name="shouldBeExtern">Whether the given specialization should be generated as extern.</param>
+        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false)
         {
             (string?, ResolvedType)[] ArgTupleToArgItems(ArgumentTuple arg, Queue<(string?, ArgumentTuple)> tupleQueue)
             {
@@ -624,7 +629,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.CurrentFunction = this.RegisterFunction(spec);
-            this.CurrentFunction.Linkage = Linkage.Internal;
+            this.CurrentFunction.Linkage = shouldBeExtern ? Linkage.External : Linkage.Internal;
             this.CurrentBlock = this.CurrentFunction.AppendBasicBlock("entry");
             this.CurrentBuilder = new InstructionBuilder(this.CurrentBlock);
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)

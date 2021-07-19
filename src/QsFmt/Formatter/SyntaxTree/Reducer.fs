@@ -130,7 +130,7 @@ type internal 'result Reducer() as reducer =
         | Adjoint adjoint -> reducer.Terminal adjoint
         | Controlled controlled -> reducer.Terminal controlled
         | Group group -> reducer.CharacteristicGroup group
-        | Characteristic.BinaryOperator operator -> reducer.BinaryOperator(reducer.Characteristic, operator)
+        | Characteristic.InfixOperator operator -> reducer.InfixOperator(reducer.Characteristic, operator)
 
     abstract CallableBody : body: CallableBody -> 'result
 
@@ -221,16 +221,112 @@ type internal 'result Reducer() as reducer =
         :: (declaration.Type |> Option.map reducer.TypeAnnotation |> Option.toList)
         |> reduce
 
+    abstract InterpStringContent : interpStringContent: InterpStringContent -> 'result
+
+    default _.InterpStringContent interpStringContent =
+        match interpStringContent with
+        | Text text -> reducer.Terminal text
+        | Expression interpStringExpression -> reducer.InterpStringExpression interpStringExpression
+
+    abstract InterpStringExpression : interpStringExpression: InterpStringExpression -> 'result
+
+    default _.InterpStringExpression interpStringExpression =
+        [
+            reducer.Terminal interpStringExpression.OpenBrace
+            reducer.Expression interpStringExpression.Expression
+            reducer.Terminal interpStringExpression.CloseBrace
+        ]
+        |> reduce
+
     abstract Expression : expression: Expression -> 'result
 
     default _.Expression expression =
         match expression with
         | Missing terminal -> reducer.Terminal terminal
         | Literal literal -> reducer.Terminal literal
+        | Identifier identifier -> reducer.Identifier identifier
+        | InterpString interpString -> reducer.InterpString interpString
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
-        | BinaryOperator operator -> reducer.BinaryOperator(reducer.Expression, operator)
+        | NewArray newArray -> reducer.NewArray newArray
+        | NamedItemAccess namedItemAccess -> reducer.NamedItemAccess namedItemAccess
+        | ArrayAccess arrayAccess -> reducer.ArrayAccess arrayAccess
+        | Call call -> reducer.Call call
+        | PrefixOperator operator -> reducer.PrefixOperator(reducer.Expression, operator)
+        | PostfixOperator operator -> reducer.PostfixOperator(reducer.Expression, operator)
+        | InfixOperator operator -> reducer.InfixOperator(reducer.Expression, operator)
+        | Conditional conditional -> reducer.Conditional conditional
+        | FullOpenRange fullOpenRange -> reducer.Terminal fullOpenRange
         | Update update -> reducer.Update update
         | Expression.Unknown terminal -> reducer.Terminal terminal
+
+    abstract Identifier : identifier: Identifier -> 'result
+
+    default _.Identifier identifier =
+        reducer.Terminal identifier.Name
+        :: (identifier.TypeArgs |> Option.map (curry reducer.Tuple reducer.Type) |> Option.toList)
+        |> reduce
+
+    abstract InterpString : interpString: InterpString -> 'result
+
+    default _.InterpString interpString =
+        reducer.Terminal interpString.OpenQuote
+        :: (interpString.Content |> List.map reducer.InterpStringContent)
+        @ [ reducer.Terminal interpString.CloseQuote ]
+        |> reduce
+
+    abstract NewArray : newArray: NewArray -> 'result
+
+    default _.NewArray newArray =
+        [
+            reducer.Terminal newArray.New
+            reducer.Type newArray.ItemType
+            reducer.Terminal newArray.OpenBracket
+            reducer.Expression newArray.Length
+            reducer.Terminal newArray.CloseBracket
+        ]
+        |> reduce
+
+    abstract NamedItemAccess : namedItemAccess: NamedItemAccess -> 'result
+
+    default _.NamedItemAccess namedItemAccess =
+        [
+            reducer.Expression namedItemAccess.Record
+            reducer.Terminal namedItemAccess.DoubleColon
+            reducer.Terminal namedItemAccess.Name
+        ]
+        |> reduce
+
+    abstract ArrayAccess : arrayAccess: ArrayAccess -> 'result
+
+    default _.ArrayAccess arrayAccess =
+        [
+            reducer.Expression arrayAccess.Array
+            reducer.Terminal arrayAccess.OpenBracket
+            reducer.Expression arrayAccess.Index
+            reducer.Terminal arrayAccess.CloseBracket
+        ]
+        |> reduce
+
+    abstract Call : call: Call -> 'result
+
+    default _.Call call =
+        [
+            reducer.Expression call.Callable
+            reducer.Tuple(reducer.Expression, call.Arguments)
+        ]
+        |> reduce
+
+    abstract Conditional : conditional: Conditional -> 'result
+
+    default _.Conditional conditional =
+        [
+            reducer.Expression conditional.Condition
+            reducer.Terminal conditional.Question
+            reducer.Expression conditional.IfTrue
+            reducer.Terminal conditional.Pipe
+            reducer.Expression conditional.IfFalse
+        ]
+        |> reduce
 
     abstract Update : update: Update -> 'result
 
@@ -265,12 +361,22 @@ type internal 'result Reducer() as reducer =
         @ (item.Comma |> Option.map reducer.Terminal |> Option.toList)
         |> reduce
 
-    abstract BinaryOperator : mapper: ('a -> 'result) * operator: 'a BinaryOperator -> 'result
+    abstract PrefixOperator : mapper: ('a -> 'result) * operator: 'a PrefixOperator -> 'result
 
-    default _.BinaryOperator(mapper, operator) =
+    default _.PrefixOperator(mapper, operator) =
+        [ reducer.Terminal operator.PrefixOperator; mapper operator.Operand ] |> reduce
+
+    abstract PostfixOperator : mapper: ('a -> 'result) * operator: 'a PostfixOperator -> 'result
+
+    default _.PostfixOperator(mapper, operator) =
+        [ mapper operator.Operand; reducer.Terminal operator.PostfixOperator ] |> reduce
+
+    abstract InfixOperator : mapper: ('a -> 'result) * operator: 'a InfixOperator -> 'result
+
+    default _.InfixOperator(mapper, operator) =
         [
             mapper operator.Left
-            reducer.Terminal operator.Operator
+            reducer.Terminal operator.InfixOperator
             mapper operator.Right
         ]
         |> reduce

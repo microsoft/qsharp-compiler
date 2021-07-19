@@ -44,10 +44,10 @@ let private compilerArgs target (name: string) =
             "Microsoft.Quantum.QirGeneration.dll"
         )
 
-        "--assembly-properties"
-        "QirOutputPath:qir"
         "--verbosity"
         "Diagnostic"
+        "--assembly-properties"
+        "QirOutputPath:qir"
     }
 
 let private customTest name compilerArgs snippets =
@@ -249,3 +249,15 @@ let ``QIR targeting`` () =
         |> Seq.toArray
 
     customTest "TestTargeting" compilerArgs [ "TestTargeting" ]
+
+[<Fact>]
+let ``QIR Library generation`` () =
+    let compilerArgs =
+        Seq.append (compilerArgs true "TestLibraryGeneration") [ "QSharpOutputType:QSharpLibrary" ]
+        |> Seq.filter (fun arg -> arg <> "--build-exe")
+        |> Seq.toArray
+
+    customTest
+        "TestLibraryGeneration"
+        compilerArgs
+        [ "TestLibraryGeneration1"; "TestLibraryGeneration2"; "TestLibraryGeneration3" ]
