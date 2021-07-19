@@ -49,8 +49,26 @@ type QsSymbolKind<'Symbol> =
     | InvalidSymbol
 
 // not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
-type QsSymbol = { Symbol: QsSymbolKind<QsSymbol>; Range: QsNullable<Range> }
+[<CustomComparison>]
+[<CustomEquality>]
+type QsSymbol =
+    {
+        Symbol: QsSymbolKind<QsSymbol>
+        Range: QsNullable<Range>
+    }
 
+    override symbol1.Equals symbol2 =
+        match symbol2 with
+        | :? QsSymbol as symbol2 -> symbol1.Symbol = symbol2.Symbol
+        | _ -> false
+
+    override symbol.GetHashCode() = hash symbol.Symbol
+
+    interface IComparable with
+        member symbol1.CompareTo symbol2 =
+            match symbol2 with
+            | :? QsSymbol as symbol2 -> compare symbol1.Symbol symbol2.Symbol
+            | _ -> ArgumentException "Types are different." |> raise
 
 // Q# types
 

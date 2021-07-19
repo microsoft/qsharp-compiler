@@ -1259,3 +1259,114 @@ let ``Operator precendence tests`` () =
          [])
     ]
     |> List.iter testExpr
+
+[<Fact>]
+let ``Lambda tests`` () =
+    seq {
+        "x -> x", true, Lambda(Function, toSymbol "x", toIdentifier "x") |> toExpr, []
+        "x => x", true, Lambda(Operation, toSymbol "x", toIdentifier "x") |> toExpr, []
+
+        "f -> f()",
+        true,
+        Lambda(Function, toSymbol "f", CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+        |> toExpr,
+        []
+
+        "(f -> f())",
+        true,
+        [
+            Lambda(Function, toSymbol "f", CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+            |> toExpr
+        ]
+        |> toTuple,
+        []
+
+        "(f -> f)()",
+        true,
+        CallLikeExpression(toTuple [ Lambda(Function, toSymbol "f", toIdentifier "f") |> toExpr ], toExpr UnitValue)
+        |> toExpr,
+        []
+
+        "(x, y) -> x + y",
+        true,
+        Lambda(
+            Function,
+            { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "y") |> SymbolTuple; Range = Null },
+            ADD(toIdentifier "x", toIdentifier "y") |> toExpr
+        )
+        |> toExpr,
+        []
+
+        "U(q => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                Lambda(
+                    Operation,
+                    toSymbol "q",
+                    CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr
+                )
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U(q => X(q), x)",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                Lambda(
+                    Operation,
+                    toSymbol "q",
+                    CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr
+                )
+                |> toExpr
+
+                toIdentifier "x"
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U(x, q => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                toIdentifier "x"
+
+                Lambda(
+                    Operation,
+                    toSymbol "q",
+                    CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr
+                )
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+
+        "U((x, q) => X(q))",
+        true,
+        CallLikeExpression(
+            toIdentifier "U",
+            [
+                Lambda(
+                    Operation,
+                    { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "q") |> SymbolTuple; Range = Null },
+                    CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr
+                )
+                |> toExpr
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
+    }
+    |> Seq.iter testExpr
