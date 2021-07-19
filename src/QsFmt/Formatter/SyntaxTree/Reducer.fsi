@@ -156,10 +156,64 @@ type internal 'result Reducer =
     default SymbolDeclaration: declaration:SymbolDeclaration -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="InterpStringContent"/> node.
+    /// </summary>
+    abstract InterpStringContent: interpStringContent:InterpStringContent -> 'result
+    default InterpStringContent: interpStringContent:InterpStringContent -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="InterpStringExpression"/> node.
+    /// </summary>
+    abstract InterpStringExpression: interpStringExpression:InterpStringExpression -> 'result
+    default InterpStringExpression: interpStringExpression:InterpStringExpression -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="Expression"/> node.
     /// </summary>
     abstract Expression: expression:Expression -> 'result
     default Expression: expression:Expression -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="Identifier"/> expression node.
+    /// </summary>
+    abstract Identifier: identifier:Identifier -> 'result
+    default Identifier: identifier:Identifier -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="InterpString"/> expression node.
+    /// </summary>
+    abstract InterpString: interpString:InterpString -> 'result
+    default InterpString: interpString:InterpString -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="NewArray"/> expression node.
+    /// </summary>
+    abstract NewArray: newArray:NewArray -> 'result
+    default NewArray: newArray:NewArray -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="NamedItemAccess"/> expression node.
+    /// </summary>
+    abstract NamedItemAccess: namedItemAccess:NamedItemAccess -> 'result
+    default NamedItemAccess: namedItemAccess:NamedItemAccess -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="ArrayAccess"/> expression node.
+    /// </summary>
+    abstract ArrayAccess: arrayAccess:ArrayAccess -> 'result
+    default ArrayAccess: arrayAccess:ArrayAccess -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="Call"/> expression node.
+    /// </summary>
+    abstract Call: call:Call -> 'result
+    default Call: call:Call -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="Conditional"/> expression node.
+    /// </summary>
+    abstract Conditional: conditional:Conditional -> 'result
+    default Conditional: conditional:Conditional -> 'result
 
     /// <summary>
     /// Reduces an <see cref="Update"/> expression node.
@@ -168,28 +222,40 @@ type internal 'result Reducer =
     default Update: update:Update -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Block{a}"/> node, given a rewriter for the block contents.
+    /// Reduces a <see cref="Block{a}"/> node, given a reducer for the block contents.
     /// </summary>
     abstract Block: mapper:('a -> 'result) * block:'a Block -> 'result
     default Block: mapper:('a -> 'result) * block:'a Block -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Tuple{a}"/> node, given a rewriter for the tuple contents.
+    /// Reduces a <see cref="Tuple{a}"/> node, given a reducer for the tuple contents.
     /// </summary>
     abstract Tuple: mapper:('a -> 'result) * tuple:'a Tuple -> 'result
     default Tuple: mapper:('a -> 'result) * tuple:'a Tuple -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="SequenceItem{a}"/> node, given a rewriter for the sequence items.
+    /// Reduces a <see cref="SequenceItem{a}"/> node, given a reducer for the sequence items.
     /// </summary>
     abstract SequenceItem: mapper:('a -> 'result) * item:'a SequenceItem -> 'result
     default SequenceItem: mapper:('a -> 'result) * item:'a SequenceItem -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="BinaryOperator{a}"/> node, given a rewriter for the operands.
+    /// Reduces a <see cref="PrefixOperator{a}"/> node, given a reducer for the operand.
     /// </summary>
-    abstract BinaryOperator: mapper:('a -> 'result) * operator:'a BinaryOperator -> 'result
-    default BinaryOperator: mapper:('a -> 'result) * operator:'a BinaryOperator -> 'result
+    abstract PrefixOperator: mapper:('a -> 'result) * operator:'a PrefixOperator -> 'result
+    default PrefixOperator: mapper:('a -> 'result) * operator:'a PrefixOperator -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="PostfixOperator{a}"/> node, given a reducer for the operand.
+    /// </summary>
+    abstract PostfixOperator: mapper:('a -> 'result) * operator:'a PostfixOperator -> 'result
+    default PostfixOperator: mapper:('a -> 'result) * operator:'a PostfixOperator -> 'result
+
+    /// <summary>
+    /// Reduces an <see cref="InfixOperator{a}"/> node, given a reducer for the operands.
+    /// </summary>
+    abstract InfixOperator: mapper:('a -> 'result) * operator:'a InfixOperator -> 'result
+    default InfixOperator: mapper:('a -> 'result) * operator:'a InfixOperator -> 'result
 
     /// <summary>
     /// Reduces a <see cref="Terminal"/> node.

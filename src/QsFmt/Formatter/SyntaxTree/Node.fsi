@@ -85,14 +85,34 @@ type internal 'a Tuple =
         CloseParen: Terminal
     }
 
-/// A binary operator.
-type internal 'a BinaryOperator =
+/// A prefix operator. The operator is in the front of the operand.
+type internal 'a PrefixOperator =
+    {
+        /// The operator.
+        PrefixOperator: Terminal
+
+        /// The operand.
+        Operand: 'a
+    }
+
+/// A prefix operator. The operator is after the operand.
+type internal 'a PostfixOperator =
+    {
+        /// The operand.
+        Operand: 'a
+
+        /// The operator.
+        PostfixOperator: Terminal
+    }
+
+/// An infix operator.
+type internal 'a InfixOperator =
     {
         /// The left-hand side.
         Left: 'a
 
         /// The operator.
-        Operator: Terminal
+        InfixOperator: Terminal
 
         /// The right-hand side.
         Right: 'a

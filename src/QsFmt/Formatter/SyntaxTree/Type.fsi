@@ -28,7 +28,7 @@ and internal Characteristic =
     | Group of CharacteristicGroup
 
     /// A binary operator applied to two characteristics.
-    | BinaryOperator of Characteristic BinaryOperator
+    | InfixOperator of Characteristic InfixOperator
 
 /// A section attached to a callable type or declaration describing its characteristics.
 type internal CharacteristicSection =
