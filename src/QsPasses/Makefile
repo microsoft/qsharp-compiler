@@ -1,12 +1,13 @@
 stylecheck:
-	@python scripts/FormatSource/__init__.py
+	@source develop.env && python -m PassCI --stylecheck
+
+
 
 lint:
 	@echo "Static analysis not added yet"
 
 tests:
-	mkdir Debug
-	cd Debug && cmake .. && make -j4 && ctest
+	@source develop.env && python -m PassCI test
 
 clean:
 	rm -rf Release/

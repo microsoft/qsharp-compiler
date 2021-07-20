@@ -49,6 +49,17 @@ Yet to be written
 Before making a pull request with changes to this library, please ensure that style checks passes, that the code compiles,
 unit test passes and that there are no erros found by the static analyser.
 
+To setup the CI environment, run following commands
+
+```sh
+source develop.env
+virtualenv develop__venv
+source develop__venv/bin/activate
+pip install -r requirements.txt
+```
+
+These adds the necessary environment variables to ensure that you have the `PassCI` package and all required dependencies.
+
 To check the style, run
 
 ```sh
