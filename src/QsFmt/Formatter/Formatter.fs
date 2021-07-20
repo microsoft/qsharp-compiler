@@ -12,6 +12,9 @@ open Microsoft.Quantum.QsFmt.Formatter.Utils
 open Microsoft.Quantum.QsFmt.Parser
 open System.Collections.Immutable
 
+/// <summary>
+/// Parses the Q# source code into a <see cref="QsFmt.Formatter.SyntaxTree.Document"/>.
+/// </summary>
 let parse (source: string) =
     let tokenStream = source |> AntlrInputStream |> QSharpLexer |> CommonTokenStream
 
@@ -28,19 +31,27 @@ let parse (source: string) =
     else
         errorListener.SyntaxErrors |> Error
 
-let unparse cst = printer.Document cst
-
-let formatDocument cst =
-    cst
-    |> curry collapsedSpaces.Document ()
-    |> curry operatorSpacing.Document ()
-    |> curry newLines.Document ()
-    |> curry indentation.Document 0
-    |> unparse
-
 [<CompiledName "Format">]
 let format source =
+    let formatDocument document =
+        // Test whether there is data loss during parsing and unparsing
+        if printer.Document document = source then
+            // The actuall format process
+            document
+            |> curry collapsedSpaces.Document ()
+            |> curry operatorSpacing.Document ()
+            |> curry newLines.Document ()
+            |> curry indentation.Document 0
+            |> printer.Document
+        // Report error if the unparsing result does match the original source
+        else
+            failwith (
+                "The formater does not work properly. "
+                + "Please let us know by filing a new issue in https://github.com/microsoft/qsharp-compiler/issues/new/choose."
+            )
+
     parse source |> Result.map formatDocument
 
 [<CompiledName "Identity">]
-let identity source = parse source |> Result.map unparse
+let identity source =
+    parse source |> Result.map printer.Document

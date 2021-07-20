@@ -25,7 +25,7 @@ module internal Trivia =
     ///   </item>
     /// </list>
     /// </summary>
-    val (|Whitespace|NewLine|Comment|): Trivia -> Choice<string, unit, string>
+    val (|Whitespace|NewLine|Comment|): Trivia -> Choice<string, string, string>
 
     /// <summary>
     /// A <see cref="Trivia"/> node containing <paramref name="count"/> number of space characters.
@@ -37,6 +37,9 @@ module internal Trivia =
     /// </summary>
     val newLine: Trivia
 
+    /// Determine whether a Trivia is a NewLine
+    val isNewLine: Trivia -> bool
+
     /// Replaces each occurrence of more than one whitespace character in a row with a single space.
     val collapseSpaces: (Trivia -> Trivia)
 
@@ -47,7 +50,7 @@ module internal Trivia =
     val ofString: string -> Trivia list
 
 /// A terminal symbol has no child nodes and represents a token in the source code.
-type Terminal =
+type internal Terminal =
     {
         /// The trivia preceding the terminal.
         Prefix: Trivia list

@@ -29,20 +29,10 @@ let main args =
         let input = results.GetResult Input
         let source = if input = "-" then stdin.ReadToEnd() else File.ReadAllText input
 
-        match Formatter.parse source with
-        | Ok document ->
-            // Test whether there is data loss during parsing and unparsing
-            if Formatter.unparse document = source then
-                // The actuall format process
-                printf "%s" (Formatter.formatDocument document)
-                0
-
-            // Report error if the unparsing result does match the original source
-            else
-                failwith (
-                    "The formater does not work properly. "
-                    + "Please let us know by filing a new issue in https://github.com/microsoft/qsharp-compiler/issues/new/choose."
-                )
+        match Formatter.format source with
+        | Ok result ->
+            printf "%s" result
+            0
         | Error errors ->
             errors |> List.iter (eprintfn "%O")
             1

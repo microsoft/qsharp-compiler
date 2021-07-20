@@ -129,17 +129,3 @@ let ``Shows file not found error`` path =
     Assert.Equal(3, result.Code)
     Assert.Empty result.Out
     Assert.NotEmpty result.Error
-
-[<Theory>]
-[<InlineData("namespace Foo { function Bar() : Int { return 0; }\n }\r\n",
-             "The formater does not work properly. Please let us know by filing a new issue in https://github.com/microsoft/qsharp-compiler/issues/new/choose.
-")>]
-let ``Shows unparsed tree not equal to source error`` input output =
-    Assert.Equal(
-        {
-            Code = 5
-            Out = ""
-            Error = output
-        },
-        run [| "-" |] input
-    )
