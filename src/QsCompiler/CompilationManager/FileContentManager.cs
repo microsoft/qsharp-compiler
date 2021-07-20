@@ -32,6 +32,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public string FileName { get; }
 
+        /// <summary>
+        /// Indicates the current version of the document according to the Language Server Protocol.
+        /// </summary>
+        public int? Version { get; set; }
+
         private readonly ManagedList<CodeLine> content;
         private readonly ManagedList<ImmutableArray<CodeFragment>> tokens;
         private readonly FileHeader header;
@@ -113,6 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.Uri = uri;
             this.FileName = fileName;
+            this.Version = 1;
 
             this.content = new ManagedList<CodeLine>(this.SyncRoot);
             this.content.Add(CodeLine.Empty()); // each new file per default has one line without text

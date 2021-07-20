@@ -281,6 +281,9 @@ namespace Microsoft.Quantum.QsLanguageServer
                         MessageType.Info);
                 }
 
+                // When opening a file, the initial LSP version might have already changed.
+                file.Version = textDocument.Version;
+
                 _ = manager.AddOrUpdateSourceFileAsync(file);
             });
 
