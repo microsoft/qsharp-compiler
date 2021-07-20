@@ -3,6 +3,7 @@
 
 namespace Microsoft.Quantum.Testing.QIR
 {
+    @EntryPoint()
     function TestInts (a : Int, b : Int) : Int {
         let c = a > b ? a | b;
         let d = c * a - b / 7;

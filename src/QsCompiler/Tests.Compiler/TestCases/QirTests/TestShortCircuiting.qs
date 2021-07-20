@@ -7,6 +7,7 @@ namespace Microsoft.Quantum.Testing.QIR
         body intrinsic;
     }
 
+    @EntryPoint()
     operation TestShortCircuiting () : (Bool, Bool) {
         let rand = GetRandomBool(1) and GetRandomBool(2);
         let ror = GetRandomBool(3) or GetRandomBool(4);

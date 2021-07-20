@@ -14,7 +14,7 @@ and internal Characteristic =
     | Adjoint of Terminal
     | Controlled of Terminal
     | Group of CharacteristicGroup
-    | BinaryOperator of Characteristic BinaryOperator
+    | InfixOperator of Characteristic InfixOperator
 
 type internal CharacteristicSection = { IsKeyword: Terminal; Characteristic: Characteristic }
 

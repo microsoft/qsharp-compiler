@@ -9,6 +9,17 @@ open Microsoft.Quantum.QsFmt.Parser
 open System.Collections.Immutable
 
 /// <summary>
+/// Creates syntax tree <see cref="InterpStringContent"/> nodes from a parse tree.
+/// </summary>
+type internal InterpStringContentVisitor =
+    /// <summary>
+    /// Creates a new <see cref="InterpStringContentVisitor"/> with the list of <paramref name="tokens"/>.
+    /// </summary>
+    new: tokens:IToken ImmutableArray -> InterpStringContentVisitor
+
+    inherit InterpStringContent QSharpParserBaseVisitor
+
+/// <summary>
 /// Creates syntax tree <see cref="Expression"/> nodes from a parse tree.
 /// </summary>
 type internal ExpressionVisitor =
