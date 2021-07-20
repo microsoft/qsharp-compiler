@@ -90,14 +90,11 @@ let ``Formats file`` path output =
     )
 
 [<Theory>]
-[<InlineData("namespace Foo { function Bar() : Int { return 0; } }
-",
+[<InlineData("namespace Foo { function Bar() : Int { return 0; }\n }\r\n",
              "namespace Foo {
     function Bar() : Int {
         return 0;
-    }
-}
-")>]
+    }\n}\r\n")>]
 let ``Formats standard input`` input output =
     Assert.Equal(
         {
