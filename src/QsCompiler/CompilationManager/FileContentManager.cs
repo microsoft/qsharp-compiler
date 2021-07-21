@@ -33,7 +33,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public string FileName { get; }
 
         /// <summary>
-        /// Indicates the current version of the document according to the Language Server Protocol.
+        /// An arbitrary integer representing the current version number of the file, or null if no version number is available.
+        /// The version number may change at any time to any other integer, including a lower number than its current value.
         /// </summary>
         public int? Version { get; set; }
 
