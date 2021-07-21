@@ -1,0 +1,10 @@
+#!/usr/bin/env python
+import os
+import sys
+
+ROOT = os.path.dirname(__file__)
+sys.path.insert(0,os.path.join(ROOT, "site-packages"))
+
+from TasksCI.cli import cli
+
+cli()
