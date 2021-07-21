@@ -1,14 +1,18 @@
 stylecheck:
-	@source develop.env && python -m PassCI --stylecheck
+	@source develop.env && python -m TasksCI stylecheck
 
-
+fixstyle:
+	@source develop.env && python -m TasksCI --loglevel warning stylecheck --fix-issues 
 
 lint:
-	@echo "Static analysis not added yet"
+	@source develop.env && python -m TasksCI lint
 
 tests:
-	@source develop.env && python -m PassCI test
+	@source develop.env && python -m TasksCI test
+
 
 clean:
 	rm -rf Release/
 	rm -rf Debug/
+
+runci: stylecheck lint tests clean

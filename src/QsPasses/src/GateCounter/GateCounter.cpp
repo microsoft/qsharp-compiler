@@ -5,60 +5,65 @@
 
 using namespace llvm;
 
-namespace {
-
-void visitor(Function &F)
+namespace
 {
-  errs() << "(gate-counter) " << F.getName() << "\n";
-  errs() << "(gate-counter)   number of arguments: " << F.arg_size() << "\n";
+
+void Visitor(Function& f)
+{
+    errs() << "(gate-counter) " << f.getName() << "\n";
+    errs() << "(gate-counter)   number of arguments: " << f.arg_size() << "\n";
 }
 
 struct GateCounterPass : PassInfoMixin<GateCounterPass>
 {
-  PreservedAnalyses run(Function &F, FunctionAnalysisManager &)
-  {
-    visitor(F);
+    static auto run(Function& f, FunctionAnalysisManager& /*unused*/) -> PreservedAnalyses // NOLINT
+    {
+        Visitor(f);
 
-    return PreservedAnalyses::all();
-  }
+        return PreservedAnalyses::all();
+    }
 };
 
-struct LegacyGateCounterPass : public FunctionPass
+class CLegacyGateCounterPass : public FunctionPass
 {
-  static char ID;
-  LegacyGateCounterPass()
-    : FunctionPass(ID)
-  {}
+  public:
+    static char ID;
+    CLegacyGateCounterPass()
+        : FunctionPass(ID)
+    {
+    }
 
-  bool runOnFunction(Function &F) override
-  {
-    visitor(F);
-    return false;
-  }
+    auto runOnFunction(Function& f) -> bool override
+    {
+        Visitor(f);
+        return false;
+    }
 };
-}  // namespace
+} // namespace
 
-llvm::PassPluginLibraryInfo getGateCounterPluginInfo()
+auto GetGateCounterPluginInfo() -> llvm::PassPluginLibraryInfo
 {
-  return {LLVM_PLUGIN_API_VERSION, "GateCounter", LLVM_VERSION_STRING, [](PassBuilder &PB) {
-            PB.registerPipelineParsingCallback([](StringRef Name, FunctionPassManager &FPM,
-                                                  ArrayRef<PassBuilder::PipelineElement>) {
-              if (Name == "gate-counter")
-              {
-                FPM.addPass(GateCounterPass());
-                return true;
-              }
-              return false;
-            });
-          }};
+    return {LLVM_PLUGIN_API_VERSION, "GateCounter", LLVM_VERSION_STRING, [](PassBuilder& pb) {
+                pb.registerPipelineParsingCallback(
+                    [](StringRef name, FunctionPassManager& fpm, ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
+                        if (name == "gate-counter")
+                        {
+                            fpm.addPass(GateCounterPass());
+                            return true;
+                        }
+                        return false;
+                    });
+            }};
 }
 
-extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo()
+extern "C" LLVM_ATTRIBUTE_WEAK auto llvmGetPassPluginInfo() -> ::llvm::PassPluginLibraryInfo
 {
-  return getGateCounterPluginInfo();
+    return GetGateCounterPluginInfo();
 }
 
-char                                       LegacyGateCounterPass::ID = 0;
-static RegisterPass<LegacyGateCounterPass> LegacyGateCounterRegistration("legacy-gate-counter",
-                                                                         "Gate Counter Pass", true,
-                                                                         false);
+char                                        CLegacyGateCounterPass::ID = 0;
+static RegisterPass<CLegacyGateCounterPass> LegacyGateCounterRegistration(
+    "legacy-gate-counter",
+    "Gate Counter Pass",
+    true,
+    false);

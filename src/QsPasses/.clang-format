@@ -1,57 +1,60 @@
+# https://clang.llvm.org/docs/ClangFormatStyleOptions.html
+
 ---
-BasedOnStyle: Google
 Language: Cpp
+BasedOnStyle: Microsoft
+
+# page width
+ColumnLimit: 120
+ReflowComments: true
+
+# tabs and indents
+UseTab: Never
+IndentWidth: 4
+TabWidth: 4
 AccessModifierOffset: -2
+NamespaceIndentation: Inner
+
+# line and statements layout
+BreakBeforeBraces: Allman
+BinPackParameters: false
+AlignAfterOpenBracket: AlwaysBreak
+AllowShortIfStatementsOnASingleLine: WithoutElse
+AllowShortFunctionsOnASingleLine: Empty
+AllowAllConstructorInitializersOnNextLine: false
+AllowAllArgumentsOnNextLine: true
+AllowAllParametersOfDeclarationOnNextLine: false
+BreakBeforeTernaryOperators: true
+BreakConstructorInitializers: BeforeComma
+
+# misc
+Cpp11BracedListStyle: true
+FixNamespaceComments: true
+IncludeBlocks: Preserve
+SpaceBeforeInheritanceColon : true
+SpaceBeforeParens: ControlStatements
+DerivePointerAlignment: false
+PointerAlignment: Left
+
+# Suggestion
+Standard: Cpp11
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignTrailingComments: true
-AllowShortCaseLabelsOnASingleLine: false
-AllowShortFunctionsOnASingleLine: None
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
-BraceWrapping:
-  AfterClass: true
-  AfterControlStatement: true
-  AfterEnum: true
-  AfterFunction: true
-  AfterNamespace: false
-  AfterStruct: true
-  AfterUnion: true
-  AfterExternBlock: true
-  BeforeCatch: true
-  BeforeElse: true
-  SplitEmptyFunction: false
-BreakBeforeBraces: Custom
-BreakConstructorInitializers: BeforeComma
-ColumnLimit: 100
-ConstructorInitializerAllOnOneLineOrOnePerLine: false
-ConstructorInitializerIndentWidth: 2
-ContinuationIndentWidth: 4
-DerivePointerAlignment: false
-IncludeBlocks: Regroup
-IncludeCategories:
+
+# Ensures include compleness
+IncludeCategories: 
   - Regex: '.*\.\..*'
     Priority: 1
   - Regex: '^<.*\.h.*>$'
     Priority: 5
   - Regex: '^<.*>$'
     Priority: 6
-  - Regex: '^"(gtest)|(gmock)|(benchmark)/.*"$'
+  - Regex: '^"(llvm)/.*"$'
     Priority: 4
   - Regex: '.*/.*'
     Priority: 3
   - Regex: '.*'
     Priority: 2
 IncludeIsMainRegex: ''
-IndentCaseLabels: false
-IndentWidth: 2
-KeepEmptyLinesAtTheStartOfBlocks: true
-MaxEmptyLinesToKeep: 1
-NamespaceIndentation: None
-PointerAlignment: Right
-SortIncludes: true
-SortUsingDeclarations: true
-SpaceInEmptyParentheses: false
-SpacesInAngles: false
-Standard: Cpp11
-UseTab: Never
+

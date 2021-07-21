@@ -58,7 +58,7 @@ source develop__venv/bin/activate
 pip install -r requirements.txt
 ```
 
-These adds the necessary environment variables to ensure that you have the `PassCI` package and all required dependencies.
+These adds the necessary environment variables to ensure that you have the `TasksCI` package and all required dependencies.
 
 To check the style, run
 
@@ -80,3 +80,7 @@ make lint
 
 As `clang-tidy` and `clang-format` acts slightly different from version to version and on different platforms, it is recommended
 that you use a docker image to perform these steps.
+
+# TODOs
+
+Look at https://github.com/llvm-mirror/clang-tools-extra/blob/master/clang-tidy/tool/run-clang-tidy.py
