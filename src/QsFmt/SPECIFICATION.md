@@ -35,21 +35,21 @@ Listed here are some of the transformations we intend to use.
 
 ### Formatting Transformations
 
-Collapsed Spaces - removes duplicate spaces so that there is only a single space where spaces are used
-Operator Spacing - ensure that operators have the appropriate spaces in them
-New Lines - removes excessive new lines
-Indentation - ensures that there are appropriate indentation for the text
+ - Collapsed Spaces - removes duplicate spaces so that there is only a single space where spaces are used
+ - Operator Spacing - ensure that operators have the appropriate spaces in them
+ - New Lines - removes excessive new lines
+ - Indentation - ensures that there are appropriate indentation for the text
 
 ### Updating Transformations
 
 Updating Transformations remove outdated syntax that is deprecated and will be no longer supported in the future.
 
-Array Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/2-enhanced-array-literals.md)
-Using Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/1-implicitly-scoped-qubit-allocation.md)
+ - Array Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/2-enhanced-array-literals.md)
+ - Using Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/1-implicitly-scoped-qubit-allocation.md)
 
 ## How errors are handled
 
-If an exception is thrown, that will be surfaced to the user and is a bug.
+If an unhandled exception is thrown by the tool, that will be surfaced to the user and is a bug with the tool that should be filed and addressed.
 
 Parsing errors may occur if the formatter is given text that is not proper Q# code. In this case ANTLR gives the appropriate error message.
 Errors should not occur during a formatting transformation. All formatting transformations should never encounter the syntax they are expected to change and be unable to perform the change.
