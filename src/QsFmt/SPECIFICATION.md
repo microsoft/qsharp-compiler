@@ -53,6 +53,6 @@ If an unhandled exception is thrown by the tool, that will be surfaced to the us
 
 Parsing errors may occur if the formatter is given text that is not proper Q# code. In this case ANTLR gives the appropriate error message.
 Errors should not occur during a formatting transformation. All formatting transformations should never encounter the syntax they are expected to change and be unable to perform the change.
-Errors may occur during an updating transformation of the concrete syntax tree if an updating transformation encounters an issue, such as syntax that it would be expected to updated, but can't for some reason.
+Errors may occur during an updating transformation of the concrete syntax tree if an updating transformation encounters an issue, such as syntax that it would be expected to update, but can't for some reason.
 
 Errors of all kinds should be collected and reported to the user through stderr after all transformations are finished.
