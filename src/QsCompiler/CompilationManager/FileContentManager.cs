@@ -118,7 +118,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             this.SyncRoot = new ReaderWriterLockSlim(LockRecursionPolicy.SupportsRecursion);
             this.Uri = uri;
             this.FileName = fileName;
-            this.Version = 1;
+            this.Version = null;
 
             this.content = new ManagedList<CodeLine>(this.SyncRoot);
             this.content.Add(CodeLine.Empty()); // each new file per default has one line without text

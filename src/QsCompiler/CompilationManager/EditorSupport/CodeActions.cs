@@ -30,7 +30,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits)
         {
-            var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = file.Version };
+            var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = file.Version ?? 1 };
             return new WorkspaceEdit
             {
                 DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = edits } },
