@@ -4,20 +4,28 @@ QsFmt is a source code formatter for Q#.
 
 ## Where to get the formatter
 
-The <package-name> NuGet package will be distributed with the rest of Q# on NuGet.org.
-As a dotnet tool, it is installed with the command `dotnet tool install <package-name>`.
+The `Microsoft.Quantum.QsFormatter` NuGet package will be distributed with the rest of Q# on NuGet.org.
+As a dotnet tool, it is installed with the command `dotnet tool install Microsoft.Quantum.QsFormatter`.
 
 ## How to use the command line formatter
 
 After installing the tool the command `qsfmt` is used to run the formatter.
-You can use the command-line tool by running `dotnet run -p App` from this folder.
 There are two commands supported for the tool: 'format' and 'update'.
 The 'format' command runs the tool as a formatter for Q# code, running only those transformation rules that update whitespace and affect indentation. The underlying code will not be changed.
 The 'update' command allows the tool to be used as a means of updating old Q# code, replacing deprecated syntax with newer supported syntax. These transformation rules change the actual code given to them, and may occasionally fail.
 These two commands work separately and can't be run together. If the user wishes to both format and update their code, they would need to run the tool twice, first with 'update' and then with 'format'.
-The output of the format is printed to the console; it won't overwrite the source file given to it. This output may be redirected to a file through the usual console methods.
 
 The tool will initially only support the 'update' command, as the formatting functionality is still being worked on. The 'format' command will be unavailable until it is supported.
+
+## Input and Output
+Input files to the formatter will be the last argument(s) to the tool. Zero to many arguments may be given.
+ - The default behavior, which is used if no input arguments are provided, is for the formatter to take as input all files with the '.qs' extension in the current working directory.
+ - Inputs can be given as one to many paths to directories, in which all files with the '.qs' extension found will be taken as input.
+ - Inputs can be given as one to many paths to individual files with the '.qs' extension.
+ - Inputs can be any combination of paths to files and paths to directories.
+ - The `--recurse` option can be specified to process the input directories recursively for input files. You can specify this for all input directories, not per-directory.
+
+The output of the formatter is to overwrite the input files that it processes.
 
 ## Rules that are run
 
@@ -47,5 +55,4 @@ Parsing errors may occur if the formatter is given text that is not proper Q# co
 Errors should not occur during a formatting transformation. All formatting transformations should never encounter the syntax they are expected to change and be unable to perform the change.
 Errors may occur during an updating transformation of the concrete syntax tree if an updating transformation encounters an issue, such as syntax that it would be expected to updated, but can't for some reason.
 
-Errors of all kinds should be collected and reported to the user after all transformations are finished.
- - How? To the console? That is where we are putting the regular output (the formatted/updated code).
+Errors of all kinds should be collected and reported to the user through stderr after all transformations are finished.
