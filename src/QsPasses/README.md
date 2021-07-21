@@ -69,30 +69,26 @@ These adds the necessary environment variables to ensure that you have the `Task
 To check the style, run
 
 ```sh
-make stylecheck
+./manage stylecheck
 ```
 
 To test that the code compiles and tests passes run
 
 ```sh
-make tests
+./manage test
 ```
 
 Finally, to analyse the code, run
 
 ```sh
-make lint
+./manage lint
 ```
 
 You can run all processes by running:
 
 ```sh
-make runci
+./manage runci
 ```
 
 As `clang-tidy` and `clang-format` acts slightly different from version to version and on different platforms, it is recommended
-that you use a docker image to perform these steps.
-
-# TODOs
-
-Look at https://github.com/llvm-mirror/clang-tools-extra/blob/master/clang-tidy/tool/run-clang-tidy.py
+that you use a docker image to perform these steps. TODO(TFR): The docker image is not added yet and this will be documented in the future.
