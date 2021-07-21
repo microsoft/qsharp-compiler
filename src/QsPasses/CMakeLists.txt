@@ -11,8 +11,8 @@ message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Wconversion -Wpedantic")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Weverything -Wconversion -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror ")
 
 # Needed for clang-tidy
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -27,6 +27,6 @@ if(NOT LLVM_ENABLE_RTTI)
 endif()
 
 # The main libary
-add_library(QSharpPasses SHARED src/GateCounter/GateCounter.cpp)
+add_library(QSharpPasses SHARED src/OpsCounter/OpsCounter.cpp)
 target_link_libraries(QSharpPasses
   "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")

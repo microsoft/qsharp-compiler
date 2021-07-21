@@ -10,6 +10,8 @@
 #pragma GCC diagnostic ignored "-Wsign-compare"
 #pragma GCC diagnostic ignored "-Wunknown-warning-option"
 #pragma GCC diagnostic ignored "-Wunused-parameter"
+#pragma GCC diagnostic ignored "-Wall"
+#pragma GCC diagnostic ignored "-Weverything"
 #endif
 
 #if defined(__clang__)
@@ -21,6 +23,8 @@
 #pragma clang diagnostic ignored "-Wreturn-std-move"
 #pragma clang diagnostic ignored "-Wunknown-warning-option"
 #pragma clang diagnostic ignored "-Wunused-parameter"
+#pragma clang diagnostic ignored "-Wall"
+#pragma clang diagnostic ignored "-Weverything"
 #endif
 
 #include "llvm/IR/LegacyPassManager.h"

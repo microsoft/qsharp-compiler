@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation. All rights reserved.
 // Licensed under the MIT License.
 
+#include "OpsCounter/OpsCounter.hpp"
+
 #include "Llvm.hpp"
 
 using namespace llvm;
@@ -10,11 +12,11 @@ namespace
 
 void Visitor(Function& f)
 {
-    errs() << "(gate-counter) " << f.getName() << "\n";
-    errs() << "(gate-counter)   number of arguments: " << f.arg_size() << "\n";
+    errs() << "(operation-counter) " << f.getName() << "\n";
+    errs() << "(operation-counter)   number of arguments: " << f.arg_size() << "\n";
 }
 
-struct GateCounterPass : PassInfoMixin<GateCounterPass>
+struct OpsCounterPass : PassInfoMixin<OpsCounterPass>
 {
     static auto run(Function& f, FunctionAnalysisManager& /*unused*/) -> PreservedAnalyses // NOLINT
     {
@@ -24,11 +26,11 @@ struct GateCounterPass : PassInfoMixin<GateCounterPass>
     }
 };
 
-class CLegacyGateCounterPass : public FunctionPass
+class CLegacyOpsCounterPass : public FunctionPass
 {
   public:
     static char ID;
-    CLegacyGateCounterPass()
+    CLegacyOpsCounterPass()
         : FunctionPass(ID)
     {
     }
@@ -41,14 +43,14 @@ class CLegacyGateCounterPass : public FunctionPass
 };
 } // namespace
 
-auto GetGateCounterPluginInfo() -> llvm::PassPluginLibraryInfo
+llvm::PassPluginLibraryInfo GetOpsCounterPluginInfo()
 {
-    return {LLVM_PLUGIN_API_VERSION, "GateCounter", LLVM_VERSION_STRING, [](PassBuilder& pb) {
+    return {LLVM_PLUGIN_API_VERSION, "OpsCounter", LLVM_VERSION_STRING, [](PassBuilder& pb) {
                 pb.registerPipelineParsingCallback(
                     [](StringRef name, FunctionPassManager& fpm, ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
-                        if (name == "gate-counter")
+                        if (name == "operation-counter")
                         {
-                            fpm.addPass(GateCounterPass());
+                            fpm.addPass(OpsCounterPass());
                             return true;
                         }
                         return false;
@@ -56,14 +58,14 @@ auto GetGateCounterPluginInfo() -> llvm::PassPluginLibraryInfo
             }};
 }
 
-extern "C" LLVM_ATTRIBUTE_WEAK auto llvmGetPassPluginInfo() -> ::llvm::PassPluginLibraryInfo
+extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo()
 {
-    return GetGateCounterPluginInfo();
+    return GetOpsCounterPluginInfo();
 }
 
-char                                        CLegacyGateCounterPass::ID = 0;
-static RegisterPass<CLegacyGateCounterPass> LegacyGateCounterRegistration(
-    "legacy-gate-counter",
+char                                       CLegacyOpsCounterPass::ID = 0;
+static RegisterPass<CLegacyOpsCounterPass> LegacyOpsCounterRegistration(
+    "legacy-operation-counter",
     "Gate Counter Pass",
     true,
     false);

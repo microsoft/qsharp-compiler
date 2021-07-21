@@ -1,0 +1,15 @@
+emit-llvm:
+	clang -O1 -S -emit-llvm classical-program.c -o classical-program.ll
+
+emit-llvm-bc:
+	clang -O1 -c -emit-llvm classical-program.c -o classical-program.bc
+
+
+debug-ng-pass-mac: emit-llvm-bc
+	opt -load-pass-plugin ../../Debug/libQSharpPasses.dylib --passes="operation-counter" -disable-output classical-program.bc
+
+
+
+clean:
+	rm -f classical-program.ll
+	rm -f classical-program.bc

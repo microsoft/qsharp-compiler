@@ -42,7 +42,13 @@ make [target]
 
 ## Running a pass
 
-Yet to be written
+You can run a pass using `opt` as follows:
+
+```sh
+opt -load-pass-plugin ../../{Debug,Release}/libQSharpPasses.{dylib,so} --passes="operation-counter" -disable-output classical-program.bc
+```
+
+For a gentle introduction, see examples.
 
 ## CI
 
@@ -76,6 +82,12 @@ Finally, to analyse the code, run
 
 ```sh
 make lint
+```
+
+You can run all processes by running:
+
+```sh
+make runci
 ```
 
 As `clang-tidy` and `clang-format` acts slightly different from version to version and on different platforms, it is recommended
