@@ -22,8 +22,6 @@ link_directories(${LLVM_LIBRARY_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
-
-
 # Compiler flags
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fdiagnostics-color=always")
 
@@ -42,7 +40,5 @@ if (${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG} EQUAL "1")
 endif()
 
 
-# The main libary
-add_library(QSharpPasses SHARED src/OpsCounter/OpsCounter.cpp)
-target_link_libraries(QSharpPasses
-  "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+add_subdirectory(libs)
+
