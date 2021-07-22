@@ -1,6 +1,12 @@
 # Contributing (Proposal - WiP)
 
-This document is work in progress and nothing is set in stone.
+This document is work in progress and nothing is set in stone. In case you do not want to feel like reading this style guide, just run
+
+```sh
+./manage runci
+```
+
+from the `QsPasses` directory as all points defined in this document is automatically enforces. You can then refer to this guide for an explanation for why and how.
 
 ## Why do we need a style guide?
 
