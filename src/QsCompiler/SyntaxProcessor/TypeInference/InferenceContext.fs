@@ -370,7 +370,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         let resolveWithRange type_ =
             let resolvedType' = context.Resolve type_
 
-            // Prefer the original type range since it may be closer to the source of the error, but otherwise fall back
+            // Prefer the original type range since it may be closer to the source of an error, but otherwise fall back
             // to the newly resolved type range.
             resolvedType' |> ResolvedType.withRange (resolvedType.Range |> TypeRange.orElse resolvedType'.Range)
 
