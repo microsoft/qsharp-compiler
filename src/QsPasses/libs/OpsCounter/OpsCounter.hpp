@@ -35,10 +35,9 @@ class COpsCounterAnalytics : public llvm::AnalysisInfoMixin<COpsCounterAnalytics
 class COpsCounterPrinter : public llvm::PassInfoMixin<COpsCounterPrinter>
 {
   public:
-    explicit COpsCounterPrinter(llvm::raw_ostream& out_stream);
-
     /// Constructors and destructors
     /// @{
+    explicit COpsCounterPrinter(llvm::raw_ostream& out_stream);
     COpsCounterPrinter()                          = delete;
     COpsCounterPrinter(COpsCounterPrinter const&) = delete;
     COpsCounterPrinter(COpsCounterPrinter&&)      = default;
