@@ -1,8 +1,8 @@
 emit-llvm:
-	clang -O1 -S -emit-llvm classical-program.c -o classical-program.ll
+	clang -O0 -S -emit-llvm classical-program.c -o classical-program.ll
 
 emit-llvm-bc:
-	clang -O1 -c -emit-llvm classical-program.c -o classical-program.bc
+	clang -O0 -c -emit-llvm classical-program.c -o classical-program.bc
 
 
 debug-ng-pass-mac: emit-llvm-bc

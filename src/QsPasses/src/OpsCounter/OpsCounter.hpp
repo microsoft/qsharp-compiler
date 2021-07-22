@@ -12,11 +12,14 @@ class COpsCounterPass : public llvm::AnalysisInfoMixin<COpsCounterPass>
     Result run(llvm::Function& function, llvm::FunctionAnalysisManager& /*unused*/)
     {
         COpsCounterPass::Result opcode_map;
-
         for (auto& basic_block : function)
         {
             for (auto& instruction : basic_block)
             {
+                if (instruction.isDebugOrPseudoInst())
+                {
+                    continue;
+                }
                 auto name = instruction.getOpcodeName();
 
                 if (opcode_map.find(name) == opcode_map.end())
