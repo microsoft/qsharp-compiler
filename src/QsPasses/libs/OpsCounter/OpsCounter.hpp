@@ -4,86 +4,58 @@
 
 #include "Llvm.hpp"
 
-class COpsCounterPass : public llvm::AnalysisInfoMixin<COpsCounterPass>
+class COpsCounterAnalytics : public llvm::AnalysisInfoMixin<COpsCounterAnalytics>
 {
   public:
     using Result = llvm::StringMap<unsigned>;
 
-    Result run(llvm::Function& function, llvm::FunctionAnalysisManager& /*unused*/)
-    {
-        COpsCounterPass::Result opcode_map;
-        for (auto& basic_block : function)
-        {
-            for (auto& instruction : basic_block)
-            {
-                if (instruction.isDebugOrPseudoInst())
-                {
-                    continue;
-                }
-                auto name = instruction.getOpcodeName();
+    /// Constructors and destructors
+    /// @{
+    COpsCounterAnalytics()                            = default;
+    COpsCounterAnalytics(COpsCounterAnalytics const&) = delete;
+    COpsCounterAnalytics(COpsCounterAnalytics&&)      = default;
+    ~COpsCounterAnalytics()                           = default;
+    /// @}
 
-                if (opcode_map.find(name) == opcode_map.end())
-                {
-                    opcode_map[instruction.getOpcodeName()] = 1;
-                }
-                else
-                {
-                    opcode_map[instruction.getOpcodeName()]++;
-                }
-            }
-        }
+    /// Operators
+    /// @{
+    COpsCounterAnalytics& operator=(COpsCounterAnalytics const&) = delete;
+    COpsCounterAnalytics& operator=(COpsCounterAnalytics&&) = delete;
+    /// @}
 
-        return opcode_map;
-    }
-
+    /// Functions required by LLVM
+    /// @{
+    Result run(llvm::Function& function, llvm::FunctionAnalysisManager& /*unused*/);
+    /// @}
   private:
     static llvm::AnalysisKey Key;
-    friend struct llvm::AnalysisInfoMixin<COpsCounterPass>;
+    friend struct llvm::AnalysisInfoMixin<COpsCounterAnalytics>;
 };
 
 class COpsCounterPrinter : public llvm::PassInfoMixin<COpsCounterPrinter>
 {
   public:
-    explicit COpsCounterPrinter(llvm::raw_ostream& out_stream)
-        : out_stream_(out_stream)
-    {
-    }
+    explicit COpsCounterPrinter(llvm::raw_ostream& out_stream);
 
-    auto run(llvm::Function& function, llvm::FunctionAnalysisManager& fam) -> llvm::PreservedAnalyses // NOLINT
-    {
-        auto& opcode_map = fam.getResult<COpsCounterPass>(function);
+    /// Constructors and destructors
+    /// @{
+    COpsCounterPrinter()                          = delete;
+    COpsCounterPrinter(COpsCounterPrinter const&) = delete;
+    COpsCounterPrinter(COpsCounterPrinter&&)      = default;
+    ~COpsCounterPrinter()                         = default;
+    /// @}
 
-        out_stream_ << "Stats for '" << function.getName() << "'\n";
-        out_stream_ << "===========================\n";
+    /// Operators
+    /// @{
+    COpsCounterPrinter& operator=(COpsCounterPrinter const&) = delete;
+    COpsCounterPrinter& operator=(COpsCounterPrinter&&) = delete;
+    /// @}
 
-        constexpr auto str1 = "Opcode";
-        constexpr auto str2 = "# Used";
-        out_stream_ << llvm::format("%-15s %-8s\n", str1, str2);
-        out_stream_ << "---------------------------"
-                    << "\n";
-
-        for (auto const& instruction : opcode_map)
-        {
-            out_stream_ << llvm::format("%-15s %-8lu\n", instruction.first().str().c_str(), instruction.second);
-        }
-        out_stream_ << "---------------------------"
-                    << "\n\n";
-
-        return llvm::PreservedAnalyses::all();
-    }
-
-    /*
-    TODO(TFR): Documentation suggests that there such be a isRequired, however, comes out as
-    unused after compilation
-    */
-
-    static bool isRequired()
-    {
-        return true;
-    }
-
+    /// Functions required by LLVM
+    /// @{
+    llvm::PreservedAnalyses run(llvm::Function& function, llvm::FunctionAnalysisManager& fam);
+    static bool             isRequired();
+    /// @}
   private:
     llvm::raw_ostream& out_stream_;
 };
-
-auto GetOpsCounterPluginInfo() -> llvm::PassPluginLibraryInfo;
