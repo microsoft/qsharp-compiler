@@ -10,9 +10,9 @@ macro(list_qs_passes result)
   set(${result} ${dirlist})
 endmacro()
 
-list_qs_passes(QS_PASSES)
+list_qs_passes(ALL_PASSES)
 
-foreach(pass_plugin ${QS_PASSES})
+foreach(pass_plugin ${ALL_PASSES})
 
   # Getting sources
   file(GLOB sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${pass_plugin}/*.cpp)
@@ -41,3 +41,6 @@ foreach(pass_plugin ${QS_PASSES})
     "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
 
 endforeach()
+
+
+# add_library(passes SHARED ${ALL_PASSES})

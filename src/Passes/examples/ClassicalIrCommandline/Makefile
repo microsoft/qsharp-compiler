@@ -1,3 +1,9 @@
+emit-llvm-cpp:
+	clang -O3 -S -std=c++17 -emit-llvm classical-program.cpp -o classical-program.ll
+
+emit-llvm-cpp-bin:
+	clang++ -O3 -std=c++17 -stdlib=libc++ classical-program.cpp -o a.out
+
 emit-llvm:
 	clang -O0 -S -emit-llvm classical-program.c -o classical-program.ll
 
