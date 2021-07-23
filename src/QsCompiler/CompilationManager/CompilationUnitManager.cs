@@ -362,6 +362,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 this.changedFiles.Add(docKey);
                 var publish = false;
+
+                // We should keep the file version in sync with the reported by the LSP.
+                file.Version = param.TextDocument.Version;
+
                 foreach (var change in param.ContentChanges)
                 {
                     file.PushChange(change, out publish); // only the last one here is relevant

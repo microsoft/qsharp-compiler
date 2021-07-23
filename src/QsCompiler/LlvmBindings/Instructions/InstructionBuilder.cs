@@ -8,7 +8,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.Linq;
 using LLVMSharp.Interop;
 using Ubiquity.NET.Llvm.Types;
@@ -106,7 +105,6 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// is not required to come from the same block the instruction builder is
         /// currently referencing.</note>
         /// </remarks>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call")]
         public void PositionBefore(Instruction instr)
         {
             if (instr == default)
@@ -216,7 +214,7 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// <param name="lhs">left hand side operand.</param>
         /// <param name="rhs">right hand side operand.</param>
         /// <returns><see cref="Value"/> for the instruction.</returns>
-        public Value SDiv(Value lhs, Value rhs) => this.BuildBinOp((b, v1, v2) => LLVM.BuildUDiv(b, v1, v2, string.Empty.AsMarshaledString()), lhs, rhs);
+        public Value SDiv(Value lhs, Value rhs) => this.BuildBinOp((b, v1, v2) => LLVM.BuildSDiv(b, v1, v2, string.Empty.AsMarshaledString()), lhs, rhs);
 
         /// <summary>Creates an integer unsigned remainder operator.</summary>
         /// <param name="lhs">left hand side operand.</param>
@@ -260,7 +258,6 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// <param name="typeRef">Type of the value to allocate.</param>
         /// <param name="elements">Number of elements to allocate.</param>
         /// <returns><see cref="Instructions.Alloca"/> instruction.</returns>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call")]
         public Alloca Alloca(ITypeRef typeRef, ConstantInt elements)
         {
             if (typeRef == default)
@@ -680,7 +677,6 @@ namespace Ubiquity.NET.Llvm.Instructions
         /// and is either a <see cref="ConstantExpression"/> or an <see cref="Instructions.IntToPointer"/>
         /// instruction. Conversion to a constant expression is performed whenever possible.
         /// </remarks>
-        [SuppressMessage("Microsoft.Design", "CA1011:ConsiderPassingBaseTypesAsParameters", Justification = "Specific type required by interop call")]
         public Value IntToPointer(Value intValue, IPointerType ptrType)
         {
             if (intValue is Constant)
