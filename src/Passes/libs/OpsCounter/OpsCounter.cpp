@@ -1,78 +1,80 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "OpsCounter/OpsCounter.hpp"
-
 #include "Llvm.hpp"
+
+#include "OpsCounter/OpsCounter.hpp"
 
 #include <fstream>
 #include <iostream>
 
-namespace Microsoft {
-namespace Quantum {
-COpsCounterAnalytics::Result COpsCounterAnalytics::run(llvm::Function &function,
-                                                       llvm::FunctionAnalysisManager & /*unused*/)
+namespace microsoft
 {
-  COpsCounterAnalytics::Result opcode_map;
-  for (auto &basic_block : function)
-  {
-    for (auto &instruction : basic_block)
+namespace quantum
+{
+    OpsCounterAnalytics::Result OpsCounterAnalytics::run(
+        llvm::Function& function,
+        llvm::FunctionAnalysisManager& /*unused*/)
     {
-      if (instruction.isDebugOrPseudoInst())
-      {
-        continue;
-      }
-      auto name = instruction.getOpcodeName();
+        OpsCounterAnalytics::Result opcode_map;
+        for (auto& basic_block : function)
+        {
+            for (auto& instruction : basic_block)
+            {
+                if (instruction.isDebugOrPseudoInst())
+                {
+                    continue;
+                }
+                auto name = instruction.getOpcodeName();
 
-      if (opcode_map.find(name) == opcode_map.end())
-      {
-        opcode_map[instruction.getOpcodeName()] = 1;
-      }
-      else
-      {
-        opcode_map[instruction.getOpcodeName()]++;
-      }
+                if (opcode_map.find(name) == opcode_map.end())
+                {
+                    opcode_map[instruction.getOpcodeName()] = 1;
+                }
+                else
+                {
+                    opcode_map[instruction.getOpcodeName()]++;
+                }
+            }
+        }
+
+        return opcode_map;
     }
-  }
 
-  return opcode_map;
-}
+    OpsCounterPrinter::OpsCounterPrinter(llvm::raw_ostream& out_stream)
+      : out_stream_(out_stream)
+    {
+    }
 
-COpsCounterPrinter::COpsCounterPrinter(llvm::raw_ostream &out_stream)
-  : out_stream_(out_stream)
-{}
+    llvm::PreservedAnalyses OpsCounterPrinter::run(llvm::Function& function, llvm::FunctionAnalysisManager& fam)
+    {
+        auto& opcode_map = fam.getResult<OpsCounterAnalytics>(function);
 
-llvm::PreservedAnalyses COpsCounterPrinter::run(llvm::Function &               function,
-                                                llvm::FunctionAnalysisManager &fam)
-{
-  auto &opcode_map = fam.getResult<COpsCounterAnalytics>(function);
+        out_stream_ << "Stats for '" << function.getName() << "'\n";
+        out_stream_ << "===========================\n";
 
-  out_stream_ << "Stats for '" << function.getName() << "'\n";
-  out_stream_ << "===========================\n";
+        constexpr auto STR1 = "Opcode";
+        constexpr auto STR2 = "# Used";
+        out_stream_ << llvm::format("%-15s %-8s\n", STR1, STR2);
+        out_stream_ << "---------------------------"
+                    << "\n";
 
-  constexpr auto str1 = "Opcode";
-  constexpr auto str2 = "# Used";
-  out_stream_ << llvm::format("%-15s %-8s\n", str1, str2);
-  out_stream_ << "---------------------------"
-              << "\n";
+        for (auto const& instruction : opcode_map)
+        {
+            out_stream_ << llvm::format("%-15s %-8lu\n", instruction.first().str().c_str(), instruction.second);
+        }
+        out_stream_ << "---------------------------"
+                    << "\n\n";
 
-  for (auto const &instruction : opcode_map)
-  {
-    out_stream_ << llvm::format("%-15s %-8lu\n", instruction.first().str().c_str(),
-                                instruction.second);
-  }
-  out_stream_ << "---------------------------"
-              << "\n\n";
+        return llvm::PreservedAnalyses::all();
+    }
 
-  return llvm::PreservedAnalyses::all();
-}
+    bool OpsCounterPrinter::isRequired()
+    {
+        return true;
+    }
 
-bool COpsCounterPrinter::isRequired()
-{
-  return true;
-}
+    llvm::AnalysisKey OpsCounterAnalytics::Key;
 
-llvm::AnalysisKey COpsCounterAnalytics::Key;
-
-}  // namespace Quantum
-}  // namespace Microsoft
+} // namespace quantum
+} // namespace microsoft

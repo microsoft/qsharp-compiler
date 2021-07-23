@@ -26,23 +26,51 @@ HeaderFilterRegex: '.*'
 CheckOptions:
   - key:    readability-identifier-naming.ClassCase
     value:  'CamelCase'
-  - key:    readability-identifier-naming.ClassPrefix
-    value:  'C'
   - key:    readability-identifier-naming.AbstractClassPrefix
     value:  'I'
   - key:    readability-identifier-naming.StructCase
     value:  'CamelCase'
   - key:    readability-identifier-naming.ParameterCase
-    value:  'camelBack'
+    value:  'lower_case'
   - key:    readability-identifier-naming.PrivateMemberCase
-    value:  'camelBack'
+    value:  'lower_case'
+  - key:    readability-identifier-naming.PrivateMemberSuffix
+    value:  '_'    
+  - key:    readability-identifier-naming.ProtectedMemberCase
+    value:  'lower_case'
+  - key:    readability-identifier-naming.ProtectedMemberSuffix
+    value:  '_'        
+  - key:    readability-identifier-naming.VariableCase
+    value:  'lower_case'
   - key:    readability-identifier-naming.LocalVariableCase
-    value:  'camelBack'
+    value:  'lower_case'
   - key:    readability-identifier-naming.TypeAliasCase
     value:  'CamelCase'
   - key:    readability-identifier-naming.UnionCase
     value:  'CamelCase'
   - key:    readability-identifier-naming.FunctionCase
-    value:  'CamelCase'
+    value:  'camelBack'
   - key:    readability-identifier-naming.NamespaceCase
+    value:  'lower_case'
+  - key:    readability-identifier-naming.GlobalConstantCase
+    value:  'UPPER_CASE'
+  - key:    readability-identifier-naming.EnumCase
     value:  'CamelCase'
+  - key:    readability-identifier-naming.EnumConstantCase
+    value:  'CamelCase'
+  - key:    readability-identifier-naming.GlobalConstantPrefix
+    value:  'G_'
+  - key:    readability-identifier-naming.ConstantCase
+    value: 'UPPER_CASE'
+  - key:    readability-identifier-naming.MacroDefinitionCase
+    value:  'UPPER_CASE'
+  - key:    readability-identifier-naming.TypeAliasCase
+    value:  'CamelCase'
+  - key:    readability-identifier-naming.TypedefCase
+    value:  'CamelCase'
+  - key: readability-identifier-naming.IgnoreMainLikeFunctions
+    value: true
+  - key:    readability-identifier-naming.StaticVariableCase
+    value:  'lower_case'
+  - key:    readability-identifier-naming.StaticVariablePrefix
+    value:  'h_'

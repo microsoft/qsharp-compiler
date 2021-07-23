@@ -36,13 +36,20 @@ SpaceBeforeParens: ControlStatements
 DerivePointerAlignment: false
 PointerAlignment: Left
 
-# Suggestion
+# Suggestions
 Standard: Cpp11
 AlignConsecutiveAssignments: true
 AlignConsecutiveDeclarations: true
 AlignTrailingComments: true
 
+ConstructorInitializerAllOnOneLineOrOnePerLine: false
+ConstructorInitializerIndentWidth: 2
+
+IndentCaseLabels: false
+# NamespaceIndentation: None
+
 # Ensures include compleness
+IncludeBlocks: Regroup
 IncludeCategories: 
   - Regex: '.*\.\..*'
     Priority: 1
@@ -57,4 +64,6 @@ IncludeCategories:
   - Regex: '.*'
     Priority: 2
 IncludeIsMainRegex: ''
-
+SortIncludes: true
+SortUsingDeclarations: true
+SpaceInEmptyParentheses: false
