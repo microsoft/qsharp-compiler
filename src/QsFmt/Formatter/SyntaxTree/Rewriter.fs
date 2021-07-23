@@ -161,6 +161,7 @@ type 'context Rewriter() =
         match statement with
         | Let lets -> rewriter.Let(context, lets) |> Let
         | Return returns -> rewriter.Return(context, returns) |> Return
+        | Use ``use`` -> rewriter.Use(context, ``use``) |> Use
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
@@ -183,6 +184,18 @@ type 'context Rewriter() =
             ReturnKeyword = rewriter.Terminal(context, returns.ReturnKeyword)
             Expression = rewriter.Expression(context, returns.Expression)
             Semicolon = rewriter.Terminal(context, returns.Semicolon)
+        }
+
+    abstract Use : context: 'context * ``use``: Use -> Use
+
+    default rewriter.Use(context, ``use``) =
+        {
+            UseKeyword = rewriter.Terminal(context, ``use``.UseKeyword)
+            Binding = rewriter.QubitBinding(context, ``use``.Binding)
+            OpenParen = rewriter.Terminal(context, ``use``.OpenParen)
+            CloseParen = rewriter.Terminal(context, ``use``.CloseParen)
+            Semicolon = rewriter.Terminal(context, ``use``.Semicolon)
+            Block = rewriter.Block(context, rewriter.Statement, ``use``.Block)
         }
 
     abstract If : context: 'context * ifs: If -> If
@@ -215,6 +228,49 @@ type 'context Rewriter() =
         {
             Name = rewriter.Terminal(context, declaration.Name)
             Type = declaration.Type |> Option.map (curry rewriter.TypeAnnotation context)
+        }
+
+    abstract QubitBinding : context: 'context * binding: QubitBinding -> QubitBinding
+
+    default rewriter.QubitBinding(context, binding) =
+        {
+            Name = rewriter.QubitSymbolBinding(context, binding.Name)
+            Equals = rewriter.Terminal(context, binding.Equals)
+            Initializer = rewriter.QubitInitializer(context, binding.Initializer)
+        }
+
+    abstract QubitSymbolBinding : context: 'context * symbol: QubitSymbolBinding -> QubitSymbolBinding
+
+    default rewriter.QubitSymbolBinding(context, symbol) =
+        match symbol with
+        | QubitSymbolDeclaration declaration -> rewriter.Terminal(context, declaration) |> QubitSymbolDeclaration
+        | QubitSymbolTuple tuple -> rewriter.Tuple(context, rewriter.QubitSymbolBinding, tuple) |> QubitSymbolTuple
+
+    abstract QubitInitializer: context: 'context * initializer: QubitInitializer -> QubitInitializer
+
+    default rewriter.QubitInitializer(context, initializer) =
+        match initializer with
+        | SingleQubit singleQubit -> rewriter.SingleQubit(context, singleQubit) |> SingleQubit
+        | QubitArray qubitArray -> rewriter.QubitArray(context, qubitArray) |> QubitArray
+        | QubitTuple tuple -> rewriter.Tuple(context, rewriter.QubitInitializer, tuple) |> QubitTuple
+
+    abstract SingleQubit: context: 'context * newQubit: SingleQubit -> SingleQubit
+
+    default rewriter.SingleQubit(context, newQubit) =
+        {
+            Qubit = rewriter.Terminal(context, newQubit.Qubit)
+            OpenParen = rewriter.Terminal(context, newQubit.OpenParen)
+            CloseParen = rewriter.Terminal(context, newQubit.CloseParen)
+        }
+
+    abstract QubitArray: context: 'context * newQubits: QubitArray -> QubitArray
+
+    default rewriter.QubitArray(context, newQubits) =
+        {
+            Qubit = rewriter.Terminal(context, newQubits.Qubit)
+            OpenBracket = rewriter.Terminal(context, newQubits.OpenBracket)
+            Length = rewriter.Expression(context, newQubits.Length)
+            CloseBracket = rewriter.Terminal(context, newQubits.CloseBracket)
         }
 
     abstract InterpStringContent : context: 'context * interpStringContent: InterpStringContent -> InterpStringContent

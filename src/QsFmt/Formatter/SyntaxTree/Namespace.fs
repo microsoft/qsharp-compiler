@@ -31,7 +31,7 @@ type CallableDeclaration =
         TypeParameters: TypeParameterBinding option
         Parameters: SymbolBinding
         ReturnType: TypeAnnotation
-        CharacteristicSection: CharacteristicSection Option
+        CharacteristicSection: CharacteristicSection option
         Body: CallableBody
     }
 

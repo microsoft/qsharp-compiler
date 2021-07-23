@@ -80,7 +80,7 @@ type internal CallableDeclaration =
         ReturnType: TypeAnnotation
 
         /// The characteristic section of the callable.
-        CharacteristicSection: CharacteristicSection Option
+        CharacteristicSection: CharacteristicSection option
 
         /// The body of the callable.
         Body: CallableBody
