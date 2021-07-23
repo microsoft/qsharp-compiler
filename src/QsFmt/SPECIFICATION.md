@@ -2,6 +2,8 @@
 
 QsFmt is a source code formatter for Q#.
 
+(The tool should be idempotent.)
+
 ## Where to get the formatter
 
 The `Microsoft.Quantum.QsFormatter` NuGet package will be distributed with the rest of Q# on NuGet.org.
@@ -19,8 +21,10 @@ The tool will initially only support the 'update' command, as the formatting fun
 
 ## Input and Output
 Input files to the formatter will be the last argument(s) to the tool. Zero to many arguments may be given.
- - The default behavior, which is used if no input arguments are provided, is for the formatter to take as input all files with the '.qs' extension in the current working directory.
+ - (This behavior is dangerous with the default output) (Maybe don't have a default behavior if there is no inputs specified) The default behavior, which is used if no input arguments are provided, is for the formatter to take as input all files with the '.qs' extension in the current working directory.
  - Inputs can be given as one to many paths to directories, in which all files with the '.qs' extension found will be taken as input.
+   (Maybe allow any extension when specifying specific files)
+   (Look into pattern matching and wild cards)
  - Inputs can be given as one to many paths to individual files with the '.qs' extension.
  - Inputs can be any combination of paths to files and paths to directories.
  - The `--recurse` option can be specified to process the input directories recursively for input files. You can specify this for all input directories, not per-directory.
@@ -52,7 +56,12 @@ Updating Transformations remove outdated syntax that is deprecated and will be n
 If an unhandled exception is thrown by the tool, that will be surfaced to the user and is a bug with the tool that should be filed and addressed.
 
 Parsing errors may occur if the formatter is given text that is not proper Q# code. In this case ANTLR gives the appropriate error message.
+(Parsing errors prevent the file from being processed.)
 Errors should not occur during a formatting transformation. All formatting transformations should never encounter the syntax that they are expected to change but are unable to change.
 Errors may occur during an updating transformation of the concrete syntax tree if an updating transformation encounters an issue, such as syntax that it would be expected to update, but can't for some reason.
+(Transformation 'errors' should be warnings and the rest of the file should still get processed.)
 
 Errors of all kinds should be collected and reported to the user through stderr after all transformations are finished.
+
+(Explicitly state that exceptions will prevent any output on the file being processed. The tool will try to recover from the exception to process other input files.)
+(The tool should be idempotent.)
