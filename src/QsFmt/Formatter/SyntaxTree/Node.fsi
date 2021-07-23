@@ -33,7 +33,7 @@ module internal Trivia =
     val spaces: count:int -> Trivia
 
     /// <summary>
-    /// The new line <see cref="Trivia"/> node.
+    /// The new line <see cref="Trivia"/> node containing the default new line character for the current platform..
     /// </summary>
     val newLine: Trivia
 

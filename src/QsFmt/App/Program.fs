@@ -36,7 +36,6 @@ let main args =
         | Error errors ->
             errors |> List.iter (eprintfn "%O")
             1
-
     with
     | :? ArguParseException as ex ->
         eprintf "%s" ex.Message
@@ -47,6 +46,3 @@ let main args =
     | :? UnauthorizedAccessException as ex ->
         eprintfn "%s" ex.Message
         4
-    | Failure (msg) ->
-        eprintfn "%s" msg
-        5
