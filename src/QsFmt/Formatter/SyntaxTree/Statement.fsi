@@ -21,6 +21,19 @@ type internal SymbolBinding =
     /// A declaration for a tuple of new symbols.
     | SymbolTuple of SymbolBinding Tuple
 
+type internal QubitSymbolBinding =
+    | QubitSymbolDeclaration of Terminal
+    | QubitSymbolTuple of QubitSymbolBinding Tuple
+
+type internal SingleQubit = { Qubit: Terminal; OpenParen: Terminal; CloseParen: Terminal }
+type internal QubitArray = { Qubit: Terminal; OpenBracket: Terminal; Length: Expression; CloseBracket: Terminal }
+type internal QubitInitializer =
+    | SingleQubit of SingleQubit
+    | QubitArray of QubitArray
+    | QubitTuple of QubitInitializer Tuple
+
+type internal QubitBinding = { Name: QubitSymbolBinding; Equals: Terminal; Initializer: QubitInitializer }
+
 /// <summary>
 /// A <c>let</c> statement.
 /// </summary>
@@ -62,9 +75,35 @@ type internal Return =
     }
 
 /// <summary>
+/// A <c>return</c> statement.
+/// </summary>
+type internal Use =
+    {
+        /// <summary>
+        /// The <c>use</c> keyword.
+        /// </summary>
+        UseKeyword: Terminal
+
+        /// The qubit binding.
+        Binding: QubitBinding
+
+        /// Optional open parentheses
+        OpenParen: Terminal
+
+        /// Optional close parentheses
+        CloseParen: Terminal
+
+        /// The semicolon.
+        Semicolon: Terminal
+
+        /// The block of statements after the use.
+        Block: Statement Block
+    }
+
+/// <summary>
 /// An <c>if</c> statement.
 /// </summary>
-type internal If =
+and internal If =
     {
         /// <summary>
         /// The <c>if</c> keyword.
@@ -103,6 +142,11 @@ and internal Statement =
     /// A <c>return</c> statement.
     /// </summary>
     | Return of Return
+
+    /// <summary>
+    /// A <c>use</c> statement.
+    /// </summary>
+    | Use of Use
 
     /// <summary>
     /// An <c>if</c> statement.

@@ -9,6 +9,20 @@ type SymbolBinding =
     | SymbolDeclaration of SymbolDeclaration
     | SymbolTuple of SymbolBinding Tuple
 
+type QubitSymbolBinding =
+    | QubitSymbolDeclaration of Terminal
+    | QubitSymbolTuple of QubitSymbolBinding Tuple
+
+type SingleQubit = { Qubit: Terminal; OpenParen: Terminal; CloseParen: Terminal }
+type QubitArray = { Qubit: Terminal; OpenBracket: Terminal; Length: Expression; CloseBracket: Terminal }
+
+type QubitInitializer =
+    | SingleQubit of SingleQubit
+    | QubitArray of QubitArray
+    | QubitTuple of QubitInitializer Tuple
+
+type QubitBinding = { Name: QubitSymbolBinding; Equals: Terminal; Initializer: QubitInitializer }
+
 type Let =
     {
         LetKeyword: Terminal
@@ -25,7 +39,17 @@ type Return =
         Semicolon: Terminal
     }
 
-type If =
+type Use =
+    {
+        UseKeyword: Terminal
+        Binding: QubitBinding
+        OpenParen: Terminal
+        CloseParen: Terminal
+        Semicolon: Terminal
+        Block: Statement Block
+    }
+
+and If =
     {
         IfKeyword: Terminal
         Condition: Expression
@@ -37,6 +61,7 @@ and Else = { ElseKeyword: Terminal; Block: Statement Block }
 and Statement =
     | Let of Let
     | Return of Return
+    | Use of Use
     | If of If
     | Else of Else
     | Unknown of Terminal
@@ -47,6 +72,7 @@ module Statement =
         | Let lets -> { lets with LetKeyword = lets.LetKeyword |> Terminal.mapPrefix mapper } |> Let
         | Return returns ->
             { returns with ReturnKeyword = returns.ReturnKeyword |> Terminal.mapPrefix mapper } |> Return
+        | Use ``use`` -> { ``use`` with UseKeyword = ``use``.UseKeyword |> Terminal.mapPrefix mapper } |> Use
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
