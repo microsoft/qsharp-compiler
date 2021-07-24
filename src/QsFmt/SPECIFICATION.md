@@ -4,8 +4,8 @@ QsFmt is a source code formatter for Q#.
 
 ## Where to get the formatter
 
-The `Microsoft.Quantum.QsFormatter` NuGet package will be distributed with the rest of Q# on NuGet.org.
-As a dotnet tool, it is installed with the command `dotnet tool install Microsoft.Quantum.QsFormatter`.
+The `Microsoft.Quantum.QSharp.Formatter` NuGet package will be distributed with the rest of Q# on NuGet.org.
+As a dotnet tool, it is installed with the command `dotnet tool install Microsoft.Quantum.QSharp.Formatter`.
 
 ## How to use the command line formatter
 
@@ -28,6 +28,8 @@ The `--recurse` option can be specified to process the input directories recursi
 
 The output of the formatter is to overwrite the input files that it processes.
 
+(Look into specifying backups. Flag for turning it on and use '.bak' extension.)
+
 ## Rules that are run
 
 The tool will parse the input into a concrete syntax tree using ANTLR. This tree will then have rules applied to it in the form of transformations on the tree.
@@ -47,6 +49,9 @@ Updating transformations remove outdated syntax that is deprecated and will be n
 
  - Array Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/2-enhanced-array-literals.md)
  - Using Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/1-implicitly-scoped-qubit-allocation.md)
+ (Colon syntax for characteristics)
+ (Old unit syntax)
+ (Look at compiler deprecation warnings)
 
 ## How errors are handled
 
@@ -58,6 +63,8 @@ Parsing errors prevent the given input file from being processed. Other input fi
 Errors should not occur during a formatting transformation. All formatting transformations should never encounter the syntax that they are expected to change but are unable to change.
 Warnings may occur during an updating transformation of the concrete syntax tree if an updating transformation encounters an issue, such as syntax that it would be expected to update, but can't for some reason.
 Warnings like this will prevent the referenced code piece from being updated, but the rest of the file will still be processed.
+
+(Warnings should contain file and line number.)
 
 Errors and warnings of all kinds should be collected and reported to the user through stderr.
 Errors and warnings should be handled in a way so as not to affect the tool's idempotency.
