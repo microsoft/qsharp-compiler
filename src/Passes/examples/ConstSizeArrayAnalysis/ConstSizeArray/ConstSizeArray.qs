@@ -5,7 +5,7 @@ namespace Example {
     @EntryPoint()
     operation Main() : Int
     {
-        return QuantumFunction(10);
+        return QuantumFunction(10) + QuantumFunction(3);
     }
 
     operation QuantumFunction(nQubits : Int) : Int {
