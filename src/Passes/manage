@@ -9,4 +9,6 @@ sys.path.insert(0, os.path.join(ROOT, "site-packages"))
 
 # Loading the CLI tool and running it
 from TasksCI.cli import cli  # noqa: E402
+
+# Running the CLI tool defined in site-packages/TasksCI/cli
 cli()

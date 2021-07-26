@@ -9,9 +9,10 @@ message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
 # Setting the standard configuration for the C++ compiler
-# Rather than allowing C++17, we restrict the ourselves to 
-# C++14 as this is the standard currently used by LLVM. While
-# there is a very small change that the difference in standard 
+# Rather than allowing C++17, we restrict ourselves to 
+# C++14 as this is the standard currently used by the LLVM 
+# project for compilation of the framework. While there is 
+# a very small chance that the difference in standard 
 # would break things, it is a possibility nonetheless.
 set(CMAKE_CXX_STANDARD 14)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)

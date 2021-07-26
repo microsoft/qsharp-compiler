@@ -1,6 +1,7 @@
 Checks: "-*,bugprone-*,\
 -readability-*,\
 readability-identifier-*,\
+readability-redundant-member-init,\
 readability-braces-around-statements,\
 cert-dcl*,\
 cert-env*,\
@@ -16,6 +17,22 @@ google-runtime-operator,\
 hicpp-exception-baseclass,\
 hicpp-explicit-conversions,\
 hicpp-use-*,\
+modernize-avoid-bind,\
+modernize-loop-convert,\
+modernize-make-shared,\
+modernize-make-unique,\
+modernize-redundant-void-arg,\
+modernize-replace-random-shuffle,\
+modernize-shrink-to-fit,\
+modernize-use-bool-literals,\
+modernize-use-default-member-init,\
+modernize-use-emplace,\
+modernize-use-equals-default,\
+modernize-use-equals-delete,\
+modernize-use-noexcept,\
+modernize-use-nullptr,\
+modernize-use-override,\
+modernize-use-transparent-functors,\
 misc-*,\
 -misc-misplaced-widening-cast,\
 performance-*"
@@ -24,14 +41,22 @@ WarningsAsErrors: '*'
 HeaderFilterRegex: '.*'
 
 CheckOptions:
-  - key:    readability-identifier-naming.ClassCase
-    value:  'CamelCase'
+  # Configuration documentation: https://clang.llvm.org/extra/clang-tidy/checks/readability-identifier-naming.html
+  # Namespaces
+  - key:    readability-identifier-naming.NamespaceCase
+    value:  'lower_case'
+
+  # Classes and structs
   - key:    readability-identifier-naming.AbstractClassPrefix
     value:  'I'
+  - key:    readability-identifier-naming.ClassCase
+    value:  'CamelCase'
   - key:    readability-identifier-naming.StructCase
     value:  'CamelCase'
-  - key:    readability-identifier-naming.ParameterCase
-    value:  'lower_case'
+  - key:    readability-identifier-naming.UnionCase
+    value:  'CamelCase'
+
+  # Class members
   - key:    readability-identifier-naming.PrivateMemberCase
     value:  'lower_case'
   - key:    readability-identifier-naming.PrivateMemberSuffix
@@ -40,37 +65,39 @@ CheckOptions:
     value:  'lower_case'
   - key:    readability-identifier-naming.ProtectedMemberSuffix
     value:  '_'        
-  - key:    readability-identifier-naming.VariableCase
-    value:  'lower_case'
-  - key:    readability-identifier-naming.LocalVariableCase
-    value:  'lower_case'
-  - key:    readability-identifier-naming.TypeAliasCase
-    value:  'CamelCase'
-  - key:    readability-identifier-naming.UnionCase
-    value:  'CamelCase'
-  - key:    readability-identifier-naming.FunctionCase
-    value:  'camelBack'
-  - key:    readability-identifier-naming.NamespaceCase
-    value:  'lower_case'
-  - key:    readability-identifier-naming.GlobalConstantCase
-    value:  'UPPER_CASE'
-  - key:    readability-identifier-naming.EnumCase
-    value:  'CamelCase'
-  - key:    readability-identifier-naming.EnumConstantCase
-    value:  'CamelCase'
-  - key:    readability-identifier-naming.GlobalConstantPrefix
-    value:  'G_'
-  - key:    readability-identifier-naming.ConstantCase
-    value: 'UPPER_CASE'
-  - key:    readability-identifier-naming.MacroDefinitionCase
-    value:  'UPPER_CASE'
+
+  # Alias
   - key:    readability-identifier-naming.TypeAliasCase
     value:  'CamelCase'
   - key:    readability-identifier-naming.TypedefCase
     value:  'CamelCase'
+
+  # Functions
+  - key:    readability-identifier-naming.FunctionCase
+    value:  'camelBack'
   - key: readability-identifier-naming.IgnoreMainLikeFunctions
     value: true
-  - key:    readability-identifier-naming.StaticVariableCase
+
+  # Variables and parameters
+  - key:    readability-identifier-naming.VariableCase
     value:  'lower_case'
-  - key:    readability-identifier-naming.StaticVariablePrefix
-    value:  'h_'
+  - key:    readability-identifier-naming.LocalVariableCase
+    value:  'lower_case'
+  - key:    readability-identifier-naming.ParameterCase
+    value:  'lower_case'
+
+  # Globals, consts and enums
+  - key:    readability-identifier-naming.GlobalConstantCase
+    value:  'UPPER_CASE'
+  - key:    readability-identifier-naming.GlobalConstantPrefix
+    value:  'G_'
+  - key:    readability-identifier-naming.ConstantCase
+    value: 'UPPER_CASE'
+  - key:    readability-identifier-naming.EnumCase
+    value:  'CamelCase'
+  - key:    readability-identifier-naming.EnumConstantCase
+    value:  'CamelCase'
+
+  # Macros
+  - key:    readability-identifier-naming.MacroDefinitionCase
+    value:  'UPPER_CASE'

@@ -1,13 +1,13 @@
 # Q# Passes for LLVM
 
-This library defines LLVM passes used for analysing, optimising and transforming the IR. The Q# pass library is a dynamic library that can be compiled and ran separately from the
-rest of the project code. While it is not clear whether this possible at the moment, we hope that it will be possible to write passes that enforce the QIR standard.
+This library defines [LLVM passes](https://llvm.org/docs/Passes.html) used for analysing, optimising and transforming the IR. The Q# pass library is a dynamic library that can be compiled and ran separately from the
+rest of the project code. While it is not clear whether this possible at the moment, we hope that it will be possible to write passes that enforce the [QIR specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR).
 
-## What does LLVM passes do?
+## What do LLVM passes do?
 
-Before getting started, we here provide a few examples of classical use cases for LLVM passes.
+Before getting started, we here provide a few examples of classical use cases for [LLVM passes](https://llvm.org/docs/Passes.html). You find additional [instructive examples here][1].
 
-**Example 1: Transformation**. As a first example of what LLVM passes can do, we look at optimisation. Consider a compiler which
+**Example 1: Transformation**. As a first example of what [LLVM passes](https://llvm.org/docs/Passes.html) can do, we look at optimisation. Consider a compiler which
 compiles
 
 ```c
@@ -37,7 +37,7 @@ double test(double x) {
 }
 ```
 
-One purpose of LLVM passes is to allow automatic transformation from the above IR to the IR:
+One purpose of [LLVM passes](https://llvm.org/docs/Passes.html) is to allow automatic transformation from the above IR to the IR:
 
 ```
 define double @test(double %x) {
@@ -138,12 +138,13 @@ call            2
 ---------------------------
 ```
 
-**Example 3: Code validation**. A third use case is code validation. For example, one could write a pass to check whether bounds are exceeded on static arrays [2].
+**Example 3: Code validation**. A third use case is code validation. For example, one could write a pass to check whether bounds are exceeded on [static arrays][2].
 Note that this is a non-standard usecase as such analysis is usually made using the AST rather than at the IR level.
 
 **References**
-[1] https://github.com/banach-space/llvm-tutor#analysis-vs-transformation-pass
-[2] https://github.com/victor-fdez/llvm-array-check-pass
+
+- [1] https://github.com/banach-space/llvm-tutor#analysis-vs-transformation-pass
+- [2] https://github.com/victor-fdez/llvm-array-check-pass
 
 ## Out-of-source Pass
 
@@ -184,12 +185,16 @@ and then make your target
 make [target]
 ```
 
+Valid targets are the name of the folders in `libs/` found in the passes root.
+
 ## Running a pass
 
-You can run a pass using `opt` as follows:
+You can run a pass using [opt](https://llvm.org/docs/CommandGuide/opt.html) as follows:
 
 ```sh
-opt -load-pass-plugin ../../{Debug,Release}/libQSharpPasses.{dylib,so} --passes="operation-counter" -disable-output classical-program.bc
+cd examples/ClassicalIrCommandline
+make emit-llvm-bc
+opt -load-pass-plugin ../../{Debug,Release}/libOpsCounter.{dylib,so} --passes="print<operation-counter>" -disable-output classical-program.bc
 ```
 
 For a gentle introduction, see examples.

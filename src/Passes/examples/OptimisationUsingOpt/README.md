@@ -54,5 +54,3 @@ entry:
 ```
 
 plus a few extra delcarations.
-
-## Applying a pass
