@@ -98,6 +98,29 @@ type internal Use =
     }
 
 /// <summary>
+/// A <c>borrow</c> statement.
+/// </summary>
+type internal Borrow =
+    {
+        /// <summary>
+        /// The <c>borrow</c> keyword.
+        /// </summary>
+        BorrowKeyword: Terminal
+
+        /// The qubit binding.
+        Binding: QubitBinding
+
+        /// Optional open parentheses
+        OpenParen: Terminal option
+
+        /// Optional close parentheses
+        CloseParen: Terminal option
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
+/// <summary>
 /// A <c>use</c> statement preceding a block.
 /// </summary>
 type internal UseBlock =
@@ -117,6 +140,29 @@ type internal UseBlock =
         CloseParen: Terminal option
         
         /// The block of statements after the use.
+        Block: Statement Block
+    }
+
+/// <summary>
+/// A <c>borrow</c> statement preceding a block.
+/// </summary>
+and internal BorrowBlock =
+    {
+        /// <summary>
+        /// The <c>borrow</c> keyword.
+        /// </summary>
+        BorrowKeyword: Terminal
+
+        /// The qubit binding.
+        Binding: QubitBinding
+
+        /// Optional open parentheses
+        OpenParen: Terminal option
+
+        /// Optional close parentheses
+        CloseParen: Terminal option
+        
+        /// The block of statements after the borrow.
         Block: Statement Block
     }
 
@@ -172,6 +218,16 @@ and internal Statement =
     /// A <c>use</c> statement preceding a block.
     /// </summary>
     | UseBlock of UseBlock
+
+    /// <summary>
+    /// A <c>borrow</c> statement.
+    /// </summary>
+    | Borrow of Borrow
+
+    /// <summary>
+    /// A <c>borrow</c> statement preceding a block.
+    /// </summary>
+    | BorrowBlock of BorrowBlock
 
     /// <summary>
     /// An <c>if</c> statement.

@@ -147,6 +147,31 @@ type StatementVisitor(tokens) =
         }
         |> UseBlock
 
+    override _.VisitBorrowStatement context =
+        {
+            BorrowKeyword = context.borrow |> Node.toTerminal tokens
+            Binding = context.binding |> qubitBindingVisitor.Visit
+            OpenParen = context.openParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            CloseParen = context.closeParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> Borrow
+
+    override visitor.VisitBorrowBlock context =
+        {
+            BorrowKeyword = context.borrow |> Node.toTerminal tokens
+            Binding = context.binding |> qubitBindingVisitor.Visit
+            OpenParen = context.openParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            CloseParen = context.closeParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> BorrowBlock
+
     override _.VisitLetStatement context =
         {
             LetKeyword = context.``let`` |> Node.toTerminal tokens

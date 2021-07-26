@@ -159,7 +159,8 @@ statement
     | 'apply' scope # ApplyStatement
     | use=('use' | 'using') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') semicolon=';' # UseStatement
     | use=('use' | 'using') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') body=scope # UseBlock
-    | ('borrow' | 'borrowing') (qubitBinding | '(' qubitBinding ')') (';' | scope) # BorrowStatement
+    | borrow=('borrow' | 'borrowing') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') semicolon=';' # BorrowStatement
+    | borrow=('borrow' | 'borrowing') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') body=scope # BorrowBlock
     ;
 
 scope : openBrace=BraceLeft statements+=statement* closeBrace=BraceRight;

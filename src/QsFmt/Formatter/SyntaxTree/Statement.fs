@@ -48,9 +48,27 @@ type Use =
         Semicolon: Terminal
     }
 
+type Borrow =
+    {
+        BorrowKeyword: Terminal
+        Binding: QubitBinding
+        OpenParen: Terminal option
+        CloseParen: Terminal option
+        Semicolon: Terminal
+    }
+
 type UseBlock =
     {
         UseKeyword: Terminal
+        Binding: QubitBinding
+        OpenParen: Terminal option
+        CloseParen: Terminal option
+        Block: Statement Block
+    }
+
+and BorrowBlock =
+    {
+        BorrowKeyword: Terminal
         Binding: QubitBinding
         OpenParen: Terminal option
         CloseParen: Terminal option
@@ -71,6 +89,8 @@ and Statement =
     | Return of Return
     | Use of Use
     | UseBlock of UseBlock
+    | Borrow of Borrow
+    | BorrowBlock of BorrowBlock
     | If of If
     | Else of Else
     | Unknown of Terminal
@@ -83,6 +103,8 @@ module Statement =
             { returns with ReturnKeyword = returns.ReturnKeyword |> Terminal.mapPrefix mapper } |> Return
         | Use ``use`` -> { ``use`` with UseKeyword = ``use``.UseKeyword |> Terminal.mapPrefix mapper } |> Use
         | UseBlock ``use`` -> { ``use`` with UseKeyword = ``use``.UseKeyword |> Terminal.mapPrefix mapper } |> UseBlock
+        | Borrow borrow -> { borrow with BorrowKeyword = borrow.BorrowKeyword |> Terminal.mapPrefix mapper } |> Borrow
+        | BorrowBlock borrow -> { borrow with BorrowKeyword = borrow.BorrowKeyword |> Terminal.mapPrefix mapper } |> BorrowBlock
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown

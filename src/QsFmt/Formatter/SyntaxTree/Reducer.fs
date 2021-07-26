@@ -164,6 +164,8 @@ type internal 'result Reducer() as reducer =
         | Return returns -> reducer.Return returns
         | Use ``use`` -> reducer.Use ``use``
         | UseBlock ``use`` -> reducer.UseBlock ``use``
+        | Borrow borrow -> reducer.Borrow borrow
+        | BorrowBlock borrow -> reducer.BorrowBlock borrow
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
         | Statement.Unknown terminal -> reducer.Terminal terminal
@@ -212,6 +214,32 @@ type internal 'result Reducer() as reducer =
             match ``use``.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
             match ``use``.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
             reducer.Block(reducer.Statement, ``use``.Block) |> Some
+        ]
+        |> List.choose id
+        |> reduce
+
+    abstract Borrow : borrow: Borrow -> 'result
+
+    default _.Borrow borrow =
+        [
+            reducer.Terminal(borrow.BorrowKeyword) |> Some
+            reducer.QubitBinding(borrow.Binding) |> Some
+            match borrow.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match borrow.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            reducer.Terminal(borrow.Semicolon) |> Some
+        ]
+        |> List.choose id
+        |> reduce
+
+    abstract BorrowBlock : borrow: BorrowBlock -> 'result
+
+    default _.BorrowBlock borrow =
+        [
+            reducer.Terminal(borrow.BorrowKeyword) |> Some
+            reducer.QubitBinding(borrow.Binding) |> Some
+            match borrow.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match borrow.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            reducer.Block(reducer.Statement, borrow.Block) |> Some
         ]
         |> List.choose id
         |> reduce

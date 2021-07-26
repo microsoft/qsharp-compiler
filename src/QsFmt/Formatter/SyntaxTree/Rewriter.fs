@@ -163,6 +163,8 @@ type 'context Rewriter() =
         | Return returns -> rewriter.Return(context, returns) |> Return
         | Use ``use`` -> rewriter.Use(context, ``use``) |> Use
         | UseBlock ``use`` -> rewriter.UseBlock(context, ``use``) |> UseBlock
+        | Borrow borrow -> rewriter.Borrow(context, borrow) |> Borrow
+        | BorrowBlock borrow -> rewriter.BorrowBlock(context, borrow) |> BorrowBlock
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
@@ -207,6 +209,28 @@ type 'context Rewriter() =
             OpenParen = match ``use``.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
             CloseParen = match ``use``.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
             Block = rewriter.Block(context, rewriter.Statement, ``use``.Block)
+        }
+
+    abstract Borrow : context: 'context * borrow: Borrow -> Borrow
+
+    default rewriter.Borrow(context, borrow) =
+        {
+            BorrowKeyword = rewriter.Terminal(context, borrow.BorrowKeyword)
+            Binding = rewriter.QubitBinding(context, borrow.Binding)
+            OpenParen = match borrow.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = match borrow.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            Semicolon = rewriter.Terminal(context, borrow.Semicolon)
+        }
+
+    abstract BorrowBlock : context: 'context * borrow: BorrowBlock -> BorrowBlock
+
+    default rewriter.BorrowBlock(context, borrow) =
+        {
+            BorrowKeyword = rewriter.Terminal(context, borrow.BorrowKeyword)
+            Binding = rewriter.QubitBinding(context, borrow.Binding)
+            OpenParen = match borrow.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = match borrow.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            Block = rewriter.Block(context, rewriter.Statement, borrow.Block)
         }
 
     abstract If : context: 'context * ifs: If -> If

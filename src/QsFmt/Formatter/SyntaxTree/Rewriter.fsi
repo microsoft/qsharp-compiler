@@ -140,6 +140,18 @@ type internal 'context Rewriter =
     default UseBlock: context:'context * ``use``:UseBlock -> UseBlock
 
     /// <summary>
+    /// Rewrites a <see cref="Borrow"/> statement node.
+    /// </summary>
+    abstract Borrow: context:'context * borrow:Borrow -> Borrow
+    default Borrow: context:'context * borrow:Borrow -> Borrow
+
+    /// <summary>
+    /// Rewrites a <see cref="BorrowBlock"/> statement node.
+    /// </summary>
+    abstract BorrowBlock: context:'context * borrow:BorrowBlock -> BorrowBlock
+    default BorrowBlock: context:'context * borrow:BorrowBlock -> BorrowBlock
+
+    /// <summary>
     /// Rewrites an <see cref="If"/> statement node.
     /// </summary>
     abstract If: context:'context * ifs:If -> If

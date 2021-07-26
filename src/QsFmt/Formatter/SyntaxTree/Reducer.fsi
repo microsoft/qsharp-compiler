@@ -144,6 +144,18 @@ type internal 'result Reducer =
     default UseBlock: ``use``:UseBlock -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="Borrow"/> statement node.
+    /// </summary>
+    abstract Borrow: borrow:Borrow -> 'result
+    default Borrow: borrow:Borrow -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="BorrowBlock"/> statement node.
+    /// </summary>
+    abstract BorrowBlock: borrow:BorrowBlock -> 'result
+    default BorrowBlock: borrow:BorrowBlock -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="If"/> statement node.
     /// </summary>
     abstract If: ifs:If -> 'result

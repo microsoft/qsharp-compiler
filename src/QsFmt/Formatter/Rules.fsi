@@ -18,5 +18,6 @@ val indentation: int Rewriter
 /// Ensures that new lines are used where needed.
 val newLines: unit Rewriter
 
-/// ???
-val usingUpdate : Trivia list Rewriter
+/// Replaces `using` and `borrowing` with `use` and `borrow` respectively.
+/// Removes parentheses around qubit bindings.
+val qubitBindingUpdate : Trivia list Rewriter
