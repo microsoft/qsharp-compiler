@@ -157,7 +157,8 @@ statement
     | 'until' expression (';' | 'fixup' scope) # UntilStatement
     | 'within' scope # WithinStatement
     | 'apply' scope # ApplyStatement
-    | use=('use' | 'using') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') (semicolon=';' | body=scope) # UseStatement
+    | use=('use' | 'using') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') semicolon=';' # UseStatement
+    | use=('use' | 'using') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') body=scope # UseBlock
     | ('borrow' | 'borrowing') (qubitBinding | '(' qubitBinding ')') (';' | scope) # BorrowStatement
     ;
 

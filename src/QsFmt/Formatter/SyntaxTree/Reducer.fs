@@ -163,6 +163,7 @@ type internal 'result Reducer() as reducer =
         | Let lets -> reducer.Let lets
         | Return returns -> reducer.Return returns
         | Use ``use`` -> reducer.Use ``use``
+        | UseBlock ``use`` -> reducer.UseBlock ``use``
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
         | Statement.Unknown terminal -> reducer.Terminal terminal
@@ -193,13 +194,26 @@ type internal 'result Reducer() as reducer =
 
     default _.Use ``use`` =
         [
-            reducer.Terminal(``use``.UseKeyword)
-            reducer.QubitBinding(``use``.Binding)
-            reducer.Terminal(``use``.OpenParen)
-            reducer.Terminal(``use``.CloseParen)
-            reducer.Terminal(``use``.Semicolon)
-            reducer.Block(reducer.Statement, ``use``.Block)
+            reducer.Terminal(``use``.UseKeyword) |> Some
+            reducer.QubitBinding(``use``.Binding) |> Some
+            match ``use``.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match ``use``.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            reducer.Terminal(``use``.Semicolon) |> Some
         ]
+        |> List.choose id
+        |> reduce
+
+    abstract UseBlock : ``use``: UseBlock -> 'result
+
+    default _.UseBlock ``use`` =
+        [
+            reducer.Terminal(``use``.UseKeyword) |> Some
+            reducer.QubitBinding(``use``.Binding) |> Some
+            match ``use``.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match ``use``.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            reducer.Block(reducer.Statement, ``use``.Block) |> Some
+        ]
+        |> List.choose id
         |> reduce
 
     abstract If : ifs: If -> 'result

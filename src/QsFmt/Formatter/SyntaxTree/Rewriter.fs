@@ -162,6 +162,7 @@ type 'context Rewriter() =
         | Let lets -> rewriter.Let(context, lets) |> Let
         | Return returns -> rewriter.Return(context, returns) |> Return
         | Use ``use`` -> rewriter.Use(context, ``use``) |> Use
+        | UseBlock ``use`` -> rewriter.UseBlock(context, ``use``) |> UseBlock
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
@@ -192,9 +193,19 @@ type 'context Rewriter() =
         {
             UseKeyword = rewriter.Terminal(context, ``use``.UseKeyword)
             Binding = rewriter.QubitBinding(context, ``use``.Binding)
-            OpenParen = rewriter.Terminal(context, ``use``.OpenParen)
-            CloseParen = rewriter.Terminal(context, ``use``.CloseParen)
+            OpenParen = match ``use``.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = match ``use``.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
             Semicolon = rewriter.Terminal(context, ``use``.Semicolon)
+        }
+
+    abstract UseBlock : context: 'context * ``use``: UseBlock -> UseBlock
+
+    default rewriter.UseBlock(context, ``use``) =
+        {
+            UseKeyword = rewriter.Terminal(context, ``use``.UseKeyword)
+            Binding = rewriter.QubitBinding(context, ``use``.Binding)
+            OpenParen = match ``use``.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = match ``use``.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
             Block = rewriter.Block(context, rewriter.Statement, ``use``.Block)
         }
 

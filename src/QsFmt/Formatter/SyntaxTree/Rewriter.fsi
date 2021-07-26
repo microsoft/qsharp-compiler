@@ -134,6 +134,12 @@ type internal 'context Rewriter =
     default Use: context:'context * ``use``:Use -> Use
 
     /// <summary>
+    /// Rewrites a <see cref="UseBlock"/> statement node.
+    /// </summary>
+    abstract UseBlock: context:'context * ``use``:UseBlock -> UseBlock
+    default UseBlock: context:'context * ``use``:UseBlock -> UseBlock
+
+    /// <summary>
     /// Rewrites an <see cref="If"/> statement node.
     /// </summary>
     abstract If: context:'context * ifs:If -> If

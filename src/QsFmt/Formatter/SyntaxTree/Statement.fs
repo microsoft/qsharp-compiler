@@ -43,9 +43,17 @@ type Use =
     {
         UseKeyword: Terminal
         Binding: QubitBinding
-        OpenParen: Terminal
-        CloseParen: Terminal
+        OpenParen: Terminal option
+        CloseParen: Terminal option
         Semicolon: Terminal
+    }
+
+type UseBlock =
+    {
+        UseKeyword: Terminal
+        Binding: QubitBinding
+        OpenParen: Terminal option
+        CloseParen: Terminal option
         Block: Statement Block
     }
 
@@ -62,6 +70,7 @@ and Statement =
     | Let of Let
     | Return of Return
     | Use of Use
+    | UseBlock of UseBlock
     | If of If
     | Else of Else
     | Unknown of Terminal
@@ -73,6 +82,7 @@ module Statement =
         | Return returns ->
             { returns with ReturnKeyword = returns.ReturnKeyword |> Terminal.mapPrefix mapper } |> Return
         | Use ``use`` -> { ``use`` with UseKeyword = ``use``.UseKeyword |> Terminal.mapPrefix mapper } |> Use
+        | UseBlock ``use`` -> { ``use`` with UseKeyword = ``use``.UseKeyword |> Terminal.mapPrefix mapper } |> UseBlock
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown

@@ -122,13 +122,22 @@ type StatementVisitor(tokens) =
         }
         |> Return
 
-    override visitor.VisitUseStatement context =
+    override _.VisitUseStatement context =
         {
             UseKeyword = context.``use`` |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen = context.openParen |> Node.toTerminal tokens
-            CloseParen = context.closeParen |> Node.toTerminal tokens
+            OpenParen = context.openParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            CloseParen = context.closeParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
             Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> Use
+
+    override visitor.VisitUseBlock context =
+        {
+            UseKeyword = context.``use`` |> Node.toTerminal tokens
+            Binding = context.binding |> qubitBindingVisitor.Visit
+            OpenParen = context.openParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            CloseParen = context.closeParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
@@ -136,7 +145,7 @@ type StatementVisitor(tokens) =
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
         }
-        |> Use
+        |> UseBlock
 
     override _.VisitLetStatement context =
         {

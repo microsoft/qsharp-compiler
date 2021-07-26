@@ -138,6 +138,12 @@ type internal 'result Reducer =
     default Use: ``use``:Use -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="UseBlock"/> statement node.
+    /// </summary>
+    abstract UseBlock: ``use``:UseBlock -> 'result
+    default UseBlock: ``use``:UseBlock -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="If"/> statement node.
     /// </summary>
     abstract If: ifs:If -> 'result

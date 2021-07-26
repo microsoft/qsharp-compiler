@@ -75,7 +75,7 @@ type internal Return =
     }
 
 /// <summary>
-/// A <c>return</c> statement.
+/// A <c>use</c> statement.
 /// </summary>
 type internal Use =
     {
@@ -88,14 +88,34 @@ type internal Use =
         Binding: QubitBinding
 
         /// Optional open parentheses
-        OpenParen: Terminal
+        OpenParen: Terminal option
 
         /// Optional close parentheses
-        CloseParen: Terminal
+        CloseParen: Terminal option
 
         /// The semicolon.
         Semicolon: Terminal
+    }
 
+/// <summary>
+/// A <c>use</c> statement preceding a block.
+/// </summary>
+type internal UseBlock =
+    {
+        /// <summary>
+        /// The <c>use</c> keyword.
+        /// </summary>
+        UseKeyword: Terminal
+
+        /// The qubit binding.
+        Binding: QubitBinding
+
+        /// Optional open parentheses
+        OpenParen: Terminal option
+
+        /// Optional close parentheses
+        CloseParen: Terminal option
+        
         /// The block of statements after the use.
         Block: Statement Block
     }
@@ -147,6 +167,11 @@ and internal Statement =
     /// A <c>use</c> statement.
     /// </summary>
     | Use of Use
+
+    /// <summary>
+    /// A <c>use</c> statement preceding a block.
+    /// </summary>
+    | UseBlock of UseBlock
 
     /// <summary>
     /// An <c>if</c> statement.
