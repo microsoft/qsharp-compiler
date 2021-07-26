@@ -6,8 +6,8 @@ source_filename = "qir/ConstSizeArray.ll"
 
 define internal fastcc void @Example__Main__body() unnamed_addr {
 entry:
-  call fastcc void @Example__QuantumFunction__body(i64 10)
   call fastcc void @Example__QuantumFunction__body(i64 3)
+  call fastcc void @Example__QuantumFunction__body(i64 10)
   ret void
 }
 

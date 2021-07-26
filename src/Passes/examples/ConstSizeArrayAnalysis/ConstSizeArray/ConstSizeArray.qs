@@ -5,12 +5,12 @@ namespace Example {
     @EntryPoint()
     operation Main() : Int
     {
-        return QuantumFunction(10) + QuantumFunction(3);
+        QuantumFunction(3);
+        QuantumFunction(10) ;
+        return 0;
     }
 
-    operation QuantumFunction(nQubits : Int) : Int {
+    operation QuantumFunction(nQubits : Int) : Unit  {
         use qubits = Qubit[nQubits];
-
-        return 0;
     }
 }
