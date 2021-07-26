@@ -22,13 +22,11 @@ The tool will initially only support the 'update' command, as the formatting fun
 Input files to the formatter will be the last argument(s) to the tool.
 At least one input argument is expected. If no inputs are given, usage information is printed.
 Inputs can be given as one to many paths to directories, files, or any combination. In directories specified, all files with the '.qs' extension found will be taken as input.
+Basic wild cards may be used in the paths.
 The `--recurse` option can be specified to process the input directories recursively for input files. You can specify this for all input directories, not per-directory.
-
-(Look into pattern matching and wild cards)
+The `--backup` option can be specified to create backup files for all input files with the original content in them.
 
 The output of the formatter is to overwrite the input files that it processes.
-
-(Look into specifying backups. Flag for turning it on and use '.bak' extension.)
 
 ## Rules that are run
 
@@ -47,11 +45,13 @@ Listed here are some of the transformations we intend to use.
 
 Updating transformations remove outdated syntax that is deprecated and will be no longer supported in the future.
 
+Some syntaxes that can be updated are:
  - Array Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/2-enhanced-array-literals.md)
- - Using Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/1-implicitly-scoped-qubit-allocation.md)
- (Colon syntax for characteristics)
- (Old unit syntax)
- (Look at compiler deprecation warnings)
+ - Using and Borrowing Syntax - [proposal](https://github.com/microsoft/qsharp-language/blob/main/Approved/1-implicitly-scoped-qubit-allocation.md)
+ - Parentheses in For Loop Syntax - Removes deprecated parentheses around for-loop range expressions.
+ - Boolean Operator Syntax - Replaces deprecated boolean operators (`&&`, `||`, `!`) for keywords (`and`, `or`, `not`).
+ - Unit Syntax - Replaces deprecated unit syntax `()` for `Unit`.
+ - Body and Adjoint Functor Argument Syntax - When specifying `body` and `adjoint` functors on an operation, replaces the deprecated empty argument `()` with the required `(...)`.
 
 ## How errors are handled
 
@@ -63,8 +63,6 @@ Parsing errors prevent the given input file from being processed. Other input fi
 Errors should not occur during a formatting transformation. All formatting transformations should never encounter the syntax that they are expected to change but are unable to change.
 Warnings may occur during an updating transformation of the concrete syntax tree if an updating transformation encounters an issue, such as syntax that it would be expected to update, but can't for some reason.
 Warnings like this will prevent the referenced code piece from being updated, but the rest of the file will still be processed.
-
-(Warnings should contain file and line number.)
 
 Errors and warnings of all kinds should be collected and reported to the user through stderr.
 Errors and warnings should be handled in a way so as not to affect the tool's idempotency.
