@@ -106,7 +106,7 @@ namespace Hello {
     open Microsoft.Quantum.Intrinsic;
     
     @EntryPoint()
-    operation SayHello() : Unit {
+    operation HelloQ() : Unit {
         Message("Hello quantum world!");
     }
 }
@@ -258,7 +258,7 @@ attributes #0 = { "InteropFriendly" }
 attributes #1 = { "EntryPoint" }
 ```
 
-Note that compared to the output from `-O3`, the function `Hello__SayHello__body` was not inlined, as well as some other small differences such as missing tail calls.
+Note that compared to the output from `-O3`, the function `Hello__HelloQ__body` was not inlined, as well as some other small differences such as missing tail calls.
 Add *function inlining* with the following pass:
 
 ```shell
@@ -448,12 +448,12 @@ A small C++ driver program (`Main.cpp`) will handle the setup and invoke Q# oper
 using namespace Microsoft::Quantum;
 using namespace std;
 
-extern "C" void Hello__SayHello();
+extern "C" void Hello__HelloQ();
 
 int main(int argc, char* argv[]){
     unique_ptr<IRuntimeDriver> sim = CreateFullstateSimulator();
     QirContextScope qirctx(sim.get(), true /*trackAllocatedObjects*/);
-    Hello__SayHello();
+    Hello__HelloQ();
     return 0;
 }
 ```
@@ -477,7 +477,7 @@ The driver consists of the following elements:
     In our case, that compilation unit is the generated/optimized QIR code.
     `extern "C"` is strictly required here in order for the compiler to use the given function name exactly as is ('C' style linkage).
     Normally, C++ function names would be transformed during compilation to include namespace and call argument information in the function name, known as [mangling](https://en.wikipedia.org/wiki/Name_mangling).
-    We can check that the QIR function `Hello_SayHello` indeed appears in the `Hello.ll` file with that name.
+    We can check that the QIR function `Hello_HelloQ` indeed appears in the `Hello.ll` file with that name.
 
 * simulator invocation:
 
@@ -540,7 +540,7 @@ namespace Hello {
     open Microsoft.Quantum.Intrinsic;
     
     @EntryPoint()
-    operation SayHello() : Result {
+    operation HelloQ() : Result {
         Message("Hello quantum world!");
 
         use qb = Qubit();
