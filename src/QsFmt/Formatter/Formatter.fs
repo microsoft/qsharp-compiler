@@ -35,7 +35,8 @@ let parse (source: string) =
 let format source =
     parse source
     |> Result.map (
-        curry collapsedSpaces.Document ()
+        curry usingUpdate.Document ()
+        >> curry collapsedSpaces.Document ()
         >> curry operatorSpacing.Document ()
         >> curry newLines.Document ()
         >> curry indentation.Document 0

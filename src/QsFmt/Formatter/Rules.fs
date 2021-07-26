@@ -101,3 +101,20 @@ let newLines =
             else
                 { block with CloseBrace = Terminal.mapPrefix ensureNewLine block.CloseBrace }
     }
+
+let usingUpdate =
+    { new Rewriter<_>() with
+        override _.Use((), ``use``) =
+            { ``use`` with
+                UseKeyword = { ``use``.UseKeyword with Text = "use" }
+                OpenParen = None
+                CloseParen = None
+            }
+
+        override _.UseBlock((), ``use``) =
+            { ``use`` with
+                UseKeyword = { ``use``.UseKeyword with Text = "use" }
+                OpenParen = None
+                CloseParen = None
+            }
+    }

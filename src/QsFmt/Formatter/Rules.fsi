@@ -17,3 +17,6 @@ val indentation: int Rewriter
 
 /// Ensures that new lines are used where needed.
 val newLines: unit Rewriter
+
+/// ???
+val usingUpdate : unit Rewriter
