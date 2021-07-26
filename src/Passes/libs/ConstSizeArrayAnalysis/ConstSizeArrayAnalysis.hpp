@@ -7,17 +7,18 @@
 namespace microsoft {
 namespace quantum {
 
-class ConstSizeArrayAnalysisAnalytics : public llvm::AnalysisInfoMixin<ConstSizeArrayAnalysisAnalytics>
+class ConstSizeArrayAnalysisAnalytics
+  : public llvm::AnalysisInfoMixin<ConstSizeArrayAnalysisAnalytics>
 {
 public:
-  using Result = llvm::StringMap<unsigned>; ///< Change the type of the collected date here
+  using Result = llvm::StringMap<int64_t>;  ///< Change the type of the collected date here
 
   /// Constructors and destructors
   /// @{
-  ConstSizeArrayAnalysisAnalytics()                         = default;
-  ConstSizeArrayAnalysisAnalytics(ConstSizeArrayAnalysisAnalytics const &)  = delete;
-  ConstSizeArrayAnalysisAnalytics(ConstSizeArrayAnalysisAnalytics &&)       = default;
-  ~ConstSizeArrayAnalysisAnalytics()                        = default;
+  ConstSizeArrayAnalysisAnalytics()                                        = default;
+  ConstSizeArrayAnalysisAnalytics(ConstSizeArrayAnalysisAnalytics const &) = delete;
+  ConstSizeArrayAnalysisAnalytics(ConstSizeArrayAnalysisAnalytics &&)      = default;
+  ~ConstSizeArrayAnalysisAnalytics()                                       = default;
   /// @}
 
   /// Operators
@@ -28,7 +29,7 @@ public:
 
   /// Functions required by LLVM
   /// @{
-  Result run(llvm::Function & function, llvm::FunctionAnalysisManager & /*unused*/);
+  Result run(llvm::Function &function, llvm::FunctionAnalysisManager & /*unused*/);
   /// @}
 
 private:
@@ -41,11 +42,11 @@ class ConstSizeArrayAnalysisPrinter : public llvm::PassInfoMixin<ConstSizeArrayA
 public:
   /// Constructors and destructors
   /// @{
-  explicit ConstSizeArrayAnalysisPrinter(llvm::raw_ostream& out_stream);  
-  ConstSizeArrayAnalysisPrinter()                       = delete;
-  ConstSizeArrayAnalysisPrinter(ConstSizeArrayAnalysisPrinter const &)  = delete;
-  ConstSizeArrayAnalysisPrinter(ConstSizeArrayAnalysisPrinter &&)       = default;
-  ~ConstSizeArrayAnalysisPrinter()                      = default;
+  explicit ConstSizeArrayAnalysisPrinter(llvm::raw_ostream &out_stream);
+  ConstSizeArrayAnalysisPrinter()                                      = delete;
+  ConstSizeArrayAnalysisPrinter(ConstSizeArrayAnalysisPrinter const &) = delete;
+  ConstSizeArrayAnalysisPrinter(ConstSizeArrayAnalysisPrinter &&)      = default;
+  ~ConstSizeArrayAnalysisPrinter()                                     = default;
   /// @}
 
   /// Operators
@@ -56,11 +57,11 @@ public:
 
   /// Functions required by LLVM
   /// @{
-  llvm::PreservedAnalyses run(llvm::Function & function, llvm::FunctionAnalysisManager & fam);
+  llvm::PreservedAnalyses run(llvm::Function &function, llvm::FunctionAnalysisManager &fam);
   static bool             isRequired();
   /// @}
 private:
-  llvm::raw_ostream& out_stream_;  
+  llvm::raw_ostream &out_stream_;
 };
 
 }  // namespace quantum

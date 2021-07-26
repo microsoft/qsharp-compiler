@@ -32,5 +32,5 @@ opt -load ../../{Debug,Release}/libQSharpPasses.{dylib,so} -legacy-operation-cou
 This part assumes that you have build the QsPasses library.
 
 ```sh
-opt -load-pass-plugin ../../{Debug,Release}/libQSharpPasses.{dylib,so} --passes="operation-counter" -disable-output classical-program.bc
+opt -load-pass-plugin ../../{Debug,Release}/libs/libQSharpPasses.{dylib,so} --passes="print<operation-counter>" -disable-output classical-program.bc
 ```

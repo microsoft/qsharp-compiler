@@ -19,7 +19,7 @@ llvm::PassPluginLibraryInfo getConstSizeArrayAnalysisPluginInfo()
         // Registering a printer for the anaylsis
         pb.registerPipelineParsingCallback([](StringRef name, FunctionPassManager &fpm,
                                               ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
-          if (name == "print<{operation-name}>")
+          if (name == "print<const-size-array-analysis>")
           {
             fpm.addPass(ConstSizeArrayAnalysisPrinter(llvm::errs()));
             return true;
