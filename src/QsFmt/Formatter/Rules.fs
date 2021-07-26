@@ -103,18 +103,47 @@ let newLines =
     }
 
 let usingUpdate =
-    { new Rewriter<_>() with
-        override _.Use((), ``use``) =
+    { new Rewriter<Trivia list>() with
+        override _.Terminal(context, terminal) =
+            match context with
+            | [] -> terminal
+            | _ -> { terminal with Prefix = context @ terminal.Prefix }
+
+        override rewriter.QubitBinding(context, binding) =
+            { binding with Name = rewriter.QubitSymbolBinding(context, binding.Name) }
+
+        override rewriter.Tuple(context, mapper, tuple) =
+            { base.Tuple([], mapper, tuple) with OpenParen = rewriter.Terminal(context, tuple.OpenParen) }
+
+        override rewriter.Use(context, ``use``) =
+            let getTrivia paren =
+                match paren with
+                | None -> []
+                | Some p -> p.Prefix
+            let openTrivia = ``use``.OpenParen |> getTrivia
+            let closeTrivia = ``use``.CloseParen |> getTrivia
+            
             { ``use`` with
-                UseKeyword = { ``use``.UseKeyword with Text = "use" }
+                UseKeyword = rewriter.Terminal([], { ``use``.UseKeyword with Text = "use" })
+                Binding = rewriter.QubitBinding(openTrivia, ``use``.Binding)
                 OpenParen = None
                 CloseParen = None
+                Semicolon = rewriter.Terminal(closeTrivia, ``use``.Semicolon)
             }
 
-        override _.UseBlock((), ``use``) =
+        override rewriter.UseBlock(context, ``use``) =
+            let getTrivia paren =
+                match paren with
+                | None -> []
+                | Some p -> p.Prefix
+            let openTrivia = ``use``.OpenParen |> getTrivia
+            let closeTrivia = ``use``.CloseParen |> getTrivia
+
             { ``use`` with
-                UseKeyword = { ``use``.UseKeyword with Text = "use" }
+                UseKeyword = rewriter.Terminal([], { ``use``.UseKeyword with Text = "use" })
+                Binding = rewriter.QubitBinding(openTrivia, ``use``.Binding)
                 OpenParen = None
                 CloseParen = None
+                Block = rewriter.Block(closeTrivia, rewriter.Statement, ``use``.Block)
             }
     }

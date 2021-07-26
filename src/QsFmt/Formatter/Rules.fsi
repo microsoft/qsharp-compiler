@@ -19,4 +19,4 @@ val indentation: int Rewriter
 val newLines: unit Rewriter
 
 /// ???
-val usingUpdate : unit Rewriter
+val usingUpdate : Trivia list Rewriter
