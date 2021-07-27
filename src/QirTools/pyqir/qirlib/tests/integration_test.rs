@@ -7,11 +7,42 @@ use qirlib::{
         ClassicalRegister, Controlled, Instruction, QuantumRegister, Rotated, SemanticModel, Single,
     },
 };
-use std::io::{self, Write};
-use std::path::Path;
-use std::{env, fs};
 use serial_test::serial;
+use std::{ops::Add, path::Path};
+use std::{env, fs};
+use std::{
+    io::{self, Write},
+    path::PathBuf,
+};
 
+#[test]
+#[serial]
+fn zero_to_one_x_measure() {
+    execute(
+        "zero_to_one_x_measure",
+        write_zero_to_one_x_measure,
+        vec!["[[One]]"],
+    );
+}
+#[test]
+#[serial]
+fn zero_to_one_or_zero_h_measure() {
+    execute(
+        "zero_to_one_or_zero_h_measure",
+        write_zero_to_one_or_zero_h_measure,
+        vec!["[[Zero]]", "[[One]]"],
+    );
+}
+
+#[test]
+#[serial]
+fn one_to_one_or_zero_h_measure() {
+    execute(
+        "one_to_one_or_zero_h_measure",
+        write_one_to_one_or_zero_h_measure,
+        vec!["[[Zero]]", "[[One]]"],
+    );
+}
 #[test]
 #[serial]
 fn bell_circuit_with_measurement() {
@@ -105,62 +136,106 @@ fn bernstein_vazirani() {
     execute(
         "bernstein_vazirani",
         write_bernstein_vazirani,
-        vec!["[[Zero, Zero, Zero, Zero, Zero]]"],
+        vec!["[[Zero, One, Zero, One, One]]"],
     );
 }
 
+fn get_compiler_name() -> &'static str {
+    // todo: resolve which clang is needed here.
+    if cfg!(target_os = "windows") {
+        return r"C:\LLVM\bin\clang++";
+    } else {
+        return r"/usr/bin/clang++-11";
+    }
+}
 fn execute(name: &str, generator: fn(&str) -> (), expected_results: Vec<&str>) {
     // set up test dir
     // todo: create new random tmp dir. The copies for now overwrite
-    let test_dir = format!("{}/{}", env::temp_dir().to_str().unwrap(), "tests");
-    if let Err(_) = fs::create_dir(test_dir.as_str()) {
+    let mut test_dir = env::temp_dir();
+    test_dir.push("tests");
+
+    if let Err(_) = fs::create_dir(&test_dir) {
         // todo: check if the dir exists. Rust implementation returns an error
         // instead of being idempotent.
     }
+    println!("{}", test_dir.display());
 
     // generate the QIR
-    let ir_path = format!("{}/{}.ll", test_dir.as_str(), name.replace(" ", "_"));
-    generator(ir_path.as_str());
+    let mut ir_path = PathBuf::from(&test_dir);
+    ir_path.push(name.replace(" ", "_"));
+    ir_path.set_extension("ll");
+    generator(ir_path.to_str().unwrap());
 
-    let app = format!("{}/{}", test_dir.as_str(), name);
+    let mut app = PathBuf::from(&test_dir);
+    app.push(name);
 
-    let manifest_dir = env::var_os("CARGO_MANIFEST_DIR")
-        .expect("")
-        .to_str()
-        .unwrap()
-        .to_owned();
+    // todo change extension based on platform
+    // ie exe on windows.
+    if cfg!(target_os = "windows") {
+        // add .exe
+        app.set_extension("exe");
+    }
 
-    let runtimes = format!(
-        "{}/packages/microsoft.quantum.qir.runtime/0.18.2106148911-alpha/runtimes",
-        manifest_dir.as_str()
+    let manifest_dir = PathBuf::from(
+        env::var_os("CARGO_MANIFEST_DIR")
+            .expect("CARGO_MANIFEST_DIR missing")
+            .to_str()
+            .unwrap(),
     );
-    let native = format!("{}/linux-x64/native", runtimes);
-    let include = format!("{}/any/native/include", runtimes);
-
-    let simulators = format!(
-        "{}/packages/microsoft.quantum.simulators/0.18.2106148911/runtimes",
-        manifest_dir.as_str()
+    let native = PathBuf::from(
+        env::var_os("QIR_RUNTIME_LIB")
+            .expect("QIR_RUNTIME_LIB missing")
+            .to_str()
+            .unwrap(),
     );
-    let simulators_native = format!("{}/linux-x64/native", simulators);
+
+    let include = PathBuf::from(
+        env::var_os("QIR_RUNTIME_INCLUDE")
+            .expect("QIR_RUNTIME_INCLUDE missing")
+            .to_str()
+            .unwrap(),
+    );
+
+    let simulators_native = PathBuf::from(
+        env::var_os("QSHARP_NATIVE_SIMULATORS")
+            .expect("QSHARP_NATIVE_SIMULATORS missing")
+            .to_str()
+            .unwrap(),
+    );
+
+    println!("{}", native.display());
+    println!("{}", include.display());
+    println!("{}", simulators_native.display());
 
     copy_files(&native, &test_dir);
     copy_files(&include, &test_dir);
-    // todo: this is fixed in new release so that the rename isn't needed.
-    copy_files_and_rename_libs(&simulators_native, &test_dir);
+    copy_files(&simulators_native, &test_dir);
 
-    let mut command = std::process::Command::new("clang++-11");
+    let mut main_cpp = PathBuf::from(&manifest_dir);
+    main_cpp.push("tests");
+    main_cpp.push("main.cpp");
+    let compiler = get_compiler_name();
+    let mut command = std::process::Command::new(compiler);
     command
         .arg("-o")
-        .arg(app.as_str())
+        .arg(app.to_str().unwrap())
+        //.arg("-S")
+        //.arg("-emit-llvm")
         .arg(ir_path)
-        .arg(format!("{}/tests/main.cpp", manifest_dir.as_str()))
-        .arg(format!("-I{}", include))
-        .arg(format!("-L{}", native))
+        .arg(main_cpp)
+        .arg(format!("-I{}", include.to_str().unwrap()))
+        .arg(format!("-L{}", native.to_str().unwrap()))
         .args([
             "-lMicrosoft.Quantum.Qir.Runtime",
             "-lMicrosoft.Quantum.Qir.QSharp.Core",
             "-lMicrosoft.Quantum.Qir.QSharp.Foundation",
         ]);
+
+    if cfg!(target_os = "windows") {
+        command
+            .arg("-target")
+            .arg("x86_64-pc-windows-msvc19.29.30038");
+    }
 
     println!("{:?}", command);
     let output = command.output().expect("failed to execute process");
@@ -171,19 +246,19 @@ fn execute(name: &str, generator: fn(&str) -> (), expected_results: Vec<&str>) {
 
     assert!(output.status.success());
 
-    execute_circuit(app.as_str(), expected_results);
+    execute_circuit(app.to_str().unwrap(), expected_results);
 }
 
-fn copy_files(source: &String, target: &String) {
-    if let Ok(entries) = fs::read_dir(source.as_str()) {
+fn copy_files(source: &PathBuf, target: &PathBuf) {
+    if let Ok(entries) = fs::read_dir(source) {
         for path in entries {
             let file_name = path.unwrap().path();
             if file_name.is_file() {
                 let file = file_name.file_name().unwrap().to_str().unwrap();
-                let src = format!("{}/{}", source.as_str(), file);
-                let dst = format!("{}/{}", target.as_str(), file);
+                let src = format!("{}/{}", source.display(), file);
+                let dst = format!("{}/{}", target.display(), file);
 
-                std::fs::copy(src.as_str(), dst.as_str()).expect(
+                std::fs::copy(&src, &dst).expect(
                     format!("Failed to copy {} to {}", src.as_str(), dst.as_str()).as_str(),
                 );
             }
@@ -217,7 +292,10 @@ fn execute_circuit(app: &str, expected_results: Vec<&str>) {
     }
 
     let mut command = std::process::Command::new(app);
-    command.env("LD_LIBRARY_PATH", ld_path.as_str());
+    if cfg!(target_os = "linux") {
+        command.env("LD_LIBRARY_PATH", ld_path.as_str());
+    }
+
     println!("{:?}", command);
     let output = command.output().expect("failed to execute process");
 
@@ -331,7 +409,46 @@ fn write_single_qubit_model_with_measurement(file_name: &str) {
 
     Emitter::write(&model, file_name).unwrap();
 }
+fn write_one_to_one_or_zero_h_measure(file_name: &str) {
+    let name = String::from("write_one_to_one_or_zero_h_measure");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+    model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
 
+    model.add_inst(Instruction::X(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::M {
+        qubit: String::from("qr0"),
+        target: String::from("qc0"),
+    });
+    Emitter::write(&model, file_name).unwrap();
+}
+fn write_zero_to_one_or_zero_h_measure(file_name: &str) {
+    let name = String::from("write_zero_to_one_or_zero_h_measure");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+    model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
+
+    model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::M {
+        qubit: String::from("qr0"),
+        target: String::from("qc0"),
+    });
+    Emitter::write(&model, file_name).unwrap();
+}
+fn write_zero_to_one_x_measure(file_name: &str) {
+    let name = String::from("Bell circuit");
+    let mut model = SemanticModel::new(name);
+    model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
+    model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
+
+    model.add_inst(Instruction::X(Single::new(String::from("qr0"))));
+    model.add_inst(Instruction::M {
+        qubit: String::from("qr0"),
+        target: String::from("qc0"),
+    });
+    Emitter::write(&model, file_name).unwrap();
+}
 fn write_bell_measure(file_name: &str) {
     let name = String::from("Bell circuit");
     let mut model = SemanticModel::new(name);
@@ -363,10 +480,13 @@ fn write_bernstein_vazirani(file_name: &str) {
     model.add_reg(QuantumRegister::new(String::from("input_"), 2).as_register());
     model.add_reg(QuantumRegister::new(String::from("input_"), 3).as_register());
     model.add_reg(QuantumRegister::new(String::from("input_"), 4).as_register());
+
     model.add_reg(QuantumRegister::new(String::from("target_"), 0).as_register());
+
     model.add_reg(ClassicalRegister::new(String::from("output_"), 5).as_register());
 
     model.add_inst(Instruction::X(Single::new(String::from("target_0"))));
+
     model.add_inst(Instruction::H(Single::new(String::from("input_0"))));
     model.add_inst(Instruction::H(Single::new(String::from("input_1"))));
     model.add_inst(Instruction::H(Single::new(String::from("input_2"))));
@@ -376,11 +496,15 @@ fn write_bernstein_vazirani(file_name: &str) {
 
     // random chosen
     model.add_inst(Instruction::Cx(Controlled::new(
-        String::from("input_2"),
+        String::from("input_1"),
         String::from("target_0"),
     )));
     model.add_inst(Instruction::Cx(Controlled::new(
-        String::from("input_2"),
+        String::from("input_3"),
+        String::from("target_0"),
+    )));
+    model.add_inst(Instruction::Cx(Controlled::new(
+        String::from("input_4"),
         String::from("target_0"),
     )));
     model.add_inst(Instruction::H(Single::new(String::from("input_0"))));

@@ -2,7 +2,6 @@
 name = "qirlib"
 version = "0.1.0"
 edition = "2018"
-build = "build.rs"
 
 [dependencies]
 llvm-sys = "110"

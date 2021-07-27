@@ -61,17 +61,6 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/
 
-RUN wget https://packages.microsoft.com/config/debian/10/packages-microsoft-prod.deb -O packages-microsoft-prod.deb && \
-    dpkg -i packages-microsoft-prod.deb && \
-    rm packages-microsoft-prod.deb
-
-RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
-    apt-get install -y --no-install-recommends apt-transport-https && \
-    apt-get update && \
-    apt-get install -y --no-install-recommends dotnet-sdk-3.1 && \
-    apt-get clean && \
-    rm -rf /var/lib/apt/lists/
-
 # [Optional] Uncomment this section to install additional packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>

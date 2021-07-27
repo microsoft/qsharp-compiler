@@ -1,4 +1,1 @@
-setuptools-rust
-setuptools
-wheel
-pytest
+pytest>=3.5.0
