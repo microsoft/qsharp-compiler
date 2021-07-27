@@ -78,3 +78,39 @@ let ``Removes extraneous spaces`` =
         return x w/ Foo <- (7, y);
     }
 }"""
+
+[<Example>]
+let ``Updates Using Statements`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        using ((qubits, q) = (Qubit[2], Qubit())) {
+            using (q2 = Qubit());
+        }
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        use (qubits, q) = (Qubit[2], Qubit()) {
+            use q2 = Qubit();
+        }
+    }
+}"""
+
+[<Example>]
+let ``Updates Borrowing Statements`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        borrowing ((qubits, q) = (Qubit[2], Qubit())) {
+            borrowing (q2 = Qubit());
+        }
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        borrow (qubits, q) = (Qubit[2], Qubit()) {
+            borrow q2 = Qubit();
+        }
+    }
+}"""
