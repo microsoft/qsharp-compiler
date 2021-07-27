@@ -35,11 +35,18 @@ let parse (source: string) =
 let format source =
     parse source
     |> Result.map (
-        curry qubitBindingUpdate.Document []
-        >> curry collapsedSpaces.Document ()
+        curry collapsedSpaces.Document ()
         >> curry operatorSpacing.Document ()
         >> curry newLines.Document ()
         >> curry indentation.Document 0
+        >> printer.Document
+    )
+
+[<CompiledName "Update">]
+let update source =
+    parse source
+    |> Result.map (
+        curry qubitBindingUpdate.Document []
         >> printer.Document
     )
 

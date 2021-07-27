@@ -10,6 +10,10 @@ open Microsoft.Quantum.QsFmt.Formatter.Errors
 [<CompiledName "Format">]
 val format: string -> Result<string, SyntaxError list>
 
+/// Updates the given Q# source code.
+[<CompiledName "Update">]
+val update: string -> Result<string, SyntaxError list>
+
 /// Parses then un-parses the given Q# source code without formatting.
 [<CompiledName "Identity">]
 val identity: string -> Result<string, SyntaxError list>

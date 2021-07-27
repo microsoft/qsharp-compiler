@@ -197,8 +197,8 @@ type internal 'result Reducer() as reducer =
     default _.Use ``use`` =
         [
             reducer.Terminal(``use``.UseKeyword) |> Some
-            reducer.QubitBinding(``use``.Binding) |> Some
             match ``use``.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            reducer.QubitBinding(``use``.Binding) |> Some
             match ``use``.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
             reducer.Terminal(``use``.Semicolon) |> Some
         ]
@@ -210,8 +210,8 @@ type internal 'result Reducer() as reducer =
     default _.UseBlock ``use`` =
         [
             reducer.Terminal(``use``.UseKeyword) |> Some
-            reducer.QubitBinding(``use``.Binding) |> Some
             match ``use``.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            reducer.QubitBinding(``use``.Binding) |> Some
             match ``use``.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
             reducer.Block(reducer.Statement, ``use``.Block) |> Some
         ]
@@ -223,8 +223,8 @@ type internal 'result Reducer() as reducer =
     default _.Borrow borrow =
         [
             reducer.Terminal(borrow.BorrowKeyword) |> Some
-            reducer.QubitBinding(borrow.Binding) |> Some
             match borrow.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            reducer.QubitBinding(borrow.Binding) |> Some
             match borrow.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
             reducer.Terminal(borrow.Semicolon) |> Some
         ]
@@ -236,8 +236,8 @@ type internal 'result Reducer() as reducer =
     default _.BorrowBlock borrow =
         [
             reducer.Terminal(borrow.BorrowKeyword) |> Some
-            reducer.QubitBinding(borrow.Binding) |> Some
             match borrow.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            reducer.QubitBinding(borrow.Binding) |> Some
             match borrow.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
             reducer.Block(reducer.Statement, borrow.Block) |> Some
         ]
