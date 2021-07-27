@@ -12,6 +12,88 @@ Ensure that you have build the latest version of the pass
 % opt -load-pass-plugin ../../Debug/libs/libConstSizeArrayAnalysis.dylib --passes="print<const-size-array-analysis>" -disable-output analysis-problem.ll
 ```
 
+## Cases to consider
+
+```qsharp
+namespace Example {
+
+    @EntryPoint()
+    operation Main() : Int
+    {
+        QuantumProgram();
+        return 0;
+    }
+
+
+
+    operation QuantumProgram(x: Int) : Unit {
+        use qubits = Qubit[3];
+    }
+
+}
+```
+
+```qsharp
+namespace Example {
+
+    @EntryPoint()
+    operation Main() : Int
+    {
+        QuantumProgram(3);
+        QuantumProgram(4);
+        return 0;
+    }
+
+
+
+    operation QuantumProgram(x: Int) : Unit {
+        use qubits = Qubit[x];
+    }
+
+}
+```
+
+```qsharp
+namespace Example {
+
+    @EntryPoint()
+    operation Main() : Int
+    {
+        QuantumProgram(3);
+        QuantumProgram(4);
+        return 0;
+    }
+
+
+
+    operation QuantumProgram(x: Int) : Unit {
+        use qubits = Qubit[x * x];
+    }
+
+}
+```
+
+```qsharp
+namespace Example {
+
+    @EntryPoint()
+    operation Main() : Int
+    {
+        QuantumProgram(ComputeNumberOfQubits);
+        return 0;
+    }
+
+    function ComputeNumberOfQubits(x: Int): Int {
+        return x * x;
+    }
+
+    operation QuantumProgram(fnc : Int -> Int) : Unit {
+        use qubits = Qubit[fnc(3)];
+    }
+
+}
+```
+
 ## Generating an example QIR
 
 Build the QIR
@@ -72,3 +154,7 @@ declare %String* @__quantum__rt__int_to_string(i64) local_unnamed_addr
 attributes #0 = { "InteropFriendly" }
 attributes #1 = { "EntryPoint" }
 ```
+
+# Notes
+
+To make a proper version of Const Size deduction, look at the [constant folding](https://llvm.org/doxygen/ConstantFolding_8cpp_source.html) implementation and in particular, the [target library](https://llvm.org/doxygen/classllvm_1_1TargetLibraryInfo.html) which essentially promotes information about the runtime.

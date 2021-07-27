@@ -13,7 +13,8 @@ entry:
 
 define internal fastcc void @Example__QuantumProgram__body(i64 %x) unnamed_addr {
 entry:
-  %qubits = call %Array* @__quantum__rt__qubit_allocate_array(i64 %x)
+  %0 = mul i64 %x, %x
+  %qubits = call %Array* @__quantum__rt__qubit_allocate_array(i64 %0)
   call void @__quantum__rt__array_update_alias_count(%Array* %qubits, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %qubits, i32 -1)
   call void @__quantum__rt__qubit_release_array(%Array* %qubits)

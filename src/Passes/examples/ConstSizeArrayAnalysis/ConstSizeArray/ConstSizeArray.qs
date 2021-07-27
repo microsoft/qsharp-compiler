@@ -1,16 +1,25 @@
-// Copyright (c) Microsoft Corporation. All rights reserved.
-// Licensed under the MIT License.
-
 namespace Example {
+
     @EntryPoint()
     operation Main() : Int
     {
-        QuantumFunction(3);
-        QuantumFunction(10) ;
+        QuantumProgram(3,2,1);
+        QuantumProgram(4,9,4);
         return 0;
     }
 
-    operation QuantumFunction(nQubits : Int) : Unit  {
-        use qubits = Qubit[nQubits];
+    function X(value: Int): Int
+    {
+        return 3 * value;
+    }
+
+    operation QuantumProgram(x: Int, h: Int, g: Int) : Unit {
+        let z = x * (x + 1) - 47;
+        let y = 3 * x;
+
+        use qubits1 = Qubit[(y - 2)/2-z];
+        use qubits2 = Qubit[y - g];
+        use qubits3 = Qubit[h];
+        use qubits4 = Qubit[X(x)];
     }
 }

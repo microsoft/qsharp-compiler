@@ -4,6 +4,9 @@
 
 #include "Llvm.hpp"
 
+#include <unordered_map>
+#include <vector>
+
 namespace microsoft {
 namespace quantum {
 
@@ -11,7 +14,24 @@ class ConstSizeArrayAnalysisAnalytics
   : public llvm::AnalysisInfoMixin<ConstSizeArrayAnalysisAnalytics>
 {
 public:
-  using Result = llvm::StringMap<int64_t>;  ///< Change the type of the collected date here
+  using String  = std::string;
+  using ArgList = std::unordered_set<std::string>;
+
+  struct QubitArray
+  {
+    bool    is_possibly_static{false};  ///< Indicates whether the array is possibly static or not
+    String  variable_name{};            ///< Name of the qubit array
+    ArgList depends_on{};  ///< Function arguments that determines if it is constant or not
+  };
+
+  using Value                = llvm::Value;
+  using DependencyGraph      = std::unordered_map<std::string, ArgList>;
+  using ValueDependencyGraph = std::unordered_map<Value *, ArgList>;
+
+  using Instruction    = llvm::Instruction;
+  using Function       = llvm::Function;
+  using QubitArrayList = std::vector<QubitArray>;
+  using Result         = QubitArrayList;
 
   /// Constructors and destructors
   /// @{
@@ -32,9 +52,31 @@ public:
   Result run(llvm::Function &function, llvm::FunctionAnalysisManager & /*unused*/);
   /// @}
 
+  /// Function analysis
+  /// @{
+  void analyseFunction(llvm::Function &function);
+  /// @}
+
+  /// Instruction analysis
+  /// @{
+  bool operandsConstant(Instruction const &instruction) const;
+  void markPossibleConstant(Instruction &instruction);
+  void analyseCall(Instruction &instruction);
+  /// @}
+
 private:
   static llvm::AnalysisKey Key;  // NOLINT
   friend struct llvm::AnalysisInfoMixin<ConstSizeArrayAnalysisAnalytics>;
+
+  /// Analysis details
+  /// @{
+  ValueDependencyGraph value_depending_on_args_{};
+  /// @}
+
+  /// Result
+  /// @{
+  QubitArrayList results_{};
+  /// @}
 };
 
 class ConstSizeArrayAnalysisPrinter : public llvm::PassInfoMixin<ConstSizeArrayAnalysisPrinter>
