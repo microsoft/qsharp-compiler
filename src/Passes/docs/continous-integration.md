@@ -1,3 +1,17 @@
+# Running tests
+
+In order to run the tests, you first need to build the library. Assuming that this is already done and the corresponding build is in `Debug/`, run the tests from the `Debug` folder:
+
+```
+% lit tests/ -v
+-- Testing: 2 tests, 2 workers --
+PASS: Quantum-Passes :: QubitAllocationAnalysis/case1.ll (1 of 2)
+PASS: Quantum-Passes :: QubitAllocationAnalysis/case2.ll (2 of 2)
+
+Testing Time: 0.27s
+  Passed: 2
+```
+
 # Continuous integration
 
 This component is the largest part of this PR. The continuous integration component includes:
