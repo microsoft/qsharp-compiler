@@ -185,7 +185,7 @@ and then make your target
 make [target]
 ```
 
-Valid targets are the name of the folders in `libs/` found in the passes root.
+The default target is `all`. Other valid targets are the name of the folders in `libs/` found in the passes root.
 
 ## Running a pass
 
