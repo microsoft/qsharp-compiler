@@ -426,15 +426,6 @@ build
 └── SimFactory.hpp
 ```
 
-(**Linux**) The `Microsoft.Quantum.Qir.*` dynamic libraries will already have the right naming scheme for Clang to use, but the `Microsoft.Quantum.Simulator.Runtime` library needs to be renamed.
-The proper name format is `lib<library-name>.so`.
-
-Execute the following command from the project root directory:
-
-```bash
-mv build/Microsoft.Quantum.Simulator.Runtime.dll build/libMicrosoft.Quantum.Simulator.Runtime.so
-```
-
 ### Adding a driver
 
 Trying to compile the QIR code in `Hello.ll` as is would present some problems, as it's missing a program entry point and the proper setup of the simulator.
