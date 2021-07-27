@@ -19,9 +19,14 @@ public:
 
   struct QubitArray
   {
-    bool    is_possibly_static{false};  ///< Indicates whether the array is possibly static or not
-    String  variable_name{};            ///< Name of the qubit array
-    ArgList depends_on{};  ///< Function arguments that determines if it is constant or not
+    bool is_possibly_static{false};            ///< Indicates whether the array is
+                                               /// possibly static or not
+                                               ///
+    String  variable_name{};                   ///< Name of the qubit array
+    ArgList depends_on{};                      ///< Function arguments that
+                                               /// determines if it is constant or not
+                                               ///
+    uint64_t size{static_cast<uint64_t>(-1)};  ///< Size of the array if it can be deduced.
   };
 
   using Value                = llvm::Value;

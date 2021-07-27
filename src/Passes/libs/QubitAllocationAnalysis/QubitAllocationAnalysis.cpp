@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm.hpp"
 #include "QubitAllocationAnalysis/QubitAllocationAnalysis.hpp"
+
+#include "Llvm.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -124,6 +125,7 @@ void QubitAllocationAnalysisAnalytics::analyseCall(Instruction &instruction)
     QubitArray qubit_array;
     qubit_array.is_possibly_static = true;
     qubit_array.variable_name      = instruction.getName().str();
+    qubit_array.size               = cst->getZExtValue();
 
     // Pushing to the result
     results_.push_back(std::move(qubit_array));
@@ -269,11 +271,34 @@ llvm::PreservedAnalyses QubitAllocationAnalysisPrinter::run(llvm::Function &    
                 << "\n\n";
     for (auto const &ret : results)
     {
-      out_stream_ << ret.variable_name << (ret.is_possibly_static ? ": " : "!");
-      for (auto &x : ret.depends_on)
+      if (!ret.is_possibly_static)
       {
-        out_stream_ << x << ", ";
+        out_stream_ << ret.variable_name << " is dynamic.\n";
       }
+      else
+      {
+        if (ret.depends_on.empty())
+        {
+          out_stream_ << ret.variable_name << " is trivially static with " << ret.size
+                      << " qubits.";
+        }
+        else
+        {
+          out_stream_ << ret.variable_name << " depends on ";
+          bool first = true;
+          for (auto &x : ret.depends_on)
+          {
+            if (!first)
+            {
+              out_stream_ << ", ";
+            }
+            out_stream_ << x;
+            first = false;
+          }
+          out_stream_ << " being constant to be static.";
+        }
+      }
+
       out_stream_ << "\n";
     }
   }

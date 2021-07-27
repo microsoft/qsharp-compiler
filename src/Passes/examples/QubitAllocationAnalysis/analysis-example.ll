@@ -17,6 +17,8 @@ entry:
   %.neg1 = mul i64 %.neg, %x
   %z.neg = add i64 %.neg1, 47
   %y = mul i64 %x, 3
+  %qubits0 = call %Array* @__quantum__rt__qubit_allocate_array(i64 9)
+  call void @__quantum__rt__array_update_alias_count(%Array* %qubits0, i32 1)
   %0 = add i64 %y, -2
   %1 = lshr i64 %0, 1
   %2 = add i64 %z.neg, %1
@@ -38,6 +40,8 @@ entry:
   call void @__quantum__rt__qubit_release_array(%Array* %qubits2)
   call void @__quantum__rt__array_update_alias_count(%Array* %qubits1, i32 -1)
   call void @__quantum__rt__qubit_release_array(%Array* %qubits1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %qubits0, i32 -1)
+  call void @__quantum__rt__qubit_release_array(%Array* %qubits0)
   ret void
 }
 

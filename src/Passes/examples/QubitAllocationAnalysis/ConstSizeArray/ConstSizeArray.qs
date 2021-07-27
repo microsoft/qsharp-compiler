@@ -1,5 +1,4 @@
 namespace Example {
-
     @EntryPoint()
     operation Main() : Int
     {
@@ -17,6 +16,7 @@ namespace Example {
         let z = x * (x + 1) - 47;
         let y = 3 * x;
 
+        use qubits0 = Qubit[9];
         use qubits1 = Qubit[(y - 2)/2-z];
         use qubits2 = Qubit[y - g];
         use qubits3 = Qubit[h];
