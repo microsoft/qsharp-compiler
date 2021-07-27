@@ -10,8 +10,8 @@
 namespace microsoft {
 namespace quantum {
 
-class ConstSizeArrayAnalysisAnalytics
-  : public llvm::AnalysisInfoMixin<ConstSizeArrayAnalysisAnalytics>
+class QubitAllocationAnalysisAnalytics
+  : public llvm::AnalysisInfoMixin<QubitAllocationAnalysisAnalytics>
 {
 public:
   using String  = std::string;
@@ -28,23 +28,22 @@ public:
   using DependencyGraph      = std::unordered_map<std::string, ArgList>;
   using ValueDependencyGraph = std::unordered_map<Value *, ArgList>;
 
-  using Instruction    = llvm::Instruction;
-  using Function       = llvm::Function;
-  using QubitArrayList = std::vector<QubitArray>;
-  using Result         = QubitArrayList;
+  using Instruction = llvm::Instruction;
+  using Function    = llvm::Function;
+  using Result      = std::vector<QubitArray>;
 
   /// Constructors and destructors
   /// @{
-  ConstSizeArrayAnalysisAnalytics()                                        = default;
-  ConstSizeArrayAnalysisAnalytics(ConstSizeArrayAnalysisAnalytics const &) = delete;
-  ConstSizeArrayAnalysisAnalytics(ConstSizeArrayAnalysisAnalytics &&)      = default;
-  ~ConstSizeArrayAnalysisAnalytics()                                       = default;
+  QubitAllocationAnalysisAnalytics()                                         = default;
+  QubitAllocationAnalysisAnalytics(QubitAllocationAnalysisAnalytics const &) = delete;
+  QubitAllocationAnalysisAnalytics(QubitAllocationAnalysisAnalytics &&)      = default;
+  ~QubitAllocationAnalysisAnalytics()                                        = default;
   /// @}
 
   /// Operators
   /// @{
-  ConstSizeArrayAnalysisAnalytics &operator=(ConstSizeArrayAnalysisAnalytics const &) = delete;
-  ConstSizeArrayAnalysisAnalytics &operator=(ConstSizeArrayAnalysisAnalytics &&) = delete;
+  QubitAllocationAnalysisAnalytics &operator=(QubitAllocationAnalysisAnalytics const &) = delete;
+  QubitAllocationAnalysisAnalytics &operator=(QubitAllocationAnalysisAnalytics &&) = delete;
   /// @}
 
   /// Functions required by LLVM
@@ -66,35 +65,35 @@ public:
 
 private:
   static llvm::AnalysisKey Key;  // NOLINT
-  friend struct llvm::AnalysisInfoMixin<ConstSizeArrayAnalysisAnalytics>;
+  friend struct llvm::AnalysisInfoMixin<QubitAllocationAnalysisAnalytics>;
 
   /// Analysis details
   /// @{
-  ValueDependencyGraph value_depending_on_args_{};
+  ValueDependencyGraph constantness_dependencies_{};
   /// @}
 
   /// Result
   /// @{
-  QubitArrayList results_{};
+  Result results_{};
   /// @}
 };
 
-class ConstSizeArrayAnalysisPrinter : public llvm::PassInfoMixin<ConstSizeArrayAnalysisPrinter>
+class QubitAllocationAnalysisPrinter : public llvm::PassInfoMixin<QubitAllocationAnalysisPrinter>
 {
 public:
   /// Constructors and destructors
   /// @{
-  explicit ConstSizeArrayAnalysisPrinter(llvm::raw_ostream &out_stream);
-  ConstSizeArrayAnalysisPrinter()                                      = delete;
-  ConstSizeArrayAnalysisPrinter(ConstSizeArrayAnalysisPrinter const &) = delete;
-  ConstSizeArrayAnalysisPrinter(ConstSizeArrayAnalysisPrinter &&)      = default;
-  ~ConstSizeArrayAnalysisPrinter()                                     = default;
+  explicit QubitAllocationAnalysisPrinter(llvm::raw_ostream &out_stream);
+  QubitAllocationAnalysisPrinter()                                       = delete;
+  QubitAllocationAnalysisPrinter(QubitAllocationAnalysisPrinter const &) = delete;
+  QubitAllocationAnalysisPrinter(QubitAllocationAnalysisPrinter &&)      = default;
+  ~QubitAllocationAnalysisPrinter()                                      = default;
   /// @}
 
   /// Operators
   /// @{
-  ConstSizeArrayAnalysisPrinter &operator=(ConstSizeArrayAnalysisPrinter const &) = delete;
-  ConstSizeArrayAnalysisPrinter &operator=(ConstSizeArrayAnalysisPrinter &&) = delete;
+  QubitAllocationAnalysisPrinter &operator=(QubitAllocationAnalysisPrinter const &) = delete;
+  QubitAllocationAnalysisPrinter &operator=(QubitAllocationAnalysisPrinter &&) = delete;
   /// @}
 
   /// Functions required by LLVM

@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "ConstSizeArrayAnalysis/ConstSizeArrayAnalysis.hpp"
-
 #include "Llvm.hpp"
+#include "QubitAllocationAnalysis/QubitAllocationAnalysis.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -12,15 +11,22 @@
 namespace microsoft {
 namespace quantum {
 
-bool ConstSizeArrayAnalysisAnalytics::operandsConstant(Instruction const &instruction) const
+bool QubitAllocationAnalysisAnalytics::operandsConstant(Instruction const &instruction) const
 {
+  // Default is true (i.e. the case of no operands)
   bool ret = true;
 
   // Checking that all oprands are constant
   for (auto &op : instruction.operands())
   {
 
-    auto const_arg   = value_depending_on_args_.find(op) != value_depending_on_args_.end();
+    // An operand is constant if its value was previously generated from
+    // a const expression ...
+    auto const_arg = constantness_dependencies_.find(op) != constantness_dependencies_.end();
+
+    // ... or if it is just a compile time constant. Note that we
+    // delibrately only consider integers. We may expand this
+    // to other constants once we have function support.
     auto cst         = llvm::dyn_cast<llvm::ConstantInt>(op);
     auto is_constant = (cst != nullptr);
 
@@ -30,27 +36,18 @@ bool ConstSizeArrayAnalysisAnalytics::operandsConstant(Instruction const &instru
   return ret;
 }
 
-void ConstSizeArrayAnalysisAnalytics::markPossibleConstant(Instruction &instruction)
+void QubitAllocationAnalysisAnalytics::markPossibleConstant(Instruction &instruction)
 {
-  /*
-  // Rename constant variables
-  if (!instruction.hasName())
-  {
-    // Naming result
-    char new_name[64] = {0};
-    auto fmt          = llvm::format("microsoft_reserved_possible_const_ret%u", tmp_counter_);
-    fmt.print(new_name, 64);
-    instruction.setName(new_name);
-  }
-  */
-
   // Creating arg dependencies
   ArgList all_dependencies{};
   for (auto &op : instruction.operands())
   {
-    auto it = value_depending_on_args_.find(op);
-    if (it != value_depending_on_args_.end())
+    // If the operand has dependecies ...
+    auto it = constantness_dependencies_.find(op);
+    if (it != constantness_dependencies_.end())
     {
+      // ...  we add these as a dependency for the
+      // resulting instructions value
       for (auto &arg : it->second)
       {
         all_dependencies.insert(arg);
@@ -58,11 +55,11 @@ void ConstSizeArrayAnalysisAnalytics::markPossibleConstant(Instruction &instruct
     }
   }
 
-  // Adding the new name to the list
-  value_depending_on_args_.insert({&instruction, all_dependencies});
+  // Adding full list of dependices to the dependency graph
+  constantness_dependencies_.insert({&instruction, all_dependencies});
 }
 
-void ConstSizeArrayAnalysisAnalytics::analyseCall(Instruction &instruction)
+void QubitAllocationAnalysisAnalytics::analyseCall(Instruction &instruction)
 {
   // Skipping debug code
   if (instruction.isDebugOrPseudoInst())
@@ -70,27 +67,32 @@ void ConstSizeArrayAnalysisAnalytics::analyseCall(Instruction &instruction)
     return;
   }
 
+  // Recovering the call information
   auto *call_instr = llvm::dyn_cast<llvm::CallBase>(&instruction);
   if (call_instr == nullptr)
   {
     return;
   }
 
+  // Getting the name of the function being called
   auto target_function = call_instr->getCalledFunction();
   auto name            = target_function->getName();
 
-  // TODO(tfr): Make use of TargetLibrary
+  // TODO(tfr): Make use of TargetLibraryInfo
   if (name != "__quantum__rt__qubit_allocate_array")
   {
     return;
   }
 
+  // We expect only a single argument with the number
+  // of qubits allocated
   if (call_instr->arg_size() != 1)
   {
     llvm::errs() << "Expected exactly one argument\n";
     return;
   }
 
+  // Next we extract the argument ...
   auto argument = call_instr->getArgOperand(0);
   if (argument == nullptr)
   {
@@ -98,10 +100,12 @@ void ConstSizeArrayAnalysisAnalytics::analyseCall(Instruction &instruction)
     return;
   }
 
-  // Checking named values
-  auto it = value_depending_on_args_.find(argument);
-  if (it != value_depending_on_args_.end())
+  // ... and checks whether it is a result of a dependant
+  // const expression
+  auto it = constantness_dependencies_.find(argument);
+  if (it != constantness_dependencies_.end())
   {
+    // If it is, we add the details to the result list
     QubitArray qubit_array;
     qubit_array.is_possibly_static = true;
     qubit_array.variable_name      = instruction.getName().str();
@@ -112,7 +116,8 @@ void ConstSizeArrayAnalysisAnalytics::analyseCall(Instruction &instruction)
     return;
   }
 
-  // Checking if it is a constant value
+  // Otherwise, it may be a static allocation based on a constant (or
+  // folded constant)
   auto cst = llvm::dyn_cast<llvm::ConstantInt>(argument);
   if (cst != nullptr)
   {
@@ -126,22 +131,26 @@ void ConstSizeArrayAnalysisAnalytics::analyseCall(Instruction &instruction)
     return;
   }
 
-  // Non-static array
+  // If neither of the previous is the case, we are dealing with a non-static array
   QubitArray qubit_array;
   qubit_array.is_possibly_static = false;
   qubit_array.variable_name      = instruction.getName().str();
+
+  // Storing the result
   results_.push_back(std::move(qubit_array));
 }
 
-void ConstSizeArrayAnalysisAnalytics::analyseFunction(llvm::Function &function)
+void QubitAllocationAnalysisAnalytics::analyseFunction(llvm::Function &function)
 {
+  // Clearing results generated in a previous run
   results_.clear();
+  constantness_dependencies_.clear();
 
   // Creating a list with function arguments
   for (auto &arg : function.args())
   {
     auto s = arg.getName().str();
-    value_depending_on_args_.insert({&arg, {s}});
+    constantness_dependencies_.insert({&arg, {s}});
   }
 
   // Evaluating all expressions
@@ -149,7 +158,6 @@ void ConstSizeArrayAnalysisAnalytics::analyseFunction(llvm::Function &function)
   {
     for (auto &instruction : basic_block)
     {
-
       auto opcode = instruction.getOpcode();
       switch (opcode)
       {
@@ -235,22 +243,24 @@ void ConstSizeArrayAnalysisAnalytics::analyseFunction(llvm::Function &function)
   }
 }
 
-ConstSizeArrayAnalysisAnalytics::Result ConstSizeArrayAnalysisAnalytics::run(
+QubitAllocationAnalysisAnalytics::Result QubitAllocationAnalysisAnalytics::run(
     llvm::Function &function, llvm::FunctionAnalysisManager & /*unused*/)
 {
+  // Running functin analysis
   analyseFunction(function);
 
+  // ... and return the result.
   return results_;
 }
 
-ConstSizeArrayAnalysisPrinter::ConstSizeArrayAnalysisPrinter(llvm::raw_ostream &out_stream)
+QubitAllocationAnalysisPrinter::QubitAllocationAnalysisPrinter(llvm::raw_ostream &out_stream)
   : out_stream_(out_stream)
 {}
 
-llvm::PreservedAnalyses ConstSizeArrayAnalysisPrinter::run(llvm::Function &               function,
-                                                           llvm::FunctionAnalysisManager &fam)
+llvm::PreservedAnalyses QubitAllocationAnalysisPrinter::run(llvm::Function &               function,
+                                                            llvm::FunctionAnalysisManager &fam)
 {
-  auto &results = fam.getResult<ConstSizeArrayAnalysisAnalytics>(function);
+  auto &results = fam.getResult<QubitAllocationAnalysisAnalytics>(function);
 
   if (!results.empty())
   {
@@ -271,12 +281,12 @@ llvm::PreservedAnalyses ConstSizeArrayAnalysisPrinter::run(llvm::Function &     
   return llvm::PreservedAnalyses::all();
 }
 
-bool ConstSizeArrayAnalysisPrinter::isRequired()
+bool QubitAllocationAnalysisPrinter::isRequired()
 {
   return true;
 }
 
-llvm::AnalysisKey ConstSizeArrayAnalysisAnalytics::Key;
+llvm::AnalysisKey QubitAllocationAnalysisAnalytics::Key;
 
 }  // namespace quantum
 }  // namespace microsoft
