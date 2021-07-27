@@ -15,7 +15,7 @@ type internal CharacteristicVisitor =
     /// <summary>
     /// Creates a new <see cref="CharacteristicVisitor"/> with the list of <paramref name="tokens"/>.
     /// </summary>
-    new: tokens:IToken ImmutableArray -> CharacteristicVisitor
+    new : tokens: IToken ImmutableArray -> CharacteristicVisitor
 
     inherit Characteristic QSharpParserBaseVisitor
 
@@ -26,7 +26,7 @@ type internal TypeVisitor =
     /// <summary>
     /// Creates a new <see cref="TypeVisitor"/> with the list of <paramref name="tokens"/>.
     /// </summary>
-    new: tokens:IToken ImmutableArray -> TypeVisitor
+    new : tokens: IToken ImmutableArray -> TypeVisitor
 
     inherit Type QSharpParserBaseVisitor
 
@@ -38,4 +38,5 @@ module internal Type =
     /// Creates a syntax tree <see cref="CharacteristicSection"/> node from the parse tree <see cref="QSharpParser.CharacteristicsContext"/>
     /// node and the list of <paramref name="tokens"/>.
     /// </summary>
-    val toCharacteristicSection: tokens:IToken ImmutableArray -> context:QSharpParser.CharacteristicsContext -> CharacteristicSection
+    val toCharacteristicSection :
+        tokens: IToken ImmutableArray -> context: QSharpParser.CharacteristicsContext -> CharacteristicSection

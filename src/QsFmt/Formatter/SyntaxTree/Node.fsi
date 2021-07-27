@@ -25,108 +25,101 @@ module internal Trivia =
     ///   </item>
     /// </list>
     /// </summary>
-    val (|Whitespace|NewLine|Comment|): Trivia -> Choice<string, unit, string>
+    val (|Whitespace|NewLine|Comment|) : Trivia -> Choice<string, unit, string>
 
     /// <summary>
     /// A <see cref="Trivia"/> node containing <paramref name="count"/> number of space characters.
     /// </summary>
-    val spaces: count:int -> Trivia
+    val spaces : count: int -> Trivia
 
     /// <summary>
     /// The new line <see cref="Trivia"/> node.
     /// </summary>
-    val newLine: Trivia
+    val newLine : Trivia
 
     /// Replaces each occurrence of more than one whitespace character in a row with a single space.
-    val collapseSpaces: (Trivia -> Trivia)
+    val collapseSpaces : (Trivia -> Trivia)
 
     /// <summary>
     /// Converts a string into a list of <see cref="Trivia"/> nodes.
     /// </summary>
     /// <exception cref="System.Exception">The string contains invalid trivia.</exception>
-    val ofString: string -> Trivia list
+    val ofString : string -> Trivia list
 
 /// A terminal symbol has no child nodes and represents a token in the source code.
 type internal Terminal =
     {
-        /// The trivia preceding the terminal.
-        Prefix: Trivia list
+      /// The trivia preceding the terminal.
+      Prefix: Trivia list
 
-        /// The text content of the terminal.
-        Text: string
-    }
+      /// The text content of the terminal.
+      Text: string }
 
 module internal Terminal =
     /// <summary>
     /// Maps <paramref name="terminal"/> by applying <paramref name="mapper"/> to its trivia prefix.
     /// </summary>
-    val mapPrefix: mapper:(Trivia list -> Trivia list) -> terminal:Terminal -> Terminal
+    val mapPrefix : mapper: (Trivia list -> Trivia list) -> terminal: Terminal -> Terminal
 
 /// An item in a comma-separated sequence.
 type internal 'a SequenceItem =
     {
-        /// The item.
-        Item: 'a option
+      /// The item.
+      Item: 'a option
 
-        /// The comma following the item.
-        Comma: Terminal option
-    }
+      /// The comma following the item.
+      Comma: Terminal option }
 
 /// A tuple.
 type internal 'a Tuple =
     {
-        /// The opening parenthesis.
-        OpenParen: Terminal
+      /// The opening parenthesis.
+      OpenParen: Terminal
 
-        /// The items in the tuple.
-        Items: 'a SequenceItem list
+      /// The items in the tuple.
+      Items: 'a SequenceItem list
 
-        /// The closing parenthesis.
-        CloseParen: Terminal
-    }
+      /// The closing parenthesis.
+      CloseParen: Terminal }
 
 /// A prefix operator. The operator is in the front of the operand.
 type internal 'a PrefixOperator =
     {
-        /// The operator.
-        PrefixOperator: Terminal
+      /// The operator.
+      PrefixOperator: Terminal
 
-        /// The operand.
-        Operand: 'a
-    }
+      /// The operand.
+      Operand: 'a }
 
 /// A prefix operator. The operator is after the operand.
 type internal 'a PostfixOperator =
     {
-        /// The operand.
-        Operand: 'a
+      /// The operand.
+      Operand: 'a
 
-        /// The operator.
-        PostfixOperator: Terminal
-    }
+      /// The operator.
+      PostfixOperator: Terminal }
 
 /// An infix operator.
 type internal 'a InfixOperator =
     {
-        /// The left-hand side.
-        Left: 'a
+      /// The left-hand side.
+      Left: 'a
 
-        /// The operator.
-        InfixOperator: Terminal
+      /// The operator.
+      InfixOperator: Terminal
 
-        /// The right-hand side.
-        Right: 'a
-    }
+      /// The right-hand side.
+      Right: 'a }
 
 /// A block.
 type internal 'a Block =
     {
-        /// The opening brace.
-        OpenBrace: Terminal
+      /// The opening brace.
+      OpenBrace: Terminal
 
-        /// The items in the block.
-        Items: 'a list
+      /// The items in the block.
+      Items: 'a list
 
-        /// The closing brace.
-        CloseBrace: Terminal
-    }
+      /// The closing brace.
+      CloseBrace: Terminal }

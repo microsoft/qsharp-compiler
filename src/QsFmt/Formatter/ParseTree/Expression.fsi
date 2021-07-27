@@ -15,7 +15,7 @@ type internal InterpStringContentVisitor =
     /// <summary>
     /// Creates a new <see cref="InterpStringContentVisitor"/> with the list of <paramref name="tokens"/>.
     /// </summary>
-    new: tokens:IToken ImmutableArray -> InterpStringContentVisitor
+    new : tokens: IToken ImmutableArray -> InterpStringContentVisitor
 
     inherit InterpStringContent QSharpParserBaseVisitor
 
@@ -26,6 +26,6 @@ type internal ExpressionVisitor =
     /// <summary>
     /// Creates a new <see cref="ExpressionVisitor"/> with the list of <paramref name="tokens"/>.
     /// </summary>
-    new: tokens:IToken ImmutableArray -> ExpressionVisitor
+    new : tokens: IToken ImmutableArray -> ExpressionVisitor
 
     inherit Expression QSharpParserBaseVisitor

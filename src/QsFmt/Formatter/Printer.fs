@@ -13,7 +13,7 @@ open System
 let printTrivia =
     function
     | Whitespace ws -> ws
-    | NewLine -> Environment.NewLine
+    | NewLine -> "\n"
     | Comment comment -> comment
 
 /// <summary>

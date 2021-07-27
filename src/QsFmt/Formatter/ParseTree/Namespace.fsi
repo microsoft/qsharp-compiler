@@ -16,4 +16,4 @@ module internal Namespace =
     /// Creates a syntax tree <see cref="Document"/> node from the parse tree <see cref="QSharpParser.DocumentContext"/>
     /// node and the list of <paramref name="tokens"/>.
     /// </summary>
-    val toDocument: tokens:IToken ImmutableArray -> context:QSharpParser.DocumentContext -> Document
+    val toDocument : tokens: IToken ImmutableArray -> context: QSharpParser.DocumentContext -> Document

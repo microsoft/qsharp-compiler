@@ -15,6 +15,6 @@ type internal StatementVisitor =
     /// <summary>
     /// Creates a new <see cref="StatementVisitor"/> with the list of <paramref name="tokens"/>.
     /// </summary>
-    new: tokens:IToken ImmutableArray -> StatementVisitor
+    new : tokens: IToken ImmutableArray -> StatementVisitor
 
     inherit Statement QSharpParserBaseVisitor

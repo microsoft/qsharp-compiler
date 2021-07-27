@@ -76,10 +76,10 @@ type QubitInitializerVistor(tokens) =
         }
         |> QubitArray
 
-    override visitor.VisitQubitTuple (context : QSharpParser.QubitTupleContext) =
+    override visitor.VisitQubitTuple(context: QSharpParser.QubitTupleContext) =
         let initializers = context._initializers |> Seq.map visitor.Visit
         let commas = context._commas |> Seq.map (Node.toTerminal tokens)
-    
+
         {
             OpenParen = context.openParen |> Node.toTerminal tokens
             Items = Node.tupleItems initializers commas
@@ -126,8 +126,16 @@ type StatementVisitor(tokens) =
         {
             UseKeyword = context.``use`` |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen = context.openParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
-            CloseParen = context.closeParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            OpenParen =
+                context.openParen
+                |> function
+                    | null -> None
+                    | s -> Node.toTerminal tokens s |> Some
+            CloseParen =
+                context.closeParen
+                |> function
+                    | null -> None
+                    | s -> Node.toTerminal tokens s |> Some
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
         |> Use
@@ -136,8 +144,16 @@ type StatementVisitor(tokens) =
         {
             UseKeyword = context.``use`` |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen = context.openParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
-            CloseParen = context.closeParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            OpenParen =
+                context.openParen
+                |> function
+                    | null -> None
+                    | s -> Node.toTerminal tokens s |> Some
+            CloseParen =
+                context.closeParen
+                |> function
+                    | null -> None
+                    | s -> Node.toTerminal tokens s |> Some
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
@@ -151,8 +167,16 @@ type StatementVisitor(tokens) =
         {
             BorrowKeyword = context.borrow |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen = context.openParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
-            CloseParen = context.closeParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            OpenParen =
+                context.openParen
+                |> function
+                    | null -> None
+                    | s -> Node.toTerminal tokens s |> Some
+            CloseParen =
+                context.closeParen
+                |> function
+                    | null -> None
+                    | s -> Node.toTerminal tokens s |> Some
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
         |> Borrow
@@ -161,8 +185,16 @@ type StatementVisitor(tokens) =
         {
             BorrowKeyword = context.borrow |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen = context.openParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
-            CloseParen = context.closeParen |> function null -> None | s -> Node.toTerminal tokens s |> Some
+            OpenParen =
+                context.openParen
+                |> function
+                    | null -> None
+                    | s -> Node.toTerminal tokens s |> Some
+            CloseParen =
+                context.closeParen
+                |> function
+                    | null -> None
+                    | s -> Node.toTerminal tokens s |> Some
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens

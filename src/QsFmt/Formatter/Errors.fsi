@@ -12,9 +12,9 @@ type internal ListErrorListener =
     /// <summary>
     /// Creates a new <see cref="ListErrorListener"/>.
     /// </summary>
-    new: unit -> ListErrorListener
+    new : unit -> ListErrorListener
 
     /// The accumulated syntax errors.
-    member SyntaxErrors: SyntaxError list
+    member SyntaxErrors : SyntaxError list
 
     interface IToken IAntlrErrorListener

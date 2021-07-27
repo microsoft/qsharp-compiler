@@ -126,7 +126,7 @@ let qubitBindingUpdate =
         override rewriter.Use(_, ``use``) =
             let openTrivia = ``use``.OpenParen |> getTrivia
             let closeTrivia = ``use``.CloseParen |> getTrivia
-            
+
             { ``use`` with
                 UseKeyword = rewriter.Terminal([], { ``use``.UseKeyword with Text = "use" })
                 Binding = rewriter.QubitBinding(openTrivia, ``use``.Binding)
@@ -150,7 +150,7 @@ let qubitBindingUpdate =
         override rewriter.Borrow(_, borrow) =
             let openTrivia = borrow.OpenParen |> getTrivia
             let closeTrivia = borrow.CloseParen |> getTrivia
-            
+
             { borrow with
                 BorrowKeyword = rewriter.Terminal([], { borrow.BorrowKeyword with Text = "borrow" })
                 Binding = rewriter.QubitBinding(openTrivia, borrow.Binding)

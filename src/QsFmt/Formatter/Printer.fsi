@@ -7,4 +7,4 @@ module internal Microsoft.Quantum.QsFmt.Formatter.Printer
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 /// Prints a syntax tree to a string.
-val printer: string Reducer
+val printer : string Reducer

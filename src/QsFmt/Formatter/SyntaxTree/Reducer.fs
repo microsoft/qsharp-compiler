@@ -197,9 +197,13 @@ type internal 'result Reducer() as reducer =
     default _.Use ``use`` =
         [
             reducer.Terminal(``use``.UseKeyword) |> Some
-            match ``use``.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match ``use``.OpenParen with
+            | None -> None
+            | Some s -> reducer.Terminal(s) |> Some
             reducer.QubitBinding(``use``.Binding) |> Some
-            match ``use``.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match ``use``.CloseParen with
+            | None -> None
+            | Some s -> reducer.Terminal(s) |> Some
             reducer.Terminal(``use``.Semicolon) |> Some
         ]
         |> List.choose id
@@ -210,9 +214,13 @@ type internal 'result Reducer() as reducer =
     default _.UseBlock ``use`` =
         [
             reducer.Terminal(``use``.UseKeyword) |> Some
-            match ``use``.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match ``use``.OpenParen with
+            | None -> None
+            | Some s -> reducer.Terminal(s) |> Some
             reducer.QubitBinding(``use``.Binding) |> Some
-            match ``use``.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match ``use``.CloseParen with
+            | None -> None
+            | Some s -> reducer.Terminal(s) |> Some
             reducer.Block(reducer.Statement, ``use``.Block) |> Some
         ]
         |> List.choose id
@@ -223,9 +231,13 @@ type internal 'result Reducer() as reducer =
     default _.Borrow borrow =
         [
             reducer.Terminal(borrow.BorrowKeyword) |> Some
-            match borrow.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match borrow.OpenParen with
+            | None -> None
+            | Some s -> reducer.Terminal(s) |> Some
             reducer.QubitBinding(borrow.Binding) |> Some
-            match borrow.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match borrow.CloseParen with
+            | None -> None
+            | Some s -> reducer.Terminal(s) |> Some
             reducer.Terminal(borrow.Semicolon) |> Some
         ]
         |> List.choose id
@@ -236,9 +248,13 @@ type internal 'result Reducer() as reducer =
     default _.BorrowBlock borrow =
         [
             reducer.Terminal(borrow.BorrowKeyword) |> Some
-            match borrow.OpenParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match borrow.OpenParen with
+            | None -> None
+            | Some s -> reducer.Terminal(s) |> Some
             reducer.QubitBinding(borrow.Binding) |> Some
-            match borrow.CloseParen with None -> None | Some s -> reducer.Terminal(s) |> Some
+            match borrow.CloseParen with
+            | None -> None
+            | Some s -> reducer.Terminal(s) |> Some
             reducer.Block(reducer.Statement, borrow.Block) |> Some
         ]
         |> List.choose id
@@ -294,7 +310,7 @@ type internal 'result Reducer() as reducer =
         | QubitSymbolDeclaration declaration -> reducer.Terminal declaration
         | QubitSymbolTuple tuple -> reducer.Tuple(reducer.QubitSymbolBinding, tuple)
 
-    abstract QubitInitializer: initializer: QubitInitializer -> 'result
+    abstract QubitInitializer : initializer: QubitInitializer -> 'result
 
     default _.QubitInitializer initializer =
         match initializer with
@@ -302,7 +318,7 @@ type internal 'result Reducer() as reducer =
         | QubitArray qubitArray -> reducer.QubitArray qubitArray
         | QubitTuple tuple -> reducer.Tuple(reducer.QubitInitializer, tuple)
 
-    abstract SingleQubit: newQubit: SingleQubit -> 'result
+    abstract SingleQubit : newQubit: SingleQubit -> 'result
 
     default _.SingleQubit newQubit =
         [
@@ -312,7 +328,7 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract QubitArray: newQubits: QubitArray -> 'result
+    abstract QubitArray : newQubits: QubitArray -> 'result
 
     default _.QubitArray newQubits =
         [

@@ -139,14 +139,13 @@ module Discoverer =
                 match property.GetValue null with
                 | :? (string * string) as example ->
                     ({
-                        Name = property.Name
-                        Skip = Option.ofObj attribute.Skip
-                        Before = fst example
-                        After = snd example
-                    } : FormatExample)
+                         Name = property.Name
+                         Skip = Option.ofObj attribute.Skip
+                         Before = fst example
+                         After = snd example
+                     }: FormatExample)
                     |> Some
-                | _ -> None
-            )
+                | _ -> None)
 
     /// <summary>
     /// The auto-discovered <see cref="UpdateExample"/> test cases.
@@ -158,14 +157,13 @@ module Discoverer =
                 match property.GetValue null with
                 | :? (string * string) as example ->
                     ({
-                        Name = property.Name
-                        Skip = Option.ofObj attribute.Skip
-                        Before = fst example
-                        After = snd example
-                    } : UpdateExample)
+                         Name = property.Name
+                         Skip = Option.ofObj attribute.Skip
+                         Before = fst example
+                         After = snd example
+                     }: UpdateExample)
                     |> Some
-                | _ -> None
-            )
+                | _ -> None)
 
     /// <summary>
     /// The auto-discovered <see cref="FixedPoint"/> test cases.
@@ -209,10 +207,7 @@ module Discoverer =
         do
             let formatFixPoints = formatExamples |> Seq.map FormatExample.toFixedPoint
             let updateFixPoints = updateExamples |> Seq.map UpdateExample.toFixedPoint
-            formatFixPoints
-            |> Seq.append updateFixPoints
-            |> Seq.append fixedPoints
-            |> Seq.iter data.Add
+            formatFixPoints |> Seq.append updateFixPoints |> Seq.append fixedPoints |> Seq.iter data.Add
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="FormatExample"/> test cases change from their
@@ -241,7 +236,7 @@ module Discoverer =
     /// </summary>
     [<SkippableTheory>]
     [<ClassData(typeof<FixedPointData>)>]
-    let ``Formatted code is unchanged`` (fixedPoint : FixedPoint) =
+    let ``Formatted code is unchanged`` (fixedPoint: FixedPoint) =
         match fixedPoint.Skip with
         | Some reason -> Skip.If(true, reason)
         | None -> Assert.Equal(Ok fixedPoint.Source |> ShowResult, Formatter.format fixedPoint.Source |> ShowResult)
