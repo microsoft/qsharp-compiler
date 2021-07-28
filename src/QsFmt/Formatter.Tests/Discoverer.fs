@@ -71,14 +71,14 @@ module internal Example =
 /// Marks a property of type <c>string * string</c> that should be run as an example test case, with the first item
 /// being the source code before and the second item being the source code after.
 /// </summary>
-type ExampleAttribute(exampleKind : ExampleKind) =
+type ExampleAttribute(exampleKind: ExampleKind) =
     inherit Attribute()
 
     /// A reason for skipping the test, if non-null. The test should not be skipped if null.
     member val Skip: string = null with get, set
 
     /// The kind of example it is, either FormatExample or UpdateExample
-    member val Kind: ExampleKind = exampleKind with get
+    member val Kind: ExampleKind = exampleKind
 
 /// <summary>
 /// A wrapper around <see cref="Result"/> with a <see cref="Object.ToString"/> implementation that uses structured
@@ -168,7 +168,7 @@ module Discoverer =
     [<ClassData(typeof<ExampleData>)>]
     let ``Code is formatted correctly`` example =
         match example.Kind with
-        | ExampleKind.FormatExample -> 
+        | ExampleKind.FormatExample ->
             match example.Skip with
             | Some reason -> Skip.If(true, reason)
             | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.format example.Before |> ShowResult)
@@ -182,7 +182,7 @@ module Discoverer =
     [<ClassData(typeof<ExampleData>)>]
     let ``Code is updated correctly`` example =
         match example.Kind with
-        | ExampleKind.UpdateExample -> 
+        | ExampleKind.UpdateExample ->
             match example.Skip with
             | Some reason -> Skip.If(true, reason)
             | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.update example.Before |> ShowResult)
