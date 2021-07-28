@@ -41,6 +41,3 @@ foreach(pass_plugin ${ALL_PASSES})
     "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
 
 endforeach()
-
-
-# add_library(passes SHARED ${ALL_PASSES})

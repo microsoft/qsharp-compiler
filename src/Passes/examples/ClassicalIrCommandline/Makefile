@@ -1,6 +1,3 @@
-emit-llvm-cpp:
-	clang -O3 -S -std=c++17 -emit-llvm classical-program.cpp -o classical-program.ll
-
 emit-llvm:
 	clang -O0 -S -emit-llvm classical-program.c -o classical-program.ll
 
@@ -16,3 +13,4 @@ debug-ng-pass-mac: emit-llvm-bc
 clean:
 	rm -f classical-program.ll
 	rm -f classical-program.bc
+

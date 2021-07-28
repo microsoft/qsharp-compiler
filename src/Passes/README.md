@@ -1,6 +1,6 @@
-# Q# Passes for LLVM
+# QIR Passes for LLVM
 
-This library defines [LLVM passes](https://llvm.org/docs/Passes.html) used for analysing, optimising and transforming the IR. The Q# pass library is a dynamic library that can be compiled and ran separately from the
+This library defines [LLVM passes](https://llvm.org/docs/Passes.html) used for analysing, optimising and transforming the IR. The QIR pass library is a dynamic library that can be compiled and ran separately from the
 rest of the project code. While it is not clear whether this possible at the moment, we hope that it will be possible to write passes that enforce the [QIR specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR).
 
 ## What do LLVM passes do?
@@ -197,7 +197,7 @@ make emit-llvm-bc
 opt -load-pass-plugin ../../{Debug,Release}/libOpsCounter.{dylib,so} --passes="print<operation-counter>" -disable-output classical-program.bc
 ```
 
-For a gentle introduction, see examples.
+For a detailed tutorial, see examples.
 
 ## Creating a new pass
 
@@ -223,7 +223,7 @@ At the moment you only have one choice which is a function pass. Over time we wi
 (...)
 -- Configuring done
 -- Generating done
--- Build files have been written to: /Users/tfr/Documents/Projects/qsharp-compiler/src/QsPasses/Debug
+-- Build files have been written to: ./qsharp-compiler/src/Passes/Debug
 
 % make
 

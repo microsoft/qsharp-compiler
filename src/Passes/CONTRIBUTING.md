@@ -6,7 +6,7 @@ This document is work in progress and nothing is set in stone. In case you do no
 ./manage runci
 ```
 
-from the `QsPasses` directory as all points defined in this document is automatically enforces. You can then refer to this guide for an explanation for why and how.
+from the `Passes` directory as all points defined in this document is automatically enforces. You can then refer to this guide for an explanation for why and how.
 
 ## Why do we need a style guide?
 
@@ -24,7 +24,7 @@ which is hard to read.
 
 ## What does the style guide apply to?
 
-The style guide applies to any new code written as well as code that is being refactored added to the `QsPasses` library. We do not rewrite existing code for the sake just changing the style.
+The style guide applies to any new code written as well as code that is being refactored added to the `Passes` library. We do not rewrite existing code for the sake just changing the style.
 
 ## Style discrepency
 
@@ -61,7 +61,7 @@ Prefer `#pragma once` over `#ifdef` protection.
 ```sh
 % ./manage runci
 (...)
-QsPasses/src/OpsCounter/OpsCounter.cpp:39:21: error: missing username/bug in TODO [google-readability-todo,-warnings-as-errors]
+Passes/src/OpsCounter/OpsCounter.cpp:39:21: error: missing username/bug in TODO [google-readability-todo,-warnings-as-errors]
                     // TODO: Fails to load if this is present
                     ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
                     // TODO(tfr): Fails to load if this is present
