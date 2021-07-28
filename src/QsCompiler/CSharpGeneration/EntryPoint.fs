@@ -200,7 +200,9 @@ let private qirArguments parameters parseResult =
         |> qirArgumentValue param.QSharpType
         |> Option.map (fun value -> ``new`` (ident argumentType) ``(`` [ literal param.Name; value ] ``)``)
 
+    // The parameters sequence has to be reversed here because otherwise the QirSubmission is created with a list of arguments in reverse order.
     parameters
+    |> Seq.rev
     |> Seq.fold (fun state param -> Option.map2 (fun xs x -> x :: xs) state (argument param)) (Some [])
     |> Option.map (fun args -> ident listType <.> (sprintf "Create<%s>" argumentType |> ident, args))
 
