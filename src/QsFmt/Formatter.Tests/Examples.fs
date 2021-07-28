@@ -6,7 +6,7 @@
 /// </summary>
 module Microsoft.Quantum.QsFmt.Formatter.Tests.Examples
 
-[<FormatExample>]
+[<Example(ExampleKind.FormatExample)>]
 let ``Indents function`` =
     """namespace Foo {
 function Bar() : Int {
@@ -22,7 +22,7 @@ return x;
     }
 }"""
 
-[<FormatExample>]
+[<Example(ExampleKind.FormatExample)>]
 let ``Indents if-else statement`` =
     """namespace Foo {
 function Bar() : Int {
@@ -46,7 +46,7 @@ return x + 1;
     }
 }"""
 
-[<FormatExample>]
+[<Example(ExampleKind.FormatExample)>]
 let ``Adds newlines and indents`` =
     """namespace Foo { function Bar() : Int { let x = 5; return x; } }""",
 
@@ -57,7 +57,7 @@ let ``Adds newlines and indents`` =
     }
 }"""
 
-[<FormatExample>]
+[<Example(ExampleKind.FormatExample)>]
 let ``Removes extraneous spaces`` =
     """namespace     Foo {
     function Bar() : Int [     ] {
@@ -79,7 +79,7 @@ let ``Removes extraneous spaces`` =
     }
 }"""
 
-[<UpdateExample>]
+[<Example(ExampleKind.UpdateExample)>]
 let ``Updates Using Statements`` =
     """namespace Foo {
     operation Bar() : Unit {
@@ -97,7 +97,7 @@ let ``Updates Using Statements`` =
     }
 }"""
 
-[<UpdateExample>]
+[<Example(ExampleKind.UpdateExample)>]
 let ``Updates Borrowing Statements`` =
     """namespace Foo {
     operation Bar() : Unit {
