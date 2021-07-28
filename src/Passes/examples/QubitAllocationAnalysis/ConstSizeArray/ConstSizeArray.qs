@@ -2,8 +2,9 @@ namespace Example {
     @EntryPoint()
     operation Main() : Int
     {
+
         QuantumProgram(3,2,1);
-        QuantumProgram(4,9,4);
+        QuantumProgram(4,X(2),4);
         return 0;
     }
 
@@ -21,5 +22,9 @@ namespace Example {
         use qubits2 = Qubit[y - g];
         use qubits3 = Qubit[h];
         use qubits4 = Qubit[X(x)];
+
+        for idxIteration in 0..g {
+          //Message(idxIteration);
+        }        
     }
 }
