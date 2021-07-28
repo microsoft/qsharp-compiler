@@ -130,6 +130,12 @@ module Discoverer =
                 |> Option.map (fun attribute' -> attribute' :?> 'a, property))
 
     /// <summary>
+    /// Replaces New Line characters in source string for Environment.NewLine characters.
+    /// </summary>
+    let private standardizeNewLines (source : string) =
+        source.Replace("\r", "").Replace("\n", Environment.NewLine)
+
+    /// <summary>
     /// The auto-discovered <see cref="FormatExample"/> test cases.
     /// </summary>
     let private formatExamples : seq<FormatExample> =
@@ -141,8 +147,8 @@ module Discoverer =
                     ({
                          Name = property.Name
                          Skip = Option.ofObj attribute.Skip
-                         Before = fst example
-                         After = snd example
+                         Before = fst example |> standardizeNewLines
+                         After = snd example |> standardizeNewLines
                      }: FormatExample)
                     |> Some
                 | _ -> None)
@@ -159,8 +165,8 @@ module Discoverer =
                     ({
                          Name = property.Name
                          Skip = Option.ofObj attribute.Skip
-                         Before = fst example
-                         After = snd example
+                         Before = fst example |> standardizeNewLines
+                         After = snd example |> standardizeNewLines
                      }: UpdateExample)
                     |> Some
                 | _ -> None)
@@ -177,7 +183,7 @@ module Discoverer =
                     {
                         Name = property.Name
                         Skip = Option.ofObj attribute.Skip
-                        Source = source
+                        Source = source |> standardizeNewLines
                     }
                     |> Some
                 | _ -> None)

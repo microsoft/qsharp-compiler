@@ -10,6 +10,7 @@ open Antlr4.Runtime
 open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.QsFmt.Formatter.Tests
 open Microsoft.Quantum.QsFmt.Parser
+open System
 open System.IO
 open Xunit
 
@@ -21,17 +22,26 @@ let private isValidSyntax (source: string) =
     parser.document () |> ignore
     parser.NumberOfSyntaxErrors = 0
 
+/// <summary>
+/// Replaces New Line characters in source string for Environment.NewLine characters.
+/// </summary>
+let private standardizeNewLines (source : string) =
+    source.Replace("\r", "").Replace("\n", Environment.NewLine)
+
 /// Test case files with valid syntax.
 let private testCases () =
     Directory.GetFiles("TestCases", "*.qs", EnumerationOptions(RecurseSubdirectories = true))
     |> Seq.map File.ReadAllText
     |> Seq.filter isValidSyntax
+    |> Seq.map standardizeNewLines
     |> Seq.map (Array.create 1)
 
 [<Theory>]
 [<MemberData "testCases">]
 let ``Identity preserves original source code`` source =
-    Assert.Equal(Ok source |> ShowResult, Formatter.identity source |> ShowResult)
+    let original = Ok source |> ShowResult
+    let transformed = Formatter.identity source |> ShowResult
+    Assert.Equal(original, transformed)
 
 [<FixedPoint>]
 let ``Namespace comments`` =
