@@ -270,6 +270,12 @@ type internal 'result Reducer =
     default Tuple: mapper:('a -> 'result) * tuple:'a Tuple -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="UnitExpression"/> expression node.
+    /// </summary>
+    abstract Unit : unit: UnitExpression -> 'result
+    default Unit : unit: UnitExpression -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="SequenceItem{a}"/> node, given a reducer for the sequence items.
     /// </summary>
     abstract SequenceItem: mapper:('a -> 'result) * item:'a SequenceItem -> 'result

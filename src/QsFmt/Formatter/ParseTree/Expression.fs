@@ -100,6 +100,13 @@ and ExpressionVisitor(tokens) =
         }
         |> Tuple
 
+    override visitor.VisitUnitExpression context =
+        {
+            OpenParen = context.openParen |> Node.toTerminal tokens
+            CloseParen = context.closeParen |> Node.toTerminal tokens
+        }
+        |> Unit
+
     override visitor.VisitArrayExpression context =
         let expressions = context._items |> Seq.map visitor.Visit
 
