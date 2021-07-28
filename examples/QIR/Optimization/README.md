@@ -120,7 +120,7 @@ Q# uses .NET project files to control the compilation process, located in the pr
 The standard one provided for a standalone Q# application looks as follows:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
+<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107153439">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -133,7 +133,7 @@ The standard one provided for a standalone Q# application looks as follows:
 Enabling QIR generation is a simple matter of adding the `<QirGeneration>` property to the project file:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
+<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107153439">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -329,8 +329,8 @@ One for the runtime and one for the simulator, using the `PackageReference` comm
 
 ```xml
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2106148911-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2106148911" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2107153439-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2107153439" GeneratePathProperty="true" />
   </ItemGroup>
 ```
 
@@ -376,7 +376,7 @@ Only `.hpp` files from the QIR header directory will be copied, and no `.exe` fi
 Put together, the new `Hello.csproj` project file should look as follows:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
+<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107153439">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -386,8 +386,8 @@ Put together, the new `Hello.csproj` project file should look as follows:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2106148911-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2106148911" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2107153439-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2107153439" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="GetDependencies" AfterTargets="Build">
@@ -424,15 +424,6 @@ build
 ├── QirContext.hpp
 ├── QirRuntime.hpp
 └── SimFactory.hpp
-```
-
-(**Linux**) The `Microsoft.Quantum.Qir.*` dynamic libraries will already have the right naming scheme for Clang to use, but the `Microsoft.Quantum.Simulator.Runtime` library needs to be renamed.
-The proper name format is `lib<library-name>.so`.
-
-Execute the following command from the project root directory:
-
-```bash
-mv build/Microsoft.Quantum.Simulator.Runtime.dll build/libMicrosoft.Quantum.Simulator.Runtime.so
 ```
 
 ### Adding a driver
