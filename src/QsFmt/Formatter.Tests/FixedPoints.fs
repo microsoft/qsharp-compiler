@@ -25,7 +25,7 @@ let private isValidSyntax (source: string) =
 /// <summary>
 /// Replaces New Line characters in source string for Environment.NewLine characters.
 /// </summary>
-let private standardizeNewLines (source : string) =
+let private standardizeNewLines (source: string) =
     source.Replace("\r", "").Replace("\n", Environment.NewLine)
 
 /// Test case files with valid syntax.
