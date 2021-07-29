@@ -22,18 +22,11 @@ let private isValidSyntax (source: string) =
     parser.document () |> ignore
     parser.NumberOfSyntaxErrors = 0
 
-/// <summary>
-/// Replaces New Line characters in source string for Environment.NewLine characters.
-/// </summary>
-let private standardizeNewLines (source: string) =
-    source.Replace("\r", "").Replace("\n", Environment.NewLine)
-
 /// Test case files with valid syntax.
 let private testCases () =
     Directory.GetFiles("TestCases", "*.qs", EnumerationOptions(RecurseSubdirectories = true))
     |> Seq.map File.ReadAllText
     |> Seq.filter isValidSyntax
-    |> Seq.map standardizeNewLines
     |> Seq.map (Array.create 1)
 
 [<Theory>]

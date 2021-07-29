@@ -103,12 +103,6 @@ module Discoverer =
                 |> Option.map (fun attribute' -> attribute' :?> 'a, property))
 
     /// <summary>
-    /// Replaces New Line characters in source string for Environment.NewLine characters.
-    /// </summary>
-    let private standardizeNewLines (source: string) =
-        source.Replace("\r", "").Replace("\n", Environment.NewLine)
-
-    /// <summary>
     /// The auto-discovered <see cref="Example"/> test cases.
     /// </summary>
     let private examples : seq<Example> =
@@ -120,8 +114,8 @@ module Discoverer =
                     ({
                          Name = property.Name
                          Skip = Option.ofObj attribute.Skip
-                         Before = fst example |> standardizeNewLines
-                         After = snd example |> standardizeNewLines
+                         Before = fst example
+                         After = snd example
                          Kind = attribute.Kind
                      }: Example)
                     |> Some
@@ -139,7 +133,7 @@ module Discoverer =
                     {
                         Name = property.Name
                         Skip = Option.ofObj attribute.Skip
-                        Source = source |> standardizeNewLines
+                        Source = source
                     }
                     |> Some
                 | _ -> None)
