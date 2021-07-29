@@ -90,7 +90,8 @@ let ``Formats file`` path output =
     )
 
 [<Theory>]
-[<InlineData("namespace Foo { function Bar() : Int { return 0; } }\n",
+[<InlineData("namespace Foo { function Bar() : Int { return 0; } }
+",
              "namespace Foo {
     function Bar() : Int {
         return 0;
