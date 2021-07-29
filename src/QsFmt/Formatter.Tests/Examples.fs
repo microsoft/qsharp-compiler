@@ -205,7 +205,7 @@ let ``Updates Using with Comments`` =
     }
 }"""
 
-[<UpdateExample>]
+[<Example(ExampleKind.UpdateExample)>]
 let ``Updates Unit Types`` =
     """namespace Foo {
     operation Bar1() : () {
