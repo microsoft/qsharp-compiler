@@ -1,10 +1,17 @@
+<<<<<<< HEAD
+=======
 all: qir/SimpleExample.ll
 
 qir/SimpleExample.ll:
 	dotnet build SimpleExample.csproj -c Debug	
 
+>>>>>>> features/llvm-passes
 clean:
 	rm -rf bin
 	rm -rf obj
 	rm -rf qir
+<<<<<<< HEAD
+	
+=======
 
+>>>>>>> features/llvm-passes

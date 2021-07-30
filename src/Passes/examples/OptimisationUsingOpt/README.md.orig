@@ -20,13 +20,23 @@ namespace Example {
 You find the code for this in the folder `SimpleExample`. To generate a QIR for this code, go to the folder and run
 
 ```sh
+<<<<<<< HEAD
 cd SimpleExample/
 dotnet clean SimpleExample.csproj
 (...)
 dotnet build SimpleExample.csproj -c Debug
 ```
 
+If everything went well, you should now have a subdirectory called `qir` and inside `qir`, you will find `SimpleExample.ll`. Depending on the version of Q#,
+=======
+% cd SimpleExample/
+% dotnet clean SimpleExample.csproj
+(...)
+% dotnet build SimpleExample.csproj -c Debug
+```
+
 If everything went well, you should now have a subdirectory called `qir` and inside `qir`, you will find `SimpleExample.ll`. Depending on your compiler,
+>>>>>>> features/llvm-passes
 the generated QIR will vary, but in general, it will be relatively long. Looking at this file, you will see
 that the total length is a little above 2000 lines of code. That is pretty extensive for a program which essentially
 does nothing so obviously, most of the generated QIR must be dead code. We can now use `opt` to get rid of the dead code and we do this by invoking:
@@ -53,4 +63,8 @@ entry:
 }
 ```
 
+<<<<<<< HEAD
+plus a few extra delcarations.
+=======
 with a few additional declarations.
+>>>>>>> features/llvm-passes

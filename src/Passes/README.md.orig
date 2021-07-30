@@ -1,6 +1,12 @@
+<<<<<<< HEAD
+# Q# Passes for LLVM
+
+This library defines [LLVM passes](https://llvm.org/docs/Passes.html) used for analysing, optimising and transforming the IR. The Q# pass library is a dynamic library that can be compiled and ran separately from the
+=======
 # QIR Passes for LLVM
 
 This library defines [LLVM passes](https://llvm.org/docs/Passes.html) used for analysing, optimising and transforming the IR. The QIR pass library is a dynamic library that can be compiled and ran separately from the
+>>>>>>> features/llvm-passes
 rest of the project code. While it is not clear whether this possible at the moment, we hope that it will be possible to write passes that enforce the [QIR specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR).
 
 ## What do LLVM passes do?
@@ -185,7 +191,11 @@ and then make your target
 make [target]
 ```
 
+<<<<<<< HEAD
 The default target is `all`. Other valid targets are the name of the folders in `libs/` found in the passes root.
+=======
+Valid targets are the name of the folders in `libs/` found in the passes root.
+>>>>>>> features/llvm-passes
 
 ## Running a pass
 
@@ -197,14 +207,22 @@ make emit-llvm-bc
 opt -load-pass-plugin ../../{Debug,Release}/libOpsCounter.{dylib,so} --passes="print<operation-counter>" -disable-output classical-program.bc
 ```
 
+<<<<<<< HEAD
+For a gentle introduction, see examples.
+=======
 For a detailed tutorial, see examples.
+>>>>>>> features/llvm-passes
 
 ## Creating a new pass
 
 To make it easy to create a new pass, we have created a few templates to get you started quickly:
 
 ```sh
+<<<<<<< HEAD
 ./manage create-pass HelloWorld
+=======
+% ./manage create-pass HelloWorld
+>>>>>>> features/llvm-passes
 Available templates:
 
 1. Function Pass
@@ -215,17 +233,29 @@ Select a template:1
 At the moment you only have one choice which is a function pass. Over time we will add additional templates. Once you have instantiated your template, you are ready to build it:
 
 ```sh
+<<<<<<< HEAD
 mkdir Debug
 cd Debug
 cmake ..
+=======
+% mkdir Debug
+% cd Debug
+% cmake ..
+>>>>>>> features/llvm-passes
 -- The C compiler identification is AppleClang 12.0.5.12050022
 -- The CXX compiler identification is AppleClang 12.0.5.12050022
 (...)
 -- Configuring done
 -- Generating done
--- Build files have been written to: ./qsharp-compiler/src/Passes/Debug
+<<<<<<< HEAD
+-- Build files have been written to: /Users/tfr/Documents/Projects/qsharp-compiler/src/QsPasses/Debug
 
 make
+=======
+-- Build files have been written to: ./qsharp-compiler/src/Passes/Debug
+
+% make
+>>>>>>> features/llvm-passes
 
 [ 25%] Building CXX object libs/CMakeFiles/OpsCounter.dir/OpsCounter/OpsCounter.cpp.o
 [ 50%] Linking CXX shared library libOpsCounter.dylib
@@ -240,9 +270,15 @@ template will not do much except for print the function names of your code. To t
 build an IR and run the pass:
 
 ```sh
+<<<<<<< HEAD
 cd ../examples/ClassicalIrCommandline
 make
 opt -load-pass-plugin ../../Debug/libs/libHelloWorld.{dylib,so} --passes="hello-world" -disable-output classical-program.ll
+=======
+% cd ../examples/ClassicalIrCommandline
+% make
+% opt -load-pass-plugin ../../Debug/libs/libHelloWorld.{dylib,so} --passes="hello-world" -disable-output classical-program.ll
+>>>>>>> features/llvm-passes
 ```
 
 If everything worked, you should see output like this:
@@ -303,7 +339,11 @@ that you use a docker image to perform these steps. TODO(TFR): The docker image 
 One error that you may encounter is that an analysis pass does not load with output similar to this:
 
 ```sh
+<<<<<<< HEAD
 opt -load-pass-plugin ../../Debug/libQSharpPasses.dylib -enable-debugify  --passes="operation-counter" -disable-output   classical-program.bc
+=======
+% opt -load-pass-plugin ../../Debug/libQSharpPasses.dylib -enable-debugify  --passes="operation-counter" -disable-output   classical-program.bc
+>>>>>>> features/llvm-passes
 Failed to load passes from '../../Debug/libQSharpPasses.dylib'. Request ignored.
 opt: unknown pass name 'operation-counter'
 ```

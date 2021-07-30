@@ -1,3 +1,7 @@
+<<<<<<< HEAD
+# Q# pass documentation
+=======
 # QIR pass documentation
+>>>>>>> features/llvm-passes
 
 This directory and file is a placeholder for describing LLVM passes which was already implemented.

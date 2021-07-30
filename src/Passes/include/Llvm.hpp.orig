@@ -27,13 +27,14 @@
 #pragma clang diagnostic ignored "-Weverything"
 #endif
 
+<<<<<<< HEAD
 // Passes
 #include "llvm/Passes/PassBuilder.h"
 #include "llvm/Passes/PassPlugin.h"
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-q
+
 // Building
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
@@ -45,6 +46,12 @@ q
 #include "llvm/IR/Module.h"
 #include "llvm/IR/Type.h"
 #include "llvm/IR/Verifier.h"
+=======
+#include "llvm/IR/LegacyPassManager.h"
+#include "llvm/Passes/PassBuilder.h"
+#include "llvm/Passes/PassPlugin.h"
+#include "llvm/Support/raw_ostream.h"
+>>>>>>> features/llvm-passes
 
 #if defined(__clang__)
 #pragma clang diagnostic pop

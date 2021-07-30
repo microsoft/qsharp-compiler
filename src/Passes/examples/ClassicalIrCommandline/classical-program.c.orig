@@ -14,4 +14,8 @@ int main()
   bar(3, 2);
 
   return 0;
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> features/llvm-passes
