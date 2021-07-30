@@ -1,0 +1,14 @@
+#!/usr/bin/env python
+import os
+import sys
+
+# Adding the site-packages directory to our Python path
+# in order to access the TasksCI module
+ROOT = os.path.dirname(__file__)
+sys.path.insert(0, os.path.join(ROOT, "site-packages"))
+
+# Loading the CLI tool and running it
+from TasksCI.cli import cli  # noqa: E402
+
+# Running the CLI tool defined in site-packages/TasksCI/cli
+cli()

@@ -1,0 +1,43 @@
+
+macro(list_qs_passes result)
+  file(GLOB children RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/*)
+  set(dirlist "")
+  foreach(child ${children})
+    if(IS_DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR}/${child})
+      list(APPEND dirlist ${child})
+    endif()
+  endforeach()
+  set(${result} ${dirlist})
+endmacro()
+
+list_qs_passes(ALL_PASSES)
+
+foreach(pass_plugin ${ALL_PASSES})
+
+  # Getting sources
+  file(GLOB sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/${pass_plugin}/*.cpp)
+
+  # Adding library
+  add_library(${pass_plugin} 
+              SHARED 
+              ${sources})
+
+  # Adding include directories
+  target_include_directories(
+    ${pass_plugin}
+    PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}"
+  )
+
+  target_include_directories(
+    ${pass_plugin}
+    PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/../include"
+  )
+  
+
+  # Linking
+  target_link_libraries(${pass_plugin}
+    "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+
+endforeach()
