@@ -13,7 +13,7 @@ libs
 Adding a new pass is easy using the `manage` tool developed in this PR:
 
 ```
-% ./manage create-pass HelloWorld
+./manage create-pass HelloWorld
 Available templates:
 
 1. Function Pass

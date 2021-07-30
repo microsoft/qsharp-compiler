@@ -3,7 +3,7 @@
 In order to run the tests, you first need to build the library. Assuming that this is already done and the corresponding build is in `Debug/`, run the tests from the `Debug` folder:
 
 ```
-% lit tests/ -v
+lit tests/ -v
 -- Testing: 2 tests, 2 workers --
 PASS: Quantum-Passes :: QubitAllocationAnalysis/case1.ll (1 of 2)
 PASS: Quantum-Passes :: QubitAllocationAnalysis/case2.ll (2 of 2)
@@ -49,13 +49,13 @@ This part defines pipelines for `.hpp` files and `.cpp` files allowing the devel
 Each of these CI stages can executed individually using `./manage` or you can run the entire CI process by invoking `./manage runci`. An example of what this may look like is here:
 
 ```zsh
-% ./manage runci
+./manage runci
 
 2021-07-21 14:38:04,896 - FormatChecker - ERROR - /Users/tfr/Documents/Projects/qsharp-compiler/src/QsPasses/src/OpsCounter/OpsCounter.cpp was not correctly formatted.
 2021-07-21 14:38:04,899 - FormatChecker - ERROR - Your code did not pass formatting.
 
-% ./manage stylecheck --fix-issues
-% ./manage runci
+./manage stylecheck --fix-issues
+./manage runci
 
 -- Found LLVM 11.1.0
 -- Using LLVMConfig.cmake in: /usr/local/opt/llvm@11/lib/cmake/llvm
@@ -78,7 +78,7 @@ Use -header-filter=.* to display errors from all non-system headers. Use -system
 2021-07-21 14:38:40,191 - Linter - ERROR - /Users/tfr/Documents/Projects/qsharp-compiler/src/QsPasses/src/OpsCounter/OpsCounter.cpp failed static analysis
 
 # ISSUES FIXED MANUALLY
-% ./manage runci
+./manage runci
 
 -- Found LLVM 11.1.0
 -- Using LLVMConfig.cmake in: /usr/local/opt/llvm@11/lib/cmake/llvm
