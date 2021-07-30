@@ -33,7 +33,7 @@
 #include "llvm/Support/raw_ostream.h"
 #include "llvm/Transforms/Utils/BasicBlockUtils.h"
 #include "llvm/Transforms/Utils/Cloning.h"
-q
+
 // Building
 #include "llvm/IR/BasicBlock.h"
 #include "llvm/IR/Constants.h"
