@@ -23,7 +23,8 @@ if (!(Get-Command clang -ErrorAction SilentlyContinue)) {
 # }
 
 refreshenv
-$env:Path += ";C:\Program Files\LLVM\bin\"
+$env:Path += ";C:\Miniconda\Library\LLVM\bin\"
+$env:LLVM = "C:\Miniconda\Library\LLVM\"
 
 
 dir "C:\Program Files\LLVM\"
