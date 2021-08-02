@@ -3,6 +3,7 @@ cmake_minimum_required(VERSION 3.4.3)
 project(Passes)
 
 if (WIN32)
+  message(STATUS "Adding C:\\Program Files\\LLVM\\lib to LLVM paths")
   find_package(LLVM REQUIRED PATHS "C:\\Program Files\\LLVM\\lib" CONFIG )
 else()
   find_package(LLVM REQUIRED CONFIG)
