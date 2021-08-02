@@ -32,5 +32,12 @@ clang-format.exe --version
 
 clang-tidy.exe --version
 
+
+$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
+$vcvarspath = &$vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+Write-Output "vc tools located at: $vcvarspath"
+cmd.exe /c "call `"$vcvarspath\VC\Auxiliary\Build\vcvars64.bat`"
+
+
 # Running CI
 python manage runci
