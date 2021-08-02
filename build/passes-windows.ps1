@@ -10,6 +10,8 @@ pip --version
 cd ../src/Passes/
 pip install -r requirements.txt
 
+& $env:CONDA
+
 # Installing Clang, CMake and LLVM
 if (!(Get-Command clang -ErrorAction SilentlyContinue)) {
     conda install -c conda-forge llvm-tools=11.1.0
