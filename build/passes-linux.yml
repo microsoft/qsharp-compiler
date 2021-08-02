@@ -7,6 +7,8 @@ steps:
       export CC=clang-11
       export CXX=clang++
       cd src/Passes/
+
+      pip install -r requirements.txt
       chmod +x manage
       ./manage runci
 

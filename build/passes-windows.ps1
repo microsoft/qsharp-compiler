@@ -21,7 +21,7 @@ if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
 
 refreshenv
 
-dir C:\Program Files\LLVM\bin\
+dir "C:\Program Files\LLVM\bin\"
 clang.exe --version
 
 cmake.exe --version
