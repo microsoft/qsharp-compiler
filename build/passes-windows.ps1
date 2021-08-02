@@ -10,16 +10,12 @@ pip --version
 cd ../src/Passes/
 pip install -r requirements.txt
 
-$env:Path += ";C:\Miniconda\"
-$env:Path += ";C:\Miniconda\bin\"
-ls $env:CONDA
- 
-& $env:CONDA\conda.exe
+
 
 # Installing Clang, CMake and LLVM
 if (!(Get-Command clang -ErrorAction SilentlyContinue)) {
-    conda install -c conda-forge llvm-tools=11.1.0
-    conda install -c conda-forge llvmdev=11.1.0
+    & (Join-Path $env:CONDA scripts conda.exe) install -c conda-forge llvm-tools=11.1.0
+    & (Join-Path $env:CONDA scripts conda.exe) install -c conda-forge llvmdev=11.1.0
 }
 
 # if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
