@@ -4,8 +4,13 @@ steps:
       brew install llvm@11
       brew install cmake
       brew install python@3.9
-      brew link --overwrite python
+      brew unlink python@3.9 && brew link python@3.9
+
+      # Updating paths
+      export PATH="/usr/local/opt/python/libexec/bin:$PATH"
       export PATH="/usr/local/opt/llvm@11/bin:$PATH"
+      export LDFLAGS="-L/usr/local/opt/llvm@11/lib"
+      export CPPFLAGS="-I/usr/local/opt/llvm@11/include"
 
       cd src/Passes/
       pip install -r requirements.txt      
