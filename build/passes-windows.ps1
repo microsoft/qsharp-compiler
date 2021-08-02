@@ -19,5 +19,16 @@ if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
     choco install cmake
 }
 
+refreshenv
+
+dir C:\Program Files\LLVM\bin\
+clang.exe --version
+
+cmake.exe --version
+
+clang-format.exe --version
+
+clang-tidy.exe --version
+
 # Running CI
 python manage runci

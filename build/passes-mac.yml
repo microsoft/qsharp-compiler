@@ -1,0 +1,10 @@
+
+steps:
+- script: |
+      brew install llvm@11
+      brew install cmake
+
+      cd src/Passes/
+      chmod +x manage
+      ./manage runci
+
