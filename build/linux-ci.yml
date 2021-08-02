@@ -2,7 +2,7 @@
 steps:
 - script: |
       sudo apt update -y
-      sudo apt install -y clang cmake clang-format clang-tidy
+      sudo apt install -y clang cmake clang-format-11 clang-tidy-11 llvm-toolchain-11
       sudo apt-get install -y llvm-11 lldb-11 llvm-11-dev libllvm11 llvm-11-runtime
       cd src/Passes/
       chmod +x manage
