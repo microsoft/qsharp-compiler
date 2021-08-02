@@ -20,6 +20,8 @@ if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
 }
 
 refreshenv
+$env:Path += ";C:\Program Files\LLVM\bin\"
+
 
 dir "C:\Program Files\LLVM\bin\"
 clang.exe --version
