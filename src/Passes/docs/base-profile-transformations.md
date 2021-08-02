@@ -8,13 +8,12 @@ The purpose of this work is to create the tools to help transform a high-level l
 The core problem encountered is that the classical control logic of quantum computers are unlikely to have an advanced instruction set. The [base profile](https://github.com/microsoft/qsharp-language/blob/ageller/profile/Specifications/QIR/Base-Profile.md)
 describes an example of a highly restricted (classical) instruction with only `inttoptr`, `call`, `br` and `ret` available and the types support are integers and floating point precision.
 
-The general code generation pipeline follows these high-level three steps:
+The general code generation pipeline follows these high-level twi steps:
 
 1. Source -> Initial QIR
 2. Initial QIR -> Constrained QIR
-3. Constrained QIR -> ASM
 
-This work is concerned with the second step. For step 1 and 3, we will consider Q# as an example frontend and OpenQASM as an example backend. While OpenQASM allows allocation of qubit arrays, we will further restrict this work assuming that no such feature is available and that the target system has N qubits. As a result, the final program may or may not fit on the architecture.
+This work is concerned with the second step. For step 1, we will consider Q# as an example frontend.
 
 ## Frontend example: Q# code
 
@@ -72,6 +71,7 @@ The corresponding QIR was generated using the Q# compiler followed by an `O1` op
 
 ```
 ; ModuleID = 'qir/Adder.ll'
+; qir-profile: any
 source_filename = "qir/Adder.ll"
 
 %Tuple = type opaque
@@ -447,54 +447,12 @@ attributes #1 = { "EntryPoint" }
 
 ```
 
-## Backend example: OpenQASM 2.0
+## Restricted QIR - Base Profile
 
-A reference implementation of the Adder in OpenQASM, is provided here:
-
-```
-// quantum ripple-carry adder from Cuccaro et al, quant-ph/0410184
-OPENQASM 2.0;
-include "qelib1.inc";
-gate majority a,b,c
-{
-  cx c,b;
-  cx c,a;
-  ccx a,b,c;
-}
-gate unmaj a,b,c
-{
-  ccx a,b,c;
-  cx c,a;
-  cx a,b;
-}
-qreg cin[1];
-qreg a[4];
-qreg b[4];
-qreg cout[1];
-creg ans[5];
-// set input states
-x a[0]; // a = 0001
-x b;    // b = 1111
-// add a to b, storing result in b
-majority cin[0],b[0],a[0];
-majority a[0],b[1],a[1];
-majority a[1],b[2],a[2];
-majority a[2],b[3],a[3];
-cx a[3],cout[0];
-unmaj a[2],b[3],a[3];
-unmaj a[1],b[2],a[2];
-unmaj a[0],b[1],a[1];
-unmaj cin[0],b[0],a[0];
-measure b[0] -> ans[0];
-measure b[1] -> ans[1];
-measure b[2] -> ans[2];
-measure b[3] -> ans[3];
-measure cout[0] -> ans[4];
-```
-
-The corresponding QIR was manually developed based on this implementation and the resulting QIR is
+To accomodate variouos hardware profiles, we will often require that we restrict the operations available. One such example is the [base profile](https://github.com/microsoft/qsharp-language/blob/ageller/profile/Specifications/QIR/Base-Profile.md) which allows us to
 
 ```language
+; qir-profile: base
 ; a total of 5 classical bits are used, so one byte is sufficient
 @quantum_results = global [1 x i8]
 
@@ -512,11 +470,9 @@ define void @majority_body(%Qubit addrspace(2)* %a, %Qubit addrspace(2)* %b, %Qu
 define void @unmaj_body(%Qubit addrspace(2)* %a, %Qubit addrspace(2)* %b, %Qubit addrspace(2)* %c) {
     call void quantum_qis_toffoli(%Qubit addrspace(2)* %a, %Qubit addrspace(2)* %b, %Qubit addrspace(2)* %c);
     call void quantum_qis_cnot(%Qubit addrspace(2)* %c, %Qubit addrspace(2)* %a);
-    ; This line matches the OpenQASM sample, but is incorrect. The first qubit should be %c, not %a.
     call void quantum_qis_cnot(%Qubit addrspace(2)* %a, %Qubit addrspace(2)* %b);
 }
 
-; The main OpenQASM program
 define void @quantum_main() {
 entry:
     ; The "cin" qubit register is mapped to device qubit 0.
@@ -559,8 +515,6 @@ entry:
 ```
 
 ## Challenge
-
-The challenge at hand is to transform the QIR created by Q# to the OpenQASM compatible QIR given above. In order to define the necessary transformation, we will start by a few high-level observations, then discuss concrete transformations and finally create a list of necessary passes/
 
 ## Required transformations
 
