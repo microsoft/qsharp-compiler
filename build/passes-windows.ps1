@@ -14,9 +14,7 @@ pip install -r requirements.txt
 if (!(Get-Command clang -ErrorAction SilentlyContinue)) {
     choco install llvm --version=11.1.0
 }
-if (!(Get-Command ninja -ErrorAction SilentlyContinue)) {
-    choco install ninja
-}
+
 if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
     choco install cmake
 }
