@@ -1,8 +1,14 @@
 cmake_minimum_required(VERSION 3.4.3)
 
-project(QSharpPasses)
+project(Passes)
 
-find_package(LLVM REQUIRED CONFIG)
+if (WIN32)
+  find_package(LLVM REQUIRED CONFIG PATHS "C:\Program Files\LLVM\" "C:\Program Files\LLVM\cmake")
+else()
+  find_package(LLVM REQUIRED CONFIG)
+endif()
+
+
 include(CheckCXXCompilerFlag)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")

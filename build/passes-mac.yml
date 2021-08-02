@@ -9,8 +9,8 @@ steps:
       # Updating paths
       export PATH="/usr/local/opt/python/libexec/bin:$PATH"
       export PATH="/usr/local/opt/llvm@11/bin:$PATH"
-      export LDFLAGS="-L/usr/local/opt/llvm@11/lib"
-      export CPPFLAGS="-I/usr/local/opt/llvm@11/include"
+      export LDFLAGS="${LDFLAGS} -L/usr/local/opt/llvm@11/lib"
+      export CPPFLAGS="${CPPFLAGS} -I/usr/local/opt/llvm@11/include"
 
       cd src/Passes/
       pip install -r requirements.txt      

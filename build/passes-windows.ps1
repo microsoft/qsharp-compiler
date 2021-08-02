@@ -23,7 +23,7 @@ refreshenv
 $env:Path += ";C:\Program Files\LLVM\bin\"
 
 
-dir "C:\Program Files\LLVM\bin\"
+dir "C:\Program Files\LLVM\"
 clang.exe --version
 
 cmake.exe --version
