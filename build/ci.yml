@@ -37,7 +37,7 @@ jobs:
   pool:
     vmImage: windows-latest
 
-- job: Passes - Linux Build & Test
+- job: Passes Linux Build and Test
   steps:
   - template: linux-ci.yml
   pool:
