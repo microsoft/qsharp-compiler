@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-$ErrorActionPreference = 'Stop'
+$ErrorActionPreference = 'Continue'
 
 python --version
 pip --version
@@ -10,7 +10,11 @@ pip --version
 cd ../src/Passes/
 pip install -r requirements.txt
 
-& $env:CONDA\conda
+$env:Path += ";C:\Miniconda\"
+$env:Path += ";C:\Miniconda\bin\"
+ls $env:CONDA
+ 
+& $env:CONDA\conda.exe
 
 # Installing Clang, CMake and LLVM
 if (!(Get-Command clang -ErrorAction SilentlyContinue)) {
