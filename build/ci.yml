@@ -30,6 +30,10 @@ pool:
   vmImage: windows-latest
 
 jobs:
+- job: Passes Linux CI
+  steps:
+  - template: linux-ci.yml
+  
 - job: Build
   steps:
   - template: init.yml

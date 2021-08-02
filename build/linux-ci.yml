@@ -1,0 +1,13 @@
+pool:
+  name: Azure Pipelines
+  vmImage: ubuntu-20.04
+
+#variables:
+#  system.debug: 'true'
+
+steps:
+- script: |
+  sudo apt update -y
+  sudo apt install -y clang cmake
+  sudo apt-get install -y llvm-11 lldb-11 llvm-11-dev libllvm11 llvm-11-runtime
+  pwd
