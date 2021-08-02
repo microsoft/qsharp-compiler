@@ -26,19 +26,22 @@ schedules:
     - main
   always: true
 
-pool:
-  vmImage: windows-latest
+
 
 jobs:
-#- job: Passes Linux CI
-#  steps:
-#  - template: linux-ci.yml
+- job: Passes Linux CI
+  steps:
+  - template: linux-ci.yml
+  pool:
+    vmImage: windows-latest
 
 - job: Build
   steps:
   - template: init.yml
   - template: steps.yml
   - template: wrap-up.yml
+  pool:
+    vmImage: windows-latest
 
 - job: Style
   steps:
@@ -47,3 +50,5 @@ jobs:
 
   - script: dotnet tool run fantomas -- --check --recurse .
     displayName: Fantomas
+  pool:
+    vmImage: windows-latest
