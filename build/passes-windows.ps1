@@ -12,7 +12,8 @@ pip install -r requirements.txt
 
 # Installing Clang, CMake and LLVM
 if (!(Get-Command clang -ErrorAction SilentlyContinue)) {
-    choco install llvm --version=11.1.0
+    conda install -c conda-forge llvm-tools=11.1.0
+    conda install -c conda-forge llvmdev=11.1.0
 }
 
 # if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
