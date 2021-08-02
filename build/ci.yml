@@ -27,7 +27,6 @@ schedules:
   always: true
 
 
-
 jobs:
 - job: Build
   steps:
@@ -39,10 +38,9 @@ jobs:
 
 - job: LinuxBuild
   steps:
-  - template: linux-ci.yml
+  - template: passes-linux.yml
   pool:
     vmImage: ubuntu-20.04
-
 
 - job: Style
   steps:

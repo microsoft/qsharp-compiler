@@ -1,6 +1,6 @@
 steps:
-- pwsh: ./development.ps1
-  displayName: "Development setep"
+- pwsh: ./passes-windows.ps1
+  displayName: "Passes style, build & test"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
 
 - pwsh: ./build.ps1
