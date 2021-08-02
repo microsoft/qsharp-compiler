@@ -5,7 +5,6 @@ $ErrorActionPreference = 'Stop'
 
 python --version
 pip --version
-virtualenv --version
 
 # Installing requirements for CI
 cd src/Passes
