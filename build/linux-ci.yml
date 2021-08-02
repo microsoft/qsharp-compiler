@@ -4,7 +4,7 @@ steps:
       sudo apt update -y
       sudo apt install -y clang cmake clang-format clang-tidy
       sudo apt-get install -y llvm-11 lldb-11 llvm-11-dev libllvm11 llvm-11-runtime
-      cd src/build
+      cd src/Passes/
       chmod +x manage
       ./manage runci
 

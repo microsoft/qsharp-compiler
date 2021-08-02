@@ -7,7 +7,7 @@ python --version
 pip --version
 
 # Installing requirements for CI
-cd ../src/Passes
+cd ../src/Passes/
 pip install -r requirements.txt
 
 # Running CI
