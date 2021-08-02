@@ -1,4 +1,8 @@
 steps:
+- pwsh: ./development.ps1
+  displayName: "Development setep"
+  workingDirectory: $(System.DefaultWorkingDirectory)/build
+
 - pwsh: ./build.ps1
   displayName: "Build all"
   workingDirectory: $(System.DefaultWorkingDirectory)/build
