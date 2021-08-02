@@ -3,7 +3,7 @@ cmake_minimum_required(VERSION 3.4.3)
 project(Passes)
 
 if (WIN32)
-  find_package(LLVM REQUIRED CONFIG PATHS "C:\Program Files\LLVM\" "C:\Program Files\LLVM\cmake")
+  find_package(LLVM REQUIRED PATHS "C:\\Program Files\\LLVM\\" "C:\\Program Files\\LLVM\\cmake" CONFIG )
 else()
   find_package(LLVM REQUIRED CONFIG)
 endif()
