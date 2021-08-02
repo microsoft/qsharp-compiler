@@ -603,6 +603,49 @@ with
 
 ## Required passes
 
+Below we describe following passes:
+
+- Instruction replacement pass
+- Expression evaluation and constant folding
+- Static qubit array allocation analysis
+- Const expression identication
+
+### Instruction replacement pass
+
+Required for MVP: Yes
+
+Dependencies: For this pass to be successful, it depends on at least static analysis of arrays and constant folding.
+
+Purpose: The purpose of this pass is to identify sequences of instructions and map them into other sequences of instructions. In the simplest case, it is a simple one to one mapping such as
+
+```
+%a = call %Array* @__quantum__rt__qubit_allocate_array(i64 3) ; <- allocation size 3, offset 0
+
+->
+
+%a = inttoptr i32 0 to %Qubit addrspace(7)*
+```
+
+or in the more complicated case:
+
+```
+%0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %a, i64 2) ; <- Index
+%1 = bitcast i8* %0 to %Qubit**             ; <- Casting, which can disregarded
+%q = load %Qubit*, %Qubit** %1, align 8     ; <- Type %Qubit
+
+->
+
+%q = inttoptr i32 2 to %Qubit addrspace(7)*
+```
+
+### Expression evaluation and constant folding
+
+Purpose: The purpose of this pass is to turn expressions which are constant at compile time into single constants. For instance, the allocation of a qubit array `Qubit[4 * 4 - 1];` will result in 3 instructions which can be reduced to a single instruction if one applies constant folding to arrive at the instruction equivalent of `Qubit[15];`.
+
+Dependencies: To perform this task, we may optionally choose to include function which can be evaluated at compile. This would require a partial runtime implementation to be available at compile time.
+
+Prior art: Constant folding, constant expressions.
+
 ### Static qubit array allocation analysis
 
 Required for MVP: Yes
