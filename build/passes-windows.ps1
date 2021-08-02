@@ -10,7 +10,7 @@ pip --version
 cd ../src/Passes/
 pip install -r requirements.txt
 
-& $env:CONDA
+& $env:CONDA\conda
 
 # Installing Clang, CMake and LLVM
 if (!(Get-Command clang -ErrorAction SilentlyContinue)) {
