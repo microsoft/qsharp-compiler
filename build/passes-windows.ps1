@@ -32,11 +32,13 @@ clang-format.exe --version
 
 clang-tidy.exe --version
 
+cmd.exe /c "call `"C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build\vcvars64.bat`" && set > %temp%\vcvars.txt"
 
-$vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-$vcvarspath = &$vswhere -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
-Write-Output "vc tools located at: $vcvarspath"
-cmd.exe /c "call `"$vcvarspath\VC\Auxiliary\Build\vcvars64.bat`"
+Get-Content "$env:temp\vcvars.txt" | Foreach-Object {
+  if ($_ -match "^(.*?)=(.*)$") {
+    Set-Content "env:\$($matches[1])" $matches[2]
+  }
+}
 
 
 # Running CI
