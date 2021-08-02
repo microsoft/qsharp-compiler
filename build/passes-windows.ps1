@@ -15,9 +15,9 @@ if (!(Get-Command clang -ErrorAction SilentlyContinue)) {
     choco install llvm --version=11.1.0
 }
 
-if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
-    choco install cmake
-}
+# if (!(Get-Command cmake -ErrorAction SilentlyContinue)) {
+#     choco install cmake
+# }
 
 refreshenv
 $env:Path += ";C:\Program Files\LLVM\bin\"
