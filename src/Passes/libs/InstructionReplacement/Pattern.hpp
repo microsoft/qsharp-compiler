@@ -5,61 +5,41 @@
 namespace microsoft {
 namespace quantum {
 
-class InstructionPattern
+class OperandPrototype
 {
 public:
   using Instruction = llvm::Instruction;
   using String      = std::string;
-  class OperandPrototype
+  using Value       = llvm::Value;
+  using Child       = std::shared_ptr<OperandPrototype>;
+  using Children    = std::vector<Child>;
+  OperandPrototype(bool capture = false, std::string const &capture_name = "")
+    : capture_{capture}
+    , capture_name_{capture_name}
+  {}
+  virtual ~OperandPrototype();
+  virtual bool match(Value *value) const = 0;
+
+  bool capture() const
   {
-  public:
-    enum MatchType
-    {
-      Any = 0,
-      ConstantInt,
-      ConstantFloat,
-      ConstantBool,
-
-      Register,
-      NamedRegister,
-      AnonymousRegister,
-
-    };
-
-    String name() const
-    {
-      return name_;
-    }
-
-  private:
-    String name_;
-    // void * value_{nullptr};
-  };
-  using Operands = std::vector<OperandPrototype>;
-
-  /// @{
-  InstructionPattern()                                = default;
-  InstructionPattern(InstructionPattern const &other) = default;
-  InstructionPattern(InstructionPattern &&other)      = default;
-  InstructionPattern &operator=(InstructionPattern const &other) = default;
-  InstructionPattern &operator=(InstructionPattern &&other) = default;
-  /// @}
-
-  virtual ~InstructionPattern();
-  /// @{
-  virtual bool match(Instruction *instr) = 0;
-  /// @}
-
-  Operands const &operands()
-  {
-    return operands_;
+    return capture_;
   }
 
+  void addChild(Child const &child)
+  {
+    children_.push_back(child);
+  }
+
+protected:
+  bool matchChildren(Value *value) const;
+
 private:
-  Operands operands_;
+  bool        capture_{false};
+  std::string capture_name_{""};
+  Children    children_{};
 };
 
-class CallPattern : public InstructionPattern
+class CallPattern : public OperandPrototype
 {
 public:
   using String = std::string;
@@ -67,7 +47,7 @@ public:
 
   ~CallPattern() override;
 
-  bool match(Instruction *instr) override;
+  bool match(Value *instr) const override;
 
 private:
   String name_{};
@@ -76,38 +56,26 @@ private:
 class Pattern
 {
 public:
-  using Instruction      = llvm::Instruction;
-  using MatchList        = std::vector<std::unique_ptr<InstructionPattern>>;
-  using InstructionStack = std::vector<Instruction *>;
-
-  void addPattern(std::unique_ptr<InstructionPattern> &&pattern)
+  using Instruction         = llvm::Instruction;
+  using Value               = llvm::Value;
+  using InstructionStack    = std::vector<Instruction *>;
+  using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
+  void addPattern(OperandPrototypePtr &&pattern)
   {
-    patterns_.emplace_back(std::move(pattern));
+    pattern_ = std::move(pattern);
   }
 
-  bool match(InstructionStack const &stack) const
+  bool match(Value *value) const
   {
-    auto a = stack.size();
-    auto b = patterns_.size();
-
-    while (a != 0 && b != 0)
+    if (pattern_ == nullptr)
     {
-      --a;
-      --b;
-      auto const &s = stack[a];
-      auto const &p = patterns_[b];
-      if (!p->match(s))
-      {
-        return false;
-      }
+      return false;
     }
-
-    llvm::errs() << "POSSIBLE MATCH\n";
-    return true;
+    return pattern_->match(value);
   }
 
 private:
-  MatchList patterns_;
+  OperandPrototypePtr pattern_{nullptr};
 };
 
 // Propposed syntax for establishing rules

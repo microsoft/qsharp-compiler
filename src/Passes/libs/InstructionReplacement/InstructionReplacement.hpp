@@ -15,6 +15,7 @@ public:
   using Instruction      = llvm::Instruction;
   using Patterns         = std::vector<Pattern>;
   using InstructionStack = Pattern::InstructionStack;
+  using Value            = llvm::Value;
 
   InstructionReplacementPass()
   {
@@ -42,7 +43,7 @@ public:
   static bool             isRequired();
   /// @}
 
-  bool match() const;
+  bool match(Value *value) const;
 
 private:
   Patterns         patterns_;
