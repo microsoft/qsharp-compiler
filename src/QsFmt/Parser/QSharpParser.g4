@@ -199,42 +199,45 @@ qubitInitializer
 
 expression
     : '_' # MissingExpression
-    | name=qualifiedName ('<' (type (',' type)* ','?)? '>')? # IdentifierExpression
+    | name=qualifiedName types=typeTuple? # IdentifierExpression
     | value=IntegerLiteral # IntegerExpression
-    | BigIntegerLiteral # BigIntegerExpression
-    | DoubleLiteral # DoubleExpression
+    | value=BigIntegerLiteral # BigIntegerExpression
+    | value=DoubleLiteral # DoubleExpression
     | DoubleQuote stringContent* StringDoubleQuote # StringExpression
-    | DollarQuote interpStringContent* InterpDoubleQuote # InterpStringExpression
-    | boolLiteral # BoolExpression
-    | resultLiteral # ResultExpression
-    | pauliLiteral # PauliExpression
+    | openQuote=DollarQuote content+=interpStringContent* closeQuote=InterpDoubleQuote # InterpStringExpression
+    | value=boolLiteral # BoolExpression
+    | value=resultLiteral # ResultExpression
+    | value=pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
-    | '[' (expression (',' expression)* ','?)? ']' # ArrayExpression
-    | 'new' type '[' expression ']' # NewArrayExpression
-    | expression ('::' Identifier | '[' expression ']') # ItemAccessExpression
-    | expression '!' # UnwrapExpression
-    | <assoc=right> 'Controlled' expression # ControlledExpression
-    | <assoc=right> 'Adjoint' expression # AdjointExpression
-    | expression '(' (expression (',' expression)* ','?)? ')' # CallExpression
-    | <assoc=right> ('-' | 'not' | '~~~') expression # NegationExpression
-    | <assoc=right> expression '^' expression # ExponentExpression
-    | expression ('*' | '/' | '%') expression # MultiplyExpression
+    | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
+    | new='new' itemType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
+    | record=expression colon='::' name=Identifier # NamedItemAccessExpression
+    | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression
+    | operand=expression operator='!' # UnwrapExpression
+    | <assoc=right> functor='Controlled' operation=expression # ControlledExpression
+    | <assoc=right> functor='Adjoint' operation=expression # AdjointExpression
+    | callable=expression openParen='(' (arguments+=expression (commas+=',' arguments+=expression)* commas+=','?)? closeParen=')' # CallExpression
+    | <assoc=right> operator=('-' | 'not' | '~~~') operand=expression # NegationExpression
+    | <assoc=right> left=expression operator='^' right=expression # ExponentExpression
+    | left=expression operator=('*' | '/' | '%') right=expression # MultiplyExpression
     | left=expression operator=('+' | '-') right=expression # AddExpression
-    | expression ('>>>' | '<<<') expression # ShiftExpression
-    | expression ('>' | '<' | '>=' | '<=') expression # CompareExpression
+    | left=expression operator=('>>>' | '<<<') right=expression # ShiftExpression
+    | left=expression operator=('>' | '<' | '>=' | '<=') right=expression # CompareExpression
     | left=expression operator=('==' | '!=') right=expression # EqualsExpression
-    | expression '&&&' expression # BitwiseAndExpression
-    | expression '^^^' expression # BitwiseXorExpression
-    | expression '|||' expression # BitwiseOrExpression
-    | expression 'and' expression # AndExpression
-    | expression 'or' expression # OrExpression
-    | <assoc=right> expression '?' expression '|' expression # ConditionalExpression
-    | expression '..' expression # RangeExpression
-    | expression '...' # RightOpenRangeExpression
-    | '...' expression # LeftOpenRangeExpression
+    | left=expression operator='&&&' right=expression # BitwiseAndExpression
+    | left=expression operator='^^^' right=expression # BitwiseXorExpression
+    | left=expression operator='|||' right=expression # BitwiseOrExpression
+    | left=expression operator='and' right=expression # AndExpression
+    | left=expression operator='or' right=expression # OrExpression
+    | <assoc=right> cond=expression question='?' ifTrue=expression pipe='|' ifFalse=expression # ConditionalExpression
+    | left=expression ellipsis='..' right=expression # RangeExpression
+    | left=expression ellipsis='...' # RightOpenRangeExpression
+    | ellipsis='...' right=expression # LeftOpenRangeExpression
     | '...' # OpenRangeExpression
     | record=expression with='w/' item=expression arrow='<-' value=expression # UpdateExpression
     ;
+
+typeTuple : openBracket='<' (typeArgs+=type (commas+=',' typeArgs+=type)* commas+=','?)? closeBracket='>';
 
 boolLiteral
     : 'false'
@@ -259,7 +262,7 @@ stringContent
     ;
 
 interpStringContent
-    : InterpStringEscape
-    | InterpBraceLeft expression BraceRight
-    | InterpStringText
+    : InterpStringEscape # InterpStringEscapeContent
+    | openBrace=InterpBraceLeft exp=expression closeBrace=BraceRight # InterpExpressionContent
+    | InterpStringText # InterpTextContent
     ;

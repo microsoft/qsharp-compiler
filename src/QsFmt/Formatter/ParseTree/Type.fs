@@ -28,18 +28,18 @@ type CharacteristicVisitor(tokens) =
     override visitor.VisitIntersectCharacteristics context =
         {
             Left = visitor.Visit context.left
-            Operator = context.Asterisk().Symbol |> Node.toTerminal tokens
+            InfixOperator = context.Asterisk().Symbol |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> Characteristic.BinaryOperator
+        |> Characteristic.InfixOperator
 
     override visitor.VisitUnionCharacteristics context =
         {
             Left = visitor.Visit context.left
-            Operator = context.Plus().Symbol |> Node.toTerminal tokens
+            InfixOperator = context.Plus().Symbol |> Node.toTerminal tokens
             Right = visitor.Visit context.right
         }
-        |> Characteristic.BinaryOperator
+        |> Characteristic.InfixOperator
 
 module Type =
     let toCharacteristicSection tokens (context: QSharpParser.CharacteristicsContext) =
