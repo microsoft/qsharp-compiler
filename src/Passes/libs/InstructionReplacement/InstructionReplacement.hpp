@@ -12,16 +12,45 @@ namespace quantum {
 class InstructionReplacementPass : public llvm::PassInfoMixin<InstructionReplacementPass>
 {
 public:
-  using Instruction      = llvm::Instruction;
-  using Patterns         = std::vector<Pattern>;
-  using InstructionStack = Pattern::InstructionStack;
-  using Value            = llvm::Value;
+  using Captures    = OperandPrototype::Captures;
+  using Instruction = llvm::Instruction;
+  using Rules       = std::vector<ReplacementRule>;
+  using Value       = llvm::Value;
 
   InstructionReplacementPass()
   {
-    Pattern pattern;
-    pattern.addPattern(std::make_unique<CallPattern>("__quantum__rt__array_update_alias_count"));
-    patterns_.emplace_back(std::move(pattern));
+
+    auto array_name = std::make_shared<AnyPattern>();
+    auto index      = std::make_shared<AnyPattern>();
+    array_name->enableCapture("arrayName");
+    index->enableCapture("index");
+
+    auto get_element = std::make_shared<CallPattern>("__quantum__rt__array_get_element_ptr_1d");
+    get_element->addChild(array_name);
+    get_element->addChild(index);
+    // Function name is last arg?
+    get_element->addChild(std::make_shared<AnyPattern>());
+
+    auto load_pattern = std::make_shared<LoadPattern>();
+    auto cast_pattern = std::make_shared<BitCastPattern>();
+
+    cast_pattern->addChild(get_element);
+    load_pattern->addChild(cast_pattern);
+
+    ReplacementRule rule1;
+    rule1.setPattern(load_pattern);
+    rule1.setReplacer([](Value *val, Captures &cap) {
+      llvm::errs() << "Found qubit load access operator " << val->getName() << " = "
+                   << cap["arrayName"]->getName() << "[" << *cap["index"] << "]\n";
+      return true;
+    });
+    rules_.emplace_back(std::move(rule1));
+
+    /*
+    ReplacementRule rule2;
+    rule2.setPattern(get_element);
+    rules_.emplace_back(std::move(rule2));
+    */
   }
 
   /// Constructors and destructors
@@ -43,11 +72,10 @@ public:
   static bool             isRequired();
   /// @}
 
-  bool match(Value *value) const;
+  bool matchAndReplace(Value *value) const;
 
 private:
-  Patterns         patterns_;
-  InstructionStack instruction_stack_{};
+  Rules rules_;
 };
 
 }  // namespace quantum

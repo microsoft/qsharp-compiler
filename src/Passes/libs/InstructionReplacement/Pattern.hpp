@@ -1,42 +1,54 @@
 #pragma once
 #include "Llvm.hpp"
 
+#include <unordered_map>
 #include <vector>
+
 namespace microsoft {
 namespace quantum {
 
 class OperandPrototype
 {
 public:
-  using Instruction = llvm::Instruction;
-  using String      = std::string;
-  using Value       = llvm::Value;
-  using Child       = std::shared_ptr<OperandPrototype>;
-  using Children    = std::vector<Child>;
-  OperandPrototype(bool capture = false, std::string const &capture_name = "")
-    : capture_{capture}
-    , capture_name_{capture_name}
-  {}
+  using Instruction  = llvm::Instruction;
+  using String       = std::string;
+  using Value        = llvm::Value;
+  using Child        = std::shared_ptr<OperandPrototype>;
+  using Children     = std::vector<Child>;
+  using Captures     = std::unordered_map<std::string, Value *>;
+  OperandPrototype() = default;
   virtual ~OperandPrototype();
-  virtual bool match(Value *value) const = 0;
-
-  bool capture() const
-  {
-    return capture_;
-  }
+  virtual bool match(Value *value, Captures &captures) const = 0;
 
   void addChild(Child const &child)
   {
     children_.push_back(child);
   }
 
+  void enableCapture(std::string capture_name)
+  {
+    capture_name_ = capture_name;
+  }
+
 protected:
-  bool matchChildren(Value *value) const;
+  bool fail(Value *value, Captures &captures) const;
+  bool success(Value *value, Captures &captures) const;
 
 private:
-  bool        capture_{false};
+  bool matchChildren(Value *value, Captures &captures) const;
+  void capture(Value *value, Captures &captures) const;
+  void uncapture(Value *value, Captures &captures) const;
+
   std::string capture_name_{""};
   Children    children_{};
+};
+
+class AnyPattern : public OperandPrototype
+{
+public:
+  AnyPattern();
+  ~AnyPattern() override;
+  bool match(Value *instr, Captures &captures) const override;
 };
 
 class CallPattern : public OperandPrototype
@@ -47,35 +59,65 @@ public:
 
   ~CallPattern() override;
 
-  bool match(Value *instr) const override;
+  bool match(Value *instr, Captures &captures) const override;
 
 private:
   String name_{};
 };
 
-class Pattern
+template <typename T>
+class InstructionPattern : public OperandPrototype
 {
 public:
+  using OperandPrototype::OperandPrototype;
+  ~InstructionPattern() override;
+  bool match(Value *instr, Captures &captures) const override;
+};
+
+using LoadPattern    = InstructionPattern<llvm::LoadInst>;
+using BitCastPattern = InstructionPattern<llvm::BitCastInst>;
+
+class ReplacementRule
+{
+public:
+  using Captures            = OperandPrototype::Captures;
   using Instruction         = llvm::Instruction;
   using Value               = llvm::Value;
-  using InstructionStack    = std::vector<Instruction *>;
   using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
-  void addPattern(OperandPrototypePtr &&pattern)
+  using ReplaceFunction     = std::function<bool(Value *, Captures &)>;
+
+  void setPattern(OperandPrototypePtr &&pattern)
   {
     pattern_ = std::move(pattern);
   }
 
-  bool match(Value *value) const
+  void setReplacer(ReplaceFunction const &replacer)
+  {
+    replacer_ = replacer;
+  }
+
+  bool match(Value *value, Captures &captures) const
   {
     if (pattern_ == nullptr)
     {
       return false;
     }
-    return pattern_->match(value);
+    return pattern_->match(value, captures);
+  }
+
+  bool replace(Value *value, Captures &captures) const
+  {
+    if (replacer_)
+    {
+      return replacer_(value, captures);
+    }
+
+    return false;
   }
 
 private:
   OperandPrototypePtr pattern_{nullptr};
+  ReplaceFunction     replacer_{nullptr};
 };
 
 // Propposed syntax for establishing rules

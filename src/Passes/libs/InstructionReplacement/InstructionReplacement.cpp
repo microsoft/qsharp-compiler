@@ -17,20 +17,12 @@ llvm::PreservedAnalyses InstructionReplacementPass::run(llvm::Function &function
   bool changed{false};
   for (auto &basic_block : function)
   {
-
-    instruction_stack_.clear();
     for (auto &instr : basic_block)
     {
       //      instruction_stack_.push_back();
-      if (match(&instr))
+      if (matchAndReplace(&instr))
       {
         changed = true;
-        std::cout << "FOUND REPLACEMENT: " << instr.getNumOperands() << std::endl;
-        llvm::errs() << instr << "\n";
-        for (uint32_t i = 0; i < instr.getNumOperands(); ++i)
-        {
-          llvm::errs() << " - " << (*instr.getOperand(i)) << "\n";
-        }
       }
     }
   }
@@ -45,13 +37,17 @@ bool InstructionReplacementPass::isRequired()
   return true;
 }
 
-bool InstructionReplacementPass::match(Value *value) const
+bool InstructionReplacementPass::matchAndReplace(Value *value) const
 {
-  for (auto const &pattern : patterns_)
+  Captures captures;
+  for (auto const &rule : rules_)
   {
-    if (pattern.match(value))
+    if (rule.match(value, captures))
     {
-      return true;
+      if (rule.replace(value, captures))
+      {
+        return true;
+      }
     }
   }
   return false;
