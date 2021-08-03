@@ -6,6 +6,9 @@ run-expand: build-qaa build-esa analysis-example.ll
 run: build-qaa analysis-example.ll
 	opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
+run-replace: build-ir analysis-example.ll
+	opt -load-pass-plugin ../../Debug/libs/libInstructionReplacement.dylib --passes="instruction-replacement" -disable-output analysis-example.ll
+
 
 build-prepare:
 	pushd  ../../ && mkdir -p Debug && cd Debug && cmake ..&& popd || popd
@@ -15,6 +18,9 @@ build-qaa: build-prepare
 
 build-esa: build-prepare
 	pushd  ../../Debug && make ExpandStaticAllocation  && popd || popd
+
+build-ir: build-prepare
+	pushd  ../../Debug && make InstructionReplacement  && popd || popd
 
 
 analysis-example.ll:
