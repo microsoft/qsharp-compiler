@@ -5,7 +5,6 @@ module Microsoft.Quantum.QsFmt.Formatter.Printer
 
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree.Trivia
-open System
 
 /// <summary>
 /// Prints a <see cref="Trivia"/> node to a string.
@@ -13,7 +12,7 @@ open System
 let printTrivia =
     function
     | Whitespace ws -> ws
-    | NewLine -> Environment.NewLine
+    | NewLine nl -> nl
     | Comment comment -> comment
 
 /// <summary>

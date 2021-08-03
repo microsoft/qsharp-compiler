@@ -1,9 +1,34 @@
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
+<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107153439">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <QirGeneration>true</QirGeneration>
+    <BuildOutputPath>$(MSBuildThisFileDirectory)build</BuildOutputPath>
   </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2107153439-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2107153439" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <Target Name="GetDependencies" AfterTargets="Build">
+    <PropertyGroup>
+      <QirRuntimeHeaders>$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/any/native/include</QirRuntimeHeaders>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/osx-x64/native</QirRuntimeLibs>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/win-x64/native</QirRuntimeLibs>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/linux-x64/native</QirRuntimeLibs>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+    </PropertyGroup>
+    <ItemGroup>
+      <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
+      <_QirRuntimeHeaderFiles Include="$(QirRuntimeHeaders)/**/*.hpp" />
+    </ItemGroup>
+    <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(BuildOutputPath)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_QirRuntimeHeaderFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

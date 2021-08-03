@@ -200,7 +200,11 @@ let private qirArguments parameters parseResult =
         |> qirArgumentValue param.QSharpType
         |> Option.map (fun value -> ``new`` (ident argumentType) ``(`` [ literal param.Name; value ] ``)``)
 
+    // N.B. The parameters sequence is in the right order when it is used here.
+    //      It has to be reversed here because the fold changes the order of the expression syntax.
+    //      This is a problem because the API for QIR submission expects the list of arguments in order.
     parameters
+    |> Seq.rev
     |> Seq.fold (fun state param -> Option.map2 (fun xs x -> x :: xs) state (argument param)) (Some [])
     |> Option.map (fun args -> ident listType <.> (sprintf "Create<%s>" argumentType |> ident, args))
 
