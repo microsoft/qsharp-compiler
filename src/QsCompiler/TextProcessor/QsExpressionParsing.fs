@@ -672,21 +672,29 @@ let private lambda =
 
 // processing terms of operator precedence parsers
 
-let private termParser tupleExpr =
-    // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
-    choice [ attempt newArray
-             attempt lambda
-             attempt unitValue
-             attempt callLikeExpr // needs to be after unitValue
-             attempt itemAccessExpr // needs to be after callLikeExpr
-             attempt valueArray // needs to be after arryItemExpr
-             attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
-             attempt pauliLiteral
-             attempt resultLiteral
-             attempt numericLiteral
-             attempt boolLiteral
-             attempt stringLiteral
-             attempt identifier ] // needs to be at the very end
+type private MissingMode =
+    | NoMissing
+    | AllowMissing
 
-qsExpression.TermParser <- termParser (valueTuple expr)
-qsArgument.TermParser <- missingExpr <|> termParser (valueTuple argument) // missing needs to be first
+let private termParser missingMode tupleExpr =
+    // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
+    [
+        attempt newArray
+        attempt lambda
+        if missingMode = AllowMissing then missingExpr
+        attempt unitValue
+        attempt callLikeExpr // needs to be after unitValue
+        attempt itemAccessExpr // needs to be after callLikeExpr
+        attempt valueArray // needs to be after arryItemExpr
+        attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
+        attempt pauliLiteral
+        attempt resultLiteral
+        attempt numericLiteral
+        attempt boolLiteral
+        attempt stringLiteral
+        attempt identifier // needs to be at the very end
+    ]
+    |> choice
+
+qsExpression.TermParser <- valueTuple expr |> termParser NoMissing
+qsArgument.TermParser <- valueTuple argument |> termParser AllowMissing

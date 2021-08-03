@@ -1368,5 +1368,18 @@ let ``Lambda tests`` () =
         )
         |> toExpr,
         []
+
+        "F(_ -> 0, xs)",
+        true,
+        CallLikeExpression(
+            toIdentifier "F",
+            [
+                Lambda(Function, { Symbol = MissingSymbol; Range = Null }, toInt 0) |> toExpr
+                toIdentifier "xs"
+            ]
+            |> toTuple
+        )
+        |> toExpr,
+        []
     }
     |> Seq.iter testExpr

@@ -768,6 +768,14 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return q => Unitary(q);
     }
 
+    function Lambda8(xs : Int[]) : String[] {
+        return Mapped(x -> $"{x}", xs);
+    }
+
+    function Lambda9() : Int[] {
+        return Mapped(_ -> 0, ["a", "b", "c"]);
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }
