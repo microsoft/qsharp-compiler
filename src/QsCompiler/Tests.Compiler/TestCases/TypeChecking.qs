@@ -737,4 +737,42 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     function SizedArrayInvalid3() : Int[] {
         return [5, size = (1, 2)];
     }
+
+    // Lambdas
+
+    function Lambda1<'a>() : 'a -> 'a {
+        return x -> x;
+    }
+
+    function Lambda2(x : Int) : Int -> Int {
+        return y -> x + y;
+    }
+
+    function Lambda3<'a>() : 'a => 'a {
+        return x => x;
+    }
+
+    function Lambda4(x : Int) : Int => Int {
+        return y => x + y;
+    }
+
+    function Lambda5() : Qubit => Unit {
+        return q => Operation(q);
+    }
+
+    function Lambda6() : Qubit => Unit is Adj {
+        return q => Adjointable(q);
+    }
+
+    function Lambda7() : Qubit => Unit is Adj + Ctl {
+        return q => Unitary(q);
+    }
+
+    function LambdaInvalid1() : Qubit => Unit is Adj {
+        return q => Operation(q);
+    }
+
+    function LambdaInvalid2() : Qubit => Unit is Adj + Ctl {
+        return q => Adjointable(q);
+    }
 }
