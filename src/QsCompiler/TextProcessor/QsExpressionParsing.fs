@@ -647,6 +647,7 @@ let internal invalidSymbol = QsSymbol.New(InvalidSymbol, Null)
 let internal buildSymbolTuple (items, range: Range) = QsSymbol.New(SymbolTuple items, range)
 
 let internal symbolTuple continuation =
+    let empty = unitValue |>> fun unit -> { Symbol = SymbolTuple ImmutableArray.Empty; Range = unit.Range }
     let continuation' = continuation >>% () <|> isTupleContinuation
     let symbol = (discardedSymbol <|> localIdentifier) .>>? followedBy continuation'
 
@@ -657,20 +658,19 @@ let internal symbolTuple continuation =
         buildError (symbolArray .>>? followedBy continuation') ErrorCode.InvalidAssignmentToExpression
         >>% invalidSymbol
 
-    buildTupleItem
-        (symbol <|> invalid)
-        buildSymbolTuple
-        ErrorCode.InvalidSymbolTupleDeclaration
-        ErrorCode.MissingSymbolTupleDeclaration
-        invalidSymbol
-        continuation
+    empty
+    <|> buildTupleItem
+            (symbol <|> invalid)
+            buildSymbolTuple
+            ErrorCode.InvalidSymbolTupleDeclaration
+            ErrorCode.MissingSymbolTupleDeclaration
+            invalidSymbol
+            continuation
 
 let private lambda =
     let arrow = (fctArrow >>% Function) <|> (opArrow >>% Operation)
-    let emptySymbols = unitValue |>> fun unit -> { Symbol = SymbolTuple ImmutableArray.Empty; Range = unit.Range }
-    let symbols = emptySymbols <|> symbolTuple arrow
     let toLambda ((param, kind), body) = Lambda(kind, param, body)
-    symbols .>>. arrow .>>. expr |>> toLambda |> term |>> QsExpression.New
+    symbolTuple arrow .>>. arrow .>>. expr |>> toLambda |> term |>> QsExpression.New
 
 // processing terms of operator precedence parsers
 
