@@ -776,11 +776,46 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return Mapped(_ -> 0, ["a", "b", "c"]);
     }
 
+    function Lambda10() : Int {
+        let id = x -> x;
+        return id(0);
+    }
+
+    function Lambda11() : (Int, Int) {
+        let id = x -> x;
+        return id(0, 1);
+    }
+
+    function Lambda12() : Int {
+        let fst = (x, _) -> x;
+        return fst(0, 1);
+    }
+
+    function Lambda13() : Int {
+        let call = (f, x) -> f(x);
+        let add1 = x -> x + 1;
+        return call(add1, 0);
+    }
+
+    function Lambda14() : Unit -> Int {
+        return () -> 0;
+    }
+
     function LambdaInvalid1() : Qubit => Unit is Adj {
         return q => Operation(q);
     }
 
     function LambdaInvalid2() : Qubit => Unit is Adj + Ctl {
         return q => Adjointable(q);
+    }
+
+    function LambdaInvalid3() : Int {
+        let f = (f, x) -> f(f, x);
+        return f(f, 0);
+    }
+
+    function LambdaInvalid4() : Unit -> Int {
+        mutable x = 0;
+        return () -> x;
     }
 }

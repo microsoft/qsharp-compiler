@@ -351,7 +351,6 @@ let internal verifyAssignment (inference: InferenceContext) expectedType mismatc
 let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration (symbol, rhsType) warnOnDiscard =
     let symbolTuple =
         function
-        | [] -> failwith "Symbol tuple is empty."
         | [ x ] -> x
         | xs -> ImmutableArray.CreateRange xs |> VariableNameTuple
 
@@ -373,8 +372,7 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
         let types = symbols |> Seq.map (fun symbol -> inference.Fresh symbol.RangeOrDefault) |> Seq.toList
 
         let tupleType =
-            ImmutableArray.CreateRange types
-            |> TupleType
+            if List.isEmpty types then UnitType else ImmutableArray.CreateRange types |> TupleType
             |> ResolvedType.create (TypeRange.inferred symbol.Range)
 
         let unifyDiagnostics = inference.Unify(tupleType, rhsType)

@@ -667,8 +667,10 @@ let internal symbolTuple continuation =
 
 let private lambda =
     let arrow = (fctArrow >>% Function) <|> (opArrow >>% Operation)
+    let emptySymbols = unitValue |>> fun unit -> { Symbol = SymbolTuple ImmutableArray.Empty; Range = unit.Range }
+    let symbols = emptySymbols <|> symbolTuple arrow
     let toLambda ((param, kind), body) = Lambda(kind, param, body)
-    symbolTuple arrow .>>. arrow .>>. expr |>> toLambda |> term |>> QsExpression.New
+    symbols .>>. arrow .>>. expr |>> toLambda |> term |>> QsExpression.New
 
 // processing terms of operator precedence parsers
 

@@ -65,9 +65,11 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports lambda expressions`` () =
-        allValid "Lambda" 9
+        allValid "Lambda" 14
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
+        expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
+        // TODO: expect "LambdaInvalid4" [ (* Closing over mutable *) ]
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =
