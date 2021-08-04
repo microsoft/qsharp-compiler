@@ -195,14 +195,8 @@ type 'context Rewriter() =
         {
             UseKeyword = rewriter.Terminal(context, ``use``.UseKeyword)
             Binding = rewriter.QubitBinding(context, ``use``.Binding)
-            OpenParen =
-                match ``use``.OpenParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
-            CloseParen =
-                match ``use``.CloseParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
+            OpenParen = match ``use``.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = match ``use``.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
             Semicolon = rewriter.Terminal(context, ``use``.Semicolon)
         }
 
@@ -212,14 +206,8 @@ type 'context Rewriter() =
         {
             UseKeyword = rewriter.Terminal(context, ``use``.UseKeyword)
             Binding = rewriter.QubitBinding(context, ``use``.Binding)
-            OpenParen =
-                match ``use``.OpenParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
-            CloseParen =
-                match ``use``.CloseParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
+            OpenParen = match ``use``.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = match ``use``.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
             Block = rewriter.Block(context, rewriter.Statement, ``use``.Block)
         }
 
@@ -229,14 +217,8 @@ type 'context Rewriter() =
         {
             BorrowKeyword = rewriter.Terminal(context, borrow.BorrowKeyword)
             Binding = rewriter.QubitBinding(context, borrow.Binding)
-            OpenParen =
-                match borrow.OpenParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
-            CloseParen =
-                match borrow.CloseParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
+            OpenParen = match borrow.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = match borrow.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
             Semicolon = rewriter.Terminal(context, borrow.Semicolon)
         }
 
@@ -246,14 +228,8 @@ type 'context Rewriter() =
         {
             BorrowKeyword = rewriter.Terminal(context, borrow.BorrowKeyword)
             Binding = rewriter.QubitBinding(context, borrow.Binding)
-            OpenParen =
-                match borrow.OpenParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
-            CloseParen =
-                match borrow.CloseParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
+            OpenParen = match borrow.OpenParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = match borrow.CloseParen with None -> None | Some s -> rewriter.Terminal(context, s) |> Some
             Block = rewriter.Block(context, rewriter.Statement, borrow.Block)
         }
 
@@ -305,7 +281,7 @@ type 'context Rewriter() =
         | QubitSymbolDeclaration declaration -> rewriter.Terminal(context, declaration) |> QubitSymbolDeclaration
         | QubitSymbolTuple tuple -> rewriter.Tuple(context, rewriter.QubitSymbolBinding, tuple) |> QubitSymbolTuple
 
-    abstract QubitInitializer : context: 'context * initializer: QubitInitializer -> QubitInitializer
+    abstract QubitInitializer: context: 'context * initializer: QubitInitializer -> QubitInitializer
 
     default rewriter.QubitInitializer(context, initializer) =
         match initializer with
@@ -313,7 +289,7 @@ type 'context Rewriter() =
         | QubitArray qubitArray -> rewriter.QubitArray(context, qubitArray) |> QubitArray
         | QubitTuple tuple -> rewriter.Tuple(context, rewriter.QubitInitializer, tuple) |> QubitTuple
 
-    abstract SingleQubit : context: 'context * newQubit: SingleQubit -> SingleQubit
+    abstract SingleQubit: context: 'context * newQubit: SingleQubit -> SingleQubit
 
     default rewriter.SingleQubit(context, newQubit) =
         {
@@ -322,7 +298,7 @@ type 'context Rewriter() =
             CloseParen = rewriter.Terminal(context, newQubit.CloseParen)
         }
 
-    abstract QubitArray : context: 'context * newQubits: QubitArray -> QubitArray
+    abstract QubitArray: context: 'context * newQubits: QubitArray -> QubitArray
 
     default rewriter.QubitArray(context, newQubits) =
         {

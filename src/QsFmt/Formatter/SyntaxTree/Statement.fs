@@ -13,32 +13,15 @@ type QubitSymbolBinding =
     | QubitSymbolDeclaration of Terminal
     | QubitSymbolTuple of QubitSymbolBinding Tuple
 
-type SingleQubit =
-    {
-        Qubit: Terminal
-        OpenParen: Terminal
-        CloseParen: Terminal
-    }
-
-type QubitArray =
-    {
-        Qubit: Terminal
-        OpenBracket: Terminal
-        Length: Expression
-        CloseBracket: Terminal
-    }
+type SingleQubit = { Qubit: Terminal; OpenParen: Terminal; CloseParen: Terminal }
+type QubitArray = { Qubit: Terminal; OpenBracket: Terminal; Length: Expression; CloseBracket: Terminal }
 
 type QubitInitializer =
     | SingleQubit of SingleQubit
     | QubitArray of QubitArray
     | QubitTuple of QubitInitializer Tuple
 
-type QubitBinding =
-    {
-        Name: QubitSymbolBinding
-        Equals: Terminal
-        Initializer: QubitInitializer
-    }
+type QubitBinding = { Name: QubitSymbolBinding; Equals: Terminal; Initializer: QubitInitializer }
 
 type Let =
     {
@@ -121,8 +104,7 @@ module Statement =
         | Use ``use`` -> { ``use`` with UseKeyword = ``use``.UseKeyword |> Terminal.mapPrefix mapper } |> Use
         | UseBlock ``use`` -> { ``use`` with UseKeyword = ``use``.UseKeyword |> Terminal.mapPrefix mapper } |> UseBlock
         | Borrow borrow -> { borrow with BorrowKeyword = borrow.BorrowKeyword |> Terminal.mapPrefix mapper } |> Borrow
-        | BorrowBlock borrow ->
-            { borrow with BorrowKeyword = borrow.BorrowKeyword |> Terminal.mapPrefix mapper } |> BorrowBlock
+        | BorrowBlock borrow -> { borrow with BorrowKeyword = borrow.BorrowKeyword |> Terminal.mapPrefix mapper } |> BorrowBlock
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
