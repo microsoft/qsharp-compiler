@@ -48,12 +48,18 @@ type QsSymbolKind<'Symbol> =
     | MissingSymbol
     | InvalidSymbol
 
-// not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
+/// A collection of one or more symbol bindings for a tuple.
 [<CustomComparison>]
 [<CustomEquality>]
 type QsSymbol =
+    // not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
     {
+        /// The symbol bindings.
         Symbol: QsSymbolKind<QsSymbol>
+
+        /// <summary>
+        /// The source code range of the symbol. This is ignored when comparing <see cref="QsSymbol"/>s.
+        /// </summary>
         Range: QsNullable<Range>
     }
 
