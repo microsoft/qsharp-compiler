@@ -349,11 +349,6 @@ let internal verifyAssignment (inference: InferenceContext) expectedType mismatc
 /// Returns the resolved SymbolTuple, as well as an array with all local variable declarations returned by tryBuildDeclaration,
 /// along with an array containing all generated diagnostics.
 let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration (symbol, rhsType) warnOnDiscard =
-    let symbolTuple =
-        function
-        | [ x ] -> x
-        | xs -> ImmutableArray.CreateRange xs |> VariableNameTuple
-
     match symbol.Symbol with
     | InvalidSymbol -> InvalidItem, [||], [||]
     | MissingSymbol when warnOnDiscard ->
@@ -384,7 +379,13 @@ let rec internal verifyBinding (inference: InferenceContext) tryBuildDeclaration
             item :: items, Array.append declarations1 declarations2, Array.append diagnostics1 diagnostics2
 
         let items, declarations, diagnostics = Seq.foldBack combine (Seq.map2 verify symbols types) ([], [||], [||])
-        symbolTuple items, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
+
+        let symbolTuple =
+            match items with
+            | [ item ] -> item
+            | _ -> ImmutableArray.CreateRange items |> VariableNameTuple
+
+        symbolTuple, declarations, List.toArray unifyDiagnostics |> Array.append diagnostics
 
 let private characteristicsSet info =
     info.Characteristics.SupportedFunctors
