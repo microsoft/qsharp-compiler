@@ -532,7 +532,7 @@ module ResolvedType =
     /// </summary>
     [<CompiledName "WithKind">]
     let withKind kind resolvedType =
-        { resolvedType with kind = normalizeTuple kind }
+        { resolvedType with ResolvedType.kind = normalizeTuple kind }
 
     /// <summary>
     /// Replaces the range of <paramref name="resolvedType"/> with <paramref name="range"/>.
