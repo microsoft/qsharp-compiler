@@ -1,31 +1,22 @@
 namespace Example {
+    open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Intrinsic;
-
+    open Microsoft.Quantum.Canon;
+        
     @EntryPoint()
     operation Main() : Int
     {
-        QuantumProgram(3,2,1);
-        QuantumProgram(4,Xx(2),4);
-        return 0;
-    }
+        use qubits2 = Qubit[3];                
+        use qubits1 = Qubit[3];        
 
-    function Xx(value: Int): Int
-    {
-        return 3 * value;
-    }
+        X(qubits1[0]);
+        X(qubits1[1]);
+        X(qubits1[2]);
 
-    operation QuantumProgram(x: Int, h: Int, g: Int) : Unit {
-        let z = x * (x + 1) - 47;
-        let y = 3 * x;
-
-        use qubits0 = Qubit[9];
-        use qubits1 = Qubit[(y - 2)/2-z];
-        use qubits2 = Qubit[y - g];
-        use qubits3 = Qubit[h];
-        use qubits4 = Qubit[Xx(x)];
-
-        X(qubits0[1]);
-        X(qubits0[2]);
         X(qubits2[0]);
+        X(qubits2[1]);
+        X(qubits2[2]);
+
+        return 0;
     }
 }

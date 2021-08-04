@@ -84,7 +84,10 @@ public:
   using Instruction         = llvm::Instruction;
   using Value               = llvm::Value;
   using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
-  using ReplaceFunction     = std::function<bool(Value *, Captures &)>;
+  using Builder             = llvm::IRBuilder<>;
+  using Replacements        = std::vector<std::pair<Instruction *, Instruction *>>;
+
+  using ReplaceFunction = std::function<bool(Builder &, Value *, Captures &, Replacements &)>;
 
   void setPattern(OperandPrototypePtr &&pattern)
   {
@@ -105,11 +108,11 @@ public:
     return pattern_->match(value, captures);
   }
 
-  bool replace(Value *value, Captures &captures) const
+  bool replace(Builder &builder, Value *value, Captures &captures, Replacements &replacements) const
   {
     if (replacer_)
     {
-      return replacer_(value, captures);
+      return replacer_(builder, value, captures, replacements);
     }
 
     return false;

@@ -9,7 +9,6 @@ bool OperandPrototype::matchChildren(Value *value, Captures &captures) const
   auto user = llvm::dyn_cast<llvm::User>(value);
   if (!children_.empty())
   {
-
     if (user == nullptr)
     {
       return false;

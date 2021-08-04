@@ -7,7 +7,7 @@ run: build-qaa analysis-example.ll
 	opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
 run-replace: build-ir analysis-example.ll
-	opt -load-pass-plugin ../../Debug/libs/libInstructionReplacement.dylib --passes="instruction-replacement" -disable-output analysis-example.ll
+	opt -load-pass-plugin ../../Debug/libs/libInstructionReplacement.dylib --passes="instruction-replacement" -S analysis-example.ll
 
 
 build-prepare:
