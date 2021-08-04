@@ -463,20 +463,22 @@ type DiagnosticItem =
         | _ -> str // let's fail silently for now
 
     static member Message(code: ErrorCode, args: IEnumerable<string>) =
+        let unlines = String.concat Environment.NewLine
+
         let message =
             match code with
             | ErrorCode.TypeMismatch ->
-                "The type {0} does not match the type {1}.\n\
-                 Expected type: {2}\n\
-                 Actual type:   {3}"
+                unlines [ "The type {0} does not match the type {1}."
+                          "Expected type: {2}"
+                          "Actual type:   {3}" ]
             | ErrorCode.TypeIntersectionMismatch ->
-                "The type {1} does not {0} the type {2}.\n\
-                 Left-hand type:  {3}\n\
-                 Right-hand type: {4}"
+                unlines [ "The type {1} does not {0} the type {2}."
+                          "Left-hand type:  {3}"
+                          "Right-hand type: {4}" ]
             | ErrorCode.InfiniteType ->
-                "The type {0} cannot be unified with {1} because it would create an infinite type.\n\
-                 Left-hand type:  {2}\n\
-                 Right-hand type: {3}"
+                unlines [ "The type {0} cannot be unified with {1} because it would create an infinite type."
+                          "Left-hand type:  {2}"
+                          "Right-hand type: {3}" ]
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
