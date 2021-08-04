@@ -116,10 +116,14 @@ type QsType =
 
 // Q# expressions
 
+/// Represents whether a lambda is a function or operation.
 type LambdaKind =
+    /// The lambda is a function.
     | Function
+    /// The lambda is an operation.
     | Operation
 
+/// A lambda expression.
 type 'expr Lambda =
     private
         {
@@ -128,11 +132,17 @@ type 'expr Lambda =
             body: 'expr
         }
 
+    /// Represents whether a lambda is a function or operation.
     member lambda.Kind = lambda.kind
+
+    /// The symbol bindings for the lambda's parameter.
     member lambda.Param = lambda.param
+
+    /// The body of the lambda.
     member lambda.Body = lambda.body
 
 module Lambda =
+    /// Creates a lambda expression.
     [<CompiledName "Create">]
     let create kind param body =
         {
