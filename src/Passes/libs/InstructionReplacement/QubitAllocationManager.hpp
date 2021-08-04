@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 
 #include <memory>
+#include <string>
 #include <unordered_map>
 #include <vector>
 

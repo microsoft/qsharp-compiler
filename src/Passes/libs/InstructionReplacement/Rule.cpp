@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "InstructionReplacement/Pattern.hpp"
+#include "InstructionReplacement/Rule.hpp"
 
 namespace microsoft {
 namespace quantum {
@@ -22,6 +22,7 @@ bool ReplacementRule::match(Value *value, Captures &captures) const
   {
     return false;
   }
+
   return pattern_->match(value, captures);
 }
 

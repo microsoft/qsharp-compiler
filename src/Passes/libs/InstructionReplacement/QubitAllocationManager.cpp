@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "InstructionReplacement/QubitAllocationManager.hpp"
+
 #include <memory>
 #include <unordered_map>
 #include <vector>
@@ -8,7 +10,7 @@
 namespace microsoft {
 namespace quantum {
 
-static QubitAllocationManager::QubitAllocationManagerPtr QubitAllocationManager::createNew()
+QubitAllocationManager::QubitAllocationManagerPtr QubitAllocationManager::createNew()
 {
   QubitAllocationManagerPtr ret;
   ret.reset(new QubitAllocationManager());
@@ -38,7 +40,7 @@ void QubitAllocationManager::allocate(String &&name, Index &&size)
   mappings_.emplace_back(std::move(map));
 }
 
-Index QubitAllocationManager::getOffset(String const &name) const
+QubitAllocationManager::Index QubitAllocationManager::getOffset(String const &name) const
 {
   auto it = name_to_index_.find(name);
   if (it == name_to_index_.end())
