@@ -1,4 +1,7 @@
 #pragma once
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #include "Llvm.hpp"
 
 #include <unordered_map>
@@ -10,13 +13,15 @@ namespace quantum {
 class OperandPrototype
 {
 public:
-  using Instruction  = llvm::Instruction;
-  using String       = std::string;
-  using Value        = llvm::Value;
-  using Child        = std::shared_ptr<OperandPrototype>;
-  using Children     = std::vector<Child>;
-  using Captures     = std::unordered_map<std::string, Value *>;
+  using Instruction = llvm::Instruction;
+  using String      = std::string;
+  using Value       = llvm::Value;
+  using Child       = std::shared_ptr<OperandPrototype>;
+  using Children    = std::vector<Child>;
+  using Captures    = std::unordered_map<std::string, Value *>;
+
   OperandPrototype() = default;
+
   virtual ~OperandPrototype();
   virtual bool match(Value *value, Captures &captures) const = 0;
 
@@ -77,54 +82,5 @@ public:
 using LoadPattern    = InstructionPattern<llvm::LoadInst>;
 using BitCastPattern = InstructionPattern<llvm::BitCastInst>;
 
-class ReplacementRule
-{
-public:
-  using Captures            = OperandPrototype::Captures;
-  using Instruction         = llvm::Instruction;
-  using Value               = llvm::Value;
-  using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
-  using Builder             = llvm::IRBuilder<>;
-  using Replacements        = std::vector<std::pair<Instruction *, Instruction *>>;
-
-  using ReplaceFunction = std::function<bool(Builder &, Value *, Captures &, Replacements &)>;
-
-  void setPattern(OperandPrototypePtr &&pattern)
-  {
-    pattern_ = std::move(pattern);
-  }
-
-  void setReplacer(ReplaceFunction const &replacer)
-  {
-    replacer_ = replacer;
-  }
-
-  bool match(Value *value, Captures &captures) const
-  {
-    if (pattern_ == nullptr)
-    {
-      return false;
-    }
-    return pattern_->match(value, captures);
-  }
-
-  bool replace(Builder &builder, Value *value, Captures &captures, Replacements &replacements) const
-  {
-    if (replacer_)
-    {
-      return replacer_(builder, value, captures, replacements);
-    }
-
-    return false;
-  }
-
-private:
-  OperandPrototypePtr pattern_{nullptr};
-  ReplaceFunction     replacer_{nullptr};
-};
-
-// Propposed syntax for establishing rules
-// "name"_rule  = ("add"_op(0_o, "value"_any ),
-//                 "sub"_op(2_i32, "name"_reg )) => "noop"_op("value"_any, "name"_reg);
 }  // namespace quantum
 }  // namespace microsoft
