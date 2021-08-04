@@ -1263,19 +1263,21 @@ let ``Operator precendence tests`` () =
 [<Fact>]
 let ``Lambda tests`` () =
     seq {
-        "x -> x", true, Lambda(Function, toSymbol "x", toIdentifier "x") |> toExpr, []
-        "x => x", true, Lambda(Operation, toSymbol "x", toIdentifier "x") |> toExpr, []
+        "x -> x", true, Lambda.create Function (toSymbol "x") (toIdentifier "x") |> Lambda |> toExpr, []
+        "x => x", true, Lambda.create Operation (toSymbol "x") (toIdentifier "x") |> Lambda |> toExpr, []
 
         "f -> f()",
         true,
-        Lambda(Function, toSymbol "f", CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+        Lambda.create Function (toSymbol "f") (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+        |> Lambda
         |> toExpr,
         []
 
         "(f -> f())",
         true,
         [
-            Lambda(Function, toSymbol "f", CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+            Lambda.create Function (toSymbol "f") (CallLikeExpression(toIdentifier "f", toExpr UnitValue) |> toExpr)
+            |> Lambda
             |> toExpr
         ]
         |> toTuple,
@@ -1283,17 +1285,20 @@ let ``Lambda tests`` () =
 
         "(f -> f)()",
         true,
-        CallLikeExpression(toTuple [ Lambda(Function, toSymbol "f", toIdentifier "f") |> toExpr ], toExpr UnitValue)
+        CallLikeExpression(
+            toTuple [ Lambda.create Function (toSymbol "f") (toIdentifier "f") |> Lambda |> toExpr ],
+            toExpr UnitValue
+        )
         |> toExpr,
         []
 
         "(x, y) -> x + y",
         true,
-        Lambda(
-            Function,
-            { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "y") |> SymbolTuple; Range = Null },
-            ADD(toIdentifier "x", toIdentifier "y") |> toExpr
-        )
+        Lambda.create
+            Function
+            { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "y") |> SymbolTuple; Range = Null }
+            (ADD(toIdentifier "x", toIdentifier "y") |> toExpr)
+        |> Lambda
         |> toExpr,
         []
 
@@ -1302,11 +1307,11 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "U",
             [
-                Lambda(
-                    Operation,
-                    toSymbol "q",
-                    CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr
-                )
+                Lambda.create
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
                 |> toExpr
             ]
             |> toTuple
@@ -1319,11 +1324,11 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "U",
             [
-                Lambda(
-                    Operation,
-                    toSymbol "q",
-                    CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr
-                )
+                Lambda.create
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
                 |> toExpr
 
                 toIdentifier "x"
@@ -1340,11 +1345,11 @@ let ``Lambda tests`` () =
             [
                 toIdentifier "x"
 
-                Lambda(
-                    Operation,
-                    toSymbol "q",
-                    CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr
-                )
+                Lambda.create
+                    Operation
+                    (toSymbol "q")
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
                 |> toExpr
             ]
             |> toTuple
@@ -1357,11 +1362,11 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "U",
             [
-                Lambda(
-                    Operation,
-                    { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "q") |> SymbolTuple; Range = Null },
-                    CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr
-                )
+                Lambda.create
+                    Operation
+                    { Symbol = ImmutableArray.Create(toSymbol "x", toSymbol "q") |> SymbolTuple; Range = Null }
+                    (CallLikeExpression(toIdentifier "X", toTuple [ toIdentifier "q" ]) |> toExpr)
+                |> Lambda
                 |> toExpr
             ]
             |> toTuple
@@ -1374,7 +1379,7 @@ let ``Lambda tests`` () =
         CallLikeExpression(
             toIdentifier "F",
             [
-                Lambda(Function, { Symbol = MissingSymbol; Range = Null }, toInt 0) |> toExpr
+                Lambda.create Function { Symbol = MissingSymbol; Range = Null } (toInt 0) |> Lambda |> toExpr
                 toIdentifier "xs"
             ]
             |> toTuple

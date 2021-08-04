@@ -410,7 +410,7 @@ let private lambdaCharacteristics (body: TypedExpression) =
                 onCall callable.ResolvedType.Resolution
                 base.OnCallLikeExpression(callable, arg)
 
-            override _.OnLambda(kind, param, body) = Lambda(kind, param, body)
+            override _.OnLambda lambda = Lambda lambda
         }
 
     transformation.OnExpressionKind body.Expression |> ignore
@@ -888,7 +888,7 @@ type QsExpression with
             let info = InferredExpressionInformation.New(isMutable = false, quantumDep = hasQuantumDependency)
             TypedExpression.New(callExpression, callable.TypeParameterResolutions, resultType, info, this.Range)
 
-        let buildLambda kind (param: QsSymbol) body =
+        let buildLambda (lambda: _ Lambda) =
             symbols.BeginScope ImmutableHashSet.Empty
 
             let addBinding (name: string, range) type_ =
@@ -898,16 +898,16 @@ type QsExpression with
 
                 None, diagnostics
 
-            let inputType = inference.Fresh param.RangeOrDefault
-            let _, _, diagnostics = verifyBinding inference addBinding (param, inputType) false
+            let inputType = inference.Fresh lambda.Param.RangeOrDefault
+            let _, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
             Array.iter diagnose diagnostics
 
             let lambda =
                 verifyAndBuildWith
-                    { context with IsInOperation = kind = LambdaKind.Operation }
-                    (fun body' -> Lambda(kind, param, body'))
-                    (fun body' -> inferLambda this.Range kind inputType body', [])
-                    body
+                    { context with IsInOperation = lambda.Kind = LambdaKind.Operation }
+                    (Lambda.create lambda.Kind lambda.Param >> Lambda)
+                    (fun body' -> inferLambda this.Range lambda.Kind inputType body', [])
+                    lambda.Body
 
             symbols.EndScope()
             lambda
@@ -1005,4 +1005,4 @@ type QsExpression with
                     Bool |> ResolvedType.create (TypeRange.inferred this.Range),
                     inference.Unify(ResolvedType.New Bool, ex'.ResolvedType))
                 ex
-        | Lambda (kind, param, body) -> buildLambda kind param body
+        | Lambda lambda -> buildLambda lambda

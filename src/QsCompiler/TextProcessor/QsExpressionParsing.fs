@@ -669,7 +669,7 @@ let internal symbolTuple continuation =
 
 let private lambda =
     let arrow = (fctArrow >>% Function) <|> (opArrow >>% Operation)
-    let toLambda ((param, kind), body) = Lambda(kind, param, body)
+    let toLambda ((param, kind), body) = Lambda.create kind param body |> Lambda
     symbolTuple arrow .>>. arrow .>>. expr |>> toLambda |> term |>> QsExpression.New
 
 // processing terms of operator precedence parsers

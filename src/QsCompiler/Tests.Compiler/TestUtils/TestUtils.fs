@@ -225,8 +225,10 @@ let rec matchExpression e1 e2 =
     | AdjointApplication s1, AdjointApplication s2 -> matchExpression s1 s2
     | ControlledApplication s1, ControlledApplication s2 -> matchExpression s1 s2
     | CallLikeExpression (s1a, s1b), CallLikeExpression (s2a, s2b) -> matchExpression s1a s2a && matchExpression s1b s2b
-    | Lambda (kind1, param1, body1), Lambda (kind2, param2, body2) ->
-        kind1 = kind2 && param1 = param2 && matchExpression body1 body2
+    | Lambda lambda1, Lambda lambda2 ->
+        lambda1.Kind = lambda2.Kind
+        && lambda1.Param = lambda2.Param
+        && matchExpression lambda1.Body lambda2.Body
     | expr1, expr2 -> expr1 = expr2
 
 let testOne parser (str, succExp, resExp, diagsExp) =

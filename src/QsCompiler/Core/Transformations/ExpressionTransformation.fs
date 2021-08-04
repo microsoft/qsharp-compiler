@@ -313,10 +313,13 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
         let ex = this.Expressions.OnTypedExpression ex
         BNOT |> Node.BuildOr InvalidExpr ex
 
-    abstract OnLambda : kind: LambdaKind * param: QsSymbol * body: TypedExpression -> ExpressionKind
+    abstract OnLambda : lambda: TypedExpression Lambda -> ExpressionKind
 
-    default this.OnLambda(kind, param, body) =
-        Node.BuildOr InvalidExpr (this.Expressions.OnTypedExpression body) (fun body' -> Lambda(kind, param, body'))
+    default this.OnLambda lambda =
+        Node.BuildOr
+            InvalidExpr
+            (this.Expressions.OnTypedExpression lambda.Body)
+            (Lambda.create lambda.Kind lambda.Param >> Lambda)
 
     // leaf nodes
 
@@ -404,7 +407,7 @@ type ExpressionKindTransformationBase internal (options: TransformationOptions, 
                 | NOT ex -> this.OnLogicalNot(ex)
                 | NEG ex -> this.OnNegative(ex)
                 | BNOT ex -> this.OnBitwiseNot(ex)
-                | Lambda (kind, param, body) -> this.OnLambda(kind, param, body)
+                | Lambda lambda -> this.OnLambda lambda
 
             id |> Node.BuildOr kind transformed
 

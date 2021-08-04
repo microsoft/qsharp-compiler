@@ -120,6 +120,27 @@ type LambdaKind =
     | Function
     | Operation
 
+type 'expr Lambda =
+    private
+        {
+            kind: LambdaKind
+            param: QsSymbol
+            body: 'expr
+        }
+
+    member lambda.Kind = lambda.kind
+    member lambda.Param = lambda.param
+    member lambda.Body = lambda.body
+
+module Lambda =
+    [<CompiledName "Create">]
+    let create kind param body =
+        {
+            kind = kind
+            param = param
+            body = body
+        }
+
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | UnitValue
     /// The immutable array is the (optional) type parameters.
@@ -172,7 +193,7 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | MissingExpr
     | InvalidExpr
     | SizedArray of value: 'Expr * size: 'Expr
-    | Lambda of kind: LambdaKind * param: QsSymbol * body: 'Expr
+    | Lambda of 'Expr Lambda
 
 type QsExpression =
     {
