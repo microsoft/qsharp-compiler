@@ -903,7 +903,7 @@ type QsExpression with
             let _, _, diagnostics = verifyBinding inference addBinding (lambda.Param, inputType) false
             Array.iter diagnose diagnostics
 
-            let lambda =
+            let lambda' =
                 verifyAndBuildWith
                     { context with IsInOperation = lambda.Kind = LambdaKind.Operation }
                     (Lambda.create lambda.Kind lambda.Param >> Lambda)
@@ -911,7 +911,7 @@ type QsExpression with
                     lambda.Body
 
             symbols.EndScope()
-            lambda
+            lambda'
 
         match this.Expression with
         | InvalidExpr ->
