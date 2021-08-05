@@ -34,8 +34,8 @@ type FixedPointAttribute() =
     member val Skip: string = null with get, set
 
 type ExampleKind =
-    | FormatExample = 0
-    | UpdateExample = 1
+    | Format = 0
+    | Update = 1
 
 /// A test case containing an example of source code before and after transforming.
 type Example =
@@ -148,7 +148,7 @@ module Discoverer =
         |> Seq.choose
             (fun e ->
                 match e.Kind with
-                | ExampleKind.FormatExample -> Some e
+                | ExampleKind.Format -> Some e
                 | _ -> None
             )
         |> Seq.iter data.Add
@@ -163,7 +163,7 @@ module Discoverer =
         |> Seq.choose
             (fun e ->
                 match e.Kind with
-                | ExampleKind.UpdateExample -> Some e
+                | ExampleKind.Update -> Some e
                 | _ -> None
             )
         |> Seq.iter data.Add

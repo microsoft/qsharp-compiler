@@ -6,7 +6,7 @@
 /// </summary>
 module Microsoft.Quantum.QsFmt.Formatter.Tests.Examples
 
-[<Example(ExampleKind.FormatExample)>]
+[<Example(ExampleKind.Format)>]
 let ``Indents function`` =
     """namespace Foo {
 function Bar() : Int {
@@ -22,7 +22,7 @@ return x;
     }
 }"""
 
-[<Example(ExampleKind.FormatExample)>]
+[<Example(ExampleKind.Format)>]
 let ``Indents if-else statement`` =
     """namespace Foo {
 function Bar() : Int {
@@ -46,7 +46,7 @@ return x + 1;
     }
 }"""
 
-[<Example(ExampleKind.FormatExample)>]
+[<Example(ExampleKind.Format)>]
 let ``Adds newlines and indents`` =
     """namespace Foo { function Bar() : Int { let x = 5; return x; } }""",
 
@@ -57,7 +57,7 @@ let ``Adds newlines and indents`` =
     }
 }"""
 
-[<Example(ExampleKind.FormatExample)>]
+[<Example(ExampleKind.Format)>]
 let ``Removes extraneous spaces`` =
     """namespace     Foo {
     function Bar() : Int [     ] {
@@ -79,7 +79,7 @@ let ``Removes extraneous spaces`` =
     }
 }"""
 
-[<Example(ExampleKind.UpdateExample)>]
+[<Example(ExampleKind.Update)>]
 let ``Updates Using Statements`` =
     """namespace Foo {
     operation Bar() : Unit {
@@ -97,7 +97,7 @@ let ``Updates Using Statements`` =
     }
 }"""
 
-[<Example(ExampleKind.UpdateExample)>]
+[<Example(ExampleKind.Update)>]
 let ``Updates Borrowing Statements`` =
     """namespace Foo {
     operation Bar() : Unit {
