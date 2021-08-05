@@ -78,7 +78,7 @@ type ExampleAttribute(exampleKind: ExampleKind) =
     member val Skip: string = null with get, set
 
     /// The kind of example it is, either FormatExample or UpdateExample
-    member val Kind: ExampleKind = exampleKind
+    member _.Kind = exampleKind
 
 /// <summary>
 /// A wrapper around <see cref="Result"/> with a <see cref="Object.ToString"/> implementation that uses structured
