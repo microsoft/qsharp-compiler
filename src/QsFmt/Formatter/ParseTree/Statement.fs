@@ -128,14 +128,12 @@ type StatementVisitor(tokens) =
             Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen =
                 context.openParen
-                |> function
-                    | null -> None
-                    | s -> Node.toTerminal tokens s |> Some
+                |> Option.ofObj
+                |> Option.map (Node.toTerminal tokens)
             CloseParen =
                 context.closeParen
-                |> function
-                    | null -> None
-                    | s -> Node.toTerminal tokens s |> Some
+                |> Option.ofObj
+                |> Option.map (Node.toTerminal tokens)
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
         |> Use
@@ -146,14 +144,12 @@ type StatementVisitor(tokens) =
             Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen =
                 context.openParen
-                |> function
-                    | null -> None
-                    | s -> Node.toTerminal tokens s |> Some
+                |> Option.ofObj
+                |> Option.map (Node.toTerminal tokens)
             CloseParen =
                 context.closeParen
-                |> function
-                    | null -> None
-                    | s -> Node.toTerminal tokens s |> Some
+                |> Option.ofObj
+                |> Option.map (Node.toTerminal tokens)
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
@@ -169,14 +165,12 @@ type StatementVisitor(tokens) =
             Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen =
                 context.openParen
-                |> function
-                    | null -> None
-                    | s -> Node.toTerminal tokens s |> Some
+                |> Option.ofObj
+                |> Option.map (Node.toTerminal tokens)
             CloseParen =
                 context.closeParen
-                |> function
-                    | null -> None
-                    | s -> Node.toTerminal tokens s |> Some
+                |> Option.ofObj
+                |> Option.map (Node.toTerminal tokens)
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
         |> Borrow
@@ -187,14 +181,12 @@ type StatementVisitor(tokens) =
             Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen =
                 context.openParen
-                |> function
-                    | null -> None
-                    | s -> Node.toTerminal tokens s |> Some
+                |> Option.ofObj
+                |> Option.map (Node.toTerminal tokens)
             CloseParen =
                 context.closeParen
-                |> function
-                    | null -> None
-                    | s -> Node.toTerminal tokens s |> Some
+                |> Option.ofObj
+                |> Option.map (Node.toTerminal tokens)
             Block =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
