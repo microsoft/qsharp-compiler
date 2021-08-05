@@ -38,7 +38,6 @@ function Test-One {
     }
 }
 
-python
 
 Test-One '../QsCompiler.sln'
 Test-One '../QsFmt.sln'
