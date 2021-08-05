@@ -139,12 +139,34 @@ module Discoverer =
                 | _ -> None)
 
     /// <summary>
-    /// Provides auto-discovered <see cref="Example"/> test cases as theory data.
+    /// Provides auto-discovered <see cref="Example"/> test cases for format examples as theory data.
     /// </summary>
-    type private ExampleData() as data =
+    type private FormatExampleData() as data =
         inherit TheoryData<Example>()
 
-        do examples |> Seq.iter data.Add
+        do examples
+        |> Seq.choose
+            (fun e ->
+                match e.Kind with
+                | ExampleKind.FormatExample -> Some e
+                | _ -> None
+            )
+        |> Seq.iter data.Add
+
+    /// <summary>
+    /// Provides auto-discovered <see cref="Example"/> test cases for update examples as theory data.
+    /// </summary>
+    type private UpdateExampleData() as data =
+        inherit TheoryData<Example>()
+
+        do examples
+        |> Seq.choose
+            (fun e ->
+                match e.Kind with
+                | ExampleKind.UpdateExample -> Some e
+                | _ -> None
+            )
+        |> Seq.iter data.Add
 
     /// <summary>
     /// Provides auto-discovered <see cref="FixedPoint"/> test cases as theory data.
@@ -159,28 +181,22 @@ module Discoverer =
     /// 'Before' state to their 'After' state under formatting.
     /// </summary>
     [<SkippableTheory>]
-    [<ClassData(typeof<ExampleData>)>]
+    [<ClassData(typeof<FormatExampleData>)>]
     let ``Code is formatted correctly`` example =
-        match example.Kind with
-        | ExampleKind.FormatExample ->
-            match example.Skip with
-            | Some reason -> Skip.If(true, reason)
-            | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.format example.Before |> ShowResult)
-        | _ -> ()
+        match example.Skip with
+        | Some reason -> Skip.If(true, reason)
+        | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.format example.Before |> ShowResult)
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="Example"/> update test cases change from their
     /// 'Before' state to their 'After' state under updating.
     /// </summary>
     [<SkippableTheory>]
-    [<ClassData(typeof<ExampleData>)>]
+    [<ClassData(typeof<UpdateExampleData>)>]
     let ``Code is updated correctly`` example =
-        match example.Kind with
-        | ExampleKind.UpdateExample ->
-            match example.Skip with
-            | Some reason -> Skip.If(true, reason)
-            | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.update example.Before |> ShowResult)
-        | _ -> ()
+        match example.Skip with
+        | Some reason -> Skip.If(true, reason)
+        | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.update example.Before |> ShowResult)
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="FixedPoint"/> test cases do not change under formatting.
