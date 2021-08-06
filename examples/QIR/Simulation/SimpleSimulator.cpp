@@ -5,7 +5,6 @@
 
 #include "QirRuntimeApi_I.hpp"
 #include "QSharpSimApi_I.hpp"
-#include "SimFactory.hpp"
 
 #include "Eigen/Dense"
 #include "Eigen/KroneckerProduct"
@@ -21,13 +20,36 @@ namespace Microsoft
 {
 namespace Quantum
 {
-    class CSimpleSimulator : public IRuntimeDriver, public IQuantumGateSet, public IDiagnostics
-    {
-        using State = VectorXcd;
-        using Gate = Matrix2cd;
-        using Pauli = Matrix2cd;
-        using Operator = MatrixXcd;
+    using State = VectorXcd;
+    using Gate = Matrix2cd;
+    using Pauli = Matrix2cd;
+    using Operator = MatrixXcd;
 
+    static Operator PartialTrace(Operator u, short idx, short dim)
+    {
+        // Partial trace defined as:
+        //    tr_B[U] = (Id ⊗ <0|) U (Id ⊗ |0>) + (Id ⊗ <1|) U (Id ⊗ |1>)
+        // This is expanded to arbitrary sized systems where a single qubit is traced out.
+        Operator proj_zero = Operator::Ones(1,1), proj_one = Operator::Ones(1,1);
+        for (int i = 0; i < idx; i++) {
+            proj_zero = kroneckerProduct(proj_zero, Operator::Identity(2,2)).eval();
+            proj_one = kroneckerProduct(proj_one, Operator::Identity(2,2)).eval();
+        }
+        proj_zero = kroneckerProduct(proj_zero, Vector2cd(1,0)).eval();
+        proj_one = kroneckerProduct(proj_one, Vector2cd(0,1)).eval();
+        for (int i = idx+1; i < dim; i++) {
+            proj_zero = kroneckerProduct(proj_zero, Operator::Identity(2,2)).eval();
+            proj_one = kroneckerProduct(proj_one, Operator::Identity(2,2)).eval();
+        }
+
+        Operator result = proj_zero.adjoint() * u * proj_zero
+                        + proj_one.adjoint() * u * proj_one;
+
+        return result;
+    }
+
+    class CSimpleSimulator : public IRuntimeDriver, public IQuantumGateSet
+    {
         // Keep track of unique qubit ids via simple counter,
         // mapped to a "small" register of active qubits.
         uint64_t nextQubitId = 0;
@@ -53,29 +75,6 @@ namespace Quantum
         short GetQubitIdx(Qubit qubit)
         {
             return this->qubitMap[GetQubitId(qubit)];
-        }
-
-        static Operator PartialTrace(Operator u, short idx, short dim)
-        {
-            // Partial trace defined as:
-            //    tr_B[U] = (Id ⊗ <0|) U (Id ⊗ |0>) + (Id ⊗ <1|) U (Id ⊗ |1>)
-            // This is expanded to arbitrary sized systems where a single qubit is traced out.
-            Operator proj_zero = Operator::Ones(1,1), proj_one = Operator::Ones(1,1);
-            for (int i = 0; i < idx; i++) {
-                proj_zero = kroneckerProduct(proj_zero, Operator::Identity(2,2)).eval();
-                proj_one = kroneckerProduct(proj_one, Operator::Identity(2,2)).eval();
-            }
-            proj_zero = kroneckerProduct(proj_zero, Vector2cd(1,0)).eval();
-            proj_one = kroneckerProduct(proj_one, Vector2cd(0,1)).eval();
-            for (int i = idx+1; i < dim; i++) {
-                proj_zero = kroneckerProduct(proj_zero, Operator::Identity(2,2)).eval();
-                proj_one = kroneckerProduct(proj_one, Operator::Identity(2,2)).eval();
-            }
-
-            Operator result = proj_zero.adjoint() * u * proj_zero
-                            + proj_one.adjoint() * u * proj_one;
-
-            return result;
         }
 
         void UpdateState(short qubitIndex, bool remove = false)
@@ -187,9 +186,9 @@ namespace Quantum
             std::vector<std::pair<short, PauliId>> sortedTargetBase(numTargets);
             for (int i = 0; i < numTargets; i++)
                 sortedTargetBase.push_back({GetQubitIdx(targets[i]), paulis[i]});
-            sort(sortedTargetBase.begin(), sortedTargetBase.end(),
-                 [](std::pair<short, PauliId> x, std::pair<short, PauliId> y) {
-                 return x.first < y.first;
+            std::sort(sortedTargetBase.begin(), sortedTargetBase.end(),
+                      [](std::pair<short, PauliId> x, std::pair<short, PauliId> y) {
+                      return x.first < y.first;
             });
 
             Operator pauliUnitary = Operator::Ones(1,1);
@@ -252,34 +251,9 @@ namespace Quantum
             this->qubitMap.erase(GetQubitId(q));
         }
 
-        virtual std::string QubitToString(Qubit q) override
+        std::string QubitToString(Qubit q) override
         {
             return std::to_string(GetQubitId(q));
-        }
-
-
-        ///
-        /// Implementation of IDiagnostics
-        ///
-        bool Assert(long numTargets, PauliId* bases, Qubit* targets, Result result, const char* failureMessage) override
-        {
-        }
-
-        bool AssertProbability(long numTargets, PauliId bases[], Qubit targets[], double probabilityOfZero, double precision, const char* failureMessage) override
-        {
-        }
-
-        // Deprecated, use `DumpMachine()` and `DumpRegister()` instead.
-        void GetState(TGetStateCallback callback) override
-        {
-        }
-
-        void DumpMachine(const void* location) override
-        {
-        }
-
-        void DumpRegister(const void* location, const QirArray* qubits) override
-        {
         }
 
 

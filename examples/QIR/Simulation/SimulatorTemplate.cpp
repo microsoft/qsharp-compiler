@@ -1,6 +1,5 @@
 #include "QirRuntimeApi_I.hpp"
 #include "QSharpSimApi_I.hpp"
-#include "SimFactory.hpp"
 
 namespace Microsoft
 {
@@ -47,7 +46,7 @@ namespace Quantum
         {
         }
 
-        virtual std::string QubitToString(Qubit q) override
+        std::string QubitToString(Qubit q) override
         {
         }
 
