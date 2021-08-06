@@ -1,6 +1,5 @@
 
 steps:
-- name: Linux Passes Build & Tests
   script: |
       sudo apt update -y
       sudo apt install -y clang-11 cmake clang-format-11 clang-tidy-11 
