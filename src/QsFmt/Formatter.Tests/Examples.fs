@@ -114,3 +114,23 @@ let ``Updates Borrowing Statements`` =
         }
     }
 }"""
+
+[<Example(ExampleKind.Update)>]
+let ``Updates Using with comments`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        using (
+            q = Qubit() // comment
+        ) {
+        }
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        use 
+            q = Qubit() // comment
+         {
+        }
+    }
+}"""

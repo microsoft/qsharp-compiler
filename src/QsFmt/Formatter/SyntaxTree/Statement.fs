@@ -13,6 +13,12 @@ type QubitSymbolBinding =
     | QubitSymbolDeclaration of Terminal
     | QubitSymbolTuple of QubitSymbolBinding Tuple
 
+module QubitSymbolBinding =
+    let mapPrefix mapper =
+        function
+        | QubitSymbolDeclaration terminal -> terminal |> Terminal.mapPrefix mapper |> QubitSymbolDeclaration
+        | QubitSymbolTuple tuple -> tuple |> Tuple.mapPrefix mapper |> QubitSymbolTuple
+
 type SingleQubit =
     {
         Qubit: Terminal
@@ -39,6 +45,10 @@ type QubitBinding =
         Equals: Terminal
         Initializer: QubitInitializer
     }
+
+module QubitBinding =
+    let mapPrefix mapper (binding : QubitBinding) =
+        { binding with Name = QubitSymbolBinding.mapPrefix mapper binding.Name }
 
 type Let =
     {
@@ -126,3 +136,4 @@ module Statement =
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
+        

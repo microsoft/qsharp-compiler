@@ -111,28 +111,17 @@ let getTrivia paren =
     | Some p -> p.Prefix
 
 let qubitBindingUpdate =
-    { new Rewriter<Trivia list>() with
-        override _.Terminal(context, terminal) =
-            match context with
-            | [] -> terminal
-            | _ -> { terminal with Prefix = context @ terminal.Prefix }
-
-        override rewriter.QubitBinding(context, binding) =
-            { binding with Name = rewriter.QubitSymbolBinding(context, binding.Name) }
-
-        override rewriter.Tuple(context, _, tuple) =
-            { tuple with OpenParen = rewriter.Terminal(context, tuple.OpenParen) }
-
+    { new Rewriter<_>() with
         override rewriter.Use(_, ``use``) =
             let openTrivia = ``use``.OpenParen |> getTrivia
             let closeTrivia = ``use``.CloseParen |> getTrivia
 
             { ``use`` with
                 UseKeyword = rewriter.Terminal([], { ``use``.UseKeyword with Text = "use" })
-                Binding = rewriter.QubitBinding(openTrivia, ``use``.Binding)
+                Binding = ``use``.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
                 OpenParen = None
                 CloseParen = None
-                Semicolon = rewriter.Terminal(closeTrivia, ``use``.Semicolon)
+                Semicolon = ``use``.Semicolon |> Terminal.mapPrefix ((@) closeTrivia)
             }
 
         override rewriter.UseBlock(_, ``use``) =
@@ -141,10 +130,10 @@ let qubitBindingUpdate =
 
             { ``use`` with
                 UseKeyword = rewriter.Terminal([], { ``use``.UseKeyword with Text = "use" })
-                Binding = rewriter.QubitBinding(openTrivia, ``use``.Binding)
+                Binding = ``use``.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
                 OpenParen = None
                 CloseParen = None
-                Block = rewriter.Block(closeTrivia, rewriter.Statement, ``use``.Block)
+                Block = rewriter.Block(closeTrivia, rewriter.Statement, ``use``.Block) |> Block.mapPrefix ((@) closeTrivia)
             }
 
         override rewriter.Borrow(_, borrow) =
@@ -153,10 +142,10 @@ let qubitBindingUpdate =
 
             { borrow with
                 BorrowKeyword = rewriter.Terminal([], { borrow.BorrowKeyword with Text = "borrow" })
-                Binding = rewriter.QubitBinding(openTrivia, borrow.Binding)
+                Binding = borrow.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
                 OpenParen = None
                 CloseParen = None
-                Semicolon = rewriter.Terminal(closeTrivia, borrow.Semicolon)
+                Semicolon = borrow.Semicolon |> Terminal.mapPrefix ((@) closeTrivia)
             }
 
         override rewriter.BorrowBlock(_, borrow) =
@@ -165,9 +154,9 @@ let qubitBindingUpdate =
 
             { borrow with
                 BorrowKeyword = rewriter.Terminal([], { borrow.BorrowKeyword with Text = "borrow" })
-                Binding = rewriter.QubitBinding(openTrivia, borrow.Binding)
+                Binding = borrow.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
                 OpenParen = None
                 CloseParen = None
-                Block = rewriter.Block(closeTrivia, rewriter.Statement, borrow.Block)
+                Block = rewriter.Block(closeTrivia, rewriter.Statement, borrow.Block) |> Block.mapPrefix ((@) closeTrivia)
             }
     }

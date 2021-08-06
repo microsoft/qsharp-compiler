@@ -85,6 +85,12 @@ type internal 'a Tuple =
       /// The closing parenthesis.
       CloseParen: Terminal }
 
+module internal Tuple =
+    /// <summary>
+    /// Maps <paramref name="tuple"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix : mapper: (Trivia list -> Trivia list) -> tuple: 'a Tuple -> 'a Tuple
+
 /// A prefix operator. The operator is in the front of the operand.
 type internal 'a PrefixOperator =
     {
@@ -126,3 +132,9 @@ type internal 'a Block =
 
       /// The closing brace.
       CloseBrace: Terminal }
+
+module internal Block =
+    /// <summary>
+    /// Maps <paramref name="block"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix : mapper: (Trivia list -> Trivia list) -> block: 'a Block -> 'a Block

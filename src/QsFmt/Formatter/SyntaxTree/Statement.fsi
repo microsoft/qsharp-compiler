@@ -25,6 +25,12 @@ type internal QubitSymbolBinding =
     | QubitSymbolDeclaration of Terminal
     | QubitSymbolTuple of QubitSymbolBinding Tuple
 
+module internal QubitSymbolBinding =
+    /// <summary>
+    /// Maps a qubit symbol binding by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix: mapper:(Trivia list -> Trivia list) -> QubitSymbolBinding -> QubitSymbolBinding
+
 type internal SingleQubit = { Qubit: Terminal; OpenParen: Terminal; CloseParen: Terminal }
 type internal QubitArray = { Qubit: Terminal; OpenBracket: Terminal; Length: Expression; CloseBracket: Terminal }
 type internal QubitInitializer =
@@ -33,6 +39,12 @@ type internal QubitInitializer =
     | QubitTuple of QubitInitializer Tuple
 
 type internal QubitBinding = { Name: QubitSymbolBinding; Equals: Terminal; Initializer: QubitInitializer }
+
+module internal QubitBinding =
+    /// <summary>
+    /// Maps <paramref name="binding"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix: mapper:(Trivia list -> Trivia list) -> binding: QubitBinding -> QubitBinding
 
 /// <summary>
 /// A <c>let</c> statement.
@@ -244,6 +256,6 @@ and internal Statement =
 
 module internal Statement =
     /// <summary>
-    /// Maps a statement by applying <paramref name="mapper"/> to its trivia prefix.
+    /// Maps a statement by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> Statement -> Statement
