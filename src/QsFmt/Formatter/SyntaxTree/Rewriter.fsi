@@ -164,28 +164,28 @@ type internal 'context Rewriter =
     default Else: context:'context * elses:Else -> Else
 
     /// <summary>
-    /// Rewrites a <see cref="SymbolBinding"/> node.
+    /// Rewrites a <see cref="ParameterBinding"/> node.
     /// </summary>
-    abstract SymbolBinding: context:'context * binding:SymbolBinding -> SymbolBinding
-    default SymbolBinding: context:'context * binding:SymbolBinding -> SymbolBinding
+    abstract ParameterBinding: context:'context * binding:ParameterBinding -> ParameterBinding
+    default ParameterBinding: context:'context * binding:ParameterBinding -> ParameterBinding
 
     /// <summary>
-    /// Rewrites a <see cref="SymbolDeclaration"/> node.
+    /// Rewrites a <see cref="ParameterDeclaration"/> node.
     /// </summary>
-    abstract SymbolDeclaration: context:'context * declaration:SymbolDeclaration -> SymbolDeclaration
-    default SymbolDeclaration: context:'context * declaration:SymbolDeclaration -> SymbolDeclaration
+    abstract ParameterDeclaration: context:'context * declaration:ParameterDeclaration -> ParameterDeclaration
+    default ParameterDeclaration: context:'context * declaration:ParameterDeclaration -> ParameterDeclaration
+
+    /// <summary>
+    /// Rewrites a <see cref="SymbolBinding"/> node.
+    /// </summary>
+    abstract SymbolBinding: context:'context * symbol:SymbolBinding -> SymbolBinding
+    default SymbolBinding: context:'context * symbol:SymbolBinding -> SymbolBinding
 
     /// <summary>
     /// Rewrites a <see cref="QubitBinding"/> node.
     /// </summary>
     abstract QubitBinding: context:'context * binding:QubitBinding -> QubitBinding
     default QubitBinding: context:'context * binding:QubitBinding -> QubitBinding
-
-    /// <summary>
-    /// Rewrites a <see cref="QubitSymbolBinding"/> node.
-    /// </summary>
-    abstract QubitSymbolBinding: context:'context * symbol:QubitSymbolBinding -> QubitSymbolBinding
-    default QubitSymbolBinding: context:'context * symbol:QubitSymbolBinding -> QubitSymbolBinding
 
     /// <summary>
     /// Rewrites a <see cref="QubitInitializer"/> node.

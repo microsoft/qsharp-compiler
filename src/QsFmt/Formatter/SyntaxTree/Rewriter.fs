@@ -47,7 +47,7 @@ type 'context Rewriter() =
             CallableKeyword = rewriter.Terminal(context, callable.CallableKeyword)
             Name = rewriter.Terminal(context, callable.Name)
             TypeParameters = callable.TypeParameters |> Option.map (curry rewriter.TypeParameterBinding context)
-            Parameters = rewriter.SymbolBinding(context, callable.Parameters)
+            Parameters = rewriter.ParameterBinding(context, callable.Parameters)
             ReturnType = rewriter.TypeAnnotation(context, callable.ReturnType)
             CharacteristicSection =
                 callable.CharacteristicSection |> Option.map (curry rewriter.CharacteristicSection context)
@@ -274,36 +274,36 @@ type 'context Rewriter() =
             Block = rewriter.Block(context, rewriter.Statement, elses.Block)
         }
 
-    abstract SymbolBinding : context: 'context * binding: SymbolBinding -> SymbolBinding
+    abstract ParameterBinding : context: 'context * binding: ParameterBinding -> ParameterBinding
 
-    default rewriter.SymbolBinding(context, binding) =
+    default rewriter.ParameterBinding(context, binding) =
         match binding with
-        | SymbolDeclaration declaration -> rewriter.SymbolDeclaration(context, declaration) |> SymbolDeclaration
-        | SymbolTuple tuple -> rewriter.Tuple(context, rewriter.SymbolBinding, tuple) |> SymbolTuple
+        | ParameterDeclaration declaration -> rewriter.ParameterDeclaration(context, declaration) |> ParameterDeclaration
+        | ParameterTuple tuple -> rewriter.Tuple(context, rewriter.ParameterBinding, tuple) |> ParameterTuple
 
-    abstract SymbolDeclaration : context: 'context * declaration: SymbolDeclaration -> SymbolDeclaration
+    abstract ParameterDeclaration : context: 'context * declaration: ParameterDeclaration -> ParameterDeclaration
 
-    default rewriter.SymbolDeclaration(context, declaration) =
+    default rewriter.ParameterDeclaration(context, declaration) =
         {
             Name = rewriter.Terminal(context, declaration.Name)
-            Type = declaration.Type |> Option.map (curry rewriter.TypeAnnotation context)
+            Type = rewriter.TypeAnnotation(context, declaration.Type)
         }
+
+    abstract SymbolBinding : context: 'context * symbol: SymbolBinding -> SymbolBinding
+
+    default rewriter.SymbolBinding(context, symbol) =
+        match symbol with
+        | SymbolDeclaration declaration -> rewriter.Terminal(context, declaration) |> SymbolDeclaration
+        | SymbolTuple tuple -> rewriter.Tuple(context, rewriter.SymbolBinding, tuple) |> SymbolTuple
 
     abstract QubitBinding : context: 'context * binding: QubitBinding -> QubitBinding
 
     default rewriter.QubitBinding(context, binding) =
         {
-            Name = rewriter.QubitSymbolBinding(context, binding.Name)
+            Name = rewriter.SymbolBinding(context, binding.Name)
             Equals = rewriter.Terminal(context, binding.Equals)
             Initializer = rewriter.QubitInitializer(context, binding.Initializer)
         }
-
-    abstract QubitSymbolBinding : context: 'context * symbol: QubitSymbolBinding -> QubitSymbolBinding
-
-    default rewriter.QubitSymbolBinding(context, symbol) =
-        match symbol with
-        | QubitSymbolDeclaration declaration -> rewriter.Terminal(context, declaration) |> QubitSymbolDeclaration
-        | QubitSymbolTuple tuple -> rewriter.Tuple(context, rewriter.QubitSymbolBinding, tuple) |> QubitSymbolTuple
 
     abstract QubitInitializer : context: 'context * initializer: QubitInitializer -> QubitInitializer
 

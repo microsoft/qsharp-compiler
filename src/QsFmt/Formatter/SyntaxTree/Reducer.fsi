@@ -168,28 +168,28 @@ type internal 'result Reducer =
     default Else: elses:Else -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="SymbolBinding"/> node.
+    /// Reduces a <see cref="ParameterBinding"/> node.
     /// </summary>
-    abstract SymbolBinding: binding:SymbolBinding -> 'result
-    default SymbolBinding: binding:SymbolBinding -> 'result
+    abstract ParameterBinding: binding:ParameterBinding -> 'result
+    default ParameterBinding: binding:ParameterBinding -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="SymbolDeclaration"/> node.
+    /// Reduces a <see cref="ParameterDeclaration"/> node.
     /// </summary>
-    abstract SymbolDeclaration: declaration:SymbolDeclaration -> 'result
-    default SymbolDeclaration: declaration:SymbolDeclaration -> 'result
+    abstract ParameterDeclaration: declaration:ParameterDeclaration -> 'result
+    default ParameterDeclaration: declaration:ParameterDeclaration -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="SymbolBinding"/> node.
+    /// </summary>
+    abstract SymbolBinding: symbol:SymbolBinding -> 'result
+    default SymbolBinding: symbol:SymbolBinding -> 'result
 
     /// <summary>
     /// Reduces a <see cref="QubitBinding"/> node.
     /// </summary>
     abstract QubitBinding: binding:QubitBinding -> 'result
     default QubitBinding: binding:QubitBinding -> 'result
-
-    /// <summary>
-    /// Reduces a <see cref="QubitSymbolBinding"/> node.
-    /// </summary>
-    abstract QubitSymbolBinding: symbol:QubitSymbolBinding -> 'result
-    default QubitSymbolBinding: symbol:QubitSymbolBinding -> 'result
 
     /// <summary>
     /// Reduces a <see cref="QubitInitializer"/> node.

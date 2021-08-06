@@ -15,10 +15,10 @@ type SymbolBindingVisitor(tokens) =
     override _.DefaultResult = failwith "Unknown symbol binding."
 
     override _.VisitDiscardSymbol context =
-        { Name = context.discard |> Node.toTerminal tokens; Type = None } |> SymbolDeclaration
+        context.discard |> Node.toTerminal tokens |> SymbolDeclaration
 
     override _.VisitSymbolName context =
-        { Name = context.name |> Node.toTerminal tokens; Type = None } |> SymbolDeclaration
+        context.name |> Node.toTerminal tokens |> SymbolDeclaration
 
     override visitor.VisitSymbolTuple context =
         let bindings = context._bindings |> Seq.map visitor.Visit
@@ -30,29 +30,6 @@ type SymbolBindingVisitor(tokens) =
             CloseParen = context.closeParen |> Node.toTerminal tokens
         }
         |> SymbolTuple
-
-type QubitSymbolBindingVisitor(tokens) =
-    inherit QSharpParserBaseVisitor<QubitSymbolBinding>()
-
-    override _.DefaultResult = failwith "Unknown symbol binding."
-
-    override _.VisitDiscardSymbol context =
-        context.discard |> Node.toTerminal tokens |> QubitSymbolDeclaration
-
-    override _.VisitSymbolName context =
-        context.name |> Node.toTerminal tokens |> QubitSymbolDeclaration
-
-    override visitor.VisitSymbolTuple context =
-        let bindings = context._bindings |> Seq.map visitor.Visit
-        let commas = context._commas |> Seq.map (Node.toTerminal tokens)
-
-        {
-            OpenParen = context.openParen |> Node.toTerminal tokens
-            Items = Node.tupleItems bindings commas
-            CloseParen = context.closeParen |> Node.toTerminal tokens
-        }
-        |> QubitSymbolTuple
-
 
 type QubitInitializerVistor(tokens) =
     inherit QSharpParserBaseVisitor<QubitInitializer>()
@@ -90,12 +67,12 @@ type QubitInitializerVistor(tokens) =
 type QubitBindingVisitor(tokens) =
     inherit QSharpParserBaseVisitor<QubitBinding>()
 
-    let qubitSymbolBindingVisitor = QubitSymbolBindingVisitor tokens
+    let symbolBindingVisitor = SymbolBindingVisitor tokens
     let qubitInitializerVistor = QubitInitializerVistor tokens
 
     override _.VisitQubitBinding context =
         {
-            Name = context.binding |> qubitSymbolBindingVisitor.Visit
+            Name = context.binding |> symbolBindingVisitor.Visit
             Equals = context.equals |> Node.toTerminal tokens
             Initializer = context.value |> qubitInitializerVistor.Visit
         }

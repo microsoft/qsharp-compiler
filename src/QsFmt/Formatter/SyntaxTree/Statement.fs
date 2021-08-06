@@ -3,21 +3,21 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-type SymbolDeclaration = { Name: Terminal; Type: TypeAnnotation option }
+type ParameterDeclaration = { Name: Terminal; Type: TypeAnnotation }
+
+type ParameterBinding =
+    | ParameterDeclaration of ParameterDeclaration
+    | ParameterTuple of ParameterBinding Tuple
 
 type SymbolBinding =
-    | SymbolDeclaration of SymbolDeclaration
+    | SymbolDeclaration of Terminal
     | SymbolTuple of SymbolBinding Tuple
 
-type QubitSymbolBinding =
-    | QubitSymbolDeclaration of Terminal
-    | QubitSymbolTuple of QubitSymbolBinding Tuple
-
-module QubitSymbolBinding =
+module SymbolBinding =
     let mapPrefix mapper =
         function
-        | QubitSymbolDeclaration terminal -> terminal |> Terminal.mapPrefix mapper |> QubitSymbolDeclaration
-        | QubitSymbolTuple tuple -> tuple |> Tuple.mapPrefix mapper |> QubitSymbolTuple
+        | SymbolDeclaration terminal -> terminal |> Terminal.mapPrefix mapper |> SymbolDeclaration
+        | SymbolTuple tuple -> tuple |> Tuple.mapPrefix mapper |> SymbolTuple
 
 type SingleQubit =
     {
@@ -41,14 +41,14 @@ type QubitInitializer =
 
 type QubitBinding =
     {
-        Name: QubitSymbolBinding
+        Name: SymbolBinding
         Equals: Terminal
         Initializer: QubitInitializer
     }
 
 module QubitBinding =
     let mapPrefix mapper (binding : QubitBinding) =
-        { binding with Name = QubitSymbolBinding.mapPrefix mapper binding.Name }
+        { binding with Name = SymbolBinding.mapPrefix mapper binding.Name }
 
 type Let =
     {

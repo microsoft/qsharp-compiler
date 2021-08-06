@@ -48,7 +48,7 @@ type internal 'result Reducer() as reducer =
             [ reducer.Terminal callable.CallableKeyword; reducer.Terminal callable.Name ]
             callable.TypeParameters |> Option.map reducer.TypeParameterBinding |> Option.toList
             [
-                reducer.SymbolBinding callable.Parameters
+                reducer.ParameterBinding callable.Parameters
                 reducer.TypeAnnotation callable.ReturnType
             ]
             callable.CharacteristicSection |> Option.map reducer.CharacteristicSection |> Option.toList
@@ -279,36 +279,38 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract SymbolBinding : binding: SymbolBinding -> 'result
+    abstract ParameterBinding : binding: ParameterBinding -> 'result
 
-    default _.SymbolBinding binding =
+    default _.ParameterBinding binding =
         match binding with
-        | SymbolDeclaration declaration -> reducer.SymbolDeclaration declaration
-        | SymbolTuple tuple -> reducer.Tuple(reducer.SymbolBinding, tuple)
+        | ParameterDeclaration declaration -> reducer.ParameterDeclaration declaration
+        | ParameterTuple tuple -> reducer.Tuple(reducer.ParameterBinding, tuple)
 
-    abstract SymbolDeclaration : declaration: SymbolDeclaration -> 'result
+    abstract ParameterDeclaration : declaration: ParameterDeclaration -> 'result
 
-    default _.SymbolDeclaration declaration =
-        reducer.Terminal declaration.Name
-        :: (declaration.Type |> Option.map reducer.TypeAnnotation |> Option.toList)
+    default _.ParameterDeclaration declaration =
+        [
+            reducer.Terminal declaration.Name
+            reducer.TypeAnnotation declaration.Type
+        ]
         |> reduce
+
+    abstract SymbolBinding : symbol: SymbolBinding -> 'result
+
+    default _.SymbolBinding symbol =
+        match symbol with
+        | SymbolDeclaration declaration -> reducer.Terminal declaration
+        | SymbolTuple tuple -> reducer.Tuple(reducer.SymbolBinding, tuple)
 
     abstract QubitBinding : binding: QubitBinding -> 'result
 
     default _.QubitBinding binding =
         [
-            reducer.QubitSymbolBinding binding.Name
+            reducer.SymbolBinding binding.Name
             reducer.Terminal binding.Equals
             reducer.QubitInitializer binding.Initializer
         ]
         |> reduce
-
-    abstract QubitSymbolBinding : symbol: QubitSymbolBinding -> 'result
-
-    default _.QubitSymbolBinding symbol =
-        match symbol with
-        | QubitSymbolDeclaration declaration -> reducer.Terminal declaration
-        | QubitSymbolTuple tuple -> reducer.Tuple(reducer.QubitSymbolBinding, tuple)
 
     abstract QubitInitializer : initializer: QubitInitializer -> 'result
 

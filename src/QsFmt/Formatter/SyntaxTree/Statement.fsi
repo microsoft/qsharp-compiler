@@ -3,33 +3,37 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-/// A declaration for a new symbol.
-type internal SymbolDeclaration =
+/// A declaration for a new parameter.
+type internal ParameterDeclaration =
     {
-        /// The name of the symbol.
+        /// The name of the parameter.
         Name: Terminal
 
-        /// The type of the symbol.
-        Type: TypeAnnotation option
+        /// The type of the parameter.
+        Type: TypeAnnotation
     }
+
+/// A binding for one or more new parameters.
+type internal ParameterBinding =
+    /// A declaration for a new parameter.
+    | ParameterDeclaration of ParameterDeclaration
+
+    /// A declaration for a tuple of new parameters.
+    | ParameterTuple of ParameterBinding Tuple
 
 /// A binding for one or more new symbols.
 type internal SymbolBinding =
-    /// A declaration for a new symbol.
-    | SymbolDeclaration of SymbolDeclaration
+    /// A declaration for a new symbols.
+    | SymbolDeclaration of Terminal
 
     /// A declaration for a tuple of new symbols.
     | SymbolTuple of SymbolBinding Tuple
 
-type internal QubitSymbolBinding =
-    | QubitSymbolDeclaration of Terminal
-    | QubitSymbolTuple of QubitSymbolBinding Tuple
-
-module internal QubitSymbolBinding =
+module internal SymbolBinding =
     /// <summary>
-    /// Maps a qubit symbol binding by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// Maps a symbol binding by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
-    val mapPrefix: mapper:(Trivia list -> Trivia list) -> QubitSymbolBinding -> QubitSymbolBinding
+    val mapPrefix: mapper:(Trivia list -> Trivia list) -> SymbolBinding -> SymbolBinding
 
 type internal SingleQubit = { Qubit: Terminal; OpenParen: Terminal; CloseParen: Terminal }
 type internal QubitArray = { Qubit: Terminal; OpenBracket: Terminal; Length: Expression; CloseBracket: Terminal }
@@ -38,7 +42,7 @@ type internal QubitInitializer =
     | QubitArray of QubitArray
     | QubitTuple of QubitInitializer Tuple
 
-type internal QubitBinding = { Name: QubitSymbolBinding; Equals: Terminal; Initializer: QubitInitializer }
+type internal QubitBinding = { Name: SymbolBinding; Equals: Terminal; Initializer: QubitInitializer }
 
 module internal QubitBinding =
     /// <summary>

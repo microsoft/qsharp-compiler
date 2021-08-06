@@ -74,7 +74,7 @@ type internal CallableDeclaration =
         TypeParameters: TypeParameterBinding option
 
         /// The parameters of the callable.
-        Parameters: SymbolBinding
+        Parameters: ParameterBinding
 
         /// The return type of the callable.
         ReturnType: TypeAnnotation
