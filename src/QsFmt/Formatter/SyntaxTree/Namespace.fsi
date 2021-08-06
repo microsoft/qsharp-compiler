@@ -96,7 +96,7 @@ type internal NamespaceItem =
 
 module internal NamespaceItem =
     /// <summary>
-    /// Maps a namespace item by applying <paramref name="mapper"/> to its trivia prefix.
+    /// Maps a namespace item by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> NamespaceItem -> NamespaceItem
 
