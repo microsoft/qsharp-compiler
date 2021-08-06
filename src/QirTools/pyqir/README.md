@@ -1,8 +1,8 @@
-## Functional Summary
+# Functional Summary
 
 Python API for generating QIR modules.
 
-## Tech Overview
+# Tech Overview
 
 The project is a mix of Python and Rust. The project is built as a platform dependent Python wheel which provides a thin API surface over a compiled Rust `cdylib`. This `cdylib` is statically linked against LLVM 11. This gives us a 4MB~12MB wheel.
 
@@ -22,70 +22,108 @@ The Rust project uses:
   - Also leveraged by the experimental QIR Rust runtime.
   - 2MM+ downloads, 992k recent downloads
   - Apache License 2.0
-- [LLVM]
+- [LLVM](https://llvm.org)
   - [Apache License 2.0 with exceptions](https://releases.llvm.org/11.0.0/LICENSE.TXT)
 
-### IR
+## IR
 
 The project uses `module.ll` produced from a minimal Q# compilation in `module.qs` and compiled with `llvm-as-11` to create `module.bc`. This module contains the `QIR` generated.
 
 This should allow us to load the QIR and replace the entrypoint method body with the circuit translation.
 
-## Building
+# Building
 
-This repo includes a dev container which will install all base requirements. If you with to build locally without a dev container, you'll need to install:
+## Dev Container
 
-- LLVM 11 ([Ubuntu](https://apt.llvm.org/), Windows)
-- Rust > 1.48
-- Python 3.6+
+This repo includes a dev container which will install all base requirements.
 
-## Dev workflow
+- [Visual Studio Code](https://code.visualstudio.com/)
+- Remote-Containers Extension (`ms-vscode-remote.remote-containers`)
+- Docker
 
-### Building and Running Tests
+Open `src\QirTools\pyqir` in VS Code and press `Ctrl + Shift + P` to open the command pallet and launch `Remote-Containers: Rebuild and Reopen in Container`. This will open a new VS Code window and build the development environment in a container.
 
-#### Prerequisites
+## Local Environment
 
-##### Windows **Experimental**
+If you wish to set up your own local environment on Windows or Linux, follow one of the sections below.
+
+### Linux (Ubuntu)
+
+Install python and libs:
+
+```bash
+sudo apt-get install -y --no-install-recommends python3-dev python3-pip
+python3 -m pip install -U pip
+python3 -m pip install maturin tox
+```
+
+Install Rust from [rustup](https://rustup.rs/).
+
+Install LLVM via [LLVM's apt source](#llvm-apt) or via [conda/miniconda](#linux-miniconda):
+
+#### LLVM Apt
+
+```bash
+sudo apt-get install -y --no-install-recommends lsb-release wget software-properties-common
+wget https://apt.llvm.org/llvm.sh
+chmod +x llvm.sh
+sudo ./llvm.sh 11
+
+sudo apt-get update
+sudo apt-get install -y --no-install-recommends cmake ninja-build clang-11 clang-tidy-11 build-essential
+```
+
+#### Linux Miniconda
 
 Install [miniconda](https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links).
-
-In an Administrator command prompt:
-```bash
-python -m pip install maturin
-```
 
 In a command prompt:
 
 ```bash
 conda install -y -c conda-forge llvm-tools=11.1.0 llvmdev=11.1.0 clang=11.1.0 cmake=3.20.4 ninja=1.10.2
-python -m pip install -U --user tox
 ```
 
-##### Linux
-Install LLVM via [LLVM's apt source](https://apt.llvm.org/) or via conda/miniconda like on Windows.
+### Windows
+
+Install Python 3.6+ from [Python.org](https://www.python.org/downloads/).
+
+In an Administrator command prompt:
 
 ```bash
-python -m pip install --user maturin tox
+python -m pip install maturin tox
 ```
 
-#### Development
+Install Rust from [rustup](https://rustup.rs/).
+
+Install [miniconda](https://docs.conda.io/en/latest/miniconda.html#latest-miniconda-installer-links).
+
+In a command prompt:
+
+```bash
+conda install -y -c conda-forge llvm-tools=11.1.0 llvmdev=11.1.0 clang=11.1.0 cmake=3.20.4 ninja=1.10.2
+```
+
+## Development
+
 If this is the first time you've loaded the code we need to install the python dev packages:
 
 Set the `LLVM_SYS_110_PREFIX` environment variable to point to your LLVM installation. The defaults are:
-- Windows (miniconda): `C:\Users\iadavis\Miniconda3\Library\`
-- Debian: `/usr/lib/llvm-11`
+- Windows (miniconda): `C:\Users\<username>\Miniconda3\Library\`
+  - PowerShell: `$env:LLVM_SYS_110_PREFIX="C:\Users\<username>\Miniconda3\Library\"`
+- Debian (apt): `/usr/lib/llvm-11`
+  - bash: `export LLVM_SYS_110_PREFIX=/usr/lib/llvm-11`
+  - PowerShell: `$env:LLVM_SYS_110_PREFIX=/usr/lib/llvm-11`
+- Debian (minconda): `/home/<username>/miniconda3/library`
+  - bash: `export LLVM_SYS_110_PREFIX=/home/<username>/miniconda3/library`
+  - PowerShell: `$env:LLVM_SYS_110_PREFIX=/home/<username>/miniconda3/library`
 
-```bash
-python3 -m pip install -r requirements-dev.txt
-```
+Build commands:
+- `maturin build`: Build the crate into python packages
+  - `maturin build --release`: Build and pass --release to cargo
+  - `maturin build --help`: to view more options
+- `maturin develop`: Installs the crate as module in the current virtualenv
 
-After which we can build everything and install the module locally:
-
-```bash
-python3 setup.py install --user
-```
-
-#### Top level Tox Usage
+### Top level Tox Usage
 
 Currently the `LLVM_SYS_110_PREFIX` is passed into the `tox` environment for `llvm-sys` compilation. There is an issue with the `cc-rs` crate finding `cl.exe` on Windows right now so `passenv = *` is currently set until this can be resolved.
 
