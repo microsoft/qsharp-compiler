@@ -60,12 +60,16 @@ type Example =
 
 module internal Example =
     /// Converts an example test case into a fixed point test case.
-    let toFixedPoint (example: Example) =
-        {
-            Name = example.Name
-            Skip = example.Skip
-            Source = example.After
-        }
+    let toFixedPoint example =
+        match example.Kind with
+        | ExampleKind.Format ->
+            {
+                Name = example.Name
+                Skip = example.Skip
+                Source = example.After
+            }
+            |> Some
+        | _ -> None
 
 /// <summary>
 /// Marks a property of type <c>string * string</c> that should be run as an example test case, with the first item
@@ -174,7 +178,7 @@ module Discoverer =
     type private FixedPointData() as data =
         inherit TheoryData<FixedPoint>()
 
-        do examples |> Seq.map Example.toFixedPoint |> Seq.append fixedPoints |> Seq.iter data.Add
+        do examples |> Seq.choose Example.toFixedPoint |> Seq.append fixedPoints |> Seq.iter data.Add
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="Example"/> format test cases change from their
@@ -206,4 +210,7 @@ module Discoverer =
     let ``Formatted code is unchanged`` (fixedPoint: FixedPoint) =
         match fixedPoint.Skip with
         | Some reason -> Skip.If(true, reason)
-        | None -> Assert.Equal(Ok fixedPoint.Source |> ShowResult, Formatter.format fixedPoint.Source |> ShowResult)
+        | None ->
+            let original = Ok fixedPoint.Source |> ShowResult
+            let formatted = Formatter.format fixedPoint.Source |> ShowResult
+            Assert.Equal(original, formatted)
