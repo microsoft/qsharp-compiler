@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/InstructionReplacement/QubitAllocationManager.hpp"
+#include "AllocationManager/AllocationManager.hpp"
 
 #include <memory>
 #include <unordered_map>
@@ -10,15 +10,15 @@
 namespace microsoft {
 namespace quantum {
 
-QubitAllocationManager::QubitAllocationManagerPtr QubitAllocationManager::createNew()
+AllocationManager::AllocationManagerPtr AllocationManager::createNew()
 {
-  QubitAllocationManagerPtr ret;
-  ret.reset(new QubitAllocationManager());
+  AllocationManagerPtr ret;
+  ret.reset(new AllocationManager());
 
   return ret;
 }
 
-void QubitAllocationManager::allocate(String const &name, Index const &size, bool value_only)
+void AllocationManager::allocate(String const &name, Index const &size, bool value_only)
 {
   // Creating an array to store values
   // llvm::errs() << "Allocating " << name << " " << size << "\n";
@@ -57,7 +57,7 @@ void QubitAllocationManager::allocate(String const &name, Index const &size, boo
   }
 }
 
-QubitAllocationManager::Array &QubitAllocationManager::get(String const &name)
+AllocationManager::Array &AllocationManager::get(String const &name)
 {
   auto it = arrays_.find(name);
   if (it == arrays_.end())
@@ -67,7 +67,7 @@ QubitAllocationManager::Array &QubitAllocationManager::get(String const &name)
   return it->second;
 }
 
-QubitAllocationManager::Index QubitAllocationManager::getOffset(String const &name) const
+AllocationManager::Index AllocationManager::getOffset(String const &name) const
 {
   auto it = name_to_index_.find(name);
   if (it == name_to_index_.end())
@@ -79,7 +79,7 @@ QubitAllocationManager::Index QubitAllocationManager::getOffset(String const &na
   return mappings_[index].start;
 }
 
-void QubitAllocationManager::release(String const & /*name*/)
+void AllocationManager::release(String const & /*name*/)
 {}
 
 }  // namespace quantum

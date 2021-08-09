@@ -6,7 +6,7 @@ emit-llvm-bc:
 
 
 debug-ng-pass-mac: emit-llvm-bc
-	opt -load-pass-plugin ../../Debug/libOpsCounter.dylib --passes="print<operation-counter>" -disable-output classical-program.bc
+	opt -load-pass-plugin ../../Debug/Source/Passes/libOpsCounter.dylib --passes="print<operation-counter>" -disable-output classical-program.bc
 
 
 clean:

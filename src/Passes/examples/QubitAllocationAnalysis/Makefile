@@ -1,14 +1,14 @@
 run-expand: build-qaa build-esa analysis-example.ll
-	opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib \
-			-load-pass-plugin ../../Debug/libs/libExpandStaticAllocation.dylib --passes="expand-static-allocation" -S analysis-example.ll	
+	opt -load-pass-plugin ../../Debug/Source/Passes/libQubitAllocationAnalysis.dylib \
+			-load-pass-plugin ../../Debug/Source/Passes/libExpandStaticAllocation.dylib --passes="expand-static-allocation" -S analysis-example.ll	
 
 
 run: build-qaa analysis-example.ll
-	opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
+	opt -load-pass-plugin ../../Debug/Source/Passes/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
 run-replace: build-ir analysis-example.ll
 #	opt -loop-unroll -unroll-count=3 -unroll-allow-partial 
-	opt -load-pass-plugin ../../Debug/libs/libInstructionReplacement.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-rotate,loop-unroll,instruction-replacement" -S analysis-example.ll > test.ll
+	opt -load-pass-plugin ../../Debug/Source/Passes/libInstructionReplacement.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-rotate,loop-unroll,instruction-replacement" -S analysis-example.ll > test.ll
 	opt  --passes="inline" -S test.ll | opt -O1 -S
 
 

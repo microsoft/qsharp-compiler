@@ -3,9 +3,7 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Passes/InstructionReplacement/QubitAllocationManager.hpp"
-#include "Rules/OperandPrototype.hpp"
-#include "Rules/ReplacementRule.hpp"
+#include "Rules/RuleSet.hpp"
 
 #include <vector>
 
@@ -15,17 +13,16 @@ namespace quantum {
 class InstructionReplacementPass : public llvm::PassInfoMixin<InstructionReplacementPass>
 {
 public:
-  using Captures                  = OperandPrototype::Captures;
-  using Replacements              = ReplacementRule::Replacements;
-  using Instruction               = llvm::Instruction;
-  using Rules                     = std::vector<ReplacementRule>;
-  using Value                     = llvm::Value;
-  using Builder                   = ReplacementRule::Builder;
-  using QubitAllocationManagerPtr = QubitAllocationManager::QubitAllocationManagerPtr;
+  using Replacements         = ReplacementRule::Replacements;
+  using Instruction          = llvm::Instruction;
+  using Rules                = std::vector<ReplacementRule>;
+  using Value                = llvm::Value;
+  using Builder              = ReplacementRule::Builder;
+  using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
 
   /// Constructors and destructors
   /// @{
-  InstructionReplacementPass();
+  InstructionReplacementPass()                                   = default;
   InstructionReplacementPass(InstructionReplacementPass const &) = delete;
   InstructionReplacementPass(InstructionReplacementPass &&)      = default;
   ~InstructionReplacementPass()                                  = default;
@@ -43,10 +40,8 @@ public:
   static bool             isRequired();
   /// @}
 
-  bool matchAndReplace(Instruction *value);
-
 private:
-  Rules        rules_;         ///< Rules that describes QIR mappings
+  RuleSet      rule_set_{};
   Replacements replacements_;  ///< Registered replacements to be executed.
 };
 
