@@ -27,22 +27,30 @@
 @PartialApplication__11 = internal constant [4 x void (%Tuple*, %Tuple*, %Tuple*)*] [void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__11__body__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__11__adj__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__11__ctl__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__11__ctladj__wrapper]
 @PartialApplication__12 = internal constant [4 x void (%Tuple*, %Tuple*, %Tuple*)*] [void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__12__body__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__12__adj__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__12__ctl__wrapper, void (%Tuple*, %Tuple*, %Tuple*)* @Lifted__PartialApplication__12__ctladj__wrapper]
 
-define internal void @Microsoft__Quantum__Tutorial__TeleportAndReset__body() {
+define internal void @Feasibility__QubitMapping__body() {
 entry:
   %qs = call %Array* @__quantum__rt__qubit_allocate_array(i64 3)
   call void @__quantum__rt__array_update_alias_count(%Array* %qs, i32 1)
-  %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %qs, i64 0)
-  %1 = bitcast i8* %0 to %Qubit**
-  %qubit = load %Qubit*, %Qubit** %1, align 8
-  call void @__quantum__qis__x__body(%Qubit* %qubit)
-  %2 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %qs, i64 1)
+  br label %header__1
+
+header__1:                                        ; preds = %exiting__1, %entry
+  %q = phi i64 [ 8, %entry ], [ %4, %exiting__1 ]
+  %0 = icmp sle i64 %q, 10
+  br i1 %0, label %body__1, label %exit__1
+
+body__1:                                          ; preds = %header__1
+  %1 = sub i64 %q, 8
+  %2 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %qs, i64 %1)
   %3 = bitcast i8* %2 to %Qubit**
-  %qubit__1 = load %Qubit*, %Qubit** %3, align 8
-  call void @__quantum__qis__x__body(%Qubit* %qubit__1)
-  %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %qs, i64 2)
-  %5 = bitcast i8* %4 to %Qubit**
-  %qubit__2 = load %Qubit*, %Qubit** %5, align 8
-  call void @__quantum__qis__x__body(%Qubit* %qubit__2)
+  %qubit = load %Qubit*, %Qubit** %3, align 8
+  call void @__quantum__qis__x__body(%Qubit* %qubit)
+  br label %exiting__1
+
+exiting__1:                                       ; preds = %body__1
+  %4 = add i64 %q, 1
+  br label %header__1
+
+exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__array_update_alias_count(%Array* %qs, i32 -1)
   call void @__quantum__rt__qubit_release_array(%Array* %qs)
   ret void
@@ -82,6 +90,36 @@ entry:
   store %String* %ExecutionTarget, %String** %2, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %ExecutionTarget, i32 1)
   ret { %String* }* %1
+}
+
+define internal void @Microsoft__Quantum__Intrinsic__X__body(%Qubit* %qubit) {
+entry:
+  call void @__quantum__qis__x__body(%Qubit* %qubit)
+  ret void
+}
+
+define internal void @Microsoft__Quantum__Intrinsic__X__adj(%Qubit* %qubit) {
+entry:
+  call void @__quantum__qis__x__body(%Qubit* %qubit)
+  ret void
+}
+
+define internal void @Microsoft__Quantum__Intrinsic__X__ctl(%Array* %__controlQubits__, %Qubit* %qubit) {
+entry:
+  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 1)
+  call void @__quantum__qis__x__ctl(%Array* %__controlQubits__, %Qubit* %qubit)
+  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 -1)
+  ret void
+}
+
+declare void @__quantum__qis__x__ctl(%Array*, %Qubit*)
+
+define internal void @Microsoft__Quantum__Intrinsic__X__ctladj(%Array* %__controlQubits__, %Qubit* %qubit) {
+entry:
+  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 1)
+  call void @__quantum__qis__x__ctl(%Array* %__controlQubits__, %Qubit* %qubit)
+  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 -1)
+  ret void
 }
 
 define internal %Tuple* @Microsoft__Quantum__Core__Attribute__body() {
@@ -2003,36 +2041,6 @@ entry:
   ret void
 }
 
-define internal void @Microsoft__Quantum__Intrinsic__X__body(%Qubit* %qubit) {
-entry:
-  call void @__quantum__qis__x__body(%Qubit* %qubit)
-  ret void
-}
-
-define internal void @Microsoft__Quantum__Intrinsic__X__adj(%Qubit* %qubit) {
-entry:
-  call void @__quantum__qis__x__body(%Qubit* %qubit)
-  ret void
-}
-
-define internal void @Microsoft__Quantum__Intrinsic__X__ctl(%Array* %__controlQubits__, %Qubit* %qubit) {
-entry:
-  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 1)
-  call void @__quantum__qis__x__ctl(%Array* %__controlQubits__, %Qubit* %qubit)
-  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 -1)
-  ret void
-}
-
-declare void @__quantum__qis__x__ctl(%Array*, %Qubit*)
-
-define internal void @Microsoft__Quantum__Intrinsic__X__ctladj(%Array* %__controlQubits__, %Qubit* %qubit) {
-entry:
-  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 1)
-  call void @__quantum__qis__x__ctl(%Array* %__controlQubits__, %Qubit* %qubit)
-  call void @__quantum__rt__array_update_alias_count(%Array* %__controlQubits__, i32 -1)
-  ret void
-}
-
 define internal { %String*, %String* }* @Microsoft__Quantum__Targeting__RequiresCapability__body(%String* %Level, %String* %Reason) {
 entry:
   %0 = call %Tuple* @__quantum__rt__tuple_create(i64 mul nuw (i64 ptrtoint (i1** getelementptr (i1*, i1** null, i32 1) to i64), i64 2))
@@ -2056,15 +2064,15 @@ entry:
   ret { %String* }* %1
 }
 
-define void @Microsoft__Quantum__Tutorial__TeleportAndReset__Interop() #0 {
+define void @Feasibility__QubitMapping__Interop() #0 {
 entry:
-  call void @Microsoft__Quantum__Tutorial__TeleportAndReset__body()
+  call void @Feasibility__QubitMapping__body()
   ret void
 }
 
-define void @Microsoft__Quantum__Tutorial__TeleportAndReset() #1 {
+define void @Feasibility__QubitMapping() #1 {
 entry:
-  call void @Microsoft__Quantum__Tutorial__TeleportAndReset__body()
+  call void @Feasibility__QubitMapping__body()
   ret void
 }
 

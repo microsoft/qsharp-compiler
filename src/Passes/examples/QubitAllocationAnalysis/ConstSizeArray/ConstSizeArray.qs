@@ -1,13 +1,12 @@
-namespace Microsoft.Quantum.Tutorial
+namespace Feasibility
 {
     open Microsoft.Quantum.Intrinsic;
 
     @EntryPoint()
-    operation TeleportAndReset() : Unit {
+    operation QubitMapping() : Unit {
         use qs = Qubit[3];
-        let x = [qs[1], qs[0], qs[2]];
-        X(x[0]);
-        X(x[1]);
-        X(x[2]);
+        for q in 8..10 {
+            X(qs[q - 8]);
+        }
     }
 }
