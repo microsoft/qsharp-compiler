@@ -1,0 +1,1 @@
+# {ExpandStaticAllocation} Specification

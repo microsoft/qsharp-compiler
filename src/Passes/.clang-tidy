@@ -66,11 +66,23 @@ CheckOptions:
   - key:    readability-identifier-naming.ProtectedMemberSuffix
     value:  '_'        
 
-  # Alias
+  # Type Alias and Enum Types / constants
   - key:    readability-identifier-naming.TypeAliasCase
     value:  'CamelCase'
   - key:    readability-identifier-naming.TypedefCase
     value:  'CamelCase'
+  - key:    readability-identifier-naming.EnumCase
+    value:  'CamelCase'
+  - key:    readability-identifier-naming.EnumConstantCase
+    value:  'CamelCase'
+
+  # Globals, consts and enums
+  - key:    readability-identifier-naming.GlobalConstantCase
+    value:  'UPPER_CASE'
+  - key:    readability-identifier-naming.GlobalConstantPrefix
+    value:  'G_'
+  - key:    readability-identifier-naming.ConstantCase
+    value: 'UPPER_CASE'
 
   # Functions
   - key:    readability-identifier-naming.FunctionCase
@@ -85,18 +97,6 @@ CheckOptions:
     value:  'lower_case'
   - key:    readability-identifier-naming.ParameterCase
     value:  'lower_case'
-
-  # Globals, consts and enums
-  - key:    readability-identifier-naming.GlobalConstantCase
-    value:  'UPPER_CASE'
-  - key:    readability-identifier-naming.GlobalConstantPrefix
-    value:  'G_'
-  - key:    readability-identifier-naming.ConstantCase
-    value: 'UPPER_CASE'
-  - key:    readability-identifier-naming.EnumCase
-    value:  'CamelCase'
-  - key:    readability-identifier-naming.EnumConstantCase
-    value:  'CamelCase'
 
   # Macros
   - key:    readability-identifier-naming.MacroDefinitionCase

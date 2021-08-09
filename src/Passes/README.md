@@ -185,7 +185,7 @@ and then make your target
 make [target]
 ```
 
-Valid targets are the name of the folders in `libs/` found in the passes root.
+The default target is `all`. Other valid targets are the name of the folders in `libs/` found in the passes root.
 
 ## Running a pass
 
@@ -204,7 +204,7 @@ For a detailed tutorial, see examples.
 To make it easy to create a new pass, we have created a few templates to get you started quickly:
 
 ```sh
-% ./manage create-pass HelloWorld
+./manage create-pass HelloWorld
 Available templates:
 
 1. Function Pass
@@ -215,9 +215,9 @@ Select a template:1
 At the moment you only have one choice which is a function pass. Over time we will add additional templates. Once you have instantiated your template, you are ready to build it:
 
 ```sh
-% mkdir Debug
-% cd Debug
-% cmake ..
+mkdir Debug
+cd Debug
+cmake ..
 -- The C compiler identification is AppleClang 12.0.5.12050022
 -- The CXX compiler identification is AppleClang 12.0.5.12050022
 (...)
@@ -225,7 +225,7 @@ At the moment you only have one choice which is a function pass. Over time we wi
 -- Generating done
 -- Build files have been written to: ./qsharp-compiler/src/Passes/Debug
 
-% make
+make
 
 [ 25%] Building CXX object libs/CMakeFiles/OpsCounter.dir/OpsCounter/OpsCounter.cpp.o
 [ 50%] Linking CXX shared library libOpsCounter.dylib
@@ -240,9 +240,9 @@ template will not do much except for print the function names of your code. To t
 build an IR and run the pass:
 
 ```sh
-% cd ../examples/ClassicalIrCommandline
-% make
-% opt -load-pass-plugin ../../Debug/libs/libHelloWorld.{dylib,so} --passes="hello-world" -disable-output classical-program.ll
+cd ../examples/ClassicalIrCommandline
+make
+opt -load-pass-plugin ../../Debug/libs/libHelloWorld.{dylib,so} --passes="hello-world" -disable-output classical-program.ll
 ```
 
 If everything worked, you should see output like this:
@@ -303,7 +303,7 @@ that you use a docker image to perform these steps. TODO(TFR): The docker image 
 One error that you may encounter is that an analysis pass does not load with output similar to this:
 
 ```sh
-% opt -load-pass-plugin ../../Debug/libQSharpPasses.dylib -enable-debugify  --passes="operation-counter" -disable-output   classical-program.bc
+opt -load-pass-plugin ../../Debug/libQSharpPasses.dylib -enable-debugify  --passes="operation-counter" -disable-output   classical-program.bc
 Failed to load passes from '../../Debug/libQSharpPasses.dylib'. Request ignored.
 opt: unknown pass name 'operation-counter'
 ```
