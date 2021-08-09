@@ -69,7 +69,11 @@ module TypeCheckingTests =
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
-// TODO: expect "LambdaInvalid4" [ (* Closing over mutable *) ]
+
+        // TODO: Prevent lambdas from closing over a mutable variable.
+        // Issue: https://github.com/microsoft/qsharp-compiler/issues/1113
+        // expect "LambdaInvalid4" [ ... ]
+        ()
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =
