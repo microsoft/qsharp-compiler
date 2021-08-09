@@ -1,27 +1,17 @@
-; ModuleID = 'qir/ConstSizeArray.ll'
+; ModuleID = 'analysis-example.ll'
 source_filename = "qir/ConstSizeArray.ll"
 
-%Array = type opaque
 %Qubit = type opaque
+%Array = type opaque
 
 define internal fastcc void @Microsoft__Quantum__Tutorial__TeleportAndReset__body() unnamed_addr {
 entry:
-  %qs = call %Array* @__quantum__rt__qubit_allocate_array(i64 3)
-  call void @__quantum__rt__array_update_alias_count(%Array* %qs, i32 1)
-  %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %qs, i64 0)
-  %1 = bitcast i8* %0 to %Qubit**
-  %qubit = load %Qubit*, %Qubit** %1, align 8
+  %qubit = inttoptr i64 0 to %Qubit*
   call void @__quantum__qis__x__body(%Qubit* %qubit)
-  %2 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %qs, i64 1)
-  %3 = bitcast i8* %2 to %Qubit**
-  %qubit__1 = load %Qubit*, %Qubit** %3, align 8
+  %qubit__1 = inttoptr i64 1 to %Qubit*
   call void @__quantum__qis__x__body(%Qubit* %qubit__1)
-  %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %qs, i64 2)
-  %5 = bitcast i8* %4 to %Qubit**
-  %qubit__2 = load %Qubit*, %Qubit** %5, align 8
+  %qubit__2 = inttoptr i64 2 to %Qubit*
   call void @__quantum__qis__x__body(%Qubit* %qubit__2)
-  call void @__quantum__rt__array_update_alias_count(%Array* %qs, i32 -1)
-  call void @__quantum__rt__qubit_release_array(%Array* %qs)
   ret void
 }
 

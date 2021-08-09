@@ -7,7 +7,9 @@ run: build-qaa analysis-example.ll
 	opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
 run-replace: build-ir analysis-example.ll
-	opt -load-pass-plugin ../../Debug/libs/libInstructionReplacement.dylib --passes="instruction-replacement" -S analysis-example.ll
+#	opt -loop-unroll -unroll-count=3 -unroll-allow-partial 
+	opt -load-pass-plugin ../../Debug/libs/libInstructionReplacement.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-rotate,loop-unroll,instruction-replacement" -S analysis-example.ll > test.ll
+	opt  --passes="inline" -S test.ll | opt -O1 -S
 
 
 build-prepare:
