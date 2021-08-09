@@ -18,7 +18,7 @@ llvm::PassPluginLibraryInfo getTransformationRulePluginInfo()
         // Registering the pass
         pb.registerPipelineParsingCallback([](StringRef name, FunctionPassManager &fpm,
                                               ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
-          if (name == "instruction-replacement")
+          if (name == "transformation-rule")
           {
             fpm.addPass(TransformationRulePass());
             return true;

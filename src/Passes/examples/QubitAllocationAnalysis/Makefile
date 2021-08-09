@@ -8,7 +8,7 @@ run: build-qaa analysis-example.ll
 
 run-replace: build-ir analysis-example.ll
 #	opt -loop-unroll -unroll-count=3 -unroll-allow-partial 
-	opt -load-pass-plugin ../../Debug/Source/Passes/libInstructionReplacement.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-rotate,loop-unroll,instruction-replacement" -S analysis-example.ll > test.ll
+	opt -load-pass-plugin ../../Debug/Source/Passes/libTransformationRule.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-rotate,loop-unroll,transformation-rule" -S analysis-example.ll > test.ll
 	opt  --passes="inline" -S test.ll | opt -O1 -S
 
 
@@ -22,7 +22,7 @@ build-esa: build-prepare
 	pushd  ../../Debug && make ExpandStaticAllocation  && popd || popd
 
 build-ir: build-prepare
-	pushd  ../../Debug && make InstructionReplacement  && popd || popd
+	pushd  ../../Debug && make TransformationRule  && popd || popd
 
 
 analysis-example.ll:
