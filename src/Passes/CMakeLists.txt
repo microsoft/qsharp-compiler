@@ -61,3 +61,13 @@ target_link_libraries(Passes
 # Adding the libraries
 add_subdirectory(libs)
 add_subdirectory(tests)
+
+add_executable(adaptor undefined/adaptor.cpp)
+target_include_directories(
+  adaptor
+  PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+llvm_map_components_to_libnames(llvm_libs support core irreader passes orcjit orcshared orctargetprocess x86asmparser x86codegen x86desc x86disassembler x86info interpreter)
+
+target_link_libraries(adaptor ${llvm_libs})
