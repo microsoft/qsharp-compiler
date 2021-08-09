@@ -1,3 +1,94 @@
+# Proposal: QIR Adaptor Tool Specification
+
+This document discuss a tool that transforms a QIR into a restricted version of the QIR known as a profile.
+We aim to make a specification for a generic tool that allows the user to
+
+1. Create or use an existing profile without the need of writing code.
+2. Validate that a QIR is compliant with the specific profile.
+3. Generate a profile compliant QIR from a generic unconstrained QIR.
+
+This document sets out to motivate
+
+## Motivation
+
+```text
+┌──────────────────────┐
+│                      │
+│         QIR          │
+│                      │
+└──────────────────────┘
+           │
+   QIR Adaptor Tool
+           │
+           ▼
+┌──────────────────────┐
+│                      │
+│     QIR Profile      │
+│                      │
+└──────────────────────┘
+```
+
+The [base profile](https://github.com/microsoft/qsharp-language/blob/ageller/profile/Specifications/QIR/Base-Profile.md)
+
+## Feasibility Study
+
+In order to demonstrate feasibility of this proposal, we have built a proof-of-concept prototype based on LLVM passes which allows transformation from a generic QIR into one which does not have support for dynamic qubit allocation.
+
+This transformation is considered to be the smallest, non-trivial case of QIR transformation we can perform which demonstrates the feasibility of this proposal.
+
+```
+
+```
+
+## Goal
+
+```language
+./qat -p profile.yaml --validate unvalidated-qir.ll
+```
+
+```language
+./qat -p profile.yaml --generate qir.ll > qir-profile.ll
+```
+
+Default behaviour of the tool is that it always validates the generated profile. This behaviour can be disabled by
+
+```language
+./qat -p profile.yaml --generate --no-validate qir.ll > qir-profile.ll
+```
+
+# Profiles
+
+## Profile specification
+
+```yaml
+name: profile-name
+displayName: Profile Name
+specification:
+  - passName: requireNoArithmetic
+  - passName: requireNoStaticAllocation
+  - passName: requireReducedFunctionsAvailability
+    config:
+      functions:
+        -
+# ...
+```
+
+## Profile specification
+
+```yaml
+name: profile-name
+displayName: Profile Name
+# ...
+generation:
+  - passName: loopUnroll
+  - passName: functionInline
+  - passName: staticQubitAllocation
+  - passName: staticMemory
+  - passName: ignoreCall
+    config:
+      functionName:
+```
+
 # Basic profile target
 
 In this document, we outline a set of proposed analysis and transformatino passes based on the considerations of compiling an Adder using Q# to generate OpenQASM with a restricted set of instructions available.
