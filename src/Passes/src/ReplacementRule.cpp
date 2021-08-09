@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "InstructionReplacement/Rule.hpp"
+#include "Rules/ReplacementRule.hpp"
 
 namespace microsoft {
 namespace quantum {

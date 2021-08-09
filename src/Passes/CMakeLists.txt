@@ -44,6 +44,20 @@ link_directories(${LLVM_LIBRARY_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${CMAKE_SOURCE_DIR}/src)
 
+# Top level lib
+file(GLOB sources RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp)
+
+add_library(Passes 
+            SHARED 
+            ${sources})
+target_include_directories(
+  Passes
+  PRIVATE
+  "${CMAKE_CURRENT_SOURCE_DIR}/include"
+)
+target_link_libraries(Passes
+  "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+
 # Adding the libraries
 add_subdirectory(libs)
 add_subdirectory(tests)

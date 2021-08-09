@@ -37,6 +37,7 @@ foreach(pass_plugin ${ALL_PASSES})
   
 
   # Linking
+  target_link_libraries(${pass_plugin} Passes)
   target_link_libraries(${pass_plugin}
     "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
 

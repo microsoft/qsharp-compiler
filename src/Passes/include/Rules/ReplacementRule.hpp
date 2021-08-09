@@ -2,8 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "InstructionReplacement/Pattern.hpp"
 #include "Llvm.hpp"
+#include "Rules/OperandPrototype.hpp"
 
 #include <unordered_map>
 #include <vector>

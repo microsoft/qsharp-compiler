@@ -2,10 +2,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "InstructionReplacement/Pattern.hpp"
 #include "InstructionReplacement/QubitAllocationManager.hpp"
-#include "InstructionReplacement/Rule.hpp"
 #include "Llvm.hpp"
+#include "Rules/OperandPrototype.hpp"
+#include "Rules/ReplacementRule.hpp"
 
 #include <vector>
 
