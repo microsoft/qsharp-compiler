@@ -59,7 +59,7 @@ Prefer `#pragma once` over `#ifdef` protection.
 ## Code TODOs must contain owner name or Github issue
 
 ```sh
-% ./manage runci
+./manage runci
 (...)
 Passes/src/OpsCounter/OpsCounter.cpp:39:21: error: missing username/bug in TODO [google-readability-todo,-warnings-as-errors]
                     // TODO: Fails to load if this is present

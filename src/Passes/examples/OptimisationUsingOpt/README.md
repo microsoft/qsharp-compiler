@@ -20,10 +20,10 @@ namespace Example {
 You find the code for this in the folder `SimpleExample`. To generate a QIR for this code, go to the folder and run
 
 ```sh
-% cd SimpleExample/
-% dotnet clean SimpleExample.csproj
+cd SimpleExample/
+dotnet clean SimpleExample.csproj
 (...)
-% dotnet build SimpleExample.csproj -c Debug
+dotnet build SimpleExample.csproj -c Debug
 ```
 
 If everything went well, you should now have a subdirectory called `qir` and inside `qir`, you will find `SimpleExample.ll`. Depending on your compiler,
