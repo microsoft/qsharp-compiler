@@ -102,11 +102,23 @@ bool CallPattern::match(Value *instr, Captures &captures) const
   return success(instr, captures);
 }
 
+CallPattern::Child CallPattern::copy() const
+{
+  auto ret = std::make_shared<CallPattern>(name_);
+  ret->copyPropertiesFrom(*this);
+  return std::move(ret);
+}
+
 AnyPattern::AnyPattern()  = default;
 AnyPattern::~AnyPattern() = default;
 bool AnyPattern::match(Value *instr, Captures &captures) const
 {
   return success(instr, captures);
+}
+
+AnyPattern::Child AnyPattern::copy() const
+{
+  return std::make_shared<AnyPattern>();
 }
 
 template <typename T>
@@ -123,6 +135,14 @@ bool InstructionPattern<T>::match(Value *instr, Captures &captures) const
   return success(instr, captures);
 }
 
+template <typename T>
+typename InstructionPattern<T>::Child InstructionPattern<T>::copy() const
+{
+  auto ret = std::make_shared<InstructionPattern<T>>();
+  ret->copyPropertiesFrom(*this);
+  return std::move(ret);
+}
+
 // TODO(tfr): This seems to be a bug in LLVM. Template instantiations in
 // a single translation unit is not supposed to reinstantiate across other
 // translation units.
@@ -135,6 +155,7 @@ bool InstructionPattern<T>::match(Value *instr, Captures &captures) const
 // for more information
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wweak-template-vtables"
+template class InstructionPattern<llvm::StoreInst>;
 template class InstructionPattern<llvm::LoadInst>;
 template class InstructionPattern<llvm::BitCastInst>;
 #pragma clang diagnostic pop

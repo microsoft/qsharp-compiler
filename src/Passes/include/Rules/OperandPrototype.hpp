@@ -23,7 +23,8 @@ public:
   OperandPrototype() = default;
 
   virtual ~OperandPrototype();
-  virtual bool match(Value *value, Captures &captures) const = 0;
+  virtual bool  match(Value *value, Captures &captures) const = 0;
+  virtual Child copy() const                                  = 0;
 
   void addChild(Child const &child)
   {
@@ -39,11 +40,17 @@ protected:
   bool fail(Value *value, Captures &captures) const;
   bool success(Value *value, Captures &captures) const;
 
-private:
   bool matchChildren(Value *value, Captures &captures) const;
   void capture(Value *value, Captures &captures) const;
   void uncapture(Value *value, Captures &captures) const;
 
+  void copyPropertiesFrom(OperandPrototype const &other)
+  {
+    capture_name_ = other.capture_name_;
+    children_     = other.children_;
+  }
+
+private:
   std::string capture_name_{""};
   Children    children_{};
 };
@@ -53,7 +60,8 @@ class AnyPattern : public OperandPrototype
 public:
   AnyPattern();
   ~AnyPattern() override;
-  bool match(Value *instr, Captures &captures) const override;
+  bool  match(Value *instr, Captures &captures) const override;
+  Child copy() const override;
 };
 
 class CallPattern : public OperandPrototype
@@ -64,7 +72,8 @@ public:
 
   ~CallPattern() override;
 
-  bool match(Value *instr, Captures &captures) const override;
+  bool  match(Value *instr, Captures &captures) const override;
+  Child copy() const override;
 
 private:
   String name_{};
@@ -76,9 +85,11 @@ class InstructionPattern : public OperandPrototype
 public:
   using OperandPrototype::OperandPrototype;
   ~InstructionPattern() override;
-  bool match(Value *instr, Captures &captures) const override;
+  bool  match(Value *instr, Captures &captures) const override;
+  Child copy() const override;
 };
 
+using StorePattern   = InstructionPattern<llvm::StoreInst>;
 using LoadPattern    = InstructionPattern<llvm::LoadInst>;
 using BitCastPattern = InstructionPattern<llvm::BitCastInst>;
 
