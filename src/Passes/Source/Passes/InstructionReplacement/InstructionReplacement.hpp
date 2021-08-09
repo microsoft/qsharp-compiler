@@ -2,8 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "InstructionReplacement/QubitAllocationManager.hpp"
-#include "Llvm.hpp"
+#include "Llvm/Llvm.hpp"
+#include "Passes/InstructionReplacement/QubitAllocationManager.hpp"
 #include "Rules/OperandPrototype.hpp"
 #include "Rules/ReplacementRule.hpp"
 

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "InstructionReplacement/QubitAllocationManager.hpp"
+#include "Passes/InstructionReplacement/QubitAllocationManager.hpp"
 
 #include <memory>
 #include <unordered_map>

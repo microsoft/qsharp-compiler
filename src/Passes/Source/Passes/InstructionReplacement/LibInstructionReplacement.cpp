@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "InstructionReplacement/InstructionReplacement.hpp"
-
-#include "Llvm.hpp"
+#include "Llvm/Llvm.hpp"
+#include "Passes/InstructionReplacement/InstructionReplacement.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -13,7 +12,7 @@ llvm::PassPluginLibraryInfo getInstructionReplacementPluginInfo()
 {
   using namespace microsoft::quantum;
   using namespace llvm;
-  
+
   return {
       LLVM_PLUGIN_API_VERSION, "InstructionReplacement", LLVM_VERSION_STRING, [](PassBuilder &pb) {
         // Registering the pass
@@ -28,8 +27,8 @@ llvm::PassPluginLibraryInfo getInstructionReplacementPluginInfo()
           return false;
         });
       }};
-}  
-} // namespace
+}
+}  // namespace
 
 // Interface for loading the plugin
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo()

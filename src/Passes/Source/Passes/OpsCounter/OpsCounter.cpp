@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "OpsCounter/OpsCounter.hpp"
+#include "Passes/OpsCounter/OpsCounter.hpp"
 
-#include "Llvm.hpp"
+#include "Llvm/Llvm.hpp"
 
 #include <fstream>
 #include <iostream>

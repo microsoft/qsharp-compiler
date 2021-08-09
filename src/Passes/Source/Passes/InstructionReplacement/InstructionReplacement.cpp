@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "InstructionReplacement/InstructionReplacement.hpp"
+#include "Passes/InstructionReplacement/InstructionReplacement.hpp"
 
-#include "Llvm.hpp"
+#include "Llvm/Llvm.hpp"
 
 #include <fstream>
 #include <iostream>

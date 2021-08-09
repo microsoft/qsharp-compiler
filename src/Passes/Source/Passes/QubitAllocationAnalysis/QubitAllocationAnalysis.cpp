@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "QubitAllocationAnalysis/QubitAllocationAnalysis.hpp"
+#include "Passes/QubitAllocationAnalysis/QubitAllocationAnalysis.hpp"
 
-#include "Llvm.hpp"
+#include "Llvm/Llvm.hpp"
 
 #include <fstream>
 #include <iostream>
