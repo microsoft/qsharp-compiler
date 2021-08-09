@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/InstructionReplacement/InstructionReplacement.hpp"
+#include "Passes/TransformationRule/TransformationRule.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -11,8 +11,8 @@
 namespace microsoft {
 namespace quantum {
 
-llvm::PreservedAnalyses InstructionReplacementPass::run(llvm::Function &function,
-                                                        llvm::FunctionAnalysisManager & /*fam*/)
+llvm::PreservedAnalyses TransformationRulePass::run(llvm::Function &function,
+                                                    llvm::FunctionAnalysisManager & /*fam*/)
 {
   replacements_.clear();
 
@@ -61,7 +61,7 @@ llvm::PreservedAnalyses InstructionReplacementPass::run(llvm::Function &function
   return llvm::PreservedAnalyses::none();
 }
 
-bool InstructionReplacementPass::isRequired()
+bool TransformationRulePass::isRequired()
 {
   return true;
 }

@@ -10,7 +10,7 @@
 namespace microsoft {
 namespace quantum {
 
-class InstructionReplacementPass : public llvm::PassInfoMixin<InstructionReplacementPass>
+class TransformationRulePass : public llvm::PassInfoMixin<TransformationRulePass>
 {
 public:
   using Replacements         = ReplacementRule::Replacements;
@@ -22,16 +22,16 @@ public:
 
   /// Constructors and destructors
   /// @{
-  InstructionReplacementPass()                                   = default;
-  InstructionReplacementPass(InstructionReplacementPass const &) = delete;
-  InstructionReplacementPass(InstructionReplacementPass &&)      = default;
-  ~InstructionReplacementPass()                                  = default;
+  TransformationRulePass()                               = default;
+  TransformationRulePass(TransformationRulePass const &) = delete;
+  TransformationRulePass(TransformationRulePass &&)      = default;
+  ~TransformationRulePass()                              = default;
   /// @}
 
   /// Operators
   /// @{
-  InstructionReplacementPass &operator=(InstructionReplacementPass const &) = delete;
-  InstructionReplacementPass &operator=(InstructionReplacementPass &&) = default;
+  TransformationRulePass &operator=(TransformationRulePass const &) = delete;
+  TransformationRulePass &operator=(TransformationRulePass &&) = default;
   /// @}
 
   /// Functions required by LLVM

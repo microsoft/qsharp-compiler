@@ -2,25 +2,25 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Passes/InstructionReplacement/InstructionReplacement.hpp"
+#include "Passes/TransformationRule/TransformationRule.hpp"
 
 #include <fstream>
 #include <iostream>
 
 namespace {
-llvm::PassPluginLibraryInfo getInstructionReplacementPluginInfo()
+llvm::PassPluginLibraryInfo getTransformationRulePluginInfo()
 {
   using namespace microsoft::quantum;
   using namespace llvm;
 
   return {
-      LLVM_PLUGIN_API_VERSION, "InstructionReplacement", LLVM_VERSION_STRING, [](PassBuilder &pb) {
+      LLVM_PLUGIN_API_VERSION, "TransformationRule", LLVM_VERSION_STRING, [](PassBuilder &pb) {
         // Registering the pass
         pb.registerPipelineParsingCallback([](StringRef name, FunctionPassManager &fpm,
                                               ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
           if (name == "instruction-replacement")
           {
-            fpm.addPass(InstructionReplacementPass());
+            fpm.addPass(TransformationRulePass());
             return true;
           }
 
@@ -33,5 +33,5 @@ llvm::PassPluginLibraryInfo getInstructionReplacementPluginInfo()
 // Interface for loading the plugin
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo()
 {
-  return getInstructionReplacementPluginInfo();
+  return getTransformationRulePluginInfo();
 }
