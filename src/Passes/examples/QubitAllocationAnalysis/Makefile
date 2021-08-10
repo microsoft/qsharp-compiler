@@ -8,7 +8,7 @@ run: build-qaa analysis-example.ll
 
 run-replace: build-ir analysis-example.ll
 #	opt -loop-unroll -unroll-count=3 -unroll-allow-partial 
-	opt -load-pass-plugin ../../Debug/Source/Passes/libTransformationRule.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-rotate,loop-unroll,transformation-rule" -S analysis-example.ll > test.ll
+	opt -load-pass-plugin ../../Debug/Source/Passes/libTransformationRule.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-unroll,transformation-rule" -S analysis-example.ll > test.ll
 	opt  --passes="inline" -S test.ll | opt -O1 -S
 
 
