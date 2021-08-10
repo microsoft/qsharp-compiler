@@ -128,7 +128,7 @@ type internal 'context Rewriter =
     default Return: context:'context * returns:Return -> Return
 
     /// <summary>
-    /// Rewrites a <se cref="QubitDeclaration"/> statement node.
+    /// Rewrites a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
     default QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
