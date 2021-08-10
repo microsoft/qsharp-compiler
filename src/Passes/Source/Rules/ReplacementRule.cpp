@@ -6,6 +6,11 @@
 namespace microsoft {
 namespace quantum {
 
+ReplacementRule::ReplacementRule(OperandPrototypePtr &&pattern, ReplaceFunction &&replacer)
+  : pattern_{std::move(pattern)}
+  , replacer_{std::move(replacer)}
+{}
+
 void ReplacementRule::setPattern(OperandPrototypePtr &&pattern)
 {
   pattern_ = std::move(pattern);

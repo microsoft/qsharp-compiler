@@ -29,25 +29,36 @@ llvm::PreservedAnalyses TransformationRulePass::run(llvm::Function &function,
   // Applying all replacements
   for (auto it = replacements_.rbegin(); it != replacements_.rend(); ++it)
   {
+    auto instr1 = llvm::dyn_cast<llvm::Instruction>(it->first);
+    if (instr1 == nullptr)
+    {
+      llvm::errs() << "; WARNING: cannot deal with non-instruction replacements\n";
+      continue;
+    }
+
     // Cheking if have a replacement for the instruction
     if (it->second != nullptr)
     {
       // ... if so, we just replace it,
-      llvm::ReplaceInstWithInst(it->first, it->second);
+      auto instr2 = llvm::dyn_cast<llvm::Instruction>(it->second);
+      if (instr2 == nullptr)
+      {
+        llvm::errs() << "; WARNING: cannot replace instruction with non-instruction\n";
+        continue;
+      }
+      llvm::ReplaceInstWithInst(instr1, instr2);
     }
     else
     {
       // ... otherwise we delete the the instruction
-      auto instruction = it->first;
-
       // Removing all uses
-      if (!instruction->use_empty())
+      if (!instr1->use_empty())
       {
-        instruction->replaceAllUsesWith(llvm::UndefValue::get(instruction->getType()));
+        instr1->replaceAllUsesWith(llvm::UndefValue::get(instr1->getType()));
       }
 
       // And finally we delete the instruction
-      instruction->eraseFromParent();
+      instr1->eraseFromParent();
     }
   }
 

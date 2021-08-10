@@ -18,8 +18,11 @@ public:
   using Value               = llvm::Value;
   using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
   using Builder             = llvm::IRBuilder<>;
-  using Replacements        = std::vector<std::pair<Instruction *, Instruction *>>;
+  using Replacements        = std::vector<std::pair<Value *, Value *>>;
   using ReplaceFunction     = std::function<bool(Builder &, Value *, Captures &, Replacements &)>;
+
+  ReplacementRule() = default;
+  ReplacementRule(OperandPrototypePtr &&pattern, ReplaceFunction &&replacer);
 
   /// Rule configuration
   /// @{
@@ -105,6 +108,17 @@ private:
 inline Capture operator""_cap(char const *name, std::size_t)
 {
   return Capture(name);
+}
+
+inline std::function<bool(ReplacementRule::Builder &, ReplacementRule::Value *,
+                          ReplacementRule::Captures &, ReplacementRule::Replacements &)>
+deleteInstruction()
+{
+  return [](ReplacementRule::Builder &, ReplacementRule::Value *val, ReplacementRule::Captures &,
+            ReplacementRule::Replacements &replacements) {
+    replacements.push_back({llvm::dyn_cast<llvm::Instruction>(val), nullptr});
+    return true;
+  };
 }
 
 }  // namespace patterns
