@@ -1,13 +1,69 @@
 {
-    "dockerFile": "./Dockerfile",
+    "name": "Quantum Compiler",
+	"build": {
+		"dockerfile": "Dockerfile",
+	},
+    "settings": {
+        "python.pythonPath": "/opt/python/latest/bin/python",
+        "python.linting.enabled": true,
+        "python.linting.pylintEnabled": true,
+        "python.formatting.autopep8Path": "/usr/local/py-utils/bin/autopep8",
+        "python.formatting.blackPath": "/usr/local/py-utils/bin/black",
+        "python.formatting.yapfPath": "/usr/local/py-utils/bin/yapf",
+        "python.linting.banditPath": "/usr/local/py-utils/bin/bandit",
+        "python.linting.flake8Path": "/usr/local/py-utils/bin/flake8",
+        "python.linting.mypyPath": "/usr/local/py-utils/bin/mypy",
+        "python.linting.pycodestylePath": "/usr/local/py-utils/bin/pycodestyle",
+        "python.linting.pydocstylePath": "/usr/local/py-utils/bin/pydocstyle",
+        "python.linting.pylintPath": "/usr/local/py-utils/bin/pylint",
+        "lldb.executable": "/usr/bin/lldb",
+        "files.watcherExclude": {
+            "**/target/**": true
+        },
+        "terminal.integrated.defaultProfile.linux": "pwsh",
+        "terminal.integrated.profiles.linux": {
+            "bash": {
+                "path": "bash"
+            },
+            "zsh": {
+                "path": "zsh"
+            },
+            "fish": {
+                "path": "fish"
+            },
+            "pwsh": {
+                "path": "pwsh",
+                "icon": "terminal-powershell"
+            }
+        }
+    },
+    "remoteUser": "codespace",
+    "workspaceMount": "source=${localWorkspaceFolder},target=/home/codespace/workspace,type=bind,consistency=cached",
+    "workspaceFolder": "/home/codespace/workspace",
+    "mounts": [
+        "source=/var/run/docker.sock,target=/var/run/docker.sock,type=bind"
+    ],
+    "runArgs": [
+        "--cap-add=SYS_PTRACE",
+        "--security-opt",
+        "seccomp=unconfined",
+        "--init"
+    ],
+    "containerEnv": { "LLVM_SYS_110_PREFIX": "/usr/lib/llvm-11" },
+    // Add the IDs of extensions you want installed when the container is created.
     "extensions": [
+        "GitHub.vscode-pull-request-github",
         "ms-dotnettools.csharp",
-        "Ionide.Ionide-fsharp",
+        "matklad.rust-analyzer",
         "ms-vscode.powershell",
         "quantum.quantum-devkit-vscode",
-        "ms-vscode.cpptools"
+        "Ionide.Ionide-fsharp",
+        "ms-vscode.cpptools",
+        "MS-vsliveshare.vsliveshare",
+		"VisualStudioExptTeam.vscodeintellicode"
     ],
-    "settings": {
-        "terminal.integrated.shell.linux": "/usr/bin/pwsh"
-    }
+    // Use 'forwardPorts' to make a list of ports inside the container available locally.
+    // "forwardPorts": [],
+    // "oryx build" will automatically install your dependencies and attempt to build your project
+    "postCreateCommand": "oryx build -p virtualenv_name=.venv --log-file /tmp/oryx-build.log --manifest-dir /tmp || echo 'Could not auto-build. Skipping.'"
 }

@@ -1,10 +1,27 @@
-FROM mcr.microsoft.com/dotnet/core/sdk:3.1-focal
+# See here for image contents: https://github.com/microsoft/vscode-dev-containers/blob/v0.191.0/containers/codespaces-linux/.devcontainer/base.Dockerfile
 
-# Mono is required to run pack.ps1, so we install it here.
-RUN apt-get -y update && \
-    apt-get -y install dirmngr gnupg apt-transport-https ca-certificates && \
-    apt-key adv --keyserver hkp://keyserver.ubuntu.com:80 --recv-keys 3FA7E0328081BFF6A14DA29AA6A19B38D3D831EF && \
-    sh -c 'echo "deb https://download.mono-project.com/repo/ubuntu stable-focal main" > /etc/apt/sources.list.d/mono-official-stable.list' && \
-    apt-get -y update && \
-    apt-get -y install --no-install-recommends mono-complete nuget && \
-    apt-get clean && rm -rf /var/lib/apt/lists/
+FROM mcr.microsoft.com/vscode/devcontainers/universal:1-linux
+
+USER root
+
+COPY ./llvm.sh .
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive && \
+    apt-get install -y --no-install-recommends lsb-release wget software-properties-common python3-pip && \
+    python3 -m pip install -U pip && \
+    chmod +x llvm.sh && \
+    ./llvm.sh 11 && \
+    rm llvm.sh
+
+# Install CMake 3.20 (required since apt-get uses 3.16 and repo requires 3.20)
+RUN curl -SsL https://github.com/Kitware/CMake/releases/download/v3.20.5/cmake-3.20.5-linux-x86_64.sh -o cmakeinstall.sh \
+    && echo "f582e02696ceee81818dc3378531804b2213ed41c2a8bc566253d16d894cefab cmakeinstall.sh" | sha256sum -c --strict - \
+    && chmod +x cmakeinstall.sh \
+    && ./cmakeinstall.sh --prefix=/usr/local --exclude-subdir \
+    && rm cmakeinstall.sh
+
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get install -y --no-install-recommends ninja-build clang-11 clang-tidy-11 build-essential \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/
+
+USER codespace
