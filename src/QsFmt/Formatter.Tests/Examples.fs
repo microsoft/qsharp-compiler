@@ -80,11 +80,16 @@ let ``Removes extraneous spaces`` =
 }"""
 
 [<Example(ExampleKind.Update)>]
-let ``Updates Using Statements`` =
+let ``Updates Using Blocks`` =
     """namespace Foo {
     operation Bar() : Unit {
         using ((qubits, q) = (Qubit[2], Qubit())) {
-            using (q2 = Qubit());
+            let x = // Newlines are preserved.
+                (7 * 1) // Comments too.
+                + 4 / Fun<Bool, Double>();
+            using (q2 = Qubit()) {
+                let s = $"{1 + 2}";
+            }
         }
     }
 }""",
@@ -92,7 +97,64 @@ let ``Updates Using Statements`` =
     """namespace Foo {
     operation Bar() : Unit {
         use (qubits, q) = (Qubit[2], Qubit()) {
-            use q2 = Qubit();
+            let x = // Newlines are preserved.
+                (7 * 1) // Comments too.
+                + 4 / Fun<Bool, Double>();
+            use q2 = Qubit() {
+                let s = $"{1 + 2}";
+            }
+        }
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
+let ``Updates Using Statements`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        using ((qubits, q) = (Qubit[2], Qubit()));
+        let x = // Newlines are preserved.
+            (7 * 1) // Comments too.
+            + 4 / Fun<Bool, Double>();
+        using (q2 = Qubit());
+        let s = $"{1 + 2}";
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        use (qubits, q) = (Qubit[2], Qubit());
+        let x = // Newlines are preserved.
+            (7 * 1) // Comments too.
+            + 4 / Fun<Bool, Double>();
+        use q2 = Qubit();
+        let s = $"{1 + 2}";
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
+let ``Updates Borrowing Blocks`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        borrowing ((qubits, q) = (Qubit[2], Qubit())) {
+            let x = // Newlines are preserved.
+                (7 * 1) // Comments too.
+                + 4 / Fun<Bool, Double>();
+            borrowing (q2 = Qubit()) {
+                let s = $"{1 + 2}";
+            }
+        }
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        borrow (qubits, q) = (Qubit[2], Qubit()) {
+            let x = // Newlines are preserved.
+                (7 * 1) // Comments too.
+                + 4 / Fun<Bool, Double>();
+            borrow q2 = Qubit() {
+                let s = $"{1 + 2}";
+            }
         }
     }
 }"""
@@ -101,36 +163,22 @@ let ``Updates Using Statements`` =
 let ``Updates Borrowing Statements`` =
     """namespace Foo {
     operation Bar() : Unit {
-        borrowing ((qubits, q) = (Qubit[2], Qubit())) {
-            borrowing (q2 = Qubit());
-        }
+        borrowing ((qubits, q) = (Qubit[2], Qubit()));
+        let x = // Newlines are preserved.
+            (7 * 1) // Comments too.
+            + 4 / Fun<Bool, Double>();
+        borrowing (q2 = Qubit());
+        let s = $"{1 + 2}";
     }
 }""",
 
     """namespace Foo {
     operation Bar() : Unit {
-        borrow (qubits, q) = (Qubit[2], Qubit()) {
-            borrow q2 = Qubit();
-        }
-    }
-}"""
-
-[<Example(ExampleKind.Update)>]
-let ``Updates Using with comments`` =
-    """namespace Foo {
-    operation Bar() : Unit {
-        using (
-            q = Qubit() // comment
-        ) {
-        }
-    }
-}""",
-
-    """namespace Foo {
-    operation Bar() : Unit {
-        use 
-            q = Qubit() // comment
-         {
-        }
+        borrow (qubits, q) = (Qubit[2], Qubit());
+        let x = // Newlines are preserved.
+            (7 * 1) // Comments too.
+            + 4 / Fun<Bool, Double>();
+        borrow q2 = Qubit();
+        let s = $"{1 + 2}";
     }
 }"""
