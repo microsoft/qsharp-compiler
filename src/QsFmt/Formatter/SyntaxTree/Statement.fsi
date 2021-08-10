@@ -90,96 +90,48 @@ type internal Return =
         Semicolon: Terminal
     }
 
-/// <summary>
-/// A <c>use</c> statement.
-/// </summary>
-type internal Use =
+/// The kind of qubit declaration.
+type internal QubitDeclarationKind =
+
+    /// <summary>
+    /// Indicates a <c>use</c> qubit declaration.
+    /// </summary>
+    | Use
+
+    /// <summary>
+    /// Indicates a <c>borrow</c> qubit declaration.
+    /// </summary>
+    | Borrow
+
+/// The concluding section of a qubit declaration.
+type internal QubitDeclarationCoda =
+
+    /// The semicolon.
+    | Semicolon of Terminal
+
+    /// The block of statements after the declaration.
+    | Block of Statement Block
+
+/// A qubit declaration statement.
+and internal QubitDeclaration =
     {
-        /// <summary>
-        /// The <c>use</c> keyword.
-        /// </summary>
-        UseKeyword: Terminal
+        /// The kind of qubit declaration.
+        Kind: QubitDeclarationKind
+
+        /// The keyword used in the declaration.
+        Keyword: Terminal
 
         /// The qubit binding.
         Binding: QubitBinding
 
-        /// Optional open parentheses
+        /// Optional open parentheses.
         OpenParen: Terminal option
 
-        /// Optional close parentheses
+        /// Optional close parentheses.
         CloseParen: Terminal option
 
-        /// The semicolon.
-        Semicolon: Terminal
-    }
-
-/// <summary>
-/// A <c>borrow</c> statement.
-/// </summary>
-type internal Borrow =
-    {
-        /// <summary>
-        /// The <c>borrow</c> keyword.
-        /// </summary>
-        BorrowKeyword: Terminal
-
-        /// The qubit binding.
-        Binding: QubitBinding
-
-        /// Optional open parentheses
-        OpenParen: Terminal option
-
-        /// Optional close parentheses
-        CloseParen: Terminal option
-
-        /// The semicolon.
-        Semicolon: Terminal
-    }
-
-/// <summary>
-/// A <c>use</c> statement preceding a block.
-/// </summary>
-type internal UseBlock =
-    {
-        /// <summary>
-        /// The <c>use</c> keyword.
-        /// </summary>
-        UseKeyword: Terminal
-
-        /// The qubit binding.
-        Binding: QubitBinding
-
-        /// Optional open parentheses
-        OpenParen: Terminal option
-
-        /// Optional close parentheses
-        CloseParen: Terminal option
-        
-        /// The block of statements after the use.
-        Block: Statement Block
-    }
-
-/// <summary>
-/// A <c>borrow</c> statement preceding a block.
-/// </summary>
-and internal BorrowBlock =
-    {
-        /// <summary>
-        /// The <c>borrow</c> keyword.
-        /// </summary>
-        BorrowKeyword: Terminal
-
-        /// The qubit binding.
-        Binding: QubitBinding
-
-        /// Optional open parentheses
-        OpenParen: Terminal option
-
-        /// Optional close parentheses
-        CloseParen: Terminal option
-        
-        /// The block of statements after the borrow.
-        Block: Statement Block
+        /// The concluding section.
+        Coda: QubitDeclarationCoda
     }
 
 /// <summary>
@@ -225,25 +177,8 @@ and internal Statement =
     /// </summary>
     | Return of Return
 
-    /// <summary>
-    /// A <c>use</c> statement.
-    /// </summary>
-    | Use of Use
-
-    /// <summary>
-    /// A <c>use</c> statement preceding a block.
-    /// </summary>
-    | UseBlock of UseBlock
-
-    /// <summary>
-    /// A <c>borrow</c> statement.
-    /// </summary>
-    | Borrow of Borrow
-
-    /// <summary>
-    /// A <c>borrow</c> statement preceding a block.
-    /// </summary>
-    | BorrowBlock of BorrowBlock
+    /// A qubit declaration statement.
+    | QubitDeclaration of QubitDeclaration
 
     /// <summary>
     /// An <c>if</c> statement.

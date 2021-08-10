@@ -128,28 +128,10 @@ type internal 'context Rewriter =
     default Return: context:'context * returns:Return -> Return
 
     /// <summary>
-    /// Rewrites a <see cref="Use"/> statement node.
+    /// Rewrites a <se cref="QubitDeclaration"/> statement node.
     /// </summary>
-    abstract Use: context:'context * ``use``:Use -> Use
-    default Use: context:'context * ``use``:Use -> Use
-
-    /// <summary>
-    /// Rewrites a <see cref="UseBlock"/> statement node.
-    /// </summary>
-    abstract UseBlock: context:'context * ``use``:UseBlock -> UseBlock
-    default UseBlock: context:'context * ``use``:UseBlock -> UseBlock
-
-    /// <summary>
-    /// Rewrites a <see cref="Borrow"/> statement node.
-    /// </summary>
-    abstract Borrow: context:'context * borrow:Borrow -> Borrow
-    default Borrow: context:'context * borrow:Borrow -> Borrow
-
-    /// <summary>
-    /// Rewrites a <see cref="BorrowBlock"/> statement node.
-    /// </summary>
-    abstract BorrowBlock: context:'context * borrow:BorrowBlock -> BorrowBlock
-    default BorrowBlock: context:'context * borrow:BorrowBlock -> BorrowBlock
+    abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
+    default QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
 
     /// <summary>
     /// Rewrites an <see cref="If"/> statement node.

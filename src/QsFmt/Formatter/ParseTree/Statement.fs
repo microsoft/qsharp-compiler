@@ -101,7 +101,8 @@ type StatementVisitor(tokens) =
 
     override _.VisitUseStatement context =
         {
-            UseKeyword = context.``use`` |> Node.toTerminal tokens
+            Kind = Use
+            Keyword = context.``use`` |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen =
                 context.openParen
@@ -111,13 +112,14 @@ type StatementVisitor(tokens) =
                 context.closeParen
                 |> Option.ofObj
                 |> Option.map (Node.toTerminal tokens)
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Coda = context.semicolon |> Node.toTerminal tokens |> Semicolon
         }
-        |> Use
+        |> QubitDeclaration
 
     override visitor.VisitUseBlock context =
         {
-            UseKeyword = context.``use`` |> Node.toTerminal tokens
+            Kind = Use
+            Keyword = context.``use`` |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen =
                 context.openParen
@@ -127,18 +129,20 @@ type StatementVisitor(tokens) =
                 context.closeParen
                 |> Option.ofObj
                 |> Option.map (Node.toTerminal tokens)
-            Block =
+            Coda =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
                     Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
+                |> Block
         }
-        |> UseBlock
+        |> QubitDeclaration
 
     override _.VisitBorrowStatement context =
         {
-            BorrowKeyword = context.borrow |> Node.toTerminal tokens
+            Kind = Borrow
+            Keyword = context.borrow |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen =
                 context.openParen
@@ -148,13 +152,14 @@ type StatementVisitor(tokens) =
                 context.closeParen
                 |> Option.ofObj
                 |> Option.map (Node.toTerminal tokens)
-            Semicolon = context.semicolon |> Node.toTerminal tokens
+            Coda = context.semicolon |> Node.toTerminal tokens |> Semicolon
         }
-        |> Borrow
+        |> QubitDeclaration
 
     override visitor.VisitBorrowBlock context =
         {
-            BorrowKeyword = context.borrow |> Node.toTerminal tokens
+            Kind = Borrow
+            Keyword = context.borrow |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen =
                 context.openParen
@@ -164,14 +169,15 @@ type StatementVisitor(tokens) =
                 context.closeParen
                 |> Option.ofObj
                 |> Option.map (Node.toTerminal tokens)
-            Block =
+            Coda =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
                     Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
                     CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
                 }
+                |> Block
         }
-        |> BorrowBlock
+        |> QubitDeclaration
 
     override _.VisitLetStatement context =
         {
