@@ -46,7 +46,9 @@ namespace TeleportChain {
         for i in 1..nPairs-1 {
             TeleportQubitUsingPresharedEntanglement(rightPreshared[i-1], leftPreshared[i], rightPreshared[i]);
         }
-
-        // return (MResetZ(leftMessage), MResetZ(rightPreshared[nPairs-1]));
+        
+        let _ = MResetZ(leftMessage);
+        let _ =  MResetZ(rightPreshared[nPairs-1]);
+        // return ();
     }
 }

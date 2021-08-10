@@ -141,8 +141,15 @@ exiting__2:                                       ; preds = %body__2
   br label %header__2
 
 exit__2:                                          ; preds = %header__2
+  %26 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %leftMessage)
+  %27 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 1)
+  %28 = bitcast i8* %27 to %Qubit**
+  %29 = load %Qubit*, %Qubit** %28, align 8
+  %30 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %29)
   call void @__quantum__rt__array_update_alias_count(%Array* %leftPreshared, i32 -1)
   call void @__quantum__rt__array_update_alias_count(%Array* %rightPreshared, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %26, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %30, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
   call void @__quantum__rt__qubit_release(%Qubit* %rightMessage)
   call void @__quantum__rt__qubit_release_array(%Array* %leftPreshared)
@@ -266,7 +273,7 @@ else__1:                                          ; preds = %test1__1
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 1)
   store %Array* %ctls, %Array** %10, align 8
   store %Qubit* %qubit, %Qubit** %11, align 8
-  call void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____body(%Callable* %7, { %Array*, %Qubit* }* %9)
+  call void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____body(%Callable* %7, { %Array*, %Qubit* }* %9)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %7, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %7, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -321,7 +328,7 @@ else__1:                                          ; preds = %test1__1
   store %Qubit* %target, %Qubit** %18, align 8
   store %Array* %ctls, %Array** %13, align 8
   store { %Qubit*, %Qubit* }* %16, { %Qubit*, %Qubit* }** %14, align 8
-  call void @Microsoft__Quantum__Intrinsic___94a8d85ac915454e866ebb12115de6b8___QsRef23__ApplyWithLessControlsA____body(%Callable* %10, { %Array*, { %Qubit*, %Qubit* }* }* %12)
+  call void @Microsoft__Quantum__Intrinsic___27e64f0afee94ef4bf9523108ce47367___QsRef23__ApplyWithLessControlsA____body(%Callable* %10, { %Array*, { %Qubit*, %Qubit* }* }* %12)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %10, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %10, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -1043,7 +1050,7 @@ else__1:                                          ; preds = %test2__1
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 1)
   store %Array* %ctls, %Array** %50, align 8
   store %Qubit* %qubit, %Qubit** %51, align 8
-  call void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____body(%Callable* %47, { %Array*, %Qubit* }* %49)
+  call void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____body(%Callable* %47, { %Array*, %Qubit* }* %49)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %47, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %47, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -1135,7 +1142,7 @@ else__1:                                          ; preds = %test2__1
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 1)
   store %Array* %ctls, %Array** %17, align 8
   store %Qubit* %qubit, %Qubit** %18, align 8
-  call void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____body(%Callable* %14, { %Array*, %Qubit* }* %16)
+  call void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____body(%Callable* %14, { %Array*, %Qubit* }* %16)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %14, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %14, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -1172,7 +1179,7 @@ entry:
   ret void
 }
 
-define internal void @Microsoft__Quantum__Intrinsic___94a8d85ac915454e866ebb12115de6b8___QsRef23__ApplyWithLessControlsA____body(%Callable* %op, { %Array*, { %Qubit*, %Qubit* }* }* %0) {
+define internal void @Microsoft__Quantum__Intrinsic___27e64f0afee94ef4bf9523108ce47367___QsRef23__ApplyWithLessControlsA____body(%Callable* %op, { %Array*, { %Qubit*, %Qubit* }* }* %0) {
 entry:
   call void @__quantum__rt__capture_update_alias_count(%Callable* %op, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i32 1)
@@ -1363,7 +1370,7 @@ declare void @__quantum__rt__capture_update_reference_count(%Callable*, i32)
 
 declare void @__quantum__rt__callable_update_reference_count(%Callable*, i32)
 
-define internal void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____body(%Callable* %op, { %Array*, %Qubit* }* %0) {
+define internal void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____body(%Callable* %op, { %Array*, %Qubit* }* %0) {
 entry:
   call void @__quantum__rt__capture_update_alias_count(%Callable* %op, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i32 1)
@@ -1780,7 +1787,7 @@ else__1:                                          ; preds = %test1__1
   store %Qubit* %qubit, %Qubit** %23, align 8
   store %Array* %ctls, %Array** %18, align 8
   store { double, %Qubit* }* %21, { double, %Qubit* }** %19, align 8
-  call void @Microsoft__Quantum__Intrinsic___9ebafa51892848d598fa08bc663d8d45___QsRef23__ApplyWithLessControlsA____body(%Callable* %15, { %Array*, { double, %Qubit* }* }* %17)
+  call void @Microsoft__Quantum__Intrinsic___7f72c45e20854241afccc66f6e99a31b___QsRef23__ApplyWithLessControlsA____body(%Callable* %15, { %Array*, { double, %Qubit* }* }* %17)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %15, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %15, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -1846,7 +1853,7 @@ else__1:                                          ; preds = %test1__1
   store %Qubit* %qubit, %Qubit** %23, align 8
   store %Array* %ctls, %Array** %18, align 8
   store { double, %Qubit* }* %21, { double, %Qubit* }** %19, align 8
-  call void @Microsoft__Quantum__Intrinsic___9ebafa51892848d598fa08bc663d8d45___QsRef23__ApplyWithLessControlsA____body(%Callable* %15, { %Array*, { double, %Qubit* }* }* %17)
+  call void @Microsoft__Quantum__Intrinsic___7f72c45e20854241afccc66f6e99a31b___QsRef23__ApplyWithLessControlsA____body(%Callable* %15, { %Array*, { double, %Qubit* }* }* %17)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %15, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %15, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -1911,7 +1918,7 @@ else__1:                                          ; preds = %test1__1
   store %Qubit* %qubit, %Qubit** %24, align 8
   store %Array* %ctls, %Array** %19, align 8
   store { double, %Qubit* }* %22, { double, %Qubit* }** %20, align 8
-  call void @Microsoft__Quantum__Intrinsic___9ebafa51892848d598fa08bc663d8d45___QsRef23__ApplyWithLessControlsA____body(%Callable* %16, { %Array*, { double, %Qubit* }* }* %18)
+  call void @Microsoft__Quantum__Intrinsic___7f72c45e20854241afccc66f6e99a31b___QsRef23__ApplyWithLessControlsA____body(%Callable* %16, { %Array*, { double, %Qubit* }* }* %18)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %16, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %16, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -2282,7 +2289,7 @@ declare double @llvm.pow.f64(double, double) #0
 
 declare void @__quantum__qis__rx(double, %Qubit*)
 
-define internal void @Microsoft__Quantum__Intrinsic___9ebafa51892848d598fa08bc663d8d45___QsRef23__ApplyWithLessControlsA____body(%Callable* %op, { %Array*, { double, %Qubit* }* }* %0) {
+define internal void @Microsoft__Quantum__Intrinsic___7f72c45e20854241afccc66f6e99a31b___QsRef23__ApplyWithLessControlsA____body(%Callable* %op, { %Array*, { double, %Qubit* }* }* %0) {
 entry:
   call void @__quantum__rt__capture_update_alias_count(%Callable* %op, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i32 1)
@@ -2604,7 +2611,7 @@ else__1:                                          ; preds = %test1__1
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 1)
   store %Array* %ctls, %Array** %16, align 8
   store %Qubit* %qubit, %Qubit** %17, align 8
-  call void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____body(%Callable* %13, { %Array*, %Qubit* }* %15)
+  call void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____body(%Callable* %13, { %Array*, %Qubit* }* %15)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %13, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %13, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -2700,7 +2707,7 @@ else__1:                                          ; preds = %test1__1
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 1)
   store %Array* %ctls, %Array** %16, align 8
   store %Qubit* %qubit, %Qubit** %17, align 8
-  call void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____body(%Callable* %13, { %Array*, %Qubit* }* %15)
+  call void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____body(%Callable* %13, { %Array*, %Qubit* }* %15)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %13, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %13, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -2761,7 +2768,7 @@ else__1:                                          ; preds = %test1__1
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 1)
   store %Array* %ctls, %Array** %16, align 8
   store %Qubit* %qubit, %Qubit** %17, align 8
-  call void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____body(%Callable* %13, { %Array*, %Qubit* }* %15)
+  call void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____body(%Callable* %13, { %Array*, %Qubit* }* %15)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %13, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %13, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -2857,7 +2864,7 @@ else__1:                                          ; preds = %test1__1
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 1)
   store %Array* %ctls, %Array** %16, align 8
   store %Qubit* %qubit, %Qubit** %17, align 8
-  call void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____body(%Callable* %13, { %Array*, %Qubit* }* %15)
+  call void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____body(%Callable* %13, { %Array*, %Qubit* }* %15)
   call void @__quantum__rt__capture_update_reference_count(%Callable* %13, i32 -1)
   call void @__quantum__rt__callable_update_reference_count(%Callable* %13, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %ctls, i32 -1)
@@ -2983,7 +2990,7 @@ declare void @__quantum__rt__callable_update_alias_count(%Callable*, i32)
 
 declare void @__quantum__rt__callable_invoke(%Callable*, %Tuple*, %Tuple*)
 
-define internal void @Microsoft__Quantum__Intrinsic___d0c5e5bdde45429e90c2a44a56eb8a85___QsRef23__ApplyWithLessControlsA____adj(%Callable* %op, { %Array*, %Qubit* }* %0) {
+define internal void @Microsoft__Quantum__Intrinsic___8fb41246696c4c40aa9fa6f5871a34a7___QsRef23__ApplyWithLessControlsA____adj(%Callable* %op, { %Array*, %Qubit* }* %0) {
 entry:
   call void @__quantum__rt__capture_update_alias_count(%Callable* %op, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i32 1)
@@ -3126,7 +3133,7 @@ declare %Callable* @__quantum__rt__callable_copy(%Callable*, i1)
 
 declare void @__quantum__rt__tuple_update_alias_count(%Tuple*, i32)
 
-define internal void @Microsoft__Quantum__Intrinsic___9ebafa51892848d598fa08bc663d8d45___QsRef23__ApplyWithLessControlsA____adj(%Callable* %op, { %Array*, { double, %Qubit* }* }* %0) {
+define internal void @Microsoft__Quantum__Intrinsic___7f72c45e20854241afccc66f6e99a31b___QsRef23__ApplyWithLessControlsA____adj(%Callable* %op, { %Array*, { double, %Qubit* }* }* %0) {
 entry:
   call void @__quantum__rt__capture_update_alias_count(%Callable* %op, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i32 1)
@@ -3270,7 +3277,7 @@ exit__2:                                          ; preds = %header__2
   ret void
 }
 
-define internal void @Microsoft__Quantum__Intrinsic___94a8d85ac915454e866ebb12115de6b8___QsRef23__ApplyWithLessControlsA____adj(%Callable* %op, { %Array*, { %Qubit*, %Qubit* }* }* %0) {
+define internal void @Microsoft__Quantum__Intrinsic___27e64f0afee94ef4bf9523108ce47367___QsRef23__ApplyWithLessControlsA____adj(%Callable* %op, { %Array*, { %Qubit*, %Qubit* }* }* %0) {
 entry:
   call void @__quantum__rt__capture_update_alias_count(%Callable* %op, i32 1)
   call void @__quantum__rt__callable_update_alias_count(%Callable* %op, i32 1)

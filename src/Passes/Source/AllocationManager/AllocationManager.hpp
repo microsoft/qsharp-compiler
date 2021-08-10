@@ -33,6 +33,7 @@ public:
 
   static AllocationManagerPtr createNew();
 
+  Index allocate();
   void  allocate(String const &name, Index const &size, bool value_only = false);
   Index getOffset(String const &name) const;
   void  release(String const &name);
@@ -46,6 +47,8 @@ private:
   Mappings    mappings_;
 
   Resources resources_;
+
+  Index start_{0};
 };
 
 }  // namespace quantum

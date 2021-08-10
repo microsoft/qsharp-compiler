@@ -6,10 +6,12 @@ run-expand: build-qaa build-esa analysis-example.ll
 run: build-qaa analysis-example.ll
 	opt -load-pass-plugin ../../Debug/Source/Passes/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
-run-replace: build-ir analysis-example.ll
+run-replace: build-ir build-qaa build-esa analysis-example.ll
 #	opt -loop-unroll -unroll-count=3 -unroll-allow-partial 
-	opt -load-pass-plugin ../../Debug/Source/Passes/libTransformationRule.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-unroll,transformation-rule" -S analysis-example.ll > test.ll
-	opt  --passes="inline" -S test.ll | opt -O1 -S
+#	opt -load-pass-plugin ../../Debug/Source/Passes/libQubitAllocationAnalysis.dylib \
+#			-load-pass-plugin ../../Debug/Source/Passes/libExpandStaticAllocation.dylib --passes="expand-static-allocation" -S analysis-example.ll > test1.ll
+	opt -load-pass-plugin ../../Debug/Source/Passes/libTransformationRule.dylib --passes="mem2reg,simplifycfg,loop-simplify,loop-unroll,transformation-rule" -S analysis-example.ll > test2.ll
+	opt  --passes="inline" -S test2.ll | opt -O1 -S
 
 
 build-prepare:

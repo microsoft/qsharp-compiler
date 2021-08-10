@@ -37,8 +37,7 @@ public:
   /// @}
 
   /// @{
-  llvm::Function *expandFunctionCall(QubitAllocationResult const &depenency_graph,
-                                     llvm::Function &callee, ConstantArguments const &const_args);
+  llvm::Function *expandFunctionCall(llvm::Function &callee, ConstantArguments const &const_args);
   /// @}
 };
 

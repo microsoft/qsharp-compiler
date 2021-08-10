@@ -27,9 +27,6 @@ RuleSet::RuleSet()
       Call("__quantum__rt__array_get_element_ptr_1d", "arrayName"_cap = _, "index"_cap = _);
   rule0.setPattern("cast"_cap = BitCast("getElement"_cap = get_element));
   rule0.setReplacer([qubit_alloc_manager](Builder &, Value *, Captures &cap, Replacements &) {
-    llvm::errs() << "Identified an access attempt"
-                 << "\n";
-
     auto type = cap["cast"]->getType();
 
     // This rule only deals with access to arrays of opaque types
@@ -62,6 +59,7 @@ RuleSet::RuleSet()
   rule1a.setReplacer([qubit_alloc_manager](Builder &builder, Value *val, Captures &cap,
                                            Replacements &replacements) {
     // Getting the type pointer
+
     auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
     if (ptr_type == nullptr)
     {
@@ -117,12 +115,9 @@ RuleSet::RuleSet()
           return false;
         }
 
-        // Allocating qubit
-        qubit_alloc_manager->allocate(val->getName().str(), 1);
-
         // Computing the index by getting the current index value and offseting by
         // the offset at which the qubit array is allocated.
-        auto offset = qubit_alloc_manager->getOffset(val->getName().str());
+        auto offset = qubit_alloc_manager->allocate();
 
         // Creating a new index APInt that is shifted by the offset of the allocation
         // TODO(tfr): Get the bitwidth size from somewhere
@@ -220,12 +215,9 @@ RuleSet::RuleSet()
       return false;
     }
 
-    // Allocating qubit
-    result_alloc_manager->allocate(val->getName().str(), 1);
-
     // Computing the index by getting the current index value and offseting by
     // the offset at which the qubit array is allocated.
-    auto offset = result_alloc_manager->getOffset(val->getName().str());
+    auto offset = result_alloc_manager->allocate();
 
     // Creating a new index APInt that is shifted by the offset of the allocation
     // TODO(tfr): Get the bitwidth size from somewhere
@@ -280,12 +272,8 @@ RuleSet::RuleSet()
   auto get_one                 = Call("__quantum__rt__result_get_one");
   auto replace_branch_positive = [](Builder &builder, Value *val, Captures &cap,
                                     Replacements &replacements) {
-    llvm::errs() << "Found branch"
-                 << "\n";
-
     auto result = cap["result"];
     auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
-
     // Replacing result
     auto                       module   = llvm::dyn_cast<llvm::Instruction>(val)->getModule();
     auto                       function = module->getFunction("__quantum__qir__read_result");
@@ -306,8 +294,9 @@ RuleSet::RuleSet()
       function = llvm::Function::Create(fnc_type, llvm::Function::ExternalLinkage,
                                         "__quantum__qir__read_result", module);
     }
+    auto result_inst = llvm::dyn_cast<llvm::Instruction>(result);
 
-    builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(result)->getNextNode());
+    builder.SetInsertPoint(result_inst->getNextNode());
     auto new_call = builder.CreateCall(function, arguments);
     new_call->takeName(cond);
 
@@ -316,6 +305,7 @@ RuleSet::RuleSet()
       llvm::User *user = use.getUser();
       user->setOperand(use.getOperandNo(), new_call);
     }
+    cond->replaceAllUsesWith(new_call);
 
     // Deleting the previous condition and function to fetch one
     replacements.push_back({cond, nullptr});
@@ -334,6 +324,17 @@ RuleSet::RuleSet()
                              _, _),
                       replace_branch_positive);
 
+  auto deleter = deleteInstruction();
+  rules_.emplace_back(Call("__quantum__rt__qubit_release_array", "name"_cap = _),
+                      [qubit_alloc_manager, deleter](Builder &builder, Value *val, Captures &cap,
+                                                     Replacements &rep) {
+                        qubit_alloc_manager->release(cap["name"]->getName().str());
+                        return deleter(builder, val, cap, rep);
+                      }
+
+  );
+  rules_.emplace_back(Call("__quantum__rt__qubit_release", _), deleteInstruction());
+
   // Functions that we do not care about
   rules_.emplace_back(Call("__quantum__rt__array_update_alias_count", _, _), deleteInstruction());
   rules_.emplace_back(Call("__quantum__rt__string_update_alias_count", _, _), deleteInstruction());
@@ -345,8 +346,6 @@ RuleSet::RuleSet()
   rules_.emplace_back(Call("__quantum__rt__result_update_reference_count", _, _),
                       deleteInstruction());
 
-  rules_.emplace_back(Call("__quantum__rt__qubit_release_array", _), deleteInstruction());
-  rules_.emplace_back(Call("__quantum__rt__qubit_release", _), deleteInstruction());
   rules_.emplace_back(Call("__quantum__rt__string_create", _), deleteInstruction());
   rules_.emplace_back(Call("__quantum__rt__string_release", _), deleteInstruction());
 

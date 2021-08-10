@@ -18,6 +18,13 @@ AllocationManager::AllocationManagerPtr AllocationManager::createNew()
   return ret;
 }
 
+AllocationManager::Index AllocationManager::allocate()
+{
+  auto ret = start_;
+  ++start_;
+  return ret;
+}
+
 void AllocationManager::allocate(String const &name, Index const &size, bool value_only)
 {
   if (resources_.find(name) != resources_.end())
@@ -47,7 +54,8 @@ void AllocationManager::allocate(String const &name, Index const &size, bool val
     name_to_index_[map.name] = map.index;
     if (!mappings_.empty())
     {
-      map.start = mappings_.back().end;
+      map.start = start_;
+      start_ += size;
     }
 
     map.end = map.start + size;
@@ -77,8 +85,22 @@ AllocationManager::Index AllocationManager::getOffset(String const &name) const
   return mappings_[index].start;
 }
 
-void AllocationManager::release(String const & /*name*/)
-{}
+void AllocationManager::release(String const &name)
+{
+  auto it = name_to_index_.find(name);
+  if (it == name_to_index_.end())
+  {
+    throw std::runtime_error("Memory segment with name " + name + " not found.");
+  }
+  name_to_index_.erase(it);
+
+  auto it2 = resources_.find(name);
+  if (it2 == resources_.end())
+  {
+    throw std::runtime_error("Resource with name " + name + " does not exists.");
+  }
+  resources_.erase(it2);
+}
 
 }  // namespace quantum
 }  // namespace microsoft
