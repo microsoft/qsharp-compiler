@@ -11,7 +11,7 @@ This document sets out to motivate and demonstrate feasibility of building such 
 
 ## Motivation
 
-It is anticipated that most usages of the QIR specificaiton will need to only use a subset of it. These subsets
+It is anticipated that most usages of the QIR specification will need to only use a subset of it. These subsets
 may further be subject to constraints such as how one allocate or aquire a qubit handle. We refer subset with
 constraints as a profile. For instance, it is likely that early versions of quantum hardware will have a limited
 set of classical instructions available. With this in mind, the vendor or user of said hardware would define a profile
