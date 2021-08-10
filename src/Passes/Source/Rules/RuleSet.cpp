@@ -4,8 +4,8 @@
 #include "Llvm/Llvm.hpp"
 #include "Rules/ReplacementRule.hpp"
 
+#include <iostream>
 #include <vector>
-
 namespace microsoft {
 namespace quantum {
 
@@ -54,11 +54,11 @@ RuleSet::RuleSet()
   auto load_pattern = Load("cast"_cap = cast_pattern);
 
   // Rule 1
-  ReplacementRule rule1;
-  rule1.setPattern(std::move(load_pattern));
+  ReplacementRule rule1a;
+  rule1a.setPattern(std::move(load_pattern));
 
   // Replacement details
-  rule1.setReplacer(
+  rule1a.setReplacer(
       [alloc_manager](Builder &builder, Value *val, Captures &cap, Replacements &replacements) {
         // Getting the type pointer
         auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
@@ -101,34 +101,74 @@ RuleSet::RuleSet()
 
         return true;
       });
-  rules_.emplace_back(std::move(rule1));
+  rules_.emplace_back(std::move(rule1a));
+
+  ReplacementRule rule1b;
+  rule1b.setPattern(Call("__quantum__rt__qubit_allocate"));
+
+  // Replacement details
+  rule1b.setReplacer([](Builder &, Value *, Captures &, Replacements &) {
+    // std::cout << "Found single allocation" << std::endl;
+    return false;
+  });
+  rules_.emplace_back(std::move(rule1b));
 
   // Rule 2 - delete __quantum__rt__array_update_alias_count
-  ReplacementRule rule2;
-  auto alias_count = std::make_shared<CallPattern>("__quantum__rt__array_update_alias_count");
-  rule2.setPattern(alias_count);
-  rule2.setReplacer([](Builder &, Value *val, Captures &, Replacements &replacements) {
+  ReplacementRule rule2a;
+  auto alias_count1 = std::make_shared<CallPattern>("__quantum__rt__array_update_alias_count");
+  rule2a.setPattern(alias_count1);
+  rule2a.setReplacer([](Builder &, Value *val, Captures &, Replacements &replacements) {
     replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
     return true;
   });
-  rules_.emplace_back(std::move(rule2));
+  rules_.emplace_back(std::move(rule2a));
 
-  // Rule 3 - delete __quantum__rt__qubit_release_array
-  ReplacementRule rule3;
-  auto release_call = std::make_shared<CallPattern>("__quantum__rt__qubit_release_array");
-  rule3.setPattern(release_call);
-  rule3.setReplacer([](Builder &, Value *val, Captures &, Replacements &replacements) {
+  ReplacementRule rule2b;
+  auto alias_count2 = std::make_shared<CallPattern>("__quantum__rt__string_update_alias_count");
+  rule2b.setPattern(alias_count2);
+  rule2b.setReplacer([](Builder &, Value *val, Captures &, Replacements &replacements) {
     replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
     return true;
   });
-  rules_.emplace_back(std::move(rule3));
+  rules_.emplace_back(std::move(rule2b));
 
-  // Rule 4 - perform static allocation and delete __quantum__rt__qubit_allocate_array
+  // Rule 3
+  ReplacementRule rule3a;
+  auto            reference_count1 =
+      std::make_shared<CallPattern>("__quantum__rt__array_update_reference_count");
+  rule3a.setPattern(reference_count1);
+  rule3a.setReplacer([](Builder &, Value *val, Captures &, Replacements &replacements) {
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
+    return true;
+  });
+  rules_.emplace_back(std::move(rule3a));
+
+  ReplacementRule rule3b;
+  auto            reference_count2 =
+      std::make_shared<CallPattern>("__quantum__rt__string_update_reference_count");
+  rule3b.setPattern(reference_count2);
+  rule3b.setReplacer([](Builder &, Value *val, Captures &, Replacements &replacements) {
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
+    return true;
+  });
+  rules_.emplace_back(std::move(rule3b));
+
+  // Rule 4 - delete __quantum__rt__qubit_release_array
   ReplacementRule rule4;
-  auto            allocate_call = Call("__quantum__rt__qubit_allocate_array", "size"_cap = _);
-  rule4.setPattern(std::move(allocate_call));
+  auto release_call = std::make_shared<CallPattern>("__quantum__rt__qubit_release_array");
+  rule4.setPattern(release_call);
+  rule4.setReplacer([](Builder &, Value *val, Captures &, Replacements &replacements) {
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
+    return true;
+  });
+  rules_.emplace_back(std::move(rule4));
 
-  rule4.setReplacer(
+  // Rule 6 - perform static allocation and delete __quantum__rt__qubit_allocate_array
+  ReplacementRule rule6;
+  auto            allocate_call = Call("__quantum__rt__qubit_allocate_array", "size"_cap = _);
+  rule6.setPattern(std::move(allocate_call));
+
+  rule6.setReplacer(
       [alloc_manager](Builder &, Value *val, Captures &cap, Replacements &replacements) {
         auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
         if (cst == nullptr)
@@ -144,15 +184,15 @@ RuleSet::RuleSet()
         return true;
       });
 
-  rules_.emplace_back(std::move(rule4));
+  rules_.emplace_back(std::move(rule6));
 
-  // Rule 5 - standard array allocation
-  ReplacementRule rule5;
+  // Rule 8 - standard array allocation
+  ReplacementRule rule8;
   auto            allocate_array_call =
       Call("__quantum__rt__array_create_1d", "elementSize"_cap = _, "size"_cap = _);
-  rule5.setPattern(std::move(allocate_array_call));
+  rule8.setPattern(std::move(allocate_array_call));
 
-  rule5.setReplacer(
+  rule8.setReplacer(
       [alloc_manager](Builder &, Value *val, Captures &cap, Replacements &replacements) {
         auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
         if (cst == nullptr)
@@ -166,9 +206,9 @@ RuleSet::RuleSet()
         return true;
       });
 
-  rules_.emplace_back(std::move(rule5));
+  rules_.emplace_back(std::move(rule8));
 
-  // Rule 6 - track stored values
+  // Rule 10 - track stored values
 
   auto get_target_element = Call("__quantum__rt__array_get_element_ptr_1d",
                                  "targetArrayName"_cap = _, "targetIndex"_cap = _);
@@ -179,15 +219,15 @@ RuleSet::RuleSet()
 
   auto store_pattern = Store(target, value);
 
-  ReplacementRule rule6;
-  rule6.setPattern(std::move(store_pattern));
+  ReplacementRule rule10;
+  rule10.setPattern(std::move(store_pattern));
 
-  rule6.setReplacer([alloc_manager](Builder &, Value *, Captures &, Replacements &) {
+  rule10.setReplacer([alloc_manager](Builder &, Value *, Captures &, Replacements &) {
     llvm::errs() << "Found store pattern"
                  << "\n";
     return false;
   });
-  rules_.emplace_back(std::move(rule6));
+  rules_.emplace_back(std::move(rule10));
 }
 
 bool RuleSet::matchAndReplace(Instruction *value, Replacements &replacements)
