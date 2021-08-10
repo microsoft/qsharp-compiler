@@ -112,51 +112,26 @@ let getTrivia paren =
 
 let qubitBindingUpdate =
     { new Rewriter<_>() with
-        override rewriter.Use(_, ``use``) =
-            let openTrivia = ``use``.OpenParen |> getTrivia
-            let closeTrivia = ``use``.CloseParen |> getTrivia
+        override rewriter.QubitDeclaration(_, decl) =
+            let openTrivia = decl.OpenParen |> getTrivia
+            let closeTrivia = decl.CloseParen |> getTrivia
 
-            { ``use`` with
-                UseKeyword = rewriter.Terminal([], { ``use``.UseKeyword with Text = "use" })
-                Binding = ``use``.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
+            let keyword =
+                match decl.Kind with
+                | Use -> "use"
+                | Borrow -> "borrow"
+
+            { decl with
+                Keyword = rewriter.Terminal((), { decl.Keyword with Text = keyword })
+                Binding = decl.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
                 OpenParen = None
                 CloseParen = None
-                Semicolon = ``use``.Semicolon |> Terminal.mapPrefix ((@) closeTrivia)
-            }
-
-        override rewriter.UseBlock(_, ``use``) =
-            let openTrivia = ``use``.OpenParen |> getTrivia
-            let closeTrivia = ``use``.CloseParen |> getTrivia
-
-            { ``use`` with
-                UseKeyword = rewriter.Terminal([], { ``use``.UseKeyword with Text = "use" })
-                Binding = ``use``.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
-                OpenParen = None
-                CloseParen = None
-                Block = rewriter.Block(closeTrivia, rewriter.Statement, ``use``.Block) |> Block.mapPrefix ((@) closeTrivia)
-            }
-
-        override rewriter.Borrow(_, borrow) =
-            let openTrivia = borrow.OpenParen |> getTrivia
-            let closeTrivia = borrow.CloseParen |> getTrivia
-
-            { borrow with
-                BorrowKeyword = rewriter.Terminal([], { borrow.BorrowKeyword with Text = "borrow" })
-                Binding = borrow.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
-                OpenParen = None
-                CloseParen = None
-                Semicolon = borrow.Semicolon |> Terminal.mapPrefix ((@) closeTrivia)
-            }
-
-        override rewriter.BorrowBlock(_, borrow) =
-            let openTrivia = borrow.OpenParen |> getTrivia
-            let closeTrivia = borrow.CloseParen |> getTrivia
-
-            { borrow with
-                BorrowKeyword = rewriter.Terminal([], { borrow.BorrowKeyword with Text = "borrow" })
-                Binding = borrow.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
-                OpenParen = None
-                CloseParen = None
-                Block = rewriter.Block(closeTrivia, rewriter.Statement, borrow.Block) |> Block.mapPrefix ((@) closeTrivia)
+                Coda =
+                    match decl.Coda with
+                    | Semicolon semicolon -> semicolon |> Terminal.mapPrefix ((@) closeTrivia) |> Semicolon
+                    | Block block ->
+                        rewriter.Block((), rewriter.Statement, block)
+                        |> Block.mapPrefix ((@) closeTrivia)
+                        |> Block
             }
     }
