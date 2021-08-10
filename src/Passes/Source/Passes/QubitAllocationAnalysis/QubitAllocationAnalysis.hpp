@@ -14,28 +14,12 @@ class QubitAllocationAnalysisAnalytics
   : public llvm::AnalysisInfoMixin<QubitAllocationAnalysisAnalytics>
 {
 public:
-  using String  = std::string;
-  using ArgList = std::unordered_set<std::string>;
+  using String = std::string;
 
-  struct QubitArray
+  struct Result
   {
-    bool is_possibly_static{false};            ///< Indicates whether the array is
-                                               /// possibly static or not
-                                               ///
-    String  variable_name{};                   ///< Name of the qubit array
-    ArgList depends_on{};                      ///< Function arguments that
-                                               /// determines if it is constant or not
-                                               ///
-    uint64_t size{static_cast<uint64_t>(-1)};  ///< Size of the array if it can be deduced.
+    bool value{false};
   };
-
-  using Value                = llvm::Value;
-  using DependencyGraph      = std::unordered_map<std::string, ArgList>;
-  using ValueDependencyGraph = std::unordered_map<Value *, ArgList>;
-
-  using Instruction = llvm::Instruction;
-  using Function    = llvm::Function;
-  using Result      = std::vector<QubitArray>;
 
   /// Constructors and destructors
   /// @{
@@ -56,31 +40,9 @@ public:
   Result run(llvm::Function &function, llvm::FunctionAnalysisManager & /*unused*/);
   /// @}
 
-  /// Function analysis
-  /// @{
-  void analyseFunction(llvm::Function &function);
-  /// @}
-
-  /// Instruction analysis
-  /// @{
-  bool operandsConstant(Instruction const &instruction) const;
-  void markPossibleConstant(Instruction &instruction);
-  void analyseCall(Instruction &instruction);
-  /// @}
-
 private:
   static llvm::AnalysisKey Key;  // NOLINT
   friend struct llvm::AnalysisInfoMixin<QubitAllocationAnalysisAnalytics>;
-
-  /// Analysis details
-  /// @{
-  ValueDependencyGraph constantness_dependencies_{};
-  /// @}
-
-  /// Result
-  /// @{
-  Result results_{};
-  /// @}
 };
 
 class QubitAllocationAnalysisPrinter : public llvm::PassInfoMixin<QubitAllocationAnalysisPrinter>

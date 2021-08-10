@@ -168,6 +168,7 @@ RuleSet::RuleSet()
   rules_.emplace_back(std::move(rule6));
 
   // Rule 8 - standard array allocation
+  /*
   ReplacementRule rule8;
   auto            allocate_array_call =
       Call("__quantum__rt__array_create_1d", "elementSize"_cap = _, "size"_cap = _);
@@ -188,7 +189,7 @@ RuleSet::RuleSet()
       });
 
   rules_.emplace_back(std::move(rule8));
-
+*/
   // Rule 10 - track stored values
   auto get_target_element = Call("__quantum__rt__array_get_element_ptr_1d",
                                  "targetArrayName"_cap = _, "targetIndex"_cap = _);
