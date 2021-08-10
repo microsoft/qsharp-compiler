@@ -92,6 +92,7 @@ public:
 using StorePattern   = InstructionPattern<llvm::StoreInst>;
 using LoadPattern    = InstructionPattern<llvm::LoadInst>;
 using BitCastPattern = InstructionPattern<llvm::BitCastInst>;
+using BranchPattern  = InstructionPattern<llvm::BranchInst>;
 
 }  // namespace quantum
 }  // namespace microsoft

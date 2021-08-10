@@ -17,7 +17,8 @@ RuleSet::RuleSet()
   // Shared pointer to be captured in the lambdas of the patterns
   // Note that you cannot capture this as the reference is destroyed upon
   // copy. Since PassInfoMixin requires copy, such a construct would break
-  auto alloc_manager = AllocationManager::createNew();
+  auto qubit_alloc_manager  = AllocationManager::createNew();
+  auto result_alloc_manager = AllocationManager::createNew();
 
   // Pattern 0 - Find type
   ReplacementRule rule0;
@@ -25,7 +26,7 @@ RuleSet::RuleSet()
   auto get_element =
       Call("__quantum__rt__array_get_element_ptr_1d", "arrayName"_cap = _, "index"_cap = _);
   rule0.setPattern("cast"_cap = BitCast("getElement"_cap = get_element));
-  rule0.setReplacer([alloc_manager](Builder &, Value *, Captures &cap, Replacements &) {
+  rule0.setReplacer([qubit_alloc_manager](Builder &, Value *, Captures &cap, Replacements &) {
     llvm::errs() << "Identified an access attempt"
                  << "\n";
 
@@ -58,49 +59,49 @@ RuleSet::RuleSet()
   rule1a.setPattern(std::move(load_pattern));
 
   // Replacement details
-  rule1a.setReplacer(
-      [alloc_manager](Builder &builder, Value *val, Captures &cap, Replacements &replacements) {
-        // Getting the type pointer
-        auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
-        if (ptr_type == nullptr)
-        {
-          return false;
-        }
+  rule1a.setReplacer([qubit_alloc_manager](Builder &builder, Value *val, Captures &cap,
+                                           Replacements &replacements) {
+    // Getting the type pointer
+    auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
+    if (ptr_type == nullptr)
+    {
+      return false;
+    }
 
-        // Get the index and testing that it is a constant int
-        auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["index"]);
-        if (cst == nullptr)
-        {
-          // ... if not, we cannot perform the mapping.
-          return false;
-        }
+    // Get the index and testing that it is a constant int
+    auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["index"]);
+    if (cst == nullptr)
+    {
+      // ... if not, we cannot perform the mapping.
+      return false;
+    }
 
-        // Computing the index by getting the current index value and offseting by
-        // the offset at which the qubit array is allocated.
-        auto llvm_size = cst->getValue();
-        auto offset    = alloc_manager->getOffset(cap["arrayName"]->getName().str());
+    // Computing the index by getting the current index value and offseting by
+    // the offset at which the qubit array is allocated.
+    auto llvm_size = cst->getValue();
+    auto offset    = qubit_alloc_manager->getOffset(cap["arrayName"]->getName().str());
 
-        // Creating a new index APInt that is shifted by the offset of the allocation
-        auto idx = llvm::APInt(llvm_size.getBitWidth(), llvm_size.getZExtValue() + offset);
+    // Creating a new index APInt that is shifted by the offset of the allocation
+    auto idx = llvm::APInt(llvm_size.getBitWidth(), llvm_size.getZExtValue() + offset);
 
-        // Computing offset
-        auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+    // Computing offset
+    auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
 
-        // TODO(tfr): Understand what the significance of the addressspace is in relation to the
-        // QIR. Activate by uncommenting:
-        // ptr_type = llvm::PointerType::get(ptr_type->getElementType(), 2);
-        auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
-        instr->takeName(val);
+    // TODO(tfr): Understand what the significance of the addressspace is in relation to the
+    // QIR. Activate by uncommenting:
+    // ptr_type = llvm::PointerType::get(ptr_type->getElementType(), 2);
+    auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+    instr->takeName(val);
 
-        // Replacing the instruction with new instruction
-        replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
+    // Replacing the instruction with new instruction
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
 
-        // Deleting the getelement and cast operations
-        replacements.push_back({llvm::dyn_cast<Instruction>(cap["getElement"]), nullptr});
-        replacements.push_back({llvm::dyn_cast<Instruction>(cap["cast"]), nullptr});
+    // Deleting the getelement and cast operations
+    replacements.push_back({llvm::dyn_cast<Instruction>(cap["getElement"]), nullptr});
+    replacements.push_back({llvm::dyn_cast<Instruction>(cap["cast"]), nullptr});
 
-        return true;
-      });
+    return true;
+  });
   rules_.emplace_back(std::move(rule1a));
 
   ReplacementRule rule1b;
@@ -108,7 +109,7 @@ RuleSet::RuleSet()
 
   // Replacement details
   rule1b.setReplacer(
-      [alloc_manager](Builder &builder, Value *val, Captures &, Replacements &replacements) {
+      [qubit_alloc_manager](Builder &builder, Value *val, Captures &, Replacements &replacements) {
         // Getting the type pointer
         auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
         if (ptr_type == nullptr)
@@ -117,11 +118,11 @@ RuleSet::RuleSet()
         }
 
         // Allocating qubit
-        alloc_manager->allocate(val->getName().str(), 1);
+        qubit_alloc_manager->allocate(val->getName().str(), 1);
 
         // Computing the index by getting the current index value and offseting by
         // the offset at which the qubit array is allocated.
-        auto offset = alloc_manager->getOffset(val->getName().str());
+        auto offset = qubit_alloc_manager->getOffset(val->getName().str());
 
         // Creating a new index APInt that is shifted by the offset of the allocation
         // TODO(tfr): Get the bitwidth size from somewhere
@@ -139,7 +140,7 @@ RuleSet::RuleSet()
         // Replacing the instruction with new instruction
         replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
 
-        return false;
+        return true;
       });
   rules_.emplace_back(std::move(rule1b));
 
@@ -149,7 +150,7 @@ RuleSet::RuleSet()
   rule6.setPattern(std::move(allocate_call));
 
   rule6.setReplacer(
-      [alloc_manager](Builder &, Value *val, Captures &cap, Replacements &replacements) {
+      [qubit_alloc_manager](Builder &, Value *val, Captures &cap, Replacements &replacements) {
         auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
         if (cst == nullptr)
         {
@@ -158,7 +159,7 @@ RuleSet::RuleSet()
 
         auto llvm_size = cst->getValue();
         auto name      = val->getName().str();
-        alloc_manager->allocate(name, llvm_size.getZExtValue());
+        qubit_alloc_manager->allocate(name, llvm_size.getZExtValue());
 
         replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
         return true;
@@ -173,7 +174,7 @@ RuleSet::RuleSet()
   rule8.setPattern(std::move(allocate_array_call));
 
   rule8.setReplacer(
-      [alloc_manager](Builder &, Value *val, Captures &cap, Replacements &replacements) {
+      [qubit_alloc_manager](Builder &, Value *val, Captures &cap, Replacements &replacements) {
         auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
         if (cst == nullptr)
         {
@@ -181,7 +182,7 @@ RuleSet::RuleSet()
         }
 
         auto llvm_size = cst->getValue();
-        alloc_manager->allocate(val->getName().str(), llvm_size.getZExtValue(), true);
+        qubit_alloc_manager->allocate(val->getName().str(), llvm_size.getZExtValue(), true);
         replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
         return true;
       });
@@ -201,7 +202,7 @@ RuleSet::RuleSet()
   ReplacementRule rule10;
   rule10.setPattern(std::move(store_pattern));
 
-  rule10.setReplacer([alloc_manager](Builder &, Value *, Captures &, Replacements &) {
+  rule10.setReplacer([qubit_alloc_manager](Builder &, Value *, Captures &, Replacements &) {
     llvm::errs() << "Found store pattern"
                  << "\n";
     return false;
@@ -209,10 +210,8 @@ RuleSet::RuleSet()
   rules_.emplace_back(std::move(rule10));
 
   // Measurements
-  auto replace_measurement = [](Builder &, Value *, Captures &, Replacements &) {
-    llvm::errs() << "Found measurement"
-                 << "\n";
-
+  auto replace_measurement = [result_alloc_manager](Builder &builder, Value *val, Captures &cap,
+                                                    Replacements &replacements) {
     // Getting the type pointer
     auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
     if (ptr_type == nullptr)
@@ -220,22 +219,119 @@ RuleSet::RuleSet()
       return false;
     }
 
-    return false;
+    // Allocating qubit
+    result_alloc_manager->allocate(val->getName().str(), 1);
+
+    // Computing the index by getting the current index value and offseting by
+    // the offset at which the qubit array is allocated.
+    auto offset = result_alloc_manager->getOffset(val->getName().str());
+
+    // Creating a new index APInt that is shifted by the offset of the allocation
+    // TODO(tfr): Get the bitwidth size from somewhere
+    auto idx = llvm::APInt(64, offset);
+
+    // Computing offset
+    auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+
+    // TODO(tfr): Understand what the significance of the addressspace is in relation to the
+    // QIR. Activate by uncommenting:
+    // ptr_type = llvm::PointerType::get(ptr_type->getElementType(), 2);
+    auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+    instr->takeName(val);
+
+    auto module   = llvm::dyn_cast<llvm::Instruction>(val)->getModule();
+    auto function = module->getFunction("__quantum__qis__mz__body");
+
+    std::vector<llvm::Value *> arguments;
+    arguments.push_back(cap["qubit"]);
+    arguments.push_back(instr);
+
+    if (!function)
+    {
+      std::vector<llvm::Type *> types;
+      for (auto &arg : arguments)
+      {
+        types.push_back(arg->getType());
+      }
+
+      auto return_type = llvm::Type::getVoidTy(val->getContext());
+
+      llvm::FunctionType *fnc_type = llvm::FunctionType::get(return_type, types, false);
+      function = llvm::Function::Create(fnc_type, llvm::Function::ExternalLinkage,
+                                        "__quantum__qis__mz__body", module);
+    }
+
+    // Ensuring we are inserting after the instruction being deleted
+    builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val)->getNextNode());
+
+    builder.CreateCall(function, arguments);
+
+    // Replacing the instruction with new instruction
+    // TODO: (tfr): insert instruction before and then replace, with new call
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
+
+    return true;
   };
 
   rules_.emplace_back(Call("__quantum__qis__m__body", "qubit"_cap = _), replace_measurement);
 
   // Quantum comparisons
-  auto get_one     = Call("__quantum__rt__result_get_one");
-  auto replace_one = [](Builder &, Value *, Captures &, Replacements &) {
-    llvm::errs() << "Found comparison"
+  auto get_one                 = Call("__quantum__rt__result_get_one");
+  auto replace_branch_positive = [](Builder &builder, Value *val, Captures &cap,
+                                    Replacements &replacements) {
+    llvm::errs() << "Found branch"
                  << "\n";
+
+    auto result = cap["result"];
+    auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+
+    // Replacing result
+    auto                       module   = llvm::dyn_cast<llvm::Instruction>(val)->getModule();
+    auto                       function = module->getFunction("__quantum__qir__read_result");
+    std::vector<llvm::Value *> arguments;
+    arguments.push_back(result);
+
+    if (!function)
+    {
+      std::vector<llvm::Type *> types;
+      for (auto &arg : arguments)
+      {
+        types.push_back(arg->getType());
+      }
+
+      auto return_type = llvm::Type::getInt1Ty(val->getContext());
+
+      llvm::FunctionType *fnc_type = llvm::FunctionType::get(return_type, types, false);
+      function = llvm::Function::Create(fnc_type, llvm::Function::ExternalLinkage,
+                                        "__quantum__qir__read_result", module);
+    }
+
+    builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(result)->getNextNode());
+    auto new_call = builder.CreateCall(function, arguments);
+    new_call->takeName(cond);
+
+    for (auto &use : cond->uses())
+    {
+      llvm::User *user = use.getUser();
+      user->setOperand(use.getOperandNo(), new_call);
+    }
+
+    // Deleting the previous condition and function to fetch one
+    replacements.push_back({cond, nullptr});
+    replacements.push_back({cap["one"], nullptr});
+
     return false;
   };
 
   // Variations of get_one
-  rules_.emplace_back(Call("__quantum__rt__result_equal", "result"_cap = _, get_one), replace_one);
-  rules_.emplace_back(Call("__quantum__rt__result_equal", get_one, "result"_cap = _), replace_one);
+  rules_.emplace_back(Branch("cond"_cap = Call("__quantum__rt__result_equal", "result"_cap = _,
+                                               "one"_cap = get_one),
+                             _, _),
+                      replace_branch_positive);
+  rules_.emplace_back(Branch("cond"_cap = Call("__quantum__rt__result_equal", "one"_cap = get_one,
+                                               "result"_cap = _),
+                             _, _),
+                      replace_branch_positive);
 
   // Functions that we do not care about
   rules_.emplace_back(Call("__quantum__rt__array_update_alias_count", _, _), deleteInstruction());

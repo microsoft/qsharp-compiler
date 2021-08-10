@@ -158,6 +158,7 @@ typename InstructionPattern<T>::Child InstructionPattern<T>::copy() const
 template class InstructionPattern<llvm::StoreInst>;
 template class InstructionPattern<llvm::LoadInst>;
 template class InstructionPattern<llvm::BitCastInst>;
+template class InstructionPattern<llvm::BranchInst>;
 #pragma clang diagnostic pop
 
 }  // namespace quantum

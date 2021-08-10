@@ -11,19 +11,17 @@ source_filename = "qir/ConstSizeArray.ll"
 define internal fastcc void @TeleportChain__ApplyCorrection__body(%Qubit* %src, %Qubit* %intermediary, %Qubit* %dest) unnamed_addr {
 entry:
   %0 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %src)
-  %1 = call %Result* @__quantum__rt__result_get_one()
-  %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
-  br i1 %2, label %then0__1, label %continue__1
+  %1 = call i1 @__quantum__qir__read_result(%Result* %0)
+  br i1 %1, label %then0__1, label %continue__1
 
 then0__1:                                         ; preds = %entry
   call fastcc void @Microsoft__Quantum__Intrinsic__Z__body(%Qubit* %dest)
   br label %continue__1
 
 continue__1:                                      ; preds = %then0__1, %entry
-  %3 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %intermediary)
-  %4 = call %Result* @__quantum__rt__result_get_one()
-  %5 = call i1 @__quantum__rt__result_equal(%Result* %3, %Result* %4)
-  br i1 %5, label %then0__2, label %continue__2
+  %2 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %intermediary)
+  %3 = call i1 @__quantum__qir__read_result(%Result* %2)
+  br i1 %3, label %then0__2, label %continue__2
 
 then0__2:                                         ; preds = %continue__1
   call fastcc void @Microsoft__Quantum__Intrinsic__X__body(%Qubit* %dest)
@@ -35,7 +33,8 @@ continue__2:                                      ; preds = %then0__2, %continue
 
 define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %target) unnamed_addr {
 entry:
-  %result = call %Result* @__quantum__qis__m__body(%Qubit* %target)
+  %result = inttoptr i64 0 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
   call void @__quantum__qis__reset__body(%Qubit* %target)
   ret %Result* %result
 }
@@ -165,6 +164,10 @@ entry:
 declare void @__quantum__rt__message(%String*) local_unnamed_addr
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32) local_unnamed_addr
+
+declare i1 @__quantum__qir__read_result(%Result*)
+
+declare void @__quantum__qis__mz__body(%Qubit*, %Result*)
 
 attributes #0 = { "InteropFriendly" }
 attributes #1 = { "EntryPoint" }

@@ -17,8 +17,8 @@ public:
   using Index                = uint64_t;
   using String               = std::string;
   using AllocationManagerPtr = std::shared_ptr<AllocationManager>;
-  using Array                = std::vector<llvm::Value *>;
-  using Arrays               = std::unordered_map<std::string, Array>;
+  using Resource             = std::vector<llvm::Value *>;
+  using Resources            = std::unordered_map<std::string, Resource>;
 
   struct MemoryMapping
   {
@@ -37,7 +37,7 @@ public:
   Index getOffset(String const &name) const;
   void  release(String const &name);
 
-  Array &get(String const &name);
+  Resource &get(String const &name);
 
 private:
   AllocationManager() = default;
@@ -45,7 +45,7 @@ private:
   NameToIndex name_to_index_;
   Mappings    mappings_;
 
-  Arrays arrays_;
+  Resources resources_;
 };
 
 }  // namespace quantum

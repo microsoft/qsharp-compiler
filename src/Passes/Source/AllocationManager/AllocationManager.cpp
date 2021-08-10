@@ -20,15 +20,13 @@ AllocationManager::AllocationManagerPtr AllocationManager::createNew()
 
 void AllocationManager::allocate(String const &name, Index const &size, bool value_only)
 {
-  // Creating an array to store values
-  // llvm::errs() << "Allocating " << name << " " << size << "\n";
-  if (arrays_.find(name) != arrays_.end())
+  if (resources_.find(name) != resources_.end())
   {
-    throw std::runtime_error("Array with name " + name + " already exists.");
+    throw std::runtime_error("Resource with name " + name + " already exists.");
   }
 
-  arrays_[name].resize(size);
-  for (auto &v : arrays_[name])
+  resources_[name].resize(size);
+  for (auto &v : resources_[name])
   {
     v = nullptr;
   }
@@ -57,12 +55,12 @@ void AllocationManager::allocate(String const &name, Index const &size, bool val
   }
 }
 
-AllocationManager::Array &AllocationManager::get(String const &name)
+AllocationManager::Resource &AllocationManager::get(String const &name)
 {
-  auto it = arrays_.find(name);
-  if (it == arrays_.end())
+  auto it = resources_.find(name);
+  if (it == resources_.end())
   {
-    throw std::runtime_error("Array with name " + name + " does not exists.");
+    throw std::runtime_error("Resource with name " + name + " does not exists.");
   }
   return it->second;
 }

@@ -69,6 +69,18 @@ inline OperandPrototypePtr BitCast(OperandPrototypePtr arg)
   return static_cast<OperandPrototypePtr>(cast_pattern);
 }
 
+inline OperandPrototypePtr Branch(OperandPrototypePtr cond, OperandPrototypePtr arg1,
+                                  OperandPrototypePtr arg2)
+{
+  auto branch_pattern = std::make_shared<BranchPattern>();
+
+  branch_pattern->addChild(cond);
+  branch_pattern->addChild(arg1);
+  branch_pattern->addChild(arg2);
+
+  return static_cast<OperandPrototypePtr>(branch_pattern);
+}
+
 inline OperandPrototypePtr Load(OperandPrototypePtr arg)
 {
   auto ret = std::make_shared<LoadPattern>();
