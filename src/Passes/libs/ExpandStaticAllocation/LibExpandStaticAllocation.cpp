@@ -15,23 +15,19 @@ llvm::PassPluginLibraryInfo getExpandStaticAllocationPluginInfo()
     using namespace microsoft::quantum;
     using namespace llvm;
 
-    return {
-        LLVM_PLUGIN_API_VERSION, "ExpandStaticAllocation", LLVM_VERSION_STRING,
-        [](PassBuilder& pb)
-        {
-            // Registering the pass
-            pb.registerPipelineParsingCallback(
-                [](StringRef name, FunctionPassManager& fpm, ArrayRef<PassBuilder::PipelineElement> /*unused*/)
-                {
-                    if (name == "expand-static-allocation")
-                    {
-                        fpm.addPass(ExpandStaticAllocationPass());
-                        return true;
-                    }
+    return {LLVM_PLUGIN_API_VERSION, "ExpandStaticAllocation", LLVM_VERSION_STRING, [](PassBuilder& pb) {
+                // Registering the pass
+                pb.registerPipelineParsingCallback(
+                    [](StringRef name, FunctionPassManager& fpm, ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
+                        if (name == "expand-static-allocation")
+                        {
+                            fpm.addPass(ExpandStaticAllocationPass());
+                            return true;
+                        }
 
-                    return false;
-                });
-        }};
+                        return false;
+                    });
+            }};
 }
 } // namespace
 

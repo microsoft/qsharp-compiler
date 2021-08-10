@@ -1,8 +1,15 @@
 cmake_minimum_required(VERSION 3.4.3)
 
-project(QSharpPasses)
+project(Passes)
 
-find_package(LLVM REQUIRED CONFIG)
+if (WIN32)
+  message(STATUS "Adding C:\\Program Files\\LLVM\\lib to LLVM paths")
+  find_package(LLVM REQUIRED PATHS "C:\\Program Files\\LLVM\\lib" CONFIG )
+else()
+  find_package(LLVM REQUIRED CONFIG)
+endif()
+
+
 include(CheckCXXCompilerFlag)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -23,14 +30,6 @@ set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror ")
 # LLVM is normally built without RTTI. Be consistent with that.
 if(NOT LLVM_ENABLE_RTTI)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
-endif()
-
-# -fvisibility-inlines-hidden is set when building LLVM and on Darwin warnings
-# are triggered if llvm-tutor is built without this flag (though otherwise it
-# builds fine). For consistency, add it here too.
-check_cxx_compiler_flag("-fvisibility-inlines-hidden" SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
-if (${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG} EQUAL "1")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
 endif()
 
 # We export the compile commands which are needed by clang-tidy 
