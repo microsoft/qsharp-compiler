@@ -140,11 +140,19 @@ Note: For Windows, the packaging will look for python installations available an
 For manylinux, this is controlled through the Docker image build.
 
 ```bash
-docker build -t manylinux2014_x86_64_llvm11 --target manylinux2014_x86_64_llvm -f qirlib\manylinux.Dockerfile .
+docker build -t manylinux2014_x86_64_llvm11 --target manylinux2014_x86_64_llvm - < qirlib\manylinux.Dockerfile
 
-docker build -t manylinux2014_x86_64_llvm11_maturin -f qirlib\manylinux.Dockerfile .
+docker build -t manylinux2014_x86_64_llvm11_maturin - < qirlib\manylinux.Dockerfile
 
-docker run --rm -v $(pwd):/io -e LLVM_SYS_110_PREFIX manylinux2010_x86_64_llvm11_maturin build --release
+docker run --rm -v $(pwd):/io manylinux2014_x86_64_llvm11_maturin build --release
+```
+
+```powershell
+Get-Content qirlib\manylinux.Dockerfile | docker build -t manylinux2014_x86_64_llvm11 --target manylinux2014_x86_64_llvm -
+
+Get-Content qirlib\manylinux.Dockerfile | docker build -t manylinux2014_x86_64_llvm11_maturin -
+
+docker run --rm -v $(pwd):/io manylinux2014_x86_64_llvm11_maturin build --release
 ```
 
 ## TODO

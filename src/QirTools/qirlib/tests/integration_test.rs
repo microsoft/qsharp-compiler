@@ -8,12 +8,12 @@ use qirlib::{
     },
 };
 use serial_test::serial;
-use std::{ops::Add, path::Path};
 use std::{env, fs};
 use std::{
     io::{self, Write},
     path::PathBuf,
 };
+use std::{ops::Add, path::Path};
 
 #[test]
 #[serial]
@@ -259,24 +259,6 @@ fn copy_files(source: &PathBuf, target: &PathBuf) {
                 let dst = format!("{}/{}", target.display(), file);
 
                 std::fs::copy(&src, &dst).expect(
-                    format!("Failed to copy {} to {}", src.as_str(), dst.as_str()).as_str(),
-                );
-            }
-        }
-    }
-}
-
-fn copy_files_and_rename_libs(source: &String, target: &String) {
-    if let Ok(entries) = fs::read_dir(source.as_str()) {
-        for path in entries {
-            let file_name = path.unwrap().path();
-            if file_name.is_file() {
-                let name = file_name.file_name().unwrap().to_str().unwrap();
-                let stem = file_name.file_stem().unwrap().to_str().unwrap();
-                let src = format!("{}/{}", source.as_str(), name);
-                let dst = format!("{}/lib{}.so", target.as_str(), stem);
-
-                std::fs::copy(src.as_str(), dst.as_str()).expect(
                     format!("Failed to copy {} to {}", src.as_str(), dst.as_str()).as_str(),
                 );
             }

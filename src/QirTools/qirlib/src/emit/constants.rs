@@ -4,11 +4,11 @@
 use super::types::Types;
 use inkwell::module::Module;
 use inkwell::values::GlobalValue;
-use inkwell::values::PointerValue;
+//use inkwell::values::PointerValue;
 
 pub(crate) struct Constants<'ctx> {
-    pub(crate) unit: PointerValue<'ctx>,
-    pub(crate) pauli_i: GlobalValue<'ctx>,
+    //pub(crate) unit: PointerValue<'ctx>,
+    //pub(crate) pauli_i: GlobalValue<'ctx>,
     pub(crate) pauli_x: GlobalValue<'ctx>,
     pub(crate) pauli_y: GlobalValue<'ctx>,
     pub(crate) pauli_z: GlobalValue<'ctx>,
@@ -16,10 +16,10 @@ pub(crate) struct Constants<'ctx> {
 }
 
 impl<'ctx> Constants<'ctx> {
-    pub fn new(module: &Module<'ctx>, types: &Types<'ctx>) -> Self {
+    pub fn new(module: &Module<'ctx>, _types: &Types<'ctx>) -> Self {
         Constants {
-            unit: types.tuple.const_null(),
-            pauli_i: Constants::get_global(module, "PauliI"),
+            //unit: types.tuple.const_null(),
+            //pauli_i: Constants::get_global(module, "PauliI"),
             pauli_x: Constants::get_global(module, "PauliX"),
             pauli_y: Constants::get_global(module, "PauliY"),
             pauli_z: Constants::get_global(module, "PauliZ"),

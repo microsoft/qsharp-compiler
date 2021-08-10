@@ -29,7 +29,7 @@ pub(crate) struct Intrinsics<'ctx> {
     pub(crate) x: FunctionValue<'ctx>,
     pub(crate) x_ctl: FunctionValue<'ctx>,
     pub(crate) y: FunctionValue<'ctx>,
-    pub(crate) y_ctl: FunctionValue<'ctx>,
+    //pub(crate) y_ctl: FunctionValue<'ctx>,
     pub(crate) z: FunctionValue<'ctx>,
     pub(crate) z_ctl: FunctionValue<'ctx>,
     pub(crate) s: FunctionValue<'ctx>,
@@ -50,7 +50,7 @@ impl<'ctx> Intrinsics<'ctx> {
             x: Intrinsics::get_intrinsic_function_body(module, X),
             x_ctl: Intrinsics::get_intrinsic_function_ctl(module, X),
             y: Intrinsics::get_intrinsic_function_body(module, Y),
-            y_ctl: Intrinsics::get_intrinsic_function_ctl(module, Y),
+            //y_ctl: Intrinsics::get_intrinsic_function_ctl(module, Y),
             z: Intrinsics::get_intrinsic_function_body(module, Z),
             z_ctl: Intrinsics::get_intrinsic_function_ctl(module, Z),
             s: Intrinsics::get_intrinsic_function_body(module, S),
@@ -76,9 +76,13 @@ impl<'ctx> Intrinsics<'ctx> {
     }
 
     fn get_function(module: &Module<'ctx>, function_name: &str) -> FunctionValue<'ctx> {
-        let function = module.get_function(&function_name).unwrap();
-
-        function
+        if let Some(function) = module.get_function(&function_name) {
+            return function;
+        }
+        panic!(
+            "{} global constant was not defined in the module",
+            function_name
+        );
     }
 }
 

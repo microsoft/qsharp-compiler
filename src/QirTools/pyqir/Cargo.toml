@@ -4,11 +4,8 @@ name = "pyqir"
 version = "0.1.0"
 edition = "2018"
 
-[workspace]
-members = [".", "qirlib"]
-
 [dependencies]
-qirlib = {path = "qirlib"}
+qirlib = {path = "../qirlib"}
 
 [dependencies.pyo3]
 version = "0.13.2"

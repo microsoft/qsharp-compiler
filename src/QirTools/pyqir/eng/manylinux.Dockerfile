@@ -68,4 +68,6 @@ WORKDIR /io
 
 RUN yum install -y libffi-devel
 
+ENV LLVM_SYS_110_PREFIX /usr/lib/llvm-11/
+
 ENTRYPOINT ["/usr/bin/maturin"]
