@@ -16,7 +16,7 @@ namespace Microsoft
 {
 namespace Quantum
 {
-    class CSimpleSimulator : public IRuntimeDriver, public IQuantumGateSet
+    class StateSimulator : public IRuntimeDriver, public IQuantumGateSet
     {
         // Associated qubit manager instance to handle qubit representation.
         QubitManager *qbm;
@@ -30,18 +30,22 @@ namespace Quantum
         void UpdateState(short qubitIndex, bool remove = false);
 
         // To be called by quantum gate set operations.
-        void ApplyGate(Gate gate, short qubitIndex);
-        void ApplyControlledGate(Gate gate, long numControls, Qubit controls[], short targetIndex);
+        void ApplyGate(Gate gate, Qubit target);
+        void ApplyControlledGate(Gate gate, long numControls, Qubit controls[], Qubit target);
 
         // Builds a unitary matrix over the state space made of Pauli operators.
         Operator BuildPauliUnitary(long numTargets, PauliId paulis[], Qubit targets[]);
 
       public:
-        CSimpleSimulator(uint32_t userProvidedSeed = 0)
+        StateSimulator(uint32_t userProvidedSeed = 0)
         {
             srand(userProvidedSeed);
+            this->qbm = new QubitManager();
         }
-        ~CSimpleSimulator() override = default;
+        ~StateSimulator()
+        {
+            delete this->qbm;
+        }
 
 
         ///
@@ -109,7 +113,7 @@ namespace Quantum
 
         Result Measure(long numBases, PauliId bases[], long numTargets, Qubit targets[]) override;
 
-    }; // class CSimpleSimulator
+    }; // class StateSimulator
 
 } // namespace Quantum
 } // namespace Microsoft

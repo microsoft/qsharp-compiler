@@ -1,6 +1,6 @@
 #include <complex>
 
-#include "SimpleSimulator.hpp"
+#include "StateSimulator.hpp"
 
 #include "Eigen/KroneckerProduct"
 #include "Eigen/MatrixFunctions"
@@ -54,7 +54,7 @@ static Pauli SelectPauliOp(PauliId axis)
 /// State manipulation
 ///
 
-void CSimpleSimulator::UpdateState(short qubitIndex, bool remove)
+void StateSimulator::UpdateState(short qubitIndex, bool remove)
 {   
     // When adding a qubit, the state vector can be updated with: |Ψ'> = |Ψ> ⊗ |0>.
     // When removing a qubit, it is traced out from the state vector: ρ = tr_i[|Ψ><Ψ|].
@@ -79,9 +79,10 @@ void CSimpleSimulator::UpdateState(short qubitIndex, bool remove)
     }
 }
 
-void CSimpleSimulator::ApplyGate(Gate gate, short qubitIndex)
+void StateSimulator::ApplyGate(Gate gate, Qubit target)
 {
     // Construct unitary as Id_A ⊗ G ⊗ Id_B, split by the qubit index.
+    short qubitIndex = this->qbm->GetQubitIdx(target);
     long dimA = pow(2, qubitIndex);
     long dimB = pow(2, this->numActiveQubits-qubitIndex-1);
     Operator unitary = Operator::Identity(dimA, dimA);
@@ -92,13 +93,14 @@ void CSimpleSimulator::ApplyGate(Gate gate, short qubitIndex)
     this->stateVec = unitary*this->stateVec;
 }
 
-void CSimpleSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit controls[], short targetIndex)
+void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit controls[], Qubit target)
 {
     // Controlled unitary on a bipartite system A⊗B can be expressed as:
     //     cU = (|0><0| ⊗ 1) + (|1><1| ⊗ U)    if control on A
     //     cU = (1 ⊗ |0><0|) + (U ⊗ |1><1|)    if control on B
     // Thus, the full unitary will be built starting from target in both directions
     // to handle controls coming both before and after the target.
+    short targetIndex = this->qbm->GetQubitIdx(target);
     std::vector<short> preTargetIndices, postTargetIndices;
     for (int i = 0; i < numControls; i++) {
         short idx = this->qbm->GetQubitIdx(controls[i]);
@@ -148,143 +150,143 @@ void CSimpleSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit co
 /// Supported quantum operations 
 ///
 
-void CSimpleSimulator::X(Qubit q)
+void StateSimulator::X(Qubit q)
 {
     Gate x; x << 0, 1,
                  1, 0;
-    ApplyGate(x, this->qbm->GetQubitIdx(q));
+    ApplyGate(x, q);
 }
 
-void CSimpleSimulator::ControlledX(long numControls, Qubit controls[], Qubit target)
+void StateSimulator::ControlledX(long numControls, Qubit controls[], Qubit target)
 {
     Gate x; x << 0, 1,
                  1, 0;
-    ApplyControlledGate(x, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(x, numControls, controls, target);
 }
 
-void CSimpleSimulator::Y(Qubit q)
+void StateSimulator::Y(Qubit q)
 {
     Gate y; y <<  0,-1i,
                  1i,  0;
-    ApplyGate(y, this->qbm->GetQubitIdx(q));
+    ApplyGate(y, q);
 }
 
-void CSimpleSimulator::ControlledY(long numControls, Qubit controls[], Qubit target)
+void StateSimulator::ControlledY(long numControls, Qubit controls[], Qubit target)
 {
     Gate y; y <<  0,-1i,
                  1i,  0;
-    ApplyControlledGate(y, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(y, numControls, controls, target);
 }
 
-void CSimpleSimulator::Z(Qubit q)
+void StateSimulator::Z(Qubit q)
 {
     Gate z; z << 1, 0,
                  0,-1;
-    ApplyGate(z, this->qbm->GetQubitIdx(q));
+    ApplyGate(z, q);
 }
 
-void CSimpleSimulator::ControlledZ(long numControls, Qubit controls[], Qubit target)
+void StateSimulator::ControlledZ(long numControls, Qubit controls[], Qubit target)
 {
     Gate z; z << 1, 0,
                  0,-1;
-    ApplyControlledGate(z, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(z, numControls, controls, target);
 }
 
-void CSimpleSimulator::H(Qubit q)
+void StateSimulator::H(Qubit q)
 {
     Gate h; h << 1, 1,
                  1,-1;
     h = h / sqrt(2);
-    ApplyGate(h, this->qbm->GetQubitIdx(q));
+    ApplyGate(h, q);
 }
 
-void CSimpleSimulator::ControlledH(long numControls, Qubit controls[], Qubit target)
+void StateSimulator::ControlledH(long numControls, Qubit controls[], Qubit target)
 {
     Gate h; h << 1, 1,
                  1,-1;
     h = h / sqrt(2);
-    ApplyControlledGate(h, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(h, numControls, controls, target);
 }
 
-void CSimpleSimulator::S(Qubit q)
+void StateSimulator::S(Qubit q)
 {
     Gate s; s << 1,  0,
                  0, 1i;
-    ApplyGate(s, this->qbm->GetQubitIdx(q));
+    ApplyGate(s, q);
 }
 
-void CSimpleSimulator::ControlledS(long numControls, Qubit controls[], Qubit target)
+void StateSimulator::ControlledS(long numControls, Qubit controls[], Qubit target)
 {
     Gate s; s << 1,  0,
                  0, 1i;
-    ApplyControlledGate(s, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(s, numControls, controls, target);
 }
 
-void CSimpleSimulator::AdjointS(Qubit q)
+void StateSimulator::AdjointS(Qubit q)
 {
     Gate sdag; sdag << 1,  0,
                        0,-1i;
-    ApplyGate(sdag, this->qbm->GetQubitIdx(q));
+    ApplyGate(sdag, q);
 }
 
-void CSimpleSimulator::ControlledAdjointS(long numControls, Qubit controls[], Qubit target)
+void StateSimulator::ControlledAdjointS(long numControls, Qubit controls[], Qubit target)
 {
     Gate sdag; sdag << 1,  0,
                        0,-1i;
-    ApplyControlledGate(sdag, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(sdag, numControls, controls, target);
 }
 
-void CSimpleSimulator::T(Qubit q)
+void StateSimulator::T(Qubit q)
 {
     Gate t; t << 1, 0,
                  0, exp(1i*PI/4.);
-    ApplyGate(t, this->qbm->GetQubitIdx(q));
+    ApplyGate(t, q);
 }
 
-void CSimpleSimulator::ControlledT(long numControls, Qubit controls[], Qubit target)
+void StateSimulator::ControlledT(long numControls, Qubit controls[], Qubit target)
 {
     Gate t; t << 1, 0,
                  0, exp(1i*PI/4.);
-    ApplyControlledGate(t, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(t, numControls, controls, target);
 }
 
-void CSimpleSimulator::AdjointT(Qubit q)
+void StateSimulator::AdjointT(Qubit q)
 {
     Gate tdag; tdag << 1, 0,
                        0, exp(-1i*PI/4.);
-    ApplyGate(tdag, this->qbm->GetQubitIdx(q));
+    ApplyGate(tdag, q);
 }
 
-void CSimpleSimulator::ControlledAdjointT(long numControls, Qubit controls[], Qubit target)
+void StateSimulator::ControlledAdjointT(long numControls, Qubit controls[], Qubit target)
 {
     Gate tdag; tdag << 1, 0,
                        0, exp(-1i*PI/4.);
-    ApplyControlledGate(tdag, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(tdag, numControls, controls, target);
 }
 
-void CSimpleSimulator::R(PauliId axis, Qubit q, double theta)
+void StateSimulator::R(PauliId axis, Qubit q, double theta)
 {
     Gate r = (-1i*theta/2.0*SelectPauliOp(axis)).exp();
-    ApplyGate(r, this->qbm->GetQubitIdx(q));
+    ApplyGate(r, q);
 }
 
-void CSimpleSimulator::ControlledR(long numControls, Qubit controls[], PauliId axis, Qubit target, double theta)
+void StateSimulator::ControlledR(long numControls, Qubit controls[], PauliId axis, Qubit target, double theta)
 {
     Gate r = (-1i*theta/2.0*SelectPauliOp(axis)).exp();
-    ApplyControlledGate(r, numControls, controls, this->qbm->GetQubitIdx(target));
+    ApplyControlledGate(r, numControls, controls, target);
 }
 
-void CSimpleSimulator::Exp(long numTargets, PauliId paulis[], Qubit targets[], double theta)
+void StateSimulator::Exp(long numTargets, PauliId paulis[], Qubit targets[], double theta)
 {
     Operator u = (1i*theta*BuildPauliUnitary(numTargets, paulis, targets)).exp();
     this->stateVec = u*this->stateVec;
 }
 
-void CSimpleSimulator::ControlledExp(long numControls, Qubit controls[], long numTargets, PauliId paulis[], Qubit targets[], double theta)
+void StateSimulator::ControlledExp(long numControls, Qubit controls[], long numTargets, PauliId paulis[], Qubit targets[], double theta)
 {
 }
 
-Result CSimpleSimulator::Measure(long numBases, PauliId bases[], long numTargets, Qubit targets[])
+Result StateSimulator::Measure(long numBases, PauliId bases[], long numTargets, Qubit targets[])
 {
     assert(numBases == numTargets);
     short dim = this->numActiveQubits;
@@ -311,7 +313,7 @@ Result CSimpleSimulator::Measure(long numBases, PauliId bases[], long numTargets
     return outcome;
 }
 
-Operator CSimpleSimulator::BuildPauliUnitary(long numTargets, PauliId paulis[], Qubit targets[])
+Operator StateSimulator::BuildPauliUnitary(long numTargets, PauliId paulis[], Qubit targets[])
 {
     // Sort pauli matrices by the target qubit's index in the compute register.
     std::vector<std::pair<short, PauliId>> sortedTargetBase(numTargets);

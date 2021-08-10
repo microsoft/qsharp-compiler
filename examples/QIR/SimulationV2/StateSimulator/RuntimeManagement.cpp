@@ -1,4 +1,4 @@
-#include "SimpleSimulator.hpp"
+#include "StateSimulator.hpp"
 
 using namespace Microsoft::Quantum;
 
@@ -7,20 +7,20 @@ using namespace Microsoft::Quantum;
 /// Qubit management
 ///
 
-Qubit CSimpleSimulator::AllocateQubit()
+Qubit StateSimulator::AllocateQubit()
 {
     UpdateState(this->numActiveQubits++);
     return this->qbm->AllocateQubit();
 }
 
-void CSimpleSimulator::ReleaseQubit(Qubit q)
+void StateSimulator::ReleaseQubit(Qubit q)
 {
     UpdateState(this->qbm->GetQubitIdx(q), /*remove=*/true);
     this->qbm->ReleaseQubit(q);
     this->numActiveQubits--;
 }
 
-std::string CSimpleSimulator::QubitToString(Qubit q)
+std::string StateSimulator::QubitToString(Qubit q)
 {
     return this->qbm->GetQubitName(q);
 }
@@ -33,24 +33,24 @@ std::string CSimpleSimulator::QubitToString(Qubit q)
 static Result zero = reinterpret_cast<Result>(0);
 static Result one = reinterpret_cast<Result>(1);
 
-void CSimpleSimulator::ReleaseResult(Result r) {}
+void StateSimulator::ReleaseResult(Result r) {}
 
-bool CSimpleSimulator::AreEqualResults(Result r1, Result r2)
+bool StateSimulator::AreEqualResults(Result r1, Result r2)
 {
     return (r1 == r2);
 }
 
-ResultValue CSimpleSimulator::GetResultValue(Result r)
+ResultValue StateSimulator::GetResultValue(Result r)
 {
     return (r == one) ? Result_One : Result_Zero;
 }
 
-Result CSimpleSimulator::UseZero()
+Result StateSimulator::UseZero()
 {
     return zero;
 }
 
-Result CSimpleSimulator::UseOne()
+Result StateSimulator::UseOne()
 {
     return one;
 }
