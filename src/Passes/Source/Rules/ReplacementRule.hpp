@@ -21,8 +21,11 @@ public:
   using Replacements        = std::vector<std::pair<Value *, Value *>>;
   using ReplaceFunction     = std::function<bool(Builder &, Value *, Captures &, Replacements &)>;
 
+  /// Constructorss and destructors
+  /// @{
   ReplacementRule() = default;
   ReplacementRule(OperandPrototypePtr &&pattern, ReplaceFunction &&replacer);
+  /// @}
 
   /// Rule configuration
   /// @{

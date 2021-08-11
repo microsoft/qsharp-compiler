@@ -5,6 +5,7 @@
 #include "Rules/OperandPrototype.hpp"
 #include "Rules/ReplacementRule.hpp"
 
+#include <memory>
 #include <vector>
 
 namespace microsoft {
@@ -13,7 +14,8 @@ namespace quantum {
 class RuleSet
 {
 public:
-  using Rules                = std::vector<ReplacementRule>;
+  using ReplacementRulePtr   = std::shared_ptr<ReplacementRule>;
+  using Rules                = std::vector<ReplacementRulePtr>;
   using Replacements         = ReplacementRule::Replacements;
   using Captures             = OperandPrototype::Captures;
   using Instruction          = llvm::Instruction;
@@ -23,15 +25,16 @@ public:
 
   /// @{
   RuleSet();
-  RuleSet(RuleSet const &) = delete;
+  RuleSet(RuleSet const &) = default;
   RuleSet(RuleSet &&)      = default;
   ~RuleSet()               = default;
   /// @}
 
   /// Operators
   /// @{
-  RuleSet &operator=(RuleSet const &) = delete;
+  RuleSet &operator=(RuleSet const &) = default;
   RuleSet &operator=(RuleSet &&) = default;
+  // TODO(tfr): add RuleSet  operator&(RuleSet const &other);
   /// @}
 
   bool matchAndReplace(Instruction *value, Replacements &replacements);

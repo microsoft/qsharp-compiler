@@ -42,7 +42,7 @@ RuleSet::RuleSet()
                  << *type->getPointerElementType() << " " << type->isArrayTy() << "\n";
     return false;
   });
-  rules_.emplace_back(std::move(rule0));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(std::move(rule0)));
 
   // Pattern 1 - Get array index
 
@@ -100,7 +100,7 @@ RuleSet::RuleSet()
 
     return true;
   });
-  rules_.emplace_back(std::move(rule1a));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(std::move(rule1a)));
 
   ReplacementRule rule1b;
   rule1b.setPattern(Call("__quantum__rt__qubit_allocate"));
@@ -137,7 +137,7 @@ RuleSet::RuleSet()
 
         return true;
       });
-  rules_.emplace_back(std::move(rule1b));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(std::move(rule1b)));
 
   // Rule 6 - perform static allocation and delete __quantum__rt__qubit_allocate_array
   ReplacementRule rule6;
@@ -160,7 +160,7 @@ RuleSet::RuleSet()
         return true;
       });
 
-  rules_.emplace_back(std::move(rule6));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(std::move(rule6)));
 
   // Rule 8 - standard array allocation
   /*
@@ -203,7 +203,7 @@ RuleSet::RuleSet()
                  << "\n";
     return false;
   });
-  rules_.emplace_back(std::move(rule10));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(std::move(rule10)));
 
   // Measurements
   auto replace_measurement = [result_alloc_manager](Builder &builder, Value *val, Captures &cap,
@@ -266,7 +266,8 @@ RuleSet::RuleSet()
     return true;
   };
 
-  rules_.emplace_back(Call("__quantum__qis__m__body", "qubit"_cap = _), replace_measurement);
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Call("__quantum__qis__m__body", "qubit"_cap = _), replace_measurement));
 
   // Quantum comparisons
   auto get_one                 = Call("__quantum__rt__result_get_one");
@@ -315,41 +316,53 @@ RuleSet::RuleSet()
   };
 
   // Variations of get_one
-  rules_.emplace_back(Branch("cond"_cap = Call("__quantum__rt__result_equal", "result"_cap = _,
-                                               "one"_cap = get_one),
-                             _, _),
-                      replace_branch_positive);
-  rules_.emplace_back(Branch("cond"_cap = Call("__quantum__rt__result_equal", "one"_cap = get_one,
-                                               "result"_cap = _),
-                             _, _),
-                      replace_branch_positive);
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Branch(
+          "cond"_cap = Call("__quantum__rt__result_equal", "result"_cap = _, "one"_cap = get_one),
+          _, _),
+      replace_branch_positive));
+
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Branch(
+          "cond"_cap = Call("__quantum__rt__result_equal", "one"_cap = get_one, "result"_cap = _),
+          _, _),
+      replace_branch_positive));
 
   auto deleter = deleteInstruction();
-  rules_.emplace_back(Call("__quantum__rt__qubit_release_array", "name"_cap = _),
-                      [qubit_alloc_manager, deleter](Builder &builder, Value *val, Captures &cap,
-                                                     Replacements &rep) {
-                        qubit_alloc_manager->release(cap["name"]->getName().str());
-                        return deleter(builder, val, cap, rep);
-                      }
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Call("__quantum__rt__qubit_release_array", "name"_cap = _),
+      [qubit_alloc_manager, deleter](Builder &builder, Value *val, Captures &cap,
+                                     Replacements &rep) {
+        qubit_alloc_manager->release(cap["name"]->getName().str());
+        return deleter(builder, val, cap, rep);
+      }
 
-  );
-  rules_.emplace_back(Call("__quantum__rt__qubit_release", _), deleteInstruction());
+      ));
+
+  rules_.emplace_back(std::make_shared<ReplacementRule>(Call("__quantum__rt__qubit_release", _),
+                                                        deleteInstruction()));
 
   // Functions that we do not care about
-  rules_.emplace_back(Call("__quantum__rt__array_update_alias_count", _, _), deleteInstruction());
-  rules_.emplace_back(Call("__quantum__rt__string_update_alias_count", _, _), deleteInstruction());
-  rules_.emplace_back(Call("__quantum__rt__result_update_alias_count", _, _), deleteInstruction());
-  rules_.emplace_back(Call("__quantum__rt__array_update_reference_count", _, _),
-                      deleteInstruction());
-  rules_.emplace_back(Call("__quantum__rt__string_update_reference_count", _, _),
-                      deleteInstruction());
-  rules_.emplace_back(Call("__quantum__rt__result_update_reference_count", _, _),
-                      deleteInstruction());
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Call("__quantum__rt__array_update_alias_count", _, _), deleteInstruction()));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Call("__quantum__rt__string_update_alias_count", _, _), deleteInstruction()));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Call("__quantum__rt__result_update_alias_count", _, _), deleteInstruction()));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Call("__quantum__rt__array_update_reference_count", _, _), deleteInstruction()));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Call("__quantum__rt__string_update_reference_count", _, _), deleteInstruction()));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(
+      Call("__quantum__rt__result_update_reference_count", _, _), deleteInstruction()));
 
-  rules_.emplace_back(Call("__quantum__rt__string_create", _), deleteInstruction());
-  rules_.emplace_back(Call("__quantum__rt__string_release", _), deleteInstruction());
+  rules_.emplace_back(std::make_shared<ReplacementRule>(Call("__quantum__rt__string_create", _),
+                                                        deleteInstruction()));
+  rules_.emplace_back(std::make_shared<ReplacementRule>(Call("__quantum__rt__string_release", _),
+                                                        deleteInstruction()));
 
-  rules_.emplace_back(Call("__quantum__rt__message", _), deleteInstruction());
+  rules_.emplace_back(
+      std::make_shared<ReplacementRule>(Call("__quantum__rt__message", _), deleteInstruction()));
 }
 
 bool RuleSet::matchAndReplace(Instruction *value, Replacements &replacements)
@@ -358,12 +371,12 @@ bool RuleSet::matchAndReplace(Instruction *value, Replacements &replacements)
   for (auto const &rule : rules_)
   {
     // Checking if the rule is matched and keep track of captured nodes
-    if (rule.match(value, captures))
+    if (rule->match(value, captures))
     {
 
       // If it is matched, we attempt to replace it
       llvm::IRBuilder<> builder{value};
-      if (rule.replace(builder, value, captures, replacements))
+      if (rule->replace(builder, value, captures, replacements))
       {
         return true;
       }
