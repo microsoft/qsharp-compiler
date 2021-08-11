@@ -1421,3 +1421,85 @@ type ClassicalControlTests() =
 
         IsApplyIfElseArgsMatch args "r" SubOp1 NoOp
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+
+    [<Fact>]
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Don't Lift Classical Conditions``() =
+        CompileClassicalControlTest 41 |> ignore
+
+    [<Fact>]
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Mutables with Nesting Lift Both``() =
+        let result = CompileClassicalControlTest 42
+        let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+        let generated = GetCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo"
+
+        Assert.True(2 = Seq.length generated) // Should already be asserted by the signature check
+
+        let innerContentCheck call =
+            let lines = call |> GetBodyFromCallable |> GetLinesFromSpecialization
+            (List.ofArray lines) = [ "mutable x = 0;"; "set x = 1;" ]
+
+        let (inner, outer) =
+            match innerContentCheck (Seq.head generated) with
+            | true -> (Seq.head generated, Seq.item 1 generated)
+            | false -> (Seq.item 1 generated, Seq.head generated)
+
+        Assert.True(innerContentCheck inner)
+
+        // Make sure original calls outer generated
+        let lines = original |> GetLinesFromSpecialization
+        let (success, _, args) =
+            CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[1]
+
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
+
+        let (success, _, _) = IsApplyIfArgMatch args "r" outer.FullName
+        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
+        // Make sure outer calls inner generated
+        let lines = outer |> GetBodyFromCallable |> GetLinesFromSpecialization
+        let (success, _, args) =
+            CheckIfLineIsCall BuiltIn.ApplyIfOne.FullName.Namespace BuiltIn.ApplyIfOne.FullName.Name lines.[0]
+
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" outer.FullName QsSpecializationKind.QsBody
+        )
+
+        let (success, _, _) = IsApplyIfArgMatch args "r" inner.FullName
+        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
+    [<Fact>]
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Mutables with Nesting Lift Outer``() =
+        let result = CompileClassicalControlTest 43
+        let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+
+        let generated =
+            GetCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x |> GetBodyFromCallable)
+
+        // Make sure original calls generated
+        let lines = original |> GetLinesFromSpecialization
+        let (success, _, args) =
+            CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[1]
+
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
+
+        let (success, _, _) = IsApplyIfArgMatch args "r" generated.Parent
+        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
+    [<Fact(Skip="Known Issue #???")>] // ToDo give proper issue number from GitHub
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Mutables with Nesting Lift Neither``() =
+        CompileClassicalControlTest 44 |> ignore
+

@@ -535,6 +535,23 @@ let public ClassicalControlSignatures =
          |])
         // One-sided NOT condition
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Don't Lift Classical Conditions
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Nesting Lift Both
+        (_DefaultTypes,
+            [|
+                ClassicalControlNS, "Foo", [||], "Unit"
+                ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+                ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+            |])
+        // Mutables with Nesting Lift Outer
+        (_DefaultTypes,
+            [|
+                ClassicalControlNS, "Foo", [||], "Unit"
+                ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+            |])
+        // Mutables with Nesting Lift Neither
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
     |]
     |> _MakeSignatures
 

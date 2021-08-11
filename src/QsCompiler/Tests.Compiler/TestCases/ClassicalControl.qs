@@ -1084,3 +1084,78 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         }
     }
 }
+
+// =================================
+
+// Don't Lift Classical Conditions
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let x = 0;
+
+        if x == 1 {
+            let y = 0;
+            SubOp1();
+        }
+
+        if x == 2 {
+            if x == 3 {
+                let y = 0;
+                SubOp1();
+            }
+        }
+        else {
+            let y = 0;
+            SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Nesting Lift Both
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    operation Foo() : Unit {
+        let r = Zero;
+        
+        if r == Zero {
+            if r == One {
+                mutable x = 0;
+                set x = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Nesting Lift Outer
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if r == Zero {
+            mutable x = 0;
+            if r == One {
+                set x = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Nesting Lift Neither
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    operation Foo() : Unit {
+        let r = Zero;
+        
+        mutable x = 0;
+        if r == Zero {
+            if r == One {
+                set x = 1;
+            }
+        }
+    }
+}
