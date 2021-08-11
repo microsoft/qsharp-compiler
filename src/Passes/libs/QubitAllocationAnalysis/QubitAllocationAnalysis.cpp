@@ -65,10 +65,13 @@ namespace quantum
     void QubitAllocationAnalysisAnalytics::analyseCall(Instruction& instruction)
     {
         // Skipping debug code
+        /*
+        TODO(tfr): enable in LLVM12
         if (instruction.isDebugOrPseudoInst())
         {
             return;
         }
+        */
 
         // Recovering the call information
         auto* call_instr = llvm::dyn_cast<llvm::CallBase>(&instruction);

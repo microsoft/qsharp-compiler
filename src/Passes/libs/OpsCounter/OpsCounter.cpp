@@ -21,10 +21,14 @@ namespace quantum
         {
             for (auto& instruction : basic_block)
             {
+                /*
+                TODO(tfr): Enable this block once we upgrade to LLVM 12 or above
                 if (instruction.isDebugOrPseudoInst())
                 {
                     continue;
                 }
+                */
+
                 auto name = instruction.getOpcodeName();
 
                 if (opcode_map.find(name) == opcode_map.end())
