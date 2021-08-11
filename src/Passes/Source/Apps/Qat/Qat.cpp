@@ -12,10 +12,13 @@ int main(int /*argc*/, char **argv)
     FunctionPassManager FPM;
 
     // InstSimplifyPass is a function pass
+
     FPM.addPass(LoopSimplifyPass());
+    //    FPM.addPass(LoopUnrollPass());
+
     MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
 
-    MPM.run(*module);
+    // MPM.run(*module);
     //    m->print(llvm)
     llvm::errs() << *module << "\n";
   }

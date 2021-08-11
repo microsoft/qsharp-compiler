@@ -48,6 +48,7 @@
 // Reader tool
 #include "llvm/IRReader/IRReader.h"
 #include "llvm/Support/SourceMgr.h"
+#include "llvm/Transforms/Scalar/LoopUnrollPass.h"
 
 #if defined(__clang__)
 #pragma clang diagnostic pop

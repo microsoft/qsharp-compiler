@@ -43,7 +43,7 @@ include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${CMAKE_SOURCE_DIR}/Source)
-llvm_map_components_to_libnames(llvm_libs support core irreader passes orcjit orcshared orctargetprocess x86asmparser x86codegen x86desc x86disassembler x86info interpreter)
+llvm_map_components_to_libnames(llvm_libs support core irreader passes orcjit orctargetprocess x86asmparser x86codegen x86desc x86disassembler x86info interpreter)
 
 
 # Adding the libraries
