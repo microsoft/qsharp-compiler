@@ -586,7 +586,7 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
              ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
          |])
-         // Mutables with Classic Nesting Elif Lift First
+        // Mutables with Classic Nesting Elif Lift First
         (_DefaultTypes,
          [|
              ClassicalControlNS, "Foo", [||], "Unit"

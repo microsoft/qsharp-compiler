@@ -1662,6 +1662,7 @@ type ClassicalControlTests() =
         let lines = original |> GetLinesFromSpecialization
 
         Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation.")
+
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[4]
 
@@ -1673,6 +1674,7 @@ type ClassicalControlTests() =
         let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" ifBlock.FullName
         Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
         Assert.True(lines.[6] = "    else {", "The else condition is missing after transformation.")
+
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfElseR.FullName.Namespace BuiltIn.ApplyIfElseR.FullName.Name lines.[7]
 
@@ -1681,7 +1683,9 @@ type ClassicalControlTests() =
             sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
         )
 
-        let (success, _, _, _, _) = IsApplyIfElseArgsMatch args "Microsoft.Quantum.Testing.General.M(q)" elifBlock.FullName elseBlock.FullName
+        let (success, _, _, _, _) =
+            IsApplyIfElseArgsMatch args "Microsoft.Quantum.Testing.General.M(q)" elifBlock.FullName elseBlock.FullName
+
         Assert.True(success, sprintf "ApplyIfElseR did not have the correct arguments")
 
     [<Fact>]
@@ -1696,13 +1700,13 @@ type ClassicalControlTests() =
                 Assert.True(1 = Seq.length x)
                 Seq.item 0 x |> GetBodyFromCallable)
 
-        let TrimWhitespaceFromLines (lines : string []) =
-            lines |> Array.map (fun s -> s.Trim())
+        let TrimWhitespaceFromLines (lines: string []) = lines |> Array.map (fun s -> s.Trim())
 
         // Make sure original calls generated
         let lines = original |> GetLinesFromSpecialization |> TrimWhitespaceFromLines
 
         Assert.True(lines.[3] = "if x < 1 {", "The classical condition is missing after transformation.")
+
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[4]
 
@@ -1714,14 +1718,23 @@ type ClassicalControlTests() =
         let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
         Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
         Assert.True(lines.[6] = "else {", "The else condition is missing after transformation.")
-        Assert.True(lines.[7] = "if Microsoft.Quantum.Testing.General.M(q) == Zero {", "The quantum condition is missing after transformation.")
+
+        Assert.True(
+            lines.[7] = "if Microsoft.Quantum.Testing.General.M(q) == Zero {",
+            "The quantum condition is missing after transformation."
+        )
+
         Assert.True(lines.[8] = "if x < 4 {", "The classical condition is missing after transformation.")
         Assert.True(lines.[9] = "if x < 5 {", "The classical condition is missing after transformation.")
         Assert.True(lines.[14] = "else {", "The else condition is missing after transformation.")
-        Assert.True(lines.[16] = "if Microsoft.Quantum.Testing.General.M(q) == Zero {", "The quantum condition is missing after transformation.")
+
+        Assert.True(
+            lines.[16] = "if Microsoft.Quantum.Testing.General.M(q) == Zero {",
+            "The quantum condition is missing after transformation."
+        )
+
         Assert.True(lines.[17] = "if x < 6 {", "The classical condition is missing after transformation.")
 
         let lines = generated |> GetLinesFromSpecialization |> TrimWhitespaceFromLines
         Assert.True(lines.[1] = "if x < 2 {", "The classical condition is missing after transformation.")
         Assert.True(lines.[2] = "if x < 3 {", "The classical condition is missing after transformation.")
-
