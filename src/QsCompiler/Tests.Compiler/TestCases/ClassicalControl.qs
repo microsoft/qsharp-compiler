@@ -11,6 +11,19 @@ namespace SubOps {
     operation SubOpCA3() : Unit is Ctl + Adj { }
 }
 
+namespace Microsoft.Quantum.Testing.General {
+    operation Unitary (q : Qubit) : Unit {
+        body intrinsic;
+        adjoint auto;
+        controlled auto;
+        controlled adjoint auto;
+    }
+
+    operation M (q : Qubit) : Result {
+        body intrinsic;
+    }
+}
+
 // =================================
 
 // Basic Lift
@@ -1159,3 +1172,90 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         }
     }
 }
+
+// =================================
+
+// Mutables with Classic Nesting Lift Inner
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+        
+        if x < 1 {
+            if M(q) == Zero {
+                mutable y = 0;
+                set y = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Lift Outer
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+
+        if M(q) == Zero {
+            mutable y = 0;
+            if x < 1 {
+                set y = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Lift Outer With More Classic
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+        
+        if M(q) == Zero {
+            mutable y = 0;
+            if x < 1 {
+                if x < 2 {
+                    set y = 1;
+                }
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Lift Middle
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+        
+        if x < 1 {
+            if M(q) == Zero {
+                mutable y = 0;
+                if x < 2 {
+                    if x < 3 {
+                        set y = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+

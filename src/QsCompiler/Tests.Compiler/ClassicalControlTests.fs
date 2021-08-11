@@ -1505,3 +1505,125 @@ type ClassicalControlTests() =
     [<Trait("Category", "Content Lifting")>]
     member this.``Mutables with Nesting Lift Neither``() =
         CompileClassicalControlTest 44 |> ignore
+
+    [<Fact>]
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Mutables with Classic Nesting Lift Inner``() =
+        let result = CompileClassicalControlTest 45
+        let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+
+        let generated =
+            GetCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x |> GetBodyFromCallable)
+
+        // Make sure original calls generated
+        let lines = original |> GetLinesFromSpecialization
+
+        let (success, _, args) =
+            CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[4]
+
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
+
+        let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
+        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
+        // Make sure the classical condition is present
+        Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation.")
+
+    [<Fact>]
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Mutables with Classic Nesting Lift Outer``() =
+        let result = CompileClassicalControlTest 46
+        let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+
+        let generated =
+            GetCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x |> GetBodyFromCallable)
+
+        // Make sure original calls generated
+        let lines = original |> GetLinesFromSpecialization
+
+        let (success, _, args) =
+            CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[3]
+
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
+
+        let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
+        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
+        // Make sure the classical condition is present
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(lines.[1] = "if x < 1 {", "The classical condition is missing after transformation.")
+
+    [<Fact>]
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Mutables with Classic Nesting Lift Outer With More Classic``() =
+        let result = CompileClassicalControlTest 47
+        let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+
+        let generated =
+            GetCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x |> GetBodyFromCallable)
+
+        // Make sure original calls generated
+        let lines = original |> GetLinesFromSpecialization
+
+        let (success, _, args) =
+            CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[3]
+
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
+
+        let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
+        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
+        // Make sure the classical condition is present
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(lines.[1] = "if x < 1 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[2] = "    if x < 2 {", "The classical condition is missing after transformation.")
+
+    [<Fact>]
+    [<Trait("Category", "Content Lifting")>]
+    member this.``Mutables with Classic Nesting Lift Middle``() =
+        let result = CompileClassicalControlTest 48
+        let original = GetCallableWithName result Signatures.ClassicalControlNS "Foo" |> GetBodyFromCallable
+
+        let generated =
+            GetCallablesWithSuffix result Signatures.ClassicalControlNS "_Foo"
+            |> (fun x ->
+                Assert.True(1 = Seq.length x)
+                Seq.item 0 x |> GetBodyFromCallable)
+
+        // Make sure original calls generated
+        let lines = original |> GetLinesFromSpecialization
+
+        let (success, _, args) =
+            CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[4]
+
+        Assert.True(
+            success,
+            sprintf "Callable %O(%A) did not have expected content" original.Parent QsSpecializationKind.QsBody
+        )
+
+        let (success, _, _) = IsApplyIfArgMatch args "Microsoft.Quantum.Testing.General.M(q)" generated.Parent
+        Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
+
+        // Make sure the classical condition is present
+        Assert.True(lines.[3] = "    if x < 1 {", "The classical condition is missing after transformation.")
+        let lines = generated |> GetLinesFromSpecialization
+        Assert.True(lines.[1] = "if x < 2 {", "The classical condition is missing after transformation.")
+        Assert.True(lines.[2] = "    if x < 3 {", "The classical condition is missing after transformation.")

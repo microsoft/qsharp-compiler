@@ -552,6 +552,30 @@ let public ClassicalControlSignatures =
          |])
         // Mutables with Nesting Lift Neither
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Classic Nesting Lift Inner
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Outer
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Outer With More Classic
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Middle
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
     |]
     |> _MakeSignatures
 
