@@ -64,6 +64,12 @@ inline OperandPrototypePtr Call(std::string const &name, Args... args)
   return ret;
 }
 
+inline OperandPrototypePtr CallByNameOnly(std::string const &name)
+{
+  OperandPrototypePtr ret = std::make_shared<CallPattern>(name);
+  return ret;
+}
+
 inline OperandPrototypePtr BitCast(OperandPrototypePtr arg)
 {
   auto cast_pattern = std::make_shared<BitCastPattern>();

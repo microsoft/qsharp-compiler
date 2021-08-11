@@ -10,6 +10,9 @@
 
 namespace microsoft {
 namespace quantum {
+TransformationRulePass::TransformationRulePass(RuleSet &&rule_set)
+  : rule_set_{std::move(rule_set)}
+{}
 
 llvm::PreservedAnalyses TransformationRulePass::run(llvm::Function &function,
                                                     llvm::FunctionAnalysisManager & /*fam*/)

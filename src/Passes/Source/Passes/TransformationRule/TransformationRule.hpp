@@ -22,7 +22,7 @@ public:
 
   /// Constructors and destructors
   /// @{
-  TransformationRulePass()                               = default;
+  TransformationRulePass(RuleSet &&rule_set);
   TransformationRulePass(TransformationRulePass const &) = delete;
   TransformationRulePass(TransformationRulePass &&)      = default;
   ~TransformationRulePass()                              = default;

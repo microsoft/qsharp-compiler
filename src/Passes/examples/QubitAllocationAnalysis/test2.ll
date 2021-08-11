@@ -1,4 +1,4 @@
-; ModuleID = 'analysis-example.ll'
+; ModuleID = 'test1.ll'
 source_filename = "qir/ConstSizeArray.ll"
 
 %Qubit = type opaque
@@ -10,7 +10,7 @@ source_filename = "qir/ConstSizeArray.ll"
 
 define internal fastcc void @TeleportChain__ApplyCorrection__body(%Qubit* %src, %Qubit* %intermediary, %Qubit* %dest) unnamed_addr {
 entry:
-  %0 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %src)
+  %0 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body.1(%Qubit* %src)
   %1 = call i1 @__quantum__qir__read_result(%Result* %0)
   br i1 %1, label %then0__1, label %continue__1
 
@@ -19,7 +19,7 @@ then0__1:                                         ; preds = %entry
   br label %continue__1
 
 continue__1:                                      ; preds = %then0__1, %entry
-  %2 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %intermediary)
+  %2 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body.2(%Qubit* %intermediary)
   %3 = call i1 @__quantum__qir__read_result(%Result* %2)
   br i1 %3, label %then0__2, label %continue__2
 
@@ -75,9 +75,9 @@ entry:
   %7 = inttoptr i64 1 to %Qubit*
   %8 = inttoptr i64 3 to %Qubit*
   call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %6, %Qubit* %7, %Qubit* %8)
-  %9 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %leftMessage)
+  %9 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body.3(%Qubit* %leftMessage)
   %10 = inttoptr i64 3 to %Qubit*
-  %11 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %10)
+  %11 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body.4(%Qubit* %10)
   ret void
 }
 
@@ -154,19 +154,131 @@ declare void @__quantum__qis__reset__body(%Qubit*) local_unnamed_addr
 
 define void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__Interop() local_unnamed_addr #0 {
 entry:
-  call fastcc void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body()
+  call void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.5()
   ret void
 }
 
 define void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement() local_unnamed_addr #1 {
 entry:
-  call fastcc void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body()
+  call void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.6()
   ret void
 }
 
 declare void @__quantum__rt__message(%String*) local_unnamed_addr
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32) local_unnamed_addr
+
+define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body.1(%Qubit* %target) unnamed_addr {
+entry:
+  %result = inttoptr i64 1 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
+  call void @__quantum__qis__reset__body(%Qubit* %target)
+  ret %Result* %result
+}
+
+define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body.2(%Qubit* %target) unnamed_addr {
+entry:
+  %result = inttoptr i64 2 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
+  call void @__quantum__qis__reset__body(%Qubit* %target)
+  ret %Result* %result
+}
+
+define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body.3(%Qubit* %target) unnamed_addr {
+entry:
+  %result = inttoptr i64 3 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
+  call void @__quantum__qis__reset__body(%Qubit* %target)
+  ret %Result* %result
+}
+
+define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body.4(%Qubit* %target) unnamed_addr {
+entry:
+  %result = inttoptr i64 4 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
+  call void @__quantum__qis__reset__body(%Qubit* %target)
+  ret %Result* %result
+}
+
+define internal fastcc void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.5() unnamed_addr {
+entry:
+  %leftMessage = inttoptr i64 4 to %Qubit*
+  %rightMessage = inttoptr i64 5 to %Qubit*
+  call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %leftMessage, %Qubit* %rightMessage)
+  %0 = inttoptr i64 6 to %Qubit*
+  %1 = inttoptr i64 8 to %Qubit*
+  call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %0, %Qubit* %1)
+  %2 = inttoptr i64 7 to %Qubit*
+  %3 = inttoptr i64 9 to %Qubit*
+  call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %2, %Qubit* %3)
+  %4 = inttoptr i64 6 to %Qubit*
+  %5 = inttoptr i64 8 to %Qubit*
+  call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %rightMessage, %Qubit* %4, %Qubit* %5)
+  %6 = inttoptr i64 8 to %Qubit*
+  %7 = inttoptr i64 7 to %Qubit*
+  %8 = inttoptr i64 9 to %Qubit*
+  call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %6, %Qubit* %7, %Qubit* %8)
+  %9 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body.3.7(%Qubit* %leftMessage)
+  %10 = inttoptr i64 9 to %Qubit*
+  %11 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body.4.8(%Qubit* %10)
+  ret void
+}
+
+define internal fastcc void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.6() unnamed_addr {
+entry:
+  %leftMessage = inttoptr i64 10 to %Qubit*
+  %rightMessage = inttoptr i64 11 to %Qubit*
+  call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %leftMessage, %Qubit* %rightMessage)
+  %0 = inttoptr i64 12 to %Qubit*
+  %1 = inttoptr i64 14 to %Qubit*
+  call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %0, %Qubit* %1)
+  %2 = inttoptr i64 13 to %Qubit*
+  %3 = inttoptr i64 15 to %Qubit*
+  call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %2, %Qubit* %3)
+  %4 = inttoptr i64 12 to %Qubit*
+  %5 = inttoptr i64 14 to %Qubit*
+  call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %rightMessage, %Qubit* %4, %Qubit* %5)
+  %6 = inttoptr i64 14 to %Qubit*
+  %7 = inttoptr i64 13 to %Qubit*
+  %8 = inttoptr i64 15 to %Qubit*
+  call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %6, %Qubit* %7, %Qubit* %8)
+  %9 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body.3.9(%Qubit* %leftMessage)
+  %10 = inttoptr i64 15 to %Qubit*
+  %11 = call %Result* @Microsoft__Quantum__Measurement__MResetZ__body.4.10(%Qubit* %10)
+  ret void
+}
+
+define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body.3.7(%Qubit* %target) unnamed_addr {
+entry:
+  %result = inttoptr i64 5 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
+  call void @__quantum__qis__reset__body(%Qubit* %target)
+  ret %Result* %result
+}
+
+define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body.4.8(%Qubit* %target) unnamed_addr {
+entry:
+  %result = inttoptr i64 6 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
+  call void @__quantum__qis__reset__body(%Qubit* %target)
+  ret %Result* %result
+}
+
+define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body.3.9(%Qubit* %target) unnamed_addr {
+entry:
+  %result = inttoptr i64 7 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
+  call void @__quantum__qis__reset__body(%Qubit* %target)
+  ret %Result* %result
+}
+
+define internal fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body.4.10(%Qubit* %target) unnamed_addr {
+entry:
+  %result = inttoptr i64 8 to %Result*
+  call void @__quantum__qis__mz__body(%Qubit* %target, %Result* %result)
+  call void @__quantum__qis__reset__body(%Qubit* %target)
+  ret %Result* %result
+}
 
 declare i1 @__quantum__qir__read_result(%Result*)
 

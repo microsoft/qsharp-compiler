@@ -24,7 +24,7 @@ public:
   using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
 
   /// @{
-  RuleSet();
+  RuleSet()                = default;
   RuleSet(RuleSet const &) = default;
   RuleSet(RuleSet &&)      = default;
   ~RuleSet()               = default;
@@ -38,6 +38,8 @@ public:
   /// @}
 
   bool matchAndReplace(Instruction *value, Replacements &replacements);
+
+  void addRule(ReplacementRulePtr const &rule);
 
 private:
   Rules rules_;  ///< Rules that describes QIR mappings

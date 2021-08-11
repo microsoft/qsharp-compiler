@@ -3,6 +3,7 @@
 
 #include "Llvm/Llvm.hpp"
 #include "Passes/TransformationRule/TransformationRule.hpp"
+#include "Rules/Factory.hpp"
 
 #include <fstream>
 #include <iostream>
@@ -18,9 +19,26 @@ llvm::PassPluginLibraryInfo getTransformationRulePluginInfo()
         // Registering the pass
         pb.registerPipelineParsingCallback([](StringRef name, FunctionPassManager &fpm,
                                               ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
-          if (name == "transformation-rule")
+          // Base profile
+          if (name == "restrict-qir<base-profile>")
           {
-            fpm.addPass(TransformationRulePass());
+            RuleSet rule_set;
+
+            // Defining the mapping
+            auto factory = RuleFactory(rule_set);
+
+            factory.useStaticQuantumArrayAllocation();
+            factory.useStaticQuantumAllocation();
+            factory.useStaticResultAllocation();
+
+            factory.optimiseBranchQuatumOne();
+            //  factory.optimiseBranchQuatumZero();
+
+            factory.disableReferenceCounting();
+            factory.disableAliasCounting();
+            factory.disableStringSupport();
+
+            fpm.addPass(TransformationRulePass(std::move(rule_set)));
             return true;
           }
 
