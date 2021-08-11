@@ -1274,3 +1274,82 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     }
 }
 
+// =================================
+
+// Mutables with Classic Nesting Elif
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+        
+        if x < 1 {
+            if M(q) == Zero {
+                mutable y = 0;
+                if x < 2 {
+                    if x < 3 {
+                        set y = 1;
+                    }
+                }
+            }
+        }
+        elif M(q) == Zero {
+            mutable y = 0;
+            if x < 4 {
+                if x < 5 {
+                    set y = 2;
+                }
+            }
+        }
+        else {
+            mutable y = 0;
+            if M(q) == Zero {
+                if x < 6 {
+                    set y = 3;
+                }
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Elif Lift First
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        mutable x = 0;
+
+        if x < 1 {
+            if M(q) == Zero {
+                mutable y = 0;
+                if x < 2 {
+                    if x < 3 {
+                        set y = 1;
+                    }
+                }
+            }
+        }
+        elif M(q) == Zero {
+            if x < 4 {
+                if x < 5 {
+                    set x = 2;
+                }
+            }
+        }
+        else {
+            mutable y = 0;
+            if M(q) == Zero {
+                if x < 6 {
+                    set y = 3;
+                }
+            }
+        }
+    }
+}
+

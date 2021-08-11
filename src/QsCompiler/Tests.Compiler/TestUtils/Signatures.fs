@@ -578,6 +578,20 @@ let public ClassicalControlSignatures =
          |])
         // Nested Invalid Lifting
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Classic Nesting Elif
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+         // Mutables with Classic Nesting Elif Lift First
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
     |]
     |> _MakeSignatures
 
