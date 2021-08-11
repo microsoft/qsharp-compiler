@@ -1259,3 +1259,18 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
     }
 }
 
+// =================================
+
+// Nested Invalid Lifting
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    operation Foo() : Unit {
+        let r = Zero;
+        
+        if r == Zero {
+            if r == One {
+                return ();
+            }
+        }
+    }
+}
+

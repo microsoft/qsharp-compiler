@@ -576,6 +576,8 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "Foo", [||], "Unit"
              ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
          |])
+        // Nested Invalid Lifting
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
     |]
     |> _MakeSignatures
 
