@@ -19,7 +19,7 @@ that only contains a specified subset. One example of such a profile is the [bas
 which only allows function calls and branching, but no arithmetic, classical memory, or classical registers.
 
 The generation of QIR according to the spec with no constraints would typically be performed by the frontend. A couple
-of examples are Q# or OpenQASM. However, for the generated QIR to be practical it is require to reduce it using a profile
+of examples are Q# or OpenQASM. However, for the generated QIR to be practical it is necessary to reduce it using a profile
 which is compatible with the target platform:
 
 ```text
