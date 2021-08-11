@@ -1,0 +1,19 @@
+
+steps:
+- script: |
+      brew install llvm@11
+      brew install cmake
+      brew install python@3.9
+      brew unlink python@3.9 && brew link python@3.9
+
+      # Updating paths
+      export PATH="/usr/local/opt/python/libexec/bin:$PATH"
+      export PATH="/usr/local/opt/llvm@11/bin:$PATH"
+      export LDFLAGS="${LDFLAGS} -L/usr/local/opt/llvm@11/lib"
+      export CPPFLAGS="${CPPFLAGS} -I/usr/local/opt/llvm@11/include"
+
+      cd src/Passes/
+      pip install -r requirements.txt      
+      chmod +x manage
+      ./manage runci
+

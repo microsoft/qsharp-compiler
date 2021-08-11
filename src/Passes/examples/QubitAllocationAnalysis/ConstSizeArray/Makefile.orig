@@ -9,5 +9,9 @@ comparison:
 clean:
 	rm -rf bin
 	rm -rf obj
+<<<<<<< HEAD
+#	rm -rf qir
+=======
 	rm -rf qir
+>>>>>>> features/llvm-passes
 	
