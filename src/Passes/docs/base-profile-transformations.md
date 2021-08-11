@@ -16,7 +16,7 @@ may further be subject to constraints such as how one allocate or acquire a qubi
 constraints as a profile. For instance, it is likely that early versions of quantum hardware will have a limited
 set of classical instructions available. With this in mind, the vendor or user of said hardware would define a profile
 that only contains a specified subset. One example of such a profile is the [base profile](https://github.com/microsoft/qsharp-language/blob/ageller/profile/Specifications/QIR/Base-Profile.md),
-which only allows function calls and branching, but no arithmetic, classical memory or classical registers.
+which only allows function calls and branching, but no arithmetic, classical memory, or classical registers.
 
 The generation of QIR according to the spec with no constraints would typically be performed by the frontend. A couple
 of examples are Q# or OpenQASM. However, for the generated QIR to be practical it is require to reduce it using a profile
