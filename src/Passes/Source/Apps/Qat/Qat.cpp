@@ -15,7 +15,7 @@ int main(int /*argc*/, char **argv)
     FPM.addPass(LoopSimplifyPass());
     MPM.addPass(createModuleToFunctionPassAdaptor(std::move(FPM)));
 
-    //    MPM.run(*module);
+    MPM.run(*module);
     //    m->print(llvm)
     llvm::errs() << *module << "\n";
   }
