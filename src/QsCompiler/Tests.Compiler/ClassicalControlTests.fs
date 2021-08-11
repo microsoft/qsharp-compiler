@@ -1449,6 +1449,7 @@ type ClassicalControlTests() =
 
         // Make sure original calls outer generated
         let lines = original |> GetLinesFromSpecialization
+
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[1]
 
@@ -1462,6 +1463,7 @@ type ClassicalControlTests() =
 
         // Make sure outer calls inner generated
         let lines = outer |> GetBodyFromCallable |> GetLinesFromSpecialization
+
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfOne.FullName.Namespace BuiltIn.ApplyIfOne.FullName.Name lines.[0]
 
@@ -1487,6 +1489,7 @@ type ClassicalControlTests() =
 
         // Make sure original calls generated
         let lines = original |> GetLinesFromSpecialization
+
         let (success, _, args) =
             CheckIfLineIsCall BuiltIn.ApplyIfZero.FullName.Namespace BuiltIn.ApplyIfZero.FullName.Name lines.[1]
 
@@ -1498,8 +1501,7 @@ type ClassicalControlTests() =
         let (success, _, _) = IsApplyIfArgMatch args "r" generated.Parent
         Assert.True(success, sprintf "ApplyIfZero did not have the correct arguments")
 
-    [<Fact(Skip="Known Issue #???")>] // ToDo give proper issue number from GitHub
+    [<Fact(Skip = "Known Issue #???")>] // ToDo give proper issue number from GitHub
     [<Trait("Category", "Content Lifting")>]
     member this.``Mutables with Nesting Lift Neither``() =
         CompileClassicalControlTest 44 |> ignore
-

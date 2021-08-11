@@ -539,17 +539,17 @@ let public ClassicalControlSignatures =
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
         // Mutables with Nesting Lift Both
         (_DefaultTypes,
-            [|
-                ClassicalControlNS, "Foo", [||], "Unit"
-                ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
-                ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
-            |])
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+         |])
         // Mutables with Nesting Lift Outer
         (_DefaultTypes,
-            [|
-                ClassicalControlNS, "Foo", [||], "Unit"
-                ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
-            |])
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+         |])
         // Mutables with Nesting Lift Neither
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
     |]
