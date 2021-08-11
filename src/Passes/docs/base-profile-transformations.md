@@ -12,7 +12,7 @@ This document sets out to motivate and demonstrate feasibility of building such 
 ## Motivation
 
 It is anticipated that most usages of the QIR specification will need to only use a subset of it. These subsets
-may further be subject to constraints such as how one allocate or acquire a qubit handle. We refer to subset with
+may further be subject to constraints such as how one allocate or acquire a qubit handle. We refer to such a subset with
 constraints as a profile. For instance, it is likely that early versions of quantum hardware will have a limited
 set of classical instructions available. With this in mind, the vendor or user of said hardware would define a profile
 that only contains a specified subset. One example of such a profile is the [base profile](https://github.com/microsoft/qsharp-language/blob/ageller/profile/Specifications/QIR/Base-Profile.md),
