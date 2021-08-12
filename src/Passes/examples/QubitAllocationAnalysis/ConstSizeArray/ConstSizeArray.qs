@@ -21,7 +21,7 @@ namespace TeleportChain {
     }
 
     @EntryPoint()
-    operation DemonstrateTeleportationUsingPresharedEntanglement() : Unit {
+    operation DemonstrateTeleportationUsingPresharedEntanglement() : Result {
         let nPairs = 2;
         use (leftMessage, rightMessage, leftPreshared, rightPreshared) = (Qubit(), Qubit(), Qubit[nPairs], Qubit[nPairs]);
         PrepareEntangledPair(leftMessage, rightMessage);
@@ -35,7 +35,6 @@ namespace TeleportChain {
         }
         
         let _ = MResetZ(leftMessage);
-        let _ =  MResetZ(rightPreshared[nPairs-1]);
-        // return ();
+        return  MResetZ(rightPreshared[nPairs-1]);
     }
 }

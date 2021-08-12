@@ -53,6 +53,7 @@ void RuleFactory::useStaticQuantumArrayAllocation()
     replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
     return true;
   };
+
   addRule({Call("__quantum__rt__qubit_allocate_array", "size"_cap = _), allocation_replacer});
 
   /// Array access replacement
@@ -253,9 +254,8 @@ void RuleFactory::optimiseBranchQuatumOne()
       function = llvm::Function::Create(fnc_type, llvm::Function::ExternalLinkage,
                                         "__quantum__qir__read_result", module);
     }
-    auto result_inst = llvm::dyn_cast<llvm::Instruction>(result);
 
-    builder.SetInsertPoint(result_inst->getNextNode());
+    builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
     auto new_call = builder.CreateCall(function, arguments);
     new_call->takeName(cond);
 
@@ -272,6 +272,12 @@ void RuleFactory::optimiseBranchQuatumOne()
 
     return false;
   };
+
+  /*
+    %1 = call %Result* @__quantum__rt__result_get_one()
+    %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
+    br i1 %2, label %then0__1, label %continue__1
+  */
 
   // Variations of get_one
   addRule({Branch("cond"_cap =
@@ -290,10 +296,6 @@ void RuleFactory::disableReferenceCounting()
   removeFunctionCall("__quantum__rt__array_update_reference_count");
   removeFunctionCall("__quantum__rt__string_update_reference_count");
   removeFunctionCall("__quantum__rt__result_update_reference_count");
-
-  removeFunctionCall("__quantum__rt__string_create");
-  removeFunctionCall("__quantum__rt__string_release");
-  removeFunctionCall("__quantum__rt__message");
 }
 
 void RuleFactory::disableAliasCounting()

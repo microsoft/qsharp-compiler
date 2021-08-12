@@ -6,8 +6,6 @@ source_filename = "qir/ConstSizeArray.ll"
 %Array = type opaque
 %String = type opaque
 
-@0 = internal constant [3 x i8] c"()\00"
-
 define internal fastcc void @TeleportChain__ApplyCorrection__body(%Qubit* %src, %Qubit* %intermediary, %Qubit* %dest) unnamed_addr {
 entry:
   %0 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %src)
@@ -60,7 +58,7 @@ entry:
   ret void
 }
 
-define internal fastcc void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body() unnamed_addr {
+define internal fastcc %Result* @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body() unnamed_addr {
 entry:
   %leftMessage = call %Qubit* @__quantum__rt__qubit_allocate()
   %rightMessage = call %Qubit* @__quantum__rt__qubit_allocate()
@@ -108,12 +106,11 @@ entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %leftPreshared, i32 -1)
   call void @__quantum__rt__array_update_alias_count(%Array* %rightPreshared, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %27, i32 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %31, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
   call void @__quantum__rt__qubit_release(%Qubit* %rightMessage)
   call void @__quantum__rt__qubit_release_array(%Array* %leftPreshared)
   call void @__quantum__rt__qubit_release_array(%Array* %rightPreshared)
-  ret void
+  ret %Result* %31
 }
 
 declare %Qubit* @__quantum__rt__qubit_allocate() local_unnamed_addr
@@ -173,6 +170,10 @@ entry:
   ret void
 }
 
+declare %Result* @__quantum__qis__m__body(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__reset__body(%Qubit*) local_unnamed_addr
+
 declare void @__quantum__qis__cnot(%Qubit*, %Qubit*) local_unnamed_addr
 
 declare void @__quantum__qis__h(%Qubit*) local_unnamed_addr
@@ -181,28 +182,32 @@ declare void @__quantum__qis__x(%Qubit*) local_unnamed_addr
 
 declare void @__quantum__qis__z(%Qubit*) local_unnamed_addr
 
-declare %String* @__quantum__rt__string_create(i8*) local_unnamed_addr
-
-declare %Result* @__quantum__qis__m__body(%Qubit*) local_unnamed_addr
-
-declare void @__quantum__qis__reset__body(%Qubit*) local_unnamed_addr
-
-define void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__Interop() local_unnamed_addr #0 {
+define i8 @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__Interop() local_unnamed_addr #0 {
 entry:
-  call fastcc void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body()
-  ret void
+  %0 = call fastcc %Result* @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body()
+  %1 = call %Result* @__quantum__rt__result_get_zero()
+  %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
+  %not. = xor i1 %2, true
+  %3 = sext i1 %not. to i8
+  call void @__quantum__rt__result_update_reference_count(%Result* %0, i32 -1)
+  ret i8 %3
 }
+
+declare %Result* @__quantum__rt__result_get_zero() local_unnamed_addr
 
 define void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement() local_unnamed_addr #1 {
 entry:
-  call fastcc void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body()
-  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([3 x i8], [3 x i8]* @0, i64 0, i64 0))
-  call void @__quantum__rt__message(%String* %0)
-  call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
+  %0 = call fastcc %Result* @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body()
+  %1 = call %String* @__quantum__rt__result_to_string(%Result* %0)
+  call void @__quantum__rt__message(%String* %1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %0, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %1, i32 -1)
   ret void
 }
 
 declare void @__quantum__rt__message(%String*) local_unnamed_addr
+
+declare %String* @__quantum__rt__result_to_string(%Result*) local_unnamed_addr
 
 declare void @__quantum__rt__string_update_reference_count(%String*, i32) local_unnamed_addr
 

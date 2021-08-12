@@ -4,6 +4,7 @@ run-expand: build-qaa build-esa analysis-example.ll
 
 
 run: build-qaa analysis-example.ll
+	# TODO(tfr): Add comments
 	opt -load-pass-plugin ../../Debug/Source/Passes/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
 run-replace: build-ir build-qaa build-esa analysis-example.ll

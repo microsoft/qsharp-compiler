@@ -13,7 +13,7 @@ llvm::ModulePassManager BaseProfile::createGenerationModulePass(
     llvm::PassBuilder &pass_builder, llvm::PassBuilder::OptimizationLevel &optimisation_level,
     bool debug)
 {
-  auto ret = pass_builder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O1);
+  auto ret = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
   // buildPerModuleDefaultPipeline buildModuleOptimizationPipeline
   auto function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
       optimisation_level, llvm::PassBuilder::ThinLTOPhase::PreLink, debug);
