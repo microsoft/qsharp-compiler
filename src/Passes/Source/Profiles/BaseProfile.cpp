@@ -35,7 +35,10 @@ llvm::ModulePassManager BaseProfile::createGenerationModulePass(
   // modulePassManager.addPass(createModuleToCGSCCPassAdaptor(...));
   // InlinerPass()
 
-  return pass_builder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O1);
+  auto ret = pass_builder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O1);
+  ret.addPass(createModuleToFunctionPassAdaptor(std::move(functionPassManager)));
+
+  return ret;
 }
 
 llvm::ModulePassManager BaseProfile::createValidationModulePass(
