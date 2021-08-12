@@ -18,6 +18,9 @@ llvm::ModulePassManager BaseProfile::createGenerationModulePass(
   auto function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
       optimisation_level, llvm::PassBuilder::ThinLTOPhase::PreLink, debug);
 
+  auto inliner_pass = pass_builder.buildInlinerPipeline(
+      optimisation_level, llvm::PassBuilder::ThinLTOPhase::PreLink, debug);
+
   // TODO: Maybe this should be done at a module level
   function_pass_manager.addPass(ExpandStaticAllocationPass());
 
@@ -38,6 +41,11 @@ llvm::ModulePassManager BaseProfile::createGenerationModulePass(
   factory.disableStringSupport();
 
   function_pass_manager.addPass(TransformationRulePass(std::move(rule_set)));
+
+  // Eliminate dead code
+  function_pass_manager.addPass(llvm::DCEPass());
+  function_pass_manager.addPass(llvm::ADCEPass());
+
   //  function_pass_manager.addPass(llvm::createCalledValuePropagationPass());
   // function_pass_manager.addPass(createSIFoldOperandsPass());
 
@@ -48,9 +56,21 @@ llvm::ModulePassManager BaseProfile::createGenerationModulePass(
   // modulePassManager.addPass(createModuleToCGSCCPassAdaptor(...));
   // InlinerPass()
 
+  // auto &cgpm = inliner_pass.getPM();
+  // cgpm.addPass(llvm::ADCEPass());
+
+  // CGPM.addPass(createCGSCCToFunctionPassAdaptor(createFunctionToLoopPassAdaptor(LoopFooPass())));
+  // CGPM.addPass(createCGSCCToFunctionPassAdaptor(FunctionFooPass()));
+
   ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
 
+  // TODO: Not available in 11 ret.addPass(llvm::createModuleToCGSCCPassAdaptor(std::move(CGPM)));
+
   ret.addPass(llvm::AlwaysInlinerPass());
+  ret.addPass(std::move(inliner_pass));
+  // ret.addPass();
+  // CGSCCA pass llvm::InlinerPass()
+
   return ret;
 }
 
