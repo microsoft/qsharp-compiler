@@ -228,7 +228,8 @@ type 'context Rewriter() =
 
     default rewriter.ParameterBinding(context, binding) =
         match binding with
-        | ParameterDeclaration declaration -> rewriter.ParameterDeclaration(context, declaration) |> ParameterDeclaration
+        | ParameterDeclaration declaration ->
+            rewriter.ParameterDeclaration(context, declaration) |> ParameterDeclaration
         | ParameterTuple tuple -> rewriter.Tuple(context, rewriter.ParameterBinding, tuple) |> ParameterTuple
 
     abstract ParameterDeclaration : context: 'context * declaration: ParameterDeclaration -> ParameterDeclaration

@@ -190,7 +190,7 @@ type internal 'result Reducer() as reducer =
         |> reduce
 
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result
-    
+
     default _.QubitDeclaration decl =
         [
             reducer.Terminal(decl.Keyword) |> Some
@@ -237,11 +237,7 @@ type internal 'result Reducer() as reducer =
     abstract ParameterDeclaration : declaration: ParameterDeclaration -> 'result
 
     default _.ParameterDeclaration declaration =
-        [
-            reducer.Terminal declaration.Name
-            reducer.TypeAnnotation declaration.Type
-        ]
-        |> reduce
+        [ reducer.Terminal declaration.Name; reducer.TypeAnnotation declaration.Type ] |> reduce
 
     abstract SymbolBinding : symbol: SymbolBinding -> 'result
 

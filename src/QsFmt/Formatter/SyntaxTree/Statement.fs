@@ -47,7 +47,7 @@ type QubitBinding =
     }
 
 module QubitBinding =
-    let mapPrefix mapper (binding : QubitBinding) =
+    let mapPrefix mapper (binding: QubitBinding) =
         { binding with Name = SymbolBinding.mapPrefix mapper binding.Name }
 
 type Let =
@@ -111,4 +111,3 @@ module Statement =
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
-        

@@ -130,8 +130,6 @@ let qubitBindingUpdate =
                     match decl.Coda with
                     | Semicolon semicolon -> semicolon |> Terminal.mapPrefix ((@) closeTrivia) |> Semicolon
                     | Block block ->
-                        rewriter.Block((), rewriter.Statement, block)
-                        |> Block.mapPrefix ((@) closeTrivia)
-                        |> Block
+                        rewriter.Block((), rewriter.Statement, block) |> Block.mapPrefix ((@) closeTrivia) |> Block
             }
     }

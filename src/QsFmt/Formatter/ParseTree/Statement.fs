@@ -104,14 +104,8 @@ type StatementVisitor(tokens) =
             Kind = Use
             Keyword = context.``use`` |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen =
-                context.openParen
-                |> Option.ofObj
-                |> Option.map (Node.toTerminal tokens)
-            CloseParen =
-                context.closeParen
-                |> Option.ofObj
-                |> Option.map (Node.toTerminal tokens)
+            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
             Coda = context.semicolon |> Node.toTerminal tokens |> Semicolon
         }
         |> QubitDeclaration
@@ -121,14 +115,8 @@ type StatementVisitor(tokens) =
             Kind = Use
             Keyword = context.``use`` |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen =
-                context.openParen
-                |> Option.ofObj
-                |> Option.map (Node.toTerminal tokens)
-            CloseParen =
-                context.closeParen
-                |> Option.ofObj
-                |> Option.map (Node.toTerminal tokens)
+            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
             Coda =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
@@ -144,14 +132,8 @@ type StatementVisitor(tokens) =
             Kind = Borrow
             Keyword = context.borrow |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen =
-                context.openParen
-                |> Option.ofObj
-                |> Option.map (Node.toTerminal tokens)
-            CloseParen =
-                context.closeParen
-                |> Option.ofObj
-                |> Option.map (Node.toTerminal tokens)
+            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
             Coda = context.semicolon |> Node.toTerminal tokens |> Semicolon
         }
         |> QubitDeclaration
@@ -161,14 +143,8 @@ type StatementVisitor(tokens) =
             Kind = Borrow
             Keyword = context.borrow |> Node.toTerminal tokens
             Binding = context.binding |> qubitBindingVisitor.Visit
-            OpenParen =
-                context.openParen
-                |> Option.ofObj
-                |> Option.map (Node.toTerminal tokens)
-            CloseParen =
-                context.closeParen
-                |> Option.ofObj
-                |> Option.map (Node.toTerminal tokens)
+            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
             Coda =
                 {
                     OpenBrace = context.body.openBrace |> Node.toTerminal tokens
