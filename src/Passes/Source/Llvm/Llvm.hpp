@@ -51,7 +51,8 @@
 #include "llvm/Transforms/IPO/Inliner.h"
 #include "llvm/Transforms/Scalar/LoopUnrollPass.h"
 
-// Testing
+// Profiles
+#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/LinkAllPasses.h"
 
 #if defined(__clang__)

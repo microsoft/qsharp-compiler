@@ -80,6 +80,14 @@ int main(int argc, char **argv)
 
     modulePassManager.run(*module, moduleAnalysisManager);
 
+    //
+
+    llvm::legacy::PassManager legacy_pass_manager;
+    legacy_pass_manager.add(llvm::createCalledValuePropagationPass());
+    legacy_pass_manager.add(llvm::createCalledValuePropagationPass());
+    legacy_pass_manager.add(llvm::createConstantMergePass());
+    legacy_pass_manager.run(*module);
+
     llvm::errs() << *module << "\n";
   }
 

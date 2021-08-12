@@ -38,6 +38,11 @@ llvm::ModulePassManager BaseProfile::createGenerationModulePass(
   factory.disableStringSupport();
 
   function_pass_manager.addPass(TransformationRulePass(std::move(rule_set)));
+  //  function_pass_manager.addPass(llvm::createCalledValuePropagationPass());
+  // function_pass_manager.addPass(createSIFoldOperandsPass());
+
+  // Legacy passes:
+  // https://llvm.org/doxygen/group__LLVMCTransformsIPO.html#ga2ebfe3e0c3cca3b457708b4784ba93ff
 
   // https://llvm.org/docs/NewPassManager.html
   // modulePassManager.addPass(createModuleToCGSCCPassAdaptor(...));
@@ -46,7 +51,6 @@ llvm::ModulePassManager BaseProfile::createGenerationModulePass(
   ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
 
   ret.addPass(llvm::AlwaysInlinerPass());
-
   return ret;
 }
 
