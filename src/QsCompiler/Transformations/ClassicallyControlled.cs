@@ -163,6 +163,11 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                     }
                 }
 
+                /// <summary>
+                /// Converts conditional statements whose top-most condition is a NOT.
+                /// Creates a blank `else` clause if there is no `else` clause already, then
+                /// swaps the `else` and `if` clauses while removing the NOT from the condition.
+                /// </summary>
                 private (bool, QsConditionalStatement) ProcessNOT(QsConditionalStatement conditionStatement)
                 {
                     // This method expects elif blocks to have been abstracted out
