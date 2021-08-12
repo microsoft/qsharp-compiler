@@ -1,154 +1,4 @@
-# QIR Passes for LLVM
-
-This library defines [LLVM passes](https://llvm.org/docs/Passes.html) used for analysing, optimising and transforming the IR. The QIR pass library is a dynamic library that can be compiled and ran separately from the
-rest of the project code. While it is not clear whether this possible at the moment, we hope that it will be possible to write passes that enforce the [QIR specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR).
-
-## What do LLVM passes do?
-
-Before getting started, we here provide a few examples of classical use cases for [LLVM passes](https://llvm.org/docs/Passes.html). You find additional [instructive examples here][1].
-
-**Example 1: Transformation**. As a first example of what [LLVM passes](https://llvm.org/docs/Passes.html) can do, we look at optimisation. Consider a compiler which
-compiles
-
-```c
-double test(double x) {
-    return (1+2+x)*(x+(1+2));
-}
-```
-
-into following IR:
-
-```
-define double @test(double %x) {
-entry:
-        %addtmp = fadd double 3.000000e+00, %x
-        %addtmp1 = fadd double %x, 3.000000e+00
-        %multmp = fmul double %addtmp, %addtmp1
-        ret double %multmp
-}
-```
-
-This code is obviously inefficient as we could get rid of one operation by rewritting the code to:
-
-```c
-double test(double x) {
-    double y = 3+x;
-    return y * y;
-}
-```
-
-One purpose of [LLVM passes](https://llvm.org/docs/Passes.html) is to allow automatic transformation from the above IR to the IR:
-
-```
-define double @test(double %x) {
-entry:
-        %addtmp = fadd double %x, 3.000000e+00
-        %multmp = fmul double %addtmp, %addtmp
-        ret double %multmp
-}
-```
-
-**Example 2: Analytics**. Another example of useful passes are those generating and collecting statistics about the program. For instance, one analytics program
-makes sense for classical programs is to count instructions used to implement functions. Take the C program:
-
-```c
-int foo(int x)
-{
-  return x;
-}
-
-void bar(int x, int y)
-{
-  foo(x + y);
-}
-
-int main()
-{
-  foo(2);
-  bar(3, 2);
-
-  return 0;
-}
-```
-
-which produces follow IR (without optimisation):
-
-```language
-define dso_local i32 @foo(i32 %0) #0 {
-  %2 = alloca i32, align 4
-  store i32 %0, i32* %2, align 4
-  %3 = load i32, i32* %2, align 4
-  ret i32 %3
-}
-
-define dso_local void @bar(i32 %0, i32 %1) #0 {
-  %3 = alloca i32, align 4
-  %4 = alloca i32, align 4
-  store i32 %0, i32* %3, align 4
-  store i32 %1, i32* %4, align 4
-  %5 = load i32, i32* %3, align 4
-  %6 = load i32, i32* %4, align 4
-  %7 = add nsw i32 %5, %6
-  %8 = call i32 @foo(i32 %7)
-  ret void
-}
-
-define dso_local i32 @main() #0 {
-  %1 = alloca i32, align 4
-  store i32 0, i32* %1, align 4
-  %2 = call i32 @foo(i32 2)
-  call void @bar(i32 3, i32 2)
-  ret i32 0
-}
-```
-
-A stat pass for this code, would collect following statisics:
-
-```text
-Stats for 'foo'
-===========================
-Opcode          # Used
----------------------------
-load            1
-ret             1
-alloca          1
-store           1
----------------------------
-
-Stats for 'bar'
-===========================
-Opcode          # Used
----------------------------
-load            2
-add             1
-ret             1
-alloca          2
-store           2
-call            1
----------------------------
-
-Stats for 'main'
-===========================
-Opcode          # Used
----------------------------
-ret             1
-alloca          1
-store           1
-call            2
----------------------------
-```
-
-**Example 3: Code validation**. A third use case is code validation. For example, one could write a pass to check whether bounds are exceeded on [static arrays][2].
-Note that this is a non-standard usecase as such analysis is usually made using the AST rather than at the IR level.
-
-**References**
-
-- [1] https://github.com/banach-space/llvm-tutor#analysis-vs-transformation-pass
-- [2] https://github.com/victor-fdez/llvm-array-check-pass
-
-## Out-of-source Pass
-
-This library is build as set of out-of-source-passes. All this means is that we will not be downloading the LLVM repository and modifying this repository directly. You can read more [here](https://llvm.org/docs/CMake.html#cmake-out-of-source-pass).
+# Profile adoption tool
 
 # Getting started
 
@@ -186,6 +36,118 @@ make [target]
 ```
 
 The default target is `all`. Other valid targets are the name of the folders in `libs/` found in the passes root.
+
+# Profile adoption tool
+
+## Building QAT
+
+First
+
+```sh
+cd Debug
+make qat
+```
+
+then
+
+```sh
+./Source/Apps/qat
+```
+
+## Implementing a profile pass
+
+As an example of how one can implement a new profile pass, we here show the implementational details of our example pass which allows mapping the teleportation code to the base profile:
+
+```c++
+        pb.registerPipelineParsingCallback([](StringRef name, FunctionPassManager &fpm,
+                                              ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
+          // Base profile
+          if (name == "restrict-qir<base-profile>")
+          {
+            RuleSet rule_set;
+
+            // Defining the mapping
+            auto factory = RuleFactory(rule_set);
+
+            factory.useStaticQuantumArrayAllocation();
+            factory.useStaticQuantumAllocation();
+            factory.useStaticResultAllocation();
+
+            factory.optimiseBranchQuatumOne();
+            //  factory.optimiseBranchQuatumZero();
+
+            factory.disableReferenceCounting();
+            factory.disableAliasCounting();
+            factory.disableStringSupport();
+
+            fpm.addPass(TransformationRulePass(std::move(rule_set)));
+            return true;
+          }
+
+          return false;
+        });
+      }};
+```
+
+Transformations of the IR will happen on the basis of what rules are added to the rule set. The purpose of the factory is to make easy to add rules that serve a single purpose as well as making a basis for making rules unit testable.
+
+## Implementing new rules
+
+Implementing new rules consists of two steps: Defining a pattern that one wish to replace and implementing the corresponding replacement logic. Inside a factory member function, this look as follows:
+
+```c++
+  auto get_element =
+      Call("__quantum__rt__array_get_element_ptr_1d", "arrayName"_cap = _, "index"_cap = _);
+  auto cast_pattern = BitCast("getElement"_cap = get_element);
+  auto load_pattern = Load("cast"_cap = cast_pattern);
+
+  addRule({std::move(load_pattern), access_replacer});
+```
+
+where `addRule` adds the rule to the current rule set.
+
+### Capturing patterns
+
+The pattern defined in this snippet matches IR like:
+
+```c++
+  %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 0)
+  %1 = bitcast i8* %0 to %Qubit**
+  %2 = load %Qubit*, %Qubit** %1, align 8
+```
+
+In the above rule, the first and a second argument of `__quantum__rt__array_get_element_ptr_1d` is captured as `arrayName` and `index`, respectively. Likewise, the bitcast instruction is captured as `cast`. Each of these captures will be available inside the replacement function `access_replacer`.
+
+### Implementing replacement logic
+
+After a positive match is found, the lead instruction alongside a IRBuilder, a capture table and a replacement table is passed to the replacement function. Here is an example on how one can access the captured variables to perform a transformation of the IR:
+
+```c++
+  auto access_replacer = [qubit_alloc_manager](Builder &builder, Value *val, Captures &cap,
+                                               Replacements &replacements) {
+    // ...
+    auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["index"]);
+    // ...
+    auto llvm_size = cst->getValue();
+    auto offset    = qubit_alloc_manager->getOffset(cap["arrayName"]->getName().str());
+
+    auto idx = llvm::APInt(llvm_size.getBitWidth(), llvm_size.getZExtValue() + offset);
+    auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+    auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+    instr->takeName(val);
+
+    // Replacing the lead instruction with a the new instruction
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
+
+    // Deleting the getelement and cast operations
+    replacements.push_back({llvm::dyn_cast<Instruction>(cap["getElement"]), nullptr});
+    replacements.push_back({llvm::dyn_cast<Instruction>(cap["cast"]), nullptr});
+
+    return true;
+  };
+```
+
+# Passes
 
 ## Running a pass
 
