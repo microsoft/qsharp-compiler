@@ -45,12 +45,17 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
+  // settings.print();
+
   // Generating IR
   bool        debug              = settings.get("debug") == "true";
   bool        generate           = settings.get("generate") == "true";
   bool        validate           = settings.get("validate") == "true";
   auto        optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
   BaseProfile profile;
+
+  // Worth looking at:
+  // https://opensource.apple.com/source/lldb/lldb-76/llvm/tools/opt/opt.cpp
 
   if (generate)
   {
@@ -69,7 +74,10 @@ int main(int argc, char **argv)
     pass_builder.crossRegisterProxies(loopAnalysisManager, functionAnalysisManager,
                                       cGSCCAnalysisManager, moduleAnalysisManager);
 
-    auto modulePassManager = profile.createGenerationModulePass(pass_builder, optimisation_level);
+    profile.addFunctionAnalyses(functionAnalysisManager);
+    auto modulePassManager =
+        profile.createGenerationModulePass(pass_builder, optimisation_level, debug);
+
     modulePassManager.run(*module, moduleAnalysisManager);
 
     llvm::errs() << *module << "\n";
@@ -92,7 +100,8 @@ int main(int argc, char **argv)
     pass_builder.crossRegisterProxies(loopAnalysisManager, functionAnalysisManager,
                                       cGSCCAnalysisManager, moduleAnalysisManager);
 
-    auto modulePassManager = profile.createValidationModulePass(pass_builder, optimisation_level);
+    auto modulePassManager =
+        profile.createValidationModulePass(pass_builder, optimisation_level, debug);
     modulePassManager.run(*module, moduleAnalysisManager);
   }
 

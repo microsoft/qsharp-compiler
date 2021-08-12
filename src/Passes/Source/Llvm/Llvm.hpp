@@ -51,6 +51,9 @@
 #include "llvm/Transforms/IPO/Inliner.h"
 #include "llvm/Transforms/Scalar/LoopUnrollPass.h"
 
+// Testing
+#include "llvm/LinkAllPasses.h"
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
