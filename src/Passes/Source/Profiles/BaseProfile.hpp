@@ -13,5 +13,6 @@ public:
   llvm::ModulePassManager createValidationModulePass(
       PassBuilder &pass_builder, OptimizationLevel &optimisation_level) override;
 };
+
 }  // namespace quantum
 }  // namespace microsoft
