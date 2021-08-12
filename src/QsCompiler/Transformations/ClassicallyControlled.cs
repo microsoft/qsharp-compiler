@@ -31,8 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
         public static QsCompilation Apply(QsCompilation compilation)
         {
             compilation = RestructureConditions.Apply(compilation);
-            return LiftConditionBlocks.Apply(compilation);
-            //return ConvertConditions.Apply(compilation);
+            compilation = LiftConditionBlocks.Apply(compilation);
+            return ConvertConditions.Apply(compilation);
         }
 
         private class RestructureConditions : SyntaxTreeTransformation

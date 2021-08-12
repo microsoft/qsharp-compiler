@@ -1421,3 +1421,8 @@ type ClassicalControlTests() =
 
         IsApplyIfElseArgsMatch args "r" SubOp1 NoOp
         |> (fun (x, _, _, _, _) -> Assert.True(x, "ApplyIfElse did not have the correct arguments"))
+
+    [<Fact>]
+    [<Trait("Category", "If Structure Reshape")>]
+    member this.``NOT Condition Remembers Known Symbols``() =
+        CompileClassicalControlTest 41 |> ignore
