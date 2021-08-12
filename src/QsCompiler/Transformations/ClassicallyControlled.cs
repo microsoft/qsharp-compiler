@@ -847,21 +847,14 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
 
             private static bool IsConditionValidForLifting(QsConditionalStatement conditionStatement)
             {
-                if (conditionStatement.ConditionalBlocks.Length == 1)
-                {
-                    var condition = conditionStatement.ConditionalBlocks[0].Item1;
-                    return
-                        (condition.Expression is ExpressionKind.EQ eq
-                        && eq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
-                        && eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
-                        || (condition.Expression is ExpressionKind.NEQ neq
-                        && neq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
-                        && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result);
-                }
-                else
-                {
-                    return false;
-                }
+                var condition = conditionStatement.ConditionalBlocks.Single().Item1;
+                return
+                    (condition.Expression is ExpressionKind.EQ eq
+                    && eq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
+                    && eq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result)
+                    || (condition.Expression is ExpressionKind.NEQ neq
+                    && neq.Item1.ResolvedType.Resolution == ResolvedTypeKind.Result
+                    && neq.Item2.ResolvedType.Resolution == ResolvedTypeKind.Result);
             }
 
             private new class StatementKindTransformation : ContentLifting.LiftContent<TransformationState>.StatementKindTransformation
