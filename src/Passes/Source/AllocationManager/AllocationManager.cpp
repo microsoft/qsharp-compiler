@@ -21,7 +21,6 @@ AllocationManager::AllocationManagerPtr AllocationManager::createNew()
 AllocationManager::Index AllocationManager::allocate()
 {
   auto ret = start_;
-  llvm::errs() << "ALLOCATING AT " << ret << "\n";
   ++start_;
   return ret;
 }
