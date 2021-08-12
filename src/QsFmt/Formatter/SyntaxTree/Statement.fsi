@@ -35,14 +35,62 @@ module internal SymbolBinding =
     /// </summary>
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> SymbolBinding -> SymbolBinding
 
-type internal SingleQubit = { Qubit: Terminal; OpenParen: Terminal; CloseParen: Terminal }
-type internal QubitArray = { Qubit: Terminal; OpenBracket: Terminal; Length: Expression; CloseBracket: Terminal }
+/// Initializer for a single qubit.
+type internal SingleQubit =
+    {
+        /// <summary>
+        /// The <c>Qubit</c> type.
+        /// </summary>
+        Qubit: Terminal
+
+        /// The opening parenthesis.
+        OpenParen: Terminal
+
+        /// The closing parenthesis.
+        CloseParen: Terminal
+    }
+
+/// Initializer for an array of qubits.
+type internal QubitArray =
+    {
+        /// <summary>
+        /// The <c>Qubit</c> type.
+        /// </summary>
+        Qubit: Terminal
+
+        /// The opening bracket.
+        OpenBracket: Terminal
+
+        /// The length of the created array.
+        Length: Expression
+
+        /// The closing bracket.
+        CloseBracket: Terminal
+    }
+
+/// An initializer for one or more qubits.
 type internal QubitInitializer =
+    /// Initializes a single qubit.
     | SingleQubit of SingleQubit
+
+    // Initializes an array of qubits.
     | QubitArray of QubitArray
+
+    // Initializes a tuple of qubits.
     | QubitTuple of QubitInitializer Tuple
 
-type internal QubitBinding = { Name: SymbolBinding; Equals: Terminal; Initializer: QubitInitializer }
+/// A qubit binding statement.
+type internal QubitBinding =
+    {
+        /// The symbol binding.
+        Name: SymbolBinding
+
+        /// The equals symbol.
+        Equals: Terminal
+
+        /// The qubit initializer.
+        Initializer: QubitInitializer
+    }
 
 module internal QubitBinding =
     /// <summary>
