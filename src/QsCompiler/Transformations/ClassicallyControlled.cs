@@ -31,8 +31,8 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
         public static QsCompilation Apply(QsCompilation compilation)
         {
             compilation = RestructureConditions.Apply(compilation);
-            compilation = LiftConditionBlocks.Apply(compilation);
-            return ConvertConditions.Apply(compilation);
+            return LiftConditionBlocks.Apply(compilation);
+            //return ConvertConditions.Apply(compilation);
         }
 
         private class RestructureConditions : SyntaxTreeTransformation
@@ -185,10 +185,10 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.ClassicallyControlled
                         {
                             var emptyScope = new QsScope(
                                 ImmutableArray<QsStatement>.Empty,
-                                LocalDeclarations.Empty);
+                                block.Body.KnownSymbols);
                             var newConditionalBlock = new QsPositionedBlock(
                                     emptyScope,
-                                    QsNullable<QsLocation>.Null,
+                                    block.Location,
                                     QsComments.Empty);
                             return (true, new QsConditionalStatement(
                                 ImmutableArray.Create(Tuple.Create(notCondition.Item, newConditionalBlock)),
