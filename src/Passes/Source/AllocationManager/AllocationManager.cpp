@@ -21,6 +21,7 @@ AllocationManager::AllocationManagerPtr AllocationManager::createNew()
 AllocationManager::Index AllocationManager::allocate()
 {
   auto ret = start_;
+  llvm::errs() << "ALLOCATING AT " << ret << "\n";
   ++start_;
   return ret;
 }
@@ -52,11 +53,8 @@ void AllocationManager::allocate(String const &name, Index const &size, bool val
     }
 
     name_to_index_[map.name] = map.index;
-    if (!mappings_.empty())
-    {
-      map.start = start_;
-      start_ += size;
-    }
+    map.start                = start_;
+    start_ += size;
 
     map.end = map.start + size;
     mappings_.emplace_back(std::move(map));

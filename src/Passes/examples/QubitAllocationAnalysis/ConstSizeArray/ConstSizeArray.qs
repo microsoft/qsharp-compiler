@@ -20,19 +20,6 @@ namespace TeleportChain {
         ApplyCorrection(src, intermediary, dest);
     }
 
-    operation TeleportQubit(src : Qubit, dest : Qubit) : Unit {
-        use intermediary = Qubit();
-        PrepareEntangledPair(intermediary, dest);
-        TeleportQubitUsingPresharedEntanglement(src, intermediary, dest);
-    }
-
-    operation DemonstrateEntanglementSwapping() : (Result, Result) {
-        use (reference, src, intermediary, dest) = (Qubit(), Qubit(), Qubit(), Qubit());
-        PrepareEntangledPair(reference, src);
-        TeleportQubit(src, dest);
-        return (MResetZ(reference), MResetZ(dest));
-    }
-
     @EntryPoint()
     operation DemonstrateTeleportationUsingPresharedEntanglement() : Unit {
         let nPairs = 2;
