@@ -1,9 +1,8 @@
 #include "Commandline/ParameterParser.hpp"
 #include "Commandline/Settings.hpp"
 #include "Llvm/Llvm.hpp"
-#include "Passes/TransformationRule/TransformationRule.hpp"
+#include "Profiles/BaseProfile.hpp"
 #include "Profiles/IProfile.hpp"
-#include "Rules/Factory.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -12,72 +11,49 @@
 using namespace llvm;
 using namespace microsoft::quantum;
 
-class BaseProfile : public IProfile
-{
-public:
-  llvm::ModulePassManager createGenerationModulePass(
-      llvm::PassBuilder &                   pass_builder,
-      llvm::PassBuilder::OptimizationLevel &optimisation_level) override;
-};
-
-llvm::ModulePassManager BaseProfile::createGenerationModulePass(
-    llvm::PassBuilder &pass_builder, llvm::PassBuilder::OptimizationLevel &optimisation_level)
-{
-  auto functionPassManager = pass_builder.buildFunctionSimplificationPipeline(
-      optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, true);
-
-  RuleSet rule_set;
-
-  // Defining the mapping
-  auto factory = RuleFactory(rule_set);
-
-  factory.useStaticQuantumArrayAllocation();
-  factory.useStaticQuantumAllocation();
-  factory.useStaticResultAllocation();
-
-  factory.optimiseBranchQuatumOne();
-  //  factory.optimiseBranchQuatumZero();
-
-  factory.disableReferenceCounting();
-  factory.disableAliasCounting();
-  factory.disableStringSupport();
-
-  functionPassManager.addPass(TransformationRulePass(std::move(rule_set)));
-
-  // https://llvm.org/docs/NewPassManager.html
-  // modulePassManager.addPass(createModuleToCGSCCPassAdaptor(...));
-  // InlinerPass()
-
-  return pass_builder.buildPerModuleDefaultPipeline(llvm::PassBuilder::OptimizationLevel::O1);
-}
-
 int main(int argc, char **argv)
 {
+  // Parsing commmandline arguments
   Settings settings{{
       {"debug", "false"},
-      {"profile", "qir"},
+      {"generate", "false"},
+      {"validate", "false"},
+      {"profile", "base-profile"},
   }};
 
   ParameterParser parser(settings);
   parser.addFlag("debug");
+  parser.addFlag("generate");
+  parser.addFlag("validate");
+
   parser.parseArgs(argc, argv);
-  settings.print();
 
   if (parser.arguments().empty())
   {
-    std::cerr << "usage: " << argv[0] << " [options] filename" << std::endl;
+    std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
     exit(-1);
   }
 
+  // Loading IR
   LLVMContext  context;
   SMDiagnostic error;
   auto         module = parseIRFile(parser.getArg(0), error, context);
-  if (module)
-  {
-    bool        debug              = settings.get("debug") == "true";
-    auto        optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
-    BaseProfile profile;
 
+  if (!module)
+  {
+    std::cerr << "Invalid IR." << std::endl;
+    exit(-1);
+  }
+
+  // Generating IR
+  bool        debug              = settings.get("debug") == "true";
+  bool        generate           = settings.get("generate") == "true";
+  bool        validate           = settings.get("validate") == "true";
+  auto        optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
+  BaseProfile profile;
+
+  if (generate)
+  {
     // Creating pass builder
     llvm::PassBuilder             pass_builder;
     llvm::LoopAnalysisManager     loopAnalysisManager(debug);
@@ -97,6 +73,27 @@ int main(int argc, char **argv)
     modulePassManager.run(*module, moduleAnalysisManager);
 
     llvm::errs() << *module << "\n";
+  }
+
+  if (validate)
+  {
+    // Creating pass builder
+    llvm::PassBuilder             pass_builder;
+    llvm::LoopAnalysisManager     loopAnalysisManager(debug);
+    llvm::FunctionAnalysisManager functionAnalysisManager(debug);
+    llvm::CGSCCAnalysisManager    cGSCCAnalysisManager(debug);
+    llvm::ModuleAnalysisManager   moduleAnalysisManager(debug);
+
+    pass_builder.registerModuleAnalyses(moduleAnalysisManager);
+    pass_builder.registerCGSCCAnalyses(cGSCCAnalysisManager);
+    pass_builder.registerFunctionAnalyses(functionAnalysisManager);
+    pass_builder.registerLoopAnalyses(loopAnalysisManager);
+
+    pass_builder.crossRegisterProxies(loopAnalysisManager, functionAnalysisManager,
+                                      cGSCCAnalysisManager, moduleAnalysisManager);
+
+    auto modulePassManager = profile.createValidationModulePass(pass_builder, optimisation_level);
+    modulePassManager.run(*module, moduleAnalysisManager);
   }
 
   return 0;

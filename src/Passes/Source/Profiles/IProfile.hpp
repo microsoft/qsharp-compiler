@@ -8,11 +8,15 @@ namespace quantum {
 class IProfile
 {
 public:
+  using PassBuilder       = llvm::PassBuilder;
+  using OptimizationLevel = PassBuilder::OptimizationLevel;
+
   IProfile() = default;
   virtual ~IProfile();
   virtual llvm::ModulePassManager createGenerationModulePass(
-      llvm::PassBuilder &                   pass_builder,
-      llvm::PassBuilder::OptimizationLevel &optimisation_level) = 0;
+      PassBuilder &pass_builder, OptimizationLevel &optimisation_level) = 0;
+  virtual llvm::ModulePassManager createValidationModulePass(
+      PassBuilder &pass_builder, OptimizationLevel &optimisation_level) = 0;
 };
 
 }  // namespace quantum
