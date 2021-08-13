@@ -99,7 +99,9 @@
     "scripts": {
         "vscode:prepublish": "npm install && npm run compile",
         "compile": "tsc -p ./",
-        "watch": "tsc -watch -p ./"
+        "watch": "tsc -watch -p ./",
+        "pretest": "npm run compile",
+		"test": "node ./out/test/runTest.js"
     },
     "dependencies": {
         "@types/fs-extra": "^8.0.0",
