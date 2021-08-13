@@ -4,39 +4,41 @@
 
 #include "Llvm/Llvm.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-struct LlvmAnalyser
+namespace microsoft
 {
-  /// Constructors
-  /// @{
-  explicit LlvmAnalyser(bool debug);
+namespace quantum
+{
 
-  // Default construction not allowed as this leads
-  // to invalid configuration of the managers.
-  LlvmAnalyser() = delete;
+    struct LlvmAnalyser
+    {
+        /// Constructors
+        /// @{
+        explicit LlvmAnalyser(bool debug);
 
-  // Copy construction prohibited due to restrictions
-  // on the member variables.
-  LlvmAnalyser(LlvmAnalyser const &) = delete;
+        // Default construction not allowed as this leads
+        // to invalid configuration of the managers.
+        LlvmAnalyser() = delete;
 
-  // Prefer move construction at all times.
-  LlvmAnalyser(LlvmAnalyser &&) = default;
+        // Copy construction prohibited due to restrictions
+        // on the member variables.
+        LlvmAnalyser(LlvmAnalyser const&) = delete;
 
-  // Default deconstruction.
-  ~LlvmAnalyser() = default;
-  /// @}
+        // Prefer move construction at all times.
+        LlvmAnalyser(LlvmAnalyser&&) = default;
 
-  /// Objects used to run a set of passes
-  /// @{
-  llvm::PassBuilder             pass_builder;
-  llvm::LoopAnalysisManager     loop_analysis_manager;
-  llvm::FunctionAnalysisManager function_analysis_manager;
-  llvm::CGSCCAnalysisManager    gscc_analysis_manager;
-  llvm::ModuleAnalysisManager   module_analysis_manager;
-  /// @}
-};
+        // Default deconstruction.
+        ~LlvmAnalyser() = default;
+        /// @}
 
-}  // namespace quantum
-}  // namespace microsoft
+        /// Objects used to run a set of passes
+        /// @{
+        llvm::PassBuilder             pass_builder;
+        llvm::LoopAnalysisManager     loop_analysis_manager;
+        llvm::FunctionAnalysisManager function_analysis_manager;
+        llvm::CGSCCAnalysisManager    gscc_analysis_manager;
+        llvm::ModuleAnalysisManager   module_analysis_manager;
+        /// @}
+    };
+
+} // namespace quantum
+} // namespace microsoft

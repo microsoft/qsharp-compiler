@@ -2,29 +2,32 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Rules/OperandPrototype.hpp"
+
+#include "Llvm/Llvm.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-class CallPattern : public OperandPrototype
+namespace microsoft
 {
-public:
-  using String = std::string;
-  CallPattern(String const &name);
+namespace quantum
+{
 
-  ~CallPattern() override;
+    class CallPattern : public OperandPrototype
+    {
+      public:
+        using String = std::string;
+        CallPattern(String const& name);
 
-  bool  match(Value *instr, Captures &captures) const override;
-  Child copy() const override;
+        ~CallPattern() override;
 
-private:
-  String name_{};
-};
+        bool  match(Value* instr, Captures& captures) const override;
+        Child copy() const override;
 
-}  // namespace quantum
-}  // namespace microsoft
+      private:
+        String name_{};
+    };
+
+} // namespace quantum
+} // namespace microsoft

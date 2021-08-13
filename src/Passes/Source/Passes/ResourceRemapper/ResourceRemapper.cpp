@@ -8,22 +8,23 @@
 #include <fstream>
 #include <iostream>
 
-namespace microsoft {
-namespace quantum {
-llvm::PreservedAnalyses ResourceRemapperPass::run(llvm::Function &function,
-                                                  llvm::FunctionAnalysisManager & /*fam*/)
+namespace microsoft
 {
-  // Pass body
-
-  llvm::errs() << "Implement your pass here: " << function.getName() << "\n";
-
-  return llvm::PreservedAnalyses::all();
-}
-
-bool ResourceRemapperPass::isRequired()
+namespace quantum
 {
-  return true;
-}
+    llvm::PreservedAnalyses ResourceRemapperPass::run(llvm::Function& function, llvm::FunctionAnalysisManager& /*fam*/)
+    {
+        // Pass body
 
-}  // namespace quantum
-}  // namespace microsoft
+        llvm::errs() << "Implement your pass here: " << function.getName() << "\n";
+
+        return llvm::PreservedAnalyses::all();
+    }
+
+    bool ResourceRemapperPass::isRequired()
+    {
+        return true;
+    }
+
+} // namespace quantum
+} // namespace microsoft

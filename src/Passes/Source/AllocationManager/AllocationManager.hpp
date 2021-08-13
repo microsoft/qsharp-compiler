@@ -1,6 +1,7 @@
 #pragma once
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
 #include "Llvm/Llvm.hpp"
 
 #include <memory>
@@ -8,86 +9,88 @@
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-class AllocationManager
+namespace microsoft
 {
-public:
-  /// Defines a named register/memory segment with start
-  /// position, end position and size.
-  struct MemoryMapping
-  {
-    using Index  = uint64_t;
-    using String = std::string;
+namespace quantum
+{
 
-    String name{""};  ///< Name of the segment, if any given
-    Index  index{0};  ///< Index of the allocation
-    Index  size{0};   ///< Size of memory segment
-    Index  start{0};  ///< Start index of memory segment
-    Index  end{0};    ///< Index not included in memory segment
-  };
+    class AllocationManager
+    {
+      public:
+        /// Defines a named register/memory segment with start
+        /// position, end position and size.
+        struct MemoryMapping
+        {
+            using Index  = uint64_t;
+            using String = std::string;
 
-  using Index                = uint64_t;
-  using String               = std::string;
-  using AllocationManagerPtr = std::shared_ptr<AllocationManager>;
-  using Resource             = std::vector<llvm::Value *>;
-  using Resources            = std::unordered_map<std::string, Resource>;
-  using NameToIndex          = std::unordered_map<String, Index>;
-  using Mappings             = std::vector<MemoryMapping>;
+            String name{""}; ///< Name of the segment, if any given
+            Index  index{0}; ///< Index of the allocation
+            Index  size{0};  ///< Size of memory segment
+            Index  start{0}; ///< Start index of memory segment
+            Index  end{0};   ///< Index not included in memory segment
+        };
 
-  /// Pointer contstruction
-  /// @{
-  /// Creates a new allocation manager. The manager is kept
-  /// as a shared pointer to enable allocation accross diffent
-  /// passes and/or replacement rules.
-  static AllocationManagerPtr createNew();
-  /// @}
+        using Index                = uint64_t;
+        using String               = std::string;
+        using AllocationManagerPtr = std::shared_ptr<AllocationManager>;
+        using Resource             = std::vector<llvm::Value*>;
+        using Resources            = std::unordered_map<std::string, Resource>;
+        using NameToIndex          = std::unordered_map<String, Index>;
+        using Mappings             = std::vector<MemoryMapping>;
 
-  /// Allocation and release functions
-  /// @{
-  /// Allocates a single address.
-  Index allocate();
+        /// Pointer contstruction
+        /// @{
+        /// Creates a new allocation manager. The manager is kept
+        /// as a shared pointer to enable allocation accross diffent
+        /// passes and/or replacement rules.
+        static AllocationManagerPtr createNew();
+        /// @}
 
-  /// Allocates a name segment of a given size.
-  void allocate(String const &name, Index const &size, bool value_only = false);
+        /// Allocation and release functions
+        /// @{
+        /// Allocates a single address.
+        Index allocate();
 
-  /// Gets the offset of a name segment or address.
-  Index getOffset(String const &name) const;
+        /// Allocates a name segment of a given size.
+        void allocate(String const& name, Index const& size, bool value_only = false);
 
-  /// Releases the named segment or address.
-  void release(String const &name);
+        /// Gets the offset of a name segment or address.
+        Index getOffset(String const& name) const;
 
-  /// Retrieves a named resource.
-  Resource &get(String const &name);
-  /// @}
+        /// Releases the named segment or address.
+        void release(String const& name);
 
-private:
-  /// Private constructors
-  /// @{
-  /// Public construction of this object is only allowed
-  /// as a shared pointer. To create a new AllocationManager,
-  /// use AllocationManager::createNew().
-  AllocationManager() = default;
-  /// @}
+        /// Retrieves a named resource.
+        Resource& get(String const& name);
+        /// @}
 
-  /// Memory mapping
-  /// @{
-  /// Each allocation has a register/memory mapping which
-  /// keeps track of the
-  NameToIndex name_to_index_;
-  Mappings    mappings_;
-  /// @}
+      private:
+        /// Private constructors
+        /// @{
+        /// Public construction of this object is only allowed
+        /// as a shared pointer. To create a new AllocationManager,
+        /// use AllocationManager::createNew().
+        AllocationManager() = default;
+        /// @}
 
-  /// Compile-time resources
-  /// @{
-  /// Compile-time allocated resources such as
-  /// arrays who
-  Resources resources_;
-  /// @}
+        /// Memory mapping
+        /// @{
+        /// Each allocation has a register/memory mapping which
+        /// keeps track of the
+        NameToIndex name_to_index_;
+        Mappings    mappings_;
+        /// @}
 
-  Index start_{0};
-};
+        /// Compile-time resources
+        /// @{
+        /// Compile-time allocated resources such as
+        /// arrays who
+        Resources resources_;
+        /// @}
 
-}  // namespace quantum
-}  // namespace microsoft
+        Index start_{0};
+    };
+
+} // namespace quantum
+} // namespace microsoft

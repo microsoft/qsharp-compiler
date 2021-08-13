@@ -4,9 +4,10 @@
 #include "Apps/Qat/LlvmAnalysis.hpp"
 #include "Commandline/ParameterParser.hpp"
 #include "Commandline/Settings.hpp"
-#include "Llvm/Llvm.hpp"
 #include "Profiles/BaseProfile.hpp"
 #include "Profiles/IProfile.hpp"
+
+#include "Llvm/Llvm.hpp"
 
 #include <iomanip>
 #include <iostream>
@@ -15,92 +16,92 @@
 using namespace llvm;
 using namespace microsoft::quantum;
 
-int main(int argc, char **argv)
+int main(int argc, char** argv)
 {
-  // Parsing commmandline arguments
-  Settings settings{{{"debug", "false"},
-                     {"generate", "false"},
-                     {"validate", "false"},
-                     {"profile", "base-profile"},
-                     {"S", "false"}}};
+    // Parsing commmandline arguments
+    Settings settings{
+        {{"debug", "false"},
+         {"generate", "false"},
+         {"validate", "false"},
+         {"profile", "base-profile"},
+         {"S", "false"}}};
 
-  ParameterParser parser(settings);
-  parser.addFlag("debug");
-  parser.addFlag("generate");
-  parser.addFlag("validate");
-  parser.addFlag("S");
+    ParameterParser parser(settings);
+    parser.addFlag("debug");
+    parser.addFlag("generate");
+    parser.addFlag("validate");
+    parser.addFlag("S");
 
-  parser.parseArgs(argc, argv);
+    parser.parseArgs(argc, argv);
 
-  if (parser.arguments().empty())
-  {
-    std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
-    exit(-1);
-  }
-
-  // Loading IR
-  LLVMContext  context;
-  SMDiagnostic error;
-  auto         module = parseIRFile(parser.getArg(0), error, context);
-
-  if (!module)
-  {
-    std::cerr << "Invalid IR." << std::endl;
-    exit(-1);
-  }
-
-  // Extracting commandline parameters
-  bool                         debug              = settings.get("debug") == "true";
-  bool                         generate           = settings.get("generate") == "true";
-  bool                         validate           = settings.get("validate") == "true";
-  auto                         optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
-  std::shared_ptr<BaseProfile> profile            = std::make_shared<BaseProfile>();
-
-  // In case we debug, we also print the settings to allow provide a full
-  // picture of what is going.
-  if (debug)
-  {
-    settings.print();
-  }
-
-  // Checking if we are asked to generate a new QIR. If so, we will use
-  // the profile to setup passes to
-  if (generate)
-  {
-    // Creating pass builder
-    LlvmAnalyser analyser{debug};
-
-    // Preparing pass for generation based on profile
-    profile->addFunctionAnalyses(analyser.function_analysis_manager);
-    auto module_pass_manager =
-        profile->createGenerationModulePass(analyser.pass_builder, optimisation_level, debug);
-
-    // Running the pass built by the profile
-    module_pass_manager.run(*module, analyser.module_analysis_manager);
-
-    // Priniting either human readible LL code or byte
-    // code as a result, depending on the users preference.
-    if (settings.get("S") == "true")
+    if (parser.arguments().empty())
     {
-      llvm::errs() << *module << "\n";
+        std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
+        exit(-1);
     }
-    else
+
+    // Loading IR
+    LLVMContext  context;
+    SMDiagnostic error;
+    auto         module = parseIRFile(parser.getArg(0), error, context);
+
+    if (!module)
     {
-      llvm::errs()
-          << "Byte code ouput is not supported yet. Please add -S to get human readible LL code.\n";
+        std::cerr << "Invalid IR." << std::endl;
+        exit(-1);
     }
-  }
 
-  if (validate)
-  {
-    // Creating pass builder
-    LlvmAnalyser analyser{debug};
+    // Extracting commandline parameters
+    bool                         debug              = settings.get("debug") == "true";
+    bool                         generate           = settings.get("generate") == "true";
+    bool                         validate           = settings.get("validate") == "true";
+    auto                         optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
+    std::shared_ptr<BaseProfile> profile            = std::make_shared<BaseProfile>();
 
-    // Creating a validation pass manager
-    auto module_pass_manager =
-        profile->createValidationModulePass(analyser.pass_builder, optimisation_level, debug);
-    module_pass_manager.run(*module, analyser.module_analysis_manager);
-  }
+    // In case we debug, we also print the settings to allow provide a full
+    // picture of what is going.
+    if (debug)
+    {
+        settings.print();
+    }
 
-  return 0;
+    // Checking if we are asked to generate a new QIR. If so, we will use
+    // the profile to setup passes to
+    if (generate)
+    {
+        // Creating pass builder
+        LlvmAnalyser analyser{debug};
+
+        // Preparing pass for generation based on profile
+        profile->addFunctionAnalyses(analyser.function_analysis_manager);
+        auto module_pass_manager =
+            profile->createGenerationModulePass(analyser.pass_builder, optimisation_level, debug);
+
+        // Running the pass built by the profile
+        module_pass_manager.run(*module, analyser.module_analysis_manager);
+
+        // Priniting either human readible LL code or byte
+        // code as a result, depending on the users preference.
+        if (settings.get("S") == "true")
+        {
+            llvm::errs() << *module << "\n";
+        }
+        else
+        {
+            llvm::errs() << "Byte code ouput is not supported yet. Please add -S to get human readible LL code.\n";
+        }
+    }
+
+    if (validate)
+    {
+        // Creating pass builder
+        LlvmAnalyser analyser{debug};
+
+        // Creating a validation pass manager
+        auto module_pass_manager =
+            profile->createValidationModulePass(analyser.pass_builder, optimisation_level, debug);
+        module_pass_manager.run(*module, analyser.module_analysis_manager);
+    }
+
+    return 0;
 }

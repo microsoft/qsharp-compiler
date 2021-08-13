@@ -1,21 +1,29 @@
 #pragma once
-#include "Llvm/Llvm.hpp"
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #include "Profiles/IProfile.hpp"
 
-namespace microsoft {
-namespace quantum {
+#include "Llvm/Llvm.hpp"
 
-class BaseProfile : public IProfile
+namespace microsoft
 {
-public:
-  llvm::ModulePassManager createGenerationModulePass(PassBuilder &      pass_builder,
-                                                     OptimizationLevel &optimisation_level,
-                                                     bool               debug) override;
-  llvm::ModulePassManager createValidationModulePass(PassBuilder &      pass_builder,
-                                                     OptimizationLevel &optimisation_level,
-                                                     bool               debug) override;
-  void                    addFunctionAnalyses(FunctionAnalysisManager &fam) override;
-};
+namespace quantum
+{
 
-}  // namespace quantum
-}  // namespace microsoft
+    class BaseProfile : public IProfile
+    {
+      public:
+        llvm::ModulePassManager createGenerationModulePass(
+            PassBuilder&       pass_builder,
+            OptimizationLevel& optimisation_level,
+            bool               debug) override;
+        llvm::ModulePassManager createValidationModulePass(
+            PassBuilder&       pass_builder,
+            OptimizationLevel& optimisation_level,
+            bool               debug) override;
+        void addFunctionAnalyses(FunctionAnalysisManager& fam) override;
+    };
+
+} // namespace quantum
+} // namespace microsoft

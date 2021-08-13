@@ -1,42 +1,44 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Rules/RuleSet.hpp"
-
 #include "AllocationManager/AllocationManager.hpp"
-#include "Llvm/Llvm.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/ReplacementRule.hpp"
+#include "Rules/RuleSet.hpp"
+
+#include "Llvm/Llvm.hpp"
 
 #include <iostream>
 #include <vector>
-namespace microsoft {
-namespace quantum {
-
-bool RuleSet::matchAndReplace(Instruction *value, Replacements &replacements)
+namespace microsoft
 {
-  Captures captures;
-  for (auto const &rule : rules_)
-  {
-    // Checking if the rule is matched and keep track of captured nodes
-    if (rule->match(value, captures))
+namespace quantum
+{
+
+    bool RuleSet::matchAndReplace(Instruction* value, Replacements& replacements)
     {
+        Captures captures;
+        for (auto const& rule : rules_)
+        {
+            // Checking if the rule is matched and keep track of captured nodes
+            if (rule->match(value, captures))
+            {
 
-      // If it is matched, we attempt to replace it
-      llvm::IRBuilder<> builder{value};
-      if (rule->replace(builder, value, captures, replacements))
-      {
-        return true;
-      }
+                // If it is matched, we attempt to replace it
+                llvm::IRBuilder<> builder{value};
+                if (rule->replace(builder, value, captures, replacements))
+                {
+                    return true;
+                }
+            }
+        }
+        return false;
     }
-  }
-  return false;
-}
 
-void RuleSet::addRule(ReplacementRulePtr const &rule)
-{
-  rules_.push_back(rule);
-}
+    void RuleSet::addRule(ReplacementRulePtr const& rule)
+    {
+        rules_.push_back(rule);
+    }
 
-}  // namespace quantum
-}  // namespace microsoft
+} // namespace quantum
+} // namespace microsoft

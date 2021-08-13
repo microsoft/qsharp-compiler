@@ -1,63 +1,68 @@
 #pragma once
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 
 #include <iomanip>
 #include <iostream>
 #include <string>
 #include <unordered_map>
 
-namespace microsoft {
-namespace quantum {
-
-class Settings
+namespace microsoft
 {
-public:
-  using String = std::string;
+namespace quantum
+{
 
-  using SettingsMap = std::unordered_map<String, String>;
-  Settings(SettingsMap default_settings)
-    : settings_{default_settings}
-  {}
-
-  String get(String const &name, String const &default_value)
-  {
-    auto it = settings_.find(name);
-    if (it == settings_.end())
+    class Settings
     {
-      return default_value;
-    }
+      public:
+        using String = std::string;
 
-    return it->second;
-  }
+        using SettingsMap = std::unordered_map<String, String>;
+        Settings(SettingsMap default_settings)
+          : settings_{default_settings}
+        {
+        }
 
-  String get(String const &name)
-  {
-    auto it = settings_.find(name);
-    if (it == settings_.end())
-    {
-      throw std::runtime_error("Could not find setting '" + name + "'.");
-    }
+        String get(String const& name, String const& default_value)
+        {
+            auto it = settings_.find(name);
+            if (it == settings_.end())
+            {
+                return default_value;
+            }
 
-    return it->second;
-  }
+            return it->second;
+        }
 
-  void print()
-  {
-    std::cout << "Settings" << std::endl;
-    for (auto &s : settings_)
-    {
-      std::cout << std::setw(20) << s.first << ": " << s.second << std::endl;
-    }
-  }
+        String get(String const& name)
+        {
+            auto it = settings_.find(name);
+            if (it == settings_.end())
+            {
+                throw std::runtime_error("Could not find setting '" + name + "'.");
+            }
 
-  String &operator[](String const &key)
-  {
-    return settings_[key];
-  }
+            return it->second;
+        }
 
-private:
-  SettingsMap settings_;
-  friend class ParameterParser;
-};
+        void print()
+        {
+            std::cout << "Settings" << std::endl;
+            for (auto& s : settings_)
+            {
+                std::cout << std::setw(20) << s.first << ": " << s.second << std::endl;
+            }
+        }
 
-}  // namespace quantum
-}  // namespace microsoft
+        String& operator[](String const& key)
+        {
+            return settings_[key];
+        }
+
+      private:
+        SettingsMap settings_;
+        friend class ParameterParser;
+    };
+
+} // namespace quantum
+} // namespace microsoft

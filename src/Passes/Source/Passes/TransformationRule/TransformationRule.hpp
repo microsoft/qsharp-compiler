@@ -2,48 +2,51 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Rules/RuleSet.hpp"
+
+#include "Llvm/Llvm.hpp"
 
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-class TransformationRulePass : public llvm::PassInfoMixin<TransformationRulePass>
+namespace microsoft
 {
-public:
-  using Replacements         = ReplacementRule::Replacements;
-  using Instruction          = llvm::Instruction;
-  using Rules                = std::vector<ReplacementRule>;
-  using Value                = llvm::Value;
-  using Builder              = ReplacementRule::Builder;
-  using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
+namespace quantum
+{
 
-  /// Constructors and destructors
-  /// @{
-  TransformationRulePass(RuleSet &&rule_set);
-  TransformationRulePass(TransformationRulePass const &) = delete;
-  TransformationRulePass(TransformationRulePass &&)      = default;
-  ~TransformationRulePass()                              = default;
-  /// @}
+    class TransformationRulePass : public llvm::PassInfoMixin<TransformationRulePass>
+    {
+      public:
+        using Replacements         = ReplacementRule::Replacements;
+        using Instruction          = llvm::Instruction;
+        using Rules                = std::vector<ReplacementRule>;
+        using Value                = llvm::Value;
+        using Builder              = ReplacementRule::Builder;
+        using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
 
-  /// Operators
-  /// @{
-  TransformationRulePass &operator=(TransformationRulePass const &) = delete;
-  TransformationRulePass &operator=(TransformationRulePass &&) = default;
-  /// @}
+        /// Constructors and destructors
+        /// @{
+        TransformationRulePass(RuleSet&& rule_set);
+        TransformationRulePass(TransformationRulePass const&) = delete;
+        TransformationRulePass(TransformationRulePass&&)      = default;
+        ~TransformationRulePass()                             = default;
+        /// @}
 
-  /// Functions required by LLVM
-  /// @{
-  llvm::PreservedAnalyses run(llvm::Function &function, llvm::FunctionAnalysisManager &fam);
-  static bool             isRequired();
-  /// @}
+        /// Operators
+        /// @{
+        TransformationRulePass& operator=(TransformationRulePass const&) = delete;
+        TransformationRulePass& operator=(TransformationRulePass&&) = default;
+        /// @}
 
-private:
-  RuleSet      rule_set_{};
-  Replacements replacements_;  ///< Registered replacements to be executed.
-};
+        /// Functions required by LLVM
+        /// @{
+        llvm::PreservedAnalyses run(llvm::Function& function, llvm::FunctionAnalysisManager& fam);
+        static bool             isRequired();
+        /// @}
 
-}  // namespace quantum
-}  // namespace microsoft
+      private:
+        RuleSet      rule_set_{};
+        Replacements replacements_; ///< Registered replacements to be executed.
+    };
+
+} // namespace quantum
+} // namespace microsoft

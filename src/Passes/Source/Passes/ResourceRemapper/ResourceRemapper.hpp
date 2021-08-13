@@ -4,32 +4,34 @@
 
 #include "Llvm/Llvm.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-class ResourceRemapperPass : public llvm::PassInfoMixin<ResourceRemapperPass>
+namespace microsoft
 {
-public:
-  /// Constructors and destructors
-  /// @{
-  ResourceRemapperPass()                             = default;
-  ResourceRemapperPass(ResourceRemapperPass const &) = default;
-  ResourceRemapperPass(ResourceRemapperPass &&)      = default;
-  ~ResourceRemapperPass()                            = default;
-  /// @}
+namespace quantum
+{
 
-  /// Operators
-  /// @{
-  ResourceRemapperPass &operator=(ResourceRemapperPass const &) = default;
-  ResourceRemapperPass &operator=(ResourceRemapperPass &&) = default;
-  /// @}
+    class ResourceRemapperPass : public llvm::PassInfoMixin<ResourceRemapperPass>
+    {
+      public:
+        /// Constructors and destructors
+        /// @{
+        ResourceRemapperPass()                            = default;
+        ResourceRemapperPass(ResourceRemapperPass const&) = default;
+        ResourceRemapperPass(ResourceRemapperPass&&)      = default;
+        ~ResourceRemapperPass()                           = default;
+        /// @}
 
-  /// Functions required by LLVM
-  /// @{
-  llvm::PreservedAnalyses run(llvm::Function &function, llvm::FunctionAnalysisManager &fam);
-  static bool             isRequired();
-  /// @}
-};
+        /// Operators
+        /// @{
+        ResourceRemapperPass& operator=(ResourceRemapperPass const&) = default;
+        ResourceRemapperPass& operator=(ResourceRemapperPass&&) = default;
+        /// @}
 
-}  // namespace quantum
-}  // namespace microsoft
+        /// Functions required by LLVM
+        /// @{
+        llvm::PreservedAnalyses run(llvm::Function& function, llvm::FunctionAnalysisManager& fam);
+        static bool             isRequired();
+        /// @}
+    };
+
+} // namespace quantum
+} // namespace microsoft

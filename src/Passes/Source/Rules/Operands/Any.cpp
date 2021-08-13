@@ -1,23 +1,25 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
-#include "Rules/Operands/Any.hpp"
 
 #include "Rules/OperandPrototype.hpp"
+#include "Rules/Operands/Any.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-AnyPattern::AnyPattern()  = default;
-AnyPattern::~AnyPattern() = default;
-bool AnyPattern::match(Value *instr, Captures &captures) const
+namespace microsoft
 {
-  return success(instr, captures);
-}
-
-AnyPattern::Child AnyPattern::copy() const
+namespace quantum
 {
-  return std::make_shared<AnyPattern>();
-}
 
-}  // namespace quantum
-}  // namespace microsoft
+    AnyPattern::AnyPattern()  = default;
+    AnyPattern::~AnyPattern() = default;
+    bool AnyPattern::match(Value* instr, Captures& captures) const
+    {
+        return success(instr, captures);
+    }
+
+    AnyPattern::Child AnyPattern::copy() const
+    {
+        return std::make_shared<AnyPattern>();
+    }
+
+} // namespace quantum
+} // namespace microsoft
