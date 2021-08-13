@@ -196,7 +196,7 @@ let ``Updates Using with Comments`` =
 
     """namespace Foo {
     operation Bar() : Unit {
-        use 
+        use""" + " " + """
             q = Qubit() // comment
          {
         }
