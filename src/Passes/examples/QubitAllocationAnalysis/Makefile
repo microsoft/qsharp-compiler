@@ -10,8 +10,8 @@ run: build-qaa analysis-example.ll
 run-replace: build-ir build-qaa build-esa analysis-example.ll
 #	opt -loop-unroll -unroll-count=3 -unroll-allow-partial 
 	opt -load-pass-plugin ../../Debug/Source/Passes/libQubitAllocationAnalysis.dylib \
-			-load-pass-plugin ../../Debug/Source/Passes/libExpandStaticAllocation.dylib --passes="expand-static-allocation" -S analysis-example.ll > test1.ll
-	opt -load-pass-plugin ../../Debug/Source/Passes/libTransformationRule.dylib --passes="loop-simplify,loop-unroll,restrict-qir<base-profile>" -S test1.ll > test2.ll
+			-load-pass-plugin ../../Debug/Source/Passes/libExpandStaticAllocation.dylib --passes="expand-static-allocation" -S analysis-example.ll > analysis-example-step1.ll
+	opt -load-pass-plugin ../../Debug/Source/Passes/libTransformationRule.dylib --passes="loop-simplify,loop-unroll,restrict-qir<base-profile>" -S analysis-example-step1.ll > analysis-example-final.ll
 	opt  --passes="inline" -S test2.ll | opt -O1 -S
 
 
@@ -34,3 +34,5 @@ analysis-example.ll:
 clean:
 	cd ConstSizeArray && make clean
 	rm analysis-example.ll
+	rm analysis-example-step1.ll
+	rm analysis-example-final.ll

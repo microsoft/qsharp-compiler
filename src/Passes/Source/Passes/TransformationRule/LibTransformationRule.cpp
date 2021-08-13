@@ -27,8 +27,8 @@ llvm::PassPluginLibraryInfo getTransformationRulePluginInfo()
             // Defining the mapping
             auto factory = RuleFactory(rule_set);
 
-            factory.useStaticQuantumArrayAllocation();
-            factory.useStaticQuantumAllocation();
+            factory.useStaticQubitArrayAllocation();
+            factory.useStaticQubitAllocation();
             factory.useStaticResultAllocation();
 
             factory.optimiseBranchQuatumOne();

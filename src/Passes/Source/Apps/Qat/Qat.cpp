@@ -1,3 +1,7 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+#include "Apps/Qat/LlvmAnalysis.hpp"
 #include "Commandline/ParameterParser.hpp"
 #include "Commandline/Settings.hpp"
 #include "Llvm/Llvm.hpp"
@@ -14,17 +18,17 @@ using namespace microsoft::quantum;
 int main(int argc, char **argv)
 {
   // Parsing commmandline arguments
-  Settings settings{{
-      {"debug", "false"},
-      {"generate", "false"},
-      {"validate", "false"},
-      {"profile", "base-profile"},
-  }};
+  Settings settings{{{"debug", "false"},
+                     {"generate", "false"},
+                     {"validate", "false"},
+                     {"profile", "base-profile"},
+                     {"S", "false"}}};
 
   ParameterParser parser(settings);
   parser.addFlag("debug");
   parser.addFlag("generate");
   parser.addFlag("validate");
+  parser.addFlag("S");
 
   parser.parseArgs(argc, argv);
 
@@ -45,72 +49,57 @@ int main(int argc, char **argv)
     exit(-1);
   }
 
-  // settings.print();
+  // Extracting commandline parameters
+  bool                         debug              = settings.get("debug") == "true";
+  bool                         generate           = settings.get("generate") == "true";
+  bool                         validate           = settings.get("validate") == "true";
+  auto                         optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
+  std::shared_ptr<BaseProfile> profile            = std::make_shared<BaseProfile>();
 
-  // Generating IR
-  bool        debug              = settings.get("debug") == "true";
-  bool        generate           = settings.get("generate") == "true";
-  bool        validate           = settings.get("validate") == "true";
-  auto        optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
-  BaseProfile profile;
+  // In case we debug, we also print the settings to allow provide a full
+  // picture of what is going.
+  if (debug)
+  {
+    settings.print();
+  }
 
-  // Worth looking at:
-  // https://opensource.apple.com/source/lldb/lldb-76/llvm/tools/opt/opt.cpp
-
+  // Checking if we are asked to generate a new QIR. If so, we will use
+  // the profile to setup passes to
   if (generate)
   {
     // Creating pass builder
-    llvm::PassBuilder             pass_builder;
-    llvm::LoopAnalysisManager     loopAnalysisManager(debug);
-    llvm::FunctionAnalysisManager functionAnalysisManager(debug);
-    llvm::CGSCCAnalysisManager    cGSCCAnalysisManager(debug);
-    llvm::ModuleAnalysisManager   moduleAnalysisManager(debug);
+    LlvmAnalyser analyser{debug};
 
-    pass_builder.registerModuleAnalyses(moduleAnalysisManager);
-    pass_builder.registerCGSCCAnalyses(cGSCCAnalysisManager);
-    pass_builder.registerFunctionAnalyses(functionAnalysisManager);
-    pass_builder.registerLoopAnalyses(loopAnalysisManager);
+    // Preparing pass for generation based on profile
+    profile->addFunctionAnalyses(analyser.function_analysis_manager);
+    auto module_pass_manager =
+        profile->createGenerationModulePass(analyser.pass_builder, optimisation_level, debug);
 
-    pass_builder.crossRegisterProxies(loopAnalysisManager, functionAnalysisManager,
-                                      cGSCCAnalysisManager, moduleAnalysisManager);
+    // Running the pass built by the profile
+    module_pass_manager.run(*module, analyser.module_analysis_manager);
 
-    profile.addFunctionAnalyses(functionAnalysisManager);
-    auto modulePassManager =
-        profile.createGenerationModulePass(pass_builder, optimisation_level, debug);
-
-    modulePassManager.run(*module, moduleAnalysisManager);
-
-    //
-
-    llvm::legacy::PassManager legacy_pass_manager;
-    legacy_pass_manager.add(llvm::createCalledValuePropagationPass());
-    legacy_pass_manager.add(llvm::createCalledValuePropagationPass());
-    legacy_pass_manager.add(llvm::createConstantMergePass());
-    legacy_pass_manager.run(*module);
-
-    llvm::errs() << *module << "\n";
+    // Priniting either human readible LL code or byte
+    // code as a result, depending on the users preference.
+    if (settings.get("S") == "true")
+    {
+      llvm::errs() << *module << "\n";
+    }
+    else
+    {
+      llvm::errs()
+          << "Byte code ouput is not supported yet. Please add -S to get human readible LL code.\n";
+    }
   }
 
   if (validate)
   {
     // Creating pass builder
-    llvm::PassBuilder             pass_builder;
-    llvm::LoopAnalysisManager     loopAnalysisManager(debug);
-    llvm::FunctionAnalysisManager functionAnalysisManager(debug);
-    llvm::CGSCCAnalysisManager    cGSCCAnalysisManager(debug);
-    llvm::ModuleAnalysisManager   moduleAnalysisManager(debug);
+    LlvmAnalyser analyser{debug};
 
-    pass_builder.registerModuleAnalyses(moduleAnalysisManager);
-    pass_builder.registerCGSCCAnalyses(cGSCCAnalysisManager);
-    pass_builder.registerFunctionAnalyses(functionAnalysisManager);
-    pass_builder.registerLoopAnalyses(loopAnalysisManager);
-
-    pass_builder.crossRegisterProxies(loopAnalysisManager, functionAnalysisManager,
-                                      cGSCCAnalysisManager, moduleAnalysisManager);
-
-    auto modulePassManager =
-        profile.createValidationModulePass(pass_builder, optimisation_level, debug);
-    modulePassManager.run(*module, moduleAnalysisManager);
+    // Creating a validation pass manager
+    auto module_pass_manager =
+        profile->createValidationModulePass(analyser.pass_builder, optimisation_level, debug);
+    module_pass_manager.run(*module, analyser.module_analysis_manager);
   }
 
   return 0;

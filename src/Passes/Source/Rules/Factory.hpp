@@ -12,7 +12,9 @@
 namespace microsoft {
 namespace quantum {
 
-struct RuleFactory
+/// Rule factory provides a high-level methods to build a ruleset that
+/// enforces certain aspects of QIR transformation.
+class RuleFactory
 {
 public:
   using String               = std::string;
@@ -24,15 +26,29 @@ public:
   using Value                = llvm::Value;
   using Builder              = ReplacementRule::Builder;
 
-  RuleFactory(RuleSet &rule_set);
+  /// Constructor configuration. Explicit construction with
+  /// rule set to be configured, which can be moved using move
+  /// semantics. No copy allowed.
+  /// @{
+  explicit RuleFactory(RuleSet &rule_set);
+  RuleFactory()                    = delete;
+  RuleFactory(RuleFactory const &) = delete;
+  RuleFactory(RuleFactory &&)      = default;
+  ~RuleFactory()                   = default;
+  /// @}
 
   /// Generic rules
+  /// @{
+  /// Removes all calls to functions with a specified name.
+  /// This function matches on name alone and ignores function
+  /// arguments.
   void removeFunctionCall(String const &name);
+  /// @}
 
   /// Conventions
   /// @{
-  void useStaticQuantumArrayAllocation();
-  void useStaticQuantumAllocation();
+  void useStaticQubitArrayAllocation();
+  void useStaticQubitAllocation();
   void useStaticResultAllocation();
   /// @}
 
@@ -47,18 +63,22 @@ public:
   void disableReferenceCounting();
   void disableAliasCounting();
   void disableStringSupport();
-  // TODO:  void disableDynamicQuantumAllocation();
   /// @}
 
+  /// Allocation Managers
+  /// @{
   AllocationManagerPtr qubitAllocationManager() const;
   AllocationManagerPtr resultAllocationManager() const;
-
+  /// @}
 private:
   ReplacementRulePtr addRule(ReplacementRule &&rule);
 
-  RuleSet &rule_set_;
+  /// Affected artefacts
+  /// @{
+  RuleSet &rule_set_;  ///< The ruleset we are building
+  /// @}
 
-  /// Allocation managers
+  /// Allocation managers. Allocation managers for different types
   /// @{
   AllocationManagerPtr qubit_alloc_manager_{nullptr};
   AllocationManagerPtr result_alloc_manager_{nullptr};

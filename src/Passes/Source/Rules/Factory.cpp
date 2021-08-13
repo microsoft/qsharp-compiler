@@ -32,7 +32,7 @@ void RuleFactory::removeFunctionCall(String const &name)
   addRule(std::move(ret));
 }
 
-void RuleFactory::useStaticQuantumArrayAllocation()
+void RuleFactory::useStaticQubitArrayAllocation()
 {
   // TODO(tfr): Consider using weak pointers
   auto qubit_alloc_manager = qubit_alloc_manager_;
@@ -121,7 +121,7 @@ void RuleFactory::useStaticQuantumArrayAllocation()
   });
 }
 
-void RuleFactory::useStaticQuantumAllocation()
+void RuleFactory::useStaticQubitAllocation()
 {
   auto qubit_alloc_manager = qubit_alloc_manager_;
   auto allocation_replacer = [qubit_alloc_manager](Builder &builder, Value *val, Captures &,

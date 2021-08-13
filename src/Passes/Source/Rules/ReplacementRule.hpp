@@ -10,6 +10,11 @@
 
 namespace microsoft {
 namespace quantum {
+
+/// Rule that describes a pattern and how to make a replacement of the matched values.
+/// The class contians a OprandPrototype which is used to test whether an LLVM IR value
+/// follows a specific pattern. The class also holds a function pointer to logic that
+/// allows replacement of the specified value.
 class ReplacementRule
 {
 public:
@@ -29,13 +34,24 @@ public:
 
   /// Rule configuration
   /// @{
+
+  /// Sets the pattern describing logic to be replaced.
   void setPattern(OperandPrototypePtr &&pattern);
+
+  /// Sets the replacer logic which given a successful match will perform
+  /// a replacement on the IR.
   void setReplacer(ReplaceFunction const &replacer);
   /// @}
 
   /// Operation
   /// @{
+  /// Tests whether a given value matches the rule pattern and store captures.
+  /// The function returns true if the match was successful in which case captures
+  /// are recorded.
   bool match(Value *value, Captures &captures) const;
+
+  /// Invokes the replacer given a matched value and its corresponding captures
+  //
   bool replace(Builder &builder, Value *value, Captures &captures,
                Replacements &replacements) const;
   /// @}
@@ -46,6 +62,18 @@ private:
 
 namespace patterns {
 using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
+
+/// @{
+template <typename... Args>
+inline OperandPrototypePtr Call(std::string const &name, Args... args);
+inline OperandPrototypePtr CallByNameOnly(std::string const &name);
+inline OperandPrototypePtr BitCast(OperandPrototypePtr arg);
+inline OperandPrototypePtr Branch(OperandPrototypePtr cond, OperandPrototypePtr arg1,
+                                  OperandPrototypePtr arg2);
+inline OperandPrototypePtr Load(OperandPrototypePtr arg);
+inline OperandPrototypePtr Store(OperandPrototypePtr target, OperandPrototypePtr value);
+/// @}
+
 template <typename... Args>
 inline OperandPrototypePtr Call(std::string const &name, Args... args)
 {

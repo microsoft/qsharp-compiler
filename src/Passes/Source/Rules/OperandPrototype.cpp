@@ -44,6 +44,16 @@ bool OperandPrototype::matchChildren(Value *value, Captures &captures) const
   return true;
 }
 
+void OperandPrototype::addChild(Child const &child)
+{
+  children_.push_back(child);
+}
+
+void OperandPrototype::enableCapture(std::string capture_name)
+{
+  capture_name_ = capture_name;
+}
+
 bool OperandPrototype::fail(Value * /*value*/, Captures & /*captures*/) const
 {
   return false;
