@@ -1,3 +1,6 @@
+#include <memory>
+#include <stdexcept>
+
 #include "TraceSimulator.hpp"
 
 using namespace Microsoft::Quantum;
@@ -52,3 +55,20 @@ Result TraceSimulator::UseOne()
 {
     return one;
 }
+
+
+///
+/// Runtime driver instantiation
+///
+
+namespace Microsoft
+{
+namespace Quantum
+{
+    std::unique_ptr<IRuntimeDriver> CreateTraceSimulator()
+    {
+        return std::make_unique<TraceSimulator>();
+    }
+
+} // namespace Quantum
+} // namespace Microsoft

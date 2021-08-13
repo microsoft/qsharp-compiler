@@ -1,5 +1,3 @@
-#include <cstdlib>
-
 #include "QirRuntimeApi_I.hpp"
 #include "QSharpSimApi_I.hpp"
 

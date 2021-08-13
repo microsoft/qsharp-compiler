@@ -99,7 +99,7 @@ virtual Result UseOne() = 0;
 `IQuantumGateSet`
 
 ```cpp
-// Elementary operatons
+// Elementary operations
 virtual void X(Qubit target) = 0;
 virtual void Y(Qubit target) = 0;
 virtual void Z(Qubit target) = 0;
@@ -109,7 +109,7 @@ virtual void T(Qubit target) = 0;
 virtual void R(PauliId axis, Qubit target, double theta) = 0;
 virtual void Exp(long numTargets, PauliId paulis[], Qubit targets[], double theta) = 0;
 
-// Multicontrolled operations
+// Multi-controlled operations
 virtual void ControlledX(long numControls, Qubit controls[], Qubit target) = 0;
 virtual void ControlledY(long numControls, Qubit controls[], Qubit target) = 0;
 virtual void ControlledZ(long numControls, Qubit controls[], Qubit target) = 0;
@@ -189,162 +189,6 @@ To cleanly separate out different functionalities, the following file structure 
 - `QubitManager.hpp` : Simple qubit manager implementations to be used by the simulators.
 - `RuntimeManagement.cpp` : Implementation of all simulator functionality related to the `IRuntimeDriver` interface.
 - `<Type>Simulation.cpp` : Implementation of all simulator functionality related to the `IQuantumGateSet` interface.
-
-### The Trace Simulator
-
-A trace simulator is a fast and simple way to hook up a backend to the QIR Runtime system.
-It's function is to print all quantum instructions it receives.
-While this can useful for debugging, it is also a simple way to connect QIR with a hardware backend by customizing the output format of the simulator to the input format of the hardware backend.
-
-The provided sample in the `TraceSimulator` directory demonstrates how to implement a trace simulator using the structure described in the preceding section.
-The main components in each file are explained below, leaving out repetitive or boiler-plate code which can be viewed in the files themselves.
-
----
-
-`TraceSimulator.hpp`:
-
-As a basic trace simulator can be implemented in a state-less fashion, the `TraceSimulator` class' only member is a qubit manager instance.
-For consistency with the `StateSimulator`, we also use the same private functions to handle single-qubit and multi-controlled single-qubit gates:
-
-```cpp
-class TraceSimulator : public IRuntimeDriver, public IQuantumGateSet
-{
-    // Associated qubit manager instance to handle qubit representation.
-    QubitManager *qbm;
-
-    // To be called by quantum gate set operations.
-    void ApplyGate(Gate gate, Qubit target);
-    void ApplyControlledGate(Gate gate, long numControls, Qubit controls[], Qubit target);
-```
-
-For the trace simulator, the `Gate` type is represented by a string:
-
-```cpp
-using Gate = std::string;
-```
-
----
-
-`QubitManager.hpp`:
-
-The sample qubit manager is kept simple, with the only required functionality besides allocation/deallocation being the ability convert a qubit to a printable string.
-Here we simply use the internal qubit ID representation:
-
-```cpp
-std::string GetQubitName(Qubit qubit)
-{
-    return std::to_string(GetQubitId(qubit));
-}
-```
-
-Where the qubit ID is a simple incrementing counter, and the `Qubit` object is just a pointer (as defined in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp)) with the qubit ID as its value:
-
-```cpp
-class QubitManager
-{
-    // Keep track of unique qubit ids via simple counter.
-    uint64_t nextQubitId = 0;
-
-    // Get the internal ID associated to a qubit object.
-    static uint64_t GetQubitId(Qubit qubit)
-    {
-        return reinterpret_cast<uint64_t>(qubit);
-    }
-
-  public:
-    Qubit AllocateQubit()
-    {
-        return reinterpret_cast<Qubit>(this->nextQubitId++);
-    }
-```
-
-Note that there is no qubit reuse happening here, as done in the manager provided by the Runtime.
-
----
-
-`RuntimeManagement.cpp`:
-
-Implementation of the `IRuntimeDriver` interface is straightforward.
-Qubit management is delegated to the respective `QubitManager` functions, while result management hands out either of the two `Result` types (also defined as pointers in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp)):
-
-```cpp
-static Result zero = reinterpret_cast<Result>(0);
-static Result one = reinterpret_cast<Result>(1);
-```
-
-In order to restrict the trace simulator to straight-line pieces of code, measurement result comparisons are disabled by throwing an error on `AreEqualResults` calls of the interface:
-
-```cpp
-bool TraceSimulator::AreEqualResults(Result r1, Result r2)
-{
-    // Don't implement measurement-based branching for the trace simulator.
-    throw std::logic_error("operation_not_supported");
-}
-```
-
-Such a straight-line code restriction is not a requirement for trace simulators, but it works well with the type of hardware currently available (when using the trace simulator in that context).
-For a much more complete trace simulator that is also used for resource estimation, see the [QIR Runtime trace simulator](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/Tracer).
-
----
-
-`TraceSimulation.cpp`:
-
-Most of the instruction set required by the `IQuantumGateSet` interface consists of single-qubit gates and multi-controlled single-qubit gates.
-Thus it makes sense to reuse two private functions to print out these gates:
-
-```cpp
-void TraceSimulator::ApplyGate(Gate gate, Qubit target)
-{
-    std::cout << "Applying gate \"" << gate << "\" on qubit "
-              << this->qbm->GetQubitName(target) << std::endl;
-}
-
-void TraceSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit controls[], Qubit target)
-{
-    std::cout << "Applying gate \"" << gate << "\" on target qubit "
-              << this->qbm->GetQubitName(target) << " and controlled on qubits ";
-    for (int i = 0; i < numControls; i++)
-        std::cout << this->qbm->GetQubitName(controls[i]) << " ";
-    std::cout << std::endl;
-}
-```
-
-The text that is printed can be adjusted to suit the specific needs of the application.
-The individual gates from the instruction set then call the above functions by providing the correct gate name:
-
-```cpp
-void TraceSimulator::X(Qubit q)
-{
-    ApplyGate("X", q);
-}
-
-void TraceSimulator::ControlledX(long numControls, Qubit controls[], Qubit target)
-{
-    ApplyControlledGate("X", numControls, controls, target);
-}
-```
-
-The multi-qubit gates `Exp` and `ControlledExp` can be handled similarly, just with additional printing support for multiple target qubits and different Pauli bases, and similarly for the `Measure` instruction.
-
-An example output might look as follows:
-
-```output
-Applying gate "H" on qubit 0
-Applying gate "X" on target qubit 1 and controlled on qubits 0
-Applying gate "R(1.570796)_Z" on qubit 0
-Applying gate "Exp(0.100000, X Y)" on qubits 0 1
-Measuring qubits:
-    0 in base Z
-    1 in base X
-```
-
----
-
-Compile the sample trace simulator to a dynamic library with:
-
-```shell
-clang++ -shared TraceSimulator/RuntimeManagement.cpp TraceSimulator/TraceSimulation.cpp -o TraceSimulator.dll -Iinclude -Llib -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core'
-```
 
 ### The State Simulator
 

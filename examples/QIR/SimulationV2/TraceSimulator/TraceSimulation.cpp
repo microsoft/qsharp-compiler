@@ -1,10 +1,9 @@
 #include <iostream>
+#include <string>
 
 #include "TraceSimulator.hpp"
 
 using namespace Microsoft::Quantum;
-
-using Gate = std::string;
 
 static std::string SelectPauli(PauliId axis)
 {
@@ -168,9 +167,9 @@ void TraceSimulator::ControlledExp(long numControls, Qubit controls[], long numT
 
 Result TraceSimulator::Measure(long numBases, PauliId bases[], long numTargets, Qubit targets[])
 {
-    std::cout << "Measuring qubits:";
+    std::cout << "Measuring qubits:" << std::endl;
     for (int i = 0; i < numTargets; i++)
         std::cout << "    " << this->qbm->GetQubitName(targets[i])
-                  << "in base " << SelectPauli(bases[i]) << std::endl;
+                  << " in base " << SelectPauli(bases[i]) << std::endl;
     return UseZero();
 }
