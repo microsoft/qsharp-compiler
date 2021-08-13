@@ -81,44 +81,5 @@ private:
   /// @}
 };
 
-class AnyPattern : public OperandPrototype
-{
-public:
-  AnyPattern();
-  ~AnyPattern() override;
-  bool  match(Value *instr, Captures &captures) const override;
-  Child copy() const override;
-};
-
-class CallPattern : public OperandPrototype
-{
-public:
-  using String = std::string;
-  CallPattern(String const &name);
-
-  ~CallPattern() override;
-
-  bool  match(Value *instr, Captures &captures) const override;
-  Child copy() const override;
-
-private:
-  String name_{};
-};
-
-template <typename T>
-class InstructionPattern : public OperandPrototype
-{
-public:
-  using OperandPrototype::OperandPrototype;
-  ~InstructionPattern() override;
-  bool  match(Value *instr, Captures &captures) const override;
-  Child copy() const override;
-};
-
-using StorePattern   = InstructionPattern<llvm::StoreInst>;
-using LoadPattern    = InstructionPattern<llvm::LoadInst>;
-using BitCastPattern = InstructionPattern<llvm::BitCastInst>;
-using BranchPattern  = InstructionPattern<llvm::BranchInst>;
-
 }  // namespace quantum
 }  // namespace microsoft
