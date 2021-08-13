@@ -32,10 +32,22 @@ type internal 'context Rewriter =
     default NamespaceItem: context:'context * item:NamespaceItem -> NamespaceItem
 
     /// <summary>
+    /// Rewrites an <see cref="Attribute"/> node.
+    /// </summary>
+    abstract Attribute: context:'context * attribute:Attribute -> Attribute
+    default Attribute: context:'context * attribute:Attribute -> Attribute
+
+    /// <summary>
     /// Rewrites a <see cref="CallableDeclaration"/> node.
     /// </summary>
     abstract CallableDeclaration: context:'context * callable:CallableDeclaration -> CallableDeclaration
     default CallableDeclaration: context:'context * callable:CallableDeclaration -> CallableDeclaration
+
+    /// <summary>
+    /// Rewrites a <see cref="TypeParameterBinding"/> node.
+    /// </summary>
+    abstract TypeParameterBinding: context:'context * binding:TypeParameterBinding -> TypeParameterBinding
+    default TypeParameterBinding: context:'context * binding:TypeParameterBinding -> TypeParameterBinding
 
     /// <summary>
     /// Rewrites a <see cref="Type"/> node.
@@ -80,6 +92,24 @@ type internal 'context Rewriter =
     default Characteristic: context:'context * characteristic:Characteristic -> Characteristic
 
     /// <summary>
+    /// Rewrites a <see cref="CallableBody"/> node.
+    /// </summary>
+    abstract CallableBody: context:'context * body:CallableBody -> CallableBody
+    default CallableBody: context:'context * body:CallableBody -> CallableBody
+
+    /// <summary>
+    /// Rewrites a <see cref="Specialization"/> node.
+    /// </summary>
+    abstract Specialization: context:'context * specialization:Specialization -> Specialization
+    default Specialization: context:'context * specialization:Specialization -> Specialization
+
+    /// <summary>
+    /// Rewrites a <see cref="SpecializationGenerator"/> node.
+    /// </summary>
+    abstract SpecializationGenerator: context:'context * generator:SpecializationGenerator -> SpecializationGenerator
+    default SpecializationGenerator: context:'context * generator:SpecializationGenerator -> SpecializationGenerator
+
+    /// <summary>
     /// Rewrites a <see cref="Statement"/> node.
     /// </summary>
     abstract Statement: context:'context * statement:Statement -> Statement
@@ -122,10 +152,64 @@ type internal 'context Rewriter =
     default SymbolDeclaration: context:'context * declaration:SymbolDeclaration -> SymbolDeclaration
 
     /// <summary>
+    /// Rewrites an <see cref="InterpStringContent"/> node.
+    /// </summary>
+    abstract InterpStringContent: context:'context * interpStringContent:InterpStringContent -> InterpStringContent
+    default InterpStringContent: context:'context * interpStringContent:InterpStringContent -> InterpStringContent
+
+    /// <summary>
+    /// Rewrites an <see cref="InterpStringExpression"/> node.
+    /// </summary>
+    abstract InterpStringExpression: context:'context * interpStringExpression:InterpStringExpression -> InterpStringExpression
+    default InterpStringExpression: context:'context * interpStringExpression:InterpStringExpression -> InterpStringExpression
+
+    /// <summary>
     /// Rewrites an <see cref="Expression"/> node.
     /// </summary>
     abstract Expression: context:'context * expression:Expression -> Expression
     default Expression: context:'context * expression:Expression -> Expression
+
+    /// <summary>
+    /// Rewrites an <see cref="Identifier"/> expression node.
+    /// </summary>
+    abstract Identifier: context:'context * identifier:Identifier -> Identifier
+    default Identifier: context:'context * identifier:Identifier -> Identifier
+
+    /// <summary>
+    /// Rewrites an <see cref="InterpString"/> expression node.
+    /// </summary>
+    abstract InterpString: context:'context * interpString:InterpString -> InterpString
+    default InterpString: context:'context * interpString:InterpString -> InterpString
+
+    /// <summary>
+    /// Rewrites a <see cref="NewArray"/> expression node.
+    /// </summary>
+    abstract NewArray: context:'context * newArray:NewArray -> NewArray
+    default NewArray: context:'context * newArray:NewArray -> NewArray
+
+    /// <summary>
+    /// Rewrites a <see cref="NamedItemAccess"/> expression node.
+    /// </summary>
+    abstract NamedItemAccess: context:'context * namedItemAccess:NamedItemAccess -> NamedItemAccess
+    default NamedItemAccess: context:'context * namedItemAccess:NamedItemAccess -> NamedItemAccess
+
+    /// <summary>
+    /// Rewrites an <see cref="ArrayAccess"/> expression node.
+    /// </summary>
+    abstract ArrayAccess: context:'context * arrayAccess:ArrayAccess -> ArrayAccess
+    default ArrayAccess: context:'context * arrayAccess:ArrayAccess -> ArrayAccess
+
+    /// <summary>
+    /// Rewrites a <see cref="Call"/> expression node.
+    /// </summary>
+    abstract Call: context:'context * call:Call -> Call
+    default Call: context:'context * call:Call -> Call
+
+    /// <summary>
+    /// Rewrites a <see cref="Conditional"/> expression node.
+    /// </summary>
+    abstract Conditional: context:'context * conditional:Conditional -> Conditional
+    default Conditional: context:'context * conditional:Conditional -> Conditional
 
     /// <summary>
     /// Rewrites an <see cref="Update"/> expression node.
@@ -152,16 +236,40 @@ type internal 'context Rewriter =
     default SequenceItem: context:'context * mapper:('context * 'a -> 'a) * item:'a SequenceItem -> 'a SequenceItem
 
     /// <summary>
-    /// Rewrites a <see cref="BinaryOperator{a}"/> node, given a rewriter for the operands.
+    /// Rewrites a <see cref="PrefixOperator{a}"/> node, given a rewriter for the operand.
     /// </summary>
-    abstract BinaryOperator: context:'context
+    abstract PrefixOperator: context:'context
                              * mapper:('context * 'a -> 'a)
-                             * operator:'a BinaryOperator
-                             -> 'a BinaryOperator
-    default BinaryOperator: context:'context
+                             * operator:'a PrefixOperator
+                             -> 'a PrefixOperator
+    default PrefixOperator: context:'context
                             * mapper:('context * 'a -> 'a)
-                            * operator:'a BinaryOperator
-                            -> 'a BinaryOperator
+                            * operator:'a PrefixOperator
+                            -> 'a PrefixOperator
+
+    /// <summary>
+    /// Rewrites a <see cref="PostfixOperator{a}"/> node, given a rewriter for the operand.
+    /// </summary>
+    abstract PostfixOperator: context:'context
+                             * mapper:('context * 'a -> 'a)
+                             * operator:'a PostfixOperator
+                             -> 'a PostfixOperator
+    default PostfixOperator: context:'context
+                            * mapper:('context * 'a -> 'a)
+                            * operator:'a PostfixOperator
+                            -> 'a PostfixOperator
+
+    /// <summary>
+    /// Rewrites an <see cref="InfixOperator{a}"/> node, given a rewriter for the operands.
+    /// </summary>
+    abstract InfixOperator: context:'context
+                             * mapper:('context * 'a -> 'a)
+                             * operator:'a InfixOperator
+                             -> 'a InfixOperator
+    default InfixOperator: context:'context
+                            * mapper:('context * 'a -> 'a)
+                            * operator:'a InfixOperator
+                            -> 'a InfixOperator
 
     /// <summary>
     /// Rewrites a <see cref="Terminal"/> node.

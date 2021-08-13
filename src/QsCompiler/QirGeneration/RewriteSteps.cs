@@ -12,11 +12,12 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation;
+using Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming;
 using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    internal class QirGeneration : IRewriteStep
+    public class QirGeneration : IRewriteStep
     {
         internal const int EmissionPriority = -10;
 
@@ -54,7 +55,7 @@ namespace Microsoft.Quantum.QsCompiler
         {
             try
             {
-                ValidateMonomorphization.Apply(compilation);
+                ValidateMonomorphization.Apply(compilation, allowTypeParametersForIntrinsics: true);
                 return true;
             }
             catch
@@ -74,24 +75,23 @@ namespace Microsoft.Quantum.QsCompiler
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
             transformed = compilation;
-            using (var generationContext = new GenerationContext(compilation.Namespaces))
+            using var generator = new Generator(transformed);
+            generator.Apply();
+
+            // write generated QIR to disk
+            var assemblyName = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.AssemblyName, out var asmName) ? asmName : null;
+            var targetFile = Path.GetFullPath(string.IsNullOrWhiteSpace(assemblyName) ? "main.txt" : $"{Path.GetFileName(assemblyName)}.txt");
+
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.BitcodeGeneration);
+            var bcOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
+            var bcFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(bcOutputFolder), ".bc", "");
+            generator.Emit(bcFile, emitBitcode: true);
+            PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
+
+            if (this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QirOutputPath, out path) && !string.IsNullOrWhiteSpace(path))
             {
-                var generator = new Generator(transformed, generationContext);
-                generator.Apply();
-
-                // write generated QIR to disk
-                var assemblyName = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.AssemblyName, out var asmName) ? asmName : null;
-                var targetFile = Path.GetFullPath(string.IsNullOrWhiteSpace(assemblyName) ? "main.txt" : $"{Path.GetFileName(assemblyName)}.txt");
-
-                PerformanceTracking.TaskStart(PerformanceTracking.Task.BitcodeGeneration);
-                var bcOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.OutputPath, out var path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
-                var bcFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(bcOutputFolder), ".bc", "");
-                generator.Emit(bcFile, emitBitcode: true);
-                PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
-
                 // create the human readable version as well
-                var sourceOutputFolder = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QirOutputPath, out path) && !string.IsNullOrWhiteSpace(path) ? path : "qir";
-                var llvmSourceFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(sourceOutputFolder), ".ll", "");
+                var llvmSourceFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(path), ".ll", "");
                 generator.Emit(llvmSourceFile, emitBitcode: false);
             }
 
@@ -104,7 +104,8 @@ namespace Microsoft.Quantum.QsCompiler
     }
 
     /// <summary>
-    /// Creates a separate callable for each intrinsic specialization.
+    /// First prunes unused intrinsics using <see cref="TrimSyntaxTree" /> and then
+    /// creates a separate callable for each intrinsic specialization.
     /// Adds a TargetInstruction attribute to each intrinsic callable that doesn't have one,
     /// unless the automatically determined target instruction name conflicts with another target instruction name.
     /// The automatically determined name of the target instruction is the lower case version of the unqualified callable name.
@@ -116,7 +117,7 @@ namespace Microsoft.Quantum.QsCompiler
     /// or a non-intrinsic callable contains intrinsic specializations,
     /// or the a callable doesn't have a body specialization.
     /// </exception>
-    internal class TargetInstructionInference : IRewriteStep
+    public class TargetInstructionInference : IRewriteStep
     {
         private readonly List<IRewriteStep.Diagnostic> diagnostics = new List<IRewriteStep.Diagnostic>();
 
@@ -158,7 +159,8 @@ namespace Microsoft.Quantum.QsCompiler
         /// <inheritdoc/>
         public bool Transformation(QsCompilation compilation, out QsCompilation transformed)
         {
-            transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(compilation);
+            transformed = TrimSyntaxTree.Apply(compilation, keepAllIntrinsics: false);
+            transformed = InferTargetInstructions.ReplaceSelfAdjointSpecializations(transformed);
             transformed = InferTargetInstructions.LiftIntrinsicSpecializations(transformed);
             var allAttributesAdded = InferTargetInstructions.TryAddMissingTargetInstructionAttributes(transformed, out transformed);
             if (!allAttributesAdded)

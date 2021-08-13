@@ -296,7 +296,8 @@ and private ExpressionKindEvaluator
 
         match ex.Expression with
         | CallLikeExpression ({ Expression = Identifier (GlobalCallable qualName, types) }, arg) when
-            (callables.[qualName]).Kind = TypeConstructor ->
+            (callables.[qualName]).Kind = TypeConstructor
+            ->
             // TODO - must be adapted if we want to support user-defined type constructors
             QsCompilerError.Verify(
                 (callables.[qualName]).Specializations.Length = 1,

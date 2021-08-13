@@ -12,4 +12,9 @@ namespace Microsoft.Quantum.Testing.QIR
         let complex = Complex(args);
         return TestType((PauliX, 1), 2.0);
     }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestUdtConstructor();
+    }
 }

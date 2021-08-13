@@ -25,7 +25,7 @@ module internal Trivia =
     ///   </item>
     /// </list>
     /// </summary>
-    val (|Whitespace|NewLine|Comment|): Trivia -> Choice<string, unit, string>
+    val (|Whitespace|NewLine|Comment|): Trivia -> Choice<string, string, string>
 
     /// <summary>
     /// A <see cref="Trivia"/> node containing <paramref name="count"/> number of space characters.
@@ -33,9 +33,12 @@ module internal Trivia =
     val spaces: count:int -> Trivia
 
     /// <summary>
-    /// The new line <see cref="Trivia"/> node.
+    /// The new line <see cref="Trivia"/> node containing the default new line character for the current platform..
     /// </summary>
     val newLine: Trivia
+
+    /// Determine whether a Trivia is a NewLine
+    val isNewLine: Trivia -> bool
 
     /// Replaces each occurrence of more than one whitespace character in a row with a single space.
     val collapseSpaces: (Trivia -> Trivia)
@@ -85,14 +88,34 @@ type internal 'a Tuple =
         CloseParen: Terminal
     }
 
-/// A binary operator.
-type internal 'a BinaryOperator =
+/// A prefix operator. The operator is in the front of the operand.
+type internal 'a PrefixOperator =
+    {
+        /// The operator.
+        PrefixOperator: Terminal
+
+        /// The operand.
+        Operand: 'a
+    }
+
+/// A prefix operator. The operator is after the operand.
+type internal 'a PostfixOperator =
+    {
+        /// The operand.
+        Operand: 'a
+
+        /// The operator.
+        PostfixOperator: Terminal
+    }
+
+/// An infix operator.
+type internal 'a InfixOperator =
     {
         /// The left-hand side.
         Left: 'a
 
         /// The operator.
-        Operator: Terminal
+        InfixOperator: Terminal
 
         /// The right-hand side.
         Right: 'a
