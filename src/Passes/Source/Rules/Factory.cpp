@@ -4,11 +4,12 @@
 #include "Rules/Factory.hpp"
 
 #include "Llvm/Llvm.hpp"
+#include "Rules/Notation/Notation.hpp"
 
 namespace microsoft {
 namespace quantum {
 using ReplacementRulePtr = RuleFactory::ReplacementRulePtr;
-using namespace microsoft::quantum::patterns;
+using namespace microsoft::quantum::notation;
 
 RuleFactory::RuleFactory(RuleSet &rule_set)
   : rule_set_{rule_set}

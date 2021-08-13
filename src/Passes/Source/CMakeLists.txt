@@ -33,12 +33,14 @@ target_link_libraries(AllocationManager
 
 # Creating the rules library
 file(GLOB RULES_SOURCE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Rules/*.cpp)
-file(GLOB RULES_OPRANDS_SOURCE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Rules/Oprands/*.cpp)
+file(GLOB RULES_OPRANDS_SOURCE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Rules/Operands/*.cpp)
+file(GLOB RULES_NOTATION_SOURCE RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${CMAKE_CURRENT_SOURCE_DIR}/Rules/Notation/*.cpp)
 
 add_library(Rules 
             SHARED 
             ${RULES_SOURCE}
-            ${RULES_OPRANDS_SOURCE} )
+            ${RULES_OPRANDS_SOURCE}
+            ${RULES_NOTATION_SOURCE} )
 
 target_include_directories(
   Rules

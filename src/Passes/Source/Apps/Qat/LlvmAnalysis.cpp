@@ -1,4 +1,3 @@
-#pragma once
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
@@ -12,9 +11,8 @@ namespace quantum {
 LlvmAnalyser::LlvmAnalyser(bool debug)
   : loop_analysis_manager{debug}
   , function_analysis_manager{debug}
-  , cGSCCAnalysisManager{debug}
+  , gscc_analysis_manager{debug}
   , module_analysis_manager{debug}
-  ,
 {
   pass_builder.registerModuleAnalyses(module_analysis_manager);
   pass_builder.registerCGSCCAnalyses(gscc_analysis_manager);
