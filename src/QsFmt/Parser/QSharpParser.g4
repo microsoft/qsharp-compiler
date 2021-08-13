@@ -207,8 +207,7 @@ expression
     | value=boolLiteral # BoolExpression
     | value=resultLiteral # ResultExpression
     | value=pauliLiteral # PauliExpression
-    | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?) closeParen=')' # TupleExpression
-    | openParen='(' closeParen=')' # UnitExpression
+    | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
     | new='new' itemType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
     | record=expression colon='::' name=Identifier # NamedItemAccessExpression

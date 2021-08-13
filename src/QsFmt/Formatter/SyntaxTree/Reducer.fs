@@ -307,7 +307,6 @@ type internal 'result Reducer() as reducer =
         | Identifier identifier -> reducer.Identifier identifier
         | InterpString interpString -> reducer.InterpString interpString
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
-        | Unit unit -> reducer.Unit unit
         | NewArray newArray -> reducer.NewArray newArray
         | NamedItemAccess namedItemAccess -> reducer.NamedItemAccess namedItemAccess
         | ArrayAccess arrayAccess -> reducer.ArrayAccess arrayAccess
@@ -413,15 +412,6 @@ type internal 'result Reducer() as reducer =
     default _.Tuple(mapper, tuple) =
         reducer.Terminal tuple.OpenParen :: (tuple.Items |> List.map (curry reducer.SequenceItem mapper))
         @ [ reducer.Terminal tuple.CloseParen ]
-        |> reduce
-
-    abstract Unit : unit: UnitExpression -> 'result
-
-    default _.Unit unit =
-        [
-            reducer.Terminal unit.OpenParen
-            reducer.Terminal unit.CloseParen
-        ]
         |> reduce
 
     abstract SequenceItem : mapper: ('a -> 'result) * item: 'a SequenceItem -> 'result

@@ -266,12 +266,6 @@ type internal 'context Rewriter =
     default Tuple: context:'context * mapper:('context * 'a -> 'a) * tuple:'a Tuple -> 'a Tuple
 
     /// <summary>
-    /// Rewrites a <see cref="UnitExpression"/> expression node.
-    /// </summary>
-    abstract Unit : context: 'context * unit: UnitExpression -> UnitExpression
-    default Unit : context: 'context * unit: UnitExpression -> UnitExpression
-
-    /// <summary>
     /// Rewrites a <see cref="SequenceItem{a}"/> node, given a rewriter for the sequence items.
     /// </summary>
     abstract SequenceItem: context:'context * mapper:('context * 'a -> 'a) * item:'a SequenceItem -> 'a SequenceItem

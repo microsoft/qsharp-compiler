@@ -304,7 +304,6 @@ type 'context Rewriter() =
         | Identifier identifier -> rewriter.Identifier(context, identifier) |> Identifier
         | InterpString interp -> rewriter.InterpString(context, interp) |> InterpString
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
-        | Unit unit -> rewriter.Unit(context, unit) |> Unit
         | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
         | NamedItemAccess namedItemAccess -> rewriter.NamedItemAccess(context, namedItemAccess) |> NamedItemAccess
         | ArrayAccess arrayAccess -> rewriter.ArrayAccess(context, arrayAccess) |> ArrayAccess
@@ -411,14 +410,6 @@ type 'context Rewriter() =
             OpenParen = rewriter.Terminal(context, tuple.OpenParen)
             Items = tuple.Items |> List.map (curry3 rewriter.SequenceItem context mapper)
             CloseParen = rewriter.Terminal(context, tuple.CloseParen)
-        }
-
-    abstract Unit : context: 'context * unit: UnitExpression -> UnitExpression
-
-    default rewriter.Unit(context, unit) =
-        {
-            OpenParen = rewriter.Terminal(context, unit.OpenParen)
-            CloseParen = rewriter.Terminal(context, unit.CloseParen)
         }
 
     abstract SequenceItem : context: 'context * mapper: ('context * 'a -> 'a) * item: 'a SequenceItem -> 'a SequenceItem

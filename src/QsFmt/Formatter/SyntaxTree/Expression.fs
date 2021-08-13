@@ -5,12 +5,6 @@ namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 type Identifier = { Name: Terminal; TypeArgs: Type Tuple Option }
 
-type UnitExpression =
-    {
-        OpenParen: Terminal
-        CloseParen: Terminal
-    }
-
 type InterpStringExpression =
     {
         OpenBrace: Terminal
@@ -79,7 +73,6 @@ and Expression =
     | Identifier of Identifier
     | InterpString of InterpString
     | Tuple of Expression Tuple
-    | Unit of UnitExpression
     | NewArray of NewArray
     | NamedItemAccess of NamedItemAccess
     | ArrayAccess of ArrayAccess
