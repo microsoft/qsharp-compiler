@@ -18,8 +18,8 @@ namespace quantum
         using String = std::string;
 
         using SettingsMap = std::unordered_map<String, String>;
-        Settings(SettingsMap default_settings)
-          : settings_{default_settings}
+        explicit Settings(SettingsMap default_settings)
+          : settings_{std::move(default_settings)}
         {
         }
 

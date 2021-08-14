@@ -18,14 +18,14 @@ namespace quantum
     namespace notation
     {
 
-        using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
+        using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
 
         Capture::Capture(std::string const& name)
           : name_{name}
         {
         }
 
-        OperandPrototypePtr Capture::operator=(OperandPrototypePtr const& other)
+        IOperandPrototypePtr Capture::operator=(IOperandPrototypePtr const& other) // NOLINT
         {
             auto ret = other->copy();
             ret->enableCapture(name_);

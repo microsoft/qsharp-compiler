@@ -16,13 +16,13 @@ namespace microsoft {
 namespace quantum {
 namespace notation {
 
-using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
+using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
 
 template <typename... Args>
-OperandPrototypePtr Call(std::string const &name, Args... args)
+IOperandPrototypePtr call(std::string const &name, Args... args)
 {
-  OperandPrototypePtr              ret = std::make_shared<CallPattern>(name);
-  std::vector<OperandPrototypePtr> arguments{args...};
+  IOperandPrototypePtr              ret = std::make_shared<CallPattern>(name);
+  std::vector<IOperandPrototypePtr> arguments{args...};
 
   // Adding arguments to matching
   for (auto &a : arguments)

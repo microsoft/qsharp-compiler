@@ -22,12 +22,12 @@ namespace quantum
         auto ret = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
         // buildPerModuleDefaultPipeline buildModuleOptimizationPipeline
         auto function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
-            optimisation_level, llvm::PassBuilder::ThinLTOPhase::PreLink, debug);
+            optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
 
         auto inliner_pass =
-            pass_builder.buildInlinerPipeline(optimisation_level, llvm::PassBuilder::ThinLTOPhase::PreLink, debug);
+            pass_builder.buildInlinerPipeline(optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
 
-        // TODO: Maybe this should be done at a module level
+        // TODO(tfr): Maybe this should be done at a module level
         function_pass_manager.addPass(ExpandStaticAllocationPass());
 
         RuleSet rule_set;
@@ -70,7 +70,8 @@ namespace quantum
 
         ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
 
-        // TODO: Not available in 11 ret.addPass(llvm::createModuleToCGSCCPassAdaptor(std::move(CGPM)));
+        // TODO(tfr): Not available in 11
+        // ret.addPass(llvm::createModuleToCGSCCPassAdaptor(std::move(CGPM)));
 
         ret.addPass(llvm::AlwaysInlinerPass());
         ret.addPass(std::move(inliner_pass));

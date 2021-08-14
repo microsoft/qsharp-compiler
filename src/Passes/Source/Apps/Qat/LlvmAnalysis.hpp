@@ -9,8 +9,9 @@ namespace microsoft
 namespace quantum
 {
 
-    struct LlvmAnalyser
+    class LlvmAnalyser
     {
+      public:
         /// Constructors
         /// @{
         explicit LlvmAnalyser(bool debug);
@@ -30,13 +31,22 @@ namespace quantum
         ~LlvmAnalyser() = default;
         /// @}
 
+        /// Acccess member functions
+        /// @{
+        llvm::PassBuilder&             passBuilder();
+        llvm::LoopAnalysisManager&     loopAnalysisManager();
+        llvm::FunctionAnalysisManager& functionAnalysisManager();
+        llvm::CGSCCAnalysisManager&    gsccAnalysisManager();
+        llvm::ModuleAnalysisManager&   moduleAnalysisManager();
+        /// @}
+      private:
         /// Objects used to run a set of passes
         /// @{
-        llvm::PassBuilder             pass_builder;
-        llvm::LoopAnalysisManager     loop_analysis_manager;
-        llvm::FunctionAnalysisManager function_analysis_manager;
-        llvm::CGSCCAnalysisManager    gscc_analysis_manager;
-        llvm::ModuleAnalysisManager   module_analysis_manager;
+        llvm::PassBuilder             pass_builder_;
+        llvm::LoopAnalysisManager     loop_analysis_manager_;
+        llvm::FunctionAnalysisManager function_analysis_manager_;
+        llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
+        llvm::ModuleAnalysisManager   module_analysis_manager_;
         /// @}
     };
 

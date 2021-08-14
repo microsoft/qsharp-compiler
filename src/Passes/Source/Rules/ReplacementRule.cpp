@@ -8,13 +8,13 @@ namespace microsoft
 namespace quantum
 {
 
-    ReplacementRule::ReplacementRule(OperandPrototypePtr&& pattern, ReplaceFunction&& replacer)
+    ReplacementRule::ReplacementRule(IOperandPrototypePtr&& pattern, ReplaceFunction&& replacer)
       : pattern_{std::move(pattern)}
       , replacer_{std::move(replacer)}
     {
     }
 
-    void ReplacementRule::setPattern(OperandPrototypePtr&& pattern)
+    void ReplacementRule::setPattern(IOperandPrototypePtr&& pattern)
     {
         pattern_ = std::move(pattern);
     }

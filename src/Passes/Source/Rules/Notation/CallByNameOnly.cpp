@@ -18,11 +18,11 @@ namespace quantum
     namespace notation
     {
 
-        using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
+        using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
 
-        OperandPrototypePtr CallByNameOnly(std::string const& name)
+        IOperandPrototypePtr callByNameOnly(std::string const& name)
         {
-            OperandPrototypePtr ret = std::make_shared<CallPattern>(name);
+            IOperandPrototypePtr ret = std::make_shared<CallPattern>(name);
             return ret;
         }
 

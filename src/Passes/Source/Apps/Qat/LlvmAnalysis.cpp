@@ -11,18 +11,39 @@ namespace quantum
 {
 
     LlvmAnalyser::LlvmAnalyser(bool debug)
-      : loop_analysis_manager{debug}
-      , function_analysis_manager{debug}
-      , gscc_analysis_manager{debug}
-      , module_analysis_manager{debug}
+      : loop_analysis_manager_{debug}
+      , function_analysis_manager_{debug}
+      , gscc_analysis_manager_{debug}
+      , module_analysis_manager_{debug}
     {
-        pass_builder.registerModuleAnalyses(module_analysis_manager);
-        pass_builder.registerCGSCCAnalyses(gscc_analysis_manager);
-        pass_builder.registerFunctionAnalyses(function_analysis_manager);
-        pass_builder.registerLoopAnalyses(loop_analysis_manager);
+        pass_builder_.registerModuleAnalyses(module_analysis_manager_);
+        pass_builder_.registerCGSCCAnalyses(gscc_analysis_manager_);
+        pass_builder_.registerFunctionAnalyses(function_analysis_manager_);
+        pass_builder_.registerLoopAnalyses(loop_analysis_manager_);
 
-        pass_builder.crossRegisterProxies(
-            loop_analysis_manager, function_analysis_manager, gscc_analysis_manager, module_analysis_manager);
+        pass_builder_.crossRegisterProxies(
+            loop_analysis_manager_, function_analysis_manager_, gscc_analysis_manager_, module_analysis_manager_);
+    }
+
+    llvm::PassBuilder& LlvmAnalyser::passBuilder()
+    {
+        return pass_builder_;
+    }
+    llvm::LoopAnalysisManager& LlvmAnalyser::loopAnalysisManager()
+    {
+        return loop_analysis_manager_;
+    }
+    llvm::FunctionAnalysisManager& LlvmAnalyser::functionAnalysisManager()
+    {
+        return function_analysis_manager_;
+    }
+    llvm::CGSCCAnalysisManager& LlvmAnalyser::gsccAnalysisManager()
+    {
+        return gscc_analysis_manager_;
+    }
+    llvm::ModuleAnalysisManager& LlvmAnalyser::moduleAnalysisManager()
+    {
+        return module_analysis_manager_;
     }
 
 } // namespace quantum

@@ -25,7 +25,7 @@ namespace quantum
 
         /// Constructors and destructors
         /// @{
-        TransformationRulePass(RuleSet&& rule_set);
+        explicit TransformationRulePass(RuleSet&& rule_set);
         TransformationRulePass(TransformationRulePass const&) = delete;
         TransformationRulePass(TransformationRulePass&&)      = default;
         ~TransformationRulePass()                             = default;

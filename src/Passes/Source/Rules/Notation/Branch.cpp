@@ -18,9 +18,12 @@ namespace quantum
     namespace notation
     {
 
-        using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
+        using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
 
-        OperandPrototypePtr Branch(OperandPrototypePtr cond, OperandPrototypePtr arg1, OperandPrototypePtr arg2)
+        IOperandPrototypePtr branch(
+            IOperandPrototypePtr const& cond,
+            IOperandPrototypePtr const& arg1,
+            IOperandPrototypePtr const& arg2)
         {
             auto branch_pattern = std::make_shared<BranchPattern>();
 
@@ -28,7 +31,7 @@ namespace quantum
             branch_pattern->addChild(arg1);
             branch_pattern->addChild(arg2);
 
-            return static_cast<OperandPrototypePtr>(branch_pattern);
+            return static_cast<IOperandPrototypePtr>(branch_pattern);
         }
 
     } // namespace notation

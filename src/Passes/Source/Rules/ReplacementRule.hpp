@@ -23,25 +23,25 @@ namespace quantum
     class ReplacementRule
     {
       public:
-        using Captures            = OperandPrototype::Captures;
-        using Instruction         = llvm::Instruction;
-        using Value               = llvm::Value;
-        using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
-        using Builder             = llvm::IRBuilder<>;
-        using Replacements        = std::vector<std::pair<Value*, Value*>>;
-        using ReplaceFunction     = std::function<bool(Builder&, Value*, Captures&, Replacements&)>;
+        using Captures             = IOperandPrototype::Captures;
+        using Instruction          = llvm::Instruction;
+        using Value                = llvm::Value;
+        using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
+        using Builder              = llvm::IRBuilder<>;
+        using Replacements         = std::vector<std::pair<Value*, Value*>>;
+        using ReplaceFunction      = std::function<bool(Builder&, Value*, Captures&, Replacements&)>;
 
         /// Constructorss and destructors
         /// @{
         ReplacementRule() = default;
-        ReplacementRule(OperandPrototypePtr&& pattern, ReplaceFunction&& replacer);
+        ReplacementRule(IOperandPrototypePtr&& pattern, ReplaceFunction&& replacer);
         /// @}
 
         /// Rule configuration
         /// @{
 
         /// Sets the pattern describing logic to be replaced.
-        void setPattern(OperandPrototypePtr&& pattern);
+        void setPattern(IOperandPrototypePtr&& pattern);
 
         /// Sets the replacer logic which given a successful match will perform
         /// a replacement on the IR.
@@ -60,8 +60,8 @@ namespace quantum
         bool replace(Builder& builder, Value* value, Captures& captures, Replacements& replacements) const;
         /// @}
       private:
-        OperandPrototypePtr pattern_{nullptr};
-        ReplaceFunction     replacer_{nullptr};
+        IOperandPrototypePtr pattern_{nullptr};
+        ReplaceFunction      replacer_{nullptr};
     };
 
 } // namespace quantum

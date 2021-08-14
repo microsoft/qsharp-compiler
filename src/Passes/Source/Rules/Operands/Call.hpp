@@ -14,11 +14,11 @@ namespace microsoft
 namespace quantum
 {
 
-    class CallPattern : public OperandPrototype
+    class CallPattern : public IOperandPrototype
     {
       public:
         using String = std::string;
-        CallPattern(String const& name);
+        explicit CallPattern(String const& name);
 
         ~CallPattern() override;
 

@@ -19,25 +19,29 @@ namespace quantum
     namespace notation
     {
 
-        using OperandPrototypePtr = std::shared_ptr<OperandPrototype>;
+        using IOperandPrototypePtr = std::shared_ptr<IOperandPrototype>;
 
         class Capture
         {
           public:
-            Capture(std::string const& name);
-            OperandPrototypePtr operator=(OperandPrototypePtr const& other);
+            explicit Capture(std::string const& name);
+            // Note that this operator is delibrately unconventional
+            IOperandPrototypePtr operator=(IOperandPrototypePtr const& other); // NOLINT
 
           private:
             std::string name_{};
         };
 
         /// @{
-        template <typename... Args> OperandPrototypePtr Call(std::string const& name, Args... args);
-        OperandPrototypePtr                             CallByNameOnly(std::string const& name);
-        OperandPrototypePtr                             BitCast(OperandPrototypePtr arg);
-        OperandPrototypePtr Branch(OperandPrototypePtr cond, OperandPrototypePtr arg1, OperandPrototypePtr arg2);
-        OperandPrototypePtr Load(OperandPrototypePtr arg);
-        OperandPrototypePtr Store(OperandPrototypePtr target, OperandPrototypePtr value);
+        template <typename... Args> IOperandPrototypePtr call(std::string const& name, Args... args);
+        IOperandPrototypePtr                             callByNameOnly(std::string const& name);
+        IOperandPrototypePtr                             bitCast(IOperandPrototypePtr const& arg);
+        IOperandPrototypePtr                             branch(
+                                        IOperandPrototypePtr const& cond,
+                                        IOperandPrototypePtr const& arg1,
+                                        IOperandPrototypePtr const& arg2);
+        IOperandPrototypePtr load(IOperandPrototypePtr const& arg);
+        IOperandPrototypePtr store(IOperandPrototypePtr const& target, IOperandPrototypePtr const& value);
         /// @}
 
         /// @{

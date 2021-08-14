@@ -32,7 +32,7 @@ namespace quantum
 
     void RuleFactory::removeFunctionCall(String const& name)
     {
-        ReplacementRule ret{CallByNameOnly(name), deleteInstruction()};
+        ReplacementRule ret{callByNameOnly(name), deleteInstruction()};
         addRule(std::move(ret));
     }
 
@@ -58,7 +58,7 @@ namespace quantum
                 return true;
             };
 
-        addRule({Call("__quantum__rt__qubit_allocate_array", "size"_cap = _), allocation_replacer});
+        addRule({call("__quantum__rt__qubit_allocate_array", "size"_cap = _), allocation_replacer});
 
         /// Array access replacement
         auto access_replacer =
@@ -106,16 +106,16 @@ namespace quantum
                 return true;
             };
 
-        auto get_element  = Call("__quantum__rt__array_get_element_ptr_1d", "arrayName"_cap = _, "index"_cap = _);
-        auto cast_pattern = BitCast("getElement"_cap = get_element);
-        auto load_pattern = Load("cast"_cap = cast_pattern);
+        auto get_element  = call("__quantum__rt__array_get_element_ptr_1d", "arrayName"_cap = _, "index"_cap = _);
+        auto cast_pattern = bitCast("getElement"_cap = get_element);
+        auto load_pattern = load("cast"_cap = cast_pattern);
 
         addRule({std::move(load_pattern), access_replacer});
 
         /// Release replacement
         auto deleter = deleteInstruction();
         addRule(
-            {Call("__quantum__rt__qubit_release_array", "name"_cap = _),
+            {call("__quantum__rt__qubit_release_array", "name"_cap = _),
              [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
                  qubit_alloc_manager->release(cap["name"]->getName().str());
                  return deleter(builder, val, cap, rep);
@@ -158,7 +158,7 @@ namespace quantum
 
                 return true;
             };
-        addRule({Call("__quantum__rt__qubit_allocate"), allocation_replacer});
+        addRule({call("__quantum__rt__qubit_allocate"), allocation_replacer});
 
         // Removing release calls
         removeFunctionCall("__quantum__rt__qubit_release");
@@ -203,9 +203,10 @@ namespace quantum
                 if (!function)
                 {
                     std::vector<llvm::Type*> types;
-                    for (auto& arg : arguments)
+                    types.resize(arguments.size());
+                    for (uint64_t i = 0; i < types.size(); ++i)
                     {
-                        types.push_back(arg->getType());
+                        types[i] = arguments[i]->getType();
                     }
 
                     auto return_type = llvm::Type::getVoidTy(val->getContext());
@@ -221,18 +222,17 @@ namespace quantum
                 builder.CreateCall(function, arguments);
 
                 // Replacing the instruction with new instruction
-                // TODO: (tfr): insert instruction before and then replace, with new call
+                // TODO(tfr): (tfr): insert instruction before and then replace, with new call
                 replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
 
                 return true;
             };
 
-        addRule({Call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
+        addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
     }
 
     void RuleFactory::optimiseBranchQuatumOne()
     {
-        auto get_one                 = Call("__quantum__rt__result_get_one");
         auto replace_branch_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
             auto result = cap["result"];
             auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
@@ -245,9 +245,10 @@ namespace quantum
             if (!function)
             {
                 std::vector<llvm::Type*> types;
-                for (auto& arg : arguments)
+                types.resize(arguments.size());
+                for (uint64_t i = 0; i < types.size(); ++i)
                 {
-                    types.push_back(arg->getType());
+                    types[i] = arguments[i]->getType();
                 }
 
                 auto return_type = llvm::Type::getInt1Ty(val->getContext());
@@ -282,12 +283,13 @@ namespace quantum
         */
 
         // Variations of get_one
+        auto get_one = call("__quantum__rt__result_get_one");
         addRule(
-            {Branch("cond"_cap = Call("__quantum__rt__result_equal", "result"_cap = _, "one"_cap = get_one), _, _),
+            {branch("cond"_cap = call("__quantum__rt__result_equal", "result"_cap = _, "one"_cap = get_one), _, _),
              replace_branch_positive});
 
         addRule(
-            {Branch("cond"_cap = Call("__quantum__rt__result_equal", "one"_cap = get_one, "result"_cap = _), _, _),
+            {branch("cond"_cap = call("__quantum__rt__result_equal", "one"_cap = get_one, "result"_cap = _), _, _),
              replace_branch_positive});
     }
 

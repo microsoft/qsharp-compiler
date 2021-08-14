@@ -24,7 +24,7 @@ namespace quantum
         using ReplacementRulePtr   = std::shared_ptr<ReplacementRule>;
         using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
         using Replacements         = ReplacementRule::Replacements;
-        using Captures             = OperandPrototype::Captures;
+        using Captures             = IOperandPrototype::Captures;
         using Instruction          = llvm::Instruction;
         using Value                = llvm::Value;
         using Builder              = ReplacementRule::Builder;

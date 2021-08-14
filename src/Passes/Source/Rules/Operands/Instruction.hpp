@@ -14,10 +14,10 @@ namespace microsoft
 namespace quantum
 {
 
-    template <typename T> class InstructionPattern : public OperandPrototype
+    template <typename T> class InstructionPattern : public IOperandPrototype
     {
       public:
-        using OperandPrototype::OperandPrototype;
+        using IOperandPrototype::IOperandPrototype;
         ~InstructionPattern() override;
         bool  match(Value* instr, Captures& captures) const override;
         Child copy() const override;

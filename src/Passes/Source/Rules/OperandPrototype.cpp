@@ -8,8 +8,8 @@ namespace microsoft
 namespace quantum
 {
 
-    OperandPrototype::~OperandPrototype() = default;
-    bool OperandPrototype::matchChildren(Value* value, Captures& captures) const
+    IOperandPrototype::~IOperandPrototype() = default;
+    bool IOperandPrototype::matchChildren(Value* value, Captures& captures) const
     {
         auto user = llvm::dyn_cast<llvm::User>(value);
         if (!children_.empty())
@@ -41,27 +41,27 @@ namespace quantum
         }
 
         //  llvm::errs() << "SUCCESS MATCH: " << *value << " " << user->getNumOperands() << "\n";
-        // TODO: Check other possibilities for value
+        // TODO(tfr): Check other possibilities for value
 
         return true;
     }
 
-    void OperandPrototype::addChild(Child const& child)
+    void IOperandPrototype::addChild(Child const& child)
     {
         children_.push_back(child);
     }
 
-    void OperandPrototype::enableCapture(std::string capture_name)
+    void IOperandPrototype::enableCapture(std::string capture_name)
     {
-        capture_name_ = capture_name;
+        capture_name_ = std::move(capture_name);
     }
 
-    bool OperandPrototype::fail(Value* /*value*/, Captures& /*captures*/) const
+    bool IOperandPrototype::fail(Value* /*value*/, Captures& /*captures*/) const
     {
         return false;
     }
 
-    bool OperandPrototype::success(Value* value, Captures& captures) const
+    bool IOperandPrototype::success(Value* value, Captures& captures) const
     {
         capture(value, captures);
 
@@ -73,7 +73,7 @@ namespace quantum
         return ret;
     }
 
-    void OperandPrototype::capture(Value* value, Captures& captures) const
+    void IOperandPrototype::capture(Value* value, Captures& captures) const
     {
         if (!capture_name_.empty())
         {
@@ -81,7 +81,7 @@ namespace quantum
         }
     }
 
-    void OperandPrototype::uncapture(Value* /*value*/, Captures& captures) const
+    void IOperandPrototype::uncapture(Value* /*value*/, Captures& captures) const
     {
         if (!capture_name_.empty())
         {

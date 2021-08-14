@@ -12,22 +12,22 @@ namespace microsoft
 namespace quantum
 {
 
-    /// OperandPrototype describes an IR pattern and allows matching against
+    /// IOperandPrototype describes an IR pattern and allows matching against
     /// LLVMs llvm::Value type.
-    class OperandPrototype
+    class IOperandPrototype
     {
       public:
         using Instruction = llvm::Instruction;
         using String      = std::string;
         using Value       = llvm::Value;
-        using Child       = std::shared_ptr<OperandPrototype>;
+        using Child       = std::shared_ptr<IOperandPrototype>;
         using Children    = std::vector<Child>;
         using Captures    = std::unordered_map<std::string, Value*>;
 
         /// Constructors and desctructors
         /// @{
-        OperandPrototype() = default;
-        virtual ~OperandPrototype();
+        IOperandPrototype() = default;
+        virtual ~IOperandPrototype();
         /// @}
 
         /// Interface functions
@@ -52,7 +52,7 @@ namespace quantum
       protected:
         /// Function to indicate match success or failure. Either of these
         /// must be called prior to return from an implementation of
-        /// OperandPrototype::match.
+        /// IOperandPrototype::match.
         /// @{
         bool fail(Value* value, Captures& captures) const;
         bool success(Value* value, Captures& captures) const;
@@ -69,7 +69,7 @@ namespace quantum
         /// @{
         /// Shallow copy of the operand to allow name change
         /// of the capture
-        void copyPropertiesFrom(OperandPrototype const& other)
+        void copyPropertiesFrom(IOperandPrototype const& other)
         {
             capture_name_ = other.capture_name_;
             children_     = other.children_;

@@ -14,7 +14,7 @@ namespace microsoft
 namespace quantum
 {
 
-    class AnyPattern : public OperandPrototype
+    class AnyPattern : public IOperandPrototype
     {
       public:
         AnyPattern();
