@@ -10,10 +10,10 @@ Instead of using a custom qubit manager, the sample demonstrates how to hook up 
 The QIR Runtime provides three interfaces to connect backends to the Runtime, which will be implemented by the simulator:
 
 - `IRuntimeDriver` : Provides basic runtime functions such as qubit and measurement result management.
-- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as *some* instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the [QIR Bridge](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#qir-bridge-and-runtime) and the [top-level guide](../README.md#understanding-the-qir-runtime-system)).
+- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as *some* instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the [QIR Bridge](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#qir-bridge-and-runtime) and the [top-level guide](../#understanding-the-qir-runtime-system)).
 - `IDiagnostics` : Optional interface to provide insight into the state of a simulator or hardware backend (useful for debugging).
 
-For a more detailed look at them, refer to the [top-level guide](../README.md#structure-of-a-simulator) of the simulation example.
+For a more detailed look at them, refer to the [top-level guide](../#structure-of-a-simulator) of the simulation example.
 
 The approach taken by the simulator closely mimics the formalism used to describe computations in the circuit model of quantum computing.
 The state an n-qubit computer is represented by a 2^n complex vector called state vector.
@@ -330,4 +330,4 @@ Where the parameter `-fuse-ld` is used to specify a linker and `llvm-lib` is an 
 
 ## Running the simulator
 
-Refer to the trace simulator sample for instructions on how to [run QIR with a custom simulator](../TraceSimulator/README.md#running-the-simulator).
+Refer to the trace simulator sample for instructions on how to [run QIR with a custom simulator](../TraceSimulator/#running-the-simulator).

@@ -44,7 +44,7 @@ Different parts of the QIR spec are then implemented in C++ in the [lib/QIR](htt
 For example, the `__quantum__rt__string_create` QIR function is translated to the C++ `quantum__rt__string_create` function which resides in [lib/QIR/strings.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/strings.cpp).
 For others such as `__quantum__rt__qubit_allocate`, the Runtime will eventually call the implementation provided by the driver.
 
-Other components that are used by QIR simulators for Q# are provided by `lib/QSharpCore` and `lib/QSharpFoundation`.
+Other components that are used by QIR simulators for Q# are provided by [lib/QSharpCore](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpCore) and [lib/QSharpFoundation](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpFoundation).
 In particular, the `QSharpCore` component provides the Q# instruction set.
 Similar to above, a bridge [lib/QSharpCore/qsharp-core-qis.ll](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/qsharp-core-qis.ll) first translates a function such as `__quantum__qis__h__body` to `quantum__qis__h__body` located in [lib/QSharpCore/intrinsics.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/intrinsics.cpp), which then calls upon the specific implementation provided by the gate set interface.
 

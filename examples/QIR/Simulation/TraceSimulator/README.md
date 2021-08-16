@@ -12,10 +12,10 @@ This sample provides a "from scratch" implementation of a trace simulator, inclu
 The QIR Runtime provides three interfaces to connect backends to the Runtime:
 
 - `IRuntimeDriver` : Provides basic runtime functions such as qubit and measurement result management.
-- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as *some* instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the [QIR Bridge](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#qir-bridge-and-runtime) and the [top-level guide](../README.md#understanding-the-qir-runtime-system)).
+- `IQuantumGateSet` : The Q# instruction set. Implementation of this interface is not strictly required, as long as *some* instruction set is implemented, and the QIR code only calls instructions from that set (may necessitate the use of a bridge, see the [QIR Bridge](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime#qir-bridge-and-runtime) and the [top-level guide](../#understanding-the-qir-runtime-system)).
 - `IDiagnostics` : Optional interface to provide insight into the state of a simulator or hardware backend (useful for debugging).
 
-For a more detailed look at these interfaces, refer to the [top-level guide](../README.md#structure-of-a-simulator) of the simulation example.
+For a more detailed look at these interfaces, refer to the [top-level guide](../#structure-of-a-simulator) of the simulation example.
 
 To cleanly separate out different functionalities, the following file structure is used for the sample trace simulator:
 
@@ -186,10 +186,10 @@ Where the parameter `-fuse-ld` is used to specify a linker and `llvm-lib` is an 
 
 ## Running the simulator
 
-The [optimization example](https://github.com/microsoft/qsharp-compiler/tree/main/examples/QIR/Optimization) contains detailed instructions on running a QIR program through the QIR Runtime.
+The [optimization example](../../Optimization) contains detailed instructions on running a QIR program through the QIR Runtime.
 The basic approach would be the same for a custom simulator, except that the dynamic library housing the Q# full state simulator should be replaced with the custom simulator library compiled as shown in the previous section.
 
-Create a new Q# application (e.g. with `dotnet new console -lang Q# -o Hello`) and follow the [Running QIR](https://github.com/microsoft/qsharp-compiler/tree/main/examples/QIR/Optimization#running-qir) section of the optimization example.
+Create a new Q# application (e.g. with `dotnet new console -lang Q# -o Hello`) and follow the [Running QIR](../../Optimization#running-qir) section of the optimization example.
 
 Create or adjust the driver program `Main.cpp` to use the custom trace simulator instead:
 
