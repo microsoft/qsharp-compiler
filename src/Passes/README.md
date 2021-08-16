@@ -7,13 +7,13 @@
 Once the project is built (see next sections), you can generate a new QIR as follows:
 
 ```sh
-./Source/Apps/qat --generate --profile baseProfile ../examples/QubitAllocationAnalysis/analysis-example.ll
+./Source/Apps/qat --generate --profile baseProfile ../examples/QirAllocationAnalysis/analysis-example.ll
 ```
 
 Likewise, you can validate that a QIR follows a specification by running:
 
 ```sh
-./Source/Apps/qat --validate --profile baseProfile ../examples/QubitAllocationAnalysis/analysis-example.ll
+./Source/Apps/qat --validate --profile baseProfile ../examples/QirAllocationAnalysis/analysis-example.ll
 ```
 
 ## Example
@@ -448,41 +448,3 @@ Target:
 ```
 ./qat -profile=base-profile.yml -S file.ir > adapted.ir
 ```
-
-## Loading IR
-
-https://stackoverflow.com/questions/22239801/how-to-load-llvm-bitcode-file-from-an-ifstream/22241953
-
-## Load LLVM passes
-
-https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl04.html
-
-## Load custom passes
-
-## How to run analysis and transformation
-
-https://stackoverflow.com/questions/53501830/running-standard-optimization-passes-on-a-llvm-module
-
-## Profile specification
-
-```yaml
-name: profile-name
-displayName: Profile Name
-pipeline:
-  - passName: loopUnroll
-  - passName: functionInline
-  - passName: staticQubitAllocation
-  - passName: staticMemory
-  - passName: ignoreCall
-    config:
-      functionName:
-specification:
-  - passName: requireNoArithmetic
-  - passName: requireNoStaticAllocation
-  - passName: requireReducedFunctionsAvailability
-    config:
-      functions:
-        -
-```
-
-Decent YAML library: https://github.com/jbeder/yaml-cpp

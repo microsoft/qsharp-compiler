@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/QubitAllocationAnalysis/QubitAllocationAnalysis.hpp"
+#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -11,18 +11,18 @@
 namespace
 {
 // Interface to plugin
-llvm::PassPluginLibraryInfo getQubitAllocationAnalysisPluginInfo()
+llvm::PassPluginLibraryInfo getQirAllocationAnalysisPluginInfo()
 {
     using namespace microsoft::quantum;
     using namespace llvm;
 
-    return {LLVM_PLUGIN_API_VERSION, "QubitAllocationAnalysis", LLVM_VERSION_STRING, [](PassBuilder& pb) {
+    return {LLVM_PLUGIN_API_VERSION, "QirAllocationAnalysis", LLVM_VERSION_STRING, [](PassBuilder& pb) {
                 // Registering a printer for the anaylsis
                 pb.registerPipelineParsingCallback(
                     [](StringRef name, FunctionPassManager& fpm, ArrayRef<PassBuilder::PipelineElement> /*unused*/) {
                         if (name == "print<qubit-allocation-analysis>")
                         {
-                            fpm.addPass(QubitAllocationAnalysisPrinter(llvm::errs()));
+                            fpm.addPass(QirAllocationAnalysisPrinter(llvm::errs()));
                             return true;
                         }
                         return false;
@@ -30,12 +30,12 @@ llvm::PassPluginLibraryInfo getQubitAllocationAnalysisPluginInfo()
 
                 pb.registerVectorizerStartEPCallback(
                     [](llvm::FunctionPassManager& fpm, llvm::PassBuilder::OptimizationLevel /*level*/) {
-                        fpm.addPass(QubitAllocationAnalysisPrinter(llvm::errs()));
+                        fpm.addPass(QirAllocationAnalysisPrinter(llvm::errs()));
                     });
 
                 // Registering the analysis module
                 pb.registerAnalysisRegistrationCallback([](FunctionAnalysisManager& fam) {
-                    fam.registerPass([] { return QubitAllocationAnalysisAnalytics(); });
+                    fam.registerPass([] { return QirAllocationAnalysisAnalytics(); });
                 });
             }};
 }
@@ -44,5 +44,5 @@ llvm::PassPluginLibraryInfo getQubitAllocationAnalysisPluginInfo()
 
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo()
 {
-    return getQubitAllocationAnalysisPluginInfo();
+    return getQirAllocationAnalysisPluginInfo();
 }

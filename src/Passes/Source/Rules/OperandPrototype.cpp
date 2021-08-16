@@ -35,7 +35,6 @@ namespace quantum
                 ++i;
             }
 
-
             return true;
         }
 

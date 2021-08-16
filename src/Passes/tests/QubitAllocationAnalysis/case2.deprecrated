@@ -1,4 +1,4 @@
-; RUN:  opt -load-pass-plugin %shlibdir/libQubitAllocationAnalysis%shlibext -passes="print<qubit-allocation-analysis>" %S/inputs/static-qubit-arrays-2.ll -disable-output 2>&1\
+; RUN:  opt -load-pass-plugin %shlibdir/libQirAllocationAnalysis%shlibext -passes="print<qubit-allocation-analysis>" %S/inputs/static-qubit-arrays-2.ll -disable-output 2>&1\
 ; RUN:   | FileCheck %s
 
 ;------------------------------------------------------------------------------

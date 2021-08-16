@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/QubitAllocationAnalysis/QubitAllocationAnalysis.hpp"
+#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -14,7 +14,7 @@ namespace microsoft
 namespace quantum
 {
 
-    QubitAllocationAnalysisAnalytics::Result QubitAllocationAnalysisAnalytics::run(
+    QirAllocationAnalysisAnalytics::Result QirAllocationAnalysisAnalytics::run(
         llvm::Function& function,
         llvm::FunctionAnalysisManager& /*unused*/)
     {
@@ -29,8 +29,8 @@ namespace quantum
                 }
                 auto target_function = call_instr->getCalledFunction();
                 auto name            = target_function->getName();
-                //      llvm::errs() << "Testing " << name << " : " << *call_instr << "\n";
 
+                // Checking for qubit allocation
                 if (name == "__quantum__rt__qubit_allocate")
                 {
                     return {true};
@@ -41,12 +41,8 @@ namespace quantum
                     return {true};
                 }
 
+                // Checking for result allocation
                 if (name == "__quantum__qis__m__body")
-                {
-                    return {true};
-                }
-
-                if (name == "__quantum__qis__z__body")
                 {
                     return {true};
                 }
@@ -56,16 +52,16 @@ namespace quantum
         return {false};
     }
 
-    QubitAllocationAnalysisPrinter::QubitAllocationAnalysisPrinter(llvm::raw_ostream& out_stream)
+    QirAllocationAnalysisPrinter::QirAllocationAnalysisPrinter(llvm::raw_ostream& out_stream)
       : out_stream_(out_stream)
     {
     }
 
-    llvm::PreservedAnalyses QubitAllocationAnalysisPrinter::run(
+    llvm::PreservedAnalyses QirAllocationAnalysisPrinter::run(
         llvm::Function&                function,
         llvm::FunctionAnalysisManager& fam)
     {
-        auto& result = fam.getResult<QubitAllocationAnalysisAnalytics>(function);
+        auto& result = fam.getResult<QirAllocationAnalysisAnalytics>(function);
 
         if (result.value)
         {
@@ -78,12 +74,12 @@ namespace quantum
         return llvm::PreservedAnalyses::all();
     }
 
-    bool QubitAllocationAnalysisPrinter::isRequired()
+    bool QirAllocationAnalysisPrinter::isRequired()
     {
         return true;
     }
 
-    llvm::AnalysisKey QubitAllocationAnalysisAnalytics::Key;
+    llvm::AnalysisKey QirAllocationAnalysisAnalytics::Key;
 
 } // namespace quantum
 } // namespace microsoft

@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/QubitAllocationAnalysis/QubitAllocationAnalysis.hpp"
+#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -16,7 +16,7 @@ namespace quantum
     class ExpandStaticAllocationPass : public llvm::PassInfoMixin<ExpandStaticAllocationPass>
     {
       public:
-        using QubitAllocationResult = QubitAllocationAnalysisAnalytics::Result;
+        using QubitAllocationResult = QirAllocationAnalysisAnalytics::Result;
         using ConstantArguments     = std::unordered_map<std::string, llvm::ConstantInt*>;
 
         /// Constructors and destructors

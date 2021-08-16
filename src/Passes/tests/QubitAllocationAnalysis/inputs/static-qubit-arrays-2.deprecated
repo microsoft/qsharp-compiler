@@ -1,5 +1,5 @@
-; ModuleID = 'qir/ConstSizeArray.ll'
-source_filename = "qir/ConstSizeArray.ll"
+; ModuleID = 'qir/TeleportChain.ll'
+source_filename = "qir/TeleportChain.ll"
 
 %Array = type opaque
 %String = type opaque

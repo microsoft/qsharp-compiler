@@ -84,6 +84,8 @@ namespace quantum
         return mappings_[index].start;
     }
 
+    void AllocationManager::release() {}
+
     void AllocationManager::release(String const& name)
     {
         auto it = name_to_index_.find(name);

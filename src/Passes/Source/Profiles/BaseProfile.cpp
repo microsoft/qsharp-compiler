@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Passes/ExpandStaticAllocation/ExpandStaticAllocation.hpp"
-#include "Passes/QubitAllocationAnalysis/QubitAllocationAnalysis.hpp"
+#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
 #include "Passes/TransformationRule/TransformationRule.hpp"
 #include "Profiles/BaseProfile.hpp"
 #include "Rules/Factory.hpp"
@@ -91,7 +91,7 @@ namespace quantum
 
     void BaseProfile::addFunctionAnalyses(FunctionAnalysisManager& fam)
     {
-        fam.registerPass([] { return QubitAllocationAnalysisAnalytics(); });
+        fam.registerPass([] { return QirAllocationAnalysisAnalytics(); });
     }
 
 } // namespace quantum

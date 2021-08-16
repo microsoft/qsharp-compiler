@@ -1,6 +1,6 @@
 analysis-example.ll:
-	dotnet build ConstSizeArray.csproj 
-	opt -S qir/ConstSizeArray.ll -O1  > ../analysis-example.ll  
+	dotnet build TeleportChain.csproj 
+	opt -S qir/TeleportChain.ll -O1  > ../analysis-example.ll  
 	make clean 
 
 comparison:

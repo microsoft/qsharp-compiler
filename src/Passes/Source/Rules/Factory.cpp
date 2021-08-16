@@ -32,8 +32,7 @@ namespace quantum
 
     void RuleFactory::removeFunctionCall(String const& name)
     {
-        ReplacementRule ret{callByNameOnly(name), deleteInstruction()};
-        addRule(std::move(ret));
+        addRule({callByNameOnly(name), deleteInstruction()});
     }
 
     void RuleFactory::useStaticQubitArrayAllocation()

@@ -35,7 +35,7 @@ namespace quantum
                 std::vector<uint32_t> remaining_arguments{};
 
                 auto  callee_function = call_instr->getCalledFunction();
-                auto& use_quantum     = fam.getResult<QubitAllocationAnalysisAnalytics>(*callee_function);
+                auto& use_quantum     = fam.getResult<QirAllocationAnalysisAnalytics>(*callee_function);
 
                 if (use_quantum.value)
                 {

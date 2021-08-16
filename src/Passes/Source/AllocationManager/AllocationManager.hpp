@@ -58,6 +58,9 @@ namespace quantum
         /// Gets the offset of a name segment or address.
         Index getOffset(String const& name) const;
 
+        /// Releases unnamed address.
+        void release();
+
         /// Releases the named segment or address.
         void release(String const& name);
 
