@@ -106,7 +106,7 @@ exit__1:                                          ; preds = %header__1
 }
 ```
 
-After applying the our [demo profile transformation](https://github.com/troelsfr/qsharp-compiler/tree/feature/profile-pass/src/Passes/examples/QirAllocationAnalysis), the QIR is reduced to:
+After applying the our demo profile transformation, the QIR is reduced to:
 
 ```
 define void @Feasibility__QubitMapping__Interop() local_unnamed_addr #0 {
