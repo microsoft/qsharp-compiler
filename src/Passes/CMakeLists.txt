@@ -1,15 +1,8 @@
 cmake_minimum_required(VERSION 3.4.3)
 
-project(Passes)
+project(QirPasses)
 
-if (WIN32)
-  message(STATUS "Adding C:\\Program Files\\LLVM\\lib to LLVM paths")
-  find_package(LLVM REQUIRED PATHS "C:\\Program Files\\LLVM\\lib" CONFIG )
-else()
-  find_package(LLVM REQUIRED CONFIG)
-endif()
-
-
+find_package(LLVM REQUIRED CONFIG)
 include(CheckCXXCompilerFlag)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
@@ -32,6 +25,16 @@ if(NOT LLVM_ENABLE_RTTI)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
 endif()
 
+# -fvisibility-inlines-hidden is set when building LLVM and on Darwin warnings
+# are triggered if llvm-tutor is built without this flag (though otherwise it
+# builds fine). For consistency, add it here too.
+check_cxx_compiler_flag("-fvisibility-inlines-hidden" SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
+if(${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG})
+  if (${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG} STREQUAL "1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
+  endif()
+endif()
+
 # We export the compile commands which are needed by clang-tidy 
 # to run the static analysis
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
@@ -41,8 +44,11 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
-include_directories(${CMAKE_SOURCE_DIR}/src)
+include_directories(${CMAKE_SOURCE_DIR}/Source)
+llvm_map_components_to_libnames(llvm_libs support core irreader passes orcjit x86asmparser x86codegen x86desc x86disassembler x86info interpreter objcarcopts)
+
 
 # Adding the libraries
-add_subdirectory(libs)
+add_subdirectory(Source)
 add_subdirectory(tests)
+

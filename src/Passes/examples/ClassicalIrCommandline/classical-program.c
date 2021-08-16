@@ -3,7 +3,7 @@ int foo(int x)
   return x;
 }
 
-void bar(int x, int y)
+inline void bar(int x, int y)
 {
   foo(x + y);
 }

@@ -1,4 +1,4 @@
-# QubitAllocationAnalysis
+# QirAllocationAnalysis
 
 ## Quick start
 
@@ -14,7 +14,7 @@ Running following command
 make run
 ```
 
-will first build the pass, then build the QIR using Q# following by removing the noise using `opt` with optimisation level 1. Finally, it will execute the analysis pass and should provide you with information about qubit allocation in the Q# program defined in `ConstSizeArray/ConstSizeArray.qs`.
+will first build the pass, then build the QIR using Q# following by removing the noise using `opt` with optimisation level 1. Finally, it will execute the analysis pass and should provide you with information about qubit allocation in the Q# program defined in `TeleportChain/TeleportChain.qs`.
 
 ## Detailed run
 
@@ -26,13 +26,13 @@ cd Debug
 cmake ..
 ```
 
-and then compile the `QubitAllocationAnalysis`:
+and then compile the `QirAllocationAnalysis`:
 
 ```sh
-make QubitAllocationAnalysis
+make QirAllocationAnalysis
 ```
 
-Next return `examples/QubitAllocationAnalysis` and enter the directory `ConstSizeArray` to build the QIR:
+Next return `examples/QirAllocationAnalysis` and enter the directory `TeleportChain` to build the QIR:
 
 ```sh
 make analysis-example.ll
@@ -41,20 +41,20 @@ make analysis-example.ll
 or execute the commands manually,
 
 ```sh
-dotnet build ConstSizeArray.csproj
-opt -S qir/ConstSizeArray.ll -O1  > ../analysis-example.ll
+dotnet build TeleportChain.csproj
+opt -S qir/TeleportChain.ll -O1  > ../analysis-example.ll
 make clean
 ```
 
-Returning to `examples/QubitAllocationAnalysis`, the pass can now be ran by executing:
+Returning to `examples/QirAllocationAnalysis`, the pass can now be ran by executing:
 
 ```sh
-opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
+opt -load-pass-plugin ../../Debug/libs/libQirAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 ```
 
 ## Example cases
 
-Below we will consider a few different examples. You can run them by updating the code in `ConstSizeArray/ConstSizeArray.qs` and executing `make run` from the `examples/QubitAllocationAnalysis` folder subsequently. You will need to delete `analysis-example.ll` between runs.
+Below we will consider a few different examples. You can run them by updating the code in `TeleportChain/TeleportChain.qs` and executing `make run` from the `examples/QirAllocationAnalysis` folder subsequently. You will need to delete `analysis-example.ll` between runs.
 
 ### Trivially constant
 
@@ -72,8 +72,8 @@ namespace Example {
 The corresponding QIR is:
 
 ```
-; ModuleID = 'qir/ConstSizeArray.ll'
-source_filename = "qir/ConstSizeArray.ll"
+; ModuleID = 'qir/TeleportChain.ll'
+source_filename = "qir/TeleportChain.ll"
 
 %Array = type opaque
 
@@ -92,7 +92,7 @@ entry:
 Running the pass procudes following output:
 
 ```
-opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
+opt -load-pass-plugin ../../Debug/libs/libQirAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
 Example__QuantumProgram__body
 ====================
@@ -124,8 +124,8 @@ namespace Example {
 The corresponding QIR is
 
 ```
-; ModuleID = 'qir/ConstSizeArray.ll'
-source_filename = "qir/ConstSizeArray.ll"
+; ModuleID = 'qir/TeleportChain.ll'
+source_filename = "qir/TeleportChain.ll"
 
 %Array = type opaque
 %String = type opaque
@@ -152,7 +152,7 @@ entry:
 The analyser returns following output:
 
 ```
-opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
+opt -load-pass-plugin ../../Debug/libs/libQirAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
 Example__QuantumProgram__body
 ====================
@@ -196,7 +196,7 @@ namespace Example {
 We will omit the QIR in the documenation as it is a long. The output of the anaysis is:
 
 ```
-opt -load-pass-plugin ../../Debug/libs/libQubitAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
+opt -load-pass-plugin ../../Debug/libs/libQirAllocationAnalysis.dylib --passes="print<qubit-allocation-analysis>" -disable-output analysis-example.ll
 
 Example__QuantumProgram__body
 ====================
