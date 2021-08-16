@@ -440,11 +440,3 @@ If you forget to instantiate this variable in your corresponding `.cpp` file,
 ```
 
 everything will compile, but the pass will fail to load. There will be no linking errors either.
-
-# Notes on QIR Profile Tool (QIR Adaptor Tool)
-
-Target:
-
-```
-./qat -profile=base-profile.yml -S file.ir > adapted.ir
-```

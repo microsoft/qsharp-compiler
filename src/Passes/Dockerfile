@@ -17,7 +17,7 @@ RUN   apt install -y clang-11 cmake clang-format-11 clang-tidy-11 && \
       export CXX=clang++ 
 
 # Python
-RUN apt install -y python3 && \
+RUN apt install -y python3 python3-pip && \
     update-alternatives --install /usr/bin/python python /usr/bin/python3 0
 
 ADD . /src/
