@@ -453,7 +453,7 @@ Target:
 
 https://stackoverflow.com/questions/22239801/how-to-load-llvm-bitcode-file-from-an-ifstream/22241953
 
-## Load passes LLVM passes
+## Load LLVM passes
 
 https://llvm.org/docs/tutorial/MyFirstLanguageFrontend/LangImpl04.html
 
