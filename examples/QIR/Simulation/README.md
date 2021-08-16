@@ -1,9 +1,16 @@
 # Building a Simulator for QIR
 
+This example discusses the structure of the QIR Runtime system and how to attach a simulator to it using two sample simulators implemented "from scratch":
+
+- a state-less [trace simulator](TraceSimulator/README.md): prints each quantum instructions it receives, useful for debugging or simple hardware backend hookup
+- a full state [quantum simulator](StateSimulator/README.md): simulates ideal quantum computer, inefficient but simple implementation that maps directly to mathematical description
+
+The file `SimulatorTemplate.cpp` in this directory is also good starting for a custom simulator implementation, as it provides a template that just needs to be filled in with the bodies of the required methods.
+
 ## Understanding the QIR Runtime system
 
 The [QIR Runtime](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime) implements the [QIR language specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR) in LLVM.
-A quantum program written in QIR (or translated from Q# e.g.) will expect specific runtime functions to be available, which can include data type management or console output, but also qubit allocation, callable creation, and functor application:
+A quantum program written in QIR (or translated from Q# e.g.) will expect specific runtime functions to be available, which can include data type management or console output, but also qubit allocation, callable creation, and functor application, such as these QIR/LLVM functions below:
 
 ```llvm
 %String* __quantum__rt__string_create(i8*)
@@ -13,16 +20,15 @@ void __quantum__rt__callable_invoke(%Callable*, %Tuple*, %Tuple*)
 void __quantum__rt__callable_make_adjoint(%Callable*)
 ```
 
-Some can be implemented directly by the Runtime, such as `__quantum__rt__message` or `__quantum__rt__string_create`, while others will require a call to the backend system, such as `__quantum__rt__qubit_allocate`.
+Some are directly implemented by the Runtime, such as `__quantum__rt__message` or `__quantum__rt__string_create`, while others will require a call to the backend system, such as `__quantum__rt__qubit_allocate`.
 The backend system could be a software simulator or hardware runtime environment.
-The focus in this guide will be on how the QIR runtime interfaces with a simulator.
+The focus in this guide will be on how the QIR Runtime interfaces with a simulator.
 
-Note that a quantum instruction set is not part of QIR spec, nevertheless the QIR Runtime implements the instruction set expected by Q#, such as:
+Note that a quantum instruction set is not part of QIR spec, nevertheless the QIR Runtime implements the instruction set expected by Q#, which defines functions such as:
 
 ```llvm
 void @__quantum__qis__h__body(%Qubit*)
-void @__quantum__qis__h__ctl(%Array*, %Qubit*)
-void @__quantum__qis__z__body(%Qubit*)
+void @__quantum__qis__t__adj(%Qubit*)
 void @__quantum__qis__z__ctl(%Array*, %Qubit*)
 %Result* @__quantum__qis__measure__body(%Array*, %Array*)
 ```
@@ -30,12 +36,12 @@ void @__quantum__qis__z__ctl(%Array*, %Qubit*)
 In order to communicate with the QIR Runtime, hardware backends or simulators can implement the following interfaces defined by the Runtime:
 
 - the driver `IRuntimeDriver` : this is critical for the Runtime to operate, implementing qubit allocation and other backend-specific functionality
-- the gate set `IQuantumGateSet`: only used by those backends that want to provide the Q# instruction set
+- the gate set `IQuantumGateSet` : only used by those backends that want to provide the Q# instruction set
 - the diagnostics `IDiagnostics` : optional but helpful component to provide debug information of the backend state
 
-The first component of the Runtime is the QIR Bridge located at [lib/QIR/bridge-rt.ll](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/bridge-rt.ll) which translates between QIR and the Runtime implementation.
+The first component of the Runtime stack is the QIR Bridge located at [lib/QIR/bridge-rt.ll](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/bridge-rt.ll) which translates between QIR and the Runtime implementation.
 Different parts of the QIR spec are then implemented in C++ in the [lib/QIR](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QIR) folder.
-For example, the `__quantum__rt__string_create` QIR function is translated to the C++ `quantum__rt__string_create` function which resides in [lib/QIR/strings.cpp].
+For example, the `__quantum__rt__string_create` QIR function is translated to the C++ `quantum__rt__string_create` function which resides in [lib/QIR/strings.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/strings.cpp).
 For others such as `__quantum__rt__qubit_allocate`, the Runtime will eventually call the implementation provided by the driver.
 
 Other components that are used by QIR simulators for Q# are provided by `lib/QSharpCore` and `lib/QSharpFoundation`.
@@ -177,10 +183,3 @@ The requirements on a simulator are then:
 - (optional) Provide diagnostics information, e.g.:
   - look at internal state representation
   - compute measurement distributions
-
-This example provides two "from scratch" sample implementations of a simulator:
-
-- a state-less [trace simulator](TraceSimulator/README.md): prints each quantum instructions it receives, useful for debugging or simple hardware backend hookup
-- a full state [quantum simulator](StateSimulator/README.md): simulates ideal quantum computer, inefficient but simple implementation that maps directly to mathematical description
-
-The file `SimulatorTemplate.cpp` is a template (in the common sense of the word) that can be filled out with the bodies of each interface method, already providing all the required class structure.
