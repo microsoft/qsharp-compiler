@@ -17,7 +17,7 @@ namespace quantum
 {
 
     /// Rule that describes a pattern and how to make a replacement of the matched values.
-    /// The class contians a OprandPrototype which is used to test whether an LLVM IR value
+    /// The class contains a OperandPrototype which is used to test whether an LLVM IR value
     /// follows a specific pattern. The class also holds a function pointer to logic that
     /// allows replacement of the specified value.
     class ReplacementRule
