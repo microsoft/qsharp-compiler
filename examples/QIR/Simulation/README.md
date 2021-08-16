@@ -2,10 +2,10 @@
 
 This example discusses the structure of the QIR Runtime system and how to attach a simulator to it using two sample simulators implemented "from scratch":
 
-- a state-less [trace simulator](TraceSimulator/README.md): prints each quantum instructions it receives, useful for debugging or simple hardware backend hookup
-- a full state [quantum simulator](StateSimulator/README.md): simulates ideal quantum computer, inefficient but simple implementation that maps directly to mathematical description
+- a state-less [trace simulator](TraceSimulator): prints each quantum instructions it receives, useful for debugging or simple hardware backend hookup
+- a full state [quantum simulator](StateSimulator): simulates ideal quantum computer, inefficient but simple implementation that maps directly to mathematical description
 
-The file `SimulatorTemplate.cpp` in this directory is also good starting for a custom simulator implementation, as it provides a template that just needs to be filled in with the bodies of the required methods.
+The file `SimulatorTemplate.cpp` in this directory is also good starting point for a custom simulator implementation, as it provides a template that just needs to be filled in with the bodies of required methods.
 
 ## Understanding the QIR Runtime system
 
@@ -183,3 +183,11 @@ The requirements on a simulator are then:
 - (optional) Provide diagnostics information, e.g.:
   - look at internal state representation
   - compute measurement distributions
+
+## TraceSimulator
+
+See [TraceSimulator](TraceSimulator).
+
+## StateSimulator
+
+See [StateSimulator](StateSimulator).
