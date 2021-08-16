@@ -535,6 +535,14 @@ let public ClassicalControlSignatures =
          |])
         // One-sided NOT condition
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // NOT Condition Remembers Known Symbols
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+         |])
     |]
     |> _MakeSignatures
 
