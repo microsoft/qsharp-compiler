@@ -129,7 +129,7 @@ virtual void ControlledAdjointT(long numControls, Qubit controls[], Qubit target
 virtual Result Measure(long numBases, PauliId bases[], long numTargets, Qubit targets[]) = 0;
 ```
 
---- 
+---
 
 `IDiagnostics`
 
@@ -168,7 +168,7 @@ The requirements on a simulator are then:
   - Boolean for classical circuits
   - 2^n complex vector
 
-- (optional) Update internal state for each instruction 
+- (optional) Update internal state for each instruction
 
 - Return simulation results, e.g.:
   - simulated measurement results
@@ -180,16 +180,14 @@ The requirements on a simulator are then:
 
 This example provides two "from scratch" sample implementations of a simulator:
 
-- a state-less [trace simulator](#the-trace-simulator): prints each quantum instructions it receives, useful for debugging or simple hardware backend hookup
-- a full state [quantum simulator](#the-state-simulator): simulates ideal quantum computer, inefficient but simple implementation that maps directly to mathematical theory
+- a state-less [trace simulator](TraceSimulator/README.md): prints each quantum instructions it receives, useful for debugging or simple hardware backend hookup
+- a full state [quantum simulator](StateSimulator/README.md): simulates ideal quantum computer, inefficient but simple implementation that maps directly to mathematical description
 
-To cleanly separate out different functionalities, the following file structure is used for the sample simulators:
+To cleanly separate out different functionalities, the sample simulators use the following file structure:
 
 - `<Type>Simulator.hpp` : Declares the simulator class, including required internal data and functions, as well as interface functions.
 - `QubitManager.hpp` : Simple qubit manager implementations to be used by the simulators.
 - `RuntimeManagement.cpp` : Implementation of all simulator functionality related to the `IRuntimeDriver` interface.
 - `<Type>Simulation.cpp` : Implementation of all simulator functionality related to the `IQuantumGateSet` interface.
 
-### The State Simulator
-
-This example also contains a sample full state simulator that works with the QIR Runtime.
+The file `SimulatorTemplate.cpp` is a template (in the common sense of the word) that can be filled out with the bodies of each interface method, already providing all the required class structure.

@@ -99,7 +99,9 @@ The qubit manager provided by the Runtime for example provides configurable qubi
 `RuntimeManagement.cpp`
 
 Implementation of the `IRuntimeDriver` interface is straightforward.
-Qubit management is delegated to the respective `QubitManager` functions, while result management hands out either of the two `Result` types (also defined as pointers in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp)):
+Qubit management is delegated to the respective `QubitManager` functions, while result management compares or hands out either of two `Result` values.
+The `Result` type is defined as a pointer to an undefined type in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp), allowing for backends to define custom result types.
+Here, we use the raw pointer type with different numeric values for each result:
 
 ```cpp
 static Result zero = reinterpret_cast<Result>(0);
@@ -179,6 +181,8 @@ The sample trace simulator can be compiled to a static library with the followin
 ```shell
 clang++ -fuse-ld=llvm-lib RuntimeManagement.cpp TraceSimulation.cpp -Iinclude -o TraceSimulator.lib
 ```
+
+Where the parameter `-fuse-ld` is used to specify a linker and `llvm-lib` is an LLVM replacement for MSVC's static library tool [LIB](https://docs.microsoft.com/cpp/build/reference/lib-reference).
 
 ## Running the simulator
 

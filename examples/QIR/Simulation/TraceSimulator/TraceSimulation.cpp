@@ -41,7 +41,7 @@ void TraceSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
 
 
 ///
-/// Supported quantum operations 
+/// Supported quantum operations
 ///
 
 void TraceSimulator::X(Qubit q)

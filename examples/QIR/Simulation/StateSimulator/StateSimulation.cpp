@@ -1,4 +1,5 @@
 #include <complex>
+#include <utility>
 
 #include "StateSimulator.hpp"
 
@@ -55,21 +56,21 @@ static Pauli SelectPauliOp(PauliId axis)
 ///
 
 void StateSimulator::UpdateState(short qubitIndex, bool remove)
-{   
+{
     // When adding a qubit, the state vector can be updated with: |Ψ'> = |Ψ> ⊗ |0>.
-    // When removing a qubit, it is traced out from the state vector: ρ = tr_i[|Ψ><Ψ|].
+    // When removing a qubit, it is traced out from the state vector: ρ' = tr_i[|Ψ><Ψ|].
     if (!remove) {
         this->stateVec = kroneckerProduct(this->stateVec, Vector2cd(1,0)).eval();
     } else {
         Operator densityMatrix = this->stateVec * this->stateVec.adjoint();
         densityMatrix = PartialTrace(densityMatrix, qubitIndex, this->numActiveQubits);
-        
+
         // Ensure state is pure tr(ρ^2)=1, meaning the removed qubit was in a product state.
         assert(abs((densityMatrix*densityMatrix).trace()-1.0) < TOLERANCE);
-        
+
         SelfAdjointEigenSolver<Operator> eigensolver(densityMatrix);
         assert(eigensolver.info() == Success && "Failed to decompose density matrix.");
-        
+
         Index maxEigenIdx;
         ArrayXd eigenvals = eigensolver.eigenvalues().array();
         eigenvals.abs().maxCoeff(&maxEigenIdx);
@@ -81,13 +82,13 @@ void StateSimulator::UpdateState(short qubitIndex, bool remove)
 
 void StateSimulator::ApplyGate(Gate gate, Qubit target)
 {
-    // Construct unitary as Id_A ⊗ G ⊗ Id_B, split by the qubit index.
-    short qubitIndex = this->qbm->GetQubitIdx(target);
+    // Construct unitary as Id_A ⊗ G ⊗ Id_C, split by the qubit index.
+    short qubitIndex = GetQubitIdx(target);
     long dimA = pow(2, qubitIndex);
-    long dimB = pow(2, this->numActiveQubits-qubitIndex-1);
+    long dimC = pow(2, this->numActiveQubits-qubitIndex-1);
     Operator unitary = Operator::Identity(dimA, dimA);
     unitary = kroneckerProduct(unitary, gate).eval();
-    unitary = kroneckerProduct(unitary, Operator::Identity(dimB, dimB)).eval(); 
+    unitary = kroneckerProduct(unitary, Operator::Identity(dimC, dimC)).eval();
 
     // Apply gate with |Ψ'> = U|Ψ>.
     this->stateVec = unitary*this->stateVec;
@@ -100,10 +101,10 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
     //     cU = (1 ⊗ |0><0|) + (U ⊗ |1><1|)    if control on B
     // Thus, the full unitary will be built starting from target in both directions
     // to handle controls coming both before and after the target.
-    short targetIndex = this->qbm->GetQubitIdx(target);
+    short targetIndex = GetQubitIdx(target);
     std::vector<short> preTargetIndices, postTargetIndices;
     for (int i = 0; i < numControls; i++) {
-        short idx = this->qbm->GetQubitIdx(controls[i]);
+        short idx = GetQubitIdx(controls[i]);
         if (idx < targetIndex)
             preTargetIndices.push_back(idx);
         else
@@ -147,7 +148,7 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
 
 
 ///
-/// Supported quantum operations 
+/// Supported quantum operations
 ///
 
 void StateSimulator::X(Qubit q)
@@ -284,6 +285,7 @@ void StateSimulator::Exp(long numTargets, PauliId paulis[], Qubit targets[], dou
 
 void StateSimulator::ControlledExp(long numControls, Qubit controls[], long numTargets, PauliId paulis[], Qubit targets[], double theta)
 {
+    throw std::logic_error("operation_not_supported");
 }
 
 Result StateSimulator::Measure(long numBases, PauliId bases[], long numTargets, Qubit targets[])
@@ -318,7 +320,7 @@ Operator StateSimulator::BuildPauliUnitary(long numTargets, PauliId paulis[], Qu
     // Sort pauli matrices by the target qubit's index in the compute register.
     std::vector<std::pair<short, PauliId>> sortedTargetBase(numTargets);
     for (int i = 0; i < numTargets; i++)
-        sortedTargetBase.push_back({this->qbm->GetQubitIdx(targets[i]), paulis[i]});
+        sortedTargetBase.push_back({GetQubitIdx(targets[i]), paulis[i]});
     std::sort(sortedTargetBase.begin(), sortedTargetBase.end(),
               [](std::pair<short, PauliId> x, std::pair<short, PauliId> y) {
               return x.first < y.first;
@@ -326,7 +328,7 @@ Operator StateSimulator::BuildPauliUnitary(long numTargets, PauliId paulis[], Qu
 
     Operator pauliUnitary = Operator::Ones(1,1);
     for (int i = 0, targetIdx = 0; i < this->numActiveQubits; i++) {
-        Pauli p_i = SelectPauliOp(i == sortedTargetBase[i].first ?
+        Pauli p_i = SelectPauliOp(i == sortedTargetBase[targetIdx].first ?
                                   sortedTargetBase[targetIdx++].second :
                                   PauliId_I);
         pauliUnitary = kroneckerProduct(pauliUnitary, p_i).eval();

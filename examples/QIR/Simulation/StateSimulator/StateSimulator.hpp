@@ -1,4 +1,7 @@
 #include <cstdlib>
+#include <vector>
+#include <algorithm>
+#include <string>
 
 #include "QirRuntimeApi_I.hpp"
 #include "QSharpSimApi_I.hpp"
@@ -19,14 +22,17 @@ namespace Quantum
     class StateSimulator : public IRuntimeDriver, public IQuantumGateSet
     {
         // Associated qubit manager instance to handle qubit representation.
-        QubitManager *qbm;
-        short numActiveQubits = 0;
+        CQubitManager *qbm;
 
-        // State of a qubit is represented by its full 2^n column vector of probability amplitudes.
-        // With no qubits allocated, the state starts out as the scalar 1.
+        // The register of currently active qubits.
+        short numActiveQubits = 0;
+        std::vector<Qubit> computeRegister;
+
+        // The state of the compute register is represented by its full 2^n column vector of probability amplitudes.
+        // With no qubits allocated, the state vector starts out as the scalar 1.
         State stateVec = State::Ones(1);
 
-        // To be called by the qubit manager on allocation/deallocation.
+        // To be called on allocation/deallocation of qubits to update the state vector.
         void UpdateState(short qubitIndex, bool remove = false);
 
         // To be called by quantum gate set operations.
@@ -36,11 +42,19 @@ namespace Quantum
         // Builds a unitary matrix over the state space made of Pauli operators.
         Operator BuildPauliUnitary(long numTargets, PauliId paulis[], Qubit targets[]);
 
+        short GetQubitIdx(Qubit q)
+        {
+            return std::distance(
+                this->computeRegister.begin(),
+                std::find(this->computeRegister.begin(), this->computeRegister.end(), q)
+            );
+        }
+
       public:
         StateSimulator(uint32_t userProvidedSeed = 0)
         {
             srand(userProvidedSeed);
-            this->qbm = new QubitManager();
+            this->qbm = new CQubitManager();
         }
         ~StateSimulator()
         {
@@ -112,6 +126,21 @@ namespace Quantum
         void ControlledExp(long numControls, Qubit controls[], long numTargets, PauliId paulis[], Qubit targets[], double theta) override;
 
         Result Measure(long numBases, PauliId bases[], long numTargets, Qubit targets[]) override;
+
+
+        ///
+        /// Implementation of IDiagnostics
+        ///
+        bool Assert(long numTargets, PauliId* bases, Qubit* targets, Result result, const char* failureMessage) override;
+
+        bool AssertProbability(long numTargets, PauliId bases[], Qubit targets[], double probabilityOfZero, double precision, const char* failureMessage) override;
+
+        // Deprecated, use `DumpMachine()` and `DumpRegister()` instead.
+        void GetState(TGetStateCallback callback) override;
+
+        void DumpMachine(const void* location) override;
+
+        void DumpRegister(const void* location, const QirArray* qubits) override;
 
     }; // class StateSimulator
 
