@@ -636,22 +636,67 @@ let internal callLikeExpr =
     |>> List.Cons
     |>> List.reduce (applyBinary CallLikeExpression ())
 
+/// Parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid
+/// symbol name.
+let internal localIdentifier = symbolLike ErrorCode.InvalidIdentifierName // i.e. not a qualified name
+
+/// Returns a QsSymbol representing an invalid symbol (i.e. syntax error on parsing).
+let internal invalidSymbol = QsSymbol.New(InvalidSymbol, Null)
+
+/// Given an array of QsSymbols and a tuple with start and end position, builds a Q# SymbolTuple as QsSymbol.
+let internal buildSymbolTuple (items, range: Range) = QsSymbol.New(SymbolTuple items, range)
+
+let internal symbolTuple continuation =
+    let empty = unitValue |>> fun unit -> { Symbol = SymbolTuple ImmutableArray.Empty; Range = unit.Range }
+    let continuation' = continuation >>% () <|> isTupleContinuation
+    let symbol = (discardedSymbol <|> localIdentifier) .>>? followedBy continuation'
+
+    // Let's only specifically detect this particular invalid scenario.
+    let symbolArray = arrayBrackets (sepBy1 symbol (comma .>>? followedBy symbol) .>> opt comma) |>> snd
+
+    let invalid =
+        buildError (symbolArray .>>? followedBy continuation') ErrorCode.InvalidAssignmentToExpression
+        >>% invalidSymbol
+
+    empty
+    <|> buildTupleItem
+            (symbol <|> invalid)
+            buildSymbolTuple
+            ErrorCode.InvalidSymbolTupleDeclaration
+            ErrorCode.MissingSymbolTupleDeclaration
+            invalidSymbol
+            continuation
+
+let private lambda =
+    let arrow = (fctArrow >>% Function) <|> (opArrow >>% Operation)
+    let toLambda ((param, kind), body) = Lambda.create kind param body |> Lambda
+    symbolTuple arrow .>>. arrow .>>. expr |>> toLambda |> term |>> QsExpression.New
+
 // processing terms of operator precedence parsers
 
-let private termParser tupleExpr =
-    // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
-    choice [ attempt unitValue
-             attempt newArray
-             attempt callLikeExpr // needs to be after unitValue
-             attempt itemAccessExpr // needs to be after callLikeExpr
-             attempt valueArray // needs to be after arryItemExpr
-             attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
-             attempt pauliLiteral
-             attempt resultLiteral
-             attempt numericLiteral
-             attempt boolLiteral
-             attempt stringLiteral
-             attempt identifier ] // needs to be at the very end
+type private MissingMode =
+    | NoMissing
+    | AllowMissing
 
-qsExpression.TermParser <- termParser (valueTuple expr)
-qsArgument.TermParser <- missingExpr <|> termParser (valueTuple argument) // missing needs to be first
+let private termParser missingMode tupleExpr =
+    // IMPORTANT: any parser here needs to be wrapped in a term parser, such that whitespace is processed properly.
+    [
+        attempt newArray
+        attempt lambda
+        if missingMode = AllowMissing then missingExpr
+        attempt unitValue
+        attempt callLikeExpr // needs to be after unitValue
+        attempt itemAccessExpr // needs to be after callLikeExpr
+        attempt valueArray // needs to be after arryItemExpr
+        attempt tupleExpr // needs to be after unitValue, arrayItemExpr, and callLikeExpr
+        attempt pauliLiteral
+        attempt resultLiteral
+        attempt numericLiteral
+        attempt boolLiteral
+        attempt stringLiteral
+        attempt identifier // needs to be at the very end
+    ]
+    |> choice
+
+qsExpression.TermParser <- valueTuple expr |> termParser NoMissing
+qsArgument.TermParser <- valueTuple argument |> termParser AllowMissing

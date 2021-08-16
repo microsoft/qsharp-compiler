@@ -22,35 +22,31 @@ module TypeCheckingTests =
         let ns = "Microsoft.Quantum.Testing.TypeChecking"
         tests.VerifyDiagnostics(QsQualifiedName.New(ns, name), diagnostics)
 
+    let private allValid name count =
+        for i = 1 to count do
+            expect (sprintf "%s%i" name i) []
+
     [<Fact>]
     let ``Supports integral operators`` () =
-        expect "Integral1" []
-        expect "Integral2" []
+        allValid "Integral" 2
         expect "IntegralInvalid1" (Error ErrorCode.ExpectingIntegralExpr |> List.replicate 4)
         expect "IntegralInvalid2" (Error ErrorCode.TypeIntersectionMismatch |> List.replicate 4)
 
     [<Fact>]
     let ``Supports iteration`` () =
-        expect "Iterable1" []
-        expect "Iterable2" []
+        allValid "Iterable" 2
         expect "IterableInvalid1" [ Error ErrorCode.ExpectingIterableExpr ]
         expect "IterableInvalid2" [ Error ErrorCode.ExpectingIterableExpr ]
 
     [<Fact>]
     let ``Supports numeric operators`` () =
-        expect "Numeric1" []
-        expect "Numeric2" []
-        expect "Numeric3" []
+        allValid "Numeric" 3
         expect "NumericInvalid1" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
         expect "NumericInvalid2" (Error ErrorCode.InvalidTypeInArithmeticExpr |> List.replicate 4)
 
     [<Fact>]
     let ``Supports the semigroup operator`` () =
-        expect "Semigroup1" []
-        expect "Semigroup2" []
-        expect "Semigroup3" []
-        expect "Semigroup4" []
-        expect "Semigroup5" []
+        allValid "Semigroup" 5
         expect "SemigroupInvalid1" [ Error ErrorCode.InvalidTypeForConcatenation ]
         expect "SemigroupInvalid2" [ Error ErrorCode.InvalidTypeForConcatenation ]
 
@@ -62,13 +58,22 @@ module TypeCheckingTests =
 
     [<Fact>]
     let ``Supports sized array literals`` () =
-        expect "SizedArray1" []
-        expect "SizedArray2" []
-        expect "SizedArray3" []
-        expect "SizedArray4" []
+        allValid "SizedArray" 4
         expect "SizedArrayInvalid1" [ Error ErrorCode.TypeMismatch ]
         expect "SizedArrayInvalid2" [ Error ErrorCode.TypeMismatch ]
         expect "SizedArrayInvalid3" [ Error ErrorCode.TypeMismatch ]
+
+    [<Fact>]
+    let ``Supports lambda expressions`` () =
+        allValid "Lambda" 14
+        expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
+        expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
+        expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
+
+        // TODO: Prevent lambdas from closing over a mutable variable.
+        // Issue: https://github.com/microsoft/qsharp-compiler/issues/1113
+        // expect "LambdaInvalid4" [ ... ]
+        ()
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =

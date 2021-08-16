@@ -22,14 +22,8 @@ open Microsoft.Quantum.QsCompiler.TextProcessing.TypeParsing
 
 // utils used for fragment construction
 
-/// parses a (unqualified) symbol-like expression used as local identifier, raising a suitable error for an invalid symbol name
-let private localIdentifier = symbolLike ErrorCode.InvalidIdentifierName // i.e. not a qualified name
-
 /// parses a Q# type annotation (colon followed by a Q# type) using expectedQsType to generate suitable errors if the parsing fails
 let private typeAnnotation continuation = colon >>. expectedQsType continuation
-
-/// returns a QsSymbol representing an invalid symbol (i.e. syntax error on parsing)
-let private invalidSymbol = (InvalidSymbol, Null) |> QsSymbol.New
 
 /// returns a QsTupleItem representing an invalid argument declaration (i.e. syntax error on parsing)
 let private invalidArgTupleItem = (invalidSymbol, invalidType) |> QsTupleItem
@@ -39,10 +33,6 @@ let private invalidInitializer = (InvalidInitializer, Null) |> QsInitializer.New
 
 /// returns a QsFunctorGenerator representing an invalid functor generator (i.e. syntax error on parsing)
 let private unknownGenerator = (FunctorGenerationDirective InvalidGenerator, Null) |> QsSpecializationGenerator.New
-
-/// Given an array of QsSymbols and a tuple with start and end position, builds a Q# SymbolTuple as QsSymbol.
-let private buildSymbolTuple (items, range: Range) =
-    (SymbolTuple items, range) |> QsSymbol.New
 
 /// Given a continuation (parser), attempts to parse an unqualified QsSymbol
 /// using localItentifier to generate suitable errors for invalid symbol names,
@@ -104,26 +94,8 @@ let private expectedCondition continuation =
 /// and an InvalidSymbolTupleDeclaration error for an invalid symbol.
 /// Checks for an array of symbols within the symbol tuple, raising an InvalidAssignmentToExpression error for such symbol arrays.
 let private symbolBinding connector connectorErr expectedRhs = // used for mutable and immutable bindings, and allocationScope headers (using and borrowing)
-    let validContinuation = connector >>% () <|> isTupleContinuation
-    let validSymbol = (discardedSymbol <|> localIdentifier) .>>? followedBy validContinuation // discarded needs to be first
-
-    let invalid =
-        let symbolArray = arrayBrackets (sepBy1 validSymbol (comma .>>? followedBy validSymbol) .>> opt comma) |>> snd // let's only specifically detect this particular scenario
-
-        buildError (symbolArray .>>? followedBy validContinuation) ErrorCode.InvalidAssignmentToExpression
-        >>% invalidSymbol
-
-    let symbolTuple =
-        buildTupleItem
-            (validSymbol <|> invalid)
-            buildSymbolTuple
-            ErrorCode.InvalidSymbolTupleDeclaration
-            ErrorCode.MissingSymbolTupleDeclaration
-            invalidSymbol
-            connector
-
     let expectedConnector = expected (connector >>% ()) connectorErr connectorErr () (preturn ())
-    symbolTuple .>> expectedConnector .>>. expectedRhs
+    symbolTuple connector .>> expectedConnector .>>. expectedRhs
 
 /// Parses the assignment of an initializer tuple or single initializer to a symbol tuple or a single symbol.
 /// Uses symbolBinding to generate suitable errors for errors on the left hand side of the assignment.

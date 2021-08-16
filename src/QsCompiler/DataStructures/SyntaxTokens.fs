@@ -48,9 +48,33 @@ type QsSymbolKind<'Symbol> =
     | MissingSymbol
     | InvalidSymbol
 
-// not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
-type QsSymbol = { Symbol: QsSymbolKind<QsSymbol>; Range: QsNullable<Range> }
+/// A collection of one or more symbol bindings for a tuple.
+[<CustomComparison>]
+[<CustomEquality>]
+type QsSymbol =
+    // not an ITuple because currently, empty symbol tuples are used if no arguments are given to functor generators
+    {
+        /// The symbol bindings.
+        Symbol: QsSymbolKind<QsSymbol>
 
+        /// <summary>
+        /// The source code range of the symbol. This is ignored when comparing <see cref="QsSymbol"/>s.
+        /// </summary>
+        Range: QsNullable<Range>
+    }
+
+    override symbol1.Equals symbol2 =
+        match symbol2 with
+        | :? QsSymbol as symbol2 -> symbol1.Symbol = symbol2.Symbol
+        | _ -> false
+
+    override symbol.GetHashCode() = hash symbol.Symbol
+
+    interface IComparable with
+        member symbol1.CompareTo symbol2 =
+            match symbol2 with
+            | :? QsSymbol as symbol2 -> compare symbol1.Symbol symbol2.Symbol
+            | _ -> ArgumentException "Types are different." |> raise
 
 // Q# types
 
@@ -97,6 +121,41 @@ type QsType =
 
 
 // Q# expressions
+
+/// Represents whether a lambda is a function or operation.
+type LambdaKind =
+    /// The lambda is a function.
+    | Function
+    /// The lambda is an operation.
+    | Operation
+
+/// A lambda expression.
+type 'expr Lambda =
+    private
+        {
+            kind: LambdaKind
+            param: QsSymbol
+            body: 'expr
+        }
+
+    /// Represents whether a lambda is a function or operation.
+    member lambda.Kind = lambda.kind
+
+    /// The symbol bindings for the lambda's parameter.
+    member lambda.Param = lambda.param
+
+    /// The body of the lambda.
+    member lambda.Body = lambda.body
+
+module Lambda =
+    /// Creates a lambda expression.
+    [<CompiledName "Create">]
+    let create kind param body =
+        {
+            kind = kind
+            param = param
+            body = body
+        }
 
 type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | UnitValue
@@ -150,6 +209,7 @@ type QsExpressionKind<'Expr, 'Symbol, 'Type> =
     | MissingExpr
     | InvalidExpr
     | SizedArray of value: 'Expr * size: 'Expr
+    | Lambda of 'Expr Lambda
 
 type QsExpression =
     {
