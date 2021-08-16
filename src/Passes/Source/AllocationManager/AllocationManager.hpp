@@ -39,7 +39,7 @@ namespace quantum
         using NameToIndex          = std::unordered_map<String, Index>;
         using Mappings             = std::vector<MemoryMapping>;
 
-        /// Pointer contstruction
+        /// Pointer construction
         /// @{
         /// Creates a new allocation manager. The manager is kept
         /// as a shared pointer to enable allocation accross diffent
