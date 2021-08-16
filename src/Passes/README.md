@@ -149,11 +149,9 @@ TeleportChain__TeleportQubitUsingPresharedEntanglement__body.2.exit: ; preds = %
 
 ```
 
-We note the absence of loops, and that quantum registers are "allocated" at compile time meaning that each qubit instance is assigned a unique ID. As some code may be dead and optimised away, the qubit allocation is not garantueed to be sequential at this point in time. Future work will include writing a qubit ID remapper which will allow qubits.
+We note the absence of loops, and that quantum registers are "allocated" at compile time meaning that each qubit instance is assigned a unique ID. As some code may be dead and optimised away, the qubit allocation is not garantueed to be sequential at this point in time. Future work will include writing a qubit ID remapper which will allow qubit IDs to become strictly increasing with no gaps inbetween.
 
 We also note that the function `TeleportChain__TeleportQubitUsingPresharedEntanglement__body` was cloned twice. This is due to the allocation of qubits and the function being called twice. At present, the analyser does not take qubit release into account and just assumes that it will never be released due to the complicated nature for dealing with nested functions at compile time.
-
-Current TODOs include getting LLVM to remove dead code, do better constant folding and function inlining. Once this is performed correctly, next steps is the remapper and finally a better analysis on what call paths potentially create problems in terms of qubit allocation.
 
 ## Dependencies
 

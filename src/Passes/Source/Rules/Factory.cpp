@@ -159,8 +159,16 @@ namespace quantum
             };
         addRule({call("__quantum__rt__qubit_allocate"), allocation_replacer});
 
-        // Removing release calls
-        removeFunctionCall("__quantum__rt__qubit_release");
+        /// Release replacement
+        auto deleter = deleteInstruction();
+        addRule(
+            {call("__quantum__rt__qubit_release", "name"_cap = _),
+             [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
+                 qubit_alloc_manager->release();
+                 return deleter(builder, val, cap, rep);
+             }
+
+            });
     }
 
     void RuleFactory::useStaticResultAllocation()

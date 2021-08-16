@@ -26,9 +26,13 @@ RUN cd /src/ && \
       chmod +x manage
 
 # running the build
-RUN  ./manage runci
-
 ENV CC=clang-11 \
   CXX=clang++-11 \
   PYTHONUNBUFFERED=1 \
   PYTHON_BIN_PATH=/usr/bin/python3
+
+WORKDIR /src/
+RUN  export CC=clang-11  && \
+     export CXX=clang++-11 && \
+     ./manage runci
+
