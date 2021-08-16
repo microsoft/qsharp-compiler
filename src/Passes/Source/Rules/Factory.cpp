@@ -37,7 +37,7 @@ namespace quantum
 
     void RuleFactory::useStaticQubitArrayAllocation()
     {
-        // TODO(tfr): Consider using weak pointers
+        // TODO(QAT-private-issue-32): Use weak pointers to capture allocation managers
         auto qubit_alloc_manager = qubit_alloc_manager_;
 
         /// Allocation
@@ -89,9 +89,7 @@ namespace quantum
                 // Computing offset
                 auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
 
-                // TODO(tfr): Understand what the significance of the addressspace is in relation to the
-                // QIR. Activate by uncommenting:
-                // ptr_type = llvm::PointerType::get(ptr_type->getElementType(), 2);
+                // Converting pointer
                 auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
                 instr->takeName(val);
 
@@ -140,15 +138,12 @@ namespace quantum
                 auto offset = qubit_alloc_manager->allocate();
 
                 // Creating a new index APInt that is shifted by the offset of the allocation
-                // TODO(tfr): Get the bitwidth size from somewhere
+                // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from QIR
                 auto idx = llvm::APInt(64, offset);
 
                 // Computing offset
                 auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
 
-                // TODO(tfr): Understand what the significance of the addressspace is in relation to the
-                // QIR. Activate by uncommenting:
-                // ptr_type = llvm::PointerType::get(ptr_type->getElementType(), 2);
                 auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
                 instr->takeName(val);
 
@@ -188,15 +183,12 @@ namespace quantum
                 auto offset = result_alloc_manager->allocate();
 
                 // Creating a new index APInt that is shifted by the offset of the allocation
-                // TODO(tfr): Get the bitwidth size from somewhere
+                // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from QIR
                 auto idx = llvm::APInt(64, offset);
 
                 // Computing offset
                 auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
 
-                // TODO(tfr): Understand what the significance of the addressspace is in relation to the
-                // QIR. Activate by uncommenting:
-                // ptr_type = llvm::PointerType::get(ptr_type->getElementType(), 2);
                 auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
                 instr->takeName(val);
 
@@ -229,7 +221,6 @@ namespace quantum
                 builder.CreateCall(function, arguments);
 
                 // Replacing the instruction with new instruction
-                // TODO(tfr): (tfr): insert instruction before and then replace, with new call
                 replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
 
                 return true;
@@ -284,6 +275,8 @@ namespace quantum
         };
 
         /*
+          Here is an example IR for which we want to make a match:
+
           %1 = call %Result* @__quantum__rt__result_get_one()
           %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
           br i1 %2, label %then0__1, label %continue__1

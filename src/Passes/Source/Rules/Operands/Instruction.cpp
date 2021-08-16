@@ -28,7 +28,7 @@ namespace quantum
         return std::move(ret);
     }
 
-// TODO(tfr): This seems to be a bug in LLVM. Template instantiations in
+// TODO(QAT-private-issue-34): This seems to be a bug in LLVM. Template instantiations in
 // a single translation unit is not supposed to reinstantiate across other
 // translation units.
 //

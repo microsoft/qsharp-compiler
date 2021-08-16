@@ -12,10 +12,15 @@ namespace microsoft
 {
 namespace quantum
 {
+    /// This pass traverse the IR and uses the QirAllocationAnalysis to determine
+    /// if a function call results in qubit and/or result allocation. If that is the case,
+    /// it makes a copy of the function and replaces the function call with a call to the
+    /// new function.
     llvm::PreservedAnalyses ExpandStaticAllocationPass::run(
         llvm::Function&                function,
         llvm::FunctionAnalysisManager& fam)
     {
+
         // Pass body
         for (auto& basic_block : function)
         {
@@ -35,7 +40,7 @@ namespace quantum
                 std::vector<uint32_t> remaining_arguments{};
 
                 auto  callee_function = call_instr->getCalledFunction();
-                auto& use_quantum     = fam.getResult<QirAllocationAnalysisAnalytics>(*callee_function);
+                auto& use_quantum     = fam.getResult<QirAllocationAnalysis>(*callee_function);
 
                 if (use_quantum.value)
                 {
@@ -163,7 +168,8 @@ namespace quantum
 
         llvm::SmallVector<llvm::ReturnInst*, 8> returns; // Ignore returns cloned.
 
-        // TODO(tfr): In LLVM 13 upgrade 'true' to 'llvm::CloneFunctionChangeType::LocalChangesOnly'
+        // TODO(QAT-private-issue-28): In LLVM 13 upgrade 'true' to
+        // 'llvm::CloneFunctionChangeType::LocalChangesOnly'
         llvm::CloneFunctionInto(function, &callee, remapper, true, returns, "", nullptr);
 
         verifyFunction(*function);

@@ -38,8 +38,8 @@ namespace quantum
             return true;
         }
 
-        //  llvm::errs() << "SUCCESS MATCH: " << *value << " " << user->getNumOperands() << "\n";
-        // TODO(tfr): Check other possibilities for value
+        // TODO(QAT-private-issue-33): value may be other type than llvm::User. Check other relevant types
+        // and deal with it.
 
         return true;
     }

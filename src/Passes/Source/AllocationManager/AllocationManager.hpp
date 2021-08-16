@@ -13,6 +13,9 @@ namespace microsoft
 {
 namespace quantum
 {
+    // TODO(QAT-private-issue-35): work out similarities and differences between resource allocation at
+    // runtime and compile time to make common interface and/or implementation depending on what is most
+    // suited.
 
     class AllocationManager
     {
@@ -80,15 +83,16 @@ namespace quantum
         /// Memory mapping
         /// @{
         /// Each allocation has a register/memory mapping which
-        /// keeps track of the
+        /// keeps track of the allocation index, the segment size
+        /// and its name (if any).
         NameToIndex name_to_index_;
         Mappings    mappings_;
         /// @}
 
         /// Compile-time resources
         /// @{
-        /// Compile-time allocated resources such as
-        /// arrays who
+        /// Compile-time allocated resources that keeps a pointer
+        /// to the corresponding Values.
         Resources resources_;
         /// @}
 

@@ -13,6 +13,9 @@ namespace microsoft
 namespace quantum
 {
 
+    /// This class applies a set of transformation rules to the IR to transform it into a new IR. The
+    /// rules are added using the RuleSet class which allows the developer to create one or more rules
+    /// on how to transform the IR.
     class TransformationRulePass : public llvm::PassInfoMixin<TransformationRulePass>
     {
       public:

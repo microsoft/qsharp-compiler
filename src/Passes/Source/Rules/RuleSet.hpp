@@ -44,7 +44,6 @@ namespace quantum
         /// @{
         RuleSet& operator=(RuleSet const&) = default;
         RuleSet& operator=(RuleSet&&) = default;
-        // TODO(tfr): add RuleSet  operator&(RuleSet const &other);
         /// @}
 
         /// Operating rule sets

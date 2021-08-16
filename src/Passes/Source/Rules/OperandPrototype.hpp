@@ -13,7 +13,10 @@ namespace quantum
 {
 
     /// IOperandPrototype describes an IR pattern and allows matching against
-    /// LLVMs llvm::Value type.
+    /// LLVMs llvm::Value type. Each value may or may not be captured during the
+    /// matching process which means that they are stored in a map under a given name.
+    /// Capturing is enabled using `enableCapture(name)` which sets the name the
+    /// value should be stored under.
     class IOperandPrototype
     {
       public:

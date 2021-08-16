@@ -34,9 +34,8 @@ llvm::PassPluginLibraryInfo getQirAllocationAnalysisPluginInfo()
                     });
 
                 // Registering the analysis module
-                pb.registerAnalysisRegistrationCallback([](FunctionAnalysisManager& fam) {
-                    fam.registerPass([] { return QirAllocationAnalysisAnalytics(); });
-                });
+                pb.registerAnalysisRegistrationCallback(
+                    [](FunctionAnalysisManager& fam) { fam.registerPass([] { return QirAllocationAnalysis(); }); });
             }};
 }
 

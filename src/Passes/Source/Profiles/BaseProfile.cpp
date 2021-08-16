@@ -27,7 +27,8 @@ namespace quantum
         auto inliner_pass =
             pass_builder.buildInlinerPipeline(optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
 
-        // TODO(tfr): Maybe this should be done at a module level
+        // TODO(QAT-private-issue-29): Determine if static expansion should happen as a module pass
+        // instead of a function pass
         function_pass_manager.addPass(ExpandStaticAllocationPass());
 
         RuleSet rule_set;
@@ -52,31 +53,13 @@ namespace quantum
         function_pass_manager.addPass(llvm::DCEPass());
         function_pass_manager.addPass(llvm::ADCEPass());
 
-        //  function_pass_manager.addPass(llvm::createCalledValuePropagationPass());
-        // function_pass_manager.addPass(createSIFoldOperandsPass());
-
-        // Legacy passes:
-        // https://llvm.org/doxygen/group__LLVMCTransformsIPO.html#ga2ebfe3e0c3cca3b457708b4784ba93ff
-
-        // https://llvm.org/docs/NewPassManager.html
-        // modulePassManager.addPass(createModuleToCGSCCPassAdaptor(...));
-        // InlinerPass()
-
-        // auto &cgpm = inliner_pass.getPM();
-        // cgpm.addPass(llvm::ADCEPass());
-
-        // CGPM.addPass(createCGSCCToFunctionPassAdaptor(createFunctionToLoopPassAdaptor(LoopFooPass())));
-        // CGPM.addPass(createCGSCCToFunctionPassAdaptor(FunctionFooPass()));
-
         ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
 
-        // TODO(tfr): Not available in 11
+        // TODO(QAT-private-issue-30): Mordernise: Upon upgrading to LLVM 12 or 13, change CGPM to
         // ret.addPass(llvm::createModuleToCGSCCPassAdaptor(std::move(CGPM)));
 
         ret.addPass(llvm::AlwaysInlinerPass());
         ret.addPass(std::move(inliner_pass));
-        // ret.addPass();
-        // CGSCCA pass llvm::InlinerPass()
 
         return ret;
     }
@@ -91,7 +74,7 @@ namespace quantum
 
     void BaseProfile::addFunctionAnalyses(FunctionAnalysisManager& fam)
     {
-        fam.registerPass([] { return QirAllocationAnalysisAnalytics(); });
+        fam.registerPass([] { return QirAllocationAnalysis(); });
     }
 
 } // namespace quantum

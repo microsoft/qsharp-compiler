@@ -14,7 +14,7 @@ namespace microsoft
 namespace quantum
 {
 
-    QirAllocationAnalysisAnalytics::Result QirAllocationAnalysisAnalytics::run(
+    QirAllocationAnalysis::Result QirAllocationAnalysis::run(
         llvm::Function& function,
         llvm::FunctionAnalysisManager& /*unused*/)
     {
@@ -61,7 +61,7 @@ namespace quantum
         llvm::Function&                function,
         llvm::FunctionAnalysisManager& fam)
     {
-        auto& result = fam.getResult<QirAllocationAnalysisAnalytics>(function);
+        auto& result = fam.getResult<QirAllocationAnalysis>(function);
 
         if (result.value)
         {
@@ -79,7 +79,7 @@ namespace quantum
         return true;
     }
 
-    llvm::AnalysisKey QirAllocationAnalysisAnalytics::Key;
+    llvm::AnalysisKey QirAllocationAnalysis::Key;
 
 } // namespace quantum
 } // namespace microsoft

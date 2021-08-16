@@ -69,13 +69,6 @@ namespace quantum
             }
         }
 
-        /*
-          for (auto &basic_block : function)
-          {
-            llvm::errs() << "REPLACEMENTS DONE FOR:\n";
-            llvm::errs() << basic_block << "\n\n";
-          }
-        */
         // If we did not change the IR, we report that we preserved all
         if (replacements_.empty())
         {

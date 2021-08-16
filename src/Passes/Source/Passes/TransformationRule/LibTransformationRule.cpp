@@ -23,6 +23,8 @@ llvm::PassPluginLibraryInfo getTransformationRulePluginInfo()
                         // Base profile
                         if (name == "restrict-qir<base-profile>")
                         {
+                            // Defining a harded coded set of rules as LLVM does not provide means
+                            // to configure passes through opt.
                             RuleSet rule_set;
 
                             // Defining the mapping

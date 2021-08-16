@@ -13,10 +13,12 @@ namespace microsoft
 namespace quantum
 {
 
+    /// This class copies functions which does static qubit and/or result allocation. This is done
+    /// to ensure that qubits/result registers are not reused but instead assigned unique ids.
     class ExpandStaticAllocationPass : public llvm::PassInfoMixin<ExpandStaticAllocationPass>
     {
       public:
-        using QubitAllocationResult = QirAllocationAnalysisAnalytics::Result;
+        using QubitAllocationResult = QirAllocationAnalysis::Result;
         using ConstantArguments     = std::unordered_map<std::string, llvm::ConstantInt*>;
 
         /// Constructors and destructors

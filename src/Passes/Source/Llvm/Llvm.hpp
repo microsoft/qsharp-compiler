@@ -52,7 +52,6 @@
 #include "llvm/Transforms/Scalar/LoopUnrollPass.h"
 
 // Profiles
-#include "llvm/IR/LegacyPassManager.h"
 #include "llvm/LinkAllPasses.h"
 #include "llvm/Transforms/Scalar/ADCE.h"
 #include "llvm/Transforms/Scalar/DCE.h"
