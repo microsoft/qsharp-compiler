@@ -4,6 +4,7 @@ steps:
       export DEBIAN_FRONTEND=noninteractive
       sudo apt-get update -y
       sudo apt-get install -y 
+      sudo apt-get remove -y llvm-12
       sudo apt-get install -y curl pkg-config findutils  wget
       sudo apt install -y clang-11 cmake clang-format-11 clang-tidy-11 
       sudo apt-get install -y llvm-11 lldb-11 llvm-11-dev libllvm11 llvm-11-runtime
