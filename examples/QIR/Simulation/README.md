@@ -183,11 +183,4 @@ This example provides two "from scratch" sample implementations of a simulator:
 - a state-less [trace simulator](TraceSimulator/README.md): prints each quantum instructions it receives, useful for debugging or simple hardware backend hookup
 - a full state [quantum simulator](StateSimulator/README.md): simulates ideal quantum computer, inefficient but simple implementation that maps directly to mathematical description
 
-To cleanly separate out different functionalities, the sample simulators use the following file structure:
-
-- `<Type>Simulator.hpp` : Declares the simulator class, including required internal data and functions, as well as interface functions.
-- `QubitManager.hpp` : Simple qubit manager implementations to be used by the simulators.
-- `RuntimeManagement.cpp` : Implementation of all simulator functionality related to the `IRuntimeDriver` interface.
-- `<Type>Simulation.cpp` : Implementation of all simulator functionality related to the `IQuantumGateSet` interface.
-
 The file `SimulatorTemplate.cpp` is a template (in the common sense of the word) that can be filled out with the bodies of each interface method, already providing all the required class structure.
