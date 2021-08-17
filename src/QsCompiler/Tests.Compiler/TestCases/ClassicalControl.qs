@@ -1084,3 +1084,19 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
         }
     }
 }
+
+// =================================
+
+// NOT Condition Remembers Known Symbols
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let r1 = Zero;
+        let r2 = Zero;
+        if (not (r1 == Zero and r2 == Zero)) {
+            SubOp1();
+            SubOp2();
+        }
+    }
+}

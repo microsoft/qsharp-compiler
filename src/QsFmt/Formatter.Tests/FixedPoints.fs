@@ -44,6 +44,11 @@ namespace Bar {}
 // End of file."""
 
 [<FixedPoint>]
+let ``Mixed newlines`` =
+    "namespace Foo {}\n
+namespace Bar {}\r\n"
+
+[<FixedPoint>]
 let ``Function with one parameter`` =
     """namespace Foo {
     function Bar(x : Int) : Int {
