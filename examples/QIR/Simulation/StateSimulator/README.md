@@ -321,7 +321,9 @@ The function `BuildPauliUnitary` simply generates the `Operator` "`P_1⊗P_2⊗.
 
 ## Compiling the simulator
 
-The sample state simulator can be compiled to a static library with the following command:
+Download the latest stable release of the [Eigen library](http://eigen.tuxfamily.org/) and copy over the relevant headers as described in [include/Eigen](include/Eigen/README.md).
+
+The sample state simulator can then be compiled to a static library with the following command:
 
 ```shell
 clang++ -fuse-ld=llvm-lib RuntimeManagement.cpp StateSimulation.cpp -Iinclude -o StateSimulator.lib
