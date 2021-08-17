@@ -186,11 +186,11 @@ This time, the final operator needs to be constructed starting from the target q
 There are three possible scenarios for each qubit (say in increasing direction of the register):
 
 - the qubit is the target:
-    initialize the operator to the gate " `U = G` "
+    initialize the operator to the gate `U = G`
 - the new qubit is not involved in the computation:
-    add a 2x2 identity to the operator " `U' = U ⊗ Id` "
+    add a 2x2 identity to the operator `U' = U ⊗ Id`
 - the new qubit is a control:
-    the new operator is a combination of the identity when the control is in |0> and the action computed so far when the control is in |1> " `U' = (Id ⊗ |0><0|) + (U ⊗ |1><1|)` "
+    the new operator is a combination of the identity when the control is in |0> and the action computed so far when the control is in |1> `U' = (Id ⊗ |0><0|) + (U ⊗ |1><1|)`
 
 ```cpp
 void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit controls[], Qubit target)
@@ -249,8 +249,9 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
 We also need to define what happens to the state vector when we add or remove a qubit.
 In the case of adding a new qubit, the tensor product (or Kronecker product) is used to add the qubit to the state vector (last in the register, i.e `|Ψ'> = |Ψ> ⊗ |0>`).
 When removing a qubit, it is assumed to be in a product state with the rest of the register, and can thus be traced out from the state vector (i.e. `ρ' = |Ψ'><Ψ'| = tr_i[|Ψ><Ψ|]`).
-After applying the `PartialTrace` (defined in `StateSimulation.cpp` based on the definition `tr_B[U] = (Id ⊗ <0|) U (Id ⊗ |0>) + (Id ⊗ <1|) U (Id ⊗ |1>)`), the density matrix is then factored using eigenvalue decomposition.
-Up to computational errors, there should only be a single eigenvalue whose corresponding eigenvector is the new state vector:
+The `PartialTrace` method is defined in `StateSimulation.cpp` based on the definition `tr_B[U] = (Id ⊗ <0|) U (Id ⊗ |0>) + (Id ⊗ <1|) U (Id ⊗ |1>)`).
+The new state vector is then extracted from the density matrix using eigenvalue decomposition.
+Up to computational precision, there should only be a single eigenvalue whose corresponding eigenvector is the new state vector:
 
 ```cpp
 void StateSimulator::UpdateState(short qubitIndex, bool remove)
@@ -282,7 +283,7 @@ void StateSimulator::UpdateState(short qubitIndex, bool remove)
 Measurements are applied using the postulates and theory of projective measurements in QM.
 Accordingly, a measurement is defined via a set of projection operators `{P_m}`, each one associated to one measurement outcome `m`.
 The probability of obtaining outcome `m` is given by `p(m) = <Ψ|P_m|Ψ>`, and the post-measurement state is `|Ψ'> = 1/√p(m) P_m|Ψ>`.
-The type of measurement implemented for the QIR Runtime is a [projective Pauli measurement](https://docs.microsoft.com/azure/quantum/concepts-pauli-measurements) defined by a set of pauli matrices (`P_i ∈ {Id, X, Y, Z}`) determining the basis of measurement for each qubit.
+The type of measurement implemented for the QIR Runtime is a [projective Pauli measurement](https://docs.microsoft.com/azure/quantum/concepts-pauli-measurements) defined by a set of pauli matrices `P_i ∈ {Id, X, Y, Z}` determining the basis of measurement for each qubit.
 There are only two possible results for such a measurement, given by a positive (+) and negative (-) parity, since each individual Pauli measurement returns either +1 or -1.
 Thus, the two projective measurement operators are given by `P_+- = (1 +- P_1⊗P_2⊗..⊗P_n)/2`:
 
