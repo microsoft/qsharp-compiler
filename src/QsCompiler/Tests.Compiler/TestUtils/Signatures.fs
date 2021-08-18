@@ -592,6 +592,14 @@ let public ClassicalControlSignatures =
              ClassicalControlNS, "Foo", [||], "Unit"
              ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
          |])
+        // NOT Condition Remembers Known Symbols
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result"; "Result" |], "Unit"
+         |])
     |]
     |> _MakeSignatures
 

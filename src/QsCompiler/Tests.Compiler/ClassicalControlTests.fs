@@ -1738,3 +1738,8 @@ type ClassicalControlTests() =
         let lines = generated |> GetLinesFromSpecialization |> TrimWhitespaceFromLines
         Assert.True(lines.[1] = "if x < 2 {", "The classical condition is missing after transformation.")
         Assert.True(lines.[2] = "if x < 3 {", "The classical condition is missing after transformation.")
+
+    [<Fact>]
+    [<Trait("Category", "If Structure Reshape")>]
+    member this.``NOT Condition Remembers Known Symbols``() =
+        CompileClassicalControlTest 52 |> ignore
