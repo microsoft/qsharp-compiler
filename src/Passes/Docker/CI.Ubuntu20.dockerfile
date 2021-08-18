@@ -1,4 +1,4 @@
-FROM ubuntu:20.04 as bazel
+FROM ubuntu:20.04
 
 # basic dependencies -
 ENV DEBIAN_FRONTEND=noninteractive
