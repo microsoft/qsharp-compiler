@@ -35,7 +35,10 @@ include(${MICROSOFT_ROOT_PASSES_DIR}/cmake/Library.cmake)
 
 # LLVM is normally built without RTTI. Be consistent with that.
 if(NOT LLVM_ENABLE_RTTI)
+  message(STATUS "RTTI is off")
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-rtti")
+else()
+  message(STATUS "RTTI is on")
 endif()
 
 # -fvisibility-inlines-hidden is set when building LLVM and on Darwin warnings
@@ -58,8 +61,8 @@ include_directories(${LLVM_INCLUDE_DIRS})
 link_directories(${LLVM_LIBRARY_DIRS})
 add_definitions(${LLVM_DEFINITIONS})
 include_directories(${CMAKE_SOURCE_DIR}/Source)
-llvm_map_components_to_libnames(llvm_libs support core irreader passes orcjit x86asmparser x86codegen x86desc x86disassembler x86info interpreter objcarcopts)
-
+llvm_map_components_to_libnames(llvm_libs support core irreader passes interpreter objcarcopts)
+message(STATUS "${llvm_libs}")
 
 # Adding the libraries
 add_subdirectory(Source)
