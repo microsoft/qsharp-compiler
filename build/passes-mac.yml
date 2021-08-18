@@ -1,6 +1,7 @@
 
 steps:
 - script: |
+      rm '/usr/local/bin/2to3'
       brew install llvm@11
       brew install cmake
       brew install python@3.9
