@@ -1,4 +1,49 @@
-# Running tests
+# Code quality and continuous integration
+
+## Using the manage tool
+
+Before making a pull request with changes to this library, please ensure that style checks passes, that the code compiles,
+unit test passes and that there are no erros found by the static analyser.
+
+To setup the CI environment, run following commands
+
+```sh
+source develop.env
+virtualenv develop__venv
+source develop__venv/bin/activate
+pip install -r requirements.txt
+```
+
+These adds the necessary environment variables to ensure that you have the `TasksCI` package and all required dependencies.
+
+To check the style, run
+
+```sh
+./manage stylecheck
+```
+
+To test that the code compiles and tests passes run
+
+```sh
+./manage test
+```
+
+Finally, to analyse the code, run
+
+```sh
+./manage lint
+```
+
+You can run all processes by running:
+
+```sh
+./manage runci
+```
+
+As `clang-tidy` and `clang-format` acts slightly different from version to version and on different platforms, it is recommended
+that you use a docker image to perform these steps. TODO(TFR): The docker image is not added yet and this will be documented in the future.
+
+## Running tests
 
 In order to run the tests, you first need to build the library. Assuming that this is already done and the corresponding build is in `Debug/`, run the tests from the `Debug` folder:
 
@@ -12,7 +57,24 @@ Testing Time: 0.27s
   Passed: 2
 ```
 
-# Continuous integration
+The C++ test suite can also be ran from the debug by first building all targets:
+
+```sh
+cmake ..
+make
+```
+
+and then running following command:
+
+```sh
+ctest
+```
+
+## Writing C++ tests
+
+TODO(tfr): Write this section
+
+## Modifying code quality requirements
 
 This component is the largest part of this PR. The continuous integration component includes:
 
@@ -26,7 +88,7 @@ The automatic style enforcement is configurable with the ability to easily add o
 SOURCE_PIPELINES = [
     {
         "name": "C++ Main",
-        "src": path.join(PROJECT_ROOT, "libs"),
+        "src": path.join(PROJECT_ROOT, "Source"),
 
         "pipelines": {
             "hpp": [

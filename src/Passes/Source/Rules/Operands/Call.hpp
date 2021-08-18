@@ -18,15 +18,33 @@ namespace quantum
     {
       public:
         using String = std::string;
+
+        /// Construction of the call pattern by name or move only.
+        /// @{
+        /// Construction by name.
         explicit CallPattern(String const& name);
 
+        /// Copy construction prohibited.
+        CallPattern(CallPattern const& other) = delete;
+
+        /// Move construction allowed.
+        CallPattern(CallPattern&& other) = default;
+
+        /// Destructor implementation.
         ~CallPattern() override;
+        /// @}
 
-        bool  match(Value* instr, Captures& captures) const override;
+        /// Call implmenetation of the member functions in IOperandPrototype.
+        /// @{
+
+        /// Matches the callee by name.
+        bool match(Value* instr, Captures& captures) const override;
+
+        /// Creates a copy of itself.
         Child copy() const override;
-
+        /// @}
       private:
-        String name_{};
+        String name_{}; ///< Name of the callee to match against.
     };
 
 } // namespace quantum

@@ -42,8 +42,10 @@ namespace quantum
         using NameToIndex          = std::unordered_map<String, Index>;
         using Mappings             = std::vector<MemoryMapping>;
 
-        /// Pointer construction
+        /// Construction only allowed using smart pointer allocation through static functions.
+        /// Constructors are private to prevent
         /// @{
+
         /// Creates a new allocation manager. The manager is kept
         /// as a shared pointer to enable allocation accross diffent
         /// passes and/or replacement rules.
@@ -52,6 +54,7 @@ namespace quantum
 
         /// Allocation and release functions
         /// @{
+
         /// Allocates a single address.
         Index allocate();
 
