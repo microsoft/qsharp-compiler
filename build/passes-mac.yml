@@ -14,7 +14,7 @@ steps:
       export CPPFLAGS="${CPPFLAGS} -I/usr/local/opt/llvm@11/include"
 
       cd src/Passes/
-      pip3 install -r requirements.txt      
+      pip3 install --user -r requirements.txt      
       chmod +x manage
       ./manage runci
 
