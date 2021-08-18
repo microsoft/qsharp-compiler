@@ -129,7 +129,7 @@ namespace quantum
         /// Shorthand notation for a wildcard which matches anything. This value
         /// is useful when for instance capturing the arguments of a function call where the
         /// origin of the value does not matter to the pattern.
-        static std::shared_ptr<AnyPattern> const _ = std::make_shared<AnyPattern>();
+        static std::shared_ptr<AnyPattern> const _ = std::make_shared<AnyPattern>(); // NOLINT
 
         /// @}
 
