@@ -1,10 +1,23 @@
+macro(list_source_files result  directory)
+  file(GLOB_RECURSE source RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${directory}/*.cpp)
+  set(filelist "")
+  foreach(child ${source})
+    if(NOT ${child} MATCHES "(/Tests/)")
+      list(APPEND filelist ${child})
+    endif()
+  endforeach()  
+
+  set(${result} ${filelist})
+endmacro()
+
 function (microsoft_add_library          
           library)
   list(REMOVE_AT ARGV 0)
 
   set(directory ${CMAKE_CURRENT_SOURCE_DIR}/${library})
 
-  file(GLOB_RECURSE source RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${directory}/*.cpp)
+  list_source_files(source  ${directory})
+
   add_library(${library} 
               SHARED 
               ${source})

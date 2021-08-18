@@ -2,7 +2,6 @@ cmake_minimum_required(VERSION 3.4.3)
 
 project(QirPasses)
 
-
 option(MICROSOFT_ENABLE_TESTS               "Enable test targets"                   ON)
 option(MICROSOFT_ENABLE_DYNAMIC_LOADING     "Use dynamic loading"                  OFF)
 
@@ -24,7 +23,6 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Weverything -Wconversion -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror ")
-
 
 # Microsoft Settings
 set(MICROSOFT_ROOT_PASSES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
