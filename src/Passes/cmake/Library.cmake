@@ -19,7 +19,7 @@ function (microsoft_add_library
   list_source_files(source  ${directory})
 
   add_library(${library} 
-              SHARED 
+              STATIC
               ${source})
 
   target_include_directories(
@@ -30,9 +30,9 @@ function (microsoft_add_library
 
   if(MICROSOFT_ENABLE_DYNAMIC_LOADING)
     target_link_libraries(${library} 
-      "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+      PUBLIC "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
   else()
-    target_link_libraries(${library}  ${llvm_libs})
+    target_link_libraries(${library} PRIVATE ${llvm_libs})
   endif(MICROSOFT_ENABLE_DYNAMIC_LOADING)
 
 endfunction ()

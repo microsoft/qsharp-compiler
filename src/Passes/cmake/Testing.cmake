@@ -11,7 +11,9 @@ function (_internal_add_test name source library)
     file(GLOB_RECURSE ipps RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${source}/*.ipp)
 
     add_executable(${name} ${ipps} ${hdrs} ${srcs})
-    target_link_libraries(${name} PRIVATE ${library} gmock gmock_main)  
+    target_link_libraries(${name} PRIVATE ${llvm_libs})    
+    target_link_libraries(${name} PRIVATE ${library} gmock gmock_main TestTools)  
+
     target_include_directories(${name} 
                                  PRIVATE ${MICROSOFT_ROOT_VENDOR_DIR}/googletest/googlemock/include)
 
@@ -33,12 +35,14 @@ function (microsoft_add_library_tests
 
      if(IS_DIRECTORY ${unit_directory})
        _internal_add_test("${library}UnitTests" ${unit_directory} ${library})
+#       target_link_libraries("${library}UnitTests" ${ARGV})
      else()
        message(NOTICE "No unit tests for ${library}")
      endif()
 
      if(IS_DIRECTORY ${integration_directory})
        _internal_add_test("${library}IntegrationTests" ${integration_directory} ${library})
+#       target_link_libraries("${library}IntegrationTests" ${ARGV})       
      else()
        message(NOTICE "No integration tests for ${library}")
      endif()
