@@ -7,101 +7,77 @@
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+AllocationManager::AllocationManagerPtr AllocationManager::createNew()
 {
-namespace quantum
+  AllocationManagerPtr ret;
+  ret.reset(new AllocationManager());
+
+  return ret;
+}
+
+AllocationManager::Index AllocationManager::allocate(String const &name, Index const &size)
 {
+  auto ret = start_;
 
-    AllocationManager::AllocationManagerPtr AllocationManager::createNew()
+  // Creating a memory segment mappign in case we are dealing with qubits
+  MemoryMapping map;
+  map.name  = name;
+  map.index = mappings_.size();
+  map.size  = size;
+
+  if (!name.empty())
+  {
+    if (name_to_index_.find(map.name) != name_to_index_.end())
     {
-        AllocationManagerPtr ret;
-        ret.reset(new AllocationManager());
-
-        return ret;
+      throw std::runtime_error("Memory segment with name " + map.name + " already exists.");
     }
 
-    AllocationManager::Index AllocationManager::allocate()
-    {
-        auto ret = start_;
-        ++start_;
-        return ret;
-    }
+    name_to_index_[map.name] = map.index;
+  }
 
-    void AllocationManager::allocate(String const& name, Index const& size, bool value_only)
-    {
-        if (resources_.find(name) != resources_.end())
-        {
-            throw std::runtime_error("Resource with name " + name + " already exists.");
-        }
+  map.start = start_;
+  start_ += size;
 
-        resources_[name].resize(size);
-        for (auto& v : resources_[name])
-        {
-            v = nullptr;
-        }
+  map.end = map.start + size;
+  mappings_.emplace_back(std::move(map));
 
-        // Creating a memory segment mappign in case we are dealing with qubits
-        if (!value_only)
-        {
-            MemoryMapping map;
-            map.name  = name;
-            map.index = mappings_.size();
-            map.size  = size;
+  return ret;
+}
 
-            if (name_to_index_.find(map.name) != name_to_index_.end())
-            {
-                throw std::runtime_error("Memory segment with name " + map.name + " already exists.");
-            }
+AllocationManager::Index AllocationManager::getOffset(String const &name) const
+{
+  auto it = name_to_index_.find(name);
+  if (it == name_to_index_.end())
+  {
+    throw std::runtime_error("Memory segment with name " + name + " not found.");
+  }
+  auto index = it->second;
 
-            name_to_index_[map.name] = map.index;
-            map.start                = start_;
-            start_ += size;
+  return mappings_[index].start;
+}
 
-            map.end = map.start + size;
-            mappings_.emplace_back(std::move(map));
-        }
-    }
+void AllocationManager::release()
+{}
 
-    AllocationManager::Resource& AllocationManager::get(String const& name)
-    {
-        auto it = resources_.find(name);
-        if (it == resources_.end())
-        {
-            throw std::runtime_error("Resource with name " + name + " does not exists.");
-        }
-        return it->second;
-    }
+void AllocationManager::release(String const &name)
+{
+  auto it = name_to_index_.find(name);
+  if (it == name_to_index_.end())
+  {
+    throw std::runtime_error("Memory segment with name " + name + " not found.");
+  }
+  name_to_index_.erase(it);
 
-    AllocationManager::Index AllocationManager::getOffset(String const& name) const
-    {
-        auto it = name_to_index_.find(name);
-        if (it == name_to_index_.end())
-        {
-            throw std::runtime_error("Memory segment with name " + name + " not found.");
-        }
-        auto index = it->second;
+  auto it2 = resources_.find(name);
+  if (it2 == resources_.end())
+  {
+    throw std::runtime_error("Resource with name " + name + " does not exists.");
+  }
+  resources_.erase(it2);
+}
 
-        return mappings_[index].start;
-    }
-
-    void AllocationManager::release() {}
-
-    void AllocationManager::release(String const& name)
-    {
-        auto it = name_to_index_.find(name);
-        if (it == name_to_index_.end())
-        {
-            throw std::runtime_error("Memory segment with name " + name + " not found.");
-        }
-        name_to_index_.erase(it);
-
-        auto it2 = resources_.find(name);
-        if (it2 == resources_.end())
-        {
-            throw std::runtime_error("Resource with name " + name + " does not exists.");
-        }
-        resources_.erase(it2);
-    }
-
-} // namespace quantum
-} // namespace microsoft
+}  // namespace quantum
+}  // namespace microsoft

@@ -11,7 +11,7 @@ function (_internal_add_test name source library)
     file(GLOB_RECURSE ipps RELATIVE ${CMAKE_CURRENT_SOURCE_DIR} ${source}/*.ipp)
 
     add_executable(${name} ${ipps} ${hdrs} ${srcs})
-#    target_link_libraries(${name} PRIVATE ${library} gmock gmock_main)  
+    target_link_libraries(${name} PRIVATE ${library} gmock gmock_main)  
     target_include_directories(${name} 
                                  PRIVATE ${MICROSOFT_ROOT_VENDOR_DIR}/googletest/googlemock/include)
 

@@ -9,98 +9,93 @@
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+// TODO(QAT-private-issue-35): work out similarities and differences between resource allocation at
+// runtime and compile time to make common interface and/or implementation depending on what is most
+// suited.
+
+class AllocationManager
 {
-namespace quantum
-{
-    // TODO(QAT-private-issue-35): work out similarities and differences between resource allocation at
-    // runtime and compile time to make common interface and/or implementation depending on what is most
-    // suited.
+public:
+  /// Defines a named register/memory segment with start
+  /// position, end position and size.
+  struct MemoryMapping
+  {
+    using Index  = uint64_t;
+    using String = std::string;
 
-    class AllocationManager
-    {
-      public:
-        /// Defines a named register/memory segment with start
-        /// position, end position and size.
-        struct MemoryMapping
-        {
-            using Index  = uint64_t;
-            using String = std::string;
+    String name{""};  ///< Name of the segment, if any given
+    Index  index{0};  ///< Index of the allocation
+    Index  size{0};   ///< Size of memory segment
+    Index  start{0};  ///< Start index of memory segment
+    Index  end{0};    ///< Index not included in memory segment
+  };
 
-            String name{""}; ///< Name of the segment, if any given
-            Index  index{0}; ///< Index of the allocation
-            Index  size{0};  ///< Size of memory segment
-            Index  start{0}; ///< Start index of memory segment
-            Index  end{0};   ///< Index not included in memory segment
-        };
+  using Index                = uint64_t;
+  using String               = std::string;
+  using AllocationManagerPtr = std::shared_ptr<AllocationManager>;
+  using Resource             = std::vector<llvm::Value *>;
+  using Resources            = std::unordered_map<std::string, Resource>;
+  using NameToIndex          = std::unordered_map<String, Index>;
+  using Mappings             = std::vector<MemoryMapping>;
 
-        using Index                = uint64_t;
-        using String               = std::string;
-        using AllocationManagerPtr = std::shared_ptr<AllocationManager>;
-        using Resource             = std::vector<llvm::Value*>;
-        using Resources            = std::unordered_map<std::string, Resource>;
-        using NameToIndex          = std::unordered_map<String, Index>;
-        using Mappings             = std::vector<MemoryMapping>;
+  /// Construction only allowed using smart pointer allocation through static functions.
+  /// Constructors are private to prevent
+  /// @{
 
-        /// Construction only allowed using smart pointer allocation through static functions.
-        /// Constructors are private to prevent
-        /// @{
+  /// Creates a new allocation manager. The manager is kept
+  /// as a shared pointer to enable allocation accross diffent
+  /// passes and/or replacement rules.
+  static AllocationManagerPtr createNew();
+  /// @}
 
-        /// Creates a new allocation manager. The manager is kept
-        /// as a shared pointer to enable allocation accross diffent
-        /// passes and/or replacement rules.
-        static AllocationManagerPtr createNew();
-        /// @}
+  /// Allocation and release functions
+  /// @{
 
-        /// Allocation and release functions
-        /// @{
+  /// Allocates a name segment of a given size.
+  Index allocate(String const &name = "", Index const &size = 1);
 
-        /// Allocates a single address.
-        Index allocate();
+  /// Gets the offset of a name segment or address.
+  Index getOffset(String const &name) const;
 
-        /// Allocates a name segment of a given size.
-        void allocate(String const& name, Index const& size, bool value_only = false);
+  /// Releases unnamed address.
+  void release();
 
-        /// Gets the offset of a name segment or address.
-        Index getOffset(String const& name) const;
+  /// Releases the named segment or address.
+  void release(String const &name);
 
-        /// Releases unnamed address.
-        void release();
+  /// Retrieves a named resource.
+  Resource &get(String const &name);
+  /// @}
 
-        /// Releases the named segment or address.
-        void release(String const& name);
+private:
+  /// Private constructors
+  /// @{
+  /// Public construction of this object is only allowed
+  /// as a shared pointer. To create a new AllocationManager,
+  /// use AllocationManager::createNew().
+  AllocationManager() = default;
+  /// @}
 
-        /// Retrieves a named resource.
-        Resource& get(String const& name);
-        /// @}
+  /// Memory mapping
+  /// @{
+  /// Each allocation has a register/memory mapping which
+  /// keeps track of the allocation index, the segment size
+  /// and its name (if any).
+  NameToIndex name_to_index_;
+  Mappings    mappings_;
+  /// @}
 
-      private:
-        /// Private constructors
-        /// @{
-        /// Public construction of this object is only allowed
-        /// as a shared pointer. To create a new AllocationManager,
-        /// use AllocationManager::createNew().
-        AllocationManager() = default;
-        /// @}
+  /// Compile-time resources
+  /// @{
+  /// Compile-time allocated resources that keeps a pointer
+  /// to the corresponding Values.
+  Resources resources_;
+  /// @}
 
-        /// Memory mapping
-        /// @{
-        /// Each allocation has a register/memory mapping which
-        /// keeps track of the allocation index, the segment size
-        /// and its name (if any).
-        NameToIndex name_to_index_;
-        Mappings    mappings_;
-        /// @}
+  Index start_{0};
+};
 
-        /// Compile-time resources
-        /// @{
-        /// Compile-time allocated resources that keeps a pointer
-        /// to the corresponding Values.
-        Resources resources_;
-        /// @}
-
-        Index start_{0};
-    };
-
-} // namespace quantum
-} // namespace microsoft
+}  // namespace quantum
+}  // namespace microsoft

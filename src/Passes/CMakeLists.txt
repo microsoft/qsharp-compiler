@@ -3,14 +3,45 @@ cmake_minimum_required(VERSION 3.4.3)
 project(QirPasses)
 
 option(MICROSOFT_ENABLE_TESTS               "Enable test targets"                   ON)
-option(MICROSOFT_ENABLE_DYNAMIC_LOADING     "Use dynamic loading"                  OFF)
+option(MICROSOFT_ENABLE_DYNAMIC_LOADING     "Use dynamic loading"                  ON)
 
+
+# Microsoft Settings
+set(MICROSOFT_ROOT_PASSES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
+set(MICROSOFT_ROOT_VENDOR_DIR ${MICROSOFT_ROOT_PASSES_DIR}/vendors)
+message(STATUS "Passes dir: ${MICROSOFT_ROOT_PASSES_DIR}")
+message(STATUS "Vendor dir: ${MICROSOFT_ROOT_VENDOR_DIR}")
 
 find_package(LLVM REQUIRED CONFIG)
 include(CheckCXXCompilerFlag)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
+
+
+# -fvisibility-inlines-hidden is set when building LLVM and on Darwin warnings
+# are triggered if llvm-tutor is built without this flag (though otherwise it
+# builds fine). For consistency, add it here too.
+check_cxx_compiler_flag("-fvisibility-inlines-hidden" SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
+if(${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG})
+  if (${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG} STREQUAL "1")
+    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
+  endif()
+endif()
+
+
+
+if(MICROSOFT_ENABLE_TESTS)
+  add_subdirectory(${MICROSOFT_ROOT_VENDOR_DIR}/googletest)
+  target_compile_options(gmock
+                             INTERFACE
+                             -Wno-everything)
+  target_compile_options(gtest
+                             INTERFACE
+                             -Wno-everything)
+
+endif(MICROSOFT_ENABLE_TESTS)
+
 
 # Setting the standard configuration for the C++ compiler
 # Rather than allowing C++17, we restrict ourselves to 
@@ -24,13 +55,10 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Wall -Wextra -Weverything -Wconversion -Wno-c++98-compat-pedantic -Wno-c++98-compat -Wno-padded -Wno-exit-time-destructors -Wno-global-constructors")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -Werror -Wno-documentation-unknown-command")
 
-# Microsoft Settings
-set(MICROSOFT_ROOT_PASSES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
-set(MICROSOFT_ROOT_VENDOR_DIR ${MICROSOFT_ROOT_PASSES_DIR}/vendor)
-message(STATUS "Passes dir: ${MICROSOFT_ROOT_PASSES_DIR}")
-message(STATUS "Vendor dir: ${MICROSOFT_ROOT_VENDOR_DIR}")
 include(${MICROSOFT_ROOT_PASSES_DIR}/cmake/Testing.cmake)
 include(${MICROSOFT_ROOT_PASSES_DIR}/cmake/Library.cmake)
+
+
 
 
 # LLVM is normally built without RTTI. Be consistent with that.
@@ -41,15 +69,6 @@ else()
   message(STATUS "RTTI is on")
 endif()
 
-# -fvisibility-inlines-hidden is set when building LLVM and on Darwin warnings
-# are triggered if llvm-tutor is built without this flag (though otherwise it
-# builds fine). For consistency, add it here too.
-check_cxx_compiler_flag("-fvisibility-inlines-hidden" SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
-if(${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG})
-  if (${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG} STREQUAL "1")
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
-  endif()
-endif()
 
 # We export the compile commands which are needed by clang-tidy 
 # to run the static analysis
@@ -63,6 +82,7 @@ add_definitions(${LLVM_DEFINITIONS})
 include_directories(${CMAKE_SOURCE_DIR}/Source)
 llvm_map_components_to_libnames(llvm_libs support core irreader passes interpreter objcarcopts)
 message(STATUS "${llvm_libs}")
+
 
 # Adding the libraries
 add_subdirectory(Source)

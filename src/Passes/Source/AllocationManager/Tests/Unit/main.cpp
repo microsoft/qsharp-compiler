@@ -1,10 +1,23 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include <iostream>
+#include "AllocationManager/AllocationManager.hpp"
+#include "gtest/gtest.h"
 
-int main()
+TEST(AllocationManagerTestSuite, BasicAllocation)
 {
-    std::cerr << "Hello world" << std::endl;
-    return 0;
+  auto manager = microsoft::quantum::AllocationManager::createNew();
+
+  // Expecting ids to be allocated linearly for single
+  // allocations
+  EXPECT_TRUE(manager->allocate() == 0);
+  EXPECT_TRUE(manager->allocate() == 1);
+  EXPECT_TRUE(manager->allocate() == 2);
+  EXPECT_TRUE(manager->allocate() == 3);
+  EXPECT_TRUE(manager->allocate() == 4);
+
+  //
+  manager->allocate("test", 10);
+  EXPECT_TRUE(manager->getOffset("test") == 5);
+  EXPECT_TRUE(manager->allocate() == 15);
 }
