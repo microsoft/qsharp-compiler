@@ -1,17 +1,23 @@
+#pragma once
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #include "Llvm/Llvm.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-class ProfileTest
+namespace microsoft
 {
-public:
-  using String = std::string;
+namespace quantum
+{
 
-  ProfileTest(String const &);
+    class ProfileTest
+    {
+      public:
+        using String = std::string;
 
-private:
-};
+        ProfileTest(String const&);
 
-}  // namespace quantum
-}  // namespace microsoft
+      private:
+    };
+
+} // namespace quantum
+} // namespace microsoft
