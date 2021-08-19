@@ -36,7 +36,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         static GenerationContext()
         {
             LibContext = Library.InitializeLLVM();
-            LibContext.RegisterTarget(CodeGenTarget.Native);
         }
 
         #region Member variables
