@@ -15,7 +15,7 @@ It is anticipated that most usages of the QIR specification will need to only us
 may further be subject to constraints such as how one allocate or acquire a qubit handle. We refer to such a subset with
 constraints as a profile. For instance, it is likely that early versions of quantum hardware will have a limited
 set of classical instructions available. With this in mind, the vendor or user of said hardware would define a profile
-that only contains a specified subset. One example of such a profile is the [base profile](https://github.com/microsoft/qsharp-language/blob/ageller/profile/Specifications/QIR/Base-Profile.md),
+that only contains a specified subset. One example of such a profile is the base profile,
 which only allows function calls and branching, but no arithmetic, classical memory, or classical registers.
 
 The generation of QIR according to the spec with no constraints would typically be performed by the frontend. A couple
@@ -73,7 +73,7 @@ namespace Feasibility
 }
 ```
 
-to the [base profile](https://github.com/microsoft/qsharp-language/blob/ageller/profile/Specifications/QIR/Base-Profile.md). We will do so using a combination of existing LLVM passes and custom written passes which are specific to the QIR. The above code is interesting as it is not base profile compliant with regards to two aspects: 1) Qubit allocation is not allowed and 2) arithmetic operations are not supported. Using the Q# QIR generator, the `QubitMapping` functions body becomes:
+to the base profile. We will do so using a combination of existing LLVM passes and custom written passes which are specific to the QIR. The above code is interesting as it is not base profile compliant with regards to two aspects: 1) Qubit allocation is not allowed and 2) arithmetic operations are not supported. Using the Q# QIR generator, the `QubitMapping` functions body becomes:
 
 ```
 define internal void @Feasibility__QubitMapping__body() {
