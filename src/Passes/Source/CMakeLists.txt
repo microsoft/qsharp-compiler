@@ -1,5 +1,7 @@
 cmake_minimum_required(VERSION 3.4.3)
 
+# microsoft_add_library(TestTools)
+
 microsoft_add_library(Commandline)
 
 microsoft_add_library(AllocationManager)

@@ -3,89 +3,87 @@
 
 #include "Rules/OperandPrototype.hpp"
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+IOperandPrototype::~IOperandPrototype() = default;
+bool IOperandPrototype::matchChildren(Value *value, Captures &captures) const
 {
-namespace quantum
-{
-
-    IOperandPrototype::~IOperandPrototype() = default;
-    bool IOperandPrototype::matchChildren(Value* value, Captures& captures) const
+  auto user = llvm::dyn_cast<llvm::User>(value);
+  if (!children_.empty())
+  {
+    if (user == nullptr)
     {
-        auto user = llvm::dyn_cast<llvm::User>(value);
-        if (!children_.empty())
-        {
-            if (user == nullptr)
-            {
-                return false;
-            }
-
-            if (user->getNumOperands() != children_.size())
-            {
-                return false;
-            }
-
-            uint64_t i = 0;
-            while (i < children_.size())
-            {
-                auto v = user->getOperand(static_cast<uint32_t>(i));
-                if (!children_[i]->match(v, captures))
-                {
-                    return false;
-                }
-                ++i;
-            }
-
-            return true;
-        }
-
-        // TODO(QAT-private-issue-33): value may be other type than llvm::User. Check other relevant types
-        // and deal with it.
-
-        return true;
+      return false;
     }
 
-    void IOperandPrototype::addChild(Child const& child)
+    if (user->getNumOperands() != children_.size())
     {
-        children_.push_back(child);
+      return false;
     }
 
-    void IOperandPrototype::enableCapture(std::string capture_name)
+    uint64_t i = 0;
+    while (i < children_.size())
     {
-        capture_name_ = std::move(capture_name);
-    }
-
-    bool IOperandPrototype::fail(Value* /*value*/, Captures& /*captures*/) const
-    {
+      auto v = user->getOperand(static_cast<uint32_t>(i));
+      if (!children_[i]->match(v, captures))
+      {
         return false;
+      }
+      ++i;
     }
 
-    bool IOperandPrototype::success(Value* value, Captures& captures) const
-    {
-        capture(value, captures);
+    return true;
+  }
 
-        auto ret = matchChildren(value, captures);
-        if (!ret)
-        {
-            uncapture(value, captures);
-        }
-        return ret;
-    }
+  // TODO(QAT-private-issue-33): value may be other type than llvm::User. Check other relevant types
+  // and deal with it.
 
-    void IOperandPrototype::capture(Value* value, Captures& captures) const
-    {
-        if (!capture_name_.empty())
-        {
-            captures[capture_name_] = value;
-        }
-    }
+  return true;
+}
 
-    void IOperandPrototype::uncapture(Value* /*value*/, Captures& captures) const
-    {
-        if (!capture_name_.empty())
-        {
-            captures.erase(captures.find(capture_name_));
-        }
-    }
+void IOperandPrototype::addChild(Child const &child)
+{
+  children_.push_back(child);
+}
 
-} // namespace quantum
-} // namespace microsoft
+void IOperandPrototype::enableCapture(std::string capture_name)
+{
+  capture_name_ = std::move(capture_name);
+}
+
+bool IOperandPrototype::fail(Value * /*value*/, Captures & /*captures*/) const
+{
+  return false;
+}
+
+bool IOperandPrototype::success(Value *value, Captures &captures) const
+{
+  capture(value, captures);
+
+  auto ret = matchChildren(value, captures);
+  if (!ret)
+  {
+    uncapture(value, captures);
+  }
+  return ret;
+}
+
+void IOperandPrototype::capture(Value *value, Captures &captures) const
+{
+  if (!capture_name_.empty())
+  {
+    captures[capture_name_] = value;
+  }
+}
+
+void IOperandPrototype::uncapture(Value * /*value*/, Captures &captures) const
+{
+  if (!capture_name_.empty())
+  {
+    captures.erase(captures.find(capture_name_));
+  }
+}
+
+}  // namespace quantum
+}  // namespace microsoft

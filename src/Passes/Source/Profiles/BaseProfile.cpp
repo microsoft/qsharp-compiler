@@ -9,6 +9,8 @@
 #include "Passes/TransformationRule/TransformationRule.hpp"
 #include "Rules/Factory.hpp"
 
+#include <iostream>
+
 namespace microsoft {
 namespace quantum {
 

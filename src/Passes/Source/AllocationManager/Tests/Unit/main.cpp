@@ -4,7 +4,7 @@
 #include "AllocationManager/AllocationManager.hpp"
 #include "gtest/gtest.h"
 
-TEST(AllocationManagerTestSuite, BasicAllocation)
+TEST(AllocationManagerTestSuite, LinearAllocationTest)
 {
   auto manager = microsoft::quantum::AllocationManager::createNew();
 
@@ -16,8 +16,11 @@ TEST(AllocationManagerTestSuite, BasicAllocation)
   EXPECT_TRUE(manager->allocate() == 3);
   EXPECT_TRUE(manager->allocate() == 4);
 
-  //
+  // We expect that allocating
   manager->allocate("test", 10);
   EXPECT_TRUE(manager->getOffset("test") == 5);
   EXPECT_TRUE(manager->allocate() == 15);
+  manager->allocate("test2", 10);
+  EXPECT_TRUE(manager->getOffset("test") == 5);
+  EXPECT_TRUE(manager->getOffset("test2") == 10);
 }

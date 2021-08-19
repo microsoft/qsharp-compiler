@@ -20,12 +20,12 @@ AllocationManager::AllocationManagerPtr AllocationManager::createNew()
 
 AllocationManager::Index AllocationManager::allocate(String const &name, Index const &size)
 {
-  auto ret = start_;
+  auto ret = next_qubit_index_;
 
   // Creating a memory segment mappign in case we are dealing with qubits
   MemoryMapping map;
   map.name  = name;
-  map.index = mappings_.size();
+  map.index = allocation_index_;
   map.size  = size;
 
   if (!name.empty())
@@ -38,11 +38,16 @@ AllocationManager::Index AllocationManager::allocate(String const &name, Index c
     name_to_index_[map.name] = map.index;
   }
 
-  map.start = start_;
-  start_ += size;
+  map.start = next_qubit_index_;
 
+  // Advancing start
+  next_qubit_index_ += size;
   map.end = map.start + size;
-  mappings_.emplace_back(std::move(map));
+
+  mappings_.emplace(allocation_index_, std::move(map));
+
+  // Advancing the allocation index
+  ++allocation_index_;
 
   return ret;
 }
@@ -56,11 +61,26 @@ AllocationManager::Index AllocationManager::getOffset(String const &name) const
   }
   auto index = it->second;
 
-  return mappings_[index].start;
+  auto it2 = mappings_.find(index);
+  if (it2 == mappings_.end())
+  {
+    throw std::runtime_error("Memory segment with name " + name +
+                             " not found - index exist, but not present in mapping.");
+  }
+
+  return it2->second.start;
 }
 
-void AllocationManager::release()
-{}
+AllocationManager::Address AllocationManager::getAddress(String const &name, Index const &n) const
+{
+  return getAddress(getOffset(name), n);
+}
+
+AllocationManager::Address AllocationManager::getAddress(Address const &address,
+                                                         Index const &  n) const
+{
+  return address + n;
+}
 
 void AllocationManager::release(String const &name)
 {
@@ -71,12 +91,13 @@ void AllocationManager::release(String const &name)
   }
   name_to_index_.erase(it);
 
-  auto it2 = resources_.find(name);
-  if (it2 == resources_.end())
-  {
-    throw std::runtime_error("Resource with name " + name + " does not exists.");
-  }
-  resources_.erase(it2);
+  // TODO: Address to index
+}
+
+void AllocationManager::release(Address const &)
+{
+  // TODO: Address to index
+  // TODO: Name to index
 }
 
 }  // namespace quantum
