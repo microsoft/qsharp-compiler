@@ -2,29 +2,34 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Profiles/IProfile.hpp"
 #include "Rules/RuleSet.hpp"
 
-namespace microsoft {
-namespace quantum {
+#include "Llvm/Llvm.hpp"
 
-class RuleSetProfile : public IProfile
+namespace microsoft
 {
-public:
-  using ConfigureFunction = std::function<void(RuleSet &)>;
-  RuleSetProfile(ConfigureFunction const &f);
-  llvm::ModulePassManager createGenerationModulePass(PassBuilder &            pass_builder,
-                                                     OptimizationLevel const &optimisation_level,
-                                                     bool                     debug) override;
-  llvm::ModulePassManager createValidationModulePass(PassBuilder &            pass_builder,
-                                                     OptimizationLevel const &optimisation_level,
-                                                     bool                     debug) override;
-  void                    addFunctionAnalyses(FunctionAnalysisManager &fam) override;
+namespace quantum
+{
 
-private:
-  ConfigureFunction configure_{};
-};
+    class RuleSetProfile : public IProfile
+    {
+      public:
+        using ConfigureFunction = std::function<void(RuleSet&)>;
+        RuleSetProfile(ConfigureFunction const& f);
+        llvm::ModulePassManager createGenerationModulePass(
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug) override;
+        llvm::ModulePassManager createValidationModulePass(
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug) override;
+        void addFunctionAnalyses(FunctionAnalysisManager& fam) override;
 
-}  // namespace quantum
-}  // namespace microsoft
+      private:
+        ConfigureFunction configure_{};
+    };
+
+} // namespace quantum
+} // namespace microsoft
