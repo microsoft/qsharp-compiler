@@ -87,12 +87,16 @@ namespace quantum
         /// call void @__quantum__qis__h(%Qubit* %leftMessage)
         /// )script");
         /// ```
-        void fromBodyString(String const& body);
+        ///
+        /// Returns false if the IR is invalid.
+        bool fromBodyString(String const& body);
 
         /// Creates an LLVM module given from a fully specified IR. This function
         /// ignores all inputs from IrManipulationTestHelper::declareOpaque and
         /// IrManipulationTestHelper::declareFunction.
-        void fromString(String const& data);
+        ///
+        /// Returns false if the IR is invalid.
+        bool fromString(String const& data);
 
         /// @}
 

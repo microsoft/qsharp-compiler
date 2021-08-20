@@ -42,9 +42,10 @@ namespace quantum
             loop_analysis_manager_, function_analysis_manager_, gscc_analysis_manager_, module_analysis_manager_);
     }
 
-    void IrManipulationTestHelper::fromString(String const& data)
+    bool IrManipulationTestHelper::fromString(String const& data)
     {
         module_ = llvm::parseIR(llvm::MemoryBufferRef(data, "IrManipulationTestHelper"), error_, context_);
+        return module_ != nullptr;
     }
 
     IrManipulationTestHelper::String IrManipulationTestHelper::toString() const
@@ -126,12 +127,10 @@ namespace quantum
         OptimizationLevel const& optimisation_level,
         bool                     debug)
     {
-        // Preparing pass for generation based on profile
-        profile->addFunctionAnalyses(function_analysis_manager_);
-
         auto module_pass_manager = profile->createGenerationModulePass(pass_builder_, optimisation_level, debug);
 
         // Running the pass built by the profile
+        assert(module_ != nullptr);
         module_pass_manager.run(*module_, moduleAnalysisManager());
     }
 
@@ -145,7 +144,7 @@ namespace quantum
         function_declarations_.insert(declaration);
     }
 
-    void IrManipulationTestHelper::fromBodyString(String const& body)
+    bool IrManipulationTestHelper::fromBodyString(String const& body)
     {
         String script = R"script(
 ; ModuleID = 'IrManipulationTestHelper'
@@ -161,6 +160,7 @@ source_filename = "IrManipulationTestHelper.ll"
 
         script += "define i8 @Main() local_unnamed_addr {\nentry:\n";
         script += body;
+        script += "\n  ret i8 0\n";
         script += "\n}\n\n";
 
         for (auto op : function_declarations_)
@@ -169,7 +169,7 @@ source_filename = "IrManipulationTestHelper.ll"
         }
         script += "\nattributes #0 = { \"InteropFriendly\" }\n";
 
-        fromString(script);
+        return fromString(script);
     }
 
     llvm::PassBuilder& IrManipulationTestHelper::passBuilder()

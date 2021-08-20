@@ -43,9 +43,9 @@ namespace quantum
         throw std::runtime_error("Validator not supported for rule set");
     }
 
-    void RuleSetProfile::addFunctionAnalyses(FunctionAnalysisManager& fam)
+    void RuleSetProfile::addFunctionAnalyses(FunctionAnalysisManager&)
     {
-        fam.registerPass([] { return QirAllocationAnalysis(); });
+        throw std::runtime_error("Function analysis not supported for rule set");
     }
 
 } // namespace quantum
