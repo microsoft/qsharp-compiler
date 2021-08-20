@@ -35,14 +35,14 @@ function (microsoft_add_library_tests
 
      if(IS_DIRECTORY ${unit_directory})
        _internal_add_test("${library}UnitTests" ${unit_directory} ${library})
-#       target_link_libraries("${library}UnitTests" ${ARGV})
+       target_link_libraries("${library}UnitTests" PRIVATE ${ARGV})
      else()
        message(NOTICE "No unit tests for ${library}")
      endif()
 
      if(IS_DIRECTORY ${integration_directory})
        _internal_add_test("${library}IntegrationTests" ${integration_directory} ${library})
-#       target_link_libraries("${library}IntegrationTests" ${ARGV})       
+       target_link_libraries("${library}IntegrationTests" PRIVATE ${ARGV})       
      else()
        message(NOTICE "No integration tests for ${library}")
      endif()

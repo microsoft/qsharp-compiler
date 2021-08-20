@@ -15,7 +15,7 @@ namespace microsoft {
 namespace quantum {
 
 llvm::ModulePassManager BaseProfile::createGenerationModulePass(
-    llvm::PassBuilder &pass_builder, llvm::PassBuilder::OptimizationLevel &optimisation_level,
+    llvm::PassBuilder &pass_builder, llvm::PassBuilder::OptimizationLevel const &optimisation_level,
     bool debug)
 {
   auto ret = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
@@ -64,17 +64,14 @@ llvm::ModulePassManager BaseProfile::createGenerationModulePass(
 }
 
 llvm::ModulePassManager BaseProfile::createValidationModulePass(
-    llvm::PassBuilder &, llvm::PassBuilder::OptimizationLevel &, bool)
+    llvm::PassBuilder &, llvm::PassBuilder::OptimizationLevel const &, bool)
 {
   throw std::runtime_error("Validator not implmented yet");
 }
 
 void BaseProfile::addFunctionAnalyses(FunctionAnalysisManager &fam)
 {
-  fam.registerPass([] {
-    std::cout << "Registering pass" << std::endl;
-    return QirAllocationAnalysis();
-  });
+  fam.registerPass([] { return QirAllocationAnalysis(); });
 }
 
 }  // namespace quantum
