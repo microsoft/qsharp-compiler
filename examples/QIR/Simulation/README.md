@@ -10,7 +10,7 @@ The file `SimulatorTemplate.cpp` in this directory is also good starting point f
 ## Understanding the QIR Runtime system
 
 The [QIR Runtime](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime) implements the [QIR language specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR) in LLVM.
-A quantum program written in QIR (or translated from Q# e.g.) will expect specific runtime functions to be available, which can include data type management or console output, but also qubit allocation, callable creation, and functor application, such as these QIR/LLVM functions below:
+A quantum program written in directly QIR (or compiled into QIR from Q# e.g.) will expect specific runtime functions to be available, which can include data type management or console output, but also qubit allocation, callable creation, and functor application, such as these QIR/LLVM functions below:
 
 ```llvm
 %String* __quantum__rt__string_create(i8*)
@@ -24,7 +24,7 @@ Some are directly implemented by the Runtime, such as `__quantum__rt__message` o
 The backend system could be a software simulator or hardware runtime environment.
 The focus in this guide will be on how the QIR Runtime interfaces with a simulator.
 
-Note that a quantum instruction set is not part of QIR spec, nevertheless the QIR Runtime implements the instruction set expected by Q#, which defines functions such as:
+Note that a quantum instruction set is not part of QIR spec, nevertheless the QIR Runtime implements the instruction set expected by Q#, which defines LLVM functions such as:
 
 ```llvm
 void @__quantum__qis__h__body(%Qubit*)

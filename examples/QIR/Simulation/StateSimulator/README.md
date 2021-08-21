@@ -113,7 +113,7 @@ Qubit StateSimulator::AllocateQubit()
 {
     Qubit q = this->qbm->Allocate();
     this->computeRegister.push_back(q);
-    UpdateState(this->numActiveQubits++);  // |Ψ'> = |Ψ> ⊗ |0>
+    UpdateState(this->numActiveQubits++);  // |Ψ'⟩ = |Ψ> ⊗ |0⟩
     return q;
 }
 
