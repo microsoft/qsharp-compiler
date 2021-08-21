@@ -113,13 +113,13 @@ Qubit StateSimulator::AllocateQubit()
 {
     Qubit q = this->qbm->Allocate();
     this->computeRegister.push_back(q);
-    UpdateState(this->numActiveQubits++);  // |Ψ'⟩ = |Ψ> ⊗ |0⟩
+    UpdateState(this->numActiveQubits++);  // |Ψ'⟩ = |Ψ⟩ ⊗ |0⟩
     return q;
 }
 
 void StateSimulator::ReleaseQubit(Qubit q)
 {
-    UpdateState(GetQubitIdx(q), /*remove=*/true);  // ρ' = tr_i[|Ψ><Ψ|]
+    UpdateState(GetQubitIdx(q), /*remove=*/true);  // ρ' = tr_i[|Ψ⟩〈Ψ|]
     this->numActiveQubits--;
     this->computeRegister.erase(this->computeRegister.begin() + GetQubitIdx(q));
     this->qbm->Release(q);
@@ -176,7 +176,7 @@ void StateSimulator::ApplyGate(Gate gate, Qubit target)
     unitary = kroneckerProduct(unitary, gate).eval();
     unitary = kroneckerProduct(unitary, Operator::Identity(dimC, dimC)).eval();
 
-    // Apply gate with |Ψ'> = U|Ψ>.
+    // Apply gate with |Ψ'⟩ = U|Ψ⟩.
     this->stateVec = unitary*this->stateVec;
 }
 ```
@@ -190,14 +190,14 @@ There are three possible scenarios for each qubit (say in increasing direction o
 - the new qubit is not involved in the computation:
     add a 2x2 identity to the operator `U' = U ⊗ Id`
 - the new qubit is a control:
-    the new operator is a combination of the identity when the control is in |0> and the action computed so far when the control is in |1> `U' = (Id ⊗ |0><0|) + (U ⊗ |1><1|)`
+    the new operator is a combination of the identity when the control is in |0⟩ and the action computed so far when the control is in |1⟩ `U' = (Id ⊗ |0⟩〈0|) + (U ⊗ |1⟩〈1|)`
 
 ```cpp
 void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit controls[], Qubit target)
 {
     // Controlled unitary on a bipartite system A⊗B can be expressed as:
-    //     cU = (|0><0| ⊗ 1) + (|1><1| ⊗ U)    if control on A
-    //     cU = (1 ⊗ |0><0|) + (U ⊗ |1><1|)    if control on B
+    //     cU = (|0⟩〈0| ⊗ 1) + (|1⟩〈1| ⊗ U)    if control on A
+    //     cU = (1 ⊗ |0⟩〈0|) + (U ⊗ |1⟩〈1|)    if control on B
     // Thus, the full unitary will be built starting from target in both directions
     // to handle controls coming both before and after the target.
     short targetIndex = GetQubitIdx(target);
@@ -220,8 +220,8 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
     auto controlItFw = postTargetIndices.begin();
     for (int i = targetIndex+1; i < this->numActiveQubits; i++) {
         if (controlItFw != postTargetIndices.end() && i == *controlItFw) {
-            unitary = (kroneckerProduct(Operator::Identity(dimU, dimU), project0) // 1 ⊗ |0><0|
-                      +kroneckerProduct(unitary, project1)).eval();               // U ⊗ |1><1|
+            unitary = (kroneckerProduct(Operator::Identity(dimU, dimU), project0) // 1 ⊗ |0⟩〈0|
+                      +kroneckerProduct(unitary, project1)).eval();               // U ⊗ |1⟩〈1|
             controlItFw++;
         } else {
             unitary = kroneckerProduct(unitary, Operator::Identity(2,2)).eval();
@@ -232,8 +232,8 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
     auto controlItBw = preTargetIndices.rbegin();
     for (int i = targetIndex-1; i >= 0; i--) {
         if (controlItBw != preTargetIndices.rend() && i == *controlItBw) {
-            unitary = (kroneckerProduct(project0, Operator::Identity(dimU, dimU)) // |0><0| ⊗ 1
-                      +kroneckerProduct(project1, unitary)).eval();               // |1><1| ⊗ U
+            unitary = (kroneckerProduct(project0, Operator::Identity(dimU, dimU)) // |0⟩〈0| ⊗ 1
+                      +kroneckerProduct(project1, unitary)).eval();               // |1⟩〈1| ⊗ U
             controlItBw++;
         } else {
             unitary = kroneckerProduct(Operator::Identity(2,2), unitary).eval();
@@ -241,23 +241,23 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
         dimU *= 2;
     }
 
-    // Apply gate with |Ψ'> = U|Ψ>.
+    // Apply gate with |Ψ'⟩ = U|Ψ⟩.
     this->stateVec = unitary*this->stateVec;
 }
 ```
 
 We also need to define what happens to the state vector when we add or remove a qubit.
-In the case of adding a new qubit, the tensor product (or Kronecker product) is used to add the qubit to the state vector (last in the register, i.e `|Ψ'> = |Ψ> ⊗ |0>`).
-When removing a qubit, it is assumed to be in a product state with the rest of the register, and can thus be traced out from the state vector (i.e. `ρ' = |Ψ'><Ψ'| = tr_i[|Ψ><Ψ|]`).
-The `PartialTrace` method is defined in `StateSimulation.cpp` based on the definition `tr_B[U] = (Id ⊗ <0|) U (Id ⊗ |0>) + (Id ⊗ <1|) U (Id ⊗ |1>)`).
+In the case of adding a new qubit, the tensor product (or Kronecker product) is used to add the qubit to the state vector (last in the register, i.e `|Ψ'⟩ = |Ψ⟩ ⊗ |0⟩`).
+When removing a qubit, it is assumed to be in a product state with the rest of the register, and can thus be traced out from the state vector (i.e. `ρ' = |Ψ'⟩〈Ψ'| = tr_i[|Ψ⟩〈Ψ|]`).
+The `PartialTrace` method is defined in `StateSimulation.cpp` based on the definition `tr_B[U] = (Id ⊗ 〈0|) U (Id ⊗ |0⟩) + (Id ⊗ 〈1|) U (Id ⊗ |1⟩)`).
 The new state vector is then extracted from the density matrix using eigenvalue decomposition.
 Up to computational precision, there should only be a single eigenvalue whose corresponding eigenvector is the new state vector:
 
 ```cpp
 void StateSimulator::UpdateState(short qubitIndex, bool remove)
 {
-    // When adding a qubit, the state vector can be updated with: |Ψ'> = |Ψ> ⊗ |0>.
-    // When removing a qubit, it is traced out from the state vector: ρ' = tr_i[|Ψ><Ψ|].
+    // When adding a qubit, the state vector can be updated with: |Ψ'⟩ = |Ψ⟩ ⊗ |0⟩.
+    // When removing a qubit, it is traced out from the state vector: ρ' = tr_i[|Ψ⟩〈Ψ|].
     if (!remove) {
         this->stateVec = kroneckerProduct(this->stateVec, Vector2cd(1,0)).eval();
     } else {
@@ -282,7 +282,7 @@ void StateSimulator::UpdateState(short qubitIndex, bool remove)
 
 Measurements are applied using the postulates and theory of projective measurements in QM.
 Accordingly, a measurement is defined via a set of projection operators `{P_m}`, each one associated to one measurement outcome `m`.
-The probability of obtaining outcome `m` is given by `p(m) = <Ψ|P_m|Ψ>`, and the post-measurement state is `|Ψ'> = 1/√p(m) P_m|Ψ>`.
+The probability of obtaining outcome `m` is given by `p(m) = 〈Ψ|P_m|Ψ⟩`, and the post-measurement state is `|Ψ'⟩ = 1/√p(m) P_m|Ψ⟩`.
 The type of measurement implemented for the QIR Runtime is a [projective Pauli measurement](https://docs.microsoft.com/azure/quantum/concepts-pauli-measurements) defined by a set of pauli matrices `P_i ∈ {Id, X, Y, Z}` determining the basis of measurement for each qubit.
 There are only two possible results for such a measurement, given by a positive (+) and negative (-) parity, since each individual Pauli measurement returns either +1 or -1.
 Thus, the two projective measurement operators are given by `P_+- = (1 +- P_1⊗P_2⊗..⊗P_n)/2`:
@@ -299,14 +299,14 @@ Result StateSimulator::Measure(long numBases, PauliId bases[], long numTargets, 
     Operator p_projector = (Operator::Identity(dim, dim) + paulis)/2;
     Operator m_projector = (Operator::Identity(dim, dim) - paulis)/2;
 
-    // Probability of getting outcome Zero is p(+) = <Ψ|P_+|Ψ>.
+    // Probability of getting outcome Zero is p(+) = 〈Ψ|P_+|Ψ⟩.
     double probZero = real(this->stateVec.conjugate().dot(p_projector*this->stateVec));
 
     // Select measurement outcome via PRNG.
     double random0to1 = (double) rand() / (RAND_MAX);
     Result outcome = random0to1 < probZero ? UseZero() : UseOne();
 
-    // Update state vector with |Ψ'> = 1/√p(m) P_m|Ψ>.
+    // Update state vector with |Ψ'⟩ = 1/√p(m) P_m|Ψ⟩.
     if (outcome == UseZero())
         this->stateVec = (p_projector * this->stateVec)/sqrt(probZero);
     else

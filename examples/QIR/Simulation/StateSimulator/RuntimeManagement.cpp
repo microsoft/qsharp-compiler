@@ -14,13 +14,13 @@ Qubit StateSimulator::AllocateQubit()
 {
     Qubit q = this->qbm->Allocate();
     this->computeRegister.push_back(q);
-    UpdateState(this->numActiveQubits++);  // |Ψ'> = |Ψ> ⊗ |0>
+    UpdateState(this->numActiveQubits++);  // |Ψ'⟩ = |Ψ⟩ ⊗ |0⟩
     return q;
 }
 
 void StateSimulator::ReleaseQubit(Qubit q)
 {
-    UpdateState(GetQubitIdx(q), /*remove=*/true);  // ρ' = tr_i[|Ψ><Ψ|]
+    UpdateState(GetQubitIdx(q), /*remove=*/true);  // ρ' = tr_i[|Ψ⟩〈Ψ|]
     this->numActiveQubits--;
     this->computeRegister.erase(this->computeRegister.begin() + GetQubitIdx(q));
     this->qbm->Release(q);

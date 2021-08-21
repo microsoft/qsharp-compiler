@@ -19,7 +19,7 @@ using namespace std::complex_literals;
 static Operator PartialTrace(Operator u, short idx, short dim)
 {
     // Partial trace defined as:
-    //    tr_B[U] = (Id ⊗ <0|) U (Id ⊗ |0>) + (Id ⊗ <1|) U (Id ⊗ |1>)
+    //    tr_B[U] = (Id ⊗ 〈0|) U (Id ⊗ |0⟩) + (Id ⊗ 〈1|) U (Id ⊗ |1⟩)
     // This is expanded to arbitrary sized systems where a single qubit is traced out.
     Operator proj_zero = Operator::Ones(1,1), proj_one = Operator::Ones(1,1);
     for (int i = 0; i < idx; i++) {
@@ -60,8 +60,8 @@ static Pauli SelectPauliOp(PauliId axis)
 
 void StateSimulator::UpdateState(short qubitIndex, bool remove)
 {
-    // When adding a qubit, the state vector can be updated with: |Ψ'> = |Ψ> ⊗ |0>.
-    // When removing a qubit, it is traced out from the state vector: ρ' = tr_i[|Ψ><Ψ|].
+    // When adding a qubit, the state vector can be updated with: |Ψ'⟩ = |Ψ⟩ ⊗ |0⟩.
+    // When removing a qubit, it is traced out from the state vector: ρ' = tr_i[|Ψ⟩〈Ψ|].
     if (!remove) {
         this->stateVec = kroneckerProduct(this->stateVec, Vector2cd(1,0)).eval();
     } else {
@@ -93,15 +93,15 @@ void StateSimulator::ApplyGate(Gate gate, Qubit target)
     unitary = kroneckerProduct(unitary, gate).eval();
     unitary = kroneckerProduct(unitary, Operator::Identity(dimC, dimC)).eval();
 
-    // Apply gate with |Ψ'> = U|Ψ>.
+    // Apply gate with |Ψ'⟩ = U|Ψ⟩.
     this->stateVec = unitary*this->stateVec;
 }
 
 void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit controls[], Qubit target)
 {
     // Controlled unitary on a bipartite system A⊗B can be expressed as:
-    //     cU = (|0><0| ⊗ 1) + (|1><1| ⊗ U)    if control on A
-    //     cU = (1 ⊗ |0><0|) + (U ⊗ |1><1|)    if control on B
+    //     cU = (|0⟩〈0| ⊗ 1) + (|1⟩〈1| ⊗ U)    if control on A
+    //     cU = (1 ⊗ |0⟩〈0|) + (U ⊗ |1⟩〈1|)    if control on B
     // Thus, the full unitary will be built starting from target in both directions
     // to handle controls coming both before and after the target.
     short targetIndex = GetQubitIdx(target);
@@ -124,8 +124,8 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
     auto controlItFw = postTargetIndices.begin();
     for (int i = targetIndex+1; i < this->numActiveQubits; i++) {
         if (controlItFw != postTargetIndices.end() && i == *controlItFw) {
-            unitary = (kroneckerProduct(Operator::Identity(dimU, dimU), project0) // 1 ⊗ |0><0|
-                      +kroneckerProduct(unitary, project1)).eval();               // U ⊗ |1><1|
+            unitary = (kroneckerProduct(Operator::Identity(dimU, dimU), project0) // 1 ⊗ |0⟩〈0|
+                      +kroneckerProduct(unitary, project1)).eval();               // U ⊗ |1⟩〈1|
             controlItFw++;
         } else {
             unitary = kroneckerProduct(unitary, Operator::Identity(2,2)).eval();
@@ -136,8 +136,8 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
     auto controlItBw = preTargetIndices.rbegin();
     for (int i = targetIndex-1; i >= 0; i--) {
         if (controlItBw != preTargetIndices.rend() && i == *controlItBw) {
-            unitary = (kroneckerProduct(project0, Operator::Identity(dimU, dimU)) // |0><0| ⊗ 1
-                      +kroneckerProduct(project1, unitary)).eval();               // |1><1| ⊗ U
+            unitary = (kroneckerProduct(project0, Operator::Identity(dimU, dimU)) // |0⟩〈0| ⊗ 1
+                      +kroneckerProduct(project1, unitary)).eval();               // |1⟩〈1| ⊗ U
             controlItBw++;
         } else {
             unitary = kroneckerProduct(Operator::Identity(2,2), unitary).eval();
@@ -145,7 +145,7 @@ void StateSimulator::ApplyControlledGate(Gate gate, long numControls, Qubit cont
         dimU *= 2;
     }
 
-    // Apply gate with |Ψ'> = U|Ψ>.
+    // Apply gate with |Ψ'⟩ = U|Ψ⟩.
     this->stateVec = unitary*this->stateVec;
 }
 
@@ -302,14 +302,14 @@ Result StateSimulator::Measure(long numBases, PauliId bases[], long numTargets, 
     Operator p_projector = (Operator::Identity(dim, dim) + paulis)/2;
     Operator m_projector = (Operator::Identity(dim, dim) - paulis)/2;
 
-    // Probability of getting outcome Zero is p(+) = <Ψ|P_+|Ψ>.
+    // Probability of getting outcome Zero is p(+) = 〈Ψ|P_+|Ψ⟩.
     double probZero = real(this->stateVec.conjugate().dot(p_projector*this->stateVec));
 
     // Select measurement outcome via PRNG.
     double random0to1 = (double) rand() / (RAND_MAX);
     Result outcome = random0to1 < probZero ? UseZero() : UseOne();
 
-    // Update state vector with |Ψ'> = 1/√p(m) P_m|Ψ>.
+    // Update state vector with |Ψ'⟩ = 1/√p(m) P_m|Ψ⟩.
     if (outcome == UseZero())
         this->stateVec = (p_projector * this->stateVec)/sqrt(probZero);
     else
