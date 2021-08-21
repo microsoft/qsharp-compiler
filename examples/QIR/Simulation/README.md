@@ -10,7 +10,7 @@ The file `SimulatorTemplate.cpp` in this directory is also good starting point f
 ## Understanding the QIR Runtime system
 
 The [QIR Runtime](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime) implements the [QIR language specification](https://github.com/microsoft/qsharp-language/tree/main/Specifications/QIR) in LLVM.
-A quantum program written in directly QIR (or compiled into QIR from Q# e.g.) will expect specific runtime functions to be available, which can include data type management or console output, but also qubit allocation, callable creation, and functor application, such as these QIR/LLVM functions below:
+A quantum program written directly in QIR (or compiled into QIR from Q# e.g.) will expect specific runtime functions to be available, which can include data type management or console output, but also qubit allocation, callable creation, and functor application, such as these QIR/LLVM functions below:
 
 ```llvm
 %String* __quantum__rt__string_create(i8*)
@@ -24,7 +24,7 @@ Some are directly implemented by the Runtime, such as `__quantum__rt__message` o
 The backend system could be a software simulator or hardware runtime environment.
 The focus in this guide will be on how the QIR Runtime interfaces with a simulator.
 
-Note that a quantum instruction set is not part of QIR spec, nevertheless the QIR Runtime implements the instruction set expected by Q#, which defines LLVM functions such as:
+Note that a quantum instruction set is not part of the QIR spec, nevertheless the QIR Runtime implements the instruction set expected by Q#, which defines LLVM functions such as:
 
 ```llvm
 void @__quantum__qis__h__body(%Qubit*)
@@ -42,11 +42,11 @@ In order to communicate with the QIR Runtime, hardware backends or simulators ca
 The first component of the Runtime stack is the QIR Bridge located at [lib/QIR/bridge-rt.ll](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/bridge-rt.ll) which translates between QIR and the Runtime implementation.
 Different parts of the QIR spec are then implemented in C++ in the [lib/QIR](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QIR) folder.
 For example, the `__quantum__rt__string_create` QIR function is translated to the C++ `quantum__rt__string_create` function which resides in [lib/QIR/strings.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/strings.cpp).
-For others such as `__quantum__rt__qubit_allocate`, the Runtime will eventually call the implementation provided by the driver.
+For functions defined in [lib/QIR/delegated.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/delegated.cpp) such as `quantum__rt__qubit_allocate`, the Runtime eventually calls the implementation `IRuntimeDriver::Allocate` provided by the backend.
 
-Other components that are used by QIR simulators for Q# are provided by [lib/QSharpCore](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpCore) and [lib/QSharpFoundation](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpFoundation).
+Other components are provided for Q# programs compiled to QIR in [lib/QSharpCore](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpCore) and [lib/QSharpFoundation](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpFoundation).
 In particular, the `QSharpCore` component provides the Q# instruction set.
-Similar to above, a bridge [lib/QSharpCore/qsharp-core-qis.ll](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/qsharp-core-qis.ll) first translates a function such as `__quantum__qis__h__body` to `quantum__qis__h__body` located in [lib/QSharpCore/intrinsics.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/intrinsics.cpp), which then calls upon the specific implementation provided by the gate set interface.
+As above, a bridge [lib/QSharpCore/qsharp-core-qis.ll](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/qsharp-core-qis.ll) first translates a function such as `__quantum__qis__h__body` to `quantum__qis__h__body` located in [lib/QSharpCore/intrinsics.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/intrinsics.cpp), which then calls the specific implementation `IQuantumGateSet::H` provided by the backend.
 
 A qubit manager (see next section) is also provided in [lib/QIR/QubitManager.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/QubitManager.cpp).
 
@@ -60,7 +60,7 @@ The physical qubit on the other hand is a real physical system that *approximate
 
 There are various techniques to create logical qubits from physical qubits via the use of error correction schemes and fault-tolerant systems.
 Whether the logical qubit is implemented by 1 or 1000 physical qubits, which type of physical system is used, or even whether one logical qubit remains on the same physical qubits throughout the entire computation, is not relevant at the logical level and is thus abstracted away.
-Quantum computing algorithms are typically formulated at the logical level unless they specifically deal with error correction or other aspects of physical qubits.
+Quantum computing algorithms are typically formulated at the logical level unless they specifically deal with error correction or are designed to run on near-term devices.
 Providing logical qubits is the task of the hardware-level runtime environment.
 
 In practical implementations, it is worth considering an additional layer on top of logical qubits, namely that of *virtual qubits* or *program qubits*.
