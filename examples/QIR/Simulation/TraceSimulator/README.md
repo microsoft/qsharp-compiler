@@ -176,22 +176,47 @@ Measuring qubits:
 
 ## Compiling the simulator
 
-The sample trace simulator can be compiled to a static library with the following command:
+Although the [QIR Runtime header files](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/public) are sufficient to compile the simulator, actually running it will require the Runtime binaries.
+Use the NuGet CLI with the commands below to download the [QIR Runtime package](https://www.nuget.org/packages/Microsoft.Quantum.Qir.Runtime) and extract the appropriate headers and libraries (adjusting the package version as required):
 
 ```shell
-clang++ -fuse-ld=llvm-lib RuntimeManagement.cpp TraceSimulation.cpp -Iinclude -o TraceSimulator.lib
+mkdir build
+curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget.exe
+build/nuget install Microsoft.Quantum.Qir.Runtime -version 0.18.2106148911-alpha -outputdirectory tmp
+cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
+cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/win-x64/native/* build
+rm -r tmp
+```
+
+The sample trace simulator can then be compiled to a static library with the following command:
+
+```shell
+clang++ -fuse-ld=llvm-lib RuntimeManagement.cpp TraceSimulation.cpp -Ibuild -o build/TraceSimulator.lib
 ```
 
 Where the parameter `-fuse-ld` is used to specify a linker and `llvm-lib` is an LLVM replacement for MSVC's static library tool [LIB](https://docs.microsoft.com/cpp/build/reference/lib-reference).
 
 ## Running the simulator
 
-The [optimization example](../../Optimization) contains detailed instructions on running a QIR program through the QIR Runtime.
-The basic approach would be the same for a custom simulator, except that the dynamic library housing the Q# full state simulator should be replaced with the custom simulator library compiled as shown in the previous section.
+The [optimization example](../../Optimization#running-qir) already contains detailed instructions on how to run a Q#->QIR program via the QIR Runtime.
+The basic approach remains the same for a custom simulator, except that the dynamic library housing the Q# full state simulator should be replaced with the custom simulator library compiled as shown in the previous section.
+Since the compilation starting point need not always be a Q# program, the generalized steps are summarized in this section.
 
-Create a new Q# application (e.g. with `dotnet new console -lang Q# -o Hello`) and follow the [Running QIR](../../Optimization#running-qir) section of the optimization example.
+### Obtaining QIR code
 
-Create or adjust the driver program `Main.cpp` to use the custom trace simulator instead:
+If the quantum program is already in QIR form, this step can be skipped, making sure to adjust any filenames and paths for the example at hand.
+The remaining instructions will assume the usual Q# Hello World example program.
+
+Create a new Q# application and compile it to QIR via the following steps:
+
+- Run `dotnet new console -lang Q# -o Hello`
+- Add `<QirGeneration>true</QirGeneration>` to the `<PropertyGroup>` in `Hello/Hello.csproj`
+- Run `dotnet build Hello`
+
+### Compiling the QIR program
+
+Create or adjust the driver program `Main.cpp` to use the custom trace simulator as shown below.
+Replace `Hello__HelloQ` with any QIR function to be simulated:
 
 ```cpp
 #include "QirContext.hpp"
@@ -221,9 +246,9 @@ int main(int argc, char* argv[]){
 }
 ```
 
-After building the Q# project to generate the QIR code `Hello.ll` and obtain header and library dependencies, the quantum program can be compiled with the custom simulator as backend:
+With all dependencies present in the `build` directory, the quantum program can be compiled with the custom simulator as backend:
 
 ```shell
-cp TraceSimulator.lib Hello/build
-clang++ Hello/qir/Hello.ll Hello/Main.cpp -IHello/build -LHello/build -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'TraceSimulator' -o Hello/build/Hello.exe
+clang++ Hello/qir/Hello.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'TraceSimulator' -o build/Hello.exe
+build/Hello
 ```
