@@ -60,6 +60,17 @@ entry:
 
 define internal fastcc %Result* @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body() unnamed_addr {
 entry:
+  %t = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 3)
+  %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %t, i64 0)
+  %1 = bitcast i8* %0 to i64*
+  %2 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %t, i64 1)
+  %3 = bitcast i8* %2 to i64*
+  %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %t, i64 2)
+  %5 = bitcast i8* %4 to i64*
+  store i64 1, i64* %1, align 4
+  store i64 2, i64* %3, align 4
+  store i64 3, i64* %5, align 4
+  call void @__quantum__rt__array_update_alias_count(%Array* %t, i32 1)
   %leftMessage = call %Qubit* @__quantum__rt__qubit_allocate()
   %rightMessage = call %Qubit* @__quantum__rt__qubit_allocate()
   %leftPreshared = call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
@@ -67,51 +78,59 @@ entry:
   %rightPreshared = call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
   call void @__quantum__rt__array_update_alias_count(%Array* %rightPreshared, i32 1)
   call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %leftMessage, %Qubit* %rightMessage)
-  %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 0)
-  %1 = bitcast i8* %0 to %Qubit**
-  %2 = load %Qubit*, %Qubit** %1, align 8
-  %3 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 0)
-  %4 = bitcast i8* %3 to %Qubit**
-  %5 = load %Qubit*, %Qubit** %4, align 8
-  call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %2, %Qubit* %5)
-  %6 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 1)
+  %6 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 0)
   %7 = bitcast i8* %6 to %Qubit**
   %8 = load %Qubit*, %Qubit** %7, align 8
-  %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 1)
+  %9 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 0)
   %10 = bitcast i8* %9 to %Qubit**
   %11 = load %Qubit*, %Qubit** %10, align 8
   call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %8, %Qubit* %11)
-  %12 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 0)
+  %12 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 1)
   %13 = bitcast i8* %12 to %Qubit**
   %14 = load %Qubit*, %Qubit** %13, align 8
-  %15 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 0)
+  %15 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 1)
   %16 = bitcast i8* %15 to %Qubit**
   %17 = load %Qubit*, %Qubit** %16, align 8
-  call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %rightMessage, %Qubit* %14, %Qubit* %17)
-  %18 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 0)
+  call fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %14, %Qubit* %17)
+  %18 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 0)
   %19 = bitcast i8* %18 to %Qubit**
   %20 = load %Qubit*, %Qubit** %19, align 8
-  %21 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 1)
+  %21 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 0)
   %22 = bitcast i8* %21 to %Qubit**
   %23 = load %Qubit*, %Qubit** %22, align 8
-  %24 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 1)
+  call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %rightMessage, %Qubit* %20, %Qubit* %23)
+  %24 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 0)
   %25 = bitcast i8* %24 to %Qubit**
   %26 = load %Qubit*, %Qubit** %25, align 8
-  call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %20, %Qubit* %23, %Qubit* %26)
-  %27 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %leftMessage)
-  %28 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 1)
-  %29 = bitcast i8* %28 to %Qubit**
-  %30 = load %Qubit*, %Qubit** %29, align 8
-  %31 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %30)
+  %27 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %leftPreshared, i64 1)
+  %28 = bitcast i8* %27 to %Qubit**
+  %29 = load %Qubit*, %Qubit** %28, align 8
+  %30 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 1)
+  %31 = bitcast i8* %30 to %Qubit**
+  %32 = load %Qubit*, %Qubit** %31, align 8
+  call fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %26, %Qubit* %29, %Qubit* %32)
+  %33 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %leftMessage)
+  %34 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %rightPreshared, i64 1)
+  %35 = bitcast i8* %34 to %Qubit**
+  %36 = load %Qubit*, %Qubit** %35, align 8
+  %37 = call fastcc %Result* @Microsoft__Quantum__Measurement__MResetZ__body(%Qubit* %36)
   call void @__quantum__rt__array_update_alias_count(%Array* %leftPreshared, i32 -1)
   call void @__quantum__rt__array_update_alias_count(%Array* %rightPreshared, i32 -1)
-  call void @__quantum__rt__result_update_reference_count(%Result* %27, i32 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %t, i32 -1)
+  call void @__quantum__rt__result_update_reference_count(%Result* %33, i32 -1)
+  call void @__quantum__rt__array_update_reference_count(%Array* %t, i32 -1)
   call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
   call void @__quantum__rt__qubit_release(%Qubit* %rightMessage)
   call void @__quantum__rt__qubit_release_array(%Array* %leftPreshared)
   call void @__quantum__rt__qubit_release_array(%Array* %rightPreshared)
-  ret %Result* %31
+  ret %Result* %37
 }
+
+declare %Array* @__quantum__rt__array_create_1d(i32, i64) local_unnamed_addr
+
+declare i8* @__quantum__rt__array_get_element_ptr_1d(%Array*, i64) local_unnamed_addr
+
+declare void @__quantum__rt__array_update_alias_count(%Array*, i32) local_unnamed_addr
 
 declare %Qubit* @__quantum__rt__qubit_allocate() local_unnamed_addr
 
@@ -121,8 +140,6 @@ declare void @__quantum__rt__qubit_release(%Qubit*) local_unnamed_addr
 
 declare void @__quantum__rt__qubit_release_array(%Array*) local_unnamed_addr
 
-declare void @__quantum__rt__array_update_alias_count(%Array*, i32) local_unnamed_addr
-
 define internal fastcc void @TeleportChain__PrepareEntangledPair__body(%Qubit* %left, %Qubit* %right) unnamed_addr {
 entry:
   call fastcc void @Microsoft__Quantum__Intrinsic__H__body(%Qubit* %left)
@@ -130,14 +147,14 @@ entry:
   ret void
 }
 
-declare i8* @__quantum__rt__array_get_element_ptr_1d(%Array*, i64) local_unnamed_addr
-
 define internal fastcc void @TeleportChain__TeleportQubitUsingPresharedEntanglement__body(%Qubit* %src, %Qubit* %intermediary, %Qubit* %dest) unnamed_addr {
 entry:
   call fastcc void @TeleportChain__PrepareEntangledPair__adj(%Qubit* %src, %Qubit* %intermediary)
   call fastcc void @TeleportChain__ApplyCorrection__body(%Qubit* %src, %Qubit* %intermediary, %Qubit* %dest)
   ret void
 }
+
+declare void @__quantum__rt__array_update_reference_count(%Array*, i32) local_unnamed_addr
 
 define internal fastcc void @Microsoft__Quantum__Intrinsic__H__body(%Qubit* %qubit) unnamed_addr {
 entry:
