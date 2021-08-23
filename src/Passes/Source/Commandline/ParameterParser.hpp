@@ -14,6 +14,8 @@ namespace microsoft
 namespace quantum
 {
 
+    /// Parameter parser class which allows the developer to specify a set of default settings and
+    /// update those using the commandline argc and argv.
     class ParameterParser
     {
       public:
