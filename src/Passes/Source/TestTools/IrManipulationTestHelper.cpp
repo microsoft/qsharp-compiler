@@ -148,7 +148,7 @@ namespace quantum
         function_declarations_.insert(declaration);
     }
 
-    bool IrManipulationTestHelper::fromBodyString(String const& body)
+    IrManipulationTestHelper::String IrManipulationTestHelper::generateScript(String const& body) const
     {
         String script = R"script(
 ; ModuleID = 'IrManipulationTestHelper'
@@ -172,7 +172,12 @@ source_filename = "IrManipulationTestHelper.ll"
             script += "declare " + op + " local_unnamed_addr\n";
         }
         script += "\nattributes #0 = { \"InteropFriendly\" }\n";
+        return script;
+    }
 
+    bool IrManipulationTestHelper::fromBodyString(String const& body)
+    {
+        auto script = generateScript(body);
         return fromString(script);
     }
 

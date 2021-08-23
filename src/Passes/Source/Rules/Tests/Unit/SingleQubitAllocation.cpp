@@ -25,6 +25,8 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
     ir_manip->declareOpaque("Qubit");
     ir_manip->declareOpaque("Result");
 
+    ir_manip->declareFunction("%Qubit* @__non_standard_allocator()");
+    ir_manip->declareFunction("i8* @__non_standard_int_allocator()");
     ir_manip->declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
     ir_manip->declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
     ir_manip->declareFunction("void @__quantum__qis__h(%Qubit*)");
@@ -57,8 +59,6 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
         {"%qubit = inttoptr i64 0 to %Qubit*", "tail call void @__quantum__qis__h(%Qubit* %qubit)"}));
-
-    llvm::errs() << *ir_manip->module() << "\n";
 }
 
 // Scenario 2 - Multiple sequential allocations
@@ -157,4 +157,60 @@ TEST(RuleSetTestSuite, AllocateReleaseMultipleTimes)
     EXPECT_FALSE(ir_manip->hasInstructionSequence({
         "%qubit5 = call %Qubit* @__quantum__rt__qubit_allocate()",
     }));
+}
+
+// Scenario 4 -  Allocate, release - multiple times
+TEST(RuleSetTestSuite, ErrorAllocateReleaseByName)
+{
+    auto ir_manip = newIrManip(R"script(
+  %leftMessage = call %Qubit* @__non_standard_allocator()
+  call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)  
+  )script");
+
+    auto profile = std::make_shared<RuleSetProfile>([](RuleSet& rule_set) {
+        auto factory = RuleFactory(rule_set);
+
+        factory.useStaticQubitAllocation();
+    });
+
+    ir_manip->applyProfile(profile);
+
+    // TODO(tfr): Test that an error was emitted
+}
+
+TEST(RuleSetTestSuite, ErrorAllocateReleaseByNameWithNoName)
+{
+    auto ir_manip = newIrManip(R"script(
+  %0 = call %Qubit* @__non_standard_allocator()
+  call void @__quantum__rt__qubit_release(%Qubit* %0)  
+  )script");
+
+    auto profile = std::make_shared<RuleSetProfile>([](RuleSet& rule_set) {
+        auto factory = RuleFactory(rule_set);
+
+        factory.useStaticQubitAllocation();
+    });
+
+    ir_manip->applyProfile(profile);
+
+    // TODO(tfr): Test that an error was emitted
+}
+
+TEST(RuleSetTestSuite, ErrorReleaseWithTypeErasedAllocation)
+{
+    auto ir_manip = newIrManip(R"script(
+  %0 = call i8* @__non_standard_int_allocator()
+  %1 = bitcast i8* %0 to %Qubit* 
+  call void @__quantum__rt__qubit_release(%Qubit* %1)  
+  )script");
+
+    auto profile = std::make_shared<RuleSetProfile>([](RuleSet& rule_set) {
+        auto factory = RuleFactory(rule_set);
+
+        factory.useStaticQubitAllocation();
+    });
+
+    ir_manip->applyProfile(profile);
+
+    // TODO(tfr): Test that an error was emitted
 }

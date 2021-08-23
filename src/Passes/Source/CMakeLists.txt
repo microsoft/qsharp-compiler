@@ -20,11 +20,3 @@ target_link_libraries(Profiles PRIVATE Rules ExpandStaticAllocation Transformati
 microsoft_add_library_tests(Profiles ExpandStaticAllocation QirAllocationAnalysis TransformationRule Rules AllocationManager Commandline Profiles)
 
 add_subdirectory(Apps)
-
-
-add_executable(Xxx Profiles/Tests/Unit/main.cpp)
-
-target_link_libraries(Xxx ${llvm_libs})
-target_link_libraries(Xxx TestTools ExpandStaticAllocation QirAllocationAnalysis TransformationRule Rules AllocationManager Commandline Profiles)
-target_include_directories(Xxx PRIVATE ${MICROSOFT_ROOT_VENDOR_DIR}/googletest/googlemock/include)
-target_link_libraries(Xxx gmock gmock_main TestTools)   

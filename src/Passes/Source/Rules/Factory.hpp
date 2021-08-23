@@ -68,11 +68,6 @@ namespace quantum
         void disableStringSupport();
         /// @}
 
-        /// Allocation Managers
-        /// @{
-        AllocationManagerPtr qubitAllocationManager() const;
-        AllocationManagerPtr resultAllocationManager() const;
-        /// @}
       private:
         ReplacementRulePtr addRule(ReplacementRule&& rule);
 

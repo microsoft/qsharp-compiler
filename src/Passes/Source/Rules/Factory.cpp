@@ -20,16 +20,6 @@ namespace quantum
     {
     }
 
-    RuleFactory::AllocationManagerPtr RuleFactory::qubitAllocationManager() const
-    {
-        return qubit_alloc_manager_;
-    }
-
-    RuleFactory::AllocationManagerPtr RuleFactory::resultAllocationManager() const
-    {
-        return result_alloc_manager_;
-    }
-
     void RuleFactory::removeFunctionCall(String const& name)
     {
         addRule({callByNameOnly(name), deleteInstruction()});
@@ -191,9 +181,10 @@ namespace quantum
                  return deleter(builder, val, cap, rep);
              }});
 
-        // Handling the case where the qubit is allocated by name:
+        // Handling where allocation is done by non-standard functions. In
+        // this rule reports an error as we cannot reliably do a mapping.
         //
-        // %leftMessage = call %Qubit* @__quantum__rt__qubit_allocate()
+        // %leftMessage = call %Qubit* @__non_standard_allocator()
         // call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
         addRule(
             {call("__quantum__rt__qubit_release", "name"_cap = _),
@@ -204,35 +195,25 @@ namespace quantum
                  // Returning in case the name comes out empty
                  if (name.empty())
                  {
-                     return false;
+
+                     // TODO(tfr): report error
+                     llvm::errs() << "FAILED due to unnamed non standard allocation:\n";
+                     llvm::errs() << *val << "\n\n";
+
+                     // Deleting the instruction in order to proceed
+                     // and trying to discover as many other errors as possible
+                     return deleter(builder, val, cap, rep);
                  }
 
-                 llvm::errs() << "Releasing name: " << name << "\n";
-                 // qubit_alloc_manager->release(name);
-
-                 llvm::errs() << "Diag:\n";
+                 // TODO(tfr): report error
+                 llvm::errs() << "FAILED due to non standard allocation:\n";
                  llvm::errs() << *cap["name"] << "\n";
                  llvm::errs() << *val << "\n\n";
-                 (void)(builder);
-                 (void)(val);
-                 (void)(cap);
-                 (void)(rep);
+
                  return deleter(builder, val, cap, rep);
              }
 
             });
-
-        // Last resort:
-        addRule(
-            {call("__quantum__rt__qubit_release", "name"_cap = _),
-             [qubit_alloc_manager, deleter](Builder&, Value* val, Captures& cap, Replacements&) -> bool {
-                 llvm::errs() << "FAILED:\n";
-                 llvm::errs() << *cap["name"] << "\n";
-                 llvm::errs() << *val << "\n\n";
-
-                 throw std::runtime_error("Case not handled for __quantum__rt__qubit_release");
-                 // return deleter(builder, val, cap, rep);
-             }});
     }
 
     void RuleFactory::useStaticResultAllocation()

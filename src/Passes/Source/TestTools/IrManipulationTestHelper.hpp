@@ -95,6 +95,8 @@ namespace quantum
         /// Returns false if the IR is invalid.
         bool fromBodyString(String const& body);
 
+        String generateScript(String const& body) const;
+
         /// Creates an LLVM module given from a fully specified IR. This function
         /// ignores all inputs from IrManipulationTestHelper::declareOpaque and
         /// IrManipulationTestHelper::declareFunction.
