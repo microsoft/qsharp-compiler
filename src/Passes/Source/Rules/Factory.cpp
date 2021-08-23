@@ -275,6 +275,16 @@ void RuleFactory::useStaticResultAllocation()
     return true;
   };
 
+  // This rules identifies result allocations through the function "__quantum__qis__m__body".
+  // As an example, the following
+  //
+  // %result1 = call %Result* @__quantum__qis__m__body(%Qubit* %0)
+  //
+  // translates into
+  //
+  // %result1 = inttoptr i64 0 to %Result*
+  // call void @__quantum__qis__mz__body(%Qubit* %0, %Result* %result1)
+
   addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
 }
 
