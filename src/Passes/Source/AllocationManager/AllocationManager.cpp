@@ -92,13 +92,13 @@ namespace quantum
         }
         name_to_index_.erase(it);
 
-        // TODO: Address to index
+        // TODO(tfr): Address to index
     }
 
     void AllocationManager::release(Address const&)
     {
-        // TODO: Address to index
-        // TODO: Name to index
+        // TODO(tfr): Address to index
+        // TODO(tfr): Name to index
     }
 
 } // namespace quantum
