@@ -89,6 +89,11 @@ and internal NewSizedArray =
 
         // The value at each index of the array.
         Value: Expression
+        
+        /// <summary>
+        /// The <c>,</c> symbol.
+        /// </summary>
+        Comma: Terminal
 
         /// <summary>
         /// The <c>size</c> keyword.

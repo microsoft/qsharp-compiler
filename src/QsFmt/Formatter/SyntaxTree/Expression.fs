@@ -36,6 +36,7 @@ and NewSizedArray =
     {
         OpenBracket: Terminal
         Value: Expression
+        Comma: Terminal
         Size: Terminal
         Equals: Terminal
         Length: Expression
