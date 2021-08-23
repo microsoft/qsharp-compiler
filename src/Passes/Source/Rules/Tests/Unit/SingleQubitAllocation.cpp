@@ -131,7 +131,7 @@ TEST(RuleSetTestSuite, AllocateReleaseMultipleTimes)
 
     ir_manip->applyProfile(profile);
 
-    // TODO: Ideally these shoulw all have the same id, however,
+    // TODO(tfr): Ideally these shoulw all have the same id, however,
     // this require more thought with regards to the qubit allocation
     EXPECT_TRUE(ir_manip->hasInstructionSequence({
         "%qubit1 = inttoptr i64 0 to %Qubit*",
