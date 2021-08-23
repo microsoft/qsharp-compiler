@@ -157,7 +157,7 @@ source_filename = "IrManipulationTestHelper.ll"
 )script";
 
         // Adding opaque types
-        for (auto op : opaque_declarations_)
+        for (auto const& op : opaque_declarations_)
         {
             script += "%" + op + " = type opaque\n";
         }
@@ -167,7 +167,7 @@ source_filename = "IrManipulationTestHelper.ll"
         script += "\n  ret i8 0\n";
         script += "\n}\n\n";
 
-        for (auto op : function_declarations_)
+        for (auto const& op : function_declarations_)
         {
             script += "declare " + op + " local_unnamed_addr\n";
         }

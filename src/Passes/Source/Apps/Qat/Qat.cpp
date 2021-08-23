@@ -1,6 +1,16 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+/// QIR Adaptor Tool (QAT)
+///
+/// QAT is a tool that helps the enduser to easily build and use new profiles. The tool provides a
+/// commandline interface which is configurable through YAML files to validate a specific QIR
+/// profile and generate a QIR profile compatible IR from a generic IR.
+///
+/// The tool itself make use of LLVM passes to perform analysis and transformations of the supplied
+/// IR. These transfornations are described through high-level tasks such as
+/// `useStaticQubitArrayAllocation`.
+
 #include "Apps/Qat/LlvmAnalysis.hpp"
 #include "Commandline/ParameterParser.hpp"
 #include "Commandline/Settings.hpp"
