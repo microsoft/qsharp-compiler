@@ -43,7 +43,7 @@ function (microsoft_add_library
   else () 
     # Assuming linux
     if(MICROSOFT_ENABLE_DYNAMIC_LOADING)
-      target_link_libraries(${library} 
+      target_compile_options(${library} 
         PUBLIC "-fPIC")
     else()
       target_link_libraries(${library} PRIVATE ${llvm_libs})
