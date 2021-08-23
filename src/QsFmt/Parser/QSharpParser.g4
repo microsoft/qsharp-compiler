@@ -209,6 +209,7 @@ expression
     | value=pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
+    | openBracket='[' value=expression comma=',' size=Identifier {((SizedArrayExpressionContext)_localctx).size.Text == "size"}? equals='=' length=expression closeBracket=']' # SizedArrayExpression
     | new='new' itemType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
     | record=expression colon='::' name=Identifier # NamedItemAccessExpression
     | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression

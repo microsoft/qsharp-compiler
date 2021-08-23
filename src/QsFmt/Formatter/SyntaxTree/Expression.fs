@@ -32,6 +32,16 @@ and NewArray =
         CloseBracket: Terminal
     }
 
+and NewSizedArray =
+    {
+        OpenBracket: Terminal
+        Value: Expression
+        Size: Terminal
+        Equals: Terminal
+        Length: Expression
+        CloseBracket: Terminal
+    }
+
 and NamedItemAccess =
     {
         Record: Expression
@@ -74,6 +84,7 @@ and Expression =
     | InterpString of InterpString
     | Tuple of Expression Tuple
     | NewArray of NewArray
+    | NewSizedArray of NewSizedArray
     | NamedItemAccess of NamedItemAccess
     | ArrayAccess of ArrayAccess
     | Call of Call

@@ -79,6 +79,36 @@ and internal NewArray =
         CloseBracket: Terminal
     }
 
+/// A new array expression with a size.
+and internal NewSizedArray =
+    {
+        /// <summary>
+        /// The <c>[</c> symbol.
+        /// </summary>
+        OpenBracket: Terminal
+
+        // The value at each index of the array.
+        Value: Expression
+
+        /// <summary>
+        /// The <c>size</c> keyword.
+        /// </summary>
+        Size: Terminal
+        
+        /// <summary>
+        /// The <c>=</c> symbol.
+        /// </summary>
+        Equals: Terminal
+
+        /// The length of the created array.
+        Length: Expression
+
+        /// <summary>
+        /// The <c>]</c> symbol.
+        /// </summary>
+        CloseBracket: Terminal
+    }
+
 /// A named-item-access expression.
 and internal NamedItemAccess =
     {
@@ -187,6 +217,9 @@ and internal Expression =
 
     /// A new array expression.
     | NewArray of NewArray
+
+    /// A new array expression with a size.
+    | NewSizedArray of NewSizedArray
 
     /// A named-item-access expression.
     | NamedItemAccess of NamedItemAccess
