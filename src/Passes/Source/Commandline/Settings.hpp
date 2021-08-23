@@ -20,20 +20,26 @@ namespace quantum
         using SettingsMap = std::unordered_map<String, String>;
         explicit Settings(SettingsMap default_settings);
 
-        String get(String const& name, String const& default_value);
+        /// Accessing settings
+        /// @{
+        /// Gets a named setting, falling back to a default if the key is not found.
+        String get(String const& name, String const& default_value) noexcept;
+
+        /// Gets a named setting. This method throws if the setting is not present.
         String get(String const& name);
+
+        /// Access operator which forwards access to the underlying map.
+        String& operator[](String const& key);
+        /// @}
 
         /// Helper functions
         /// @{
-
-        /// Prints
+        /// Prints the settings and their current values.
         void print();
         /// @}
 
-        String& operator[](String const& key);
-
       private:
-        SettingsMap settings_;
+        SettingsMap settings_; ///< Settings map that keeps all specified settings.
         friend class ParameterParser;
     };
 

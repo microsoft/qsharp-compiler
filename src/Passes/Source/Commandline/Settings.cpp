@@ -18,7 +18,7 @@ namespace quantum
     {
     }
 
-    Settings::String Settings::get(String const& name, String const& default_value)
+    Settings::String Settings::get(String const& name, String const& default_value) noexcept
     {
         auto it = settings_.find(name);
         if (it == settings_.end())
