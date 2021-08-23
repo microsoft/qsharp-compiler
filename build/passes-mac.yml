@@ -13,7 +13,8 @@ steps:
       export PATH="/usr/local/opt/llvm@11/bin:$PATH"
       export LDFLAGS="${LDFLAGS} -L/usr/local/opt/llvm@11/lib"
       export CPPFLAGS="${CPPFLAGS} -I/usr/local/opt/llvm@11/include"
-
+      
+      git submodule update --init --recursive
       cd src/Passes/
       pip3 install --user -r requirements.txt      
       chmod +x manage
