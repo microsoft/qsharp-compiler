@@ -2,9 +2,9 @@ cmake_minimum_required(VERSION 3.4.3)
 
 project(QirPasses)
 
-option(MICROSOFT_ENABLE_TESTS               "Enable test targets"                   ON)
-option(MICROSOFT_ENABLE_DYNAMIC_LOADING     "Use dynamic loading"                  ON)
-
+option(MICROSOFT_ENABLE_TESTS               "Enable test targets"   ON)
+option(MICROSOFT_ENABLE_DYNAMIC_LOADING     "Use dynamic loading"   ON)
+option(MICROSOFT_GENERATE_COVERAGE          "Generate coverage"     OFF)
 
 # Microsoft Settings
 set(MICROSOFT_ROOT_PASSES_DIR ${CMAKE_CURRENT_SOURCE_DIR})
@@ -28,6 +28,28 @@ if(${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG})
     set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fvisibility-inlines-hidden")
   endif()
 endif()
+
+
+# Helper variable to determine if we are using clang compiler
+set(using_clang_compiler FALSE)
+if ( "${CMAKE_CXX_COMPILER_ID}" STREQUAL "AppleClang" OR "${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(using_clang_compiler TRUE)
+endif ()
+
+# Add compiler flags if we are 
+if (MICROSOFT_GENERATE_COVERAGE)
+    message(STATUS "Generating coverage data")
+    
+    if (using_clang_compiler)
+      # Generating coverage output
+      set(CMAKE_CXX_FLAGS_DEBUG "-g -fprofile-instr-generate -fcoverage-mapping -O0")
+
+      # Forcing debug build
+      set(CMAKE_BUILD_TYPE "Debug")
+    else ()
+      message(SEND_ERROR "Coverage flag enabled but clang compiler not found, CMake will exit.")
+    endif ()
+endif (MICROSOFT_GENERATE_COVERAGE)
 
 
 

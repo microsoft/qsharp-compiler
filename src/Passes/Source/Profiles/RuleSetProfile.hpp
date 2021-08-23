@@ -35,13 +35,16 @@ namespace quantum
             PassBuilder&             pass_builder,
             OptimizationLevel const& optimisation_level,
             bool                     debug) override;
+
         /// Currently not supported. This function throws an exception.
         llvm::ModulePassManager createValidationModulePass(
             PassBuilder&             pass_builder,
             OptimizationLevel const& optimisation_level,
             bool                     debug) override;
+
         /// Currently not supported. This function throws an exception.
         void addFunctionAnalyses(FunctionAnalysisManager& fam) override;
+
         /// @}
       private:
         ConfigureFunction configure_{};
