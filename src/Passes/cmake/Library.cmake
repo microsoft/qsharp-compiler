@@ -28,11 +28,28 @@ function (microsoft_add_library
     "${CMAKE_CURRENT_SOURCE_DIR}/include"
   )
 
-  if(MICROSOFT_ENABLE_DYNAMIC_LOADING)
-    target_link_libraries(${library} 
-      PUBLIC "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
-  else()
-    target_link_libraries(${library} PRIVATE ${llvm_libs})
-  endif(MICROSOFT_ENABLE_DYNAMIC_LOADING)
+
+  if (WIN32)
+    # Windows specific congure
+  elseif (APPLE)
+    # OS X specific
+    if(MICROSOFT_ENABLE_DYNAMIC_LOADING)
+      target_link_libraries(${library} 
+        PUBLIC "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+    else()
+      target_link_libraries(${library} PRIVATE ${llvm_libs})
+    endif(MICROSOFT_ENABLE_DYNAMIC_LOADING)
+
+  else () 
+    # Assuming linux
+    if(MICROSOFT_ENABLE_DYNAMIC_LOADING)
+      target_link_libraries(${library} 
+        PUBLIC "-fPIC")
+    else()
+      target_link_libraries(${library} PRIVATE ${llvm_libs})
+    endif(MICROSOFT_ENABLE_DYNAMIC_LOADING)    
+  endif ()
+
+
 
 endfunction ()
