@@ -4,11 +4,11 @@ Welcome to the QIR Profile SDK, a framework to manipulate QIR into specific prof
 
 Developer guide:
 
-- [Quick start](/DeveloperGuide/QuickStart.md)
-- [Building the library](/DeveloperGuide/Building.md)
-- [Creating a profile transformation in C++](/DeveloperGuide/ProfileTransformationCpp.md)
-- [Writing Rule Tests](/DeveloperGuide/WritingRuleTests.md)
-- [Introduction to LLVM passes](/DeveloperGuide/IntroductionPass.md)
-- [Creating a new LLVM pass](/DeveloperGuide/AddingPass.md)
-- [Code quality](/DeveloperGuide/CodeQuality.md)
-- [Developer FAQ](/DeveloperGuide/DeveloperFAQ.md)
+- [Quick start](DeveloperGuide/QuickStart.md)
+- [Building the library](DeveloperGuide/Building.md)
+- [Creating a profile transformation in C++](DeveloperGuide/ProfileTransformationCpp.md)
+- [Writing Rule Tests](DeveloperGuide/WritingRuleTests.md)
+- [Introduction to LLVM passes](DeveloperGuide/IntroductionPass.md)
+- [Creating a new LLVM pass](DeveloperGuide/AddingPass.md)
+- [Code quality](DeveloperGuide/CodeQuality.md)
+- [Developer FAQ](DeveloperGuide/DeveloperFAQ.md)

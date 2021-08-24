@@ -63,6 +63,12 @@ namespace quantum
                 // Replacing the instruction with new instruction
                 auto old_instr = llvm::dyn_cast<Instruction>(val);
 
+                // Safety precaution to ensure that we are dealing with a Instruction
+                if (old_instr == nullptr)
+                {
+                    return false;
+                }
+
                 // Ensuring that we have replaced the instruction before
                 // identifying release
                 old_instr->replaceAllUsesWith(instr);
@@ -175,6 +181,12 @@ namespace quantum
 
                 // Replacing the instruction with new instruction
                 auto old_instr = llvm::dyn_cast<Instruction>(val);
+
+                // Safety precaution to ensure that we are dealing with a Instruction
+                if (old_instr == nullptr)
+                {
+                    return false;
+                }
 
                 // Ensuring that we have replaced the instruction before
                 // identifying release
