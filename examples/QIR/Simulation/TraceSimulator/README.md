@@ -190,14 +190,6 @@ Use the NuGet CLI with the commands below to download the [QIR Runtime package](
     rm -r tmp
     ```
 
-    The sample trace simulator can then be compiled to a static library with the following command:
-
-    ```shell
-    clang++ -fuse-ld=llvm-lib RuntimeManagement.cpp TraceSimulation.cpp -Ibuild -o build/TraceSimulator.lib
-    ```
-
-    Where the parameter `-fuse-ld` is used to specify a linker and `llvm-lib` is an LLVM replacement for MSVC's static library tool [LIB](https://docs.microsoft.com/cpp/build/reference/lib-reference).
-
 - **Linux** (installs mono for the NuGet CLI):
 
     ```shell
@@ -211,7 +203,17 @@ Use the NuGet CLI with the commands below to download the [QIR Runtime package](
     rm -r tmp
     ```
 
-    The sample trace simulator can then be compiled to a static library with the following commands:
+The sample trace simulator can then be compiled to a static library with the following commands:
+
+- **Windows**:
+
+    ```shell
+    clang++ -fuse-ld=llvm-lib RuntimeManagement.cpp TraceSimulation.cpp -Ibuild -o build/TraceSimulator.lib
+    ```
+
+    Where the parameter `-fuse-ld` is used to specify a linker and `llvm-lib` is an LLVM replacement for MSVC's static library tool [LIB](https://docs.microsoft.com/cpp/build/reference/lib-reference).
+
+- **Linux**:
 
     ```shell
     clang++ -c RuntimeManagement.cpp -Ibuild -o build/RuntimeManagement.o
@@ -219,7 +221,7 @@ Use the NuGet CLI with the commands below to download the [QIR Runtime package](
     llvm-ar rc build/libTraceSimulator.a build/RuntimeManagement.o build/TraceSimulation.o
     ```
 
-    Where we first create object files from the source files, and then combine them to an archive using the `llvm-ar` command.
+    Where the parameter `-c` is used to create object files, which are then combined to an archive using the `llvm-ar` command.
 
 ## Running the simulator
 
