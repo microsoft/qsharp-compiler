@@ -23,7 +23,7 @@ pip install llvmlite
 The llvmlite package may also be available via the system package manager, just make sure to at least get version 0.37 for LLVM 11 support.
 
 The sample also makes use of the [Clang compiler](https://clang.llvm.org/).
-Refer to the [Optimization example](../Optimization) for instructions on installing Cland and LLVM.
+Refer to the [Optimization example](../Optimization#installing-clang) for instructions on installing Clang and LLVM.
 
 ## Calling into LLVM's JIT library
 
