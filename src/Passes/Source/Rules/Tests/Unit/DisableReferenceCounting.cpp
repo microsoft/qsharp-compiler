@@ -35,8 +35,11 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
     ir_manip->declareFunction("void @__quantum__rt__string_update_reference_count(%String*, i32)");
     ir_manip->declareFunction("void @__quantum__rt__result_update_reference_count(%Result*, i32)");
 
-    assert(ir_manip->fromBodyString(script));
-
+    if (!ir_manip->fromBodyString(script))
+    {
+        llvm::errs() << ir_manip->getErrorMessage() << "\n";
+        exit(-1);
+    }
     return ir_manip;
 }
 

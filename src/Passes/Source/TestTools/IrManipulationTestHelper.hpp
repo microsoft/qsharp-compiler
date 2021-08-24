@@ -105,6 +105,9 @@ namespace quantum
         /// Returns false if the IR is invalid.
         bool fromString(String const& data);
 
+        /// Gets an error message if the compilation failed.
+        String getErrorMessage() const;
+
         /// @}
 
         /// Acccess member functions

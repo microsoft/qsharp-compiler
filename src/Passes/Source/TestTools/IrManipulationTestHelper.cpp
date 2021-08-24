@@ -169,10 +169,38 @@ source_filename = "IrManipulationTestHelper.ll"
 
         for (auto const& op : function_declarations_)
         {
-            script += "declare " + op + " local_unnamed_addr\n";
+            script += "declare " + op + "\n";
         }
         script += "\nattributes #0 = { \"InteropFriendly\" }\n";
         return script;
+    }
+
+    IrManipulationTestHelper::String IrManipulationTestHelper::getErrorMessage() const
+    {
+        String                   str;
+        llvm::raw_string_ostream ostream(str);
+        switch (error_.getKind())
+        {
+        case llvm::SourceMgr::DiagKind::DK_Error:
+            ostream << "Error at ";
+            break;
+        case llvm::SourceMgr::DiagKind::DK_Warning:
+            ostream << "Warning at ";
+            break;
+        case llvm::SourceMgr::DiagKind::DK_Remark:
+            ostream << "Remark at ";
+            break;
+        case llvm::SourceMgr::DiagKind::DK_Note:
+            ostream << "Note at ";
+            break;
+        }
+
+        ostream << error_.getLineNo() << ":" << error_.getColumnNo() << ": ";
+        ostream << error_.getMessage() << "\n\n";
+        ostream << error_.getLineContents();
+        ostream.flush();
+
+        return str;
     }
 
     bool IrManipulationTestHelper::fromBodyString(String const& body)

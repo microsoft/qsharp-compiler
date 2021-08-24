@@ -34,8 +34,11 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
 
     // TODO(tfr): Add test for   %1 = call %String* @__quantum__rt__result_to_string(%Result* %0)
 
-    assert(ir_manip->fromBodyString(script));
-
+    if (!ir_manip->fromBodyString(script))
+    {
+        llvm::errs() << ir_manip->getErrorMessage() << "\n";
+        exit(-1);
+    }
     return ir_manip;
 }
 

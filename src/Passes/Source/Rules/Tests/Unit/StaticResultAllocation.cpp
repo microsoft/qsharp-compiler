@@ -29,8 +29,11 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
     ir_manip->declareFunction("i8* @__non_standard_int_allocator()");
     ir_manip->declareFunction("%Result* @__quantum__qis__m__body(%Qubit*)");
 
-    assert(ir_manip->fromBodyString(script));
-
+    if (!ir_manip->fromBodyString(script))
+    {
+        llvm::errs() << ir_manip->getErrorMessage() << "\n";
+        exit(-1);
+    }
     return ir_manip;
 }
 

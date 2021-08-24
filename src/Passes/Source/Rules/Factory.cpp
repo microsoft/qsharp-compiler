@@ -98,7 +98,6 @@ namespace quantum
         auto access_replacer =
             [qubit_alloc_manager](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
                 // Getting the type pointer
-                llvm::errs() << "Attempting to rpleace: " << *val << "\n";
                 auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
                 if (ptr_type == nullptr)
                 {
