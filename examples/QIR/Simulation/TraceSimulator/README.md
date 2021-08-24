@@ -179,22 +179,47 @@ Measuring qubits:
 Although the [QIR Runtime header files](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/public) are sufficient to compile the simulator, actually running it will require the Runtime binaries.
 Use the NuGet CLI with the commands below to download the [QIR Runtime package](https://www.nuget.org/packages/Microsoft.Quantum.Qir.Runtime) and extract the appropriate headers and libraries (adjusting the package version as required):
 
-```shell
-mkdir build
-curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget.exe
-build/nuget install Microsoft.Quantum.Qir.Runtime -version 0.18.2106148911-alpha -outputdirectory tmp
-cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
-cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/win-x64/native/* build
-rm -r tmp
-```
+- **Windows**:
 
-The sample trace simulator can then be compiled to a static library with the following command:
+    ```shell
+    mkdir build
+    curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget.exe
+    build/nuget install Microsoft.Quantum.Qir.Runtime -Version 0.18.2106148911-alpha -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
+    cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
+    cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/win-x64/native/* build
+    rm -r tmp
+    ```
 
-```shell
-clang++ -fuse-ld=llvm-lib RuntimeManagement.cpp TraceSimulation.cpp -Ibuild -o build/TraceSimulator.lib
-```
+    The sample trace simulator can then be compiled to a static library with the following command:
 
-Where the parameter `-fuse-ld` is used to specify a linker and `llvm-lib` is an LLVM replacement for MSVC's static library tool [LIB](https://docs.microsoft.com/cpp/build/reference/lib-reference).
+    ```shell
+    clang++ -fuse-ld=llvm-lib RuntimeManagement.cpp TraceSimulation.cpp -Ibuild -o build/TraceSimulator.lib
+    ```
+
+    Where the parameter `-fuse-ld` is used to specify a linker and `llvm-lib` is an LLVM replacement for MSVC's static library tool [LIB](https://docs.microsoft.com/cpp/build/reference/lib-reference).
+
+- **Linux** (installs mono for the NuGet CLI):
+
+    ```shell
+    mkdir build
+    sudo apt update && sudo apt install -y mono-complete
+    curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget
+    mono build/nuget sources add -name nuget.org -source https://api.nuget.org/v3/index.json
+    mono build/nuget install Microsoft.Quantum.Qir.Runtime -Version 0.18.2106148911-alpha -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
+    cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
+    cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/linux-x64/native/* build
+    rm -r tmp
+    ```
+
+    The sample trace simulator can then be compiled to a static library with the following commands:
+
+    ```shell
+    clang++ -c RuntimeManagement.cpp -Ibuild -o build/RuntimeManagement.o
+    clang++ -c TraceSimulation.cpp -Ibuild -o build/TraceSimulation.o
+    llvm-ar rc build/libTraceSimulator.a build/RuntimeManagement.o build/TraceSimulation.o
+    ```
+
+    Where we first create object files from the source files, and then combine them to an archive using the `llvm-ar` command.
 
 ## Running the simulator
 
@@ -249,6 +274,6 @@ int main(int argc, char* argv[]){
 With all dependencies present in the `build` directory, the quantum program can be compiled with the custom simulator as backend:
 
 ```shell
-clang++ Hello/qir/Hello.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'TraceSimulator' -o build/Hello.exe
+clang++ Hello/qir/Hello.ll Main.cpp -Ibuild -Lbuild -l'Microsoft.Quantum.Qir.Runtime' -l'Microsoft.Quantum.Qir.QSharp.Core' -l'Microsoft.Quantum.Qir.QSharp.Foundation' -l'TraceSimulator' -Wl',-rpath=build' -o build/Hello.exe
 build/Hello
 ```
