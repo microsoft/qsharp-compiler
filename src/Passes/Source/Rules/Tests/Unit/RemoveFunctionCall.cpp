@@ -27,7 +27,7 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
 
     ir_manip->declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
     ir_manip->declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
-    ir_manip->declareFunction("void @__quantum__qis__h(%Qubit*)");
+    ir_manip->declareFunction("void @__quantum__qis__h__body(%Qubit*)");
 
     assert(ir_manip->fromBodyString(script));
 
@@ -41,14 +41,14 @@ TEST(RuleSetTestSuite, RemovingFunctionCall)
 {
     auto ir_manip = newIrManip(R"script(
   %qubit = call %Qubit* @__quantum__rt__qubit_allocate()
-  call void @__quantum__qis__h(%Qubit* %qubit)
+  call void @__quantum__qis__h__body(%Qubit* %qubit)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit)    
   )script");
 
     auto configure_profile = [](RuleSet& rule_set) {
         auto factory = RuleFactory(rule_set);
 
-        factory.removeFunctionCall("__quantum__qis__h");
+        factory.removeFunctionCall("__quantum__qis__h__body");
     };
 
     auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
@@ -59,6 +59,6 @@ TEST(RuleSetTestSuite, RemovingFunctionCall)
          "tail call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}));
 
     // We expect that the call was removed
-    EXPECT_FALSE(ir_manip->hasInstructionSequence({"call void @__quantum__qis__h(%Qubit* %qubit)"}));
-    EXPECT_FALSE(ir_manip->hasInstructionSequence({"tail call void @__quantum__qis__h(%Qubit* %qubit)"}));
+    EXPECT_FALSE(ir_manip->hasInstructionSequence({"call void @__quantum__qis__h__body(%Qubit* %qubit)"}));
+    EXPECT_FALSE(ir_manip->hasInstructionSequence({"tail call void @__quantum__qis__h__body(%Qubit* %qubit)"}));
 }

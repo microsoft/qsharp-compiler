@@ -16,13 +16,13 @@ TEST(TestToolsTestSuite, IrParitalConstruction)
     input.declareFunction("i1 @__quantum__rt__result_equal(%Result*, %Result*)");
     input.declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
     input.declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
-    input.declareFunction("void @__quantum__qis__h(%Qubit*)");
+    input.declareFunction("void @__quantum__qis__h__body(%Qubit*)");
     input.declareFunction("%Result* @__quantum__rt__result_get_zero()");
     input.declareFunction("void @__quantum__qis__mz__body(%Qubit*, %Result*)");
 
     input.fromBodyString(R"script(
   %leftMessage = call %Qubit* @__quantum__rt__qubit_allocate()
-  call void @__quantum__qis__h(%Qubit* %leftMessage)
+  call void @__quantum__qis__h__body(%Qubit* %leftMessage)
   call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
 
   %0 = call %Result* @__quantum__rt__result_get_zero()
@@ -33,7 +33,7 @@ TEST(TestToolsTestSuite, IrParitalConstruction)
 
     EXPECT_TRUE(input.hasInstructionSequence({}));
     EXPECT_TRUE(input.hasInstructionSequence(
-        {"call void @__quantum__qis__h(%Qubit* %leftMessage)",
+        {"call void @__quantum__qis__h__body(%Qubit* %leftMessage)",
          "%0 = call %Result* @__quantum__rt__result_get_zero()"}));
 
     EXPECT_TRUE(input.hasInstructionSequence(
@@ -43,7 +43,7 @@ TEST(TestToolsTestSuite, IrParitalConstruction)
 
     EXPECT_FALSE(input.hasInstructionSequence(
         {"%0 = call %Result* @__quantum__rt__result_get_zero()",
-         "call void @__quantum__qis__h(%Qubit* %leftMessage)"}));
+         "call void @__quantum__qis__h__body(%Qubit* %leftMessage)"}));
 
     EXPECT_FALSE(input.hasInstructionSequence({"%0 = call %Result* @non_existant_function()"}));
     EXPECT_FALSE(input.hasInstructionSequence({""}));
@@ -64,7 +64,7 @@ source_filename = "IrManipulationTestHelper.ll"
 define i8 @Main() local_unnamed_addr {
 entry:
   %leftMessage = call %Qubit* @__quantum__rt__qubit_allocate()
-  call void @__quantum__qis__h(%Qubit* %leftMessage)
+  call void @__quantum__qis__h__body(%Qubit* %leftMessage)
   call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
   %0 = call %Result* @__quantum__rt__result_get_zero()
   %1 = call i1 @__quantum__rt__result_equal(%Result* nonnull inttoptr (i64 3 to %Result*), %Result* %0)
@@ -75,7 +75,7 @@ declare void @__quantum__qis__mz__body(%Qubit*, %Result*) local_unnamed_addr
 
 declare %Result* @__quantum__rt__result_get_zero() local_unnamed_addr
 
-declare void @__quantum__qis__h(%Qubit*) local_unnamed_addr
+declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
 
 declare void @__quantum__rt__qubit_release(%Qubit*) local_unnamed_addr
 
@@ -87,7 +87,7 @@ declare i1 @__quantum__rt__result_equal(%Result*, %Result*) local_unnamed_addr
 
     EXPECT_TRUE(input.hasInstructionSequence({}));
     EXPECT_TRUE(input.hasInstructionSequence(
-        {"call void @__quantum__qis__h(%Qubit* %leftMessage)",
+        {"call void @__quantum__qis__h__body(%Qubit* %leftMessage)",
          "%0 = call %Result* @__quantum__rt__result_get_zero()"}));
 
     EXPECT_TRUE(input.hasInstructionSequence(
@@ -97,7 +97,7 @@ declare i1 @__quantum__rt__result_equal(%Result*, %Result*) local_unnamed_addr
 
     EXPECT_FALSE(input.hasInstructionSequence(
         {"%0 = call %Result* @__quantum__rt__result_get_zero()",
-         "call void @__quantum__qis__h(%Qubit* %leftMessage)"}));
+         "call void @__quantum__qis__h__body(%Qubit* %leftMessage)"}));
 
     EXPECT_FALSE(input.hasInstructionSequence({"%0 = call %Result* @non_existant_function()"}));
     EXPECT_FALSE(input.hasInstructionSequence({""}));

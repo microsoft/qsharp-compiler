@@ -88,7 +88,7 @@ namespace quantum
         /// ```
         /// irmanip.fromBodyString(R"script(
         /// %leftMessage = call %Qubit* @__quantum__rt__qubit_allocate()
-        /// call void @__quantum__qis__h(%Qubit* %leftMessage)
+        /// call void @__quantum__qis__h__body(%Qubit* %leftMessage)
         /// )script");
         /// ```
         ///

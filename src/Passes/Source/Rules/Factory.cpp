@@ -45,6 +45,11 @@ namespace quantum
                     return false;
                 }
 
+                if (cst == nullptr)
+                {
+                    return false;
+                }
+
                 auto llvm_size = cst->getValue();
                 auto name      = val->getName().str();
                 auto size      = llvm_size.getZExtValue();
@@ -217,7 +222,11 @@ namespace quantum
             {call("__quantum__rt__qubit_release", intToPtr("const"_cap = constInt())),
              [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
                  // Recovering the qubit id
-                 auto cst     = llvm::dyn_cast<llvm::ConstantInt>(cap["const"]);
+                 auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["const"]);
+                 if (cst == nullptr)
+                 {
+                     return false;
+                 }
                  auto address = cst->getValue().getZExtValue();
 
                  // Releasing
@@ -287,9 +296,21 @@ namespace quantum
                 auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
 
                 auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+
+                if (instr == nullptr)
+                {
+                    return false;
+                }
+
                 instr->takeName(val);
 
-                auto module   = llvm::dyn_cast<llvm::Instruction>(val)->getModule();
+                auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+                if (orig_instr == nullptr)
+                {
+                    return false;
+                }
+
+                auto module   = orig_instr->getModule();
                 auto function = module->getFunction("__quantum__qis__mz__body");
 
                 std::vector<llvm::Value*> arguments;
@@ -342,7 +363,13 @@ namespace quantum
             auto result = cap["result"];
             auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
             // Replacing result
-            auto                      module   = llvm::dyn_cast<llvm::Instruction>(val)->getModule();
+            auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+            if (orig_instr == nullptr)
+            {
+                return false;
+            }
+
+            auto                      module   = orig_instr->getModule();
             auto                      function = module->getFunction("__quantum__qir__read_result");
             std::vector<llvm::Value*> arguments;
             arguments.push_back(result);
@@ -365,6 +392,11 @@ namespace quantum
 
             builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
             auto new_call = builder.CreateCall(function, arguments);
+            if (cond == nullptr)
+            {
+                return false;
+            }
+
             new_call->takeName(cond);
 
             for (auto& use : cond->uses())

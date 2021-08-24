@@ -86,21 +86,21 @@ source_filename = "./analysis-example.ll"
 
 define internal fastcc void @TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body() unnamed_addr {
 entry:
-  call void @__quantum__qis__h(%Qubit* null)
-  call void @__quantum__qis__cnot(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-  call void @__quantum__qis__h(%Qubit* null)
-  call void @__quantum__qis__cnot(%Qubit* null, %Qubit* nonnull inttoptr (i64 2 to %Qubit*))
-  call void @__quantum__qis__h(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-  call void @__quantum__qis__cnot(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 3 to %Qubit*))
-  call void @__quantum__qis__cnot(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* null)
-  call void @__quantum__qis__h(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+  call void @__quantum__qis__h__body(%Qubit* null)
+  call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+  call void @__quantum__qis__h__body(%Qubit* null)
+  call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 2 to %Qubit*))
+  call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+  call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 3 to %Qubit*))
+  call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* null)
+  call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
   %0 = call i1 @__quantum__qir__read_result(%Result* nonnull inttoptr (i64 4 to %Result*))
   call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* nonnull inttoptr (i64 4 to %Result*))
   call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
   br i1 %0, label %then0__1.i.i, label %continue__1.i.i
 
 then0__1.i.i:                                     ; preds = %entry
-  call void @__quantum__qis__z(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))
+  call void @__quantum__qis__z__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))
   br label %continue__1.i.i
 
 continue__1.i.i:                                  ; preds = %then0__1.i.i, %entry
@@ -110,19 +110,19 @@ continue__1.i.i:                                  ; preds = %then0__1.i.i, %entr
   br i1 %1, label %then0__2.i.i, label %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.1.exit
 
 then0__2.i.i:                                     ; preds = %continue__1.i.i
-  call void @__quantum__qis__x(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))
+  call void @__quantum__qis__x__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))
   br label %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.1.exit
 
 TeleportChain__TeleportQubitUsingPresharedEntanglement__body.1.exit: ; preds = %continue__1.i.i, %then0__2.i.i
-  call void @__quantum__qis__cnot(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
-  call void @__quantum__qis__h(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))
+  call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+  call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))
   %2 = call i1 @__quantum__qir__read_result(%Result* nonnull inttoptr (i64 6 to %Result*))
   call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull inttoptr (i64 6 to %Result*))
   call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))
   br i1 %2, label %then0__1.i.i2, label %continue__1.i.i3
 
 then0__1.i.i2:                                    ; preds = %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.1.exit
-  call void @__quantum__qis__z(%Qubit* nonnull inttoptr (i64 3 to %Qubit*))
+  call void @__quantum__qis__z__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*))
   br label %continue__1.i.i3
 
 continue__1.i.i3:                                 ; preds = %then0__1.i.i2, %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.1.exit
@@ -132,7 +132,7 @@ continue__1.i.i3:                                 ; preds = %then0__1.i.i2, %Tel
   br i1 %3, label %then0__2.i.i4, label %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.2.exit
 
 then0__2.i.i4:                                    ; preds = %continue__1.i.i3
-  call void @__quantum__qis__x(%Qubit* nonnull inttoptr (i64 3 to %Qubit*))
+  call void @__quantum__qis__x__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*))
   br label %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.2.exit
 
 TeleportChain__TeleportQubitUsingPresharedEntanglement__body.2.exit: ; preds = %continue__1.i.i3, %then0__2.i.i4

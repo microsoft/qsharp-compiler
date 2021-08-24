@@ -28,7 +28,7 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
 
     ir_manip->declareFunction("%Array* @__quantum__rt__qubit_allocate_array(i64)");
     ir_manip->declareFunction("i8* @__quantum__rt__array_get_element_ptr_1d(%Array*, i64)");
-    ir_manip->declareFunction("void @__quantum__qis__h(%Qubit*)");
+    ir_manip->declareFunction("void @__quantum__qis__h__body(%Qubit*)");
 
     // __quantum__rt__qubit_allocate_array
     // __quantum__rt__array_get_element_ptr_1d
@@ -74,11 +74,8 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationOffsets)
 TEST(RuleSetTestSuite, StaticQubitArrayAllocationGetPtr)
 {
     auto ir_manip = newIrManip(R"script(
-  %array1 = call %Array* @__quantum__rt__qubit_allocate_array(i64 2) ; offset 0
-  %array2 = call %Array* @__quantum__rt__qubit_allocate_array(i64 3) ; offset 2
-  %array3 = call %Array* @__quantum__rt__qubit_allocate_array(i64 5) ; offset 5
-  %array4 = call %Array* @__quantum__rt__qubit_allocate_array(i64 9) ; offset 10
-  %array5 = call %Array* @__quantum__rt__qubit_allocate_array(i64 14) ; offset 19
+  %array1 = call %Array* @__quantum__rt__qubit_allocate_array(i64 2) 
+  %1 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %array1, i64 0)
   )script");
 
     auto configure_profile = [](RuleSet& rule_set) {

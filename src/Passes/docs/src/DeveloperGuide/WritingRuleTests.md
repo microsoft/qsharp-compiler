@@ -20,7 +20,7 @@ This profile is intended to transform
 
 ```
   %qubit = call %Qubit* @__quantum__rt__qubit_allocate()
-  call void @__quantum__qis__h(%Qubit* %qubit)
+  call void @__quantum__qis__h__body(%Qubit* %qubit)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit)
   ret i8 0
 ```
@@ -29,7 +29,7 @@ by replacing all allocations with integers and stripping all release calls
 
 ```
   %qubit = inttoptr i64 0 to %Qubit*
-  tail call void @__quantum__qis__h(%Qubit* %qubit)
+  tail call void @__quantum__qis__h__body(%Qubit* %qubit)
   ret i8 0
 ```
 
@@ -44,11 +44,11 @@ In order to assist the testing of the above profile, we create a helper class wh
 
   ir_manip->declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
   ir_manip->declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
-  ir_manip->declareFunction("void @__quantum__qis__h(%Qubit*)");
+  ir_manip->declareFunction("void @__quantum__qis__h__body(%Qubit*)");
 
   std::string script = R"script(
   %qubit = call %Qubit* @__quantum__rt__qubit_allocate()
-  call void @__quantum__qis__h(%Qubit* %qubit)
+  call void @__quantum__qis__h__body(%Qubit* %qubit)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit)
   )script";
 
@@ -80,7 +80,7 @@ we expect following two instructions (in order):
 
 ```
   %qubit = inttoptr i64 0 to %Qubit*
-  tail call void @__quantum__qis__h(%Qubit* %qubit)
+  tail call void @__quantum__qis__h__body(%Qubit* %qubit)
 ```
 
 The corresponding test code is as follows:
@@ -88,7 +88,7 @@ The corresponding test code is as follows:
 ```c++
   EXPECT_TRUE(ir_manip->hasInstructionSequence({
     "%qubit = inttoptr i64 0 to %Qubit*",
-    "tail call void @__quantum__qis__h(%Qubit* %qubit)"
+    "tail call void @__quantum__qis__h__body(%Qubit* %qubit)"
   }));
 ```
 
@@ -99,15 +99,15 @@ By design, the test would pass as long as these two instructions are found (in o
   %qubit = inttoptr i64 0 to %Qubit*,
   %q2 = inttoptr i64 1 to %Qubit*,
   %q3 = inttoptr i64 1 to %Qubit*,
-  tail call void @__quantum__qis__h(%Qubit* %q3)
-  tail call void @__quantum__qis__h(%Qubit* %qubit)
-  tail call void @__quantum__qis__h(%Qubit* %q0)
+  tail call void @__quantum__qis__h__body(%Qubit* %q3)
+  tail call void @__quantum__qis__h__body(%Qubit* %qubit)
+  tail call void @__quantum__qis__h__body(%Qubit* %q0)
 ```
 
 but would fail
 
 ```
-  tail call void @__quantum__qis__h(%Qubit* %qubit)
+  tail call void @__quantum__qis__h__body(%Qubit* %qubit)
   %qubit = inttoptr i64 0 to %Qubit*,
 ```
 

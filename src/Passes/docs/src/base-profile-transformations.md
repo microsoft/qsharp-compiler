@@ -174,7 +174,7 @@ specification:
     - __quantum__qis__ry__body
     - __quantum__qis__rz__body
     - __quantum__qis__s__body
-    - __quantum__qis__s_adj
+    - __quantum__qis__s__adj
     - __quantum__qis__t__body
     - __quantum__qis__t__adj
     - __quantum__qis__x__body

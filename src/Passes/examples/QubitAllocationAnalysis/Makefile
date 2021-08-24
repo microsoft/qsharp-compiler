@@ -33,6 +33,6 @@ analysis-example.ll:
 
 clean:
 	cd TeleportChain && make clean
-	rm analysis-example.ll
-	rm analysis-example-step1.ll
-	rm analysis-example-final.ll
+	rm -f analysis-example.ll
+	rm -f analysis-example-step1.ll
+	rm -f analysis-example-final.ll

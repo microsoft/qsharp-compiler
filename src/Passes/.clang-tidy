@@ -8,7 +8,7 @@ cert-env*,\
 cert-err52-cpp,\
 cert-err60-cpp,\
 cert-flp30-c,\
-clang-analyzer-unix.Malloc,\
+clang-analyzer-*,\
 clang-analyzer-security.FloatLoopCounter,\
 google-build-explicit-make-pair,\
 google-build-namespaces,\

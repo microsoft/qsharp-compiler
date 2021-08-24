@@ -29,7 +29,7 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
     ir_manip->declareFunction("i8* @__non_standard_int_allocator()");
     ir_manip->declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
     ir_manip->declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
-    ir_manip->declareFunction("void @__quantum__qis__h(%Qubit*)");
+    ir_manip->declareFunction("void @__quantum__qis__h__body(%Qubit*)");
 
     assert(ir_manip->fromBodyString(script));
 
@@ -43,7 +43,7 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
 {
     auto ir_manip = newIrManip(R"script(
   %qubit = call %Qubit* @__quantum__rt__qubit_allocate()
-  call void @__quantum__qis__h(%Qubit* %qubit)
+  call void @__quantum__qis__h__body(%Qubit* %qubit)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit)    
   )script");
 
@@ -58,7 +58,7 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
     ir_manip->applyProfile(profile);
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"%qubit = inttoptr i64 0 to %Qubit*", "tail call void @__quantum__qis__h(%Qubit* %qubit)"}));
+        {"%qubit = inttoptr i64 0 to %Qubit*", "tail call void @__quantum__qis__h__body(%Qubit* %qubit)"}));
 }
 
 // Scenario 2 - Multiple sequential allocations
