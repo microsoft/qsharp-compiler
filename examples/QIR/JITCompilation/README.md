@@ -104,15 +104,17 @@ extern "C" void InitQIRSim()
 
 Before being able run QIR via LLVM's JIT compiler, we need to download the necessary header and library files from the [QIR Runtime](https://www.nuget.org/packages/Microsoft.Quantum.Qir.Runtime) and [Quantum Simulators](https://www.nuget.org/packages/Microsoft.Quantum.Simulators/) NuGet packages:
 
-- **Linux**:
+- **Linux** (installs mono for the NuGet CLI):
 
     ```shell
     mkdir build
+    sudo apt update && sudo apt install -y mono-complete
     curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget.exe
-    build/nuget install Microsoft.Quantum.Qir.Runtime -version 0.18.2106148911-alpha -outputdirectory tmp
+    mono build/nuget sources add -name nuget.org -source https://api.nuget.org/v3/index.json
+    mono build/nuget install Microsoft.Quantum.Qir.Runtime -Version 0.18.2106148911-alpha -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
     cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
     cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/linux-x64/native/* build
-    build/nuget install Microsoft.Quantum.Simulators -version 0.18.2106148911 -outputdirectory tmp
+    mono build/nuget install Microsoft.Quantum.Simulators -Version 0.18.2106148911 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
     cp tmp/Microsoft.Quantum.Simulators.0.18.2106148911/runtimes/linux-x64/native/Microsoft.Quantum.Simulator.Runtime.dll build
     rm -r tmp
     ```
@@ -122,10 +124,10 @@ Before being able run QIR via LLVM's JIT compiler, we need to download the neces
     ```shell
     mkdir build
     curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget.exe
-    build/nuget install Microsoft.Quantum.Qir.Runtime -version 0.18.2106148911-alpha -outputdirectory tmp
+    build/nuget install Microsoft.Quantum.Qir.Runtime -Version 0.18.2106148911-alpha -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
     cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
     cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/win-x64/native/* build
-    build/nuget install Microsoft.Quantum.Simulators -version 0.18.2106148911 -outputdirectory tmp
+    build/nuget install Microsoft.Quantum.Simulators -Version 0.18.2106148911 -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
     cp tmp/Microsoft.Quantum.Simulators.0.18.2106148911/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll build
     rm -r tmp
     ```
