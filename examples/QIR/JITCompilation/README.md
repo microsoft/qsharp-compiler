@@ -109,7 +109,7 @@ Before being able run QIR via LLVM's JIT compiler, we need to download the neces
     ```shell
     mkdir build
     sudo apt update && sudo apt install -y mono-complete
-    curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget.exe
+    curl https://dist.nuget.org/win-x86-commandline/latest/nuget.exe --output build/nuget
     mono build/nuget sources add -name nuget.org -source https://api.nuget.org/v3/index.json
     mono build/nuget install Microsoft.Quantum.Qir.Runtime -Version 0.18.2106148911-alpha -DirectDownload -DependencyVersion Ignore -OutputDirectory tmp
     cp tmp/Microsoft.Quantum.Qir.Runtime.0.18.2106148911-alpha/runtimes/any/native/include/* build
@@ -137,7 +137,7 @@ Then compile the initialization library with the following command:
 - **Linux**:
 
     ```shell
-    clang++ -shared QIRinit.cpp -Ibuild -o build/libQIRinit.so
+    clang++ -shared -fPIC QIRinit.cpp -Ibuild -o build/libQIRinit.so
     ```
 
 - **Windows**:

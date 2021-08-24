@@ -41,7 +41,6 @@ def main(qir_file, entry_point):
 
     # Initialize the QIR Runtime and simulator via exposed C wrapper
     fun_ptr = llvm.address_of_symbol("InitQIRSim")
-    print(fun_ptr)
     CFUNCTYPE(None)(fun_ptr)()
 
     # Run the entry point of the QIR module
