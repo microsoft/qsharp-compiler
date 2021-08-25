@@ -21,3 +21,6 @@ val newLines: unit Rewriter
 /// Replaces `using` and `borrowing` with `use` and `borrow` respectively.
 /// Removes parentheses around qubit bindings.
 val qubitBindingUpdate : unit Rewriter
+
+/// Updates the `new <Type>[n]` array syntax to the new `[val, size = n]` array syntax.
+val arraySyntaxUpdate : unit Rewriter

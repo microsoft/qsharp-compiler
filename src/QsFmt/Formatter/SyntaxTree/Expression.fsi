@@ -255,3 +255,9 @@ and internal Expression =
 
     /// An unknown expression.
     | Unknown of Terminal
+
+module internal Expression =
+    /// <summary>
+    /// Maps an expression by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix: mapper:(Trivia list -> Trivia list) -> Expression -> Expression

@@ -133,3 +133,65 @@ let qubitBindingUpdate =
                         rewriter.Block((), rewriter.Statement, block) |> Block.mapPrefix ((@) closeTrivia) |> Block
             }
     }
+
+let arraySyntaxUpdate =
+
+    let getBuiltInDefault builtIn =
+        match builtIn.Text with
+        | "Unit" -> {Prefix = []; Text = "()"} |> Literal
+        | "Int" -> {Prefix = []; Text = "0"} |> Literal
+        | "BigInt" -> {Prefix = []; Text = "0L"} |> Literal
+        | "Double" -> {Prefix = []; Text = "0.0"} |> Literal
+        | "Bool" -> {Prefix = []; Text = "false"} |> Literal
+        | "String" -> {Prefix = []; Text = "\"\""} |> Literal
+        | "Result" -> {Prefix = []; Text = "Zero"} |> Literal
+        | "Pauli" -> {Prefix = []; Text = "PauliI"} |> Literal
+        | "Range" -> {Prefix = []; Text = "1..0"} |> Literal // ToDo: Double-check that this literal is correct
+        | _ -> {Prefix = []; Text = "TODO: Throw Error/Warning"} |> Literal // ToDo
+
+    let rec getDefaultValue (``type`` : Type) =
+        let space = " " |> Trivia.ofString
+        match ``type`` with
+        | Type.BuiltIn builtIn -> getBuiltInDefault builtIn
+        | Type.Tuple tuple ->
+            {
+                OpenParen = {Prefix = []; Text = "("}
+                Items =
+                    tuple.Items
+                    |> List.mapi (fun i item ->
+                        {
+                            Item = item.Item |> Option.map (fun t ->
+                                let value = getDefaultValue t
+                                // for all items after the first, we need to inject a space before each item
+                                // for example: (0,0) goes to (0, 0)
+                                if i > 0 then
+                                    value |> Expression.mapPrefix ((@) space)
+                                else
+                                    value)
+                            Comma = item.Comma
+                        })
+                CloseParen = {Prefix = []; Text = ")"}
+            }
+            |> Tuple
+        | Array arrayType -> {Prefix = []; Text = "TODO: Implement Array-Type Handling"} |> Literal // ToDo
+        | _ -> {Prefix = []; Text = "TODO: Throw Error/Warning"} |> Literal // ToDo
+
+    { new Rewriter<_>() with
+        override rewriter.Expression(_, expression) =
+
+            let sizedArrayFromNewArray (newArray : NewArray) =
+                let space = " " |> Trivia.ofString
+                {
+                    OpenBracket = rewriter.Terminal((), newArray.OpenBracket |> Terminal.mapPrefix (fun _ -> newArray.New.Prefix))
+                    Value = getDefaultValue newArray.ItemType
+                    Comma = rewriter.Terminal((), {Prefix = []; Text = ","})
+                    Size = rewriter.Terminal((), {Prefix = space; Text = "size"})
+                    Equals = rewriter.Terminal((), {Prefix = space; Text = "="})
+                    Length = rewriter.Expression((), newArray.Length |> Expression.mapPrefix ((@) space))
+                    CloseBracket = rewriter.Terminal((), newArray.CloseBracket)
+                }
+
+            match expression with
+            | NewArray newArray -> newArray |> sizedArrayFromNewArray |> NewSizedArray
+            | _ -> base.Expression((), expression)
+    }
