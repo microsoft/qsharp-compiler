@@ -18,5 +18,7 @@ steps:
       export PYTHON_BIN_PATH=/usr/bin/python3
       export CC=clang-11
       export CXX=clang++-11
-      ./manage runci    
+      ./manage runci
+      rm -rf vendors/*
+          
   displayName: Linux build and CI for passes      

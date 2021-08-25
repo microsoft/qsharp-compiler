@@ -7,7 +7,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Type1.Core" Version="0.18.2108155805-beta" IsTargetPackage="true" />
+    <PackageReference Include="Microsoft.Quantum.Type1.Core" Version="0.18.2108157818-beta" IsTargetPackage="true" />
   </ItemGroup>
 
 </Project>
