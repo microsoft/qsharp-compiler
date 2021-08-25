@@ -11,6 +11,19 @@ namespace SubOps {
     operation SubOpCA3() : Unit is Ctl + Adj { }
 }
 
+namespace Microsoft.Quantum.Testing.General {
+    operation Unitary (q : Qubit) : Unit {
+        body intrinsic;
+        adjoint auto;
+        controlled auto;
+        controlled adjoint auto;
+    }
+
+    operation M (q : Qubit) : Result {
+        body intrinsic;
+    }
+}
+
 // =================================
 
 // Basic Lift
@@ -1081,6 +1094,261 @@ namespace Microsoft.Quantum.Testing.ClassicalControl {
 
         if (not (r == One)) {
             SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Don't Lift Classical Conditions
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open SubOps;
+
+    operation Foo() : Unit {
+        let x = 0;
+
+        if x == 1 {
+            let y = 0;
+            SubOp1();
+        }
+
+        if x == 2 {
+            if x == 3 {
+                let y = 0;
+                SubOp1();
+            }
+        }
+        else {
+            let y = 0;
+            SubOp1();
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Nesting Lift Both
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    operation Foo() : Unit {
+        let r = Zero;
+        
+        if r == Zero {
+            if r == One {
+                mutable x = 0;
+                set x = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Nesting Lift Outer
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    operation Foo() : Unit {
+        let r = Zero;
+
+        if r == Zero {
+            mutable x = 0;
+            if r == One {
+                set x = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Nesting Lift Neither
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    operation Foo() : Unit {
+        let r = Zero;
+        
+        mutable x = 0;
+        if r == Zero {
+            if r == One {
+                set x = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Lift Inner
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+        
+        if x < 1 {
+            if M(q) == Zero {
+                mutable y = 0;
+                set y = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Lift Outer
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+
+        if M(q) == Zero {
+            mutable y = 0;
+            if x < 1 {
+                set y = 1;
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Lift Outer With More Classic
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+        
+        if M(q) == Zero {
+            mutable y = 0;
+            if x < 1 {
+                if x < 2 {
+                    set y = 1;
+                }
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Lift Middle
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+        
+        if x < 1 {
+            if M(q) == Zero {
+                mutable y = 0;
+                if x < 2 {
+                    if x < 3 {
+                        set y = 1;
+                    }
+                }
+            }
+        }
+    }
+}
+
+// =================================
+
+// Nested Invalid Lifting
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    operation Foo() : Unit {
+        let r = Zero;
+        
+        if r == Zero {
+            if r == One {
+                return ();
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Elif
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        let x = 0;
+        
+        if x < 1 {
+            if M(q) == Zero {
+                mutable y = 0;
+                if x < 2 {
+                    if x < 3 {
+                        set y = 1;
+                    }
+                }
+            }
+        }
+        elif M(q) == Zero {
+            mutable y = 0;
+            if x < 4 {
+                if x < 5 {
+                    set y = 2;
+                }
+            }
+        }
+        else {
+            mutable y = 0;
+            if M(q) == Zero {
+                if x < 6 {
+                    set y = 3;
+                }
+            }
+        }
+    }
+}
+
+// =================================
+
+// Mutables with Classic Nesting Elif Lift First
+namespace Microsoft.Quantum.Testing.ClassicalControl {
+    open Microsoft.Quantum.Testing.General;
+
+    operation Foo() : Unit {
+        use q = Qubit();
+        Unitary(q);
+        mutable x = 0;
+
+        if x < 1 {
+            if M(q) == Zero {
+                mutable y = 0;
+                if x < 2 {
+                    if x < 3 {
+                        set y = 1;
+                    }
+                }
+            }
+        }
+        elif M(q) == Zero {
+            if x < 4 {
+                if x < 5 {
+                    set x = 2;
+                }
+            }
+        }
+        else {
+            mutable y = 0;
+            if M(q) == Zero {
+                if x < 6 {
+                    set y = 3;
+                }
+            }
         }
     }
 }

@@ -535,6 +535,63 @@ let public ClassicalControlSignatures =
          |])
         // One-sided NOT condition
         (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Don't Lift Classical Conditions
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Nesting Lift Both
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+         |])
+        // Mutables with Nesting Lift Outer
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Result" |], "Unit"
+         |])
+        // Mutables with Nesting Lift Neither
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Classic Nesting Lift Inner
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Outer
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Outer With More Classic
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Lift Middle
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+        // Nested Invalid Lifting
+        (_DefaultTypes, [| ClassicalControlNS, "Foo", [||], "Unit" |])
+        // Mutables with Classic Nesting Elif
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
+        // Mutables with Classic Nesting Elif Lift First
+        (_DefaultTypes,
+         [|
+             ClassicalControlNS, "Foo", [||], "Unit"
+             ClassicalControlNS, "_Foo", [| "Int"; "Qubit" |], "Unit"
+         |])
         // NOT Condition Remembers Known Symbols
         (_DefaultTypes,
          [|
