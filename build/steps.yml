@@ -14,11 +14,11 @@ steps:
 # Visual Studio extension can't be built from the build script as MSBuild is not available.
 - task: VSBuild@1
   displayName: 'Pack VisualStudio extension'
-  condition: and(succeeded(), ne(variables['Enable.VSIX'], 'false'))
+  condition: and(succeeded(), ne(variables['Enable.VSIX'], 'false'), eq( variables['Agent.OS'], 'Windows_NT' ))
   inputs:
     solution: '$(System.DefaultWorkingDirectory)/VisualStudioExtension.sln'
     msbuildArgs: >-
-      /p:DefineConstants=$(Assembly.Constants) 
+      /p:DefineConstants=$(Assembly.Constants)
       /p:AssemblyVersion=$(Assembly.Version)
     configuration: $(Build.Configuration)
 

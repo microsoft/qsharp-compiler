@@ -19,6 +19,24 @@ steps:
     TargetFolder: '$(VSIX.Outdir)'
     FlattenFolders: true
 
+- task: CopyFiles@2
+  displayName: 'Copy Wheels to: $(Wheels.Outdir)'
+  condition: succeededOrFailed()
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: 'src/QirTools/pyqir/target/wheels/*.*'
+    TargetFolder: '$(Wheels.Outdir)'
+    FlattenFolders: true
+
+- task: CopyFiles@2
+  displayName: 'Copy Wheels to: $(Wheels.Outdir)'
+  condition: succeededOrFailed()
+  inputs:
+    SourceFolder: '$(System.DefaultWorkingDirectory)'
+    Contents: 'target/wheels/*.*'
+    TargetFolder: '$(Wheels.Outdir)'
+    FlattenFolders: true
+
 - task: PublishBuildArtifacts@1
   displayName: 'Publish Artifact: qsharp-compiler'
   condition: succeededOrFailed()

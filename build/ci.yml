@@ -9,6 +9,7 @@ variables:
   Nuget.Outdir: $(Drops.Dir)/nugets
   VSIX.Outdir: $(Drops.Dir)/vsix
   Blobs.Outdir: $(Drops.Dir)/blobs
+  Wheels.Outdir: $(Drops.Dir)/wheels
 
 trigger: none
 
@@ -26,20 +27,59 @@ schedules:
     - main
   always: true
 
-pool:
-  vmImage: windows-latest
-
 jobs:
 - job: Build
+  variables:
+  - name: Enable.Llvm.Builds
+    value: false
+  pool:
+    vmImage: windows-latest
   steps:
   - template: init.yml
   - template: steps.yml
   - template: wrap-up.yml
 
 - job: Style
+  pool:
+    vmImage: windows-latest
   steps:
   - script: dotnet tool restore
     displayName: Restore .NET tools
 
   - script: dotnet tool run fantomas -- --check --recurse .
     displayName: Fantomas
+
+
+- job:
+  strategy:
+    matrix:
+      linux:
+        imageName: 'ubuntu-20.04'
+      mac:
+        imageName: 'macOS-10.14'
+      windows:
+        imageName: 'windows-2019'
+  displayName: LLVM Based Components Build
+  variables:
+  - name: Enable.Compiler
+    value: false
+  - name: Enable.Vsix
+    value: false
+  - name: Enable.Llvm.Builds
+    value: true
+  pool:
+    vmImage: $(imageName)
+  steps:
+  - script: |
+      git submodule init
+      git submodule update --depth 1 --recursive
+    displayName: 'Checkout submodules'
+
+  - template: init.yml
+
+  - pwsh: ./build.ps1
+    displayName: "Build all"
+    workingDirectory: $(System.DefaultWorkingDirectory)/build
+
+  - template: wrap-up.yml
+

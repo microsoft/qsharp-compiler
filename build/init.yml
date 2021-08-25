@@ -3,7 +3,7 @@ steps:
 ##
 # Bootstrap
 ##
-- powershell: ./bootstrap.ps1
+- pwsh: ./bootstrap.ps1
   displayName: "Run bootstrap.ps1"
   workingDirectory: $(System.DefaultWorkingDirectory)
 
@@ -31,3 +31,4 @@ steps:
   inputs:
     command: 'custom'
     customCommand: 'install -g npm@latest'
+  condition: eq( variables['Agent.OS'], 'Windows_NT' )

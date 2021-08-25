@@ -10,8 +10,13 @@ param(
     $NuGetVersion = $Env:NUGET_VERSION,
 
     [string]
-    $VsVsixVersion = $Env:VSVSIX_VERSION
+    $VsVsixVersion = $Env:VSVSIX_VERSION,
+
+    [string]
+    $WheelVersion = $Env:WHEEL_VERSION
 );
+
+. (Join-Path $PSScriptRoot build "utils.ps1")
 
 if ("$AssemblyVersion".Trim().Length -eq 0) {
     $Date = Get-Date;
@@ -41,6 +46,10 @@ if ("$VsVsixVersion".Trim().Length -eq 0) {
     $VsVsixVersion = "$MajorVersion.$MinorVersion.$patch.$rev";
 }
 
+if ("$WheelVersion".Trim().Length -eq 0) {
+    $WheelVersion = "$MajorVersion.$MinorVersion.$patch-alpha";
+}
+
 $Telemetry = "$($Env:ASSEMBLY_CONSTANTS)".Contains("TELEMETRY").ToString().ToLower();
 Write-Host "Enable telemetry: $Telemetry";
 
@@ -67,6 +76,7 @@ If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion"
 If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
 If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
 If ($Env:VSVSIX_VERSION -eq $null) { $Env:VSVSIX_VERSION ="$VsVsixVersion" }
+If ($Env:WHEEL_VERSION -eq $null) { $Env:WHEEL_VERSION ="$WheelVersion" }
 Write-Host "##vso[task.setvariable variable=VsVsix.Version]$VsVsixVersion"
 
 Write-Host "##[info]Finding NuSpec references..."
@@ -79,3 +89,40 @@ Pop-Location
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/QirGeneration')
 .\FindNuspecReferences.ps1;
 Pop-Location
+
+function Test-CI {
+    if (Test-Path env:\TF_BUILD) {
+        $true
+    }
+    elseif ((Test-Path env:\CI)) {
+        $env:CI -eq $true
+    }
+    else {
+        $false
+    }
+}
+
+function Test-BuildLlvmComponents {
+    ((Test-Path env:\ENABLE_LLVM_BUILDS) -and ($env:ENABLE_LLVM_BUILDS -eq $true))
+}
+
+if (Test-BuildLlvmComponents) {
+    try {
+        Push-Location (Join-Path $PSScriptRoot "src" "QirTools" "pyqir")
+        . ./prerequisites.ps1
+
+        if (Test-CI) {
+            if (Test-Path Cargo.toml) {
+                Remove-Item Cargo.toml
+            }
+            cargo install toml-cli
+            toml set Cargo.toml.template package.version $env:WHEEL_VERSION > Cargo.toml
+        }
+        else {
+            Copy-Item Cargo.toml.template Cargo.toml
+        }
+    }
+    finally {
+        Pop-Location
+    }
+}
