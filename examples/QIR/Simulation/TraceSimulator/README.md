@@ -66,7 +66,8 @@ std::string GetQubitName(Qubit qubit)
 }
 ```
 
-The qubit ID is a simple incrementing counter, and the `Qubit` object is just a pointer (as defined in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp)) with the qubit ID as its value:
+The qubit ID is a simple perpetually increasing counter, so no IDs are ever reused (careful with overflow!).
+The `Qubit` object itself is just a pointer (as defined in [CoreTypes.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/CoreTypes.hpp)) with the qubit ID as its value:
 
 ```cpp
 class QubitManager
