@@ -185,9 +185,9 @@ let arraySyntaxUpdate =
             // If any of the items are None (which means invalid for update) return None
             if items |> List.forall Option.isSome then
                 {
-                    OpenParen = {Prefix = []; Text = "("}
+                    OpenParen = {Prefix = []; Text = tuple.OpenParen.Text}
                     Items = items |> List.choose id
-                    CloseParen = {Prefix = []; Text = ")"}
+                    CloseParen = {Prefix = []; Text = tuple.CloseParen.Text}
                 }
                 |> Tuple |> Some
             else
