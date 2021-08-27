@@ -138,25 +138,27 @@ let arraySyntaxUpdate =
 
     let getBuiltInDefault builtIn =
         match builtIn.Text with
-        | "Unit" -> {Prefix = []; Text = "()"} |> Literal |> Some
-        | "Int" -> {Prefix = []; Text = "0"} |> Literal |> Some
-        | "BigInt" -> {Prefix = []; Text = "0L"} |> Literal |> Some
-        | "Double" -> {Prefix = []; Text = "0.0"} |> Literal |> Some
-        | "Bool" -> {Prefix = []; Text = "false"} |> Literal |> Some
-        | "String" -> {Prefix = []; Text = "\"\""} |> Literal |> Some
-        | "Result" -> {Prefix = []; Text = "Zero"} |> Literal |> Some
-        | "Pauli" -> {Prefix = []; Text = "PauliI"} |> Literal |> Some
-        | "Range" -> {Prefix = []; Text = "1..0"} |> Literal |> Some// ToDo: Double-check that this literal is correct
+        | "Unit" -> { Prefix = []; Text = "()" } |> Literal |> Some
+        | "Int" -> { Prefix = []; Text = "0" } |> Literal |> Some
+        | "BigInt" -> { Prefix = []; Text = "0L" } |> Literal |> Some
+        | "Double" -> { Prefix = []; Text = "0.0" } |> Literal |> Some
+        | "Bool" -> { Prefix = []; Text = "false" } |> Literal |> Some
+        | "String" -> { Prefix = []; Text = "\"\"" } |> Literal |> Some
+        | "Result" -> { Prefix = []; Text = "Zero" } |> Literal |> Some
+        | "Pauli" -> { Prefix = []; Text = "PauliI" } |> Literal |> Some
+        | "Range" -> { Prefix = []; Text = "1..0" } |> Literal |> Some // ToDo: Double-check that this literal is correct
         | _ -> None // TODO: Throw Warning
 
-    let rec getDefaultValue (``type`` : Type) =
+    let rec getDefaultValue (``type``: Type) =
         let space = " " |> Trivia.ofString
+
         match ``type`` with
         | Type.BuiltIn builtIn -> getBuiltInDefault builtIn
         | Type.Tuple tuple ->
             let items =
                 tuple.Items
-                |> List.mapi (fun i item ->
+                |> List.mapi
+                    (fun i item ->
                         match item.Item with
                         | Some t ->
                             // When Item has a value, map the Type to and Expression, if valid
@@ -172,24 +174,22 @@ let arraySyntaxUpdate =
                                         else
                                             value |> Some
                                     Comma = item.Comma
-                                } |> Some
+                                }
+                                |> Some
                             | None -> None
                         | None ->
                             // A Type-SequenceItem object with Item=None becomes an Expression-SequenceItem with Item=None
                             // ToDo: Don't know what the use-case is for an Item of None
-                            {
-                                Item = None
-                                Comma = item.Comma
-                            } |> Some
-                    )
+                            { Item = None; Comma = item.Comma } |> Some)
             // If any of the items are None (which means invalid for update) return None
             if items |> List.forall Option.isSome then
                 {
-                    OpenParen = {Prefix = []; Text = tuple.OpenParen.Text}
+                    OpenParen = { Prefix = []; Text = tuple.OpenParen.Text }
                     Items = items |> List.choose id
-                    CloseParen = {Prefix = []; Text = tuple.CloseParen.Text}
+                    CloseParen = { Prefix = []; Text = tuple.CloseParen.Text }
                 }
-                |> Tuple |> Some
+                |> Tuple
+                |> Some
             else
                 None
         | _ -> None
@@ -197,19 +197,25 @@ let arraySyntaxUpdate =
     { new Rewriter<_>() with
         override rewriter.Expression(_, expression) =
             let space = " " |> Trivia.ofString
+
             match expression with
             | NewArray newArray ->
                 match getDefaultValue newArray.ItemType with
                 | Some value ->
                     {
-                        OpenBracket = rewriter.Terminal((), newArray.OpenBracket |> Terminal.mapPrefix (fun _ -> newArray.New.Prefix))
+                        OpenBracket =
+                            rewriter.Terminal(
+                                (),
+                                newArray.OpenBracket |> Terminal.mapPrefix (fun _ -> newArray.New.Prefix)
+                            )
                         Value = value
-                        Comma = rewriter.Terminal((), {Prefix = []; Text = ","})
-                        Size = rewriter.Terminal((), {Prefix = space; Text = "size"})
-                        Equals = rewriter.Terminal((), {Prefix = space; Text = "="})
+                        Comma = rewriter.Terminal((), { Prefix = []; Text = "," })
+                        Size = rewriter.Terminal((), { Prefix = space; Text = "size" })
+                        Equals = rewriter.Terminal((), { Prefix = space; Text = "=" })
                         Length = rewriter.Expression((), newArray.Length |> Expression.mapPrefix ((@) space))
                         CloseBracket = rewriter.Terminal((), newArray.CloseBracket)
-                    } |> NewSizedArray
+                    }
+                    |> NewSizedArray
                 | None -> newArray |> NewArray // If the conversion is invalid, just leave the node as-is
             | _ -> base.Expression((), expression)
     }
