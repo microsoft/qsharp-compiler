@@ -321,6 +321,9 @@ The function `BuildPauliUnitary` simply generates the `Operator` "`P_1⊗P_2⊗.
 
 ## Compiling the simulator
 
+The simulator samples require a working [Clang](https://clang.llvm.org/) installation to compile.
+Refer to the [Optimization example](../Optimization#installing-clang) for instructions on setting up Clang and LLVM.
+
 Download the latest stable release of the [Eigen library](http://eigen.tuxfamily.org/) and copy over the relevant headers as described in [include/Eigen](include/Eigen/README.md).
 
 Although the [QIR Runtime header files](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/public) are sufficient to compile the simulator, actually running it will require the Runtime binaries.
