@@ -151,7 +151,6 @@ let arraySyntaxUpdate =
 
     let rec getDefaultValue (``type``: Type) =
         let space = " " |> Trivia.ofString
-
         match ``type`` with
         | Type.BuiltIn builtIn -> getBuiltInDefault builtIn
         | Type.Tuple tuple ->
@@ -192,12 +191,23 @@ let arraySyntaxUpdate =
                 |> Some
             else
                 None
+        | Type.Array arrayType ->
+            arrayType.ItemType |> getDefaultValue |> Option.map (fun value ->
+            {
+                OpenBracket = { Prefix = []; Text = arrayType.OpenBracket.Text }
+                Value = value
+                Comma = { Prefix = []; Text = "," }
+                Size = { Prefix = space; Text = "size" }
+                Equals = { Prefix = space; Text = "=" }
+                Length = { Prefix = space; Text = "0" } |> Literal
+                CloseBracket = { Prefix = []; Text = arrayType.CloseBracket.Text }
+            }
+            |> NewSizedArray)
         | _ -> None
 
     { new Rewriter<_>() with
         override rewriter.Expression(_, expression) =
             let space = " " |> Trivia.ofString
-
             match expression with
             | NewArray newArray ->
                 match getDefaultValue newArray.ItemType with
