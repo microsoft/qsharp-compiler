@@ -29,9 +29,9 @@ type CallableDeclaration =
         CallableKeyword: Terminal
         Name: Terminal
         TypeParameters: TypeParameterBinding option
-        Parameters: SymbolBinding
+        Parameters: ParameterBinding
         ReturnType: TypeAnnotation
-        CharacteristicSection: CharacteristicSection Option
+        CharacteristicSection: CharacteristicSection option
         Body: CallableBody
     }
 

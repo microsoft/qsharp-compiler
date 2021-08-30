@@ -48,7 +48,7 @@ type internal 'result Reducer() as reducer =
             [ reducer.Terminal callable.CallableKeyword; reducer.Terminal callable.Name ]
             callable.TypeParameters |> Option.map reducer.TypeParameterBinding |> Option.toList
             [
-                reducer.SymbolBinding callable.Parameters
+                reducer.ParameterBinding callable.Parameters
                 reducer.TypeAnnotation callable.ReturnType
             ]
             callable.CharacteristicSection |> Option.map reducer.CharacteristicSection |> Option.toList
@@ -162,6 +162,7 @@ type internal 'result Reducer() as reducer =
         match statement with
         | Let lets -> reducer.Let lets
         | Return returns -> reducer.Return returns
+        | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
         | Statement.Unknown terminal -> reducer.Terminal terminal
@@ -188,6 +189,21 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
+
+    default _.QubitDeclaration decl =
+        [
+            reducer.Terminal(decl.Keyword) |> Some
+            decl.OpenParen |> Option.map reducer.Terminal
+            reducer.QubitBinding(decl.Binding) |> Some
+            decl.CloseParen |> Option.map reducer.Terminal
+            match decl.Coda with
+            | Semicolon semicolon -> reducer.Terminal(semicolon) |> Some
+            | Block block -> reducer.Block(reducer.Statement, block) |> Some
+        ]
+        |> List.choose id
+        |> reduce
+
     abstract If : ifs: If -> 'result
 
     default _.If ifs =
@@ -207,18 +223,62 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
-    abstract SymbolBinding : binding: SymbolBinding -> 'result
+    abstract ParameterBinding : binding: ParameterBinding -> 'result
 
-    default _.SymbolBinding binding =
+    default _.ParameterBinding binding =
         match binding with
-        | SymbolDeclaration declaration -> reducer.SymbolDeclaration declaration
+        | ParameterDeclaration declaration -> reducer.ParameterDeclaration declaration
+        | ParameterTuple tuple -> reducer.Tuple(reducer.ParameterBinding, tuple)
+
+    abstract ParameterDeclaration : declaration: ParameterDeclaration -> 'result
+
+    default _.ParameterDeclaration declaration =
+        [ reducer.Terminal declaration.Name; reducer.TypeAnnotation declaration.Type ] |> reduce
+
+    abstract SymbolBinding : symbol: SymbolBinding -> 'result
+
+    default _.SymbolBinding symbol =
+        match symbol with
+        | SymbolDeclaration declaration -> reducer.Terminal declaration
         | SymbolTuple tuple -> reducer.Tuple(reducer.SymbolBinding, tuple)
 
-    abstract SymbolDeclaration : declaration: SymbolDeclaration -> 'result
+    abstract QubitBinding : binding: QubitBinding -> 'result
 
-    default _.SymbolDeclaration declaration =
-        reducer.Terminal declaration.Name
-        :: (declaration.Type |> Option.map reducer.TypeAnnotation |> Option.toList)
+    default _.QubitBinding binding =
+        [
+            reducer.SymbolBinding binding.Name
+            reducer.Terminal binding.Equals
+            reducer.QubitInitializer binding.Initializer
+        ]
+        |> reduce
+
+    abstract QubitInitializer : initializer: QubitInitializer -> 'result
+
+    default _.QubitInitializer initializer =
+        match initializer with
+        | SingleQubit singleQubit -> reducer.SingleQubit singleQubit
+        | QubitArray qubitArray -> reducer.QubitArray qubitArray
+        | QubitTuple tuple -> reducer.Tuple(reducer.QubitInitializer, tuple)
+
+    abstract SingleQubit : newQubit: SingleQubit -> 'result
+
+    default _.SingleQubit newQubit =
+        [
+            reducer.Terminal newQubit.Qubit
+            reducer.Terminal newQubit.OpenParen
+            reducer.Terminal newQubit.CloseParen
+        ]
+        |> reduce
+
+    abstract QubitArray : newQubits: QubitArray -> 'result
+
+    default _.QubitArray newQubits =
+        [
+            reducer.Terminal newQubits.Qubit
+            reducer.Terminal newQubits.OpenBracket
+            reducer.Expression newQubits.Length
+            reducer.Terminal newQubits.CloseBracket
+        ]
         |> reduce
 
     abstract InterpStringContent : interpStringContent: InterpStringContent -> 'result

@@ -101,3 +101,35 @@ let newLines =
             else
                 { block with CloseBrace = Terminal.mapPrefix ensureNewLine block.CloseBrace }
     }
+
+/// <summary>
+/// Gets the trivia from a terminal option.
+/// </summary>
+let getTrivia paren =
+    match paren with
+    | None -> []
+    | Some p -> p.Prefix
+
+let qubitBindingUpdate =
+    { new Rewriter<_>() with
+        override rewriter.QubitDeclaration(_, decl) =
+            let openTrivia = decl.OpenParen |> getTrivia
+            let closeTrivia = decl.CloseParen |> getTrivia
+
+            let keyword =
+                match decl.Kind with
+                | Use -> "use"
+                | Borrow -> "borrow"
+
+            { decl with
+                Keyword = rewriter.Terminal((), { decl.Keyword with Text = keyword })
+                OpenParen = None
+                Binding = decl.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
+                CloseParen = None
+                Coda =
+                    match decl.Coda with
+                    | Semicolon semicolon -> semicolon |> Terminal.mapPrefix ((@) closeTrivia) |> Semicolon
+                    | Block block ->
+                        rewriter.Block((), rewriter.Statement, block) |> Block.mapPrefix ((@) closeTrivia) |> Block
+            }
+    }
