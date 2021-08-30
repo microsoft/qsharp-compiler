@@ -14,6 +14,8 @@ namespace microsoft
 namespace quantum
 {
 
+    /// Parameter parser class which allows the developer to specify a set of default settings and
+    /// update those using the commandline argc and argv.
     class ParameterParser
     {
       public:
@@ -24,14 +26,21 @@ namespace quantum
         /// Construction and deconstrution configuration
         /// @{
         /// Parameter parsers requires a setting class to store
-        /// parameters passed.
+        /// parameters passed. The parameter parser takes a set of
+        /// default Settings as its first argument.
         explicit ParameterParser(Settings& settings);
 
-        // Allow move semantics only. No default construction
-        ParameterParser()                             = delete;
+        // No default construction.
+        ParameterParser() = delete;
+
+        // No copy construction.
         ParameterParser(ParameterParser const& other) = delete;
-        ParameterParser(ParameterParser&& other)      = default;
-        ~ParameterParser()                            = default;
+
+        // Allow move semantics.
+        ParameterParser(ParameterParser&& other) = default;
+
+        // Default destruction.
+        ~ParameterParser() = default;
         /// @}
 
         /// Configuration
@@ -54,7 +63,9 @@ namespace quantum
         /// Returns list of arguments without flags and/or options
         /// included.
         Arguments const& arguments() const;
-        String const&    getArg(uint64_t const& n);
+
+        /// Returns the n'th commandline argument.
+        String const& getArg(uint64_t const& n);
         /// @}
       private:
         struct ParsedValue
@@ -65,16 +76,22 @@ namespace quantum
 
         /// Helper functions and variables
         /// @{
+
+        // Parses a single argument and returns the parsed value. This function
+        // determines if the string was specified to be a key or a value.
         ParsedValue parseSingleArg(String key);
-        bool        hasValue(String const& key);
-        Flags       flags_{};
+
+        /// Checks whether a key is an option (or a flag). Returns true if it is
+        /// and option and false if it is a flags.
+        bool  isOption(String const& key);
+        Flags flags_{}; ///< Set of flags
         /// @}
 
         /// Storage of parsed data
         /// @{
-        Settings& settings_;
-        Arguments arguments_{};
-        /// @}
+        Settings& settings_;    ///< Map of settings
+        Arguments arguments_{}; ///< List of remaining arguments
+                                /// @}
     };
 
 } // namespace quantum

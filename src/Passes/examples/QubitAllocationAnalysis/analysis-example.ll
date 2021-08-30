@@ -48,13 +48,13 @@ declare void @__quantum__rt__result_update_reference_count(%Result*, i32) local_
 
 define internal fastcc void @Microsoft__Quantum__Intrinsic__Z__body(%Qubit* %qubit) unnamed_addr {
 entry:
-  call void @__quantum__qis__z(%Qubit* %qubit)
+  call void @__quantum__qis__z__body(%Qubit* %qubit)
   ret void
 }
 
 define internal fastcc void @Microsoft__Quantum__Intrinsic__X__body(%Qubit* %qubit) unnamed_addr {
 entry:
-  call void @__quantum__qis__x(%Qubit* %qubit)
+  call void @__quantum__qis__x__body(%Qubit* %qubit)
   ret void
 }
 
@@ -141,13 +141,13 @@ entry:
 
 define internal fastcc void @Microsoft__Quantum__Intrinsic__H__body(%Qubit* %qubit) unnamed_addr {
 entry:
-  call void @__quantum__qis__h(%Qubit* %qubit)
+  call void @__quantum__qis__h__body(%Qubit* %qubit)
   ret void
 }
 
 define internal fastcc void @Microsoft__Quantum__Intrinsic__CNOT__body(%Qubit* %control, %Qubit* %target) unnamed_addr {
 entry:
-  call void @__quantum__qis__cnot(%Qubit* %control, %Qubit* %target)
+  call void @__quantum__qis__cnot__body(%Qubit* %control, %Qubit* %target)
   ret void
 }
 
@@ -170,13 +170,13 @@ entry:
   ret void
 }
 
-declare void @__quantum__qis__cnot(%Qubit*, %Qubit*) local_unnamed_addr
+declare void @__quantum__qis__cnot__body(%Qubit*, %Qubit*) local_unnamed_addr
 
-declare void @__quantum__qis__h(%Qubit*) local_unnamed_addr
+declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
 
-declare void @__quantum__qis__x(%Qubit*) local_unnamed_addr
+declare void @__quantum__qis__x__body(%Qubit*) local_unnamed_addr
 
-declare void @__quantum__qis__z(%Qubit*) local_unnamed_addr
+declare void @__quantum__qis__z__body(%Qubit*) local_unnamed_addr
 
 declare %Result* @__quantum__qis__m__body(%Qubit*) local_unnamed_addr
 

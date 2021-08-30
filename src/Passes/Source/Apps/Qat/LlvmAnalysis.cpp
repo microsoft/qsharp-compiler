@@ -16,6 +16,9 @@ namespace quantum
       , gscc_analysis_manager_{debug}
       , module_analysis_manager_{debug}
     {
+
+        // Creating a full pass builder and registering each of the
+        // components to make them accessible to the developer.
         pass_builder_.registerModuleAnalyses(module_analysis_manager_);
         pass_builder_.registerCGSCCAnalyses(gscc_analysis_manager_);
         pass_builder_.registerFunctionAnalyses(function_analysis_manager_);

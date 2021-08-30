@@ -15,13 +15,13 @@ namespace quantum
     {
       public:
         llvm::ModulePassManager createGenerationModulePass(
-            PassBuilder&       pass_builder,
-            OptimizationLevel& optimisation_level,
-            bool               debug) override;
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug) override;
         llvm::ModulePassManager createValidationModulePass(
-            PassBuilder&       pass_builder,
-            OptimizationLevel& optimisation_level,
-            bool               debug) override;
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug) override;
         void addFunctionAnalyses(FunctionAnalysisManager& fam) override;
     };
 

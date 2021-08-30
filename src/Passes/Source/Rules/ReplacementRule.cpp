@@ -38,7 +38,15 @@ namespace quantum
     {
         if (replacer_)
         {
-            return replacer_(builder, value, captures, replacements);
+            auto ret = replacer_(builder, value, captures, replacements);
+
+            // In case replacement failed, the captures are deleted.
+            if (!ret)
+            {
+                captures.clear();
+            }
+
+            return ret;
         }
 
         return false;

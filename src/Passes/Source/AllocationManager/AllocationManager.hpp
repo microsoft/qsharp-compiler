@@ -17,6 +17,9 @@ namespace quantum
     // runtime and compile time to make common interface and/or implementation depending on what is most
     // suited.
 
+    /// AllocationManager is a simple qubit and results allocator that can be used at compile-time.
+    /// It is based on an assumption that all qubit allocating function calls are inlined and that
+    /// qubits/results can be allocated with strictly growing IDs.
     class AllocationManager
     {
       public:
@@ -24,26 +27,31 @@ namespace quantum
         /// position, end position and size.
         struct MemoryMapping
         {
-            using Index  = uint64_t;
-            using String = std::string;
+            using Address = uint64_t;
+            using Index   = uint64_t;
+            using String  = std::string;
 
-            String name{""}; ///< Name of the segment, if any given
-            Index  index{0}; ///< Index of the allocation
-            Index  size{0};  ///< Size of memory segment
-            Index  start{0}; ///< Start index of memory segment
-            Index  end{0};   ///< Index not included in memory segment
+            String  name{""}; ///< Name of the segment, if any given
+            Index   index{0}; ///< Index of the allocation
+            Index   size{0};  ///< Size of memory segment
+            Address start{0}; ///< Start index of memory segment
+            Address end{0};   ///< Index not included in memory segment
         };
 
+        using Address              = uint64_t;
         using Index                = uint64_t;
         using String               = std::string;
         using AllocationManagerPtr = std::shared_ptr<AllocationManager>;
         using Resource             = std::vector<llvm::Value*>;
         using Resources            = std::unordered_map<std::string, Resource>;
         using NameToIndex          = std::unordered_map<String, Index>;
-        using Mappings             = std::vector<MemoryMapping>;
+        using AddressToIndex       = std::unordered_map<Address, Index>;
+        using Mappings             = std::unordered_map<Index, MemoryMapping>;
 
-        /// Pointer construction
+        /// Construction only allowed using smart pointer allocation through static functions.
+        /// Constructors are private to prevent
         /// @{
+
         /// Creates a new allocation manager. The manager is kept
         /// as a shared pointer to enable allocation accross diffent
         /// passes and/or replacement rules.
@@ -52,23 +60,30 @@ namespace quantum
 
         /// Allocation and release functions
         /// @{
-        /// Allocates a single address.
-        Index allocate();
 
-        /// Allocates a name segment of a given size.
-        void allocate(String const& name, Index const& size, bool value_only = false);
+        /// Allocates a possibly named segment of a given size. Calling allocate without and
+        /// arguments allocates a single anonymous resource and returns the address. In case
+        /// of a larger segment, the function returns the address pointing to the first element.
+        /// Allocation is garantueed to be sequential. Note that this assumption may change in the
+        /// future and to be future proof, please use AllocationManager::getAddress().
+        Address allocate(String const& name = "", Index const& size = 1);
 
-        /// Gets the offset of a name segment or address.
-        Index getOffset(String const& name) const;
+        /// Gets the Address of a named segment or address. Given a named resource segment, this
+        /// function returns the address of the first element in the
+        Address getOffset(String const& name) const;
 
-        /// Releases unnamed address.
-        void release();
+        /// Gets the Address of a named segments n'th element.
+        Address getAddress(String const& name, Index const& n) const;
 
-        /// Releases the named segment or address.
+        /// Gets the Address of n'th element in a segment given the segments address.
+        Address getAddress(Address const& address, Index const& n) const;
+
+        /// Releases the named segment.
         void release(String const& name);
 
-        /// Retrieves a named resource.
-        Resource& get(String const& name);
+        /// Releases the segment by address.
+        void release(Address const& address);
+
         /// @}
 
       private:
@@ -80,23 +95,24 @@ namespace quantum
         AllocationManager() = default;
         /// @}
 
+        /// Variables used for mode_ == NeverReuse
+        /// @{
+
+        /// Variable to keep track of the next qubit to be allocated.
+        Index next_qubit_index_{0};
+        /// @}
+
         /// Memory mapping
         /// @{
         /// Each allocation has a register/memory mapping which
         /// keeps track of the allocation index, the segment size
         /// and its name (if any).
-        NameToIndex name_to_index_;
-        Mappings    mappings_;
+        NameToIndex    name_to_index_;
+        AddressToIndex address_to_index_;
+        Mappings       mappings_;
         /// @}
 
-        /// Compile-time resources
-        /// @{
-        /// Compile-time allocated resources that keeps a pointer
-        /// to the corresponding Values.
-        Resources resources_;
-        /// @}
-
-        Index start_{0};
+        Index allocation_index_{0};
     };
 
 } // namespace quantum
