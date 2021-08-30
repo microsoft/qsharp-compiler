@@ -33,14 +33,28 @@ let parse (source: string) =
 
 [<CompiledName "Format">]
 let format source =
-    parse source
-    |> Result.map (
-        curry collapsedSpaces.Document ()
-        >> curry operatorSpacing.Document ()
-        >> curry newLines.Document ()
-        >> curry indentation.Document 0
-        >> printer.Document
-    )
+    let formatDocument document =
+        let unparsed = printer.Document document
+
+        // Test whether there is data loss during parsing and unparsing
+        if unparsed = source then
+            // The actual format process
+            document
+            |> curry collapsedSpaces.Document ()
+            |> curry operatorSpacing.Document ()
+            |> curry newLines.Document ()
+            |> curry indentation.Document 0
+            |> printer.Document
+        // Report error if the unparsing result does not match the original source
+        else
+            failwith (
+                "The formatter's syntax tree is inconsistent with the input source code or unparsed wrongly. "
+                + "Please let us know by filing a new issue in https://github.com/microsoft/qsharp-compiler/issues/new/choose."
+                + "The unparsed code is: \n"
+                + unparsed
+            )
+
+    parse source |> Result.map formatDocument
 
 [<CompiledName "Identity">]
 let identity source =
