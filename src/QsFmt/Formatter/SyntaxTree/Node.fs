@@ -77,6 +77,10 @@ type 'a Tuple =
         CloseParen: Terminal
     }
 
+module Tuple =
+    let mapPrefix mapper tuple =
+        { tuple with OpenParen = tuple.OpenParen |> Terminal.mapPrefix mapper }
+
 type 'a PrefixOperator = { PrefixOperator: Terminal; Operand: 'a }
 
 type 'a PostfixOperator = { Operand: 'a; PostfixOperator: Terminal }
@@ -94,3 +98,7 @@ type 'a Block =
         Items: 'a list
         CloseBrace: Terminal
     }
+
+module Block =
+    let mapPrefix mapper block =
+        { block with OpenBrace = block.OpenBrace |> Terminal.mapPrefix mapper }
