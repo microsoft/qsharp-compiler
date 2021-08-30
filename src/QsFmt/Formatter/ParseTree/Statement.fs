@@ -103,8 +103,8 @@ type StatementVisitor(tokens) =
         {
             Kind = Use
             Keyword = context.``use`` |> Node.toTerminal tokens
-            Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Binding = context.binding |> qubitBindingVisitor.Visit
             CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
             Coda = context.semicolon |> Node.toTerminal tokens |> Semicolon
         }
@@ -114,8 +114,8 @@ type StatementVisitor(tokens) =
         {
             Kind = Use
             Keyword = context.``use`` |> Node.toTerminal tokens
-            Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Binding = context.binding |> qubitBindingVisitor.Visit
             CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
             Coda =
                 {
@@ -131,8 +131,8 @@ type StatementVisitor(tokens) =
         {
             Kind = Borrow
             Keyword = context.borrow |> Node.toTerminal tokens
-            Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Binding = context.binding |> qubitBindingVisitor.Visit
             CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
             Coda = context.semicolon |> Node.toTerminal tokens |> Semicolon
         }
@@ -142,8 +142,8 @@ type StatementVisitor(tokens) =
         {
             Kind = Borrow
             Keyword = context.borrow |> Node.toTerminal tokens
-            Binding = context.binding |> qubitBindingVisitor.Visit
             OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Binding = context.binding |> qubitBindingVisitor.Visit
             CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
             Coda =
                 {

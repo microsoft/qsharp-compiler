@@ -194,13 +194,9 @@ type internal 'result Reducer() as reducer =
     default _.QubitDeclaration decl =
         [
             reducer.Terminal(decl.Keyword) |> Some
-            match decl.OpenParen with
-            | None -> None
-            | Some s -> reducer.Terminal(s) |> Some
+            decl.OpenParen |> Option.map reducer.Terminal
             reducer.QubitBinding(decl.Binding) |> Some
-            match decl.CloseParen with
-            | None -> None
-            | Some s -> reducer.Terminal(s) |> Some
+            decl.CloseParen |> Option.map reducer.Terminal
             match decl.Coda with
             | Semicolon semicolon -> reducer.Terminal(semicolon) |> Some
             | Block block -> reducer.Block(reducer.Statement, block) |> Some

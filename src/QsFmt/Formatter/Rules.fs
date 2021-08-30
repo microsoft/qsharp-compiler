@@ -123,8 +123,8 @@ let qubitBindingUpdate =
 
             { decl with
                 Keyword = rewriter.Terminal((), { decl.Keyword with Text = keyword })
-                Binding = decl.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
                 OpenParen = None
+                Binding = decl.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
                 CloseParen = None
                 Coda =
                     match decl.Coda with

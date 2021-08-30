@@ -169,11 +169,11 @@ and internal QubitDeclaration =
         /// The keyword used in the declaration.
         Keyword: Terminal
 
-        /// The qubit binding.
-        Binding: QubitBinding
-
         /// Optional open parentheses.
         OpenParen: Terminal option
+
+        /// The qubit binding.
+        Binding: QubitBinding
 
         /// Optional close parentheses.
         CloseParen: Terminal option

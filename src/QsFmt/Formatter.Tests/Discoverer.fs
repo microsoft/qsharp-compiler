@@ -150,11 +150,7 @@ module Discoverer =
 
         do
             examples
-            |> Seq.choose
-                (fun e ->
-                    match e.Kind with
-                    | ExampleKind.Format -> Some e
-                    | _ -> None)
+            |> Seq.filter (fun e -> e.Kind = ExampleKind.Format)
             |> Seq.iter data.Add
 
     /// <summary>
@@ -165,11 +161,7 @@ module Discoverer =
 
         do
             examples
-            |> Seq.choose
-                (fun e ->
-                    match e.Kind with
-                    | ExampleKind.Update -> Some e
-                    | _ -> None)
+            |> Seq.filter (fun e -> e.Kind = ExampleKind.Update)
             |> Seq.iter data.Add
 
     /// <summary>

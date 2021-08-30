@@ -192,15 +192,9 @@ type 'context Rewriter() =
         {
             Kind = decl.Kind
             Keyword = rewriter.Terminal(context, decl.Keyword)
+            OpenParen = decl.OpenParen |> Option.map (curry rewriter.Terminal context)
             Binding = rewriter.QubitBinding(context, decl.Binding)
-            OpenParen =
-                match decl.OpenParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
-            CloseParen =
-                match decl.CloseParen with
-                | None -> None
-                | Some s -> rewriter.Terminal(context, s) |> Some
+            CloseParen = decl.CloseParen |> Option.map (curry rewriter.Terminal context)
             Coda =
                 match decl.Coda with
                 | Semicolon semicolon -> rewriter.Terminal(context, semicolon) |> Semicolon

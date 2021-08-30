@@ -78,8 +78,8 @@ and QubitDeclaration =
     {
         Kind: QubitDeclarationKind
         Keyword: Terminal
-        Binding: QubitBinding
         OpenParen: Terminal option
+        Binding: QubitBinding
         CloseParen: Terminal option
         Coda: QubitDeclarationCoda
     }
