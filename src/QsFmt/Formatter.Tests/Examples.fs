@@ -298,6 +298,22 @@ let ``Array Syntax Tuple Types`` =
 }"""
 
 [<Example(ExampleKind.Update)>]
+let ``Array Syntax Array Types`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = new Int[][2];
+        let t2 = new Double[][][3];
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = [[0, size = 0], size = 2];
+        let t2 = [[[0.0, size = 0], size = 0], size = 3];
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
 let ``Array Syntax Expression Size`` =
     """namespace Foo {
     operation Bar() : Unit {
