@@ -8,7 +8,7 @@ This example is structured as a walk-through of the process covering installatio
 QIR generation is handled by the Q# compiler, while optimizations are performed at the LLVM level.
 The following software will be used in this walk-through:
 
-* *Quantum Development Kit (QDK)* : contains the Q# compiler 
+* *Quantum Development Kit (QDK)* : contains the Q# compiler
 * *Clang* : LLVM based compiler for the C language family
 * *LLVM optimizer* : tool to run custom optimization pipelines on LLVM IR code
 
@@ -30,7 +30,7 @@ Steps for QDK v0.18.2106 (June 2021):
 Depending on your platform, some LLVM tools may only be available by compiling from source.
 *Clang* however should be readily available from package managers or as pre-compiled binaries on most systems.
 LLVM's [official release page](https://releases.llvm.org/download.html) provides sources and binaries of LLVM and Clang.
-It's recommended to use LLVM version 11.1.0, as this is the version used by the Q# compiler. 
+It's recommended to use LLVM version 11.1.0, as this is the version used by the Q# compiler.
 
 Here are some suggestions on how to obtain Clang for different platforms.
 On Windows, the conda method is recommended since it's also able to install the LLVM optimizer (see next section).
@@ -57,7 +57,7 @@ If you want to skip this step, substitute `clang`/`clang++`/`opt` with `clang-11
 ```bash
 echo 'alias clang=clang-11' >> ~/.bashrc
 echo 'alias clang++=clang++-11' >> ~/.bashrc
-echo 'alias clang=opt-11' >> ~/.bashrc
+echo 'alias opt=opt-11' >> ~/.bashrc
 ```
 
 Restart the terminal for the aliases to take effect.
@@ -89,7 +89,7 @@ The QDK project templates facilitate this task, which can be invoked with:
 dotnet new console -lang Q# -o Hello
 ```
 
-Parameters: 
+Parameters:
 
 * `console` : specify the project to be a standalone console application
 * `-lang Q#` : load the templates for Q# projects
@@ -104,7 +104,7 @@ namespace Hello {
 
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
-    
+
     @EntryPoint()
     operation HelloQ() : Unit {
         Message("Hello quantum world!");
@@ -120,7 +120,7 @@ Q# uses .NET project files to control the compilation process, located in the pr
 The standard one provided for a standalone Q# application looks as follows:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107153439">
+<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -133,7 +133,7 @@ The standard one provided for a standalone Q# application looks as follows:
 Enabling QIR generation is a simple matter of adding the `<QirGeneration>` property to the project file:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107153439">
+<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -329,8 +329,8 @@ One for the runtime and one for the simulator, using the `PackageReference` comm
 
 ```xml
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2107153439-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2107153439" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2106148911-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2106148911" GeneratePathProperty="true" />
   </ItemGroup>
 ```
 
@@ -376,7 +376,7 @@ Only `.hpp` files from the QIR header directory will be copied, and no `.exe` fi
 Put together, the new `Hello.csproj` project file should look as follows:
 
 ```xml
-<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107153439">
+<Project Sdk="Microsoft.Quantum.Sdk/0.18.2106148911">
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
@@ -386,8 +386,8 @@ Put together, the new `Hello.csproj` project file should look as follows:
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2107153439-alpha" GeneratePathProperty="true" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2107153439" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.2106148911-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2106148911" GeneratePathProperty="true" />
   </ItemGroup>
 
   <Target Name="GetDependencies" AfterTargets="Build">
@@ -424,6 +424,15 @@ build
 ├── QirContext.hpp
 ├── QirRuntime.hpp
 └── SimFactory.hpp
+```
+
+(**Linux**) The `Microsoft.Quantum.Qir.*` dynamic libraries will already have the right naming scheme for Clang to use, but the `Microsoft.Quantum.Simulator.Runtime` library needs to be renamed.
+The proper name format is `lib<library-name>.so`.
+
+Execute the following command from the project root directory:
+
+```bash
+mv build/Microsoft.Quantum.Simulator.Runtime.dll build/libMicrosoft.Quantum.Simulator.Runtime.so
 ```
 
 ### Adding a driver
@@ -529,7 +538,7 @@ namespace Hello {
 
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
-    
+
     @EntryPoint()
     operation HelloQ() : Result {
         Message("Hello quantum world!");
