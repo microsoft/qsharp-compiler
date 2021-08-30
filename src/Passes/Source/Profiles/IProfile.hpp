@@ -19,13 +19,13 @@ namespace quantum
         IProfile() = default;
         virtual ~IProfile();
         virtual llvm::ModulePassManager createGenerationModulePass(
-            PassBuilder&       pass_builder,
-            OptimizationLevel& optimisation_level,
-            bool               debug) = 0;
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug) = 0;
         virtual llvm::ModulePassManager createValidationModulePass(
-            PassBuilder&       pass_builder,
-            OptimizationLevel& optimisation_level,
-            bool               debug)                                                = 0;
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug)                                                = 0;
         virtual void addFunctionAnalyses(FunctionAnalysisManager& fam) = 0;
     };
 

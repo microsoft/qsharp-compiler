@@ -18,49 +18,28 @@ namespace quantum
         using String = std::string;
 
         using SettingsMap = std::unordered_map<String, String>;
-        explicit Settings(SettingsMap default_settings)
-          : settings_{std::move(default_settings)}
-        {
-        }
+        explicit Settings(SettingsMap default_settings);
 
-        String get(String const& name, String const& default_value)
-        {
-            auto it = settings_.find(name);
-            if (it == settings_.end())
-            {
-                return default_value;
-            }
+        /// Accessing settings
+        /// @{
+        /// Gets a named setting, falling back to a default if the key is not found.
+        String get(String const& name, String const& default_value) noexcept;
 
-            return it->second;
-        }
+        /// Gets a named setting. This method throws if the setting is not present.
+        String get(String const& name);
 
-        String get(String const& name)
-        {
-            auto it = settings_.find(name);
-            if (it == settings_.end())
-            {
-                throw std::runtime_error("Could not find setting '" + name + "'.");
-            }
+        /// Access operator which forwards access to the underlying map.
+        String& operator[](String const& key);
+        /// @}
 
-            return it->second;
-        }
-
-        void print()
-        {
-            std::cout << "Settings" << std::endl;
-            for (auto& s : settings_)
-            {
-                std::cout << std::setw(20) << s.first << ": " << s.second << std::endl;
-            }
-        }
-
-        String& operator[](String const& key)
-        {
-            return settings_[key];
-        }
+        /// Helper functions
+        /// @{
+        /// Prints the settings and their current values.
+        void print();
+        /// @}
 
       private:
-        SettingsMap settings_;
+        SettingsMap settings_; ///< Settings map that keeps all specified settings.
         friend class ParameterParser;
     };
 

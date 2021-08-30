@@ -38,7 +38,10 @@ foreach(pass_plugin ${ALL_PASSES})
 
   # Linking
   target_link_libraries(${pass_plugin} Rules)
-  target_link_libraries(${pass_plugin}
-    "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+
+  if(MICROSOFT_ENABLE_DYNAMIC_LOADING)
+    target_link_libraries(${pass_plugin} 
+      "$<$<PLATFORM_ID:Darwin>:-undefined dynamic_lookup>")
+  endif(MICROSOFT_ENABLE_DYNAMIC_LOADING)
 
 endforeach()

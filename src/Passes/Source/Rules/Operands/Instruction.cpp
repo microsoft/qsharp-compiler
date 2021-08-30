@@ -43,7 +43,9 @@ namespace quantum
     template class InstructionPattern<llvm::StoreInst>;
     template class InstructionPattern<llvm::LoadInst>;
     template class InstructionPattern<llvm::BitCastInst>;
+    template class InstructionPattern<llvm::IntToPtrInst>;
     template class InstructionPattern<llvm::BranchInst>;
+    template class InstructionPattern<llvm::ConstantInt>;
 #pragma clang diagnostic pop
 
 } // namespace quantum

@@ -45,7 +45,7 @@ namespace quantum
             }
 
             auto& v2 = values[i];
-            if (!v2.is_key && hasValue(v.value))
+            if (!v2.is_key && isOption(v.value))
             {
                 settings_[v.value] = v2.value;
                 ++i;
@@ -86,7 +86,7 @@ namespace quantum
         return {is_key, key};
     }
 
-    bool ParameterParser::hasValue(String const& key)
+    bool ParameterParser::isOption(String const& key)
     {
         if (flags_.find(key) != flags_.end())
         {

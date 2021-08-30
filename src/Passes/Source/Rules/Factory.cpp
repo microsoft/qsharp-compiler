@@ -20,16 +20,6 @@ namespace quantum
     {
     }
 
-    RuleFactory::AllocationManagerPtr RuleFactory::qubitAllocationManager() const
-    {
-        return qubit_alloc_manager_;
-    }
-
-    RuleFactory::AllocationManagerPtr RuleFactory::resultAllocationManager() const
-    {
-        return result_alloc_manager_;
-    }
-
     void RuleFactory::removeFunctionCall(String const& name)
     {
         addRule({callByNameOnly(name), deleteInstruction()});
@@ -42,8 +32,19 @@ namespace quantum
 
         /// Allocation
         auto allocation_replacer =
-            [qubit_alloc_manager](Builder&, Value* val, Captures& cap, Replacements& replacements) {
+            [qubit_alloc_manager](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
                 auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
+                if (cst == nullptr)
+                {
+                    return false;
+                }
+
+                auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
+                if (ptr_type == nullptr)
+                {
+                    return false;
+                }
+
                 if (cst == nullptr)
                 {
                     return false;
@@ -51,11 +52,45 @@ namespace quantum
 
                 auto llvm_size = cst->getValue();
                 auto name      = val->getName().str();
-                qubit_alloc_manager->allocate(name, llvm_size.getZExtValue());
+                auto size      = llvm_size.getZExtValue();
+                auto offset    = qubit_alloc_manager->allocate(name, size);
 
-                replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
+                // Creating a new index APInt that is shifted by the offset of the allocation
+                // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from QIR
+                auto idx = llvm::APInt(64, offset);
+
+                // Computing offset
+                auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+
+                auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+                instr->takeName(val);
+
+                // Replacing the instruction with new instruction
+                auto old_instr = llvm::dyn_cast<Instruction>(val);
+
+                // Safety precaution to ensure that we are dealing with a Instruction
+                if (old_instr == nullptr)
+                {
+                    return false;
+                }
+
+                // Ensuring that we have replaced the instruction before
+                // identifying release
+                old_instr->replaceAllUsesWith(instr);
+
+                replacements.push_back({old_instr, instr});
                 return true;
             };
+
+        /// This rule is replacing the allocate qubit array instruction
+        ///
+        /// %leftPreshared = call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
+        ///
+        /// by changing it to a constant pointer
+        ///
+        /// %leftPreshared = inttoptr i64 0 to %Array*
+        ///
+        /// In this way, we use the
 
         addRule({call("__quantum__rt__qubit_allocate_array", "size"_cap = _), allocation_replacer});
 
@@ -63,7 +98,6 @@ namespace quantum
         auto access_replacer =
             [qubit_alloc_manager](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
                 // Getting the type pointer
-
                 auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
                 if (ptr_type == nullptr)
                 {
@@ -133,9 +167,11 @@ namespace quantum
                     return false;
                 }
 
+                auto qubit_name = val->getName().str();
+
                 // Computing the index by getting the current index value and offseting by
                 // the offset at which the qubit array is allocated.
-                auto offset = qubit_alloc_manager->allocate();
+                auto offset = qubit_alloc_manager->allocate(qubit_name);
 
                 // Creating a new index APInt that is shifted by the offset of the allocation
                 // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from QIR
@@ -148,18 +184,86 @@ namespace quantum
                 instr->takeName(val);
 
                 // Replacing the instruction with new instruction
-                replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
+                auto old_instr = llvm::dyn_cast<Instruction>(val);
+
+                // Safety precaution to ensure that we are dealing with a Instruction
+                if (old_instr == nullptr)
+                {
+                    return false;
+                }
+
+                // Ensuring that we have replaced the instruction before
+                // identifying release
+                old_instr->replaceAllUsesWith(instr);
+
+                replacements.push_back({old_instr, instr});
 
                 return true;
             };
+
+        // Dealing with qubit allocation
         addRule({call("__quantum__rt__qubit_allocate"), allocation_replacer});
 
         /// Release replacement
         auto deleter = deleteInstruction();
+
+        // Handling the case where a constant integer is cast to a pointer and the pointer
+        // is used in a call to qubit_release:
+        //
+        // %0 = inttoptr i64 0 to %Qubit*
+        // call void @__quantum__rt__qubit_release(%Qubit* %0
+        //
+        // The case of named addresses are also covered, by this pattern:
+        // %leftMessage = inttoptr i64 0 to %Qubit*
+        // call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
+
+        addRule(
+            {call("__quantum__rt__qubit_release", intToPtr("const"_cap = constInt())),
+             [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
+                 // Recovering the qubit id
+                 auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["const"]);
+                 if (cst == nullptr)
+                 {
+                     return false;
+                 }
+                 auto address = cst->getValue().getZExtValue();
+
+                 // Releasing
+                 qubit_alloc_manager->release(address);
+
+                 // Deleting instruction
+                 return deleter(builder, val, cap, rep);
+             }});
+
+        // Handling where allocation is done by non-standard functions. In
+        // this rule reports an error as we cannot reliably do a mapping.
+        //
+        // %leftMessage = call %Qubit* @__non_standard_allocator()
+        // call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
         addRule(
             {call("__quantum__rt__qubit_release", "name"_cap = _),
              [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
-                 qubit_alloc_manager->release();
+                 // Getting the name
+                 auto name = cap["name"]->getName().str();
+
+                 // Returning in case the name comes out empty
+                 if (name.empty())
+                 {
+
+                     // TODO(tfr): report error
+                     llvm::errs() << "FAILED due to unnamed non standard allocation:\n";
+                     llvm::errs() << *val << "\n\n";
+
+                     // Deleting the instruction in order to proceed
+                     // and trying to discover as many other errors as possible
+                     return deleter(builder, val, cap, rep);
+                 }
+
+                 // TODO(tfr): report error
+                 llvm::errs() << "FAILED due to non standard allocation:\n";
+                 llvm::errs() << *cap["name"] << "\n";
+                 llvm::errs() << *val << "\n\n";
+
                  return deleter(builder, val, cap, rep);
              }
 
@@ -183,16 +287,29 @@ namespace quantum
                 auto offset = result_alloc_manager->allocate();
 
                 // Creating a new index APInt that is shifted by the offset of the allocation
-                // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from QIR
+                // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from
+                // QIR
                 auto idx = llvm::APInt(64, offset);
 
                 // Computing offset
                 auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
 
                 auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+
+                if (instr == nullptr)
+                {
+                    return false;
+                }
+
                 instr->takeName(val);
 
-                auto module   = llvm::dyn_cast<llvm::Instruction>(val)->getModule();
+                auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+                if (orig_instr == nullptr)
+                {
+                    return false;
+                }
+
+                auto module   = orig_instr->getModule();
                 auto function = module->getFunction("__quantum__qis__mz__body");
 
                 std::vector<llvm::Value*> arguments;
@@ -226,6 +343,16 @@ namespace quantum
                 return true;
             };
 
+        // This rules identifies result allocations through the function "__quantum__qis__m__body".
+        // As an example, the following
+        //
+        // %result1 = call %Result* @__quantum__qis__m__body(%Qubit* %0)
+        //
+        // translates into
+        //
+        // %result1 = inttoptr i64 0 to %Result*
+        // call void @__quantum__qis__mz__body(%Qubit* %0, %Result* %result1)
+
         addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
     }
 
@@ -235,7 +362,13 @@ namespace quantum
             auto result = cap["result"];
             auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
             // Replacing result
-            auto                      module   = llvm::dyn_cast<llvm::Instruction>(val)->getModule();
+            auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+            if (orig_instr == nullptr)
+            {
+                return false;
+            }
+
+            auto                      module   = orig_instr->getModule();
             auto                      function = module->getFunction("__quantum__qir__read_result");
             std::vector<llvm::Value*> arguments;
             arguments.push_back(result);
@@ -258,6 +391,11 @@ namespace quantum
 
             builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
             auto new_call = builder.CreateCall(function, arguments);
+            if (cond == nullptr)
+            {
+                return false;
+            }
+
             new_call->takeName(cond);
 
             for (auto& use : cond->uses())
@@ -310,7 +448,8 @@ namespace quantum
     void RuleFactory::disableStringSupport()
     {
         removeFunctionCall("__quantum__rt__string_create");
-        removeFunctionCall("__quantum__rt__string_release");
+        removeFunctionCall("__quantum__rt__string_update_reference_count");
+        removeFunctionCall("__quantum__rt__string_update_alias_count");
         removeFunctionCall("__quantum__rt__message");
     }
 

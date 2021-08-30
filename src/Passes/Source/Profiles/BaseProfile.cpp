@@ -9,15 +9,17 @@
 
 #include "Llvm/Llvm.hpp"
 
+#include <iostream>
+
 namespace microsoft
 {
 namespace quantum
 {
 
     llvm::ModulePassManager BaseProfile::createGenerationModulePass(
-        llvm::PassBuilder&                    pass_builder,
-        llvm::PassBuilder::OptimizationLevel& optimisation_level,
-        bool                                  debug)
+        llvm::PassBuilder&                          pass_builder,
+        llvm::PassBuilder::OptimizationLevel const& optimisation_level,
+        bool                                        debug)
     {
         auto ret = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
         // buildPerModuleDefaultPipeline buildModuleOptimizationPipeline
@@ -66,7 +68,7 @@ namespace quantum
 
     llvm::ModulePassManager BaseProfile::createValidationModulePass(
         llvm::PassBuilder&,
-        llvm::PassBuilder::OptimizationLevel&,
+        llvm::PassBuilder::OptimizationLevel const&,
         bool)
     {
         throw std::runtime_error("Validator not implmented yet");

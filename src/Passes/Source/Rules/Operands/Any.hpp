@@ -14,13 +14,25 @@ namespace microsoft
 namespace quantum
 {
 
+    /// Pattern that matches any operand.
     class AnyPattern : public IOperandPrototype
     {
       public:
+        /// Constructors.
+        /// @{
         AnyPattern();
         ~AnyPattern() override;
-        bool  match(Value* instr, Captures& captures) const override;
+        /// @}
+
+        /// "Any" implmenetation of the member functions in IOperandPrototype.
+        /// @{
+
+        /// Match of any operand always returns true and ignores children.
+        bool match(Value* instr, Captures& captures) const override;
+
+        /// Creates a copy of the AnyPattern instance.
         Child copy() const override;
+        /// @}
     };
 
 } // namespace quantum

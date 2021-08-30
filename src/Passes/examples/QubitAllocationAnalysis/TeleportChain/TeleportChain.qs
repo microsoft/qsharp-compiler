@@ -5,6 +5,7 @@ namespace TeleportChain {
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Preparation;
 
+
     operation PrepareEntangledPair(left : Qubit, right : Qubit) : Unit is Adj + Ctl {
         H(left);
         CNOT(left, right);
@@ -37,4 +38,5 @@ namespace TeleportChain {
         let _ = MResetZ(leftMessage);
         return  MResetZ(rightPreshared[nPairs-1]);
     }
+
 }

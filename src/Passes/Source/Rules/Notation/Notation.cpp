@@ -17,19 +17,8 @@ namespace quantum
 {
     namespace notation
     {
-        /// Replacement function to delete an instruction. This is a shorthand notation for deleting
-        /// an instruction that can be used with a custom rule when building a ruleset. This function
-        /// can be used with shorthand notation for patterns as follows:
-        /// ```c++
-        /// addRule({callByNameOnly(name), deleteInstruction()});
-        /// ```
-        /// to delete the instructions that calls functions with the name `name`.
-        std::function<bool(
-            ReplacementRule::Builder&,
-            ReplacementRule::Value*,
-            ReplacementRule::Captures&,
-            ReplacementRule::Replacements&)>
-        deleteInstruction()
+
+        ReplacerFunction deleteInstruction()
         {
             return [](ReplacementRule::Builder&, ReplacementRule::Value* val, ReplacementRule::Captures&,
                       ReplacementRule::Replacements& replacements) {
