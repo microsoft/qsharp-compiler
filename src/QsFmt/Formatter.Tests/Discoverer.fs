@@ -148,10 +148,7 @@ module Discoverer =
     type private FormatExampleData() as data =
         inherit TheoryData<Example>()
 
-        do
-            examples
-            |> Seq.filter (fun e -> e.Kind = ExampleKind.Format)
-            |> Seq.iter data.Add
+        do examples |> Seq.filter (fun e -> e.Kind = ExampleKind.Format) |> Seq.iter data.Add
 
     /// <summary>
     /// Provides auto-discovered <see cref="Example"/> test cases for update examples as theory data.
@@ -159,10 +156,7 @@ module Discoverer =
     type private UpdateExampleData() as data =
         inherit TheoryData<Example>()
 
-        do
-            examples
-            |> Seq.filter (fun e -> e.Kind = ExampleKind.Update)
-            |> Seq.iter data.Add
+        do examples |> Seq.filter (fun e -> e.Kind = ExampleKind.Update) |> Seq.iter data.Add
 
     /// <summary>
     /// Provides auto-discovered <see cref="FixedPoint"/> test cases as theory data.
