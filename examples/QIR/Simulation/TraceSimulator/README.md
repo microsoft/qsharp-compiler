@@ -178,7 +178,7 @@ Measuring qubits:
 ## Compiling the simulator
 
 The simulator samples require a working [Clang](https://clang.llvm.org/) installation to compile.
-Refer to the [Optimization example](../Optimization#installing-clang) for instructions on setting up Clang and LLVM.
+Refer to the [Optimization example](../../Optimization#installing-clang) for instructions on setting up Clang and LLVM.
 
 Although the [QIR Runtime header files](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/public) are sufficient to compile the simulator, actually running it will require the Runtime binaries.
 Use the NuGet CLI with the commands below to download the [QIR Runtime package](https://www.nuget.org/packages/Microsoft.Quantum.Qir.Runtime) and extract the appropriate headers and libraries (adjusting the package version as required):
