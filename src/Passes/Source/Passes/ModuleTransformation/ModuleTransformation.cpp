@@ -76,13 +76,8 @@ bool ModuleTransformationPass::onQubitRelease(llvm::Instruction *instruction, Ca
     return false;
   }
 
-  auto cst       = llvm::dyn_cast<llvm::ConstantInt>(captures["value"]);
-  auto llvm_size = cst->getValue();
-  it->second += llvm_size.getZExtValue();
-  if (it->second == 0)
-  {
-    llvm::errs() << "DEALLOCATING\n";
-  }
+  qubit_reference_count_.erase(it);
+
   return true;
 }
 
@@ -164,7 +159,7 @@ bool ModuleTransformationPass::runOnOperand(llvm::Value *operand)
 
 bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
 {
-  llvm::errs() << "Entering " << function.getName() << "\n";
+  llvm::errs() << "\n\n----> Entering " << function.getName() << "\n";
   for (auto &basic_block : function)
   {
     for (auto &instr : basic_block)
@@ -177,7 +172,7 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
       }
     }
   }
-  llvm::errs() << "Leaving " << function.getName() << "\n";
+  llvm::errs() << "<<<< ----- Leaving " << function.getName() << "\n\n";
   return true;
 }
 
@@ -192,21 +187,13 @@ llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &module,
   // and replace.
   for (auto &function : module)
   {
-    // Idenfying entrypoint
-    runOnFunction(function);
-    llvm::errs() << "\n\n";
-
-    /*
-    for (auto &basic_block : function)
+    if (function.hasFnAttribute("EntryPoint"))
     {
-      for (auto &instr : basic_block)
-      {
-        llvm::errs() << instr << "\n";
-        //        rule_set_.matchAndReplace(&instr, replacements_);
-      }
-
+      llvm::errs() << function.getName() << " is the entrypoint"
+                   << "\n";
+      runOnFunction(function);
+      llvm::errs() << "\n\n";
     }
-    */
   }
 
   // Applying all replacements

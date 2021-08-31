@@ -66,7 +66,7 @@ int main(int argc, char **argv)
     bool                      debug              = settings.get("debug") == "true";
     bool                      generate           = settings.get("generate") == "true";
     bool                      validate           = settings.get("validate") == "true";
-    auto                      optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
+    auto                      optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
     std::shared_ptr<IProfile> profile            = std::make_shared<BaseProfile>();
 
     if (settings.get("profile") == "ruleBasedProfile")

@@ -64,7 +64,7 @@ public:
   bool runOnOperand(llvm::Value *operand);
   bool runOnFunction(llvm::Function &function);
 
-  bool onQubitReferenceUpdate(llvm::Instruction *instruction, Captures &captures);
+  bool onQubitRelease(llvm::Instruction *instruction, Captures &captures);
   bool onQubitAllocate(llvm::Instruction *instruction, Captures &captures);
 
   bool onArrayReferenceUpdate(llvm::Instruction *instruction);
