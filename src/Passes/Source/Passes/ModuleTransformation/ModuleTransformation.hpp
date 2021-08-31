@@ -25,12 +25,16 @@ public:
   using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
   using Captures             = RuleSet::Captures;
   using String               = std::string;
+  using ConstantArguments    = std::unordered_map<std::string, llvm::ConstantInt *>;
 
   /// Construction and destruction configuration.
   /// @{
 
   /// Custom default constructor
-  ModuleTransformationPass() = default;
+  ModuleTransformationPass(llvm::FunctionPassManager &&function_pass_manager)
+    : function_pass_manager_{
+          std::make_unique<llvm::FunctionPassManager>(std::move(function_pass_manager))}
+  {}
   void Setup();
 
   /// Copy construction is banned.
@@ -75,6 +79,13 @@ public:
 
   void addRule(ReplacementRule &&rule);
 
+  /// Function expansion
+  /// @{
+  llvm::Function *expandFunctionCall(llvm::Function &         callee,
+                                     ConstantArguments const &const_args = {});
+  void            constantFoldFunction(llvm::Function &callee);
+  /// @}
+
   Value *resolveAlias(Value *original);
 
   /// Whether or not this pass is required to run.
@@ -84,8 +95,10 @@ public:
 private:
   RuleSet      rule_set_{};
   Replacements replacements_;  ///< Registered replacements to be executed.
+  uint64_t     depth_{0};
 
-  std::unordered_map<Value *, int32_t> qubit_reference_count_;
+  std::unordered_map<Value *, int32_t>       qubit_reference_count_;
+  std::unique_ptr<llvm::FunctionPassManager> function_pass_manager_;
 };
 
 }  // namespace quantum

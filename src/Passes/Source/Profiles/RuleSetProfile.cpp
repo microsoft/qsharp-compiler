@@ -18,18 +18,18 @@ RuleSetProfile::RuleSetProfile(ConfigureFunction const &f)
   : configure_{f}
 {}
 llvm::ModulePassManager RuleSetProfile::createGenerationModulePass(
-    PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool)
+    PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool debug)
 {
   llvm::ModulePassManager ret = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
-  //  auto function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
-  //    optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
+  auto                    function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
+      optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
 
   // Defining the mapping
   RuleSet rule_set;
   configure_(rule_set);
 
   // function_pass_manager.addPass(TransformationRulePass(std::move(rule_set)));
-  ret.addPass(ModuleTransformationPass());
+  ret.addPass(ModuleTransformationPass(std::move(function_pass_manager)));
   //  ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
 
   return ret;
