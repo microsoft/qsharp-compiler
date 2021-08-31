@@ -1,6 +1,6 @@
 
 qat: build-qat analysis-example.ll
-	../../Debug/Source/Apps/qat --generate --profile ruleSet -S analysis-example.ll
+	../../Debug/Source/Apps/qat --generate --profile ruleBasedProfile -S analysis-example.ll
 
 run-expand: build-qaa build-esa analysis-example.ll
 	opt -load-pass-plugin ../../Debug/Source/Passes/libQirAllocationAnalysis.dylib \

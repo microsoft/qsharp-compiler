@@ -16,9 +16,9 @@ void ModuleTransformationPass::Setup()
 {
   using namespace microsoft::quantum::notation;
   rule_set_.clear();
-  addRule({call("__quantum__rt__qubit_update_reference_count", "name"_cap = _, "value"_cap = _),
+  addRule({call("__quantum__rt__qubit_release", "name"_cap = _),
            [this](Builder &, Value *val, Captures &captures, Replacements &) {
-             return onQubitReferenceUpdate(llvm::dyn_cast<llvm::Instruction>(val), captures);
+             return onQubitRelease(llvm::dyn_cast<llvm::Instruction>(val), captures);
            }});
 
   addRule({call("__quantum__rt__qubit_allocate"),
@@ -62,12 +62,11 @@ bool ModuleTransformationPass::onSave(llvm::Instruction *instruction)
   return true;
 }
 
-bool ModuleTransformationPass::onQubitReferenceUpdate(llvm::Instruction *instruction,
-                                                      Captures &         captures)
+bool ModuleTransformationPass::onQubitRelease(llvm::Instruction *instruction, Captures &captures)
 {
-  llvm::errs() << " --> Qubit reference update " << *instruction << "\n";
-  llvm::errs() << "                            " << *captures["name"] << "\n";
-  llvm::errs() << "                            " << *captures["value"] << "\n";
+  llvm::errs() << " --> Qubit release " << *instruction << "\n";
+  llvm::errs() << "                   " << *captures["name"] << "\n";
+  llvm::errs() << "                   " << *captures["value"] << "\n";
 
   auto it = qubit_reference_count_.find(resolveAlias(captures["name"]));
   if (it == qubit_reference_count_.end())
