@@ -41,6 +41,62 @@ void ModuleTransformationPass::Setup()
            [this](Builder &, Value *val, RuleSet::Captures &, Replacements &) {
              return onSave(llvm::dyn_cast<llvm::Instruction>(val));
            }});
+
+  //// Constant expressions
+
+  // Note the order of the arguments as per line 1248 in
+  // https://llvm.org/doxygen/Instructions_8cpp_source.html
+
+  addConstExprRule(
+      {branch("cond"_cap = constInt(), "if_false"_cap = _, "if_true"_cap = _),
+       [](Builder &builder, Value *val, Captures &captures, Replacements &replacements) {
+         auto cst = llvm::dyn_cast<llvm::ConstantInt>(captures["cond"]);
+         if (cst == nullptr)
+         {
+           return false;
+         }
+
+         auto instr       = llvm::dyn_cast<llvm::Instruction>(val);
+         auto branch_cond = cst->getValue().getZExtValue();
+         auto if_true     = llvm::dyn_cast<llvm::BasicBlock>(captures["if_true"]);
+         auto if_false    = llvm::dyn_cast<llvm::BasicBlock>(captures["if_false"]);
+
+         if (branch_cond)
+         {
+           builder.CreateBr(if_true);
+           instr->replaceAllUsesWith(llvm::UndefValue::get(instr->getType()));
+
+           // TODO: Check that if_false is not referenced from if_true
+
+           if (if_false->use_empty())
+           {
+             llvm::errs() << "NO TERMINATOR ON FALSE\n";
+             replacements.push_back({if_false, nullptr});
+           }
+         }
+         else
+         {
+           builder.CreateBr(if_false);
+           instr->replaceAllUsesWith(llvm::UndefValue::get(instr->getType()));
+
+           // TODO: Check that if_true is not referenced from if_false
+           if (if_true->use_empty())
+           {
+             llvm::errs() << "NO TERMINATOR ON TRUE\n";
+
+             replacements.push_back({if_true, nullptr});
+           }
+         }
+
+         // TODO: Remove names
+         replacements.push_back({val, nullptr});
+
+         (void)(val);
+         (void)(replacements);
+         (void)(builder);
+
+         return true;
+       }});
 }
 
 void ModuleTransformationPass::addRule(ReplacementRule &&rule)
@@ -48,6 +104,13 @@ void ModuleTransformationPass::addRule(ReplacementRule &&rule)
   auto ret = std::make_shared<ReplacementRule>(std::move(rule));
 
   rule_set_.addRule(ret);
+}
+
+void ModuleTransformationPass::addConstExprRule(ReplacementRule &&rule)
+{
+  auto ret = std::make_shared<ReplacementRule>(std::move(rule));
+
+  const_expr_replacements_.addRule(ret);
 }
 
 bool ModuleTransformationPass::onLoad(llvm::Instruction *instruction)
@@ -159,8 +222,11 @@ bool ModuleTransformationPass::runOnOperand(llvm::Value *operand)
 void ModuleTransformationPass::constantFoldFunction(llvm::Function &function)
 {
   std::vector<llvm::Instruction *> to_delete;
+
+  // Folding all constants
   for (auto &basic_block : function)
   {
+
     for (auto &instr : basic_block)
     {
       auto module = instr.getModule();
@@ -168,18 +234,48 @@ void ModuleTransformationPass::constantFoldFunction(llvm::Function &function)
       auto cst    = llvm::ConstantFoldInstruction(&instr, dl, nullptr);
       if (cst != nullptr)
       {
-        llvm::errs() << "CAN CONST FOLD: " << instr << " -> " << *cst << "\n";
         instr.replaceAllUsesWith(cst);
         to_delete.push_back(&instr);
-        // TODO: Schedule for deletion
-        //        instr.eraseFromParent();
       }
     }
   }
 
+  // Deleting constants
   for (auto &x : to_delete)
   {
     x->eraseFromParent();
+  }
+
+  // Folding constant expressions
+  Replacements replacements;
+  for (auto &basic_block : function)
+  {
+    for (auto &instr : basic_block)
+    {
+
+      const_expr_replacements_.matchAndReplace(&instr, replacements);
+    }
+  }
+
+  for (auto &r : replacements)
+  {
+    if (r.second != nullptr)
+    {
+      throw std::runtime_error("Real replacements not implemented.");
+    }
+    auto instr = llvm::dyn_cast<llvm::Instruction>(r.first);
+    if (instr != nullptr)
+    {
+      instr->eraseFromParent();
+      continue;
+    }
+
+    auto block = llvm::dyn_cast<llvm::BasicBlock>(r.first);
+    if (block != nullptr)
+    {
+      llvm::errs() << "Attempting to delete:\n" << *block << "\n";
+      llvm::DeleteDeadBlock(block);
+    }
   }
 }
 
@@ -191,6 +287,7 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
     return false;
   }
   ++depth_;
+  std::vector<llvm::Instruction *> to_delete;
 
   llvm::errs() << "\n\n----> Entering " << function.getName() << "\n";
   for (auto &basic_block : function)
@@ -261,6 +358,7 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
             instr.replaceAllUsesWith(new_call);
 
             // Deleting instruction
+            to_delete.push_back(&instr);
             // TODO: Delete instruction, instr.deleteInstru??;
 
             constantFoldFunction(*new_callee);
@@ -304,6 +402,13 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
       }
     }
   }
+
+  // Deleting constants
+  for (auto &x : to_delete)
+  {
+    x->eraseFromParent();
+  }
+
   llvm::errs() << "<<<< ----- Leaving " << function.getName() << "\n\n";
   --depth_;
   return true;

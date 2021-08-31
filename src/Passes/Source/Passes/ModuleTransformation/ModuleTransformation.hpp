@@ -78,6 +78,7 @@ public:
   bool onSave(llvm::Instruction *instruction);
 
   void addRule(ReplacementRule &&rule);
+  void addConstExprRule(ReplacementRule &&rule);
 
   /// Function expansion
   /// @{
@@ -99,6 +100,8 @@ private:
 
   std::unordered_map<Value *, int32_t>       qubit_reference_count_;
   std::unique_ptr<llvm::FunctionPassManager> function_pass_manager_;
+
+  RuleSet const_expr_replacements_{};
 };
 
 }  // namespace quantum
