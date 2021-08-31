@@ -59,11 +59,7 @@ let format source =
 [<CompiledName "Update">]
 let update source =
     parse source
-    |> Result.map (
-        curry qubitBindingUpdate.Document ()
-        >> curry unitUpdate.Document ()
-        >> printer.Document
-    )
+    |> Result.map (curry qubitBindingUpdate.Document () >> curry unitUpdate.Document () >> printer.Document)
 
 
 [<CompiledName "Identity">]
