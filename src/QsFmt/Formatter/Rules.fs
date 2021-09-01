@@ -229,3 +229,33 @@ let arraySyntaxUpdate =
                 | None -> newArray |> NewArray // If the conversion is invalid, just leave the node as-is
             | _ -> base.Expression((), expression)
     }
+
+let updateChecker =
+    let mutable lineNumber = 0;
+    let mutable colNumber = 0;
+    { new Reducer<string list>() with
+        override _.Combine(x, y) = x @ y
+
+        override _.Terminal terminal =
+            for trivia in terminal.Prefix do
+                match trivia with
+                | Whitespace space -> colNumber <- colNumber + space.Length
+                | NewLine nl -> lineNumber <- lineNumber + 1
+                | Comment comment -> colNumber <- colNumber + comment.Length
+            colNumber <- colNumber + terminal.Text.Length
+            []
+
+        override reducer.Expression expression =
+            match expression with
+            | NewArray newArray ->
+                let lineBefore, colBefore = lineNumber, colNumber
+                let subWarnings = base.Expression expression
+                let warning = sprintf "I'm a warning from (%i, %i) to (%i, %i)!" lineBefore colBefore lineNumber colNumber
+                reducer.Combine(subWarnings, [warning])
+            | _ -> base.Expression expression
+
+        override _.Document document =
+            lineNumber <- 0
+            colNumber <- 0
+            base.Document document
+    }

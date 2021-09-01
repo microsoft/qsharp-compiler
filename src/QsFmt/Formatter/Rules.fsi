@@ -24,3 +24,6 @@ val qubitBindingUpdate : unit Rewriter
 
 /// Updates the `new <Type>[n]` array syntax to the new `[val, size = n]` array syntax.
 val arraySyntaxUpdate : unit Rewriter
+
+/// Provides warnings for deprecated syntax still in the syntax tree.
+val updateChecker : string list Reducer
