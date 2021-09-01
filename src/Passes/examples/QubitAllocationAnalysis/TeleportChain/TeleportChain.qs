@@ -2,7 +2,7 @@ namespace TeleportChain {
     @EntryPoint()
     operation Main(): Int
     {
-        return Calculate(3);
+        return Calculate(4);
     }
 
     operation Calculate(n: Int): Int

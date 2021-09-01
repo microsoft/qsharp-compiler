@@ -65,38 +65,19 @@ void ModuleTransformationPass::Setup()
          {
            builder.CreateBr(if_true);
            instr->replaceAllUsesWith(llvm::UndefValue::get(instr->getType()));
-
-           // TODO: Check that if_false is not referenced from if_true
-
-           if (if_false->use_empty())
-           {
-             llvm::errs() << "NO TERMINATOR ON FALSE\n";
-             replacements.push_back({if_false, nullptr});
-           }
          }
          else
          {
            builder.CreateBr(if_false);
            instr->replaceAllUsesWith(llvm::UndefValue::get(instr->getType()));
-
-           // TODO: Check that if_true is not referenced from if_false
-           if (if_true->use_empty())
-           {
-             llvm::errs() << "NO TERMINATOR ON TRUE\n";
-
-             replacements.push_back({if_true, nullptr});
-           }
          }
 
-         // TODO: Remove names
          replacements.push_back({val, nullptr});
-
-         (void)(val);
-         (void)(replacements);
-         (void)(builder);
 
          return true;
        }});
+
+  // TODO: Delete dead blocks
 }
 
 void ModuleTransformationPass::addRule(ReplacementRule &&rule)
@@ -290,8 +271,14 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
   std::vector<llvm::Instruction *> to_delete;
 
   llvm::errs() << "\n\n----> Entering " << function.getName() << "\n";
-  for (auto &basic_block : function)
+
+  std::deque<llvm::BasicBlock *> queue;
+  queue.push_back(&function.getEntryBlock());
+  while (!queue.empty())
   {
+    auto &basic_block = *(queue.front());
+    queue.pop_front();
+
     for (auto &instr : basic_block)
     {
       // TODO: Identify loops
@@ -394,6 +381,18 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
         continue;
       }
 
+      auto *br_instr = llvm::dyn_cast<llvm::BranchInst>(&instr);
+      if (br_instr != nullptr)
+      {
+        for (uint32_t i = 0; i < br_instr->getNumOperands(); ++i)
+        {
+          auto bb = llvm::dyn_cast<llvm::BasicBlock>(br_instr->getOperand(i));
+          if (bb != nullptr)
+          {
+            queue.push_back(bb);
+          }
+        }
+      }
       //      llvm::errs() << "run: " << instr << "\n";
 
       if (!rule_set_.matchAndReplace(&instr, replacements_))

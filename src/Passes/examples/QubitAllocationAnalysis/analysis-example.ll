@@ -28,7 +28,7 @@ declare void @__quantum__rt__qubit_release(%Qubit*) local_unnamed_addr
 
 define internal fastcc i64 @TeleportChain__Main__body() unnamed_addr {
 entry:
-  %0 = call fastcc i64 @TeleportChain__Calculate__body(i64 9)
+  %0 = call fastcc i64 @TeleportChain__Calculate__body(i64 4)
   ret i64 %0
 }
 

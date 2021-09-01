@@ -39,7 +39,7 @@ declare void @__quantum__rt__qubit_release(%Qubit*)
 
 define internal i64 @TeleportChain__Main__body() {
 entry:
-  %0 = call i64 @TeleportChain__Calculate__body(i64 9)
+  %0 = call i64 @TeleportChain__Calculate__body(i64 4)
   ret i64 %0
 }
 
