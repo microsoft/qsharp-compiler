@@ -7,99 +7,77 @@
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+AllocationManager::AllocationManagerPtr AllocationManager::createNew()
 {
-namespace quantum
+  AllocationManagerPtr ret;
+  ret.reset(new AllocationManager());
+
+  return ret;
+}
+
+AllocationManager::Index AllocationManager::allocate(String const &name, Index const &size)
 {
+  auto ret = next_qubit_index_;
 
-    AllocationManager::AllocationManagerPtr AllocationManager::createNew()
-    {
-        AllocationManagerPtr ret;
-        ret.reset(new AllocationManager());
+  // Creating a memory segment mappign in case we are dealing with qubits
+  MemoryMapping map;
+  map.name  = name;
+  map.index = allocation_index_;
+  map.size  = size;
 
-        return ret;
-    }
+  map.start = next_qubit_index_;
 
-    AllocationManager::Index AllocationManager::allocate(String const& name, Index const& size)
-    {
-        auto ret = next_qubit_index_;
+  // Advancing start
+  next_qubit_index_ += size;
+  map.end = map.start + size;
 
-        // Creating a memory segment mappign in case we are dealing with qubits
-        MemoryMapping map;
-        map.name  = name;
-        map.index = allocation_index_;
-        map.size  = size;
+  mappings_.emplace(allocation_index_, std::move(map));
 
-        if (!name.empty())
-        {
-            if (name_to_index_.find(map.name) != name_to_index_.end())
-            {
-                throw std::runtime_error("Memory segment with name " + map.name + " already exists.");
-            }
+  // Advancing the allocation index
+  ++allocation_index_;
+  llvm::errs() << "Allocating " << ret << "\n";
 
-            name_to_index_[map.name] = map.index;
-        }
+  return ret;
+}
 
-        map.start = next_qubit_index_;
+AllocationManager::Index AllocationManager::getOffset(String const &name) const
+{
+  throw std::runtime_error("getOffset by name is deprecated: " + name);
+}
 
-        // Advancing start
-        next_qubit_index_ += size;
-        map.end = map.start + size;
+AllocationManager::Address AllocationManager::getAddress(String const &name, Index const &n) const
+{
+  return getAddress(getOffset(name), n);
+}
 
-        mappings_.emplace(allocation_index_, std::move(map));
+AllocationManager::Address AllocationManager::getAddress(Address const &address,
+                                                         Index const &  n) const
+{
+  return address + n;
+}
 
-        // Advancing the allocation index
-        ++allocation_index_;
+void AllocationManager::release(Address const &address)
+{
+  --allocation_index_;
+  auto it = mappings_.find(allocation_index_);
+  if (it == mappings_.end())
+  {
+    throw std::runtime_error("Segment not found");
+  }
 
-        return ret;
-    }
+  if (it->second.start != address)
+  {
+    throw std::runtime_error("Address mismatch upon release");
+  }
 
-    AllocationManager::Index AllocationManager::getOffset(String const& name) const
-    {
-        auto it = name_to_index_.find(name);
-        if (it == name_to_index_.end())
-        {
-            throw std::runtime_error("Memory segment with name " + name + " not found.");
-        }
-        auto index = it->second;
+  next_qubit_index_ = it->second.start;
+  llvm::errs() << "Releasing " << next_qubit_index_ << "\n";
 
-        auto it2 = mappings_.find(index);
-        if (it2 == mappings_.end())
-        {
-            throw std::runtime_error(
-                "Memory segment with name " + name + " not found - index exist, but not present in mapping.");
-        }
+  mappings_.erase(it);
+}
 
-        return it2->second.start;
-    }
-
-    AllocationManager::Address AllocationManager::getAddress(String const& name, Index const& n) const
-    {
-        return getAddress(getOffset(name), n);
-    }
-
-    AllocationManager::Address AllocationManager::getAddress(Address const& address, Index const& n) const
-    {
-        return address + n;
-    }
-
-    void AllocationManager::release(String const& name)
-    {
-        auto it = name_to_index_.find(name);
-        if (it == name_to_index_.end())
-        {
-            throw std::runtime_error("Memory segment with name " + name + " not found.");
-        }
-        name_to_index_.erase(it);
-
-        // TODO(tfr): Address to index
-    }
-
-    void AllocationManager::release(Address const&)
-    {
-        // TODO(tfr): Address to index
-        // TODO(tfr): Name to index
-    }
-
-} // namespace quantum
-} // namespace microsoft
+}  // namespace quantum
+}  // namespace microsoft

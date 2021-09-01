@@ -109,10 +109,12 @@ public:
   /// Generic helper funcntions
   /// @{
   bool runOnFunction(llvm::Function &function, InstructionModifier const &modifier);
+  void applyReplacements();
   /// @}
 
   /// Copy and expand
   /// @{
+  void            runCopyAndExpand(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
   void            setupCopyAndExpand();
   void            addConstExprRule(ReplacementRule &&rule);
   llvm::Value *   copyAndExpand(llvm::Value *input, DeletableInstructions &);
@@ -123,13 +125,20 @@ public:
 
   /// Dead code detection
   /// @{
+  void         runDetectDeadCode(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
+  void         runDeleteDeadCode(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
   llvm::Value *detectActiveCode(llvm::Value *input, DeletableInstructions &);
   llvm::Value *deleteDeadCode(llvm::Value *input, DeletableInstructions &);
   bool         isActive(llvm::Value *value) const;
   /// @}
 
-  /// Qubit allocation
   /// @{
+  void runReplacePhi(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
+  /// @}
+
+  /// Rules
+  /// @{
+  void runApplyRules(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
   bool onQubitRelease(llvm::Instruction *instruction, Captures &captures);
   bool onQubitAllocate(llvm::Instruction *instruction, Captures &captures);
   /// @}
@@ -141,8 +150,6 @@ public:
   bool onSave(llvm::Instruction *instruction);
 
   void addRule(ReplacementRule &&rule);
-
-
 
   Value *resolveAlias(Value *original);
 
@@ -171,7 +178,11 @@ private:
   /// Dead code
   /// @{
   std::unordered_set< Value * > active_pieces_{};
+  std::vector<llvm::BasicBlock *> blocks_to_delete_;
+  std::vector<llvm::Function *>   functions_to_delete_;  
   /// @}
+
+  // Phi detection
 };
 
 }  // namespace quantum

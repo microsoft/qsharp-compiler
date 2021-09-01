@@ -28,6 +28,10 @@ bool RuleSet::matchAndReplace(Instruction *value, Replacements &replacements)
       {
         return true;
       }
+      else
+      {
+        captures.clear();
+      }
     }
   }
   return false;

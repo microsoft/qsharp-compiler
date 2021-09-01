@@ -4,6 +4,7 @@
 #include "Passes/ModuleTransformation/ModuleTransformation.hpp"
 
 #include "Llvm/Llvm.hpp"
+#include "Rules/Factory.hpp"
 #include "Rules/Notation/Notation.hpp"
 #include "Rules/ReplacementRule.hpp"
 
@@ -16,31 +17,18 @@ void ModuleTransformationPass::Setup()
 {
   using namespace microsoft::quantum::notation;
   rule_set_.clear();
-  addRule({call("__quantum__rt__qubit_release", "name"_cap = _),
-           [this](Builder &, Value *val, Captures &captures, Replacements &) {
-             return onQubitRelease(llvm::dyn_cast<llvm::Instruction>(val), captures);
-           }});
+  auto factory = RuleFactory(rule_set_);
 
-  addRule({call("__quantum__rt__qubit_allocate"),
-           [this](Builder &, Value *val, Captures &captures, Replacements &) {
-             return onQubitAllocate(llvm::dyn_cast<llvm::Instruction>(val), captures);
-           }});
+  factory.useStaticQubitArrayAllocation();
+  factory.useStaticQubitAllocation();
+  factory.useStaticResultAllocation();
 
-  // Load and save
-  auto get_element =
-      call("__quantum__rt__array_get_element_ptr_1d", "arrayName"_cap = _, "index"_cap = _);
-  auto cast_pattern = bitCast("getElement"_cap = get_element);
-  auto load_pattern = load("cast"_cap = cast_pattern);
+  factory.optimiseBranchQuatumOne();
+  //  factory.optimiseBranchQuatumZero();
 
-  addRule({std::move(load_pattern), [this](Builder &, Value *val, Captures &, Replacements &) {
-             return onLoad(llvm::dyn_cast<llvm::Instruction>(val));
-           }});
-
-  auto store_pattern = store("cast"_cap = cast_pattern, "value"_cap = _);
-  addRule({std::move(store_pattern),
-           [this](Builder &, Value *val, RuleSet::Captures &, Replacements &) {
-             return onSave(llvm::dyn_cast<llvm::Instruction>(val));
-           }});
+  factory.disableReferenceCounting();
+  factory.disableAliasCounting();
+  factory.disableStringSupport();
 
   //// Constant expressions
 
@@ -317,6 +305,7 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &           function
   }
   ++depth_;
 
+  llvm::errs() << "Entering " << function.getName() << "\n";
   // Keep track of instructions scheduled for deletion
   DeletableInstructions schedule_instruction_deletion;
 
@@ -363,9 +352,16 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &           function
       {
         for (uint32_t i = 0; i < br_instr->getNumOperands(); ++i)
         {
+          // TODO: This may not work on multi path branches (conditional)
+          // as we may accidently add the final path (contains qubit release)
+          // and we cannot make assumptions since optimisation may have rearranged
+          // everything. In this case, we should revert to the order they appear in the
+          // function
           auto bb = llvm::dyn_cast<llvm::BasicBlock>(br_instr->getOperand(i));
           if (bb != nullptr)
           {
+            //            llvm::errs() << "Adding:\n";
+            //            llvm::errs() << *bb << "\n\n";
             queue.push_back(bb);
           }
         }
@@ -380,6 +376,8 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &           function
   }
 
   --depth_;
+  llvm::errs() << "Leaving " << function.getName() << "\n";
+
   return true;
 }
 
@@ -388,12 +386,8 @@ bool ModuleTransformationPass::isActive(llvm::Value *value) const
   return active_pieces_.find(value) != active_pieces_.end();
 }
 
-llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &module,
-                                                      llvm::ModuleAnalysisManager &)
+void ModuleTransformationPass::runCopyAndExpand(llvm::Module &module, llvm::ModuleAnalysisManager &)
 {
-
-  Setup();
-
   replacements_.clear();
   // For every instruction in every block, we attempt a match
   // and replace.
@@ -422,65 +416,12 @@ llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &module,
     }
   }
 
-  std::vector<llvm::BasicBlock *> blocks_to_delete;
-  std::vector<llvm::Function *>   functions_to_delete;
-  for (auto &function : module)
-  {
-    if (isActive(&function))
-    {
-      for (auto &block : function)
-      {
-        if (!isActive(&block))
-        {
-          blocks_to_delete.push_back(&block);
-        }
-      }
-    }
-    else if (!function.isDeclaration())
-    {
-      functions_to_delete.push_back(&function);
-    }
-  }
+  applyReplacements();
+}
 
-  // Removing all function references and scheduling blocks for deletion
-  for (auto &function : functions_to_delete)
-  {
-    // Schedule for deletion
-    llvm::errs() << "Removing function references " << function->getName() << "\n";
-    function->replaceAllUsesWith(llvm::UndefValue::get(function->getType()));
-
-    function->clearGC();
-    function->clearMetadata();
-
-    for (auto &block : *function)
-    {
-      block.replaceAllUsesWith(llvm::UndefValue::get(block.getType()));
-      blocks_to_delete.push_back(&block);
-    }
-  }
-
-  // Deleting all blocks
-  for (auto block : blocks_to_delete)
-  {
-    block->replaceAllUsesWith(llvm::UndefValue::get(block->getType()));
-    if (block->use_empty())
-    {
-      block->eraseFromParent();
-    }
-  }
-
-  // Removing functions
-  for (auto &function : functions_to_delete)
-  {
-    llvm::errs() << "Deleting function " << function->getName() << "\n";
-    if (function->isDeclaration() && function->use_empty())
-    {
-      function->eraseFromParent();
-    }
-  }
-
+void ModuleTransformationPass::applyReplacements()
+{
   // Applying all replacements
-  /*
   for (auto it = replacements_.rbegin(); it != replacements_.rend(); ++it)
   {
     auto instr1 = llvm::dyn_cast<llvm::Instruction>(it->first);
@@ -515,17 +456,148 @@ llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &module,
       instr1->eraseFromParent();
     }
   }
-*/
+
+  replacements_.clear();
+}
+
+void ModuleTransformationPass::runDetectDeadCode(llvm::Module &module,
+                                                 llvm::ModuleAnalysisManager &)
+{
+  blocks_to_delete_.clear();
+  functions_to_delete_.clear();
+
+  for (auto &function : module)
+  {
+    if (isActive(&function))
+    {
+      for (auto &block : function)
+      {
+        if (!isActive(&block))
+        {
+          blocks_to_delete_.push_back(&block);
+        }
+      }
+    }
+    else if (!function.isDeclaration())
+    {
+      functions_to_delete_.push_back(&function);
+    }
+  }
+}
+
+void ModuleTransformationPass::runDeleteDeadCode(llvm::Module &, llvm::ModuleAnalysisManager &)
+{
+
+  // Removing all function references and scheduling blocks for deletion
+  for (auto &function : functions_to_delete_)
+  {
+    // Schedule for deletion
+    llvm::errs() << "Removing function references " << function->getName() << "\n";
+    function->replaceAllUsesWith(llvm::UndefValue::get(function->getType()));
+
+    function->clearGC();
+    function->clearMetadata();
+
+    for (auto &block : *function)
+    {
+      block.replaceAllUsesWith(llvm::UndefValue::get(block.getType()));
+      blocks_to_delete_.push_back(&block);
+    }
+  }
+
+  // Deleting all blocks
+  for (auto block : blocks_to_delete_)
+  {
+    block->replaceAllUsesWith(llvm::UndefValue::get(block->getType()));
+    if (block->use_empty())
+    {
+      block->eraseFromParent();
+    }
+  }
+
+  // Removing functions
+  for (auto &function : functions_to_delete_)
+  {
+    llvm::errs() << "Deleting function " << function->getName() << "\n";
+    if (function->isDeclaration() && function->use_empty())
+    {
+      function->eraseFromParent();
+    }
+  }
+}
+
+void ModuleTransformationPass::runReplacePhi(llvm::Module &module, llvm::ModuleAnalysisManager &)
+{
+  using namespace microsoft::quantum::notation;
+  auto                        rule = phi("b1"_cap = _, "b2"_cap = _);
+  IOperandPrototype::Captures captures;
+
+  for (auto &function : module)
+  {
+    for (auto &block : function)
+    {
+      for (auto &instr : block)
+      {
+
+        if (rule->match(&instr, captures))
+        {
+          auto phi  = llvm::dyn_cast<llvm::PHINode>(&instr);
+          auto val1 = captures["b1"];
+          auto val2 = captures["b2"];
+
+          auto block1 = phi->getIncomingBlock(0);
+          auto block2 = phi->getIncomingBlock(1);
+          auto t1     = block1->getTerminator();
+          auto t2     = block2->getTerminator();
+
+          llvm::errs() << "FOUND Phi node:\n";
+          llvm::errs() << " - " << *val1 << " >> " << *t1 << "\n";
+          llvm::errs() << " - " << *val2 << " >> " << *t2 << "\n";
+
+          captures.clear();
+        }
+      }
+    }
+  }
+}
+
+void ModuleTransformationPass::runApplyRules(llvm::Module &module, llvm::ModuleAnalysisManager &)
+{
+  replacements_.clear();
+
+  for (auto &function : module)
+  {
+    if (function.hasFnAttribute("EntryPoint"))
+    {
+      runOnFunction(function, [this](llvm::Value *value, DeletableInstructions &) {
+        auto instr = llvm::dyn_cast<llvm::Instruction>(value);
+        if (instr != nullptr)
+        {
+          rule_set_.matchAndReplace(instr, replacements_);
+        }
+        return value;
+      });
+    }
+  }
+
+  applyReplacements();
+}
+
+llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &               module,
+                                                      llvm::ModuleAnalysisManager &mam)
+{
+
+  Setup();
+
+  runCopyAndExpand(module, mam);
+  runDetectDeadCode(module, mam);
+  runReplacePhi(module, mam);
+  runDeleteDeadCode(module, mam);
+
+  runApplyRules(module, mam);
 
   // Cleaning all references
   qubit_reference_count_.clear();
-
-  // If we did not change the IR, we report that we preserved all
-  if (replacements_.empty())
-  {
-    return llvm::PreservedAnalyses::all();
-  }
-
   // ... and otherwise, we report that we preserved none.
   return llvm::PreservedAnalyses::none();
 }
