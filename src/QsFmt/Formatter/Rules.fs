@@ -231,8 +231,8 @@ let arraySyntaxUpdate =
     }
 
 let updateChecker =
-    let mutable lineNumber = 0;
-    let mutable colNumber = 0;
+    let mutable lineNumber = 1;
+    let mutable colNumber = 1;
     { new Reducer<string list>() with
         override _.Combine(x, y) = x @ y
 
@@ -240,7 +240,9 @@ let updateChecker =
             for trivia in terminal.Prefix do
                 match trivia with
                 | Whitespace space -> colNumber <- colNumber + space.Length
-                | NewLine nl -> lineNumber <- lineNumber + 1
+                | NewLine nl ->
+                    lineNumber <- lineNumber + 1
+                    colNumber <- 1
                 | Comment comment -> colNumber <- colNumber + comment.Length
             colNumber <- colNumber + terminal.Text.Length
             []
@@ -255,7 +257,7 @@ let updateChecker =
             | _ -> base.Expression expression
 
         override _.Document document =
-            lineNumber <- 0
-            colNumber <- 0
+            lineNumber <- 1
+            colNumber <- 1
             base.Document document
     }
