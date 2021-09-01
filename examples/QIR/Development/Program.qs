@@ -90,35 +90,13 @@
         validationSchedule : SamplingSchedule
     )
     : (SequentialModel, Int) {
+        //return (model, 1); // FIXME: THIS RESULTS IN A POTENTIALLY LEAKED OBJECT
+
         Message($"starting TrainSequentialClassifierAtModel");
         let optimizedModel = _TrainSequentialClassifierAtModel(model, samples, options, trainingSchedule);
         Message($"got optimized model");
 
-        let labels = Mapped(_Label, samples);
-        let features = Mapped(_Features, samples);
-        Message($"got labels and features");
-
-        let probabilities = EstimateClassificationProbabilities(
-            options::Tolerance,
-            optimizedModel,
-            Sampled(validationSchedule, features),
-            options::NMeasurements
-        );
-        Message($"got probabilities");
-
-        // Find the best bias for the new classification parameters.
-        let localBias = _UpdatedBias(
-            Zipped(probabilities, Sampled(validationSchedule, labels)),
-            0.0,
-            options::Tolerance
-        );
-        let localPL = InferredLabels(localBias, probabilities);
-        let localMisses = NMisclassifications(localPL, Sampled(validationSchedule, labels));
-        Message($"found new classification parameters");
-
-        let ret = (optimizedModel w/ Bias <- localBias, localMisses);
-        Message($"ending TrainSequentialClassifierAtModel");
-        return ret;
+        return (optimizedModel, 1);
     }
 
     operation EstimateFrequency (preparation : (Qubit[] => Unit), measurement : (Qubit[] => Result), nQubits : Int, nMeasurements : Int) : Double
@@ -153,69 +131,6 @@
         return EstimateFrequency(preparation, measurement, nQubits, nMeasurements);
     }
 
-    internal operation _PrepareClassification(
-        encoder : (LittleEndian => Unit is Adj + Ctl),
-        model : SequentialModel,
-        target : Qubit[]
-    )
-    : Unit is Adj {
-        Message($"starting _PrepareClassification");
-        encoder(LittleEndian(target));
-        ApplySequentialClassifier(model, target);
-        Message($"done with _PrepareClassification");
-    }
-
-    operation EstimateClassificationProbability(
-        tolerance : Double,
-        model : SequentialModel,
-        sample : Double[],
-        nMeasurements: Int
-    )
-    : Double {
-        Message($"starting EstimateClassificationProbability");
-
-        let encodedSample = ApproximateInputEncoder(tolerance / IntAsDouble(Length(model::Structure)), sample);
-        let measurement = _TailMeasurement(encodedSample::NQubits);
-        Message($"trying to access encodedSample");
-        let prep = encodedSample::Prepare;
-        let nqs = encodedSample::NQubits;
-        Message($"getting prep");
-        let preparation = _PrepareClassification(prep, model, _); // here is where we fail??
-        Message($"estimating frequency...");
-        let ret = 1.0
-                        - EstimateFrequencyA(
-                            preparation,
-                            measurement,
-                            nqs,
-                            nMeasurements)
-        ;
-        Message($"done with EstimateClassificationProbability");
-        return ret;
-    }
-
-    operation EstimateClassificationProbabilities(
-        tolerance : Double,
-        model : SequentialModel,
-        samples : Double[][],
-        nMeasurements : Int
-    )
-    : Double[] {
-        Message($"starting EstimateClassificationProbabilities");
-        let effectiveTolerance =
-            IsEmpty(model::Structure)
-            ? tolerance
-            | tolerance / IntAsDouble(Length(model::Structure));
-        let ret = ForEach(
-            EstimateClassificationProbability(
-                effectiveTolerance, model, _, nMeasurements
-            ),
-            samples
-        );
-
-        Message($"done with EstimateClassificationProbabilities");
-        return ret;
-    }
-
     internal operation _TrainSequentialClassifierAtModel(
         model : SequentialModel,
         samples : LabeledSample[],
@@ -223,15 +138,12 @@
         schedule : SamplingSchedule
     )
     : SequentialModel {
-        Message($"starting _TrainSequentialClassifierAtModel");
+
         let nSamples = Length(samples);
         let features = Mapped(_Features, samples);
         let actualLabels = Mapped(_Label, samples);
 
-        let probabilities = EstimateClassificationProbabilities(
-            options::Tolerance, model,
-            features, options::NMeasurements
-        );
+        let probabilities = [1., size = Length(features)];
         Message($"got probabilities");
 
         mutable bestSoFar = model
@@ -253,72 +165,6 @@
         let nQubits = MaxI(FeatureRegisterSize(samples[0]::Features), NQubitsRequired(model));
         let encodedSamples = Mapped(_EncodeSample(effectiveTolerance, nQubits, _), samples);
 
-        //reintroducing learning rate heuristics
-        mutable lrate = options::LearningRate;
-        mutable batchSize = options::MinibatchSize;
-
-        // Keep track of how many times a bias update has stalled out.
-        mutable nStalls = 0;
-
-        for ep in 1..options::MaxEpochs {
-            options::VerboseMessage($"    Beginning epoch {ep}.");
-            let (nMisses, proposedUpdate) = _RunSingleTrainingEpoch(
-                encodedSamples, schedule, options::ScoringPeriod,
-                options w/ LearningRate <- lrate
-                        w/ MinibatchSize <- batchSize,
-                current,
-                nBestMisses
-            );
-            if nMisses < nBestMisses {
-                set nBestMisses = nMisses;
-                set bestSoFar = proposedUpdate;
-                if IntAsDouble(nMisses) / IntAsDouble(nSamples) < options::Tolerance { // Terminate based on tolerance.
-                    return bestSoFar;
-                }
-                set nStalls = 0; //Reset the counter of consecutive noops
-                set lrate = options::LearningRate;
-                set batchSize = options::MinibatchSize;
-            }
-
-            if
-                    NearlyEqualD(current::Bias, proposedUpdate::Bias) and
-                    _AllNearlyEqualD(current::Parameters, proposedUpdate::Parameters)
-            {
-                set nStalls += 1;
-                // If we're more than halfway through our maximum allowed number of stalls,
-                // exit early with the best we actually found.
-                if nStalls > options::MaxStalls {
-                    return bestSoFar; //Too many non-steps. Continuation makes no sense
-                }
-
-                // Otherwise, heat up the learning rate and batch size.
-                set batchSize = nStalls; //batchSize + 1; //Try to fuzz things up with smaller batch count
-                //and heat up  a bit
-                set lrate *= 1.25;
-
-                // If we stalled out, we'll also randomly rescale our parameters
-                // and bias before updating.
-                if nStalls > options::MaxStalls / 2 {
-                    set current = SequentialModel(
-                        model::Structure,
-                        ForEach(_RandomlyRescale(options::StochasticRescaleFactor, _), proposedUpdate::Parameters),
-                        _RandomlyRescale(options::StochasticRescaleFactor, proposedUpdate::Bias)
-                    );
-                }
-            } else {
-                // If we learned successfully this iteration, reset the number of
-                // stalls so far.
-                set nStalls = 0; //Reset the counter of consecutive noops
-                set lrate = options::LearningRate;
-                set batchSize = options::MinibatchSize;
-
-                // Since we didn't stall out, we can set the parameters and bias
-                // as normal, without randomizing.
-                set current = proposedUpdate;
-            }
-        }
-
-        Message($"done with _TrainSequentialClassifierAtModel");
         return bestSoFar;
     }
 
@@ -349,48 +195,6 @@
 
         }
         return (bestSoFar, bestValidation);
-    }
-
-    operation ValidateHalfMoonModel(
-        validationVectors : Double[][],
-        validationLabels : Int[],
-        parameters : Double[],
-        bias : Double
-    ) : Double {
-        let samples = Mapped(
-            LabeledSample,
-            Zipped(Preprocessed(validationVectors), validationLabels)
-        );
-        let tolerance = 0.005;
-        let nMeasurements = 10000;
-        let results = ValidateSequentialClassifier(
-            SequentialModel(ClassifierStructure(), parameters, bias),
-            samples,
-            tolerance,
-            nMeasurements,
-            DefaultSchedule(validationVectors)
-        );
-        return IntAsDouble(results::NMisclassifications) / IntAsDouble(Length(samples));
-    }
-
-    operation ClassifyHalfMoonModel(
-        samples : Double[][],
-        parameters : Double[],
-        bias : Double,
-        tolerance  : Double,
-        nMeasurements : Int
-    )
-    : Int[] {
-        let model = Default<SequentialModel>()
-            w/ Structure <- ClassifierStructure()
-            w/ Parameters <- parameters
-            w/ Bias <- bias;
-        let features = Preprocessed(samples);
-        let probabilities = EstimateClassificationProbabilities(
-            tolerance, model,
-            features, nMeasurements
-        );
-        return InferredLabels(model::Bias, probabilities);
     }
 
     operation TrainingSample() : (Double[], Double) {
