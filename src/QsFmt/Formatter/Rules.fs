@@ -232,32 +232,32 @@ let arraySyntaxUpdate =
 
 let updateChecker =
     let mutable lineNumber = 1;
-    let mutable colNumber = 1;
+    let mutable charNumber = 1;
     { new Reducer<string list>() with
         override _.Combine(x, y) = x @ y
 
         override _.Terminal terminal =
             for trivia in terminal.Prefix do
                 match trivia with
-                | Whitespace space -> colNumber <- colNumber + space.Length
+                | Whitespace space -> charNumber <- charNumber + space.Length
                 | NewLine nl ->
                     lineNumber <- lineNumber + 1
-                    colNumber <- 1
-                | Comment comment -> colNumber <- colNumber + comment.Length
-            colNumber <- colNumber + terminal.Text.Length
+                    charNumber <- 1
+                | Comment comment -> charNumber <- charNumber + comment.Length
+            charNumber <- charNumber + terminal.Text.Length
             []
 
         override reducer.Expression expression =
             match expression with
             | NewArray newArray ->
-                let lineBefore, colBefore = lineNumber, colNumber
+                let lineBefore, charBefore = lineNumber, charNumber
                 let subWarnings = base.Expression expression
-                let warning = sprintf "I'm a warning from (%i, %i) to (%i, %i)!" lineBefore colBefore lineNumber colNumber
+                let warning = sprintf "I'm a warning from (%i, %i) to (%i, %i)!" lineBefore charBefore lineNumber charNumber
                 reducer.Combine(subWarnings, [warning])
             | _ -> base.Expression expression
 
         override _.Document document =
             lineNumber <- 1
-            colNumber <- 1
+            charNumber <- 1
             base.Document document
     }
