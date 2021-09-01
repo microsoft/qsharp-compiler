@@ -115,7 +115,7 @@ let ``QIR array update`` () =
 let ``QIR tuple deconstructing`` () = qirTest false "TestDeconstruct"
 
 [<Fact>]
-let ``QIR UDT constructor`` () = qirTest false "TestUdt"
+let ``QIR UDT constructor`` () = qirMultiTest false "TestUdt" ["TestUdt1"; "TestUdt2"]
 
 [<Fact>]
 let ``QIR UDT construction`` () = qirTest false "TestUdtConstruction"

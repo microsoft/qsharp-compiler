@@ -721,7 +721,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                this.AddReturn(this.Values.Unit, returnsVoid: false);
+                var udtTuple = this.Values.CreateTuple(this.Values.Unit);
+                this.AddReturn(udtTuple, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
             {
