@@ -39,8 +39,29 @@ declare void @__quantum__rt__qubit_release(%Qubit*)
 
 define internal i64 @TeleportChain__Main__body() {
 entry:
-  %0 = call i64 @TeleportChain__Calculate__body(i64 4)
-  ret i64 %0
+  %ret = alloca i64, align 8
+  store i64 1, i64* %ret, align 4
+  br label %header__1
+
+header__1:                                        ; preds = %exiting__1, %entry
+  %i = phi i64 [ 0, %entry ], [ %4, %exiting__1 ]
+  %0 = icmp sle i64 %i, 3
+  br i1 %0, label %body__1, label %exit__1
+
+body__1:                                          ; preds = %header__1
+  %1 = load i64, i64* %ret, align 4
+  %2 = call i64 @TeleportChain__Calculate__body(i64 4)
+  %3 = add i64 %1, %2
+  store i64 %3, i64* %ret, align 4
+  br label %exiting__1
+
+exiting__1:                                       ; preds = %body__1
+  %4 = add i64 %i, 1
+  br label %header__1
+
+exit__1:                                          ; preds = %header__1
+  %5 = load i64, i64* %ret, align 4
+  ret i64 %5
 }
 
 define i64 @TeleportChain__Main__Interop() #0 {

@@ -2,13 +2,21 @@ namespace TeleportChain {
     @EntryPoint()
     operation Main(): Int
     {
-        return Calculate(4);
+        mutable ret = 1;
+        for i in 0..3
+        {
+            set ret = ret + Calculate(4);
+        }
+
+        return ret;
     }
 
     operation Calculate(n: Int): Int
     {
         use q = Qubit();        
         mutable ret = 2;
+        
+        H(q);
 
         if(n != 0)
         {

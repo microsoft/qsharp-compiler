@@ -47,6 +47,12 @@ void ModuleTransformationPass::Setup()
   // Note the order of the arguments as per line 1248 in
   // https://llvm.org/doxygen/Instructions_8cpp_source.html
 
+  setupCopyAndExpand();
+}
+
+void ModuleTransformationPass::setupCopyAndExpand()
+{
+  using namespace microsoft::quantum::notation;
   addConstExprRule(
       {branch("cond"_cap = constInt(), "if_false"_cap = _, "if_true"_cap = _),
        [](Builder &builder, Value *val, Captures &captures, Replacements &replacements) {
@@ -76,8 +82,6 @@ void ModuleTransformationPass::Setup()
 
          return true;
        }});
-
-  // TODO: Delete dead blocks
 }
 
 void ModuleTransformationPass::addRule(ReplacementRule &&rule)
@@ -149,57 +153,6 @@ bool ModuleTransformationPass::onArrayAllocate(llvm::Instruction *instruction)
   return true;
 }
 
-bool ModuleTransformationPass::runOnInstruction(llvm::Instruction *instruction)
-{
-  auto callptr = llvm::dyn_cast<llvm::CallBase>(instruction);
-  if (callptr)
-  {
-    auto callee_function = callptr->getCalledFunction();
-    auto name            = callee_function->getName().str();
-
-    if (name == "__quantum__rt__array_create_1d")
-    {
-      onArrayAllocate(instruction);
-    }
-    else if (name.size() >= 9 && name.substr(0, 9) == "__quantum")
-    {
-
-      // llvm::errs() << "Ignoring " << name << "\n";
-    }
-    else
-    {
-      // runOnFunction(*callee_function);
-    }
-  }
-  else
-  {
-    for (auto operand = instruction->operands().begin(); operand != instruction->operands().end();
-         ++operand)
-    {
-      runOnOperand(operand->get());
-    }
-  }
-  return true;
-}
-
-bool ModuleTransformationPass::runOnOperand(llvm::Value *operand)
-{
-  operand->printAsOperand(llvm::errs(), true);
-
-  // ... do something else ...
-  auto *instruction = llvm::dyn_cast<llvm::Instruction>(operand);
-
-  if (nullptr != instruction)
-  {
-    llvm::errs() << " >> dep > " << *instruction << "\n";
-    return runOnInstruction(instruction);
-  }
-  else
-  {
-    return false;
-  }
-}
-
 void ModuleTransformationPass::constantFoldFunction(llvm::Function &function)
 {
   std::vector<llvm::Instruction *> to_delete;
@@ -260,7 +213,102 @@ void ModuleTransformationPass::constantFoldFunction(llvm::Function &function)
   }
 }
 
-bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
+llvm::Value *ModuleTransformationPass::copyAndExpand(
+    llvm::Value *input, DeletableInstructions &schedule_instruction_deletion)
+{
+  llvm::Value *ret        = input;
+  auto *       call_instr = llvm::dyn_cast<llvm::CallBase>(input);
+  if (call_instr != nullptr)
+  {
+    auto &instr = *llvm::dyn_cast<llvm::Instruction>(input);
+
+    auto callee_function = call_instr->getCalledFunction();
+    if (!callee_function->isDeclaration())
+    {
+      ConstantArguments     argument_constants{};
+      std::vector<uint32_t> remaining_arguments{};
+
+      uint32_t idx = 0;
+      auto     n   = static_cast<uint32_t>(callee_function->arg_size());
+
+      // Finding argument constants
+      while (idx < n)
+      {
+        auto arg   = callee_function->getArg(idx);
+        auto value = call_instr->getArgOperand(idx);
+
+        auto cst = llvm::dyn_cast<llvm::ConstantInt>(value);
+        if (cst != nullptr)
+        {
+          argument_constants[arg->getName().str()] = cst;
+        }
+        else
+        {
+          remaining_arguments.push_back(idx);
+        }
+
+        ++idx;
+      }
+
+      // Making a function copy
+      auto new_callee = expandFunctionCall(*callee_function, argument_constants);
+
+      // Replacing call if a new function was created
+      if (new_callee != nullptr)
+      {
+
+        llvm::IRBuilder<> builder(call_instr);
+
+        // List with new call arguments
+        std::vector<llvm::Value *> new_arguments;
+        for (auto const &i : remaining_arguments)
+        {
+          // Getting the i'th argument
+          llvm::Value *arg = call_instr->getArgOperand(i);
+
+          // Adding arguments that were not constant
+          if (argument_constants.find(arg->getName().str()) == argument_constants.end())
+          {
+            new_arguments.push_back(arg);
+          }
+        }
+
+        // Creating a new call
+        auto *new_call = builder.CreateCall(new_callee, new_arguments);
+        new_call->takeName(call_instr);
+
+        // Replace all calls to old function with calls to new function
+        instr.replaceAllUsesWith(new_call);
+
+        // Deleting instruction
+        schedule_instruction_deletion.push_back(&instr);
+        // TODO: Delete instruction, instr.deleteInstru??;
+
+        constantFoldFunction(*new_callee);
+
+        // Recursion: Returning the new call as the instruction to be analysed
+        ret = new_call;
+      }
+
+      // Deleting the function the original function if it is no longer in use
+      if (callee_function->use_empty())
+      {
+        callee_function->eraseFromParent();
+      }
+    }
+  }
+
+  return ret;
+}
+
+llvm::Value *ModuleTransformationPass::detectActiveCode(llvm::Value *input, DeletableInstructions &)
+{
+  active_pieces_.insert(input);
+  return input;
+}
+
+bool ModuleTransformationPass::runOnFunction(llvm::Function &           function,
+                                             InstructionModifier const &modifier)
 {
   if (depth_ >= 16)
   {
@@ -268,119 +316,48 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
     return false;
   }
   ++depth_;
-  std::vector<llvm::Instruction *> to_delete;
 
-  llvm::errs() << "\n\n----> Entering " << function.getName() << "\n";
+  // Keep track of instructions scheduled for deletion
+  DeletableInstructions schedule_instruction_deletion;
 
+  // Block queue
   std::deque<llvm::BasicBlock *> queue;
   queue.push_back(&function.getEntryBlock());
+
+  // Executing the modifier on the function itsel
+  modifier(&function, schedule_instruction_deletion);
+
   while (!queue.empty())
   {
     auto &basic_block = *(queue.front());
     queue.pop_front();
 
+    // Executing the modifier on the block
+    modifier(&basic_block, schedule_instruction_deletion);
+
     for (auto &instr : basic_block)
     {
-      // TODO: Identify loops
-      auto *call_instr = llvm::dyn_cast<llvm::CallBase>(&instr);
-      if (call_instr != nullptr)
+      // Modifying instruction as needed
+      auto instr_ptr = modifier(&instr, schedule_instruction_deletion);
+
+      // In case the instruction was scheduled for deletion
+      if (instr_ptr == nullptr)
       {
-
-        auto callee_function = call_instr->getCalledFunction();
-        if (!callee_function->isDeclaration())
-        {
-          ConstantArguments     argument_constants{};
-          std::vector<uint32_t> remaining_arguments{};
-
-          uint32_t idx = 0;
-          auto     n   = static_cast<uint32_t>(callee_function->arg_size());
-
-          // Finding argument constants
-          while (idx < n)
-          {
-            auto arg   = callee_function->getArg(idx);
-            auto value = call_instr->getArgOperand(idx);
-
-            auto cst = llvm::dyn_cast<llvm::ConstantInt>(value);
-            if (cst != nullptr)
-            {
-              argument_constants[arg->getName().str()] = cst;
-            }
-            else
-            {
-              remaining_arguments.push_back(idx);
-            }
-
-            ++idx;
-          }
-
-          // Making a function copy
-          auto new_callee = expandFunctionCall(*callee_function, argument_constants);
-
-          // Replacing call if a new function was created
-          if (new_callee != nullptr)
-          {
-
-            llvm::IRBuilder<> builder(call_instr);
-
-            // List with new call arguments
-            std::vector<llvm::Value *> new_arguments;
-            for (auto const &i : remaining_arguments)
-            {
-              // Getting the i'th argument
-              llvm::Value *arg = call_instr->getArgOperand(i);
-
-              // Adding arguments that were not constant
-              if (argument_constants.find(arg->getName().str()) == argument_constants.end())
-              {
-                new_arguments.push_back(arg);
-              }
-            }
-
-            // Creating a new call
-            auto *new_call = builder.CreateCall(new_callee, new_arguments);
-            new_call->takeName(call_instr);
-
-            // Replace all calls to old function with calls to new function
-            instr.replaceAllUsesWith(new_call);
-
-            // Deleting instruction
-            to_delete.push_back(&instr);
-            // TODO: Delete instruction, instr.deleteInstru??;
-
-            constantFoldFunction(*new_callee);
-
-            // Recursion
-            runOnFunction(*new_callee);
-          }
-
-          if (callee_function->use_empty())
-          {
-            callee_function->eraseFromParent();
-          }
-
-          continue;
-        }
-
-        //        llvm::errs() << "Cannot follow " << instr << "\n";
-
-        /*
-        void  deleteBody ()
-          deleteBody - This method deletes the body of the function, and converts the linkage to
-        external. More...
-
-        void  removeFromParent ()
-          removeFromParent - This method unlinks 'this' from the containing module, but does not
-        delete it. More...
-
-        void  eraseFromParent ()
-          eraseFromParent - This method unlinks 'this' from the containing module and deletes it.
-        More...
-          */
-
         continue;
       }
 
+      // Checking if we are calling a function
+      auto call_instr = llvm::dyn_cast<llvm::CallBase>(instr_ptr);
+      if (call_instr != nullptr)
+      {
+        auto callee_function = call_instr->getCalledFunction();
+        if (!callee_function->isDeclaration())
+        {
+          runOnFunction(*callee_function, modifier);
+        }
+      }
+
+      // Following the branches
       auto *br_instr = llvm::dyn_cast<llvm::BranchInst>(&instr);
       if (br_instr != nullptr)
       {
@@ -393,24 +370,22 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &function)
           }
         }
       }
-      //      llvm::errs() << "run: " << instr << "\n";
-
-      if (!rule_set_.matchAndReplace(&instr, replacements_))
-      {
-        runOnInstruction(&instr);
-      }
     }
   }
 
   // Deleting constants
-  for (auto &x : to_delete)
+  for (auto &x : schedule_instruction_deletion)
   {
     x->eraseFromParent();
   }
 
-  llvm::errs() << "<<<< ----- Leaving " << function.getName() << "\n\n";
   --depth_;
   return true;
+}
+
+bool ModuleTransformationPass::isActive(llvm::Value *value) const
+{
+  return active_pieces_.find(value) != active_pieces_.end();
 }
 
 llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &module,
@@ -419,7 +394,6 @@ llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &module,
 
   Setup();
 
-  llvm::errs() << "start: " << this << " " << &rule_set_ << "\n";
   replacements_.clear();
   // For every instruction in every block, we attempt a match
   // and replace.
@@ -427,10 +401,81 @@ llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &module,
   {
     if (function.hasFnAttribute("EntryPoint"))
     {
-      llvm::errs() << function.getName() << " is the entrypoint"
-                   << "\n";
-      runOnFunction(function);
-      llvm::errs() << "\n\n";
+      runOnFunction(function, [this](llvm::Value *value, DeletableInstructions &modifier) {
+        return copyAndExpand(value, modifier);
+      });
+    }
+  }
+
+  // Dead code detection
+  for (auto &function : module)
+  {
+    if (function.hasFnAttribute("EntryPoint"))
+    {
+      // Marking function as active
+      active_pieces_.insert(&function);
+
+      // Detectecting active code
+      runOnFunction(function, [this](llvm::Value *value, DeletableInstructions &modifier) {
+        return detectActiveCode(value, modifier);
+      });
+    }
+  }
+
+  std::vector<llvm::BasicBlock *> blocks_to_delete;
+  std::vector<llvm::Function *>   functions_to_delete;
+  for (auto &function : module)
+  {
+    if (isActive(&function))
+    {
+      for (auto &block : function)
+      {
+        if (!isActive(&block))
+        {
+          blocks_to_delete.push_back(&block);
+        }
+      }
+    }
+    else if (!function.isDeclaration())
+    {
+      functions_to_delete.push_back(&function);
+    }
+  }
+
+  // Removing all function references and scheduling blocks for deletion
+  for (auto &function : functions_to_delete)
+  {
+    // Schedule for deletion
+    llvm::errs() << "Removing function references " << function->getName() << "\n";
+    function->replaceAllUsesWith(llvm::UndefValue::get(function->getType()));
+
+    function->clearGC();
+    function->clearMetadata();
+
+    for (auto &block : *function)
+    {
+      block.replaceAllUsesWith(llvm::UndefValue::get(block.getType()));
+      blocks_to_delete.push_back(&block);
+    }
+  }
+
+  // Deleting all blocks
+  for (auto block : blocks_to_delete)
+  {
+    block->replaceAllUsesWith(llvm::UndefValue::get(block->getType()));
+    if (block->use_empty())
+    {
+      block->eraseFromParent();
+    }
+  }
+
+  // Removing functions
+  for (auto &function : functions_to_delete)
+  {
+    llvm::errs() << "Deleting function " << function->getName() << "\n";
+    if (function->isDeclaration() && function->use_empty())
+    {
+      function->eraseFromParent();
     }
   }
 
