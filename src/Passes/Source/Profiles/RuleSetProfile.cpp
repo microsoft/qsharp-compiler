@@ -6,7 +6,6 @@
 #include "Llvm/Llvm.hpp"
 #include "Passes/Profile/Profile.hpp"
 #include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
-#include "Passes/TransformationRule/TransformationRule.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/RuleSet.hpp"
 
@@ -15,7 +14,8 @@
 namespace microsoft {
 namespace quantum {
 
-RuleSetProfile::RuleSetProfile()
+RuleSetProfile::RuleSetProfile(ConfigureFunction const &configure)
+  : configure_{configure}
 {}
 llvm::ModulePassManager RuleSetProfile::createGenerationModulePass(
     PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool debug)
@@ -29,25 +29,12 @@ llvm::ModulePassManager RuleSetProfile::createGenerationModulePass(
 
   // Defining the mapping
   RuleSet rule_set;
-  auto    factory = RuleFactory(rule_set);
+  configure_(rule_set);
 
-  factory.useStaticQubitArrayAllocation();
-  factory.useStaticQubitAllocation();
-  factory.useStaticResultAllocation();
-
-  factory.optimiseBranchQuatumOne();
-  //  factory.optimiseBranchQuatumZero();
-
-  factory.disableReferenceCounting();
-  factory.disableAliasCounting();
-  factory.disableStringSupport();
-
-  // function_pass_manager.addPass(TransformationRulePass(std::move(rule_set)));
   ret.addPass(ProfilePass(std::move(rule_set)));
-  //  ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
 
-  ret.addPass(llvm::AlwaysInlinerPass());
-  ret.addPass(std::move(inliner_pass));
+  // ret.addPass(llvm::AlwaysInlinerPass());
+  // ret.addPass(std::move(inliner_pass));
 
   return ret;
 }

@@ -1,52 +1,49 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Llvm/Llvm.hpp"
 #include "Passes/ExpandStaticAllocation/ExpandStaticAllocation.hpp"
 #include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
-#include "Passes/TransformationRule/TransformationRule.hpp"
 #include "Profiles/RuleSetProfile.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
 
-#include "Llvm/Llvm.hpp"
-
 #include <functional>
 
 using namespace microsoft::quantum;
 
-namespace
-{
+namespace {
 using IrManipulationTestHelperPtr = std::shared_ptr<IrManipulationTestHelper>;
-IrManipulationTestHelperPtr newIrManip(std::string const& script)
+IrManipulationTestHelperPtr newIrManip(std::string const &script)
 {
-    IrManipulationTestHelperPtr ir_manip = std::make_shared<IrManipulationTestHelper>();
+  IrManipulationTestHelperPtr ir_manip = std::make_shared<IrManipulationTestHelper>();
 
-    ir_manip->declareOpaque("Qubit");
-    ir_manip->declareOpaque("Result");
-    ir_manip->declareOpaque("String");
-    ir_manip->declareOpaque("Array");
+  ir_manip->declareOpaque("Qubit");
+  ir_manip->declareOpaque("Result");
+  ir_manip->declareOpaque("String");
+  ir_manip->declareOpaque("Array");
 
-    ir_manip->declareFunction("%String* @__quantum__rt__string_create(i8*)");
-    ir_manip->declareFunction("void @__quantum__rt__message(%String*)");
-    ir_manip->declareFunction("void @__quantum__rt__string_update_alias_count(%String*, i32)");
-    ir_manip->declareFunction("void @__quantum__rt__string_update_reference_count(%String*, i32)");
+  ir_manip->declareFunction("%String* @__quantum__rt__string_create(i8*)");
+  ir_manip->declareFunction("void @__quantum__rt__message(%String*)");
+  ir_manip->declareFunction("void @__quantum__rt__string_update_alias_count(%String*, i32)");
+  ir_manip->declareFunction("void @__quantum__rt__string_update_reference_count(%String*, i32)");
 
-    // TODO(tfr): Add test for   %1 = call %String* @__quantum__rt__result_to_string(%Result* %0)
+  // TODO(tfr): Add test for   %1 = call %String* @__quantum__rt__result_to_string(%Result* %0)
 
-    if (!ir_manip->fromBodyString(script))
-    {
-        llvm::errs() << ir_manip->getErrorMessage() << "\n";
-        exit(-1);
-    }
-    return ir_manip;
+  if (!ir_manip->fromBodyString(script))
+  {
+    llvm::errs() << ir_manip->getErrorMessage() << "\n";
+    exit(-1);
+  }
+  return ir_manip;
 }
 
-} // namespace
+}  // namespace
 
 TEST(RuleSetTestSuite, DisablingStrings)
 {
-    auto ir_manip = newIrManip(R"script(
+  auto ir_manip = newIrManip(R"script(
     %0 = call %String* @__quantum__rt__string_create(i8* null)
     call void @__quantum__rt__string_update_reference_count(%String* %0, i32 1)      
     call void @__quantum__rt__string_update_alias_count(%String* %0, i32 1)    
@@ -55,16 +52,16 @@ TEST(RuleSetTestSuite, DisablingStrings)
     call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -11)          
   )script");
 
-    auto configure_profile = [](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+  auto configure_profile = [](RuleSet &rule_set) {
+    auto factory = RuleFactory(rule_set);
 
-        factory.disableStringSupport();
-    };
+    factory.disableStringSupport();
+  };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+  auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
 
-    ir_manip->applyProfile(profile);
+  ir_manip->applyProfile(profile);
 
-    // We expect that the call was removed
-    EXPECT_EQ(ir_manip->toBodyInstructions(), IrManipulationTestHelper::Strings{"ret i8 0"});
+  // We expect that the call was removed
+  EXPECT_EQ(ir_manip->toBodyInstructions(), IrManipulationTestHelper::Strings{"ret i8 0"});
 }

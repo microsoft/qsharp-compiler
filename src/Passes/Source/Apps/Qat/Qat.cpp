@@ -36,6 +36,10 @@ int main(int argc, char **argv)
                        {"validate", "false"},
                        {"profile", "baseProfile"},
                        {"S", "false"},
+                       {"O0", "false"},
+                       {"O1", "false"},
+                       {"02", "false"},
+                       {"03", "false"},
                        {"verify-module", "false"}}};
 
     ParameterParser parser(settings);
@@ -44,6 +48,10 @@ int main(int argc, char **argv)
     parser.addFlag("validate");
     parser.addFlag("verify-module");
     parser.addFlag("S");
+    parser.addFlag("O0");
+    parser.addFlag("O1");
+    parser.addFlag("O2");
+    parser.addFlag("O3");
 
     parser.parseArgs(argc, argv);
 
@@ -71,9 +79,20 @@ int main(int argc, char **argv)
     auto                      optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
     std::shared_ptr<IProfile> profile            = std::make_shared<BaseProfile>();
 
-    if (settings.get("profile") == "ruleBasedProfile")
+    // Setting the optimisation level
+    if (settings.get("O1") == "true")
     {
-      profile = std::make_shared<RuleSetProfile>();
+      optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
+    }
+
+    if (settings.get("O2") == "true")
+    {
+      optimisation_level = llvm::PassBuilder::OptimizationLevel::O2;
+    }
+
+    if (settings.get("O3") == "true")
+    {
+      optimisation_level = llvm::PassBuilder::OptimizationLevel::O3;
     }
 
     // In case we debug, we also print the settings to allow provide a full
