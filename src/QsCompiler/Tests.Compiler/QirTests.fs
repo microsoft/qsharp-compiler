@@ -79,7 +79,7 @@ let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
 let ``QIR reference counts`` () =
-    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
+    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2"; "TestReferenceCounts3" ]
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
@@ -115,7 +115,8 @@ let ``QIR array update`` () =
 let ``QIR tuple deconstructing`` () = qirTest false "TestDeconstruct"
 
 [<Fact>]
-let ``QIR UDT constructor`` () = qirMultiTest false "TestUdt" ["TestUdt1"; "TestUdt2"]
+let ``QIR UDT constructor`` () =
+    qirMultiTest false "TestUdt" [ "TestUdt1"; "TestUdt2" ]
 
 [<Fact>]
 let ``QIR UDT construction`` () = qirTest false "TestUdtConstruction"

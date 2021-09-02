@@ -284,6 +284,9 @@
     <Content Include="TestCases\QirTests\TestReferenceCounts2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestReferenceCounts3.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestReferenceCounts.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>

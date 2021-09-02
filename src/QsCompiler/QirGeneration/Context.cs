@@ -1019,7 +1019,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             IValue GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
             {
-                // FIXME REPLACE WITH BUILDING A CALL EXPRESSION
                 Value value;
                 if (NameGeneration.TryGetTargetInstructionName(callable, out var name))
                 {
