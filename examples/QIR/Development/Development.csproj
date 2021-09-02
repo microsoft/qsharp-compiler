@@ -8,11 +8,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <PackageReference Include="Microsoft.Quantum.Numerics" Version="0.18.2107151063-beta" />
-    <PackageReference Include="Microsoft.Quantum.MachineLearning" Version="0.18.2107151063-beta" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Condition="$([MSBuild]::IsOsPlatform('Windows'))"
                       Include="libLLVM.runtime.win-x64" Version="11.0.0"
                       PrivateAssets="All" GeneratePathProperty="true" />
