@@ -10,36 +10,23 @@
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Arithmetic;
-    open Microsoft.Quantum.MachineLearning;
 
-    newtype Foo = Unit;
-    internal function Identity<'T>(input : 'T) : 'T { return input; }
-
-    function MappedByIndex<'T, 'U> (mapper : ((Int, 'T) -> 'U), array : 'T[]) : 'U[] {
+    function Mapped<'T, 'U> (mapper : ('T -> 'U), array : 'T[]) : 'U[] {
         mutable resultArray = new 'U[Length(array)];
 
         for idxElement in IndexRange(array) {
-            set resultArray w/= idxElement <- mapper(idxElement, array[idxElement]);
+            set resultArray w/= idxElement <- mapper(array[idxElement]);
         }
 
         return resultArray;
     }
 
+    newtype SequentialModel = Double[];
+
     @EntryPoint()
     operation RunExample() : String {
 
-        // FIXME: fails execution indicating a potential memory leak
-        //let model = SequentialModel([], [0.], 0.0);
-        //let _ = Enumerated([model]);
-
-        // FIXME: throws an exception in QIR generation
-        let item = Foo(); //"hello";
-        let _ = MappedByIndex(Identity, [item]);
-
-        // FIXME: fails execution without any info
-        //let str = "hello";
-        //let _ = MappedByIndex(Identity, [str]);
-
+        let _ = Mapped(SequentialModel, [[0.]]);
         return "Executed successfully!";
     }
 }
