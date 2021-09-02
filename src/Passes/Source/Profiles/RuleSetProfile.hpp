@@ -20,7 +20,7 @@ public:
   /// @{
   /// The constructor takes a lambda function which configures the ruleset. This
   /// function is invoked during the creation of the generation module.
-  explicit RuleSetProfile(ConfigureFunction const &f);
+  RuleSetProfile();
   /// @}
 
   /// Interface functions
@@ -42,7 +42,6 @@ public:
 
   /// @}
 private:
-  ConfigureFunction configure_{};
 };
 
 }  // namespace quantum

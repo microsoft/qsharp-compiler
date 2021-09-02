@@ -73,11 +73,7 @@ int main(int argc, char **argv)
 
     if (settings.get("profile") == "ruleBasedProfile")
     {
-      auto configurer = [](RuleSet & /*ruleset*/) {
-        // TODO: Configure
-      };
-
-      profile = std::make_shared<RuleSetProfile>(configurer);
+      profile = std::make_shared<RuleSetProfile>();
     }
 
     // In case we debug, we also print the settings to allow provide a full

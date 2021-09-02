@@ -73,9 +73,8 @@ public:
   /// @{
 
   /// Custom default constructor
-  ModuleTransformationPass(llvm::FunctionPassManager &&function_pass_manager)
-    : function_pass_manager_{
-          std::make_unique<llvm::FunctionPassManager>(std::move(function_pass_manager))}
+  ModuleTransformationPass(RuleSet &&rule_set)
+    : rule_set_{std::move(rule_set)}
   {}
   void Setup();
 

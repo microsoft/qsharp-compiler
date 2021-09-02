@@ -111,7 +111,7 @@ void RuleFactory::useStaticQubitArrayAllocation()
 
     // Computing the index by getting the current index value and offseting by
     // the offset at which the qubit array is allocated.
-
+    llvm::errs() << "Handling array index: " << *cap["arrayName"] << "\n";
     auto offset_cst = llvm::dyn_cast<llvm::ConstantInt>(cap["arrayName"]);
     if (offset_cst == nullptr)
     {
@@ -141,8 +141,9 @@ void RuleFactory::useStaticQubitArrayAllocation()
     return true;
   };
 
-  auto get_element  = call("__quantum__rt__array_get_element_ptr_1d", "arrayName"_cap = constInt(),
-                          "index"_cap = constInt());
+  // Casted const
+  auto get_element  = call("__quantum__rt__array_get_element_ptr_1d",
+                          intToPtr("arrayName"_cap = constInt()), "index"_cap = constInt());
   auto cast_pattern = bitCast("getElement"_cap = get_element);
   auto load_pattern = load("cast"_cap = cast_pattern);
 

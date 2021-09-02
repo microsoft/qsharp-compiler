@@ -15,26 +15,6 @@ namespace microsoft {
 namespace quantum {
 void ModuleTransformationPass::Setup()
 {
-  using namespace microsoft::quantum::notation;
-  rule_set_.clear();
-  auto factory = RuleFactory(rule_set_);
-
-  factory.useStaticQubitArrayAllocation();
-  factory.useStaticQubitAllocation();
-  factory.useStaticResultAllocation();
-
-  factory.optimiseBranchQuatumOne();
-  //  factory.optimiseBranchQuatumZero();
-
-  factory.disableReferenceCounting();
-  factory.disableAliasCounting();
-  factory.disableStringSupport();
-
-  //// Constant expressions
-
-  // Note the order of the arguments as per line 1248 in
-  // https://llvm.org/doxygen/Instructions_8cpp_source.html
-
   setupCopyAndExpand();
 }
 
