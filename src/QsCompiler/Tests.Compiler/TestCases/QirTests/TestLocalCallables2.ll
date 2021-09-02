@@ -13,10 +13,7 @@ entry:
   %9 = getelementptr inbounds { %String*, { i64, double }* }, { %String*, { i64, double }* }* %3, i32 0, i32 1
   %10 = load { i64, double }*, { i64, double }** %9, align 8
   store { i64, double }* %10, { i64, double }** %6, align 8
-  call void @__quantum__rt__string_update_reference_count(%String* %8, i32 -1)
-  %11 = bitcast { i64, double }* %10 to %Tuple*
+  %11 = bitcast { %String*, { i64, double }* }* %3 to %Tuple*
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 -1)
-  %12 = bitcast { %String*, { i64, double }* }* %3 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %12, i32 -1)
   ret void
 }
