@@ -11,22 +11,13 @@
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Arithmetic;
 
-    function Mapped<'T, 'U> (mapper : ('T -> 'U), array : 'T[]) : 'U[] {
-        mutable resultArray = new 'U[Length(array)];
-
-        for idxElement in IndexRange(array) {
-            set resultArray w/= idxElement <- mapper(array[idxElement]);
-        }
-
-        return resultArray;
-    }
-
-    newtype SequentialModel = Double[];
+    function Id<'T>(a : 'T) : 'T { return a; }
 
     @EntryPoint()
     operation RunExample() : String {
 
-        let _ = Mapped(SequentialModel, [[0.]]);
+        let id = Id<String[]>;
+        let _ = id(["hello"]);
         return "Executed successfully!";
     }
 }
