@@ -135,7 +135,7 @@ Compiling this to LLVM IR, produces
 
   ;; Note that this is correctly placed right before the last
   ;; __four__ dealloactions (two in the array + the two allocated in the beginning).
-  tail call void @__quantum__rt__h_body(%struct.QubitId* %11) #2
+  tail call void @__quantum__qis__h__body(%struct.QubitId* %11) #2
   tail call void @__quantum__rt__qubit_release(%struct.QubitId* %12) #2
   tail call void @__quantum__rt__qubit_release(%struct.QubitId* %11) #2
   tail call void @__quantum__rt__qubit_release(%struct.QubitId* %2) #2
@@ -164,15 +164,15 @@ struct QubitId
   int64_t value;
 };
 
-extern "C" QubitId __quantum__qis__qubit_allocate();
+extern "C" QubitId __quantum__rt__qubit_allocate();
 extern "C" void    __quantum__rt__qubit_release(QubitId id);
-extern "C" void    __quantum__qis__h_body(QubitId id);
+extern "C" void    __quantum__qis__h__body(QubitId id);
 
 int32_t main()
 {
-  auto qubit = __quantum__qis__qubit_allocate();
+  auto qubit = __quantum__rt__qubit_allocate();
 
-  __quantum__qis__h_body(qubit);
+  __quantum__qis__h__body(qubit);
   __quantum__rt__qubit_release(qubit);
 
   return 0;
@@ -187,7 +187,7 @@ struct QubitId;
 
 extern "C" QubitId *__quantum__rt__qubit_allocate() noexcept;
 extern "C" void     __quantum__rt__qubit_release(QubitId *id) noexcept;
-extern "C" void     __quantum__rt__h_body(QubitId *id) noexcept;
+extern "C" void     __quantum__rt__h__body(QubitId *id) noexcept;
 
 class Qubit
 {
@@ -225,7 +225,7 @@ private:
 
 inline void H(Qubit &qubit) noexcept
 {
-  __quantum__rt__h_body(qubit.id());
+  __quantum__rt__h__body(qubit.id());
 }
 ```
 
@@ -261,7 +261,7 @@ define i32 @main() local_unnamed_addr #0 personality i32 (...)* @__gxx_personali
   %2 = tail call %struct.QubitId* @__quantum__rt__qubit_allocate() #2, !noalias !6
   %3 = tail call %struct.QubitId* @__quantum__rt__qubit_allocate() #2, !noalias !9
   %4 = tail call %struct.QubitId* @__quantum__rt__qubit_allocate() #2, !noalias !12
-  tail call void @__quantum__rt__h_body(%struct.QubitId* %2) #2
+  tail call void @__quantum__rt__h__body(%struct.QubitId* %2) #2
   tail call void @__quantum__rt__qubit_release(%struct.QubitId* %4) #2
   tail call void @__quantum__rt__qubit_release(%struct.QubitId* %3) #2
   tail call void @__quantum__rt__qubit_release(%struct.QubitId* %2) #2
