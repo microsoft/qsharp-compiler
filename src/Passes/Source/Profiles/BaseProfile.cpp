@@ -15,7 +15,6 @@ namespace microsoft
 namespace quantum
 {
 
-    BaseProfile::BaseProfile() {}
     llvm::ModulePassManager BaseProfile::createGenerationModulePass(
         PassBuilder&             pass_builder,
         OptimizationLevel const& optimisation_level,

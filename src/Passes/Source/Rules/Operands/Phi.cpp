@@ -9,8 +9,6 @@ namespace microsoft
 namespace quantum
 {
 
-    PhiPattern::PhiPattern() {}
-
     PhiPattern::~PhiPattern() = default;
 
     bool PhiPattern::match(Value* instr, Captures& captures) const

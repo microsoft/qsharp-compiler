@@ -86,7 +86,7 @@ namespace quantum
         /// @{
 
         /// Custom default constructor
-        ProfilePass(
+        explicit ProfilePass(
             RuleSet&& rule_set,
             bool      clone_functions        = true,
             bool      delete_dead_code       = true,

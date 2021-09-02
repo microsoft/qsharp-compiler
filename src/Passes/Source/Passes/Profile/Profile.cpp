@@ -22,26 +22,33 @@ namespace quantum
         addConstExprRule(
             {branch("cond"_cap = constInt(), "if_false"_cap = _, "if_true"_cap = _),
              [](Builder& builder, Value* val, Captures& captures, Replacements& replacements) {
-                 auto cst = llvm::dyn_cast<llvm::ConstantInt>(captures["cond"]);
-                 if (cst == nullptr)
+                 auto cst   = llvm::dyn_cast<llvm::ConstantInt>(captures["cond"]);
+                 auto instr = llvm::dyn_cast<llvm::Instruction>(val);
+
+                 if (cst == nullptr || instr == nullptr)
                  {
                      return false;
                  }
 
-                 auto instr       = llvm::dyn_cast<llvm::Instruction>(val);
                  auto branch_cond = cst->getValue().getZExtValue();
                  auto if_true     = llvm::dyn_cast<llvm::BasicBlock>(captures["if_true"]);
                  auto if_false    = llvm::dyn_cast<llvm::BasicBlock>(captures["if_false"]);
 
+                 auto type = instr->getType();
+                 if (type == nullptr)
+                 {
+                     return false;
+                 }
+
                  if (branch_cond)
                  {
                      builder.CreateBr(if_true);
-                     instr->replaceAllUsesWith(llvm::UndefValue::get(instr->getType()));
+                     instr->replaceAllUsesWith(llvm::UndefValue::get(type));
                  }
                  else
                  {
                      builder.CreateBr(if_false);
-                     instr->replaceAllUsesWith(llvm::UndefValue::get(instr->getType()));
+                     instr->replaceAllUsesWith(llvm::UndefValue::get(type));
                  }
 
                  replacements.push_back({val, nullptr});
@@ -67,9 +74,9 @@ namespace quantum
 
             for (auto& instr : basic_block)
             {
-                auto module = instr.getModule();
-                auto dl     = module->getDataLayout(); // TODO(tfr): Move outside of loop
-                auto cst    = llvm::ConstantFoldInstruction(&instr, dl, nullptr);
+                auto        module = instr.getModule();
+                auto const& dl     = module->getDataLayout();
+                auto        cst    = llvm::ConstantFoldInstruction(&instr, dl, nullptr);
                 if (cst != nullptr)
                 {
                     instr.replaceAllUsesWith(cst);
@@ -120,9 +127,10 @@ namespace quantum
     {
         llvm::Value* ret        = input;
         auto*        call_instr = llvm::dyn_cast<llvm::CallBase>(input);
-        if (call_instr != nullptr)
+        auto         instr_ptr  = llvm::dyn_cast<llvm::Instruction>(input);
+        if (call_instr != nullptr && instr_ptr != nullptr)
         {
-            auto& instr = *llvm::dyn_cast<llvm::Instruction>(input);
+            auto& instr = *instr_ptr;
 
             auto callee_function = call_instr->getCalledFunction();
             if (!callee_function->isDeclaration())
@@ -376,7 +384,11 @@ namespace quantum
                 // Removing all uses
                 if (!instr1->use_empty())
                 {
-                    instr1->replaceAllUsesWith(llvm::UndefValue::get(instr1->getType()));
+                    auto type = instr1->getType();
+                    if (type != nullptr)
+                    {
+                        instr1->replaceAllUsesWith(llvm::UndefValue::get(type));
+                    }
                 }
 
                 // And finally we delete the instruction
@@ -485,7 +497,12 @@ namespace quantum
                 {
                     if (rule->match(&instr, captures))
                     {
-                        auto phi  = llvm::dyn_cast<llvm::PHINode>(&instr);
+                        auto phi = llvm::dyn_cast<llvm::PHINode>(&instr);
+                        if (phi == nullptr)
+                        {
+                            continue;
+                        }
+
                         auto val1 = captures["b1"];
                         auto val2 = captures["b2"];
 

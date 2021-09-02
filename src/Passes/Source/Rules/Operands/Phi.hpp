@@ -22,7 +22,7 @@ namespace quantum
         /// Construction of the call pattern by name or move only.
         /// @{
         /// Construction by name.
-        explicit PhiPattern();
+        PhiPattern() = default;
 
         /// Copy construction prohibited.
         PhiPattern(PhiPattern const& other) = delete;

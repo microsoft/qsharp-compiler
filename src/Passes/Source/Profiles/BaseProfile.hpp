@@ -23,7 +23,7 @@ namespace quantum
         /// @{
         /// The constructor takes a lambda function which configures the ruleset. This
         /// function is invoked during the creation of the generation module.
-        BaseProfile();
+        BaseProfile() = default;
         /// @}
 
         /// Interface functions
