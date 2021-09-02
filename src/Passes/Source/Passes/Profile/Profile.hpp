@@ -84,10 +84,11 @@ public:
 
   /// Custom default constructor
   ProfilePass(RuleSet &&rule_set, bool clone_functions = true, bool delete_dead_code = true,
-              uint64_t max_recursion = 512)
+              bool apply_to_inactive_code = false, uint64_t max_recursion = 512)
     : rule_set_{std::move(rule_set)}
     , clone_functions_{clone_functions}
     , delete_dead_code_{delete_dead_code}
+    , apply_to_inactive_code_{apply_to_inactive_code}
     , max_recursion_{max_recursion}
   {}
 
@@ -165,6 +166,7 @@ private:
   RuleSet      rule_set_{};
   bool clone_functions_{true};
   bool delete_dead_code_{true};
+  bool apply_to_inactive_code_{false};
   uint64_t max_recursion_{512};
   /// @}
 

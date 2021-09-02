@@ -9,7 +9,7 @@ microsoft_add_library(AllocationManager)
 microsoft_add_library_tests(AllocationManager)
 
 microsoft_add_library(Rules)
-microsoft_add_library_tests(Rules Rules AllocationManager Commandline Profiles)
+microsoft_add_library_tests(Rules Rules Profile AllocationManager Commandline Profiles)
 
 target_link_libraries(Rules PRIVATE AllocationManager)
 

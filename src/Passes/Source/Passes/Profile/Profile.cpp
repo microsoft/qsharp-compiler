@@ -1,8 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Passes/Profile/Profile.hpp"
+
+#include "Llvm/Llvm.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/Notation/Notation.hpp"
 #include "Rules/ReplacementRule.hpp"
@@ -209,9 +210,9 @@ llvm::Value *ProfilePass::detectActiveCode(llvm::Value *input, DeletableInstruct
 
 bool ProfilePass::runOnFunction(llvm::Function &function, InstructionModifier const &modifier)
 {
-  if (depth_ >= 16)
+  if (depth_ >= max_recursion_)
   {
-    llvm::errs() << "Exceed max recursion of 16\n";
+    llvm::errs() << "Exceed max recursion of " << max_recursion_ << "\n";
     return false;
   }
   ++depth_;
@@ -346,9 +347,7 @@ void ProfilePass::applyReplacements()
     // Checking if by accident the same instruction was added
     if (already_removed.find(instr1) != already_removed.end())
     {
-      llvm::errs() << "DUPLICATE instruction removal - TODO: Work out why this happens"
-                   << "\n";
-      continue;
+      throw std::runtime_error("Instruction was already removed.");
     }
     already_removed.insert(instr1);
 
@@ -552,7 +551,6 @@ void ProfilePass::runApplyRules(llvm::Module &module, llvm::ModuleAnalysisManage
 
 llvm::PreservedAnalyses ProfilePass::run(llvm::Module &module, llvm::ModuleAnalysisManager &mam)
 {
-
   // In case the module is istructed to clone functions,
   if (clone_functions_)
   {
@@ -572,7 +570,26 @@ llvm::PreservedAnalyses ProfilePass::run(llvm::Module &module, llvm::ModuleAnaly
   }
 
   // Applying rule set
-  runApplyRules(module, mam);
+  if (!apply_to_inactive_code_)
+  {
+    runApplyRules(module, mam);
+  }
+  else
+  {
+    replacements_.clear();
+    for (auto &function : module)
+    {
+      for (auto &block : function)
+      {
+        for (auto &instr : block)
+        {
+          rule_set_.matchAndReplace(&instr, replacements_);
+        }
+      }
+    }
+
+    applyReplacements();
+  }
 
   return llvm::PreservedAnalyses::none();
 }

@@ -47,7 +47,7 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
 
   auto configure_profile = [](RuleSet &rule_set) {
     auto factory = RuleFactory(rule_set);
-
+    std::cout << "RUNNING CONFIG" << std::endl;
     factory.useStaticQubitAllocation();
   };
 
@@ -134,10 +134,10 @@ TEST(RuleSetTestSuite, AllocateReleaseMultipleTimes)
   // this require more thought with regards to the qubit allocation
   EXPECT_TRUE(ir_manip->hasInstructionSequence({
       "%qubit1 = inttoptr i64 0 to %Qubit*",
-      "%qubit2 = inttoptr i64 1 to %Qubit*",
-      "%qubit3 = inttoptr i64 2 to %Qubit*",
-      "%qubit4 = inttoptr i64 3 to %Qubit*",
-      "%qubit5 = inttoptr i64 4 to %Qubit*",
+      "%qubit2 = inttoptr i64 0 to %Qubit*",
+      "%qubit3 = inttoptr i64 0 to %Qubit*",
+      "%qubit4 = inttoptr i64 0 to %Qubit*",
+      "%qubit5 = inttoptr i64 0 to %Qubit*",
   }));
 
   // Checking that dynamic allocations were removed

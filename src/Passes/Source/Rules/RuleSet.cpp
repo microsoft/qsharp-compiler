@@ -46,5 +46,10 @@ void RuleSet::clear()
 {
   rules_.clear();
 }
+
+uint64_t RuleSet::size() const
+{
+  return rules_.size();
+}
 }  // namespace quantum
 }  // namespace microsoft

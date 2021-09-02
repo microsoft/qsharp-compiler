@@ -58,7 +58,8 @@ public:
   void addRule(ReplacementRulePtr const &rule);
   /// @}
 
-  void clear();
+  void     clear();
+  uint64_t size() const;
 
 private:
   Rules rules_;  ///< Rules that describes QIR mappings

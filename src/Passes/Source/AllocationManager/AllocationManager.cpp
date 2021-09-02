@@ -42,16 +42,6 @@ AllocationManager::Index AllocationManager::allocate(String const &name, Index c
   return ret;
 }
 
-AllocationManager::Index AllocationManager::getOffset(String const &name) const
-{
-  throw std::runtime_error("getOffset by name is deprecated: " + name);
-}
-
-AllocationManager::Address AllocationManager::getAddress(String const &name, Index const &n) const
-{
-  return getAddress(getOffset(name), n);
-}
-
 AllocationManager::Address AllocationManager::getAddress(Address const &address,
                                                          Index const &  n) const
 {

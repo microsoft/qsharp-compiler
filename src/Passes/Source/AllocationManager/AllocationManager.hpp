@@ -66,13 +66,6 @@ public:
   /// future and to be future proof, please use AllocationManager::getAddress().
   Address allocate(String const &name = "", Index const &size = 1);
 
-  /// Gets the Address of a named segment or address. Given a named resource segment, this
-  /// function returns the address of the first element in the
-  Address getOffset(String const &name) const;
-
-  /// Gets the Address of a named segments n'th element.
-  Address getAddress(String const &name, Index const &n) const;
-
   /// Gets the Address of n'th element in a segment given the segments address.
   Address getAddress(Address const &address, Index const &n) const;
 

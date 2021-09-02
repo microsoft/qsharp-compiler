@@ -30,10 +30,9 @@ llvm::ModulePassManager RuleSetProfile::createGenerationModulePass(
   RuleSet rule_set;
   configure_(rule_set);
 
-  ret.addPass(ProfilePass(std::move(rule_set)));
-
-  // ret.addPass(llvm::AlwaysInlinerPass());
-  // ret.addPass(std::move(inliner_pass));
+  ret.addPass(ProfilePass(std::move(rule_set), false, false, true));
+  //  ret.addPass(llvm::AlwaysInlinerPass());
+  //  ret.addPass(std::move(inliner_pass));
 
   return ret;
 }
