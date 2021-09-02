@@ -230,29 +230,41 @@ let arraySyntaxUpdate =
             | _ -> base.Expression((), expression)
     }
 
-let updateChecker =
+let updateChecker document =
     let mutable lineNumber = 1;
     let mutable charNumber = 1;
-    { new Reducer<string list>() with
+
+    let processPrefix prefix =
+        let mutable lines = 0;
+        let mutable characters = 0;
+        for trivia in prefix do
+            match trivia with
+            | Whitespace space -> characters <- characters + space.Length
+            | NewLine _ ->
+                lines <- lines + 1
+                characters <- 0
+            | Comment comment -> characters <- characters + comment.Length
+        lines, characters
+
+    let reducer = { new Reducer<string list>() with
         override _.Combine(x, y) = x @ y
 
         override _.Terminal terminal =
-            for trivia in terminal.Prefix do
-                match trivia with
-                | Whitespace space -> charNumber <- charNumber + space.Length
-                | NewLine nl ->
-                    lineNumber <- lineNumber + 1
-                    charNumber <- 1
-                | Comment comment -> charNumber <- charNumber + comment.Length
-            charNumber <- charNumber + terminal.Text.Length
+            let lines, characters = processPrefix terminal.Prefix
+            if lines > 0 then
+                lineNumber <- lineNumber + lines
+                charNumber <- 1 + characters + terminal.Text.Length
+            else
+                charNumber <- charNumber + characters + terminal.Text.Length
             []
 
         override reducer.Expression expression =
             match expression with
             | NewArray newArray ->
                 let lineBefore, charBefore = lineNumber, charNumber
+                let prefixLines, prefixChars = processPrefix newArray.New.Prefix
                 let subWarnings = base.Expression expression
-                let warning = sprintf "I'm a warning from (%i, %i) to (%i, %i)!" lineBefore charBefore lineNumber charNumber
+                let warning = sprintf "Warning: Unprocessed deprecated new array syntax from (%i, %i) to (%i, %i)!" (lineBefore + prefixLines) (charBefore + prefixChars) lineNumber charNumber
                 reducer.Combine(subWarnings, [warning])
             | _ -> base.Expression expression
 
@@ -261,3 +273,4 @@ let updateChecker =
             charNumber <- 1
             base.Document document
     }
+    reducer.Document document

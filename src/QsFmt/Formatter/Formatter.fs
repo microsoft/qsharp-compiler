@@ -10,6 +10,7 @@ open Microsoft.Quantum.QsFmt.Formatter.Printer
 open Microsoft.Quantum.QsFmt.Formatter.Rules
 open Microsoft.Quantum.QsFmt.Formatter.Utils
 open Microsoft.Quantum.QsFmt.Parser
+open System
 open System.Collections.Immutable
 
 /// <summary>
@@ -60,10 +61,19 @@ let format source =
 let update source =
     let updateDocument document =
 
-        document
-        |> curry qubitBindingUpdate.Document ()
-        |> curry arraySyntaxUpdate.Document ()
-        |> printer.Document
+        let updatedDocument =
+            document
+            |> curry qubitBindingUpdate.Document ()
+            |> curry arraySyntaxUpdate.Document ()
+        let warningList =
+            updatedDocument
+            |> updateChecker
+        let printedDocument =
+            updatedDocument
+            |> printer.Document
+
+        // For now, let's just combine the warnings to the end of the document
+        String.concat Environment.NewLine (printedDocument :: warningList)
 
     parse source
     |> Result.map updateDocument
