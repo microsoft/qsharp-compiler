@@ -10,6 +10,7 @@ open Antlr4.Runtime
 open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.QsFmt.Formatter.Tests
 open Microsoft.Quantum.QsFmt.Parser
+open System
 open System.IO
 open Xunit
 
@@ -31,7 +32,9 @@ let private testCases () =
 [<Theory>]
 [<MemberData "testCases">]
 let ``Identity preserves original source code`` source =
-    Assert.Equal(Ok source |> ShowResult, Formatter.identity source |> ShowResult)
+    let original = Ok source |> ShowResult
+    let transformed = Formatter.identity source |> ShowResult
+    Assert.Equal(original, transformed)
 
 [<FixedPoint>]
 let ``Namespace comments`` =
@@ -42,6 +45,11 @@ namespace Foo {}
 namespace Bar {}
 
 // End of file."""
+
+[<FixedPoint>]
+let ``Mixed newlines`` =
+    "namespace Foo {}\n
+namespace Bar {}\r\n"
 
 [<FixedPoint>]
 let ``Function with one parameter`` =
@@ -239,4 +247,96 @@ let ``Array type`` =
 let ``Function type`` =
     """namespace Foo {
     function Bar (arg : Result => String is Adj) : Unit {}
+}"""
+
+[<FixedPoint>]
+let Literals =
+    """namespace Foo {
+    function Bar () : Unit {
+        let int = 1;
+        let big_int = 1234567890L;
+        let double = 1.23;
+        let string = "abc";
+        let interp_string = $"abc";
+        let bool = False;
+        let result = One;
+        let pauli = PauliI;
+    }
+}"""
+
+[<FixedPoint>]
+let ``Array expression`` =
+    """namespace Foo {
+    function Bar () : Int[] {
+        return [1, 2, 3];
+    }
+}"""
+
+[<FixedPoint>]
+let ``New array expression`` =
+    """namespace Foo {
+    function Bar () : Int[] {
+        return new Int[3];
+    }
+}"""
+
+[<FixedPoint>]
+let ``Named item access`` =
+    """namespace Foo {
+    function Bar () : Double {
+        let complex = Complex(1.,0.);
+        return complex::Imaginary;
+    }
+}"""
+
+[<FixedPoint>]
+let ``Array item access`` =
+    """namespace Foo {
+    function Bar (arr: Int[]) : Int {
+        return arr[0];
+    }
+}"""
+
+[<FixedPoint>]
+let ``Unwrap operator`` =
+    """namespace Foo {
+    function FetchFirst (tup: (Int, String)) : Int {
+        let (first, second) = tup!;
+        return first;
+    }
+}"""
+
+[<FixedPoint>]
+let ``Factor application`` =
+    """namespace Foo {
+    function Bar () : Unit {
+        Controlled Adjoint Op([], ());
+    }
+}"""
+
+[<FixedPoint>]
+let ``Prefix operator`` =
+    """namespace Foo {
+    function Bar () : Int {
+        return -2;
+    }
+}"""
+
+[<FixedPoint>]
+let ``Conditional expression`` =
+    """namespace Foo {
+    function Bar () : Int {
+        return true? 1 | 2;
+    }
+}"""
+
+[<FixedPoint>]
+let ``Range expressions`` =
+    """namespace Foo {
+    function Bar () : Unit {
+        let arr = [1,2,3,4,5,6];
+        let slice1 = arr[3...];
+        let slice2 = arr[...2..3];
+        let slice3 = arr[...];
+    }
 }"""
