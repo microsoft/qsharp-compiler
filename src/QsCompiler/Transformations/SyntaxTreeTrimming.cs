@@ -38,9 +38,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SyntaxTreeTrimming
                 var dependenciesToKeep = dependencies?.Where(globals.ContainsKey) ?? ImmutableArray<QsQualifiedName>.Empty;
                 var augmentedEntryPoints = dependenciesToKeep
                     .Concat(compilation.EntryPoints)
-                    .Distinct()
-                    .ToImmutableArray();
-                var compilationWithBuiltIns = new QsCompilation(compilation.Namespaces, augmentedEntryPoints);
+                    .Distinct();
+
+                // If this compilation is for a Library project, treat each public, non-generic callable as an entry point
+                // for the purpose of constructing the call graph and pruning the syntax tree.
+                if (compilation.EntryPoints.Length == 0)
+                {
+                    var externals = globals.Where(g => g.Value.Source.AssemblyFile.IsNull && g.Value.Signature.TypeParameters.IsEmpty && g.Value.Access.IsPublic);
+                    augmentedEntryPoints = augmentedEntryPoints.Concat(externals.Select(e => e.Key)).Distinct();
+                }
+
+                var compilationWithBuiltIns = new QsCompilation(compilation.Namespaces, augmentedEntryPoints.ToImmutableArray());
                 var callablesToKeep = new CallGraph(compilationWithBuiltIns, true).Nodes.Select(node => node.CallableName).ToImmutableHashSet();
 
                 // ToDo: convert to using ternary operator, when target-type

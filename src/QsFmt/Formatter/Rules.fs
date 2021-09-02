@@ -24,7 +24,7 @@ let collectWithAdjacent =
 /// </summary>
 let collapseTriviaSpaces previous trivia _ =
     match previous, trivia with
-    | Some NewLine, Whitespace _ -> [ trivia ]
+    | Some (NewLine _), Whitespace _ -> [ trivia ]
     | _, Whitespace _ -> [ collapseSpaces trivia ]
     | _ -> [ trivia ]
 
@@ -47,9 +47,9 @@ let operatorSpacing =
 let indentPrefix level =
     let indentTrivia previous trivia after =
         match previous, trivia, after with
-        | Some NewLine, Whitespace _, _ -> [ spaces (4 * level) ]
-        | _, NewLine, Some (Comment _)
-        | _, NewLine, None -> [ newLine; spaces (4 * level) ]
+        | Some (NewLine _), Whitespace _, _ -> [ spaces (4 * level) ]
+        | _, NewLine _, Some (Comment _)
+        | _, NewLine _, None -> [ trivia; spaces (4 * level) ]
         | _ -> [ trivia ]
 
     collectWithAdjacent indentTrivia
@@ -79,7 +79,7 @@ let indentation =
 /// Prepends the <paramref name="prefix"/> with a new line <see cref="Trivia"/> node if it does not already contain one.
 /// </summary>
 let ensureNewLine prefix =
-    if List.contains newLine prefix then prefix else newLine :: prefix
+    if List.exists isNewLine prefix then prefix else newLine :: prefix
 
 let newLines =
     { new Rewriter<_>() with
@@ -100,4 +100,36 @@ let newLines =
                 block
             else
                 { block with CloseBrace = Terminal.mapPrefix ensureNewLine block.CloseBrace }
+    }
+
+/// <summary>
+/// Gets the trivia from a terminal option.
+/// </summary>
+let getTrivia paren =
+    match paren with
+    | None -> []
+    | Some p -> p.Prefix
+
+let qubitBindingUpdate =
+    { new Rewriter<_>() with
+        override rewriter.QubitDeclaration(_, decl) =
+            let openTrivia = decl.OpenParen |> getTrivia
+            let closeTrivia = decl.CloseParen |> getTrivia
+
+            let keyword =
+                match decl.Kind with
+                | Use -> "use"
+                | Borrow -> "borrow"
+
+            { decl with
+                Keyword = rewriter.Terminal((), { decl.Keyword with Text = keyword })
+                OpenParen = None
+                Binding = decl.Binding |> QubitBinding.mapPrefix ((@) openTrivia)
+                CloseParen = None
+                Coda =
+                    match decl.Coda with
+                    | Semicolon semicolon -> semicolon |> Terminal.mapPrefix ((@) closeTrivia) |> Semicolon
+                    | Block block ->
+                        rewriter.Block((), rewriter.Statement, block) |> Block.mapPrefix ((@) closeTrivia) |> Block
+            }
     }

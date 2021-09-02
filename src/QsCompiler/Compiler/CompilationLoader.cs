@@ -189,11 +189,23 @@ namespace Microsoft.Quantum.QsCompiler
             public IEnumerable<string>? TargetPackageAssemblies { get; set; }
 
             /// <summary>
+            /// Indicates whether the necessary compiler passes are executed for the compilation to be compatible with QIR generation.
+            /// </summary>
+            public bool PrepareQirGeneration { get; set; }
+
+            /// <summary>
             /// Indicates whether a serialization of the syntax tree needs to be generated.
             /// This is the case if either the build output folder is specified or the dll output path is specified.
             /// </summary>
             internal bool SerializeSyntaxTree =>
                 this.BuildOutputFolder != null || this.DllOutputPath != null;
+
+            /// <summary>
+            /// Indicates whether the compilation needs to be monomorphized.
+            /// This value is never true if SkipMonomorphization is specified.
+            /// </summary>
+            internal bool Monomorphize =>
+                (this.IsExecutable || this.PrepareQirGeneration) && !this.SkipMonomorphization;
 
             /// <summary>
             /// Indicates whether the compiler will remove if-statements and replace them with calls to appropriate intrinsic operations.
@@ -288,7 +300,7 @@ namespace Microsoft.Quantum.QsCompiler
                 this.WasSuccessful(options.AttemptFullPreEvaluation, this.PreEvaluation) &&
                 this.WasSuccessful(options.LoadTargetSpecificDecompositions, this.TargetSpecificReplacements) &&
                 this.WasSuccessful(options.ConvertClassicalControl, this.ConvertClassicalControl) &&
-                this.WasSuccessful(options.IsExecutable && !options.SkipMonomorphization, this.Monomorphization) &&
+                this.WasSuccessful(options.Monomorphize, this.Monomorphization) &&
                 this.WasSuccessful(!options.IsExecutable, this.CapabilityInference) &&
                 this.WasSuccessful(options.SerializeSyntaxTree, this.Serialization) &&
                 this.WasSuccessful(options.BuildOutputFolder != null, this.BinaryFormat) &&
@@ -568,15 +580,17 @@ namespace Microsoft.Quantum.QsCompiler
             // executing the specified rewrite steps
             PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
             var steps = new List<(int, string, Func<QsCompilation?>)>();
-            var qirEmissionEnabled = this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
+            this.config.PrepareQirGeneration = this.config.PrepareQirGeneration || this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
+
             if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
             {
                 // TODO: It would be nicer to trim unused intrinsics. Currently, this is not possible due to how the old setup of the C# runtime works.
                 // With the new setup (interface-based approach for target packages), it is possible to trim ununsed intrinsics.
 #pragma warning disable CS0618 // Type or member is obsolete
                 // TODO: The dependencies for rewrite steps should be declared as part of IRewriteStep interface, and we should query those here.
-                var rewriteStep = new LoadedStep(new SyntaxTreeTrimming(keepAllIntrinsics: true, BuiltIn.AllBuiltIns.Select(e => e.FullName)), typeof(IRewriteStep), thisDllUri);
+                var trimming = new SyntaxTreeTrimming(keepAllIntrinsics: true, BuiltIn.AllBuiltIns.Select(e => e.FullName));
 #pragma warning restore CS0618 // Type or member is obsolete
+                var rewriteStep = new LoadedStep(trimming, typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.TreeTrimming)));
             }
 
@@ -604,7 +618,7 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
             }
 
-            if (this.config.IsExecutable && !this.config.SkipMonomorphization)
+            if (this.config.Monomorphize)
             {
                 var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
@@ -989,7 +1003,22 @@ namespace Microsoft.Quantum.QsCompiler
 
             void OnException(Exception ex) => this.LogAndUpdate(ref this.compilationStatus.ReferenceLoading, ex);
             void OnDiagnostic(Diagnostic d) => this.LogAndUpdateLoadDiagnostics(ref this.compilationStatus.ReferenceLoading, d);
-            var headers = ProjectManager.LoadReferencedAssembliesInParallel(refs ?? Enumerable.Empty<string>(), OnDiagnostic, OnException, ignoreDllResources);
+
+            // Skip loading any assemblies referenced as target packages. These will be included in a later
+            // override step.
+            var filteredRefs = refs ?? Enumerable.Empty<string>();
+            if (this.config.TargetPackageAssemblies is object)
+            {
+                var targetPackagePaths = this.config.TargetPackageAssemblies.Select(a => Path.GetFullPath(a));
+                filteredRefs = filteredRefs.Except(targetPackagePaths);
+            }
+
+            var headers = ProjectManager.LoadReferencedAssembliesInParallel(
+                filteredRefs,
+                OnDiagnostic,
+                OnException,
+                ignoreDllResources);
+
             var projId = this.config.ProjectName == null ? null : Path.ChangeExtension(Path.GetFullPath(this.config.ProjectNameWithExtension), "qsproj");
             var references = new References(headers, loadTestNames, (code, args) => OnDiagnostic(Errors.LoadError(code, args, projId)));
             this.PrintResolvedAssemblies(references.Declarations.Keys);
