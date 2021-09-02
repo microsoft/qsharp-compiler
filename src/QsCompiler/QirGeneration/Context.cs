@@ -960,22 +960,27 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private void GenerateFunctionWrapper(IrFunction func, ResolvedSignature signature, Func<TupleValue, IValue> implementation)
         {
             // result value contains the return value, and output tuple is the tuple where that value should be stored
-            static void PopulateResultTuple(IValue resultValue, TupleValue outputTuple)
+            void PopulateResultTuple(IValue resultValue, TupleValue outputTuple)
             {
+                void StoreItemInOutputTuple(int itemIdx, IValue value)
+                {
+                    var itemOutputPointer = outputTuple.GetTupleElementPointer(itemIdx);
+                    itemOutputPointer.StoreValue(value);
+                    this.ScopeMgr.IncreaseReferenceCount(value);
+                }
+
                 if (resultValue is TupleValue resultTuple && resultTuple.TypeName == null)
                 {
                     var outputItemPtrs = outputTuple.GetTupleElementPointers();
                     for (int j = 0; j < outputItemPtrs.Length; j++)
                     {
-                        var itemOutputPointer = outputTuple.GetTupleElementPointer(j);
                         var resItem = resultTuple.GetTupleElement(j);
-                        itemOutputPointer.StoreValue(resItem);
+                        StoreItemInOutputTuple(j, resItem);
                     }
                 }
                 else if (!resultValue.QSharpType.Resolution.IsUnitType)
                 {
-                    var outputPointer = outputTuple.GetTupleElementPointer(0);
-                    outputPointer.StoreValue(resultValue);
+                    StoreItemInOutputTuple(0, resultValue);
                 }
             }
 
