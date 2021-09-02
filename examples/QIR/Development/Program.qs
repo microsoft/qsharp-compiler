@@ -10,14 +10,13 @@
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Arithmetic;
-
-    function Id<'T>(a : 'T) : 'T { return a; }
+    open Microsoft.Quantum.MachineLearning;
 
     @EntryPoint()
     operation RunExample() : String {
 
-        let id = Id<String[]>;
-        let _ = id(["hello"]);
+        let encode = _EncodeSample(0.1, 5, _);
+        let encodedSamples = Mapped(encode, []); // commenting out this works fine...
         return "Executed successfully!";
     }
 }
