@@ -34,11 +34,10 @@ AllocationManager::Index AllocationManager::allocate(String const &name, Index c
   next_qubit_index_ += size;
   map.end = map.start + size;
 
-  mappings_.emplace(allocation_index_, std::move(map));
+  mappings_.emplace_back(std::move(map));
 
   // Advancing the allocation index
   ++allocation_index_;
-  llvm::errs() << "Allocating " << ret << "\n";
 
   return ret;
 }
@@ -62,21 +61,30 @@ AllocationManager::Address AllocationManager::getAddress(Address const &address,
 void AllocationManager::release(Address const &address)
 {
   --allocation_index_;
-  auto it = mappings_.find(allocation_index_);
+  auto it = mappings_.begin();
+
+  // Finding the element. Note that we could implement binary
+  // search but assume that we are dealing with few allocations
+  while (it != mappings_.end() && it->start != address)
+  {
+    ++it;
+  }
+
   if (it == mappings_.end())
   {
-    throw std::runtime_error("Segment not found");
+    throw std::runtime_error("Qubit segment not found.");
   }
-
-  if (it->second.start != address)
-  {
-    throw std::runtime_error("Address mismatch upon release");
-  }
-
-  next_qubit_index_ = it->second.start;
-  llvm::errs() << "Releasing " << next_qubit_index_ << "\n";
 
   mappings_.erase(it);
+  if (mappings_.empty())
+  {
+    next_qubit_index_ = 0;
+  }
+  else
+  {
+    auto &b           = mappings_.back();
+    next_qubit_index_ = b.start + b.size;
+  }
 }
 
 }  // namespace quantum

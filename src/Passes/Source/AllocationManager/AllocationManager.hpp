@@ -44,7 +44,7 @@ public:
   using Resources            = std::unordered_map<std::string, Resource>;
   using NameToIndex          = std::unordered_map<String, Index>;
   using AddressToIndex       = std::unordered_map<Address, Index>;
-  using Mappings             = std::unordered_map<Index, MemoryMapping>;
+  using Mappings             = std::vector<MemoryMapping>;
 
   /// Construction only allowed using smart pointer allocation through static functions.
   /// Constructors are private to prevent

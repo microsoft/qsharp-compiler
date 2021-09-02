@@ -24,6 +24,9 @@ llvm::ModulePassManager RuleSetProfile::createGenerationModulePass(
   auto                    function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
       optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
 
+  auto inliner_pass = pass_builder.buildInlinerPipeline(
+      optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
+
   // Defining the mapping
   RuleSet rule_set;
   configure_(rule_set);
@@ -31,6 +34,9 @@ llvm::ModulePassManager RuleSetProfile::createGenerationModulePass(
   // function_pass_manager.addPass(TransformationRulePass(std::move(rule_set)));
   ret.addPass(ModuleTransformationPass(std::move(function_pass_manager)));
   //  ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
+
+  ret.addPass(llvm::AlwaysInlinerPass());
+  ret.addPass(std::move(inliner_pass));
 
   return ret;
 }

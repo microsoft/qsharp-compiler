@@ -35,12 +35,14 @@ int main(int argc, char **argv)
                        {"generate", "false"},
                        {"validate", "false"},
                        {"profile", "baseProfile"},
-                       {"S", "false"}}};
+                       {"S", "false"},
+                       {"verify-module", "false"}}};
 
     ParameterParser parser(settings);
     parser.addFlag("debug");
     parser.addFlag("generate");
     parser.addFlag("validate");
+    parser.addFlag("verify-module");
     parser.addFlag("S");
 
     parser.parseArgs(argc, argv);
@@ -110,6 +112,19 @@ int main(int argc, char **argv)
       {
         llvm::errs() << "Byte code ouput is not supported yet. Please add -S to get human readible "
                         "LL code.\n";
+      }
+
+      // Verifying the module.
+      if (settings.get("verify-module") == "true")
+      {
+        llvm::VerifierAnalysis verifier;
+        auto                   result = verifier.run(*module, analyser.moduleAnalysisManager());
+        if (result.IRBroken)
+        {
+          llvm::errs() << "IR is broken."
+                       << "\n";
+          exit(-1);
+        }
       }
     }
 
