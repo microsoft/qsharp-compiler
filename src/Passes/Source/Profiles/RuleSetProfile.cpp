@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/Profile/Profile.hpp"
+#include "ProfilePass/Profile.hpp"
 #include "Profiles/RuleSetProfile.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/RuleSet.hpp"
