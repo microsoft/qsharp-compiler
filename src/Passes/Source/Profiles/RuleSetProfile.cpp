@@ -4,7 +4,7 @@
 #include "Profiles/RuleSetProfile.hpp"
 
 #include "Llvm/Llvm.hpp"
-#include "Passes/ModuleTransformation/ModuleTransformation.hpp"
+#include "Passes/Profile/Profile.hpp"
 #include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
 #include "Passes/TransformationRule/TransformationRule.hpp"
 #include "Rules/Factory.hpp"
@@ -43,7 +43,7 @@ llvm::ModulePassManager RuleSetProfile::createGenerationModulePass(
   factory.disableStringSupport();
 
   // function_pass_manager.addPass(TransformationRulePass(std::move(rule_set)));
-  ret.addPass(ModuleTransformationPass(std::move(rule_set)));
+  ret.addPass(ProfilePass(std::move(rule_set)));
   //  ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
 
   ret.addPass(llvm::AlwaysInlinerPass());

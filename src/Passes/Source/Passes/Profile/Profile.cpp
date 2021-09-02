@@ -1,9 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/ModuleTransformation/ModuleTransformation.hpp"
-
 #include "Llvm/Llvm.hpp"
+#include "Passes/Profile/Profile.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/Notation/Notation.hpp"
 #include "Rules/ReplacementRule.hpp"
@@ -14,7 +13,7 @@
 namespace microsoft {
 namespace quantum {
 
-void ModuleTransformationPass::setupCopyAndExpand()
+void ProfilePass::setupCopyAndExpand()
 {
   using namespace microsoft::quantum::notation;
   addConstExprRule(
@@ -48,14 +47,14 @@ void ModuleTransformationPass::setupCopyAndExpand()
        }});
 }
 
-void ModuleTransformationPass::addConstExprRule(ReplacementRule &&rule)
+void ProfilePass::addConstExprRule(ReplacementRule &&rule)
 {
   auto ret = std::make_shared<ReplacementRule>(std::move(rule));
 
   const_expr_replacements_.addRule(ret);
 }
 
-void ModuleTransformationPass::constantFoldFunction(llvm::Function &function)
+void ProfilePass::constantFoldFunction(llvm::Function &function)
 {
   std::vector<llvm::Instruction *> to_delete;
 
@@ -114,8 +113,8 @@ void ModuleTransformationPass::constantFoldFunction(llvm::Function &function)
   }
 }
 
-llvm::Value *ModuleTransformationPass::copyAndExpand(
-    llvm::Value *input, DeletableInstructions &schedule_instruction_deletion)
+llvm::Value *ProfilePass::copyAndExpand(llvm::Value *          input,
+                                        DeletableInstructions &schedule_instruction_deletion)
 {
   llvm::Value *ret        = input;
   auto *       call_instr = llvm::dyn_cast<llvm::CallBase>(input);
@@ -202,14 +201,13 @@ llvm::Value *ModuleTransformationPass::copyAndExpand(
   return ret;
 }
 
-llvm::Value *ModuleTransformationPass::detectActiveCode(llvm::Value *input, DeletableInstructions &)
+llvm::Value *ProfilePass::detectActiveCode(llvm::Value *input, DeletableInstructions &)
 {
   active_pieces_.insert(input);
   return input;
 }
 
-bool ModuleTransformationPass::runOnFunction(llvm::Function &           function,
-                                             InstructionModifier const &modifier)
+bool ProfilePass::runOnFunction(llvm::Function &function, InstructionModifier const &modifier)
 {
   if (depth_ >= 16)
   {
@@ -298,12 +296,12 @@ bool ModuleTransformationPass::runOnFunction(llvm::Function &           function
   return true;
 }
 
-bool ModuleTransformationPass::isActive(llvm::Value *value) const
+bool ProfilePass::isActive(llvm::Value *value) const
 {
   return active_pieces_.find(value) != active_pieces_.end();
 }
 
-void ModuleTransformationPass::runCopyAndExpand(llvm::Module &module, llvm::ModuleAnalysisManager &)
+void ProfilePass::runCopyAndExpand(llvm::Module &module, llvm::ModuleAnalysisManager &)
 {
   replacements_.clear();
   // For every instruction in every block, we attempt a match
@@ -336,7 +334,7 @@ void ModuleTransformationPass::runCopyAndExpand(llvm::Module &module, llvm::Modu
   applyReplacements();
 }
 
-void ModuleTransformationPass::applyReplacements()
+void ProfilePass::applyReplacements()
 {
   // Applying all replacements
 
@@ -392,8 +390,7 @@ void ModuleTransformationPass::applyReplacements()
   replacements_.clear();
 }
 
-void ModuleTransformationPass::runDetectActiveCode(llvm::Module &module,
-                                                   llvm::ModuleAnalysisManager &)
+void ProfilePass::runDetectActiveCode(llvm::Module &module, llvm::ModuleAnalysisManager &)
 {
   blocks_to_delete_.clear();
   functions_to_delete_.clear();
@@ -417,7 +414,7 @@ void ModuleTransformationPass::runDetectActiveCode(llvm::Module &module,
   }
 }
 
-void ModuleTransformationPass::runDeleteDeadCode(llvm::Module &, llvm::ModuleAnalysisManager &)
+void ProfilePass::runDeleteDeadCode(llvm::Module &, llvm::ModuleAnalysisManager &)
 {
   std::vector<llvm::Instruction *> to_delete;
 
@@ -473,7 +470,7 @@ void ModuleTransformationPass::runDeleteDeadCode(llvm::Module &, llvm::ModuleAna
   }
 }
 
-void ModuleTransformationPass::runReplacePhi(llvm::Module &module, llvm::ModuleAnalysisManager &)
+void ProfilePass::runReplacePhi(llvm::Module &module, llvm::ModuleAnalysisManager &)
 {
   using namespace microsoft::quantum::notation;
   auto                             rule = phi("b1"_cap = _, "b2"_cap = _);
@@ -520,7 +517,7 @@ void ModuleTransformationPass::runReplacePhi(llvm::Module &module, llvm::ModuleA
   }
 }
 
-void ModuleTransformationPass::runApplyRules(llvm::Module &module, llvm::ModuleAnalysisManager &)
+void ProfilePass::runApplyRules(llvm::Module &module, llvm::ModuleAnalysisManager &)
 {
   replacements_.clear();
 
@@ -553,8 +550,7 @@ void ModuleTransformationPass::runApplyRules(llvm::Module &module, llvm::ModuleA
   applyReplacements();
 }
 
-llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &               module,
-                                                      llvm::ModuleAnalysisManager &mam)
+llvm::PreservedAnalyses ProfilePass::run(llvm::Module &module, llvm::ModuleAnalysisManager &mam)
 {
 
   // In case the module is istructed to clone functions,
@@ -581,8 +577,8 @@ llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &            
   return llvm::PreservedAnalyses::none();
 }
 
-llvm::Function *ModuleTransformationPass::expandFunctionCall(llvm::Function &         callee,
-                                                             ConstantArguments const &const_args)
+llvm::Function *ProfilePass::expandFunctionCall(llvm::Function &         callee,
+                                                ConstantArguments const &const_args)
 {
   auto              module  = callee.getParent();
   auto &            context = module->getContext();
@@ -642,7 +638,7 @@ llvm::Function *ModuleTransformationPass::expandFunctionCall(llvm::Function &   
   return function;
 }
 
-bool ModuleTransformationPass::isRequired()
+bool ProfilePass::isRequired()
 {
   return true;
 }

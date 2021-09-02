@@ -2,19 +2,19 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Passes/ModuleTransformation/ModuleTransformation.hpp"
+#include "Passes/Profile/Profile.hpp"
 #include "Rules/Factory.hpp"
 
 #include <fstream>
 #include <iostream>
 
 namespace {
-llvm::PassPluginLibraryInfo getModuleTransformationPluginInfo()
+llvm::PassPluginLibraryInfo getProfilePluginInfo()
 {
   using namespace microsoft::quantum;
   using namespace llvm;
 
-  return {LLVM_PLUGIN_API_VERSION, "ModuleTransformation", LLVM_VERSION_STRING, [](PassBuilder &) {
+  return {LLVM_PLUGIN_API_VERSION, "Profile", LLVM_VERSION_STRING, [](PassBuilder &) {
             // Registering the pass
             /*
             pb.registerPipelineParsingCallback([](StringRef name, FunctionPassManager &fpm,
@@ -40,7 +40,7 @@ llvm::PassPluginLibraryInfo getModuleTransformationPluginInfo()
                 factory.disableAliasCounting();
                 factory.disableStringSupport();
 
-                fpm.addPass(ModuleTransformationPass(std::move(rule_set)));
+                fpm.addPass(ProfilePass(std::move(rule_set)));
                 return true;
               }
 
@@ -53,5 +53,5 @@ llvm::PassPluginLibraryInfo getModuleTransformationPluginInfo()
 // Interface for loading the plugin
 extern "C" LLVM_ATTRIBUTE_WEAK ::llvm::PassPluginLibraryInfo llvmGetPassPluginInfo()
 {
-  return getModuleTransformationPluginInfo();
+  return getProfilePluginInfo();
 }
