@@ -2,8 +2,6 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Passes/ExpandStaticAllocation/ExpandStaticAllocation.hpp"
-#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
 #include "Profiles/RuleSetProfile.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"

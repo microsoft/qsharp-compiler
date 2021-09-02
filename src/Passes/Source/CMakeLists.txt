@@ -9,14 +9,14 @@ microsoft_add_library(AllocationManager)
 microsoft_add_library_tests(AllocationManager)
 
 microsoft_add_library(Rules)
-microsoft_add_library_tests(Rules ExpandStaticAllocation QirAllocationAnalysis Rules AllocationManager Commandline Profiles)
+microsoft_add_library_tests(Rules Rules AllocationManager Commandline Profiles)
 
 target_link_libraries(Rules PRIVATE AllocationManager)
 
 add_subdirectory(Passes)
 
 microsoft_add_library(Profiles)
-target_link_libraries(Profiles PRIVATE Rules ExpandStaticAllocation QirAllocationAnalysis)
-microsoft_add_library_tests(Profiles ExpandStaticAllocation QirAllocationAnalysis Rules AllocationManager Commandline Profiles)
+target_link_libraries(Profiles PRIVATE Rules)
+microsoft_add_library_tests(Profiles Rules AllocationManager Commandline Profiles)
 
 add_subdirectory(Apps)

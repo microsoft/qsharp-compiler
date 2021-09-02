@@ -5,7 +5,6 @@
 
 #include "Llvm/Llvm.hpp"
 #include "Passes/Profile/Profile.hpp"
-#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/RuleSet.hpp"
 
