@@ -1,35 +1,35 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Rules/OperandPrototype.hpp"
 #include "Rules/Operands/Phi.hpp"
 
-#include "Rules/OperandPrototype.hpp"
-
-namespace microsoft {
-namespace quantum {
-
-PhiPattern::PhiPattern()
-{}
-
-PhiPattern::~PhiPattern() = default;
-
-bool PhiPattern::match(Value *instr, Captures &captures) const
+namespace microsoft
 {
-  auto *phi_node = llvm::dyn_cast<llvm::PHINode>(instr);
-  if (phi_node == nullptr)
-  {
-    return fail(instr, captures);
-  }
-
-  return success(instr, captures);
-}
-
-PhiPattern::Child PhiPattern::copy() const
+namespace quantum
 {
-  auto ret = std::make_shared<PhiPattern>();
-  ret->copyPropertiesFrom(*this);
-  return std::move(ret);
-}
 
-}  // namespace quantum
-}  // namespace microsoft
+    PhiPattern::PhiPattern() {}
+
+    PhiPattern::~PhiPattern() = default;
+
+    bool PhiPattern::match(Value* instr, Captures& captures) const
+    {
+        auto* phi_node = llvm::dyn_cast<llvm::PHINode>(instr);
+        if (phi_node == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        return success(instr, captures);
+    }
+
+    PhiPattern::Child PhiPattern::copy() const
+    {
+        auto ret = std::make_shared<PhiPattern>();
+        ret->copyPropertiesFrom(*this);
+        return std::move(ret);
+    }
+
+} // namespace quantum
+} // namespace microsoft

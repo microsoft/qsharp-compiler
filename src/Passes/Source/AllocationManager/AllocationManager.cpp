@@ -7,75 +7,76 @@
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-AllocationManager::AllocationManagerPtr AllocationManager::createNew()
+namespace microsoft
 {
-  AllocationManagerPtr ret;
-  ret.reset(new AllocationManager());
-
-  return ret;
-}
-
-AllocationManager::Index AllocationManager::allocate(String const &name, Index const &size)
+namespace quantum
 {
-  auto ret = next_qubit_index_;
 
-  // Creating a memory segment mappign in case we are dealing with qubits
-  MemoryMapping map;
-  map.name  = name;
-  map.index = allocation_index_;
-  map.size  = size;
+    AllocationManager::AllocationManagerPtr AllocationManager::createNew()
+    {
+        AllocationManagerPtr ret;
+        ret.reset(new AllocationManager());
 
-  map.start = next_qubit_index_;
+        return ret;
+    }
 
-  // Advancing start
-  next_qubit_index_ += size;
-  map.end = map.start + size;
+    AllocationManager::Index AllocationManager::allocate(String const& name, Index const& size)
+    {
+        auto ret = next_qubit_index_;
 
-  mappings_.emplace_back(std::move(map));
+        // Creating a memory segment mappign in case we are dealing with qubits
+        MemoryMapping map;
+        map.name  = name;
+        map.index = allocation_index_;
+        map.size  = size;
 
-  // Advancing the allocation index
-  ++allocation_index_;
+        map.start = next_qubit_index_;
 
-  return ret;
-}
+        // Advancing start
+        next_qubit_index_ += size;
+        map.end = map.start + size;
 
-AllocationManager::Address AllocationManager::getAddress(Address const &address,
-                                                         Index const &  n) const
-{
-  return address + n;
-}
+        mappings_.emplace_back(std::move(map));
 
-void AllocationManager::release(Address const &address)
-{
-  --allocation_index_;
-  auto it = mappings_.begin();
+        // Advancing the allocation index
+        ++allocation_index_;
 
-  // Finding the element. Note that we could implement binary
-  // search but assume that we are dealing with few allocations
-  while (it != mappings_.end() && it->start != address)
-  {
-    ++it;
-  }
+        return ret;
+    }
 
-  if (it == mappings_.end())
-  {
-    throw std::runtime_error("Qubit segment not found.");
-  }
+    AllocationManager::Address AllocationManager::getAddress(Address const& address, Index const& n) const
+    {
+        return address + n;
+    }
 
-  mappings_.erase(it);
-  if (mappings_.empty())
-  {
-    next_qubit_index_ = 0;
-  }
-  else
-  {
-    auto &b           = mappings_.back();
-    next_qubit_index_ = b.start + b.size;
-  }
-}
+    void AllocationManager::release(Address const& address)
+    {
+        --allocation_index_;
+        auto it = mappings_.begin();
 
-}  // namespace quantum
-}  // namespace microsoft
+        // Finding the element. Note that we could implement binary
+        // search but assume that we are dealing with few allocations
+        while (it != mappings_.end() && it->start != address)
+        {
+            ++it;
+        }
+
+        if (it == mappings_.end())
+        {
+            throw std::runtime_error("Qubit segment not found.");
+        }
+
+        mappings_.erase(it);
+        if (mappings_.empty())
+        {
+            next_qubit_index_ = 0;
+        }
+        else
+        {
+            auto& b           = mappings_.back();
+            next_qubit_index_ = b.start + b.size;
+        }
+    }
+
+} // namespace quantum
+} // namespace microsoft
