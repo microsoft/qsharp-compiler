@@ -18,43 +18,50 @@ namespace quantum {
 ///
 ///
 /// The module execute following steps:
-///              ┌───────────────────────────────┐
-///              │                               │
-///              │   Copy and expand functions   │
-///              │                               │
-///              └───────────────────────────────┘
-///                              │
-///                              │
-///                              ▼
-///              ┌───────────────────────────────┐
-///              │                               │
-///              │     Determine dead blocks     │
-///              │                               │
-///              └───────────────────────────────┘
-///                              │
-///                              │
-///                              ▼
-///              ┌───────────────────────────────┐
-///              │                               │
-///              │      Simplify phi nodes       │
-///              │                               │
-///              └───────────────────────────────┘
-///                              │
-///                              │
-///                              ▼
-///              ┌───────────────────────────────┐
-///              │                               │
-///              │       Delete dead code        │
-///              │                               │
-///              └───────────────────────────────┘
-///                              │
-///                              │
-///                              ▼
-///              ┌───────────────────────────────┐
-///              │                               │
-///              │          Apply ruleset        │
-///              │                               │
-///              └───────────────────────────────┘
+/// ┌─────────────────┐
+/// │  Apply profile  │
+/// └─────────────────┘
+///          │
+///          │
+///          │
+///          │
+///          │                ┌───────────────────────────────┐
+///          │                │                               │
+///          ├───────────────▶│   Copy and expand functions   │
+///          │     static     │                               │
+///          │  allocation?   └───────────────────────────────┘
+///          │                                │
+///          │                                │
+///          │                                ▼
+///          │                ┌───────────────────────────────┐
+///          │                │                               │
+///          │                │     Determine dead blocks     │
+///          │                │                               │
+///          │                └───────────────────────────────┘
+///          │                                │
+///          │                                │
+///          │                                ▼
+///          │                ┌───────────────────────────────┐
+///          │                │                               │
+///          │                │      Simplify phi nodes       │──┐
+///          │                │                               │  │
+///          │                └───────────────────────────────┘  │
+///          │                                │ delete dead      │
+///          │                                │    code?         │
+///          │                                ▼                  │
+///          │  delete dead   ┌───────────────────────────────┐  │
+///          │     code?      │                               │  │
+///          ├───────────────▶│       Delete dead code        │  │   leave dead
+///          │                │                               │  │     code?
+///          │                └───────────────────────────────┘  │
+///          │                                │                  │
+///          │                                │                  │
+///          │                                ▼                  │
+///          │                ┌───────────────────────────────┐  │
+///          │    fallback    │                               │  │
+///          └───────────────▶│          Apply rules          │◀─┘
+///                           │                               │
+///                           └───────────────────────────────┘
 ///
 class ModuleTransformationPass : public llvm::PassInfoMixin<ModuleTransformationPass>
 {
@@ -73,10 +80,13 @@ public:
   /// @{
 
   /// Custom default constructor
-  ModuleTransformationPass(RuleSet &&rule_set)
+  ModuleTransformationPass(RuleSet &&rule_set, bool clone_functions = true,
+                           bool delete_dead_code = true, uint64_t max_recursion = 512)
     : rule_set_{std::move(rule_set)}
+    , clone_functions_{clone_functions}
+    , delete_dead_code_{delete_dead_code}
+    , max_recursion_{max_recursion}
   {}
-  void Setup();
 
   /// Copy construction is banned.
   ModuleTransformationPass(ModuleTransformationPass const &) = delete;
@@ -124,7 +134,7 @@ public:
 
   /// Dead code detection
   /// @{
-  void         runDetectDeadCode(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
+  void         runDetectActiveCode(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
   void         runDeleteDeadCode(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
   llvm::Value *detectActiveCode(llvm::Value *input, DeletableInstructions &);
   llvm::Value *deleteDeadCode(llvm::Value *input, DeletableInstructions &);
@@ -142,26 +152,19 @@ public:
   bool onQubitAllocate(llvm::Instruction *instruction, Captures &captures);
   /// @}
 
-  bool onArrayReferenceUpdate(llvm::Instruction *instruction);
-  bool onArrayAllocate(llvm::Instruction *instruction);
-
-  bool onLoad(llvm::Instruction *instruction);
-  bool onSave(llvm::Instruction *instruction);
-
-  void addRule(ReplacementRule &&rule);
-
-  Value *resolveAlias(Value *original);
-
   /// Whether or not this pass is required to run.
   static bool isRequired();
   /// @}
 
 private:
+  /// Pass configuration
+  /// @{
   RuleSet      rule_set_{};
-  Replacements replacements_;  ///< Registered replacements to be executed.
+  bool clone_functions_{true};
+  bool delete_dead_code_{true};
+  uint64_t max_recursion_{512};
+  /// @}
 
-  std::unordered_map<Value *, int32_t>       qubit_reference_count_; // TODO: Not used
-  std::unique_ptr<llvm::FunctionPassManager> function_pass_manager_; // TODO: Not used
 
   /// Generic
   /// @{
@@ -182,6 +185,11 @@ private:
   /// @}
 
   // Phi detection
+
+  /// Applying rules
+  /// @{
+  Replacements replacements_;  ///< Registered replacements to be executed.
+  /// @}
 };
 
 }  // namespace quantum

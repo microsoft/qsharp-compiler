@@ -111,7 +111,6 @@ void RuleFactory::useStaticQubitArrayAllocation()
 
     // Computing the index by getting the current index value and offseting by
     // the offset at which the qubit array is allocated.
-    llvm::errs() << "Handling array index: " << *cap["arrayName"] << "\n";
     auto offset_cst = llvm::dyn_cast<llvm::ConstantInt>(cap["arrayName"]);
     if (offset_cst == nullptr)
     {

@@ -13,10 +13,6 @@
 
 namespace microsoft {
 namespace quantum {
-void ModuleTransformationPass::Setup()
-{
-  setupCopyAndExpand();
-}
 
 void ModuleTransformationPass::setupCopyAndExpand()
 {
@@ -52,73 +48,11 @@ void ModuleTransformationPass::setupCopyAndExpand()
        }});
 }
 
-void ModuleTransformationPass::addRule(ReplacementRule &&rule)
-{
-  auto ret = std::make_shared<ReplacementRule>(std::move(rule));
-
-  rule_set_.addRule(ret);
-}
-
 void ModuleTransformationPass::addConstExprRule(ReplacementRule &&rule)
 {
   auto ret = std::make_shared<ReplacementRule>(std::move(rule));
 
   const_expr_replacements_.addRule(ret);
-}
-
-bool ModuleTransformationPass::onLoad(llvm::Instruction *instruction)
-{
-  llvm::errs() << " --> Load " << *instruction << "\n";
-  return true;
-}
-
-bool ModuleTransformationPass::onSave(llvm::Instruction *instruction)
-{
-  llvm::errs() << " --> Save " << *instruction << "\n";
-  return true;
-}
-
-bool ModuleTransformationPass::onQubitRelease(llvm::Instruction *instruction, Captures &captures)
-{
-  llvm::errs() << " --> Qubit release " << *instruction << "\n";
-  llvm::errs() << "                   " << *captures["name"] << "\n";
-
-  auto it = qubit_reference_count_.find(resolveAlias(captures["name"]));
-  if (it == qubit_reference_count_.end())
-  {
-    llvm::errs() << "ERROR: Qubit not found"
-                 << "\n";
-    return false;
-  }
-
-  qubit_reference_count_.erase(it);
-
-  return true;
-}
-
-ModuleTransformationPass::Value *ModuleTransformationPass::resolveAlias(Value *original)
-{
-  return original;
-}
-
-bool ModuleTransformationPass::onQubitAllocate(llvm::Instruction *instruction, Captures &)
-{
-  llvm::errs() << " --> Qubit allocation: " << instruction->getName() << " " << instruction << "\n";
-  assert(instruction != nullptr);
-  qubit_reference_count_[resolveAlias(static_cast<Value *>(instruction))] = 1;
-  return true;
-}
-
-bool ModuleTransformationPass::onArrayReferenceUpdate(llvm::Instruction *instruction)
-{
-  llvm::errs() << " --> Array reference update " << *instruction << "\n";
-  return true;
-}
-
-bool ModuleTransformationPass::onArrayAllocate(llvm::Instruction *instruction)
-{
-  llvm::errs() << " --> Array allocation: " << *instruction << "\n";
-  return true;
 }
 
 void ModuleTransformationPass::constantFoldFunction(llvm::Function &function)
@@ -458,8 +392,8 @@ void ModuleTransformationPass::applyReplacements()
   replacements_.clear();
 }
 
-void ModuleTransformationPass::runDetectDeadCode(llvm::Module &module,
-                                                 llvm::ModuleAnalysisManager &)
+void ModuleTransformationPass::runDetectActiveCode(llvm::Module &module,
+                                                   llvm::ModuleAnalysisManager &)
 {
   blocks_to_delete_.clear();
   functions_to_delete_.clear();
@@ -623,18 +557,27 @@ llvm::PreservedAnalyses ModuleTransformationPass::run(llvm::Module &            
                                                       llvm::ModuleAnalysisManager &mam)
 {
 
-  Setup();
+  // In case the module is istructed to clone functions,
+  if (clone_functions_)
+  {
+    setupCopyAndExpand();
+    runCopyAndExpand(module, mam);
+  }
 
-  runCopyAndExpand(module, mam);
-  runDetectDeadCode(module, mam);
-  runReplacePhi(module, mam);
-  runDeleteDeadCode(module, mam);
+  // Deleting dead code if configured to do so. This process consists
+  // of three steps: detecting dead code, removing phi nodes (and references)
+  // and finally deleting the code. This implementation is aggressive in the sense
+  // that any code that we cannot prove to be active is considered dead.
+  if (delete_dead_code_)
+  {
+    runDetectActiveCode(module, mam);
+    runReplacePhi(module, mam);
+    runDeleteDeadCode(module, mam);
+  }
 
+  // Applying rule set
   runApplyRules(module, mam);
 
-  // Cleaning all references
-  qubit_reference_count_.clear();
-  // ... and otherwise, we report that we preserved none.
   return llvm::PreservedAnalyses::none();
 }
 
