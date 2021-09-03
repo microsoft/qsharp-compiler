@@ -1,6 +1,30 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
+if(Test-Path function:\exec) {
+    # already included
+    return
+}
+
+function Test-BuildCompiler {
+    if (!(Test-Path env:\ENABLE_COMPILER)) {
+        $true
+    }
+    else {
+        # Coerce falsy values
+        # negate to keep the defalt $true
+        $env:ENABLE_COMPILER -ne $false
+    }
+}
+
+function Test-BuildVsix {
+    ($Env:ENABLE_VSIX -ne "false") -and $IsWindows
+}
+
+function Test-BuildLlvmComponents {
+    ((Test-Path env:\ENABLE_LLVM_BUILDS) -and ($env:ENABLE_LLVM_BUILDS -eq $true))
+}
+
 # Utilities
 function exec {
     [CmdletBinding()]

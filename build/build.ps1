@@ -17,17 +17,6 @@ if (!(Test-Path env:\TEMP)) {
 ##
 # Q# compiler and Sdk tools
 ##
-function Test-BuildCompiler {
-    if (!(Test-Path env:\ENABLE_COMPILER)) {
-        $true
-    }
-    else {
-        # Coerce falsy values
-        # negate to keep the defalt $true
-        $env:ENABLE_COMPILER -ne $false
-    }
-}
-
 function Build-One {
     param(
         [string]$project,
@@ -104,11 +93,6 @@ function Build-VSCode() {
 ##
 # VisualStudioExtension
 ##
-
-function Test-BuildVsix {
-    ($Env:ENABLE_VSIX -ne "false") -and $IsWindows
-}
-
 function Build-VS() {
     Write-Host "##[info]Building VisualStudio extension..."
     Push-Location (Join-Path $PSScriptRoot '..')
@@ -156,11 +140,6 @@ function Build-VS() {
 ##
 # PyQIR
 ##
-
-function Test-BuildLlvmComponents {
-    ((Test-Path env:\ENABLE_LLVM_BUILDS) -and ($env:ENABLE_LLVM_BUILDS -eq $true))
-}
-
 
 ################################
 # Start main execution:
