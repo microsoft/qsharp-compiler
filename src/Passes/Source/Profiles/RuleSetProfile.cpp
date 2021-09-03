@@ -52,7 +52,6 @@ namespace quantum
 
     void RuleSetProfile::addFunctionAnalyses(FunctionAnalysisManager&)
     {
-        //  throw std::runtime_error("Function analysis not supported for rule set");
     }
 
 } // namespace quantum
