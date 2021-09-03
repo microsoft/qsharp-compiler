@@ -55,7 +55,6 @@ namespace quantum
         OptimizationLevel const& optimisation_level,
         bool)
     {
-        //  throw std::runtime_error("Validator not supported for rule set");
         return pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
     }
 
