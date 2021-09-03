@@ -69,6 +69,18 @@ function Assert {
     }
 }
 
+function Test-CI {
+    if (Test-Path env:\TF_BUILD) {
+        $true
+    }
+    elseif ((Test-Path env:\CI)) {
+        $env:CI -eq $true
+    }
+    else {
+        $false
+    }
+}
+
 function Write-Vso {
     param (
         [Parameter(Mandatory = $true)]

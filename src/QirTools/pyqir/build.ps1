@@ -1,21 +1,30 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-##
-# PyQIR
-##
+function Get-RepoRoot {
+    git rev-parse --show-toplevel
+}
+
+. (Join-Path (Get-RepoRoot) build "utils.ps1")
+
+function Get-CommitHash {
+    # rev-parse changes length based on your git settings, use length = 9
+    # to match azure devops
+    exec { git rev-parse --short=9 HEAD }
+}
+
 function Get-TargetTriple {
-    $TARGET_TRIPLE = "unknown"
+    $triple = "unknown"
     if ($IsWindows) {
-        $TARGET_TRIPLE = "x86_64-pc-windows-msvc-static"
+        $triple = "x86_64-pc-windows-msvc-static"
     }
     elseif ($IsLinux) {
-        $TARGET_TRIPLE = "x86_64-unknown-linux-gnu"
+        $triple = "x86_64-unknown-linux-gnu"
     }
     else {
-        $TARGET_TRIPLE = "x86_64-apple-darwin"
+        $triple = "x86_64-apple-darwin"
     }
-    $TARGET_TRIPLE
+    $triple
 }
 
 function Use-LlvmInstallation {
@@ -38,20 +47,15 @@ function Get-LlvmSha {
         $env:AQ_LLVM_PACKAGE_GIT_VERSION
     }
     else {
-        Write-Vso "Build.SourcesDirectory: $($env:BUILD_SOURCESDIRECTORY)"
-        $srcRoot = Resolve-Path $($env:BUILD_SOURCESDIRECTORY)
+        $srcRoot = Get-RepoRoot
+        if (Test-Path env:\BUILD_SOURCESDIRECTORY) {
+            Write-Vso "Build.SourcesDirectory: $($env:BUILD_SOURCESDIRECTORY)"
+            $srcRoot = Resolve-Path $($env:BUILD_SOURCESDIRECTORY)
+        }
         $llvmDir = Join-Path $srcRoot external llvm-project
 
         Assert (Test-Path $llvmDir) "llvm-project submodule is missing"
-        $sha = try {
-            Push-Location -Path $llvmDir
-            # rev-parse changes length based on your git settings, use length = 9
-            # to match azure devops
-            git rev-parse --short=9 HEAD
-        }
-        finally {
-            Pop-Location
-        }
+        $sha = exec -wd $llvmDir { Get-CommitHash }
         $sha
     }
 }
@@ -79,7 +83,7 @@ function Test-AllowedToDownloadLlvm {
 
 function Get-AqCacheDirectory {
     $aqCacheDirectory = Join-Path (Get-DefaultInstallDirectory) ".azure-quantum"
-    if(!(Test-Path $aqCacheDirectory)) {
+    if (!(Test-Path $aqCacheDirectory)) {
         mkdir $aqCacheDirectory | Out-Null
     }
     $aqCacheDirectory
@@ -104,6 +108,7 @@ function Get-LlvmArchiveShaUrl {
     $baseUrl = Get-LlvmDownloadBaseUrl
     "$baseUrl/$($packageName)$extension.sha256"
 }
+
 function Get-LlvmArchiveFileName {
     $packageName = Get-PackageName
     $extension = Get-PackageExt
@@ -116,7 +121,7 @@ function Get-LlvmArchiveShaFileName {
 }
 
 function Get-DefaultInstallDirectory {
-    if(!(Test-Path "$HOME")) {
+    if (!(Test-Path "$HOME")) {
         mkdir "$HOME" | Out-Null
     }
     "$HOME"
@@ -148,16 +153,20 @@ function Install-LlvmFromBuildArtifacts {
         Write-Vso "Dowloading $archiveUrl to $outFile"
         Invoke-WebRequest -Uri $archiveUrl -OutFile $outFile
     }
+
     $shaFile = Join-Path $($env:TEMP) (Get-LlvmArchiveShaFileName)
     if (!(Test-Path $shaFile)) {
         $sha256Url = Get-LlvmArchiveShaUrl
         Write-Vso "Dowloading $sha256Url to $shaFile"
         Invoke-WebRequest -Uri $sha256Url -OutFile $shaFile
     }
+
     Write-Vso "Calculating hash for $outFile"
     $calculatedHash = (Get-FileHash -Path $outFile -Algorithm SHA256).Hash
+
     Write-Vso "Reading hash from $shaFile"
     $expectedHash = (Get-Content -Path $shaFile)
+
     Assert ("$calculatedHash" -eq "$expectedHash") "The calculated hash $calculatedHash did not match the expected hash $expectedHash"
 
     $packagesRoot = Get-AqCacheDirectory
@@ -186,8 +195,24 @@ function Install-LlvmFromSource {
     Use-LlvmInstallation $packagePath
 }
 
+function Test-Prerequisites {
+    function Test-SubmoduleInitialized {
+        $repoSha = exec -wd (Get-RepoRoot) { Get-CommitHash }
+        $submoduleSha = Get-LlvmSha
+        $repoSha -ne $submoduleSha
+    }
 
-if (Test-BuildLlvmComponents) {
+    if (!(Test-SubmoduleInitialized)) {
+        Write-Vso "llvm-project submodule isn't initialized"
+        Write-Vso "Initializing submodules: git submodule init"
+        exec -wd (Get-RepoRoot) { git submodule init }
+        Write-Vso "Updating submodules: git submodule update --depth 1 --recursive"
+        exec -wd (Get-RepoRoot) { git submodule update --depth 1 --recursive }
+    }
+    Assert (Test-SubmoduleInitialized) "Failed to read initialized llvm-project submodule"
+}
+
+function Initialize-Environment {
     # if an external LLVM is specified, make sure it exist and
     # skip further bootstapping
     if (Test-Path env:\AQ_LLVM_EXTERNAL_DIR) {
@@ -195,7 +220,7 @@ if (Test-BuildLlvmComponents) {
     }
     else {
         $env:AQ_LLVM_PACKAGE_GIT_VERSION = Get-LlvmSha
-        Write-Host "llvm-project sha: $env:AQ_LLVM_PACKAGE_GIT_VERSION"
+        Write-Vso "llvm-project sha: $env:AQ_LLVM_PACKAGE_GIT_VERSION"
         $packageName = Get-PackageName
 
         $packagePath = Get-InstallationDirectory $packageName
@@ -259,5 +284,6 @@ function Build-PyQIR {
     }
 }
 
-
+Test-Prerequisites
+Initialize-Environment
 Build-PyQIR
