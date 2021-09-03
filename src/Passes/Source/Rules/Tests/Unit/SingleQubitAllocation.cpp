@@ -49,7 +49,6 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
 
     auto configure_profile = [](RuleSet& rule_set) {
         auto factory = RuleFactory(rule_set);
-        std::cout << "RUNNING CONFIG" << std::endl;
         factory.useStaticQubitAllocation();
     };
 
