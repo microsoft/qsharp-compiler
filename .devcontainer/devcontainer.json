@@ -49,7 +49,7 @@
         "seccomp=unconfined",
         "--init"
     ],
-    "containerEnv": { "LLVM_SYS_110_PREFIX": "/usr/lib/llvm-11" },
+    "containerEnv": { "IN_DEV_CONTAINER": "true" },
     // Add the IDs of extensions you want installed when the container is created.
     "extensions": [
         "GitHub.vscode-pull-request-github",

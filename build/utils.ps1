@@ -6,6 +6,11 @@ if(Test-Path function:\exec) {
     return
 }
 
+# Fix temp path for non-windows platforms if missing
+if (!(Test-Path env:\TEMP)) {
+    $env:TEMP = [System.IO.Path]::GetTempPath()
+}
+
 function Test-BuildCompiler {
     if (!(Test-Path env:\ENABLE_COMPILER)) {
         $true

@@ -246,17 +246,30 @@ function Initialize-Environment {
     }
 }
 
+function Test-InDevContainer {
+    $IsLinux -and (Test-Path env:\IN_DEV_CONTAINER)
+}
+
+function Test-RunInContainer {
+    if($IsLinux) {
+        !(Test-InDevContainer)
+    } else {
+        $false
+    }
+}
+
 function Build-PyQIR {
-    if ($IsLinux) {
+    $buildPath = Resolve-Path (Join-Path $PSScriptRoot '..')
+    if (Test-RunInContainer) {
         function Build-ContainerImage {
             Write-Vso "Building container image manylinux-llvm-builder"
-            exec -wd ./pyqir/eng {
+            exec -wd (Join-Path $buildPath pyqir eng) {
                 Get-Content manylinux.Dockerfile | docker build -t manylinux2014_x86_64_maturin -
             }
         }
         function Invoke-ContainerImage {
             Write-Vso "Running container image:"
-            $ioVolume = "$(Get-Location):/io"
+            $ioVolume = "$($buildPath):/io"
             $llvmVolume = "$($env:AQ_LLVM_INSTALL_DIR):/usr/lib/llvm"
             Write-Vso "Command: docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin build --release"
 
@@ -269,7 +282,7 @@ function Build-PyQIR {
         Invoke-ContainerImage
     }
     else {
-        exec -wd (Join-Path '.' 'pyqir') {
+        exec -wd (Join-Path $buildPath pyqir) {
             $python = "python3"
             if ($null -ne (Get-Command python -ErrorAction SilentlyContinue)) {
                 $pythonIsPython3 = (python --version) -match "Python 3.*"

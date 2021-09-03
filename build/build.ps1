@@ -9,11 +9,6 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
-# Fix temp path for non-windows platforms if missing
-if (!(Test-Path env:\TEMP)) {
-    $env:TEMP = [System.IO.Path]::GetTempPath()
-}
-
 ##
 # Q# compiler and Sdk tools
 ##
@@ -32,10 +27,10 @@ function Build-One {
     $projectFilePath = $(Join-Path $PSScriptRoot $project)
     $command = "dotnet build $projectFilePath -c $($Env:BUILD_CONFIGURATION) -v $($Env:BUILD_VERBOSITY) $($args) /property:Version=$($Env:ASSEMBLY_VERSION) /property:InformationalVersion=$($Env:SEMVER_VERSION) /property:TreatWarningsAsErrors=true /p:Platform='Any CPU'"
 
-    if($useVcVars){
+    if ($useVcVars -and $IsWindows) {
         $command = ". $(Join-Path $PSScriptRoot vcvars.ps1);$command"
         Write-Host $command
-        pwsh.exe -Command $command
+        pwsh -Command $command
     } else {
         Invoke-Expression $command
     }
