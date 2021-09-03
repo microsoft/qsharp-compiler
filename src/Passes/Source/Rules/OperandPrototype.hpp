@@ -78,6 +78,7 @@ namespace quantum
             children_     = other.children_;
         }
         /// @}
+
       private:
         /// Data variables for common matching functionality
         /// @{

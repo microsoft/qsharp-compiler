@@ -1,11 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/ExpandStaticAllocation/ExpandStaticAllocation.hpp"
-#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
-#include "Passes/TransformationRule/TransformationRule.hpp"
 #include "Profiles/RuleSetProfile.hpp"
 #include "Rules/Factory.hpp"
+#include "Rules/ReplacementRule.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
 
@@ -69,12 +67,12 @@ continue__1:
     auto configure_profile = [](RuleSet& rule_set) {
         auto factory = RuleFactory(rule_set);
         // factory.useStaticResultAllocation();
+
         factory.optimiseBranchQuatumOne();
     };
 
     auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
     ir_manip->applyProfile(profile);
-    llvm::errs() << *ir_manip->module() << "\n";
 
     // This optimistation is specific to the the __quantum__qir__read_result which
     // returns 1 or 0 depending on the result. We expect that

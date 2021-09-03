@@ -30,6 +30,10 @@ namespace quantum
                 {
                     return true;
                 }
+                else
+                {
+                    captures.clear();
+                }
             }
         }
         return false;
@@ -40,5 +44,14 @@ namespace quantum
         rules_.push_back(rule);
     }
 
+    void RuleSet::clear()
+    {
+        rules_.clear();
+    }
+
+    uint64_t RuleSet::size() const
+    {
+        return rules_.size();
+    }
 } // namespace quantum
 } // namespace microsoft

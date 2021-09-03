@@ -18,9 +18,6 @@ TEST(AllocationManagerTestSuite, LinearAllocationTest)
 
     // We expect that allocating
     manager->allocate("test", 10);
-    EXPECT_TRUE(manager->getOffset("test") == 5);
     EXPECT_TRUE(manager->allocate() == 15);
     manager->allocate("test2", 10);
-    EXPECT_TRUE(manager->getOffset("test") == 5);
-    EXPECT_TRUE(manager->getOffset("test2") == 16);
 }

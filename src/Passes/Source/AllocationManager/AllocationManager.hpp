@@ -46,7 +46,7 @@ namespace quantum
         using Resources            = std::unordered_map<std::string, Resource>;
         using NameToIndex          = std::unordered_map<String, Index>;
         using AddressToIndex       = std::unordered_map<Address, Index>;
-        using Mappings             = std::unordered_map<Index, MemoryMapping>;
+        using Mappings             = std::vector<MemoryMapping>;
 
         /// Construction only allowed using smart pointer allocation through static functions.
         /// Constructors are private to prevent
@@ -68,18 +68,8 @@ namespace quantum
         /// future and to be future proof, please use AllocationManager::getAddress().
         Address allocate(String const& name = "", Index const& size = 1);
 
-        /// Gets the Address of a named segment or address. Given a named resource segment, this
-        /// function returns the address of the first element in the
-        Address getOffset(String const& name) const;
-
-        /// Gets the Address of a named segments n'th element.
-        Address getAddress(String const& name, Index const& n) const;
-
         /// Gets the Address of n'th element in a segment given the segments address.
         Address getAddress(Address const& address, Index const& n) const;
-
-        /// Releases the named segment.
-        void release(String const& name);
 
         /// Releases the segment by address.
         void release(Address const& address);

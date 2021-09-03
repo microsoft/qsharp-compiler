@@ -1,9 +1,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
-#include "Passes/TransformationRule/TransformationRule.hpp"
+#include "ProfilePass/Profile.hpp"
 #include "Profiles/RuleSetProfile.hpp"
+#include "Rules/Factory.hpp"
 #include "Rules/RuleSet.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -15,8 +15,8 @@ namespace microsoft
 namespace quantum
 {
 
-    RuleSetProfile::RuleSetProfile(ConfigureFunction const& f)
-      : configure_{f}
+    RuleSetProfile::RuleSetProfile(ConfigureFunction const& configure)
+      : configure_{configure}
     {
     }
     llvm::ModulePassManager RuleSetProfile::createGenerationModulePass(
@@ -24,29 +24,33 @@ namespace quantum
         OptimizationLevel const& optimisation_level,
         bool                     debug)
     {
-        auto ret                   = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
-        auto function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
+        llvm::ModulePassManager ret                   = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
+        auto                    function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
             optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
+
+        auto inliner_pass =
+            pass_builder.buildInlinerPipeline(optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
 
         // Defining the mapping
         RuleSet rule_set;
         configure_(rule_set);
 
-        function_pass_manager.addPass(TransformationRulePass(std::move(rule_set)));
-        ret.addPass(createModuleToFunctionPassAdaptor(std::move(function_pass_manager)));
+        ret.addPass(ProfilePass(std::move(rule_set), false, false, true));
+        //  ret.addPass(llvm::AlwaysInlinerPass());
+        //  ret.addPass(std::move(inliner_pass));
 
         return ret;
     }
 
-    llvm::ModulePassManager RuleSetProfile::createValidationModulePass(PassBuilder&, OptimizationLevel const&, bool)
+    llvm::ModulePassManager RuleSetProfile::createValidationModulePass(
+        PassBuilder&             pass_builder,
+        OptimizationLevel const& optimisation_level,
+        bool)
     {
-        throw std::runtime_error("Validator not supported for rule set");
+        return pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
     }
 
-    void RuleSetProfile::addFunctionAnalyses(FunctionAnalysisManager&)
-    {
-        throw std::runtime_error("Function analysis not supported for rule set");
-    }
+    void RuleSetProfile::addFunctionAnalyses(FunctionAnalysisManager&) {}
 
 } // namespace quantum
 } // namespace microsoft

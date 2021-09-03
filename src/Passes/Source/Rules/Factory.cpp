@@ -114,11 +114,17 @@ namespace quantum
 
                 // Computing the index by getting the current index value and offseting by
                 // the offset at which the qubit array is allocated.
-                auto llvm_size = cst->getValue();
-                auto offset    = qubit_alloc_manager->getOffset(cap["arrayName"]->getName().str());
+                auto offset_cst = llvm::dyn_cast<llvm::ConstantInt>(cap["arrayName"]);
+                if (offset_cst == nullptr)
+                {
+                    return false;
+                }
+                auto llvm_offset = offset_cst->getValue();
+                auto offset      = llvm_offset.getZExtValue();
 
                 // Creating a new index APInt that is shifted by the offset of the allocation
-                auto idx = llvm::APInt(llvm_size.getBitWidth(), llvm_size.getZExtValue() + offset);
+                auto llvm_size = cst->getValue();
+                auto idx       = llvm::APInt(llvm_size.getBitWidth(), llvm_size.getZExtValue() + offset);
 
                 // Computing offset
                 auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
@@ -137,7 +143,10 @@ namespace quantum
                 return true;
             };
 
-        auto get_element  = call("__quantum__rt__array_get_element_ptr_1d", "arrayName"_cap = _, "index"_cap = _);
+        // Casted const
+        auto get_element = call(
+            "__quantum__rt__array_get_element_ptr_1d", intToPtr("arrayName"_cap = constInt()),
+            "index"_cap = constInt());
         auto cast_pattern = bitCast("getElement"_cap = get_element);
         auto load_pattern = load("cast"_cap = cast_pattern);
 
@@ -145,14 +154,24 @@ namespace quantum
 
         /// Release replacement
         auto deleter = deleteInstruction();
-        addRule(
-            {call("__quantum__rt__qubit_release_array", "name"_cap = _),
-             [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
-                 qubit_alloc_manager->release(cap["name"]->getName().str());
-                 return deleter(builder, val, cap, rep);
-             }
 
-            });
+        addRule(
+            {call("__quantum__rt__qubit_release_array", intToPtr("const"_cap = constInt())),
+             [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
+                 // Recovering the qubit id
+                 auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["const"]);
+                 if (cst == nullptr)
+                 {
+                     return false;
+                 }
+                 auto address = cst->getValue().getZExtValue();
+
+                 // Releasing
+                 qubit_alloc_manager->release(address);
+
+                 // Deleting instruction
+                 return deleter(builder, val, cap, rep);
+             }});
     }
 
     void RuleFactory::useStaticQubitAllocation()

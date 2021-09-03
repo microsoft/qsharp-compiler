@@ -60,6 +60,10 @@ namespace quantum
         /// Adds a new replacement rule to the set.
         void addRule(ReplacementRulePtr const& rule);
         /// @}
+
+        void     clear();
+        uint64_t size() const;
+
       private:
         Rules rules_; ///< Rules that describes QIR mappings
     };

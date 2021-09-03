@@ -1,9 +1,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Passes/ExpandStaticAllocation/ExpandStaticAllocation.hpp"
-#include "Passes/QirAllocationAnalysis/QirAllocationAnalysis.hpp"
-#include "Passes/TransformationRule/TransformationRule.hpp"
 #include "Profiles/RuleSetProfile.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"

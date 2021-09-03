@@ -16,6 +16,7 @@
 #include "Commandline/Settings.hpp"
 #include "Profiles/BaseProfile.hpp"
 #include "Profiles/IProfile.hpp"
+#include "Profiles/RuleSetProfile.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -35,14 +36,24 @@ int main(int argc, char** argv)
             {{"debug", "false"},
              {"generate", "false"},
              {"validate", "false"},
-             {"profile", "base-profile"},
-             {"S", "false"}}};
+             {"profile", "baseProfile"},
+             {"S", "false"},
+             {"O0", "false"},
+             {"O1", "false"},
+             {"O2", "false"},
+             {"O3", "false"},
+             {"verify-module", "false"}}};
 
         ParameterParser parser(settings);
         parser.addFlag("debug");
         parser.addFlag("generate");
         parser.addFlag("validate");
+        parser.addFlag("verify-module");
         parser.addFlag("S");
+        parser.addFlag("O0");
+        parser.addFlag("O1");
+        parser.addFlag("O2");
+        parser.addFlag("O3");
 
         parser.parseArgs(argc, argv);
 
@@ -64,11 +75,27 @@ int main(int argc, char** argv)
         }
 
         // Extracting commandline parameters
-        bool                         debug              = settings.get("debug") == "true";
-        bool                         generate           = settings.get("generate") == "true";
-        bool                         validate           = settings.get("validate") == "true";
-        auto                         optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
-        std::shared_ptr<BaseProfile> profile            = std::make_shared<BaseProfile>();
+        bool                      debug              = settings.get("debug") == "true";
+        bool                      generate           = settings.get("generate") == "true";
+        bool                      validate           = settings.get("validate") == "true";
+        auto                      optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
+        std::shared_ptr<IProfile> profile            = std::make_shared<BaseProfile>();
+
+        // Setting the optimisation level
+        if (settings.get("O1") == "true")
+        {
+            optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
+        }
+
+        if (settings.get("O2") == "true")
+        {
+            optimisation_level = llvm::PassBuilder::OptimizationLevel::O2;
+        }
+
+        if (settings.get("O3") == "true")
+        {
+            optimisation_level = llvm::PassBuilder::OptimizationLevel::O3;
+        }
 
         // In case we debug, we also print the settings to allow provide a full
         // picture of what is going.
@@ -102,6 +129,19 @@ int main(int argc, char** argv)
             {
                 llvm::errs() << "Byte code ouput is not supported yet. Please add -S to get human readible "
                                 "LL code.\n";
+            }
+
+            // Verifying the module.
+            if (settings.get("verify-module") == "true")
+            {
+                llvm::VerifierAnalysis verifier;
+                auto                   result = verifier.run(*module, analyser.moduleAnalysisManager());
+                if (result.IRBroken)
+                {
+                    llvm::errs() << "IR is broken."
+                                 << "\n";
+                    exit(-1);
+                }
             }
         }
 

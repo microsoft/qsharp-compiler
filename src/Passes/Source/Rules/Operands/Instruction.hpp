@@ -23,12 +23,12 @@ namespace quantum
         Child copy() const override;
     };
 
-    using StorePattern    = InstructionPattern<llvm::StoreInst>;
-    using LoadPattern     = InstructionPattern<llvm::LoadInst>;
-    using BitCastPattern  = InstructionPattern<llvm::BitCastInst>;
-    using IntToPtrPattern = InstructionPattern<llvm::IntToPtrInst>;
-    using ConstIntPattern = InstructionPattern<llvm::ConstantInt>;
-    using BranchPattern   = InstructionPattern<llvm::BranchInst>;
-
+    using StorePattern      = InstructionPattern<llvm::StoreInst>;
+    using LoadPattern       = InstructionPattern<llvm::LoadInst>;
+    using BitCastPattern    = InstructionPattern<llvm::BitCastInst>;
+    using IntToPtrPattern   = InstructionPattern<llvm::IntToPtrInst>;
+    using ConstIntPattern   = InstructionPattern<llvm::ConstantInt>;
+    using BranchPattern     = InstructionPattern<llvm::BranchInst>;
+    using BasicBlockPattern = InstructionPattern<llvm::BasicBlock>;
 } // namespace quantum
 } // namespace microsoft

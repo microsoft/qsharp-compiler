@@ -5,9 +5,11 @@
 /// @defgroup shorthandNotation Shorthand Notation
 
 #include "Rules/Notation/Call.ipp"
+#include "Rules/Notation/Phi.ipp"
 #include "Rules/Operands/Any.hpp"
 #include "Rules/Operands/Call.hpp"
 #include "Rules/Operands/Instruction.hpp"
+#include "Rules/Operands/Phi.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -89,6 +91,9 @@ namespace quantum
         /// matches a call to the function `foo` with exactly two arguments.
         template <typename... Args> IOperandPrototypePtr call(std::string const& name, Args... args);
 
+        /// Matches a phi node. TODO(tfr): More description
+        template <typename... Args> IOperandPrototypePtr phi(Args... args);
+
         /// Shorthand notation to match an instruction with a specified name.
         /// Unlike call, this pattern matches by name only and ignore
         /// the arguments.
@@ -126,6 +131,9 @@ namespace quantum
         /// value came about. In this case, we may want to capture the values to, for instance, make
         /// assignment at compile time.
         IOperandPrototypePtr store(IOperandPrototypePtr const& target, IOperandPrototypePtr const& value);
+
+        /// Matches a load instruction with one argument.
+        IOperandPrototypePtr basicBlock();
         /// @}
 
         /// @addtogroup shorthandNotation

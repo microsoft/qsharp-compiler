@@ -13,7 +13,13 @@ serve-docs:  documentation
 doxygen:
 	doxygen doxygen.cfg
 
+
+test-examples:
+	# Run all examples and verify that the output is a valid IR
+	cd examples && make all
+
 clean:
 	rm -rf Release/
 	rm -rf Debug/
+	cd examples && make clean
 

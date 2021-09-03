@@ -56,6 +56,9 @@
 #include "llvm/Transforms/Scalar/ADCE.h"
 #include "llvm/Transforms/Scalar/DCE.h"
 
+// Const folding
+#include "llvm/Analysis/ConstantFolding.h"
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
