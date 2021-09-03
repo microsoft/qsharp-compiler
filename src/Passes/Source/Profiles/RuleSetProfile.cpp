@@ -50,9 +50,7 @@ namespace quantum
         return pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
     }
 
-    void RuleSetProfile::addFunctionAnalyses(FunctionAnalysisManager&)
-    {
-    }
+    void RuleSetProfile::addFunctionAnalyses(FunctionAnalysisManager&) {}
 
 } // namespace quantum
 } // namespace microsoft
