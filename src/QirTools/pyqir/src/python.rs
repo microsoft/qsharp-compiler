@@ -4,9 +4,7 @@
 use pyo3::prelude::*;
 
 use qirlib::emit::Emitter;
-use qirlib::interop::{
-    ClassicalRegister, Controlled, Instruction, QuantumRegister, Rotated, SemanticModel, Single,
-};
+use qirlib::interop::{ClassicalRegister, Controlled, Instruction, Measured, QuantumRegister, Rotated, SemanticModel, Single};
 
 #[pymodule]
 fn pyqir(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -60,7 +58,8 @@ impl PyQIR {
 
     fn m(&mut self, qubit: String, target: String) -> PyResult<()> {
         println!("m {}[{}]", qubit, target);
-        let inst = Instruction::M { qubit, target };
+        let inst = Measured::new(qubit, target);
+        let inst = Instruction::M(inst);
         self.model.add_inst(inst);
         Ok(())
     }

@@ -46,8 +46,8 @@ pub(crate) fn emit<'ctx>(
         Instruction::H(inst) => {
             calls::emit_void_call(context, intrinsics.h, &[find_qubit(&inst.qubit)])
         }
-        Instruction::M { qubit, target } => {
-            measure(context, qubit, target, qubits, registers);
+        Instruction::M(inst) => {
+            measure(context, &inst.qubit, &inst.target, qubits, registers);
         }
         Instruction::Reset(inst) => {
             calls::emit_void_call(context, intrinsics.reset, &[find_qubit(&inst.qubit)])

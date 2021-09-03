@@ -51,6 +51,18 @@ impl Controlled {
     }
 }
 
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Measured {
+    pub qubit: String,
+    pub target: String,
+}
+
+impl Measured {
+    pub fn new(qubit: String, target: String) -> Self {
+        Measured { qubit, target }
+    }
+}
+
 #[derive(Clone, Debug, PartialEq)]
 pub struct Rotated {
     pub theta: f64,
@@ -80,7 +92,7 @@ pub enum Instruction {
     Cx(Controlled),
     Cz(Controlled),
     H(Single),
-    M { qubit: String, target: String },
+    M(Measured),
     Reset(Single),
     Rx(Rotated),
     Ry(Rotated),
