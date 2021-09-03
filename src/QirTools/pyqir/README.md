@@ -15,10 +15,10 @@ The Rust project uses:
   - Apache License 2.0
   - 814 stars, 84 forks, active development and support for latest LLVM versions
   - Now downloaded via crates.io
-- [llvm-sys](https://crates.io/crates/llvm-sys): Rust bindings to LLVM's C API. This requires LLVM be installed on the system building the Rust code.
+- [llvm-sys](https://gitlab.com/taricorp/llvm-sys.rs): Rust bindings to LLVM's C API. This requires LLVM be installed on the system building the Rust code.
   - MIT License
   - 225k downloads, 30k downloads of latest version, actively developed
-- [pyo3](https://crates.io/crates/pyo3): Rust bindings for Python. This includes running and interacting with Python code from a Rust binary, as well as writing native Python modules.
+- [pyo3](https://github.com/pyo3/pyo3): Rust bindings for Python. This includes running and interacting with Python code from a Rust binary, as well as writing native Python modules.
   - Also leveraged by the experimental QIR Rust runtime.
   - 2MM+ downloads, 992k recent downloads
   - Apache License 2.0
