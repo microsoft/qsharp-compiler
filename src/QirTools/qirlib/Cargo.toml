@@ -6,7 +6,6 @@ edition = "2018"
 [dependencies]
 llvm-sys = "110"
 inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", default-features = false, features = ["llvm11-0", "target-x86"] }
-either = "1.6.1"
 
 [dev-dependencies]
 serial_test = "0.5.1"
