@@ -72,11 +72,11 @@ Get-ChildItem -Recurse *.v.template `
             | Set-Content $Target
     }
 
-If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }
-If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
-If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
-If ($Env:VSVSIX_VERSION -eq $null) { $Env:VSVSIX_VERSION ="$VsVsixVersion" }
-If ($Env:WHEEL_VERSION -eq $null) { $Env:WHEEL_VERSION ="$WheelVersion" }
+    If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }
+    If ($Env:NUGET_VERSION -eq $null) { $Env:NUGET_VERSION ="$NuGetVersion" }
+    If ($Env:SEMVER_VERSION -eq $null) { $Env:SEMVER_VERSION ="$SemverVersion" }
+    If ($Env:VSVSIX_VERSION -eq $null) { $Env:VSVSIX_VERSION ="$VsVsixVersion" }
+    If ($Env:WHEEL_VERSION -eq $null) { $Env:WHEEL_VERSION ="$WheelVersion" }
 Write-Host "##vso[task.setvariable variable=VsVsix.Version]$VsVsixVersion"
 
 Write-Host "##[info]Finding NuSpec references..."
@@ -106,23 +106,43 @@ function Test-BuildLlvmComponents {
     ((Test-Path env:\ENABLE_LLVM_BUILDS) -and ($env:ENABLE_LLVM_BUILDS -eq $true))
 }
 
-if (Test-BuildLlvmComponents) {
-    try {
-        Push-Location (Join-Path $PSScriptRoot "src" "QirTools" "pyqir")
-        . ./prerequisites.ps1
-
-        if (Test-CI) {
-            if (Test-Path Cargo.toml) {
-                Remove-Item Cargo.toml
+function Edit-TomlContent ($inputFile, $outputFile) {
+    $outFile = New-Item -ItemType File -Path $outputFile
+    $inPackageSection = $false
+    switch -regex -file $inputFile {
+        "^\[(.+)\]" {
+            # Section
+            $section = $matches[1]
+            $inPackageSection = $section -eq "package"
+            Add-Content -Path $outFile -Value $_
+        }
+        "(.+?)\s*=(.*)" {
+            # Key/Value
+            $key, $value = $matches[1..2]
+            if ($inPackageSection -and ($key -eq "version")) {
+                $value = "version = ""$($env:WHEEL_VERSION)"""
+                Add-Content -Path $outFile -Value $value
             }
-            cargo install toml-cli
-            toml set Cargo.toml.template package.version $env:WHEEL_VERSION > Cargo.toml
+            else {
+                Add-Content -Path $outFile -Value $_
+            }
         }
-        else {
-            Copy-Item Cargo.toml.template Cargo.toml
+        default {
+            Add-Content -Path $outFile -Value $_
         }
-    }
-    finally {
-        Pop-Location
     }
 }
+
+try {
+    Push-Location (Join-Path $PSScriptRoot "src" "QirTools" "pyqir")
+    if (Test-Path Cargo.toml) {
+        Remove-Item Cargo.toml
+    }
+    Edit-TomlContent Cargo.toml.template Cargo.toml
+
+    . ./prerequisites.ps1
+}
+finally {
+    Pop-Location
+}
+
