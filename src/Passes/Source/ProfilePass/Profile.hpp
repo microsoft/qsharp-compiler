@@ -20,7 +20,7 @@ namespace quantum
     /// on how to transform the IR.
     ///
     ///
-    /// The module execute following steps:
+    /// The module executes the following steps:
     ///
     ///
     ///
