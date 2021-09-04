@@ -12,16 +12,13 @@
     @EntryPoint()
     operation RunExample() : String {
 
-        let coefficients = [
-            ComplexPolar(-0.0003573, 3.14159265358979312),
-            ComplexPolar(-0.06346, 3.14159265358979312),
-            ComplexPolar(1.0, 0.0)];
+        let coefficients = [(1.0, 0.0), (1.0, 0.0)];
 
         mutable ret = coefficients;
-        for idxNegative in [0, 1] {
+        for idxNegative in 0 .. 1 {
 
-            let coefficient = coefficients[idxNegative];
-            set ret w/= idxNegative <- ComplexPolar(coefficient::Magnitude, 0.0);
+            let (mag, _) = coefficients[idxNegative];
+            set ret w/= idxNegative <- (mag, 0.0);
         }
 
         return "Executed successfully!";
