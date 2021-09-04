@@ -141,6 +141,10 @@ function Build-VS() {
 
 $all_ok = $True
 
+# Wrap each set of targets. We want to be able to conditionally
+# enable different targets for the builds for different
+# pipeline jobs
+
 if (Test-BuildCompiler) {
     Build-One '../QsCompiler.sln'
     Build-One '../examples/QIR/QIR.sln' -useVcVars
