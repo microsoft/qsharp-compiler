@@ -1,5 +1,5 @@
 {
-    "name": "Quantum Compiler",
+    "name": "qsharp-compiler",
 	"build": {
 		"dockerfile": "Dockerfile",
 	},
