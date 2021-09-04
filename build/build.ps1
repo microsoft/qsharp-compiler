@@ -28,7 +28,7 @@ function Build-One {
     $command = "dotnet build $projectFilePath -c $($Env:BUILD_CONFIGURATION) -v $($Env:BUILD_VERBOSITY) $($args) /property:Version=$($Env:ASSEMBLY_VERSION) /property:InformationalVersion=$($Env:SEMVER_VERSION) /property:TreatWarningsAsErrors=true /p:Platform='Any CPU'"
 
     if ($useVcVars -and $IsWindows) {
-        $command = ". $(Join-Path $PSScriptRoot vcvars.ps1);$command"
+        $command = ". $(Join-Path $PSScriptRoot vcvars.ps1);$command;exit `$LASTEXITCODE"
         Write-Host $command
         pwsh -Command $command
     } else {
