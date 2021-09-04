@@ -1,6 +1,5 @@
 ﻿namespace Microsoft.Quantum.Qir.Development {
 
-    open Microsoft.Quantum.Preparation;
     open Microsoft.Quantum.Characterization;
     open Microsoft.Quantum.Logical;
     open Microsoft.Quantum.Samples;
@@ -13,74 +12,75 @@
     open Microsoft.Quantum.Arithmetic;
     open Microsoft.Quantum.MachineLearning;
 
-    internal function StatePreparationSBMComputeCoefficients(coefficients : ComplexPolar[]) : (Double[], Double[], ComplexPolar[]) {
-        mutable disentanglingZ = new Double[Length(coefficients) / 2];
-        mutable disentanglingY = new Double[Length(coefficients) / 2];
-        mutable newCoefficients = new ComplexPolar[Length(coefficients) / 2];
-
-        for idxCoeff in 0 .. 2 .. Length(coefficients) - 1 {
-            let (rt, phi, theta) = BlochSphereCoordinates(coefficients[idxCoeff], coefficients[idxCoeff + 1]);
-            set disentanglingZ w/= idxCoeff / 2 <- 0.5 * phi;
-            set disentanglingY w/= idxCoeff / 2 <- 0.5 * theta;
-            set newCoefficients w/= idxCoeff / 2 <- rt;
-        }
-
-        return (disentanglingY, disentanglingZ, newCoefficients);
-    }
-
-    internal function ApproximatelyUnprepareArbitraryStatePlan(
-        tolerance : Double, coefficients : ComplexPolar[],
-        (rngControl : Range, idxTarget : Int)
-    )
-    : (Qubit[] => Unit is Adj + Ctl)[] {
-        mutable plan = new (Qubit[] => Unit is Adj + Ctl)[0];
-
-        let (disentanglingY, disentanglingZ, newCoefficients) = StatePreparationSBMComputeCoefficients(coefficients);
-        return plan;
-    }
-
-    internal operation ApplyToLittleEndian(bareOp : ((Qubit[]) => Unit is Adj + Ctl), register : LittleEndian)
-    : Unit is Adj + Ctl {
-        bareOp(register!);
-    }
-
-    function _CompileApproximateArbitraryStatePreparation(
-        tolerance : Double,
-        coefficients : ComplexPolar[],
-        nQubits : Int
-    )
-    : (LittleEndian => Unit is Adj + Ctl) {
-        let coefficientsPadded = Padded(-2 ^ nQubits, ComplexPolar(0.0, 0.0), coefficients);
-        let plan = ApproximatelyUnprepareArbitraryStatePlan(
-            tolerance, coefficientsPadded, (0..0, 0)
-        );
-        let unprepare = BoundCA(plan);
-        return ApplyToLittleEndian(Adjoint unprepare, _);
-    }
-
-    function ApproximateInputEncoder()
-    : StateGenerator {
-
-        let nrQs = 5; // fails if this is 0 ...
-        return StateGenerator(
-            nrQs,
-            _CompileApproximateArbitraryStatePreparation(0.1, [], nrQs)
-        );
-    }
-
-    internal function _EncodeSample(sample : LabeledSample)
-    : (LabeledSample, StateGenerator) {
-        return (
-            sample,
-            ApproximateInputEncoder()
-        );
-    }
-
     @EntryPoint()
     operation RunExample() : String {
 
-        let sample = LabeledSample([], 1);
-        let _ = _EncodeSample(sample);
+        let result = TrainingSample();
+        Message($"Result: {result}");
         return "Executed successfully!";
+    }
+
+    function WithProductKernel(scale : Double, sample : Double[]) : Double[] {
+        //return sample; // works
+        return sample + [scale]; // doesn't work...
+    }
+
+    function Preprocessed(samples : Double[][]) : Double[][] {
+        let scale = 1.0;
+
+        return Mapped(
+            WithProductKernel(scale, _),
+            samples
+        );
+    }
+
+    function ClassifierStructure() : ControlledRotation[] { // some lines could be commented out here, some couldn't
+        return [
+            ControlledRotation((0, new Int[0]), PauliX, 4),
+            ControlledRotation((0, new Int[0]), PauliZ, 5),
+            ControlledRotation((0, [1]), PauliX, 0)
+        ];
+    }
+
+    operation EstimateClassificationProbability(
+        tolerance : Double,
+        model : SequentialModel,
+        sample : Double[],
+        nMeasurements: Int
+    )
+    : Double {
+        Message($"starting EstimateClassificationProbability");
+        // COMMENTING THIS OUT MAKE IT WORK TOO
+        let encodedSample = ApproximateInputEncoder(tolerance / IntAsDouble(Length(model::Structure)), sample);
+        Message($"done with EstimateClassificationProbability");
+        return 1.;
+    }
+
+    operation TrainingSample() : (Double[], Double) {
+        let features = Features();
+        let labels = [1];
+        let starting_points = [[0.5]];
+
+        let samples = Mapped(
+            LabeledSample,
+            Zipped(Preprocessed(features), labels) // removing preprocessed here seems to avoid the issue
+        );
+
+        let model = SequentialModel(ClassifierStructure(), [0.1], 0.0);
+        let options = DefaultTrainingOptions();
+
+        let effectiveTolerance =
+            IsEmpty(model::Structure)
+            ? options::Tolerance
+            | options::Tolerance / IntAsDouble(Length(model::Structure));
+
+        let ret = ForEach(
+            EstimateClassificationProbability(
+                effectiveTolerance, model, _, options::NMeasurements
+            ),
+            Mapped(_Features, samples)
+        );
+
+        return (model::Parameters, model::Bias);
     }
 }
