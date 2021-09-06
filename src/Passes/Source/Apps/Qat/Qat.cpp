@@ -90,7 +90,7 @@ int main(int argc, char **argv)
                        {"verify-module", "false"}}};
 
     // Parsing commandline arguments
-    ParameterParser parser(settings);
+    ParameterParser parser;
     profile_configuration.setupArguments(parser);
 
     parser.addFlag("debug");
@@ -104,9 +104,13 @@ int main(int argc, char **argv)
     parser.addFlag("O3");
 
     parser.parseArgs(argc, argv);
+    profile_configuration.configure(parser);
 
     if (parser.arguments().empty())
     {
+      auto const &x = profile_configuration.get<FactoryConfiguration>();
+      std::cout << x.disable_reference_counting << std::endl;
+
       std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
       profile_configuration.printHelp();
       exit(-1);

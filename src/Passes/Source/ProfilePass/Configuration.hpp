@@ -17,6 +17,8 @@ struct ProfilePassConfiguration
     config.addParameter(delete_dead_code, "delete-dead-code", "Deleted dead code");
     config.addParameter(max_recursion, "max-recursion", "max-recursion");
     config.addParameter(reuse_qubits, "reuse-qubits", "reuse-qubits");
+
+    // Not implemented yet
     config.addParameter(group_measurements, "group-measurements",
                         "NOT IMPLEMENTED - group-measurements");
     config.addParameter(one_shot_measurement, "one-shot-measurement",
