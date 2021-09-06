@@ -3,8 +3,9 @@
 // Licensed under the MIT License.
 
 #include "AllocationManager/AllocationManager.hpp"
+#include "Commandline/ConfigurationManager.hpp"
 #include "Llvm/Llvm.hpp"
-#include "Profiles/ConfigurationManager.hpp"
+#include "Rules/FactoryConfig.hpp"
 #include "Rules/ReplacementRule.hpp"
 #include "Rules/RuleSet.hpp"
 
@@ -36,6 +37,11 @@ public:
   RuleFactory(RuleFactory const &) = delete;
   RuleFactory(RuleFactory &&)      = default;
   ~RuleFactory()                   = default;
+  /// @}
+
+  ///
+  /// @{
+  void usingConfiguration(FactoryConfiguration const &config);
   /// @}
 
   /// Generic rules

@@ -2,24 +2,27 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Commandline/ConfigurationManager.hpp"
 #include "Llvm/Llvm.hpp"
-#include "Profiles/ConfigurationManager.hpp"
+#include "ProfilePass/Configuration.hpp"
 #include "Profiles/IProfile.hpp"
+#include "Profiles/LlvmPassesConfig.hpp"
+#include "Rules/FactoryConfig.hpp"
 #include "Rules/RuleSet.hpp"
 
 namespace microsoft {
 namespace quantum {
 
-/// BaseProfile defines a profile that configures the ruleset used by the Profile
+/// ProfileGenerator defines a profile that configures the ruleset used by the Profile
 /// pass. This profile is useful for generating dynamic profiles and is well suited for testing
 /// purposes or YAML configured transformation of the IR.
-class BaseProfile : public IProfile
+class ProfileGenerator : public IProfile
 {
 public:
   /// @{
   /// The constructor takes a lambda function which configures the ruleset. This
   /// function is invoked during the creation of the generation module.
-  BaseProfile(ConfigurationManager const &configuration);
+  ProfileGenerator(ConfigurationManager const &configuration);
   /// @}
 
   /// Interface functions
@@ -41,6 +44,9 @@ public:
 
   /// @}
 private:
+  FactoryConfiguration     factory_config_{};
+  ProfilePassConfiguration profile_pass_config_{};
+  LlvmPassesConfiguration  llvm_config_{};
 };
 
 }  // namespace quantum

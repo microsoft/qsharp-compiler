@@ -17,6 +17,49 @@ RuleFactory::RuleFactory(RuleSet &rule_set)
   , result_alloc_manager_{AllocationManager::createNew()}
 {}
 
+void RuleFactory::usingConfiguration(FactoryConfiguration const &config)
+{
+  if (config.disable_reference_counting)
+  {
+    disableReferenceCounting();
+  }
+
+  if (config.disable_alias_counting)
+  {
+    disableAliasCounting();
+  }
+
+  if (config.disable_string_support)
+  {
+    disableStringSupport();
+  }
+
+  if (config.optimise_branch_quatum_one)
+  {
+    optimiseBranchQuatumOne();
+  }
+
+  if (config.optimise_branch_quatum_zero)
+  {
+    optimiseBranchQuatumZero();
+  }
+
+  if (config.use_static_qubit_array_allocation)
+  {
+    useStaticQubitArrayAllocation();
+  }
+
+  if (config.use_static_qubit_allocation)
+  {
+    useStaticQubitAllocation();
+  }
+
+  if (config.use_static_result_allocation)
+  {
+    useStaticResultAllocation();
+  }
+}
+
 void RuleFactory::removeFunctionCall(String const &name)
 {
   addRule({callByNameOnly(name), deleteInstruction()});
