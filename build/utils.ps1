@@ -12,12 +12,14 @@ if (!(Test-Path env:\TEMP)) {
 }
 
 function Test-BuildCompiler {
+    # By default we want to build the compiler
+    # If no env var is defined we default to true
     if (!(Test-Path env:\ENABLE_COMPILER)) {
         $true
     }
     else {
-        # Coerce falsy values
-        # negate to keep the defalt $true
+        # The env var exists, we use its value
+        # Coerce falsy values and negate to keep the defalt $true
         $env:ENABLE_COMPILER -ne $false
     }
 }
