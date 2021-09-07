@@ -31,7 +31,7 @@
 ///  Provide config │                      │                         │   Rules for
 ///                 ▼                                                ▼ transformation
 /// ┌───────────────────────────────┐─ ─ ─ ┘       ┌──────────────────────────────────┐
-/// │       ProfileGenerator        │─ ─ ─ ─ ─ ─ ─▶│           ProfilePass            │
+/// │       DefaultProfileGenerator        │─ ─ ─ ─ ─ ─ ─▶│           ProfilePass            │
 /// └───────────────────────────────┘              └──────────────────────────────────┘
 ///                                                                  │  LLVM module
 ///                                                                  ▼      pass
@@ -47,9 +47,8 @@
 #include "Commandline/ParameterParser.hpp"
 #include "Llvm/Llvm.hpp"
 #include "ProfilePass/Configuration.hpp"
-#include "Profiles/IProfile.hpp"
+#include "Profiles/DefaultProfileGenerator.hpp"
 #include "Profiles/LlvmPassesConfig.hpp"
-#include "Profiles/ProfileGenerator.hpp"
 #include "Rules/FactoryConfig.hpp"
 
 #include <iomanip>
@@ -116,8 +115,9 @@ int main(int argc, char **argv)
 
     // Extracting commandline parameters
 
-    auto                      optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
-    std::shared_ptr<IProfile> profile = std::make_shared<ProfileGenerator>(configuration_manager);
+    auto optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
+    std::shared_ptr<DefaultProfileGenerator> profile =
+        std::make_shared<DefaultProfileGenerator>(configuration_manager);
 
     // Setting the optimisation level
     if (config.opt1)

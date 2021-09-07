@@ -5,7 +5,7 @@
 #include "Commandline/ConfigurationManager.hpp"
 #include "Llvm/Llvm.hpp"
 #include "ProfilePass/Configuration.hpp"
-#include "Profiles/IProfile.hpp"
+#include "Profiles/IProfileGenerator.hpp"
 #include "Profiles/LlvmPassesConfig.hpp"
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/RuleSet.hpp"
@@ -13,10 +13,10 @@
 namespace microsoft {
 namespace quantum {
 
-/// ProfileGenerator defines a profile that configures the ruleset used by the Profile
+/// DefaultProfileGenerator defines a profile that configures the ruleset used by the Profile
 /// pass. This profile is useful for generating dynamic profiles and is well suited for testing
 /// purposes or YAML configured transformation of the IR.
-class ProfileGenerator : public IProfile
+class DefaultProfileGenerator : public IProfileGenerator
 {
 public:
   using ConfigureFunction = std::function<void(RuleSet &)>;
@@ -24,8 +24,8 @@ public:
   /// @{
   /// The constructor takes a lambda function which configures the ruleset. This
   /// function is invoked during the creation of the generation module.
-  explicit ProfileGenerator(ConfigurationManager const &configuration);
-  explicit ProfileGenerator(
+  explicit DefaultProfileGenerator(ConfigurationManager const &configuration);
+  explicit DefaultProfileGenerator(
       ConfigureFunction const &configure,
       ProfilePassConfiguration profile_pass_config = ProfilePassConfiguration::disable(),
       LlvmPassesConfiguration  llvm_config         = LlvmPassesConfiguration::disable());

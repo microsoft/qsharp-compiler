@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Profiles/ProfileGenerator.hpp"
+#include "Profiles/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
@@ -55,7 +55,7 @@ TEST(RuleSetTestSuite, DisablingArrayhReferenceCounting)
     factory.disableReferenceCounting();
   };
 
-  auto profile = std::make_shared<ProfileGenerator>(std::move(configure_profile));
+  auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
   // We expect that the calls are there initially
   EXPECT_TRUE(
@@ -101,7 +101,7 @@ TEST(RuleSetTestSuite, DisablingStringReferenceCounting)
     factory.disableReferenceCounting();
   };
 
-  auto profile = std::make_shared<ProfileGenerator>(std::move(configure_profile));
+  auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
   // We expect that the calls are there initially
   EXPECT_TRUE(
@@ -147,7 +147,7 @@ TEST(RuleSetTestSuite, DisablingResultReferenceCounting)
     factory.disableReferenceCounting();
   };
 
-  auto profile = std::make_shared<ProfileGenerator>(std::move(configure_profile));
+  auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
   // We expect that the calls are there initially
   EXPECT_TRUE(

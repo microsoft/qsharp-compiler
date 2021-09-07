@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Profiles/ProfileGenerator.hpp"
+#include "Profiles/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
@@ -50,7 +50,7 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
     factory.useStaticQubitAllocation();
   };
 
-  auto profile = std::make_shared<ProfileGenerator>(std::move(configure_profile));
+  auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
   ir_manip->applyProfile(profile);
 
@@ -70,7 +70,7 @@ TEST(RuleSetTestSuite, MultipleAllocationsNoRelease)
   %qubit5 = call %Qubit* @__quantum__rt__qubit_allocate()
   )script");
 
-  auto profile = std::make_shared<ProfileGenerator>([](RuleSet &rule_set) {
+  auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet &rule_set) {
     auto factory = RuleFactory(rule_set);
 
     factory.useStaticQubitAllocation();
@@ -121,7 +121,7 @@ TEST(RuleSetTestSuite, AllocateReleaseMultipleTimes)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit4)  
   )script");
 
-  auto profile = std::make_shared<ProfileGenerator>([](RuleSet &rule_set) {
+  auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet &rule_set) {
     auto factory = RuleFactory(rule_set);
 
     factory.useStaticQubitAllocation();
@@ -165,7 +165,7 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByName)
   call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)  
   )script");
 
-  auto profile = std::make_shared<ProfileGenerator>([](RuleSet &rule_set) {
+  auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet &rule_set) {
     auto factory = RuleFactory(rule_set);
 
     factory.useStaticQubitAllocation();
@@ -183,7 +183,7 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByNameWithNoName)
   call void @__quantum__rt__qubit_release(%Qubit* %0)  
   )script");
 
-  auto profile = std::make_shared<ProfileGenerator>([](RuleSet &rule_set) {
+  auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet &rule_set) {
     auto factory = RuleFactory(rule_set);
 
     factory.useStaticQubitAllocation();
@@ -202,7 +202,7 @@ TEST(RuleSetTestSuite, ErrorReleaseWithTypeErasedAllocation)
   call void @__quantum__rt__qubit_release(%Qubit* %1)  
   )script");
 
-  auto profile = std::make_shared<ProfileGenerator>([](RuleSet &rule_set) {
+  auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet &rule_set) {
     auto factory = RuleFactory(rule_set);
 
     factory.useStaticQubitAllocation();

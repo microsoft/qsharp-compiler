@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Profiles/ProfileGenerator.hpp"
+#include "Profiles/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/ReplacementRule.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
@@ -69,7 +69,7 @@ continue__1:
     factory.optimiseBranchQuatumOne();
   };
 
-  auto profile = std::make_shared<ProfileGenerator>(std::move(configure_profile));
+  auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
   ir_manip->applyProfile(profile);
 
   // This optimistation is specific to the the __quantum__qir__read_result which

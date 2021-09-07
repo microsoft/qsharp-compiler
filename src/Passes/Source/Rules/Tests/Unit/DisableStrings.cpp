@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Llvm/Llvm.hpp"
-#include "Profiles/ProfileGenerator.hpp"
+#include "Profiles/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
@@ -56,7 +56,7 @@ TEST(RuleSetTestSuite, DisablingStrings)
     factory.disableStringSupport();
   };
 
-  auto profile = std::make_shared<ProfileGenerator>(std::move(configure_profile));
+  auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
   ir_manip->applyProfile(profile);
 
