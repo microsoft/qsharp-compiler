@@ -369,3 +369,4 @@ src/QsCompiler/QirGeneration/QirGeneration.nuspec
 
 .venv/
 *.venv/
+target/
