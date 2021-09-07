@@ -250,8 +250,13 @@ function Test-InDevContainer {
     $IsLinux -and (Test-Path env:\IN_DEV_CONTAINER)
 }
 
+# Only run the nested ManyLinux container
+# build on Linux while not in a dev container
 function Test-RunInContainer {
     if($IsLinux) {
+        # If we are in a dev container, our workspace is already
+        # mounted into the container. If we try to mount our 'local' workspace
+        # into a nested container it will silently fail to mount.
         !(Test-InDevContainer)
     } else {
         $false
