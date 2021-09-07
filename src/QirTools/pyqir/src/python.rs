@@ -3,7 +3,6 @@
 
 use pyo3::prelude::*;
 
-use qirlib::emit::Emitter;
 use qirlib::interop::{ClassicalRegister, Controlled, Instruction, Measured, QuantumRegister, Rotated, SemanticModel, Single};
 
 #[pymodule]
@@ -175,7 +174,7 @@ impl PyQIR {
     }
 
     fn write(&self, file_name: &str) -> PyResult<()> {
-        let _ = Emitter::write(&self.model, file_name);
+        let _ = qirlib::emit::write(&self.model, file_name);
         Ok(())
     }
 }
