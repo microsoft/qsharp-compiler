@@ -6,7 +6,7 @@ from .pyqir import *
 
 class QirBuilder:
     """
-    The QirBuilder objct describes quantum circuits and emits QIR
+    The QirBuilder object describes quantum circuits and emits QIR
 
     :param module: name of the QIR module
     :type module: str
