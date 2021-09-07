@@ -9,6 +9,9 @@ use crate::{emit::Context, interop::Instruction};
 use inkwell::values::{BasicValueEnum, FunctionValue};
 use std::collections::HashMap;
 
+/// # Panics
+///
+/// Panics if the qubit name doesn't exist
 fn get_qubit<'ctx>(
     name: &String,
     qubits: &HashMap<String, BasicValueEnum<'ctx>>,
@@ -16,6 +19,9 @@ fn get_qubit<'ctx>(
     qubits.get(name).unwrap().to_owned()
 }
 
+/// # Panics
+///
+/// Panics if the register name doesn't exist
 fn get_register<'ctx>(
     name: &String,
     registers: &HashMap<String, (BasicValueEnum<'ctx>, Option<u64>)>,
