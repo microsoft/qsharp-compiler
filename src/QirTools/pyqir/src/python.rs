@@ -1,9 +1,9 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 use pyo3::prelude::*;
 
-use qirlib::emit::Emitter;
-use qirlib::interop::{
-    ClassicalRegister, Controlled, Instruction, QuantumRegister, Rotated, SemanticModel, Single,
-};
+use qirlib::interop::{ClassicalRegister, Controlled, Instruction, Measured, QuantumRegister, Rotated, SemanticModel, Single};
 
 #[pymodule]
 fn pyqir(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
@@ -57,7 +57,8 @@ impl PyQIR {
 
     fn m(&mut self, qubit: String, target: String) -> PyResult<()> {
         println!("m {}[{}]", qubit, target);
-        let inst = Instruction::M { qubit, target };
+        let inst = Measured::new(qubit, target);
+        let inst = Instruction::M(inst);
         self.model.add_inst(inst);
         Ok(())
     }
@@ -105,7 +106,7 @@ impl PyQIR {
     fn s_adj(&mut self, qubit: String) -> PyResult<()> {
         println!("s_adj => {}", qubit);
         let single = Single::new(qubit);
-        let inst = Instruction::Sdg(single);
+        let inst = Instruction::SAdj(single);
         self.model.add_inst(inst);
         Ok(())
     }
@@ -121,7 +122,7 @@ impl PyQIR {
     fn t_adj(&mut self, qubit: String) -> PyResult<()> {
         println!("t_adj => {}", qubit);
         let single = Single::new(qubit);
-        let inst = Instruction::Tdg(single);
+        let inst = Instruction::TAdj(single);
         self.model.add_inst(inst);
         Ok(())
     }
@@ -173,7 +174,7 @@ impl PyQIR {
     }
 
     fn write(&self, file_name: &str) -> PyResult<()> {
-        Emitter::write(&self.model, file_name);
+        let _ = qirlib::emit::write(&self.model, file_name);
         Ok(())
     }
 }

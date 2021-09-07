@@ -1,0 +1,2 @@
+[workspace]
+members = ["src/QirTools/pyqir", "src/QirTools/qirlib"]

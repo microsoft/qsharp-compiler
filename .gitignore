@@ -366,3 +366,7 @@ src/ProjectTemplates/Quantum.Test1/.template.config/template.json
 src/QsCompiler/QirGeneration/QirGeneration.nuspec
 /examples/QIR/Development/qir/*
 /examples/QIR/Development/build
+
+.venv/
+*.venv/
+target/

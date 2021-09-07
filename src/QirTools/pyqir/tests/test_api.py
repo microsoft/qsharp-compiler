@@ -18,6 +18,40 @@ def test_bell_no_measure():
     builder.cx("qr0", "qr1")
     builder.build("bell_no_measure.ll")
 
+def test_bernstein_vazirani():
+    builder = QirBuilder("Bernstein-Vazirani")
+    builder.add_quantum_register("input", 5)
+    builder.add_quantum_register("target", 1)
+    builder.add_classical_register("output", 5)
+
+    builder.x("target0")
+
+    builder.h("input0")
+    builder.h("input1")
+    builder.h("input2")
+    builder.h("input3")
+    builder.h("input4")
+
+    builder.h("target0")
+
+    builder.cx("input1", "target0")
+    builder.cx("input3", "target0")
+    builder.cx("input4", "target0")
+
+    builder.h("input0")
+    builder.h("input1")
+    builder.h("input2")
+    builder.h("input3")
+    builder.h("input4")
+
+    builder.m("input0", "output0")
+    builder.m("input1", "output1")
+    builder.m("input2", "output2")
+    builder.m("input3", "output3")
+    builder.m("input4", "output4")
+
+    builder.build("bernstein_vazirani.ll")
+
 def test_all_gates():
     builder = QirBuilder("sample")
     builder.add_quantum_register("q", 4)

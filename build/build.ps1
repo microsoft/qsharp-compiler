@@ -4,23 +4,18 @@
 $ErrorActionPreference = 'Stop'
 
 & "$PSScriptRoot/set-env.ps1"
+. (Join-Path $PSScriptRoot "utils.ps1")
+
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
-
-choco install llvm --version=11.1.0
-if (!(Get-Command clang -ErrorAction SilentlyContinue) -and (choco find --idonly -l llvm) -contains "llvm") {
-    # For some reason, adding to the path does not work on our build servers, even after calling refreshenv.
-    # LLVM was installed by Chocolatey, so add the install location to the path.
-    $env:PATH += ";$($env:SystemDrive)\Program Files\LLVM\bin"
-}
 
 ##
 # Q# compiler and Sdk tools
 ##
-
 function Build-One {
     param(
-        [string]$project
+        [string]$project,
+        [switch]$useVcVars
     );
 
     Write-Host "##[info]Building $project ..."
@@ -29,13 +24,16 @@ function Build-One {
     }  else {
         $args = @();
     }
-    dotnet build (Join-Path $PSScriptRoot $project) `
-        -c $Env:BUILD_CONFIGURATION `
-        -v $Env:BUILD_VERBOSITY `
-        @args `
-        /property:Version=$Env:ASSEMBLY_VERSION `
-        /property:InformationalVersion=$Env:SEMVER_VERSION `
-        /property:TreatWarningsAsErrors=true
+    $projectFilePath = $(Join-Path $PSScriptRoot $project)
+    $command = "dotnet build $projectFilePath -c $($Env:BUILD_CONFIGURATION) -v $($Env:BUILD_VERBOSITY) $($args) /property:Version=$($Env:ASSEMBLY_VERSION) /property:InformationalVersion=$($Env:SEMVER_VERSION) /property:TreatWarningsAsErrors=true /p:Platform='Any CPU'"
+
+    if ($useVcVars -and $IsWindows) {
+        $command = ". $(Join-Path $PSScriptRoot vcvars.ps1);$command;exit `$LASTEXITCODE"
+        Write-Host $command
+        pwsh -Command $command
+    } else {
+        Invoke-Expression $command
+    }
 
     if ($LastExitCode -ne 0) {
         Write-Host "##vso[task.logissue type=error;]Failed to build $project."
@@ -134,21 +132,44 @@ function Build-VS() {
     Pop-Location
 }
 
+##
+# PyQIR
+##
+
 ################################
 # Start main execution:
 
 $all_ok = $True
 
-Build-One '../QsCompiler.sln'
-Build-One '../examples/QIR/QIR.sln'
-Build-One '../src/QuantumSdk/Tools/Tools.sln'
-Build-One '../QsFmt.sln'
+# Wrap each set of targets. We want to be able to conditionally
+# enable different targets for the builds for different
+# pipeline jobs
 
-if ($Env:ENABLE_VSIX -ne "false") {
+if (Test-BuildCompiler) {
+    Build-One '../QsCompiler.sln'
+    Build-One '../examples/QIR/QIR.sln' -useVcVars
+    Build-One '../src/QuantumSdk/Tools/Tools.sln'
+    Build-One '../QsFmt.sln'
+}
+
+if (Test-BuildVsix) {
     Build-VSCode
     Build-VS
 } else {
     Write-Host "##vso[task.logissue type=warning;]VSIX building skipped due to ENABLE_VSIX variable."
+}
+
+if (Test-BuildLlvmComponents) {
+    try {
+        exec -wd (Join-Path $PSScriptRoot '..' "src" "QirTools" ) {
+            . (Join-Path pyqir build.ps1)
+        }
+    }
+    Catch {
+        Write-Error $_
+        Write-Host "##vso[task.logissue type=error;]Failed to build PyQIR."
+        $script:all_ok = $False
+    }
 }
 
 # NB: In other repos, we check the manifest here. That can cause problems

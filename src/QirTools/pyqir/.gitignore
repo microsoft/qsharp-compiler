@@ -153,3 +153,6 @@ Cargo.lock
 
 # MSVC Windows builds of rustc generate these, which store debugging information
 *.pdb
+
+# We inject version numbers into Cargo.toml, so don't want them stored in repo.
+Cargo.toml

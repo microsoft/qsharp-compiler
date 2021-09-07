@@ -1,0 +1,39 @@
+[package]
+authors = ["Microsoft"]
+name = "pyqir"
+version = "0.1.0"
+edition = "2018"
+license = "MIT"
+description = "Python based Base Profile QIR generation library for use with the Quantum Development Kit."
+homepage = "https://github.com/microsoft/qsharp-compiler"
+repository = "https://github.com/microsoft/qsharp-compiler"
+readme = "README.md"
+
+[package.metadata.maturin]
+classifier=[
+    "License :: OSI Approved :: MIT License",
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Developers",
+    "Programming Language :: Python :: 3.6",
+    "Programming Language :: Python :: 3.7",
+    "Programming Language :: Python :: 3.8",
+    "Programming Language :: Python",
+    "Programming Language :: Rust",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+]
+
+[dependencies]
+qirlib = {path = "../qirlib"}
+
+[dependencies.pyo3]
+version = "0.14.2"
+
+[features]
+extension-module = ["pyo3/abi3-py36", "pyo3/extension-module"]
+default = ["extension-module"]
+
+[lib]
+name = "pyqir"
+crate-type = ["cdylib"]

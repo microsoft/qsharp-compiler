@@ -1,4 +1,2 @@
-setuptools-rust
-setuptools
-wheel
-pytest
+pytest>=3.5.0
+maturin>=0.11.0
