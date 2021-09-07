@@ -4,88 +4,91 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "Commandline/ConfigurationManager.hpp"
-#include "Llvm/Llvm.hpp"
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/ReplacementRule.hpp"
 #include "Rules/RuleSet.hpp"
 
+#include "Llvm/Llvm.hpp"
+
 #include <memory>
 
-namespace microsoft {
-namespace quantum {
-
-/// Rule factory provides a high-level methods to build a ruleset that
-/// enforces certain aspects of QIR transformation.
-class RuleFactory
+namespace microsoft
 {
-public:
-  using String               = std::string;
-  using ReplacementRulePtr   = std::shared_ptr<ReplacementRule>;
-  using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
-  using Replacements         = ReplacementRule::Replacements;
-  using Captures             = IOperandPrototype::Captures;
-  using Instruction          = llvm::Instruction;
-  using Value                = llvm::Value;
-  using Builder              = ReplacementRule::Builder;
+namespace quantum
+{
 
-  /// Constructor configuration. Explicit construction with
-  /// rule set to be configured, which can be moved using move
-  /// semantics. No copy allowed.
-  /// @{
-  explicit RuleFactory(RuleSet &rule_set);
-  RuleFactory()                    = delete;
-  RuleFactory(RuleFactory const &) = delete;
-  RuleFactory(RuleFactory &&)      = default;
-  ~RuleFactory()                   = default;
-  /// @}
+    /// Rule factory provides a high-level methods to build a ruleset that
+    /// enforces certain aspects of QIR transformation.
+    class RuleFactory
+    {
+      public:
+        using String               = std::string;
+        using ReplacementRulePtr   = std::shared_ptr<ReplacementRule>;
+        using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
+        using Replacements         = ReplacementRule::Replacements;
+        using Captures             = IOperandPrototype::Captures;
+        using Instruction          = llvm::Instruction;
+        using Value                = llvm::Value;
+        using Builder              = ReplacementRule::Builder;
 
-  ///
-  /// @{
-  void usingConfiguration(FactoryConfiguration const &config);
-  /// @}
+        /// Constructor configuration. Explicit construction with
+        /// rule set to be configured, which can be moved using move
+        /// semantics. No copy allowed.
+        /// @{
+        explicit RuleFactory(RuleSet& rule_set);
+        RuleFactory()                   = delete;
+        RuleFactory(RuleFactory const&) = delete;
+        RuleFactory(RuleFactory&&)      = default;
+        ~RuleFactory()                  = default;
+        /// @}
 
-  /// Generic rules
-  /// @{
-  /// Removes all calls to functions with a specified name.
-  /// This function matches on name alone and ignores function
-  /// arguments.
-  void removeFunctionCall(String const &name);
-  /// @}
+        ///
+        /// @{
+        void usingConfiguration(FactoryConfiguration const& config);
+        /// @}
 
-  /// Conventions
-  /// @{
-  void useStaticQubitArrayAllocation();
-  void useStaticQubitAllocation();
-  void useStaticResultAllocation();
-  /// @}
+        /// Generic rules
+        /// @{
+        /// Removes all calls to functions with a specified name.
+        /// This function matches on name alone and ignores function
+        /// arguments.
+        void removeFunctionCall(String const& name);
+        /// @}
 
-  /// Optimisations
-  /// @{
-  void optimiseBranchQuatumOne();
-  void optimiseBranchQuatumZero();
-  /// @}
+        /// Conventions
+        /// @{
+        void useStaticQubitArrayAllocation();
+        void useStaticQubitAllocation();
+        void useStaticResultAllocation();
+        /// @}
 
-  /// Disabling by feature
-  /// @{
-  void disableReferenceCounting();
-  void disableAliasCounting();
-  void disableStringSupport();
-  /// @}
+        /// Optimisations
+        /// @{
+        void optimiseBranchQuatumOne();
+        void optimiseBranchQuatumZero();
+        /// @}
 
-private:
-  ReplacementRulePtr addRule(ReplacementRule &&rule);
+        /// Disabling by feature
+        /// @{
+        void disableReferenceCounting();
+        void disableAliasCounting();
+        void disableStringSupport();
+        /// @}
 
-  /// Affected artefacts
-  /// @{
-  RuleSet &rule_set_;  ///< The ruleset we are building
-  /// @}
+      private:
+        ReplacementRulePtr addRule(ReplacementRule&& rule);
 
-  /// Allocation managers. Allocation managers for different types
-  /// @{
-  AllocationManagerPtr qubit_alloc_manager_{nullptr};
-  AllocationManagerPtr result_alloc_manager_{nullptr};
-  /// @}
-};
+        /// Affected artefacts
+        /// @{
+        RuleSet& rule_set_; ///< The ruleset we are building
+        /// @}
 
-}  // namespace quantum
-}  // namespace microsoft
+        /// Allocation managers. Allocation managers for different types
+        /// @{
+        AllocationManagerPtr qubit_alloc_manager_{nullptr};
+        AllocationManagerPtr result_alloc_manager_{nullptr};
+        /// @}
+    };
+
+} // namespace quantum
+} // namespace microsoft

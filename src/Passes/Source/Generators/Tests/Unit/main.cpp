@@ -8,5 +8,5 @@
 using namespace microsoft::quantum;
 TEST(ProfilesTestSuite, Teleportation)
 {
-  /// TODO(tfr):
+    /// TODO(tfr):
 }

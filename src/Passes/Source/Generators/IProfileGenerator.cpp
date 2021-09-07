@@ -3,10 +3,12 @@
 
 #include "Generators/IProfileGenerator.hpp"
 
-namespace microsoft {
-namespace quantum {
+namespace microsoft
+{
+namespace quantum
+{
 
-IProfileGenerator::~IProfileGenerator() = default;
+    IProfileGenerator::~IProfileGenerator() = default;
 
-}  // namespace quantum
-}  // namespace microsoft
+} // namespace quantum
+} // namespace microsoft

@@ -4,24 +4,30 @@
 
 #include "Llvm/Llvm.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-class IProfileGenerator
+namespace microsoft
 {
-public:
-  using PassBuilder             = llvm::PassBuilder;
-  using OptimizationLevel       = PassBuilder::OptimizationLevel;
-  using FunctionAnalysisManager = llvm::FunctionAnalysisManager;
+namespace quantum
+{
 
-  IProfileGenerator() = default;
-  virtual ~IProfileGenerator();
-  virtual llvm::ModulePassManager createGenerationModulePass(
-      PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool debug) = 0;
-  virtual llvm::ModulePassManager createValidationModulePass(
-      PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool debug) = 0;
-  virtual void addFunctionAnalyses(FunctionAnalysisManager &fam)                          = 0;
-};
+    class IProfileGenerator
+    {
+      public:
+        using PassBuilder             = llvm::PassBuilder;
+        using OptimizationLevel       = PassBuilder::OptimizationLevel;
+        using FunctionAnalysisManager = llvm::FunctionAnalysisManager;
 
-}  // namespace quantum
-}  // namespace microsoft
+        IProfileGenerator() = default;
+        virtual ~IProfileGenerator();
+        virtual llvm::ModulePassManager createGenerationModulePass(
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug) = 0;
+        virtual llvm::ModulePassManager createValidationModulePass(
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug)                                                = 0;
+        virtual void addFunctionAnalyses(FunctionAnalysisManager& fam) = 0;
+    };
+
+} // namespace quantum
+} // namespace microsoft

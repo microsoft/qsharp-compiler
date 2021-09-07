@@ -4,64 +4,64 @@
 
 #include "Commandline/ConfigurationManager.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-struct ProfilePassConfiguration
+namespace microsoft
 {
-  void setup(ConfigurationManager &config)
-  {
-    config.setSectionName("Pass configuration",
-                          "Configuration of the pass and its corresponding optimisations.");
-    config.addParameter(delete_dead_code, "delete-dead-code", "Deleted dead code.");
-    config.addParameter(clone_functions, "clone-functions",
-                        "Clone functions to ensure correct qubit allocation.");
+namespace quantum
+{
 
-    config.addParameter(max_recursion, "max-recursion", "max-recursion");
-    config.addParameter(reuse_qubits, "reuse-qubits", "reuse-qubits");
+    struct ProfilePassConfiguration
+    {
+        void setup(ConfigurationManager& config)
+        {
+            config.setSectionName(
+                "Pass configuration", "Configuration of the pass and its corresponding optimisations.");
+            config.addParameter(delete_dead_code, "delete-dead-code", "Deleted dead code.");
+            config.addParameter(
+                clone_functions, "clone-functions", "Clone functions to ensure correct qubit allocation.");
 
-    // Not implemented yet
-    config.addParameter(group_measurements, "group-measurements",
-                        "NOT IMPLEMENTED - group-measurements");
-    config.addParameter(one_shot_measurement, "one-shot-measurement",
-                        "NOT IMPLEMENTED - one-shot-measurement");
-  }
+            config.addParameter(max_recursion, "max-recursion", "max-recursion");
+            config.addParameter(reuse_qubits, "reuse-qubits", "reuse-qubits");
 
-  static ProfilePassConfiguration disable()
-  {
-    ProfilePassConfiguration ret;
-    ret.delete_dead_code     = false;
-    ret.clone_functions      = false;
-    ret.apply_rules_to_all   = true;
-    ret.max_recursion        = 512;
-    ret.reuse_qubits         = false;
-    ret.group_measurements   = false;
-    ret.one_shot_measurement = false;
-    return ret;
-  }
+            // Not implemented yet
+            config.addParameter(group_measurements, "group-measurements", "NOT IMPLEMENTED - group-measurements");
+            config.addParameter(one_shot_measurement, "one-shot-measurement", "NOT IMPLEMENTED - one-shot-measurement");
+        }
 
-  /// @{
-  bool delete_dead_code{true};
-  bool clone_functions{true};
-  bool apply_rules_to_all{false};  // TODO: Rename to "follow_execution_path"
-  /// @}
+        static ProfilePassConfiguration disable()
+        {
+            ProfilePassConfiguration ret;
+            ret.delete_dead_code     = false;
+            ret.clone_functions      = false;
+            ret.apply_rules_to_all   = true;
+            ret.max_recursion        = 512;
+            ret.reuse_qubits         = false;
+            ret.group_measurements   = false;
+            ret.one_shot_measurement = false;
+            return ret;
+        }
 
-  /// Const-expression
-  /// @{
-  uint64_t max_recursion{512};
-  /// @}
+        /// @{
+        bool delete_dead_code{true};
+        bool clone_functions{true};
+        bool apply_rules_to_all{false}; // TODO: Rename to "follow_execution_path"
+        /// @}
 
-  /// Allocation options
-  /// @{
-  bool reuse_qubits{true};  // NOT IMPLEMENTED
-  /// @}
+        /// Const-expression
+        /// @{
+        uint64_t max_recursion{512};
+        /// @}
 
-  /// Measurement
-  /// @{
-  bool group_measurements{false};   // NOT IMPLEMENTED
-  bool one_shot_measurement{true};  // NOT IMPLEMENTED
-  /// @}
-};
+        /// Allocation options
+        /// @{
+        bool reuse_qubits{true}; // NOT IMPLEMENTED
+        /// @}
 
-}  // namespace quantum
-}  // namespace microsoft
+        /// Measurement
+        /// @{
+        bool group_measurements{false};  // NOT IMPLEMENTED
+        bool one_shot_measurement{true}; // NOT IMPLEMENTED
+                                         /// @}
+    };
+
+} // namespace quantum
+} // namespace microsoft

@@ -4,26 +4,28 @@
 
 #include "Commandline/ConfigurationManager.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-struct LlvmPassesConfiguration
+namespace microsoft
 {
-  void setup(ConfigurationManager &config)
-  {
-    config.setSectionName("LLVM Passes", "Configuration of LLVM passes.");
-    config.addParameter(always_inline, "always-inline", "Aggresively inline function calls.");
-  }
+namespace quantum
+{
 
-  static LlvmPassesConfiguration disable()
-  {
-    LlvmPassesConfiguration ret;
-    ret.always_inline = false;
-    return ret;
-  }
+    struct LlvmPassesConfiguration
+    {
+        void setup(ConfigurationManager& config)
+        {
+            config.setSectionName("LLVM Passes", "Configuration of LLVM passes.");
+            config.addParameter(always_inline, "always-inline", "Aggresively inline function calls.");
+        }
 
-  bool always_inline{false};
-};
+        static LlvmPassesConfiguration disable()
+        {
+            LlvmPassesConfiguration ret;
+            ret.always_inline = false;
+            return ret;
+        }
 
-}  // namespace quantum
-}  // namespace microsoft
+        bool always_inline{false};
+    };
+
+} // namespace quantum
+} // namespace microsoft

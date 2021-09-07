@@ -5,57 +5,62 @@
 #include "Commandline/ConfigurationManager.hpp"
 #include "Generators/IProfileGenerator.hpp"
 #include "Generators/LlvmPassesConfig.hpp"
-#include "Llvm/Llvm.hpp"
 #include "ProfilePass/Configuration.hpp"
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/RuleSet.hpp"
 
-namespace microsoft {
-namespace quantum {
+#include "Llvm/Llvm.hpp"
 
-/// DefaultProfileGenerator defines a profile that configures the ruleset used by the Profile
-/// pass. This profile is useful for generating dynamic profiles and is well suited for testing
-/// purposes or YAML configured transformation of the IR.
-class DefaultProfileGenerator : public IProfileGenerator
+namespace microsoft
 {
-public:
-  using ConfigureFunction = std::function<void(RuleSet &)>;
+namespace quantum
+{
 
-  /// @{
-  /// The constructor takes a lambda function which configures the ruleset. This
-  /// function is invoked during the creation of the generation module.
-  explicit DefaultProfileGenerator(ConfigurationManager const &configuration);
-  explicit DefaultProfileGenerator(
-      ConfigureFunction const &configure,
-      ProfilePassConfiguration profile_pass_config = ProfilePassConfiguration::disable(),
-      LlvmPassesConfiguration  llvm_config         = LlvmPassesConfiguration::disable());
-  /// @}
+    /// DefaultProfileGenerator defines a profile that configures the ruleset used by the Profile
+    /// pass. This profile is useful for generating dynamic profiles and is well suited for testing
+    /// purposes or YAML configured transformation of the IR.
+    class DefaultProfileGenerator : public IProfileGenerator
+    {
+      public:
+        using ConfigureFunction = std::function<void(RuleSet&)>;
 
-  /// Interface functions
-  /// @{
+        /// @{
+        /// The constructor takes a lambda function which configures the ruleset. This
+        /// function is invoked during the creation of the generation module.
+        explicit DefaultProfileGenerator(ConfigurationManager const& configuration);
+        explicit DefaultProfileGenerator(
+            ConfigureFunction const& configure,
+            ProfilePassConfiguration profile_pass_config = ProfilePassConfiguration::disable(),
+            LlvmPassesConfiguration  llvm_config         = LlvmPassesConfiguration::disable());
+        /// @}
 
-  /// Creates a new module pass using the ConfigureFunction passed to the constructor of this
-  /// profile.
-  llvm::ModulePassManager createGenerationModulePass(PassBuilder &            pass_builder,
-                                                     OptimizationLevel const &optimisation_level,
-                                                     bool                     debug) override;
+        /// Interface functions
+        /// @{
 
-  /// Currently not supported. This function throws an exception.
-  llvm::ModulePassManager createValidationModulePass(PassBuilder &            pass_builder,
-                                                     OptimizationLevel const &optimisation_level,
-                                                     bool                     debug) override;
+        /// Creates a new module pass using the ConfigureFunction passed to the constructor of this
+        /// profile.
+        llvm::ModulePassManager createGenerationModulePass(
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug) override;
 
-  /// Currently not supported. This function throws an exception.
-  void addFunctionAnalyses(FunctionAnalysisManager &fam) override;
+        /// Currently not supported. This function throws an exception.
+        llvm::ModulePassManager createValidationModulePass(
+            PassBuilder&             pass_builder,
+            OptimizationLevel const& optimisation_level,
+            bool                     debug) override;
 
-  /// @}
-private:
-  FactoryConfiguration factory_config_{};
-  ConfigureFunction    configure_ruleset_{nullptr};
+        /// Currently not supported. This function throws an exception.
+        void addFunctionAnalyses(FunctionAnalysisManager& fam) override;
 
-  ProfilePassConfiguration profile_pass_config_{};
-  LlvmPassesConfiguration  llvm_config_{};
-};
+        /// @}
+      private:
+        FactoryConfiguration factory_config_{};
+        ConfigureFunction    configure_ruleset_{nullptr};
 
-}  // namespace quantum
-}  // namespace microsoft
+        ProfilePassConfiguration profile_pass_config_{};
+        LlvmPassesConfiguration  llvm_config_{};
+    };
+
+} // namespace quantum
+} // namespace microsoft
