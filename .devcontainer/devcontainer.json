@@ -1,8 +1,8 @@
 {
     "name": "qsharp-compiler",
-	"build": {
-		"dockerfile": "Dockerfile",
-	},
+    "build": {
+        "dockerfile": "Dockerfile",
+    },
     "settings": {
         "python.pythonPath": "/opt/python/latest/bin/python",
         "python.linting.enabled": true,
@@ -49,7 +49,9 @@
         "seccomp=unconfined",
         "--init"
     ],
-    "containerEnv": { "IN_DEV_CONTAINER": "true" },
+    "containerEnv": {
+        "IN_DEV_CONTAINER": "true"
+    },
     // Add the IDs of extensions you want installed when the container is created.
     "extensions": [
         "GitHub.vscode-pull-request-github",
@@ -60,7 +62,7 @@
         "Ionide.Ionide-fsharp",
         "ms-vscode.cpptools",
         "MS-vsliveshare.vsliveshare",
-		"VisualStudioExptTeam.vscodeintellicode"
+        "VisualStudioExptTeam.vscodeintellicode"
     ],
     // Use 'forwardPorts' to make a list of ports inside the container available locally.
     // "forwardPorts": [],
