@@ -22,7 +22,7 @@ namespace quantum
       public:
         using String = std::string;
 
-        IConfigBind(String const name, String const& description)
+        IConfigBind(String const& name, String const& description)
           : name_{name}
           , description_{description}
         {
@@ -84,7 +84,7 @@ namespace quantum
         template <typename A, typename B, typename R>
         using EnableIf = typename std::enable_if<std::is_same<A, B>::value, R>::type;
 
-        ConfigBind(Type& bind, T default_value, String const name, String const& description)
+        ConfigBind(Type& bind, T default_value, String const& name, String const& description)
           : IConfigBind(name, description)
           , bind_{bind}
           , default_value_{std::move(default_value)}
@@ -207,15 +207,12 @@ namespace quantum
         using VoidPtr        = std::shared_ptr<void>;
         struct Section
         {
-            Section(std::type_index t)
-              : type{t}
-            {
-            }
-            String          name;
-            String          description;
-            VoidPtr         configuration;
-            std::type_index type;
-            ConfigList      settings;
+            std::type_index type{std::type_index(typeid(nullptr_t))};
+            String          name{};
+            String          description{};
+            VoidPtr         configuration{};
+
+            ConfigList settings{};
         };
         using Sections = std::vector<Section>;
 

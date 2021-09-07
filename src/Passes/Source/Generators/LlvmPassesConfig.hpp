@@ -9,22 +9,29 @@ namespace microsoft
 namespace quantum
 {
 
-    struct LlvmPassesConfiguration
+    class LlvmPassesConfiguration
     {
+      public:
         void setup(ConfigurationManager& config)
         {
             config.setSectionName("LLVM Passes", "Configuration of LLVM passes.");
-            config.addParameter(always_inline, "always-inline", "Aggresively inline function calls.");
+            config.addParameter(always_inline_, "always-inline", "Aggresively inline function calls.");
         }
 
         static LlvmPassesConfiguration disable()
         {
             LlvmPassesConfiguration ret;
-            ret.always_inline = false;
+            ret.always_inline_ = false;
             return ret;
         }
 
-        bool always_inline{false};
+        bool alwaysInline() const
+        {
+            return always_inline_;
+        }
+
+      private:
+        bool always_inline_{false};
     };
 
 } // namespace quantum

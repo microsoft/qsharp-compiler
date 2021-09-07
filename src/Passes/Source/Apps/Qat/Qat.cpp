@@ -94,7 +94,7 @@ int main(int argc, char** argv)
 
         // In case we debug, we also print the settings to allow provide a full
         // picture of what is going.
-        if (config.dump_config)
+        if (config.dumpConfig())
         {
             configuration_manager.printConfiguration();
         }
@@ -125,39 +125,39 @@ int main(int argc, char** argv)
             std::make_shared<DefaultProfileGenerator>(configuration_manager);
 
         // Setting the optimisation level
-        if (config.opt1)
+        if (config.opt1())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
         }
 
-        if (config.opt2)
+        if (config.opt2())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O2;
         }
 
-        if (config.opt3)
+        if (config.opt3())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O3;
         }
 
         // Checking if we are asked to generate a new QIR. If so, we will use
         // the profile to setup passes to
-        if (config.generate)
+        if (config.generate())
         {
             // Creating pass builder
-            LlvmAnalyser analyser{config.debug};
+            LlvmAnalyser analyser{config.debug()};
 
             // Preparing pass for generation based on profile
             profile->addFunctionAnalyses(analyser.functionAnalysisManager());
             auto module_pass_manager =
-                profile->createGenerationModulePass(analyser.passBuilder(), optimisation_level, config.debug);
+                profile->createGenerationModulePass(analyser.passBuilder(), optimisation_level, config.debug());
 
             // Running the pass built by the profile
             module_pass_manager.run(*module, analyser.moduleAnalysisManager());
 
             // Priniting either human readible LL code or byte
             // code as a result, depending on the users preference.
-            if (config.emit_llvm)
+            if (config.emitLlvm())
             {
                 llvm::errs() << *module << "\n";
             }
@@ -168,7 +168,7 @@ int main(int argc, char** argv)
             }
 
             // Verifying the module.
-            if (config.verify_module)
+            if (config.verifyModule())
             {
                 llvm::VerifierAnalysis verifier;
                 auto                   result = verifier.run(*module, analyser.moduleAnalysisManager());
@@ -181,14 +181,14 @@ int main(int argc, char** argv)
             }
         }
 
-        if (config.validate)
+        if (config.validate())
         {
             // Creating pass builder
-            LlvmAnalyser analyser{config.debug};
+            LlvmAnalyser analyser{config.debug()};
 
             // Creating a validation pass manager
             auto module_pass_manager =
-                profile->createValidationModulePass(analyser.passBuilder(), optimisation_level, config.debug);
+                profile->createValidationModulePass(analyser.passBuilder(), optimisation_level, config.debug());
             module_pass_manager.run(*module, analyser.moduleAnalysisManager());
         }
     }

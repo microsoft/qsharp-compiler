@@ -28,7 +28,7 @@ namespace quantum
         ProfilePassConfiguration profile_pass_config,
         LlvmPassesConfiguration  llvm_config)
       : configure_ruleset_{configure}
-      , profile_pass_config_{profile_pass_config}
+      , profile_pass_config_{std::move(profile_pass_config)}
       , llvm_config_{llvm_config}
     {
     }
@@ -58,7 +58,7 @@ namespace quantum
         ret.addPass(ProfilePass(std::move(rule_set), profile_pass_config_));
 
         // Configuring LLVM passes
-        if (llvm_config_.always_inline)
+        if (llvm_config_.alwaysInline())
         {
             ret.addPass(llvm::AlwaysInlinerPass());
 
