@@ -21,7 +21,7 @@ function Get-TargetTriple {
     elseif ($IsLinux) {
         $triple = "x86_64-unknown-linux-gnu"
     }
-    else {
+    elseif($IsMacOS) {
         $triple = "x86_64-apple-darwin"
     }
     $triple
