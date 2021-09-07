@@ -20,6 +20,14 @@ ProfileGenerator::ProfileGenerator(ConfigurationManager const &configuration)
   , llvm_config_{configuration.get<LlvmPassesConfiguration>()}
 {}
 
+ProfileGenerator::ProfileGenerator(ConfigureFunction const &configure,
+                                   ProfilePassConfiguration profile_pass_config,
+                                   LlvmPassesConfiguration  llvm_config)
+  : configure_ruleset_{configure}
+  , profile_pass_config_{profile_pass_config}
+  , llvm_config_{llvm_config}
+{}
+
 llvm::ModulePassManager ProfileGenerator::createGenerationModulePass(
     PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool debug)
 {
@@ -29,8 +37,15 @@ llvm::ModulePassManager ProfileGenerator::createGenerationModulePass(
 
   // Defining the mapping
   RuleSet rule_set;
-  auto    factory = RuleFactory(rule_set);
-  factory.usingConfiguration(factory_config_);
+  if (configure_ruleset_)
+  {
+    configure_ruleset_(rule_set);
+  }
+  else
+  {
+    auto factory = RuleFactory(rule_set);
+    factory.usingConfiguration(factory_config_);
+  }
 
   // Creating profile pass
   ret.addPass(ProfilePass(std::move(rule_set), profile_pass_config_));

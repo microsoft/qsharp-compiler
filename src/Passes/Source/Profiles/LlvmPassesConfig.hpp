@@ -15,6 +15,13 @@ struct LlvmPassesConfiguration
     config.addParameter(always_inline, "always-inline", "Aggresively inline function calls.");
   }
 
+  static LlvmPassesConfiguration disable()
+  {
+    LlvmPassesConfiguration ret;
+    ret.always_inline = false;
+    return ret;
+  }
+
   bool always_inline{false};
 };
 

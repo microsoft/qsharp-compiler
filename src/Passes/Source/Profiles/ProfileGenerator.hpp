@@ -19,10 +19,16 @@ namespace quantum {
 class ProfileGenerator : public IProfile
 {
 public:
+  using ConfigureFunction = std::function<void(RuleSet &)>;
+
   /// @{
   /// The constructor takes a lambda function which configures the ruleset. This
   /// function is invoked during the creation of the generation module.
-  ProfileGenerator(ConfigurationManager const &configuration);
+  explicit ProfileGenerator(ConfigurationManager const &configuration);
+  explicit ProfileGenerator(
+      ConfigureFunction const &configure,
+      ProfilePassConfiguration profile_pass_config = ProfilePassConfiguration::disable(),
+      LlvmPassesConfiguration  llvm_config         = LlvmPassesConfiguration::disable());
   /// @}
 
   /// Interface functions
@@ -44,7 +50,9 @@ public:
 
   /// @}
 private:
-  FactoryConfiguration     factory_config_{};
+  FactoryConfiguration factory_config_{};
+  ConfigureFunction    configure_ruleset_{nullptr};
+
   ProfilePassConfiguration profile_pass_config_{};
   LlvmPassesConfiguration  llvm_config_{};
 };

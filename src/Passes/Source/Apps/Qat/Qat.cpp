@@ -50,7 +50,6 @@
 #include "Profiles/IProfile.hpp"
 #include "Profiles/LlvmPassesConfig.hpp"
 #include "Profiles/ProfileGenerator.hpp"
-#include "Profiles/RuleSetProfile.hpp"
 #include "Rules/FactoryConfig.hpp"
 
 #include <iomanip>
