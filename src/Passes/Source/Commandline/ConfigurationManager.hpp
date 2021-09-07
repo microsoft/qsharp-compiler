@@ -25,8 +25,9 @@ public:
   {}
   virtual ~IConfigBind();
 
-  virtual bool setupArguments(ParameterParser &parser)  = 0;
-  virtual bool configure(ParameterParser const &parser) = 0;
+  virtual bool   setupArguments(ParameterParser &parser)  = 0;
+  virtual bool   configure(ParameterParser const &parser) = 0;
+  virtual String value()                                  = 0;
 
   String name() const
   {
@@ -129,12 +130,39 @@ public:
 
   bool configure(ParameterParser const &parser) override
   {
-    getValue(parser, default_value_);
+    loadValue<Type>(parser, default_value_);
     return true;
   }
 
+  String value() override
+  {
+    return valueAsString<Type>(default_value_);
+  }
+
+  Type &bind()
+  {
+    return bind_;
+  }
+
+private:
+  template <typename A>
+  String valueAsString(A const &)
+  {
+    std::stringstream ss{""};
+    ss << bind_;
+    return ss.str();
+  }
+
+  template <typename A>
+  String valueAsString(EnableIf<A, bool, A> const &)
+  {
+    std::stringstream ss{""};
+    ss << (bind_ ? "true" : "false");
+    return ss.str();
+  }
+
   template <typename R>
-  void getValue(ParameterParser const &parser, R const &default_value)
+  void loadValue(ParameterParser const &parser, R const &default_value)
   {
     bind_ = default_value;
 
@@ -144,11 +172,11 @@ public:
       ss >> bind_;
     }
   }
+
   template <typename A>
-  void getValue(ParameterParser const &parser, EnableIf<A, bool, A> const &default_value)
+  void loadValue(ParameterParser const &parser, EnableIf<A, bool, A> const &default_value)
   {
     bind_ = default_value;
-
     if (parser.has(name()))
     {
       bind_ = true;
@@ -160,7 +188,7 @@ public:
   }
 
   template <typename A>
-  void getValue(ParameterParser const &parser, EnableIf<A, String, A> const &default_value)
+  void loadValue(ParameterParser const &parser, EnableIf<A, String, A> const &default_value)
   {
     bind_ = default_value;
 
@@ -170,12 +198,6 @@ public:
     }
   }
 
-  Type &bind()
-  {
-    return bind_;
-  }
-
-private:
   Type &bind_;
   Type  default_value_;
 };
@@ -230,6 +252,7 @@ public:
 
   void printHelp() const
   {
+    std::cout << std::setfill(' ');
     for (auto &section : config_sections_)
     {
       std::cout << std::endl;
@@ -258,6 +281,20 @@ public:
         }
         std::cout << "Default: " << c->defaultValue() << std::endl;
       }
+    }
+  }
+
+  void printConfiguration() const
+  {
+    std::cout << std::setfill('.');
+    for (auto &section : config_sections_)
+    {
+      std::cout << "; # " << section.name << "\n";
+      for (auto &c : section.settings)
+      {
+        std::cout << "; " << std::setw(50) << std::left << c->name() << ": " << c->value() << "\n";
+      }
+      std::cout << "; \n";
     }
   }
 

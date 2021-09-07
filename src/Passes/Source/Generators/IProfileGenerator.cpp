@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Profiles/IProfileGenerator.hpp"
+#include "Generators/IProfileGenerator.hpp"
 
 namespace microsoft {
 namespace quantum {

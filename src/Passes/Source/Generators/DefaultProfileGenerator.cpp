@@ -1,9 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Generators/DefaultProfileGenerator.hpp"
+
 #include "Llvm/Llvm.hpp"
 #include "ProfilePass/Profile.hpp"
-#include "Profiles/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/RuleSet.hpp"

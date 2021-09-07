@@ -2,8 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Generators/IProfileGenerator.hpp"
 #include "Llvm/Llvm.hpp"
-#include "Profiles/IProfileGenerator.hpp"
 
 #include <unordered_set>
 #include <vector>

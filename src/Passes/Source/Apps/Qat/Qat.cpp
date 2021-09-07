@@ -31,7 +31,7 @@
 ///  Provide config │                      │                         │   Rules for
 ///                 ▼                                                ▼ transformation
 /// ┌───────────────────────────────┐─ ─ ─ ┘       ┌──────────────────────────────────┐
-/// │       DefaultProfileGenerator        │─ ─ ─ ─ ─ ─ ─▶│           ProfilePass            │
+/// │    DefaultProfileGenerator    │─ ─ ─ ─ ─ ─ ─▶│           ProfilePass            │
 /// └───────────────────────────────┘              └──────────────────────────────────┘
 ///                                                                  │  LLVM module
 ///                                                                  ▼      pass
@@ -40,15 +40,16 @@
 /// └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─      stdout    └──────────────────────────────────┘
 ///
 ///
+///
 
 #include "Apps/Qat/Config.hpp"
 #include "Apps/Qat/LlvmAnalysis.hpp"
 #include "Commandline/ConfigurationManager.hpp"
 #include "Commandline/ParameterParser.hpp"
+#include "Generators/DefaultProfileGenerator.hpp"
+#include "Generators/LlvmPassesConfig.hpp"
 #include "Llvm/Llvm.hpp"
 #include "ProfilePass/Configuration.hpp"
-#include "Profiles/DefaultProfileGenerator.hpp"
-#include "Profiles/LlvmPassesConfig.hpp"
 #include "Rules/FactoryConfig.hpp"
 
 #include <iomanip>
@@ -90,15 +91,16 @@ int main(int argc, char **argv)
 
     // In case we debug, we also print the settings to allow provide a full
     // picture of what is going.
-    if (config.debug)
+    if (config.dump_config)
     {
-      // TODO: Dump config
+      configuration_manager.printConfiguration();
     }
 
     if (parser.arguments().empty())
     {
       std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
       configuration_manager.printHelp();
+      std::cerr << "\n";
       exit(-1);
     }
 

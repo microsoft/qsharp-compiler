@@ -3,10 +3,10 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
+#include "Generators/IProfileGenerator.hpp"
+#include "Generators/LlvmPassesConfig.hpp"
 #include "Llvm/Llvm.hpp"
 #include "ProfilePass/Configuration.hpp"
-#include "Profiles/IProfileGenerator.hpp"
-#include "Profiles/LlvmPassesConfig.hpp"
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/RuleSet.hpp"
 
