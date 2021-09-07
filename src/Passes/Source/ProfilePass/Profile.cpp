@@ -674,6 +674,11 @@ llvm::Function *ProfilePass::expandFunctionCall(llvm::Function &         callee,
   return function;
 }
 
+void ProfilePass::setLogger(ILoggerPtr logger)
+{
+  logger_ = logger;
+}
+
 bool ProfilePass::isRequired()
 {
   return true;
