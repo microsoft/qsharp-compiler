@@ -368,3 +368,4 @@ src/QsCompiler/QirGeneration/QirGeneration.nuspec
 /examples/QIR/Development/build
 
 .venv/
+*.venv/
