@@ -1,7 +1,7 @@
 # Copyright (c) Microsoft Corporation. All rights reserved.
 # Licensed under the MIT License.
 
-if(Test-Path function:\exec) {
+if (Test-Path function:\exec) {
     # already included
     return
 }
@@ -101,4 +101,31 @@ function Write-Vso {
 
 function Test-CommandExists($name) {
     $null -ne (Get-Command $name -ErrorAction SilentlyContinue)
-  }
+}
+
+function Restore-CargoTomlWithVersionInfo ($inputFile, $outputFile, $version) {
+    $outFile = New-Item -ItemType File -Path $outputFile
+    $inPackageSection = $false
+    switch -regex -file $inputFile {
+        "^\[(.+)\]" {
+            # Section
+            $section = $matches[1]
+            $inPackageSection = $section -eq "package"
+            Add-Content -Path $outFile -Value $_
+        }
+        "(.+?)\s*=(.*)" {
+            # Key/Value
+            $key, $value = $matches[1..2]
+            if ($inPackageSection -and ($key -eq "version")) {
+                $value = "version = ""$($version)"""
+                Add-Content -Path $outFile -Value $value
+            }
+            else {
+                Add-Content -Path $outFile -Value $_
+            }
+        }
+        default {
+            Add-Content -Path $outFile -Value $_
+        }
+    }
+}

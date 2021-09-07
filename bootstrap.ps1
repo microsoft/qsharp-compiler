@@ -90,55 +90,12 @@ Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/QirGeneration')
 .\FindNuspecReferences.ps1;
 Pop-Location
 
-function Test-CI {
-    if (Test-Path env:\TF_BUILD) {
-        $true
-    }
-    elseif ((Test-Path env:\CI)) {
-        $env:CI -eq $true
-    }
-    else {
-        $false
-    }
-}
-
-function Test-BuildLlvmComponents {
-    ((Test-Path env:\ENABLE_LLVM_BUILDS) -and ($env:ENABLE_LLVM_BUILDS -eq $true))
-}
-
-function Edit-TomlContent ($inputFile, $outputFile) {
-    $outFile = New-Item -ItemType File -Path $outputFile
-    $inPackageSection = $false
-    switch -regex -file $inputFile {
-        "^\[(.+)\]" {
-            # Section
-            $section = $matches[1]
-            $inPackageSection = $section -eq "package"
-            Add-Content -Path $outFile -Value $_
-        }
-        "(.+?)\s*=(.*)" {
-            # Key/Value
-            $key, $value = $matches[1..2]
-            if ($inPackageSection -and ($key -eq "version")) {
-                $value = "version = ""$($env:WHEEL_VERSION)"""
-                Add-Content -Path $outFile -Value $value
-            }
-            else {
-                Add-Content -Path $outFile -Value $_
-            }
-        }
-        default {
-            Add-Content -Path $outFile -Value $_
-        }
-    }
-}
-
 try {
     Push-Location (Join-Path $PSScriptRoot "src" "QirTools" "pyqir")
     if (Test-Path Cargo.toml) {
         Remove-Item Cargo.toml
     }
-    Edit-TomlContent Cargo.toml.template Cargo.toml
+    Restore-CargoTomlWithVersionInfo Cargo.toml.template Cargo.toml $env:WHEEL_VERSION
 
     . ./prerequisites.ps1
 }
