@@ -455,7 +455,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // omitted. We can omit that alias count manipulation for inner items, since besides the
                 // items that are updated, all counts will remain the same and while also doing the same for
                 // inner items could avoid copies in rare edge cases it is not worth the increased cost for
-                // the majority of cases. For the items that are updated, we need to make sure that the access
+                // the majority of cases. For the items that are updated, we need to make sure that the alias
                 // count of the old item is decreased and the one of the new item is increased. CopyAndUpdate
                 // takes care of that when updateItemAliasCount is set to true.
                 var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);

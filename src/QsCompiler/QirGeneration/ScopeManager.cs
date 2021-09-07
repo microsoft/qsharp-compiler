@@ -146,9 +146,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // If the variable can be rebound, however, then updating an item via a copy-and-reassign statement
                     // potentially leads to the updated item(s) being unreferenced in an inner scope, i.e. before the
                     // pending reference count increases of this scope are applied.
-                    // We hence need to make sure to increase the reference count immediately when binding to a mutable variable.
-                    this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    // If there is another way than the newly registered variable to access the value, we hence need to
+                    // make sure to increase the reference count immediately when binding to a mutable variable.
+                    // Note that it is sufficent to check whether the newly bound value is an identifier, rather than
+                    // also checking inner items, since the reference count of inner items is increased upon construction
+                    // of the value
+
+                    // FIXME: WE CAN'T OMIT THE REF COUNT INCREASE UNLESS WE INCREASE THE REF COUNT WHEN AN
+                    // IMMUTABLE HANDLE TO THE EXISTING VALUE IS CREATED LATER...
+                    if (!string.IsNullOrWhiteSpace(value.Value.Name) || !this.TryRemoveValue(value))
+                    {
+                        this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    }
                 }
+
+                // FIXME: INCREASE THE REF COUNT WHEN THE VALUE IS ACCESSED VIA A MUTABLE VARIABLE AND
+                // QUEUE THE DEREFERNCING OF THAT VALUE? IF THAT VALUE IS MUTABLE VARIABLE, THEN THERE ARE TWO ALIAS' ANYWAY.
+                // ALSO NEEDS TO BE DONE WHEN IT IS A MUTABLE TO MUTABLE ASSIGNMENT...
+                // CAN BE OMITTED (I THINK) FOR ASSIGNMENTS TO CALLABLE ARGS
+                // if (...) ... -> MAKE SURE STRAIGNT MUTABLE TO MUTABLE ASSIGNEMNT IS NOT DUPLY COUNTED...
             }
 
             public bool TryGetVariable(string varName, out IValue value) =>
