@@ -61,7 +61,12 @@ let format source =
 let update source =
     let updateDocument document =
 
-        let updatedDocument = document |> curry qubitBindingUpdate.Document () |> curry unitUpdate.Document () |> curry arraySyntaxUpdate.Document ()
+        let updatedDocument =
+            document
+            |> curry qubitBindingUpdate.Document ()
+            |> curry unitUpdate.Document ()
+            |> curry arraySyntaxUpdate.Document ()
+
         let warningList = updatedDocument |> updateChecker
         let printedDocument = updatedDocument |> printer.Document
 
