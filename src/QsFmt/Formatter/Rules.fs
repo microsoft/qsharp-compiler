@@ -264,7 +264,7 @@ let updateChecker document =
                 let lineBefore, charBefore = lineNumber, charNumber
                 let prefixLines, prefixChars = processPrefix newArray.New.Prefix
                 let subWarnings = base.Expression expression
-                let warning = sprintf "Warning: Unprocessed deprecated new array syntax from (%i, %i) to (%i, %i)!" (lineBefore + prefixLines) (charBefore + prefixChars) lineNumber charNumber
+                let warning = sprintf "Warning: Unable to updated deprecated new array syntax from line %i, character %i to line %i, character %i." (lineBefore + prefixLines) (charBefore + prefixChars) lineNumber charNumber
                 reducer.Combine(subWarnings, [warning])
             | _ -> base.Expression expression
 

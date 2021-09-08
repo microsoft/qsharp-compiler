@@ -328,3 +328,130 @@ let ``Array Syntax Expression Size`` =
         let t2 = [0.0, size = 2+1];
     }
 }"""
+
+[<Example(ExampleKind.Update)>]
+let ``Array Syntax Qubit Types`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = new Int[3];
+        let t2 = new Qubit[3];
+        let t3 = new Qubit[][3];
+        let t4 = new (Int, (Double, Qubit), (String), Unit)[3];
+        let t5 = new Double[3];
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = [0, size = 3];
+        let t2 = new Qubit[3];
+        let t3 = new Qubit[][3];
+        let t4 = new (Int, (Double, Qubit), (String), Unit)[3];
+        let t5 = [0.0, size = 3];
+    }
+}
+Warning: Unable to updated deprecated new array syntax from line 4, character 18 to line 4, character 30.
+Warning: Unable to updated deprecated new array syntax from line 5, character 18 to line 5, character 32.
+Warning: Unable to updated deprecated new array syntax from line 6, character 18 to line 6, character 63."""
+
+[<Example(ExampleKind.Update)>]
+let ``Array Syntax UDT Types`` =
+    """namespace Foo {
+    newtype MyType = (First: Int, Second: Double);
+    operation Bar() : Unit {
+        let t1 = new Int[3];
+        let t2 = new MyType[3];
+        let t3 = new MyType[][3];
+        let t4 = new (Int, (Double, MyType), (String), Unit)[3];
+        let t5 = new Double[3];
+    }
+}""",
+
+    """namespace Foo {
+    newtype MyType = (First: Int, Second: Double);
+    operation Bar() : Unit {
+        let t1 = [0, size = 3];
+        let t2 = new MyType[3];
+        let t3 = new MyType[][3];
+        let t4 = new (Int, (Double, MyType), (String), Unit)[3];
+        let t5 = [0.0, size = 3];
+    }
+}
+Warning: Unable to updated deprecated new array syntax from line 5, character 18 to line 5, character 31.
+Warning: Unable to updated deprecated new array syntax from line 6, character 18 to line 6, character 33.
+Warning: Unable to updated deprecated new array syntax from line 7, character 18 to line 7, character 64."""
+
+[<Example(ExampleKind.Update)>]
+let ``Array Syntax Type Parameter Types`` =
+    """namespace Foo {
+    operation Bar<'T>() : Unit {
+        let t1 = new Int[3];
+        let t2 = new 'T[3];
+        let t3 = new 'T[][3];
+        let t4 = new (Int, (Double, 'T), (String), Unit)[3];
+        let t5 = new Double[3];
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar<'T>() : Unit {
+        let t1 = [0, size = 3];
+        let t2 = new 'T[3];
+        let t3 = new 'T[][3];
+        let t4 = new (Int, (Double, 'T), (String), Unit)[3];
+        let t5 = [0.0, size = 3];
+    }
+}
+Warning: Unable to updated deprecated new array syntax from line 4, character 18 to line 4, character 27.
+Warning: Unable to updated deprecated new array syntax from line 5, character 18 to line 5, character 29.
+Warning: Unable to updated deprecated new array syntax from line 6, character 18 to line 6, character 60."""
+
+[<Example(ExampleKind.Update)>]
+let ``Array Syntax Function Types`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = new Int[3];
+        let t2 = new (Int -> Unit)[3];
+        let t3 = new (Int -> Unit)[][3];
+        let t4 = new (Int, (Double, (Int -> Unit)), (String), Unit)[3];
+        let t5 = new Double[3];
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = [0, size = 3];
+        let t2 = new (Int -> Unit)[3];
+        let t3 = new (Int -> Unit)[][3];
+        let t4 = new (Int, (Double, (Int -> Unit)), (String), Unit)[3];
+        let t5 = [0.0, size = 3];
+    }
+}
+Warning: Unable to updated deprecated new array syntax from line 4, character 18 to line 4, character 38.
+Warning: Unable to updated deprecated new array syntax from line 5, character 18 to line 5, character 40.
+Warning: Unable to updated deprecated new array syntax from line 6, character 18 to line 6, character 71."""
+
+[<Example(ExampleKind.Update)>]
+let ``Array Syntax Operation Types`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = new Int[3];
+        let t2 = new (Int => Unit)[3];
+        let t3 = new (Int => Unit)[][3];
+        let t4 = new (Int, (Double, (Int => Unit)), (String), Unit)[3];
+        let t5 = new Double[3];
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = [0, size = 3];
+        let t2 = new (Int => Unit)[3];
+        let t3 = new (Int => Unit)[][3];
+        let t4 = new (Int, (Double, (Int => Unit)), (String), Unit)[3];
+        let t5 = [0.0, size = 3];
+    }
+}
+Warning: Unable to updated deprecated new array syntax from line 4, character 18 to line 4, character 38.
+Warning: Unable to updated deprecated new array syntax from line 5, character 18 to line 5, character 40.
+Warning: Unable to updated deprecated new array syntax from line 6, character 18 to line 6, character 71."""
