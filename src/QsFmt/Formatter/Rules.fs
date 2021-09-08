@@ -134,6 +134,18 @@ let qubitBindingUpdate =
             }
     }
 
+let unitUpdate =
+    { new Rewriter<_>() with
+        override _.Type((), typ) =
+            let updated =
+                match typ with
+                | Type.Tuple tuple when Seq.isEmpty tuple.Items ->
+                    { Prefix = tuple.OpenParen.Prefix; Text = "Unit" } |> Type.BuiltIn
+                | _ -> typ
+
+            base.Type((), updated)
+    }
+
 let arraySyntaxUpdate =
 
     let getBuiltInDefault builtIn =

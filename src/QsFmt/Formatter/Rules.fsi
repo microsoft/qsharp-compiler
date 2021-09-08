@@ -22,6 +22,10 @@ val newLines: unit Rewriter
 /// Removes parentheses around qubit bindings.
 val qubitBindingUpdate: unit Rewriter
 
+/// Replaces `()` with `Unit` when referencing the Unit type.
+/// Will not replace `()` when referencing the Unit value literal.
+val unitUpdate : unit Rewriter
+
 /// Updates the `new <Type>[n]` array syntax to the new `[val, size = n]` array syntax.
 val arraySyntaxUpdate: unit Rewriter
 
