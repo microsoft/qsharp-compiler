@@ -192,8 +192,9 @@ namespace quantum
 
                     // Deleting instruction
                     schedule_instruction_deletion.push_back(&instr);
-                    // TODO(tfr): Delete instruction, instr.deleteInstru??;
 
+                    // Folding constants in the newfunction as we may have replaced some of
+                    // the arguments with constants
                     constantFoldFunction(*new_callee);
 
                     // Recursion: Returning the new call as the instruction to be analysed

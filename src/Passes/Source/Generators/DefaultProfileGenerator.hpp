@@ -54,6 +54,12 @@ namespace quantum
         void addFunctionAnalyses(FunctionAnalysisManager& fam) override;
 
         /// @}
+
+        /// @{
+        FactoryConfiguration const&     factoryConfig() const;
+        ProfilePassConfiguration const& profilePassConfig() const;
+        LlvmPassesConfiguration const&  llvmConfig() const;
+        /// @}
       private:
         FactoryConfiguration factory_config_{};
         ConfigureFunction    configure_ruleset_{nullptr};

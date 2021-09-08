@@ -80,5 +80,19 @@ namespace quantum
 
     void DefaultProfileGenerator::addFunctionAnalyses(FunctionAnalysisManager&) {}
 
+    FactoryConfiguration const& DefaultProfileGenerator::factoryConfig() const
+    {
+        return factory_config_;
+    }
+
+    ProfilePassConfiguration const& DefaultProfileGenerator::profilePassConfig() const
+    {
+        return profile_pass_config_;
+    }
+
+    LlvmPassesConfiguration const& DefaultProfileGenerator::llvmConfig() const
+    {
+        return llvm_config_;
+    }
 } // namespace quantum
 } // namespace microsoft

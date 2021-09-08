@@ -4,6 +4,7 @@ microsoft_add_library(TestTools)
 microsoft_add_library_tests(TestTools)
 
 microsoft_add_library(Commandline)
+microsoft_add_library_tests(Commandline)
 
 microsoft_add_library(AllocationManager)
 microsoft_add_library_tests(AllocationManager)

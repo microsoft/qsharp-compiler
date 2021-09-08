@@ -3,7 +3,6 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ParameterParser.hpp"
-
 #include "Llvm/Llvm.hpp"
 
 #include <iomanip>
@@ -12,339 +11,349 @@
 #include <type_traits>
 #include <typeindex>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+class IConfigBind
 {
-namespace quantum
+public:
+  using String = std::string;
+
+  IConfigBind(String const &name, String const &description)
+    : name_{name}
+    , description_{description}
+  {}
+  virtual ~IConfigBind();
+
+  virtual bool   setupArguments(ParameterParser &parser)  = 0;
+  virtual bool   configure(ParameterParser const &parser) = 0;
+  virtual String value()                                  = 0;
+
+  String name() const
+  {
+    return name_;
+  }
+
+  String description() const
+  {
+    return description_;
+  }
+
+  void setName(String const &name)
+  {
+    name_ = name;
+  }
+
+  bool isFlag() const
+  {
+    return is_flag_;
+  }
+
+  String defaultValue() const
+  {
+    return str_default_value_;
+  }
+
+protected:
+  void markAsFlag()
+  {
+    is_flag_ = true;
+  }
+
+  void setDefault(String const &v)
+  {
+    str_default_value_ = v;
+  }
+
+private:
+  String name_;
+  String description_;
+  bool   is_flag_{false};
+  String str_default_value_;
+};
+
+template <typename T>
+class ConfigBind : public IConfigBind
 {
+public:
+  using String = std::string;
+  using Type   = T;
+  template <typename A, typename B, typename R>
+  using EnableIf = typename std::enable_if<std::is_same<A, B>::value, R>::type;
 
-    class IConfigBind
+  ConfigBind(Type &bind, T default_value, String const &name, String const &description)
+    : IConfigBind(name, description)
+    , bind_{bind}
+    , default_value_{std::move(default_value)}
+  {
+    alterNameBasedOnType(default_value_);
+  }
+
+  template <typename R>
+  void alterNameBasedOnType(R const &default_value)
+  {
+    std::stringstream ss{""};
+    ss << default_value;
+    setDefault(ss.str());
+  }
+
+  void alterNameBasedOnType(bool const &default_value)
+  {
+    markAsFlag();
+
+    if (default_value)
     {
-      public:
-        using String = std::string;
-
-        IConfigBind(String const& name, String const& description)
-          : name_{name}
-          , description_{description}
-        {
-        }
-        virtual ~IConfigBind();
-
-        virtual bool   setupArguments(ParameterParser& parser)  = 0;
-        virtual bool   configure(ParameterParser const& parser) = 0;
-        virtual String value()                                  = 0;
-
-        String name() const
-        {
-            return name_;
-        }
-
-        String description() const
-        {
-            return description_;
-        }
-
-        void setName(String const& name)
-        {
-            name_ = name;
-        }
-
-        bool isFlag() const
-        {
-            return is_flag_;
-        }
-
-        String defaultValue() const
-        {
-            return str_default_value_;
-        }
-
-      protected:
-        void markAsFlag()
-        {
-            is_flag_ = true;
-        }
-
-        void setDefault(String const& v)
-        {
-            str_default_value_ = v;
-        }
-
-      private:
-        String name_;
-        String description_;
-        bool   is_flag_{false};
-        String str_default_value_;
-    };
-
-    template <typename T> class ConfigBind : public IConfigBind
+      setDefault("true");
+    }
+    else
     {
-      public:
-        using String = std::string;
-        using Type   = T;
-        template <typename A, typename B, typename R>
-        using EnableIf = typename std::enable_if<std::is_same<A, B>::value, R>::type;
+      setDefault("false");
+    }
+  }
 
-        ConfigBind(Type& bind, T default_value, String const& name, String const& description)
-          : IConfigBind(name, description)
-          , bind_{bind}
-          , default_value_{std::move(default_value)}
-        {
-            alterNameBasedOnType(default_value_);
-        }
+  bool setupArguments(ParameterParser &parser) override
+  {
+    return setupArguments(parser, default_value_);
+  }
 
-        template <typename R> void alterNameBasedOnType(R const& default_value)
-        {
-            std::stringstream ss{""};
-            ss << default_value;
-            setDefault(ss.str());
-        }
+  template <typename R>
+  bool setupArguments(ParameterParser &, R const &)
+  {
+    return true;
+  }
 
-        void alterNameBasedOnType(bool const& default_value)
-        {
-            markAsFlag();
+  bool setupArguments(ParameterParser &parser, bool const &)
+  {
+    parser.addFlag(name());
+    return true;
+  }
 
-            if (default_value)
-            {
-                setDefault("true");
-            }
-            else
-            {
-                setDefault("false");
-            }
-        }
+  bool configure(ParameterParser const &parser) override
+  {
+    loadValue<Type>(parser, default_value_);
+    return true;
+  }
 
-        bool setupArguments(ParameterParser& parser) override
-        {
-            return setupArguments(parser, default_value_);
-        }
+  String value() override
+  {
+    return valueAsString<Type>(default_value_);
+  }
 
-        template <typename R> bool setupArguments(ParameterParser&, R const&)
-        {
-            return true;
-        }
+  Type &bind()
+  {
+    return bind_;
+  }
 
-        bool setupArguments(ParameterParser& parser, bool const&)
-        {
-            parser.addFlag(name());
-            return true;
-        }
+private:
+  template <typename A>
+  String valueAsString(A const &)
+  {
+    std::stringstream ss{""};
+    ss << bind_;
+    return ss.str();
+  }
 
-        bool configure(ParameterParser const& parser) override
-        {
-            loadValue<Type>(parser, default_value_);
-            return true;
-        }
+  template <typename A>
+  String valueAsString(EnableIf<A, bool, A> const &)
+  {
+    std::stringstream ss{""};
+    ss << (bind_ ? "true" : "false");
+    return ss.str();
+  }
 
-        String value() override
-        {
-            return valueAsString<Type>(default_value_);
-        }
+  template <typename R>
+  void loadValue(ParameterParser const &parser, R const &default_value)
+  {
+    bind_ = default_value;
 
-        Type& bind()
-        {
-            return bind_;
-        }
-
-      private:
-        template <typename A> String valueAsString(A const&)
-        {
-            std::stringstream ss{""};
-            ss << bind_;
-            return ss.str();
-        }
-
-        template <typename A> String valueAsString(EnableIf<A, bool, A> const&)
-        {
-            std::stringstream ss{""};
-            ss << (bind_ ? "true" : "false");
-            return ss.str();
-        }
-
-        template <typename R> void loadValue(ParameterParser const& parser, R const& default_value)
-        {
-            bind_ = default_value;
-
-            if (parser.has(name()))
-            {
-                std::stringstream ss{parser.get(name())};
-                ss >> bind_;
-            }
-        }
-
-        template <typename A> void loadValue(ParameterParser const& parser, EnableIf<A, bool, A> const& default_value)
-        {
-            bind_ = default_value;
-            if (parser.has(name()))
-            {
-                bind_ = true;
-            }
-            else if (parser.has("no-" + name()))
-            {
-                bind_ = false;
-            }
-        }
-
-        template <typename A> void loadValue(ParameterParser const& parser, EnableIf<A, String, A> const& default_value)
-        {
-            bind_ = default_value;
-
-            if (parser.has(name()))
-            {
-                bind_ = parser.get(name());
-            }
-        }
-
-        Type& bind_;
-        Type  default_value_;
-    };
-
-    struct ConfigurationManager
+    if (parser.has(name()))
     {
-      public:
-        using String         = std::string;
-        using IConfigBindPtr = std::shared_ptr<IConfigBind>;
-        using ConfigList     = std::vector<IConfigBindPtr>;
-        using VoidPtr        = std::shared_ptr<void>;
-        struct Section
+      std::stringstream ss{parser.get(name())};
+      ss >> bind_;
+    }
+  }
+
+  template <typename A>
+  void loadValue(ParameterParser const &parser, EnableIf<A, bool, A> const &default_value)
+  {
+    bind_ = default_value;
+    if (parser.has(name()))
+    {
+      bind_ = true;
+    }
+    else if (parser.has("no-" + name()))
+    {
+      bind_ = false;
+    }
+  }
+
+  template <typename A>
+  void loadValue(ParameterParser const &parser, EnableIf<A, String, A> const &default_value)
+  {
+    bind_ = default_value;
+
+    if (parser.has(name()))
+    {
+      bind_ = parser.get(name());
+    }
+  }
+
+  Type &bind_;
+  Type  default_value_;
+};
+
+struct ConfigurationManager
+{
+public:
+  using String         = std::string;
+  using IConfigBindPtr = std::shared_ptr<IConfigBind>;
+  using ConfigList     = std::vector<IConfigBindPtr>;
+  using VoidPtr        = std::shared_ptr<void>;
+  struct Section
+  {
+    std::type_index type{std::type_index(typeid(nullptr_t))};
+    String          name{};
+    String          description{};
+    VoidPtr         configuration{};
+
+    ConfigList settings{};
+  };
+  using Sections = std::vector<Section>;
+
+  ConfigurationManager()                             = default;
+  ConfigurationManager(ConfigurationManager const &) = delete;
+  ConfigurationManager(ConfigurationManager &&)      = delete;
+  ConfigurationManager &operator=(ConfigurationManager const &) = delete;
+  ConfigurationManager &operator=(ConfigurationManager &&) = delete;
+
+  void setupArguments(ParameterParser &parser)
+  {
+    for (auto &section : config_sections_)
+    {
+      for (auto &c : section.settings)
+      {
+        c->setupArguments(parser);
+      }
+    }
+  }
+
+  void configure(ParameterParser const &parser)
+  {
+    for (auto &section : config_sections_)
+    {
+      for (auto &c : section.settings)
+      {
+        c->configure(parser);
+      }
+    }
+  }
+
+  void printHelp() const
+  {
+    std::cout << std::setfill(' ');
+    for (auto &section : config_sections_)
+    {
+      std::cout << std::endl;
+      std::cout << section.name << " - ";
+      std::cout << section.description << std::endl;
+      std::cout << std::endl;
+
+      for (auto &c : section.settings)
+      {
+        if (c->isFlag())
         {
-            std::type_index type{std::type_index(typeid(nullptr_t))};
-            String          name{};
-            String          description{};
-            VoidPtr         configuration{};
-
-            ConfigList settings{};
-        };
-        using Sections = std::vector<Section>;
-
-        ConfigurationManager()                            = default;
-        ConfigurationManager(ConfigurationManager const&) = delete;
-        ConfigurationManager(ConfigurationManager&&)      = delete;
-        ConfigurationManager& operator=(ConfigurationManager const&) = delete;
-        ConfigurationManager& operator=(ConfigurationManager&&) = delete;
-
-        void setupArguments(ParameterParser& parser)
-        {
-            for (auto& section : config_sections_)
-            {
-                for (auto& c : section.settings)
-                {
-                    c->setupArguments(parser);
-                }
-            }
+          if (c->defaultValue() == "false")
+          {
+            std::cout << std::setw(50) << std::left << ("--" + c->name()) << c->description()
+                      << " ";
+          }
+          else
+          {
+            std::cout << std::setw(50) << std::left << ("--[no-]" + c->name()) << c->description()
+                      << " ";
+          }
         }
-
-        void configure(ParameterParser const& parser)
+        else
         {
-            for (auto& section : config_sections_)
-            {
-                for (auto& c : section.settings)
-                {
-                    c->configure(parser);
-                }
-            }
+          std::cout << std::setw(50) << std::left << ("--" + c->name()) << c->description() << " ";
         }
+        std::cout << "Default: " << c->defaultValue() << std::endl;
+      }
+    }
+  }
 
-        void printHelp() const
-        {
-            std::cout << std::setfill(' ');
-            for (auto& section : config_sections_)
-            {
-                std::cout << std::endl;
-                std::cout << section.name << " - ";
-                std::cout << section.description << std::endl;
-                std::cout << std::endl;
+  void printConfiguration() const
+  {
+    std::cout << std::setfill('.');
+    for (auto &section : config_sections_)
+    {
+      std::cout << "; # " << section.name << "\n";
+      for (auto &c : section.settings)
+      {
+        std::cout << "; " << std::setw(50) << std::left << c->name() << ": " << c->value() << "\n";
+      }
+      std::cout << "; \n";
+    }
+  }
 
-                for (auto& c : section.settings)
-                {
-                    if (c->isFlag())
-                    {
-                        if (c->defaultValue() == "false")
-                        {
-                            std::cout << std::setw(50) << std::left << ("--" + c->name()) << c->description() << " ";
-                        }
-                        else
-                        {
-                            std::cout << std::setw(50) << std::left << ("--[no-]" + c->name()) << c->description()
-                                      << " ";
-                        }
-                    }
-                    else
-                    {
-                        std::cout << std::setw(50) << std::left << ("--" + c->name()) << c->description() << " ";
-                    }
-                    std::cout << "Default: " << c->defaultValue() << std::endl;
-                }
-            }
-        }
+  template <typename T>
+  void addConfig()
+  {
+    Section new_section{std::type_index(typeid(T))};
 
-        void printConfiguration() const
-        {
-            std::cout << std::setfill('.');
-            for (auto& section : config_sections_)
-            {
-                std::cout << "; # " << section.name << "\n";
-                for (auto& c : section.settings)
-                {
-                    std::cout << "; " << std::setw(50) << std::left << c->name() << ": " << c->value() << "\n";
-                }
-                std::cout << "; \n";
-            }
-        }
+    auto ptr                  = std::make_shared<T>();
+    new_section.configuration = ptr;
 
-        template <typename T> void addConfig()
-        {
-            Section new_section{std::type_index(typeid(T))};
+    config_sections_.emplace_back(std::move(new_section));
+    ptr->setup(*this);
+  }
 
-            auto ptr                  = std::make_shared<T>();
-            new_section.configuration = ptr;
+  template <typename T>
+  T const &get() const
+  {
+    VoidPtr ptr{nullptr};
+    auto    type = std::type_index(typeid(T));
 
-            config_sections_.emplace_back(std::move(new_section));
-            ptr->setup(*this);
-        }
+    for (auto &section : config_sections_)
+    {
+      if (section.type == type)
+      {
+        ptr = section.configuration;
+        break;
+      }
+    }
 
-        template <typename T> T const& get() const
-        {
-            VoidPtr ptr{nullptr};
-            auto    type = std::type_index(typeid(T));
+    if (ptr == nullptr)
+    {
+      throw std::runtime_error("Could not find configuration class.");
+    }
 
-            for (auto& section : config_sections_)
-            {
-                if (section.type == type)
-                {
-                    ptr = section.configuration;
-                    break;
-                }
-            }
+    return *static_cast<T *>(ptr.get());
+  }
 
-            if (ptr == nullptr)
-            {
-                throw std::runtime_error("Could not find configuration class.");
-            }
+  void setSectionName(String const &name, String const &description)
+  {
+    config_sections_.back().name        = name;
+    config_sections_.back().description = description;
+  }
 
-            return *static_cast<T*>(ptr.get());
-        }
+  template <typename T>
+  void addParameter(T &bind, T default_value, String const &name, String const &description)
+  {
+    auto ptr = std::make_shared<ConfigBind<T>>(bind, default_value, name, description);
+    config_sections_.back().settings.push_back(ptr);
+  }
 
-        void setSectionName(String const& name, String const& description)
-        {
-            config_sections_.back().name        = name;
-            config_sections_.back().description = description;
-        }
+  template <typename T>
+  void addParameter(T &bind, String const &name, String const &description)
+  {
+    auto ptr = std::make_shared<ConfigBind<T>>(bind, T(bind), name, description);
+    config_sections_.back().settings.push_back(ptr);
+  }
 
-        template <typename T> void addParameter(T& bind, T default_value, String const& name, String const& description)
-        {
-            auto ptr = std::make_shared<ConfigBind<T>>(bind, default_value, name, description);
-            config_sections_.back().settings.push_back(ptr);
-        }
+private:
+  Sections config_sections_;
+};
 
-        template <typename T> void addParameter(T& bind, String const& name, String const& description)
-        {
-            auto ptr = std::make_shared<ConfigBind<T>>(bind, T(bind), name, description);
-            config_sections_.back().settings.push_back(ptr);
-        }
-
-      private:
-        Sections config_sections_;
-    };
-
-} // namespace quantum
-} // namespace microsoft
+}  // namespace quantum
+}  // namespace microsoft
