@@ -103,17 +103,27 @@ module Expression =
         | Missing terminal -> Terminal.mapPrefix mapper terminal |> Unknown
         | Literal terminal -> Terminal.mapPrefix mapper terminal |> Unknown
         | Identifier identifier -> { identifier with Name = identifier.Name |> Terminal.mapPrefix mapper } |> Identifier
-        | InterpString interpString -> { interpString with OpenQuote = interpString.OpenQuote |> Terminal.mapPrefix mapper } |> InterpString
+        | InterpString interpString ->
+            { interpString with OpenQuote = interpString.OpenQuote |> Terminal.mapPrefix mapper }
+            |> InterpString
         | Tuple tuple -> { tuple with OpenParen = tuple.OpenParen |> Terminal.mapPrefix mapper } |> Tuple
         | NewArray newArray -> { newArray with New = newArray.New |> Terminal.mapPrefix mapper } |> NewArray
-        | NewSizedArray newSizedArray -> { newSizedArray with OpenBracket = newSizedArray.OpenBracket |> Terminal.mapPrefix mapper } |> NewSizedArray
-        | NamedItemAccess namedItemAccess -> { namedItemAccess with Record = namedItemAccess.Record |> mapPrefix mapper } |> NamedItemAccess
+        | NewSizedArray newSizedArray ->
+            { newSizedArray with OpenBracket = newSizedArray.OpenBracket |> Terminal.mapPrefix mapper }
+            |> NewSizedArray
+        | NamedItemAccess namedItemAccess ->
+            { namedItemAccess with Record = namedItemAccess.Record |> mapPrefix mapper } |> NamedItemAccess
         | ArrayAccess arrayAccess -> { arrayAccess with Array = arrayAccess.Array |> mapPrefix mapper } |> ArrayAccess
         | Call call -> { call with Callable = call.Callable |> mapPrefix mapper } |> Call
-        | PrefixOperator prefixOperator -> { prefixOperator with PrefixOperator = prefixOperator.PrefixOperator |> Terminal.mapPrefix mapper } |> PrefixOperator
-        | PostfixOperator postfixOperator -> { postfixOperator with Operand = postfixOperator.Operand |> mapPrefix mapper } |> PostfixOperator
-        | InfixOperator infixOperator -> { infixOperator with Left = infixOperator.Left |> mapPrefix mapper } |> InfixOperator
-        | Conditional conditional -> { conditional with Condition = conditional.Condition |> mapPrefix mapper } |> Conditional
+        | PrefixOperator prefixOperator ->
+            { prefixOperator with PrefixOperator = prefixOperator.PrefixOperator |> Terminal.mapPrefix mapper }
+            |> PrefixOperator
+        | PostfixOperator postfixOperator ->
+            { postfixOperator with Operand = postfixOperator.Operand |> mapPrefix mapper } |> PostfixOperator
+        | InfixOperator infixOperator ->
+            { infixOperator with Left = infixOperator.Left |> mapPrefix mapper } |> InfixOperator
+        | Conditional conditional ->
+            { conditional with Condition = conditional.Condition |> mapPrefix mapper } |> Conditional
         | FullOpenRange terminal -> Terminal.mapPrefix mapper terminal |> Unknown
         | Update update -> { update with Record = update.Record |> mapPrefix mapper } |> Update
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown

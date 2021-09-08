@@ -151,6 +151,7 @@ let arraySyntaxUpdate =
 
     let rec getDefaultValue (``type``: Type) =
         let space = " " |> Trivia.ofString
+
         match ``type`` with
         | Type.BuiltIn builtIn -> getBuiltInDefault builtIn
         | Type.Tuple tuple ->
@@ -192,22 +193,26 @@ let arraySyntaxUpdate =
             else
                 None
         | Type.Array arrayType ->
-            arrayType.ItemType |> getDefaultValue |> Option.map (fun value ->
-            {
-                OpenBracket = { Prefix = []; Text = arrayType.OpenBracket.Text }
-                Value = value
-                Comma = { Prefix = []; Text = "," }
-                Size = { Prefix = space; Text = "size" }
-                Equals = { Prefix = space; Text = "=" }
-                Length = { Prefix = space; Text = "0" } |> Literal
-                CloseBracket = { Prefix = []; Text = arrayType.CloseBracket.Text }
-            }
-            |> NewSizedArray)
+            arrayType.ItemType
+            |> getDefaultValue
+            |> Option.map
+                (fun value ->
+                    {
+                        OpenBracket = { Prefix = []; Text = arrayType.OpenBracket.Text }
+                        Value = value
+                        Comma = { Prefix = []; Text = "," }
+                        Size = { Prefix = space; Text = "size" }
+                        Equals = { Prefix = space; Text = "=" }
+                        Length = { Prefix = space; Text = "0" } |> Literal
+                        CloseBracket = { Prefix = []; Text = arrayType.CloseBracket.Text }
+                    }
+                    |> NewSizedArray)
         | _ -> None
 
     { new Rewriter<_>() with
         override rewriter.Expression(_, expression) =
             let space = " " |> Trivia.ofString
+
             match expression with
             | NewArray newArray ->
                 match getDefaultValue newArray.ItemType with
@@ -231,12 +236,13 @@ let arraySyntaxUpdate =
     }
 
 let updateChecker document =
-    let mutable lineNumber = 1;
-    let mutable charNumber = 1;
+    let mutable lineNumber = 1
+    let mutable charNumber = 1
 
     let processPrefix prefix =
-        let mutable lines = 0;
-        let mutable characters = 0;
+        let mutable lines = 0
+        let mutable characters = 0
+
         for trivia in prefix do
             match trivia with
             | Whitespace space -> characters <- characters + space.Length
@@ -244,33 +250,46 @@ let updateChecker document =
                 lines <- lines + 1
                 characters <- 0
             | Comment comment -> characters <- characters + comment.Length
+
         lines, characters
 
-    let reducer = { new Reducer<string list>() with
-        override _.Combine(x, y) = x @ y
+    let reducer =
+        { new Reducer<string list>() with
+            override _.Combine(x, y) = x @ y
 
-        override _.Terminal terminal =
-            let lines, characters = processPrefix terminal.Prefix
-            if lines > 0 then
-                lineNumber <- lineNumber + lines
-                charNumber <- 1 + characters + terminal.Text.Length
-            else
-                charNumber <- charNumber + characters + terminal.Text.Length
-            []
+            override _.Terminal terminal =
+                let lines, characters = processPrefix terminal.Prefix
 
-        override reducer.Expression expression =
-            match expression with
-            | NewArray newArray ->
-                let lineBefore, charBefore = lineNumber, charNumber
-                let prefixLines, prefixChars = processPrefix newArray.New.Prefix
-                let subWarnings = base.Expression expression
-                let warning = sprintf "Warning: Unable to updated deprecated new array syntax from line %i, character %i to line %i, character %i." (lineBefore + prefixLines) (charBefore + prefixChars) lineNumber charNumber
-                reducer.Combine(subWarnings, [warning])
-            | _ -> base.Expression expression
+                if lines > 0 then
+                    lineNumber <- lineNumber + lines
+                    charNumber <- 1 + characters + terminal.Text.Length
+                else
+                    charNumber <- charNumber + characters + terminal.Text.Length
 
-        override _.Document document =
-            lineNumber <- 1
-            charNumber <- 1
-            base.Document document
-    }
+                []
+
+            override reducer.Expression expression =
+                match expression with
+                | NewArray newArray ->
+                    let lineBefore, charBefore = lineNumber, charNumber
+                    let prefixLines, prefixChars = processPrefix newArray.New.Prefix
+                    let subWarnings = base.Expression expression
+
+                    let warning =
+                        sprintf
+                            "Warning: Unable to updated deprecated new array syntax from line %i, character %i to line %i, character %i."
+                            (lineBefore + prefixLines)
+                            (charBefore + prefixChars)
+                            lineNumber
+                            charNumber
+
+                    reducer.Combine(subWarnings, [ warning ])
+                | _ -> base.Expression expression
+
+            override _.Document document =
+                lineNumber <- 1
+                charNumber <- 1
+                base.Document document
+        }
+
     reducer.Document document

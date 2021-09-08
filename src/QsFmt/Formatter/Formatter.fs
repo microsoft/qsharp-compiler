@@ -61,22 +61,14 @@ let format source =
 let update source =
     let updateDocument document =
 
-        let updatedDocument =
-            document
-            |> curry qubitBindingUpdate.Document ()
-            |> curry arraySyntaxUpdate.Document ()
-        let warningList =
-            updatedDocument
-            |> updateChecker
-        let printedDocument =
-            updatedDocument
-            |> printer.Document
+        let updatedDocument = document |> curry qubitBindingUpdate.Document () |> curry arraySyntaxUpdate.Document ()
+        let warningList = updatedDocument |> updateChecker
+        let printedDocument = updatedDocument |> printer.Document
 
         // For now, let's just combine the warnings to the end of the document
         String.concat Environment.NewLine (printedDocument :: warningList)
 
-    parse source
-    |> Result.map updateDocument
+    parse source |> Result.map updateDocument
 
 [<CompiledName "Identity">]
 let identity source =

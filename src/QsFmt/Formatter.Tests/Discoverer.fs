@@ -169,7 +169,8 @@ module Discoverer =
     /// <summary>
     /// Ensures that the new line characters will conform to the standard of the environment's new line character.
     /// </summary>
-    let standardizeNewLines (s : string) = s.Replace("\r", "").Replace("\n", Environment.NewLine)
+    let standardizeNewLines (s: string) =
+        s.Replace("\r", "").Replace("\n", Environment.NewLine)
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="Example"/> format test cases change from their
