@@ -4,24 +4,26 @@
 
 #include "Commandline/ConfigurationManager.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-class LlvmPassesConfiguration
+namespace microsoft
 {
-public:
-  void setup(ConfigurationManager &config);
+namespace quantum
+{
 
-  static LlvmPassesConfiguration disable();
-  bool                           alwaysInline() const;
+    class LlvmPassesConfiguration
+    {
+      public:
+        void setup(ConfigurationManager& config);
 
-  bool isDisabled() const;
+        static LlvmPassesConfiguration disable();
+        bool                           alwaysInline() const;
 
-  bool isDefault() const;
+        bool isDisabled() const;
 
-private:
-  bool always_inline_{false};
-};
+        bool isDefault() const;
 
-}  // namespace quantum
-}  // namespace microsoft
+      private:
+        bool always_inline_{false};
+    };
+
+} // namespace quantum
+} // namespace microsoft
