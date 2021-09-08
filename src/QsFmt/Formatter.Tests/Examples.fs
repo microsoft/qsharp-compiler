@@ -204,3 +204,25 @@ let ``Updates Using with Comments`` =
         }
     }
 }"""
+
+[<Example(ExampleKind.Update)>]
+let ``Updates Unit Types`` =
+    """namespace Foo {
+    operation Bar1() : () {
+        return ();
+    }
+
+    operation Bar2() : ((), ()[], Int) {
+        return ((), [(), ()], 3);
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar1() : Unit {
+        return ();
+    }
+
+    operation Bar2() : (Unit, Unit[], Int) {
+        return ((), [(), ()], 3);
+    }
+}"""
