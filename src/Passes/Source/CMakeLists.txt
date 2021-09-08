@@ -20,7 +20,7 @@ microsoft_add_library_tests(Rules Rules ProfilePass AllocationManager Commandlin
 target_link_libraries(Rules PRIVATE AllocationManager)
 
 microsoft_add_library(Generators)
-target_link_libraries(Generators PRIVATE Rules)
-microsoft_add_library_tests(Generators Rules AllocationManager Commandline Generators)
+target_link_libraries(Generators PRIVATE Rules Commandline AllocationManager)
+microsoft_add_library_tests(Generators Rules ProfilePass AllocationManager Commandline Generators)
 
 add_subdirectory(Apps)
