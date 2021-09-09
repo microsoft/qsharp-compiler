@@ -308,6 +308,7 @@ type internal 'result Reducer() as reducer =
         | InterpString interpString -> reducer.InterpString interpString
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
         | NewArray newArray -> reducer.NewArray newArray
+        | NewSizedArray newSizedArray -> reducer.NewSizedArray newSizedArray
         | NamedItemAccess namedItemAccess -> reducer.NamedItemAccess namedItemAccess
         | ArrayAccess arrayAccess -> reducer.ArrayAccess arrayAccess
         | Call call -> reducer.Call call
@@ -343,6 +344,20 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal newArray.OpenBracket
             reducer.Expression newArray.Length
             reducer.Terminal newArray.CloseBracket
+        ]
+        |> reduce
+
+    abstract NewSizedArray : newSizedArray: NewSizedArray -> 'result
+
+    default _.NewSizedArray newSizedArray =
+        [
+            reducer.Terminal newSizedArray.OpenBracket
+            reducer.Expression newSizedArray.Value
+            reducer.Terminal newSizedArray.Comma
+            reducer.Terminal newSizedArray.Size
+            reducer.Terminal newSizedArray.Equals
+            reducer.Expression newSizedArray.Length
+            reducer.Terminal newSizedArray.CloseBracket
         ]
         |> reduce
 

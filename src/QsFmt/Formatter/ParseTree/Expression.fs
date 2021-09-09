@@ -112,6 +112,18 @@ and ExpressionVisitor(tokens) =
         }
         |> Tuple
 
+    override visitor.VisitSizedArrayExpression context =
+        {
+            OpenBracket = context.openBracket |> Node.toTerminal tokens
+            Value = visitor.Visit context.value
+            Comma = context.comma |> Node.toTerminal tokens
+            Size = context.size.terminal |> Node.toTerminal tokens
+            Equals = context.equals |> Node.toTerminal tokens
+            Length = visitor.Visit context.length
+            CloseBracket = context.closeBracket |> Node.toTerminal tokens
+        }
+        |> NewSizedArray
+
     override visitor.VisitNewArrayExpression context =
         {
             New = context.``new`` |> Node.toTerminal tokens

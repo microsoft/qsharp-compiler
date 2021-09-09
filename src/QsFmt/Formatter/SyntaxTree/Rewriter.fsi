@@ -224,6 +224,12 @@ type internal 'context Rewriter =
     default NewArray: context:'context * newArray:NewArray -> NewArray
 
     /// <summary>
+    /// Rewrites a <see cref="NewSizedArray"/> expression node.
+    /// </summary>
+    abstract NewSizedArray: context:'context * newSizedArray:NewSizedArray -> NewSizedArray
+    default NewSizedArray: context:'context * newSizedArray:NewSizedArray -> NewSizedArray
+
+    /// <summary>
     /// Rewrites a <see cref="NamedItemAccess"/> expression node.
     /// </summary>
     abstract NamedItemAccess: context:'context * namedItemAccess:NamedItemAccess -> NamedItemAccess

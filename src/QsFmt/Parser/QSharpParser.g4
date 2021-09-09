@@ -209,6 +209,7 @@ expression
     | value=pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
+    | openBracket='[' value=expression comma=',' size=sizeKey equals='=' length=expression closeBracket=']' # SizedArrayExpression
     | new='new' itemType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
     | record=expression colon='::' name=Identifier # NamedItemAccessExpression
     | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression
@@ -235,6 +236,8 @@ expression
     | '...' # OpenRangeExpression
     | record=expression with='w/' item=expression arrow='<-' value=expression # UpdateExpression
     ;
+
+sizeKey : terminal=Identifier {_localctx.terminal.Text == "size"}?;
 
 typeTuple : openBracket='<' (typeArgs+=type (commas+=',' typeArgs+=type)* commas+=','?)? closeBracket='>';
 
