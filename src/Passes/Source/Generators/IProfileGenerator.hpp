@@ -15,44 +15,48 @@ public:
   using OptimizationLevel       = PassBuilder::OptimizationLevel;
   using FunctionAnalysisManager = llvm::FunctionAnalysisManager;
   using String                  = std::string;
-  using SetupFunctionWrapper    = std::function<void(llvm::ModulePassManager &)>;
+  using SetupFunctionWrapper    = std::function<void(IProfileGenerator *)>;
   template <typename R>
-  using SetupFunction = std::function<void(R const &, llvm::ModulePassManager &)>;
+  using SetupFunction = std::function<void(R const &, IProfileGenerator *)>;
   using Components    = std::vector<std::pair<String, SetupFunctionWrapper>>;
 
   template <typename R>
   void registerProfileComponent(String const &name, SetupFunction<R> setup)
   {
-    if (configuration_ == nullptr)
-    {
-      throw std::runtime_error(
-          "You cannor register components with generator that does not have a configuration "
-          "manager.");
-    }
+    configuration_manager_.addConfig<R>();
 
-    configuration_->addConfig<R>();
-
-    auto setup_wrapper = [setup, this](llvm::ModulePassManager &module) {
-      auto &config = configuration_->get<R>();
-      setup(config, module);
+    auto setup_wrapper = [setup](IProfileGenerator *ptr) {
+      auto &config = ptr->configuration_manager_.get<R>();
+      setup(config, ptr);
     };
 
-    components_.emplace_back({name, std::move(setup_wrapper)});
+    components_.push_back({name, std::move(setup_wrapper)});
   }
 
   IProfileGenerator();
-  explicit IProfileGenerator(ConfigurationManager *configuration);
 
   virtual ~IProfileGenerator();
-  virtual llvm::ModulePassManager createGenerationModulePass(
-      PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool debug) = 0;
+  llvm::ModulePassManager         createGenerationModulePass(PassBuilder &            pass_builder,
+                                                             OptimizationLevel const &optimisation_level,
+                                                             bool                     debug);
   virtual llvm::ModulePassManager createValidationModulePass(
       PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool debug) = 0;
   virtual void addFunctionAnalyses(FunctionAnalysisManager &fam)                          = 0;
 
+  llvm::ModulePassManager &modulePassManager();
+  llvm::PassBuilder &      passBuilder();
+  ConfigurationManager &   configurationManager();
+  OptimizationLevel        optimisationLevel() const;
+  bool                     debug() const;
+
 protected:
-  ConfigurationManager *configuration_{nullptr};
-  Components            components_;
+  ConfigurationManager configuration_manager_;
+  Components           components_;
+
+  llvm::ModulePassManager *module_pass_manager_{nullptr};
+  llvm::PassBuilder *      pass_builder_{nullptr};
+  OptimizationLevel        optimisation_level_{OptimizationLevel::O0};
+  bool                     debug_{false};
 };
 
 }  // namespace quantum

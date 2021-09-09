@@ -14,55 +14,74 @@
 namespace microsoft {
 namespace quantum {
 
-DefaultProfileGenerator::DefaultProfileGenerator(ConfigurationManager *configuration)
-  : IProfileGenerator(configuration)
-  , factory_config_{configuration->get<FactoryConfiguration>()}
-  , profile_pass_config_{configuration->get<RuleTransformationPassConfiguration>()}
-  , llvm_config_{configuration->get<LlvmPassesConfiguration>()}
-{}
+DefaultProfileGenerator::DefaultProfileGenerator()
+  : IProfileGenerator()
+{
+  registerProfileComponent<RuleTransformationPassConfiguration>(
+      "transformation-rules",
+      [this](RuleTransformationPassConfiguration const &config, IProfileGenerator *ptr) {
+        auto &ret = ptr->modulePassManager();
+
+        // Defining the mapping
+        RuleSet rule_set;
+        auto    factory = RuleFactory(rule_set);
+        factory.usingConfiguration(configuration_manager_.get<FactoryConfiguration>());
+
+        // Creating profile pass
+        ret.addPass(RuleTransformationPass(std::move(rule_set), config));
+      });
+
+  registerProfileComponent<LlvmPassesConfiguration>(
+      "llvm-passes", [](LlvmPassesConfiguration const &config, IProfileGenerator *ptr) {
+        // Configuring LLVM passes
+        if (config.alwaysInline())
+        {
+          auto &ret          = ptr->modulePassManager();
+          auto &pass_builder = ptr->passBuilder();
+          ret.addPass(llvm::AlwaysInlinerPass());
+
+          auto inliner_pass = pass_builder.buildInlinerPipeline(
+              ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
+          ret.addPass(std::move(inliner_pass));
+        }
+      });
+}
 
 DefaultProfileGenerator::DefaultProfileGenerator(
     ConfigureFunction const &configure, RuleTransformationPassConfiguration profile_pass_config,
     LlvmPassesConfiguration llvm_config)
   : IProfileGenerator()
-  , configure_ruleset_{configure}
-  , profile_pass_config_{std::move(profile_pass_config)}
-  , llvm_config_{llvm_config}
-{}
-
-llvm::ModulePassManager DefaultProfileGenerator::createGenerationModulePass(
-    PassBuilder &pass_builder, OptimizationLevel const &optimisation_level, bool debug)
 {
-  llvm::ModulePassManager ret = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
-  auto                    function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
-      optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
+  registerProfileComponent<RuleTransformationPassConfiguration>(
+      "Transformation rules",
+      [configure](RuleTransformationPassConfiguration const &config, IProfileGenerator *ptr) {
+        // Defining the mapping
+        auto &  ret = ptr->modulePassManager();
+        RuleSet rule_set;
+        auto    factory = RuleFactory(rule_set);
+        configure(rule_set);
 
-  // Defining the mapping
-  RuleSet rule_set;
-  if (configure_ruleset_)
-  {
-    configure_ruleset_(rule_set);
-  }
-  else
-  {
-    auto factory = RuleFactory(rule_set);
-    factory.usingConfiguration(factory_config_);
-  }
+        // Creating profile pass
+        ret.addPass(RuleTransformationPass(std::move(rule_set), config));
+      });
 
-  // Creating profile pass
-  ret.addPass(RuleTransformationPass(std::move(rule_set), profile_pass_config_));
+  registerProfileComponent<LlvmPassesConfiguration>(
+      "llvm-passes", [](LlvmPassesConfiguration const &config, IProfileGenerator *ptr) {
+        // Configuring LLVM passes
+        if (config.alwaysInline())
+        {
+          auto &ret          = ptr->modulePassManager();
+          auto &pass_builder = ptr->passBuilder();
+          ret.addPass(llvm::AlwaysInlinerPass());
 
-  // Configuring LLVM passes
-  if (llvm_config_.alwaysInline())
-  {
-    ret.addPass(llvm::AlwaysInlinerPass());
+          auto inliner_pass = pass_builder.buildInlinerPipeline(
+              ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
+          ret.addPass(std::move(inliner_pass));
+        }
+      });
 
-    auto inliner_pass = pass_builder.buildInlinerPipeline(
-        optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
-    ret.addPass(std::move(inliner_pass));
-  }
-
-  return ret;
+  configuration_manager_.setConfig(profile_pass_config);
+  configuration_manager_.setConfig(llvm_config);
 }
 
 llvm::ModulePassManager DefaultProfileGenerator::createValidationModulePass(
@@ -76,17 +95,18 @@ void DefaultProfileGenerator::addFunctionAnalyses(FunctionAnalysisManager &)
 
 FactoryConfiguration const &DefaultProfileGenerator::factoryConfig() const
 {
-  return factory_config_;
+  return configuration_manager_.get<FactoryConfiguration>();
 }
 
 RuleTransformationPassConfiguration const &DefaultProfileGenerator::profilePassConfig() const
 {
-  return profile_pass_config_;
+  return configuration_manager_.get<RuleTransformationPassConfiguration>();
 }
 
 LlvmPassesConfiguration const &DefaultProfileGenerator::llvmConfig() const
 {
-  return llvm_config_;
+  return configuration_manager_.get<LlvmPassesConfiguration>();
 }
+
 }  // namespace quantum
 }  // namespace microsoft

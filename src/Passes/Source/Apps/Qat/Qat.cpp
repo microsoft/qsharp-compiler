@@ -63,12 +63,11 @@ int main(int argc, char **argv)
 {
   try
   {
+    auto profile = std::make_shared<DefaultProfileGenerator>();
 
-    ConfigurationManager configuration_manager;
+    ConfigurationManager &configuration_manager = profile->configurationManager();
     configuration_manager.addConfig<QatConfig>();
     configuration_manager.addConfig<FactoryConfiguration>();
-    configuration_manager.addConfig<RuleTransformationPassConfiguration>();
-    configuration_manager.addConfig<LlvmPassesConfiguration>();
 
     // Parsing command line arguments
     ParameterParser parser;
@@ -108,7 +107,6 @@ int main(int argc, char **argv)
     // Extracting commandline parameters
 
     auto optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
-    auto profile            = std::make_shared<DefaultProfileGenerator>(&configuration_manager);
 
     // Setting the optimisation level
     if (config.opt1())
