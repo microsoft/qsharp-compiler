@@ -148,10 +148,15 @@ let unitUpdate =
 
 let forParensUpdate =
     { new Rewriter<_>() with
-        override _.For((), loop) =
+        override rewriter.For((), loop) =
+            let openTrivia = loop.OpenParen |> getTrivia
+            let closeTrivia = loop.CloseParen |> getTrivia
+
             { loop with
                 OpenParen = None
+                Binding = loop.Binding |> ForBinding.mapPrefix ((@) openTrivia)
                 CloseParen = None
+                Block = rewriter.Block((), rewriter.Statement, loop.Block) |> Block.mapPrefix ((@) closeTrivia)
             }
     }
 
