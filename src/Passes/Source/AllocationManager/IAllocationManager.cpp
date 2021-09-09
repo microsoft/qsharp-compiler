@@ -3,10 +3,12 @@
 
 #include "AllocationManager/IAllocationManager.hpp"
 
-namespace microsoft {
-namespace quantum {
+namespace microsoft
+{
+namespace quantum
+{
 
-IAllocationManager::~IAllocationManager() = default;
+    IAllocationManager::~IAllocationManager() = default;
 
-}  // namespace quantum
-}  // namespace microsoft
+} // namespace quantum
+} // namespace microsoft

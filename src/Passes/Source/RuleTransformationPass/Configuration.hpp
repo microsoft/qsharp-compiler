@@ -4,53 +4,55 @@
 
 #include "Commandline/ConfigurationManager.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-class RuleTransformationPassConfiguration
+namespace microsoft
 {
-public:
-  void                                       setup(ConfigurationManager &config);
-  static RuleTransformationPassConfiguration disable();
+namespace quantum
+{
 
-  bool        deleteDeadCode() const;
-  bool        cloneFunctions() const;
-  bool        transformExecutionPathOnly() const;
-  uint64_t    maxRecursion() const;
-  bool        reuseQubits() const;
-  bool        groupMeasurements() const;
-  bool        oneShotMeasurement() const;
-  std::string entryPointAttr() const;
+    class RuleTransformationPassConfiguration
+    {
+      public:
+        void                                       setup(ConfigurationManager& config);
+        static RuleTransformationPassConfiguration disable();
 
-  /// @{
-  bool isDisabled() const;
-  bool isDefault() const;
-  /// @}
-private:
-  /// @{
-  bool delete_dead_code_{true};
-  bool clone_functions_{true};
-  bool transform_execution_path_only_{true};
-  /// @}
+        bool        deleteDeadCode() const;
+        bool        cloneFunctions() const;
+        bool        transformExecutionPathOnly() const;
+        uint64_t    maxRecursion() const;
+        bool        reuseQubits() const;
+        bool        groupMeasurements() const;
+        bool        oneShotMeasurement() const;
+        std::string entryPointAttr() const;
 
-  /// Const-expression
-  /// @{
-  uint64_t max_recursion_{512};
-  /// @}
+        /// @{
+        bool isDisabled() const;
+        bool isDefault() const;
+        /// @}
+      private:
+        /// @{
+        bool delete_dead_code_{true};
+        bool clone_functions_{true};
+        bool transform_execution_path_only_{true};
+        /// @}
 
-  /// Allocation options
-  /// @{
-  bool reuse_qubits_{true};  // NOT IMPLEMENTED
-  /// @}
+        /// Const-expression
+        /// @{
+        uint64_t max_recursion_{512};
+        /// @}
 
-  /// Measurement
-  /// @{
-  bool group_measurements_{false};   // NOT IMPLEMENTED
-  bool one_shot_measurement_{true};  // NOT IMPLEMENTED
-                                     /// @}
+        /// Allocation options
+        /// @{
+        bool reuse_qubits_{true}; // NOT IMPLEMENTED
+        /// @}
 
-  std::string entry_point_attr_{"EntryPoint"};
-};
+        /// Measurement
+        /// @{
+        bool group_measurements_{false};  // NOT IMPLEMENTED
+        bool one_shot_measurement_{true}; // NOT IMPLEMENTED
+                                          /// @}
 
-}  // namespace quantum
-}  // namespace microsoft
+        std::string entry_point_attr_{"EntryPoint"};
+    };
+
+} // namespace quantum
+} // namespace microsoft
