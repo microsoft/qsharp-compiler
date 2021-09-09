@@ -129,35 +129,55 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// <summary>
             /// Registers the given variable name with the scope.
             /// Increases the alias and reference count for the value if necessary,
-            /// and ensures that both are decreased again when the variable goes out of scope.
+            /// depending on whether the value is accessed via a mutable variable or assigned to a mutable variable.
+            /// Ensures that both are decreased again when the variable goes out of scope.
             /// The registered variable is mutable if the passed value is a pointer value.
             /// </summary>
-            public void RegisterVariable(string varName, IValue value)
+            public void RegisterVariable(string varName, IValue value, IValue? fromLocalId)
             {
                 this.variables.Add(varName, value);
 
-                // Since the value is necessarily created in the current or a parent scope,
-                // it won't go out of scope before the variable does.
-                // There is hence no need to increase the reference count if the variable is never rebound.
                 var change = new[] { (value, true) }; // true refers to whether the change also applies to inner items
                 this.increaseCounts(AliasCountUpdateFunctionForType, change);
+
+                // Since the value is necessarily created in the current or a parent scope,
+                // it won't go out of scope before the variable does.
+                // There is hence no need to increase the reference count unless either
+                // a) the value is assigned to a mutable variable (destination variable) that is later rebound, or
+                // b) the assigned value is accessed via a mutable variable (source variable) that is
+                //    rebound before the newly created variable goes out of scope.
+
+                // If either the source or destination variable can be rebound, however, then updating an item via a copy-and-reassign statement
+                // potentially leads to the updated item(s) being unreferenced in an inner scope, i.e. before the
+                // pending reference count increases of this scope are applied.
+                // If there is another way than the newly registered variable to access the value, we hence need to
+                // make sure to increase the reference count immediately when binding to a mutable variable.
+
+                // ...
                 if (value is PointerValue)
                 {
-                    // If the variable can be rebound, however, then updating an item via a copy-and-reassign statement
-                    // potentially leads to the updated item(s) being unreferenced in an inner scope, i.e. before the
-                    // pending reference count increases of this scope are applied.
-                    // If there is another way than the newly registered variable to access the value, we hence need to
-                    // make sure to increase the reference count immediately when binding to a mutable variable.
-                    // Note that it is sufficent to check whether the newly bound value is an identifier, rather than
-                    // also checking inner items, since the reference count of inner items is increased upon construction
-                    // of the value
+                    // Assignment to a mutable variable:
+                    // We need to make sure that when a value is bound to a mutable variable, the reference count is increased immediately
+                    // if the value is accessed via an existing variable. In that case, the alias count of the value is at least two,
+                    // such that ...
 
-                    // FIXME: WE CAN'T OMIT THE REF COUNT INCREASE UNLESS WE INCREASE THE REF COUNT WHEN AN
-                    // IMMUTABLE HANDLE TO THE EXISTING VALUE IS CREATED LATER...
-                    if (!string.IsNullOrWhiteSpace(value.Value.Name) || !this.TryRemoveValue(value))
+                    // FIXME: THERE IS STILL AN ISSUE HERE: EVEN IF AT THE TIME OF THE ASSIGNMENT, THE ALIAS COUNT OF THE VALUE IS TWO,
+                    // IT IS POSSIBLE THAT BY THE TIME THE VALUE IS UPDATED, THE ALIAS COUNT OF THAT VALUE IS ONLY 1 AND NO COPY IS MADE
+                    // WHILE THERE IS STILL AN UNREFERENCING OF THE ORIGINAL VALUE QUEUE??
+                    if (fromLocalId != null || !this.TryRemoveValue(value))
                     {
+                        // The corresponding decrease is automatically done for the current value of a mutable variable
+                        // when it is rebound or goes out of scope.
                         this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
                     }
+                }
+                else if (fromLocalId is PointerValue)
+                {
+                    // Assignment from a mutable variable:
+                    // Increase the reference count of the assigned value if it is accessed via a mutable variable,
+                    // and queue the dereferencing of that value.
+                    this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    this.RegisterValue(value, shallow: false); // FIXME: NOPE WHEN THIS IS ASSIGNED TO A MUTABLE...
                 }
 
                 // FIXME: INCREASE THE REF COUNT WHEN THE VALUE IS ACCESSED VIA A MUTABLE VARIABLE AND
@@ -665,15 +685,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Registers a variable name as an alias for an LLVM value.
         /// Increases the alias and reference count for the value if necessary,
-        /// and ensures that both are decreased again when the variable goes out of scope.
+        /// depending on whether the value is accessed via a mutable variable or assigned to a mutable variable.
+        /// Ensures that both are decreased again when the variable goes out of scope.
         /// The registered variable is mutable if the passed value is a pointer value.
         /// </summary>
-        /// <param name="name">The name to register</param>
-        /// <param name="value">The LLVM value</param>
-        internal void RegisterVariable(string name, IValue value)
+        /// <param name="name">The name to register.</param>
+        /// <param name="value">The LLVM value.</param>
+        /// <param name="fromLocalId">
+        /// Name of the local variable via which the assigned value is accessed
+        /// (can be obtained by querying <see cref="QirExpressionKindTransformation.AccessViaLocalId(SyntaxTree.TypedExpression, out string)"/>.)
+        /// </param>
+        internal void RegisterVariable(string name, IValue value, string? fromLocalId)
         {
+            IValue? localId = null;
+            if (fromLocalId != null)
+            {
+                this.scopes.FirstOrDefault(scope => scope.TryGetVariable(fromLocalId, out localId));
+            }
+
             value.RegisterName(this.sharedState.VariableName(name));
-            this.scopes.Peek().RegisterVariable(name, value);
+            this.scopes.Peek().RegisterVariable(name, value, fromLocalId: localId);
         }
 
         /// <summary>
@@ -687,20 +718,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Gets the value of a named variable.
         /// The name must have been registered as an alias for the value using
-        /// <see cref="RegisterVariable(string, IValue)"/>.
+        /// <see cref="RegisterVariable(string, IValue, string?)"/>.
         /// </summary>
         /// <param name="name">The registered variable name to look for</param>
         internal IValue GetVariable(string name)
         {
-            foreach (var scope in this.scopes)
-            {
-                if (scope.TryGetVariable(name, out IValue value))
-                {
-                    return value;
-                }
-            }
-
-            throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
+            IValue? value = null;
+            this.scopes.FirstOrDefault(scope => scope.TryGetVariable(name, out value));
+            return value != null ? value : throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
         /// <summary>

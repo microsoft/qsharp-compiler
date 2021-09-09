@@ -5,14 +5,67 @@
     open Microsoft.Quantum.Convert;
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Preparation;
-    open Microsoft.Quantum.Samples;
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.MachineLearning;
 
     newtype Foo = Int;
     newtype Register = (Data : Int[], Foo : Foo);
 
+    // FIXME: ADD MORE HORRIBLE TEST CASES WHERE THE SECOND MUTABLE VARIABLE IS ALSO UPDATED VIA COPY-AND-REASSIGN...
 
+    // FIXME: HORRIBLE, HORRIBLE CASES...
+
+    function HorribleCase3(cond1 : Bool, cond2 : Bool, cond3 : Bool) : Unit {
+
+        mutable value = [[0], [0,0]];
+        if cond1 {
+            mutable arr = value;
+            if cond2 {
+                set value = [];
+
+                if cond2 {
+                    set arr w/= 0 <- [];
+                }
+            }
+            Message($"{arr}");
+        }
+        Message($"{value}");
+    }
+
+    function HorribleCase2(cond1 : Bool, cond2 : Bool) : Unit {
+
+        mutable value = [[0], [0,0]];
+        if cond1 {
+            mutable arr = value;
+            set value = [];
+
+            if cond2 {
+                set arr w/= 0 <- [];
+            }
+
+            Message($"{arr}");
+
+        }
+        Message($"{value}");
+    }
+
+    function HorribleCase1(cond : Bool) : Unit {
+
+        mutable value = [[0], [0,0]];
+        mutable arr = value;
+        set value = [];
+
+        if cond {
+            set arr w/= 0 <- [];
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    // TODO: tests for straight out variable update (not copy and update)
+
+    // FIXME: ADD A TEST FOR CONDITIONAL EXPRESSIONS WHERE ONE ARRAY IS COPIED AND THE OTHER BRANCH IS NOT
     
     // FIXME: DOESN'T WORK BECAUSE ASSIGNMENT TO IMMUTABLE
     // VARIABLE IS NOT REF COUNTED...
@@ -309,34 +362,48 @@
         //// loop 6 is an alias count decrease of current ret
         //// loop 7 and 8 are the corresponding ref count decreases
 
-        //TestArray1();
-        //TestArray2();
-        //TestArray3();
-        //TestArray4();
-        //TestArray5();
-        //TestArray6();
-        //TestArray7();
-        //TestArray8();
-        //
-        //TestUdt1(true);
-        //TestUdt2(true);
-        //TestUdt3(true);
-        //TestUdt4(true);
-        //TestUdt5(true);
-        //TestUdt6(true);
-        //TestUdt7(true);
-        //TestUdt8(true);
-        //TestUdt1(false);
-        //TestUdt2(false);
-        //TestUdt3(false);
-        //TestUdt4(false);
-        //TestUdt5(false);
-        //TestUdt6(false);
-        //TestUdt7(false);
-        //TestUdt8(false);
-        //
+        TestArray1();
+        TestArray2();
+        TestArray3();
+        TestArray4();
+        TestArray5();
+        TestArray6();
+        TestArray7();
+        TestArray8();
+        
+        TestUdt1(true);
+        TestUdt2(true);
+        TestUdt3(true);
+        TestUdt4(true);
+        TestUdt5(true);
+        TestUdt6(true);
+        TestUdt7(true);
+        TestUdt8(true);
+        TestUdt1(false);
+        TestUdt2(false);
+        TestUdt3(false);
+        TestUdt4(false);
+        TestUdt5(false);
+        TestUdt6(false);
+        TestUdt7(false);
+        TestUdt8(false);
+        
         TestIssue(true);
         TestIssue(false);
+        HorribleCase1(true);
+        HorribleCase1(false);
+        HorribleCase2(true, true);
+        HorribleCase2(false, true);
+        HorribleCase2(true, false);
+        HorribleCase2(false, false);
+        HorribleCase3(true, true, true);
+        HorribleCase3(false, true, true);
+        HorribleCase3(true, false, true);
+        HorribleCase3(false, false, true);
+        HorribleCase3(true, true, false);
+        HorribleCase3(false, true, false);
+        HorribleCase3(true, false, false);
+        HorribleCase3(false, false, false);
         return "Executed successfully!";
     }
 }

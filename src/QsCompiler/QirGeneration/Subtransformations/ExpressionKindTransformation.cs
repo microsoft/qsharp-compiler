@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 using System.Numerics;
 using Microsoft.Quantum.QIR;
@@ -134,10 +135,51 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// True if the expression is self-evaluating and
         /// doesn't require encapsulating into its own block if it should only be evaluated conditionally.
         /// </returns>
-        private static bool ExpressionIsSelfEvaluating(TypedExpression ex) =>
-            ex.Expression.IsIdentifier || ex.Expression.IsBoolLiteral || ex.Expression.IsDoubleLiteral
-                || ex.Expression.IsIntLiteral || ex.Expression.IsPauliLiteral || ex.Expression.IsRangeLiteral
-                || ex.Expression.IsResultLiteral || ex.Expression.IsUnitValue;
+        private bool IsSelfEvaluating(TypedExpression ex) =>
+        /*  Do *not* return true for anything that needs to be reference counted,
+            since otherwise reference counts may not be tracked accurately. */
+            (ex.Expression.IsIdentifier
+                || ex.Expression.IsBoolLiteral
+                || ex.Expression.IsDoubleLiteral || ex.Expression.IsIntLiteral
+                || ex.Expression.IsPauliLiteral || ex.Expression.IsRangeLiteral
+                || ex.Expression.IsUnitValue)
+            && !ScopeManager.RequiresReferenceCount(this.SharedState.LlvmTypeFromQsharpType(ex.ResolvedType));
+
+        /// <returns>
+        /// True if the value of the given expression is accessed via a local variable
+        /// (whether directly via the identifier or e.g. as part of an item access expression),
+        /// as well as the name of that variable as out parameter.
+        /// <br/>
+        /// The reference count of values accessed via local variables needs to be increased
+        /// upon assignment to or from a mutable variable.
+        /// </returns>
+        internal static bool AccessViaLocalId(TypedExpression ex, [MaybeNullWhen(false)] out string identifierName)
+        {
+            if (ex.Expression is ResolvedExpressionKind.Identifier id)
+            {
+                identifierName = id.Item1 is Identifier.LocalVariable var ? var.Item : null;
+                return identifierName != null;
+            }
+            else if (ex.Expression is ResolvedExpressionKind.ArrayItem arrayItem)
+            {
+                return AccessViaLocalId(arrayItem.Item1, out identifierName);
+            }
+            else if (ex.Expression is ResolvedExpressionKind.NamedItem namedItem)
+            {
+                return AccessViaLocalId(namedItem.Item1, out identifierName);
+            }
+            else if (ex.Expression is ResolvedExpressionKind.UnwrapApplication unwrap)
+            {
+                return AccessViaLocalId(unwrap.Item, out identifierName);
+            }
+            else
+            {
+                // Note that the reference count for conditional expressions is already increased by 1
+                // unless both branches are self-evaluating (i.e. no ref count change is needed).
+                identifierName = null;
+                return false;
+            }
+        }
 
         /// <summary>
         /// Determines the location of the item with the given name within the tuple of type items.
@@ -1151,9 +1193,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var exType = this.SharedState.CurrentExpressionType();
             IValue value;
 
-            // Special case: if both values are self-evaluating (literals or simple identifiers), we can
-            // do this with a select.
-            if (ExpressionIsSelfEvaluating(ifTrueEx) && ExpressionIsSelfEvaluating(ifFalseEx))
+            // Special case: if both values are self-evaluating, we can do this with a select.
+            if (this.IsSelfEvaluating(ifTrueEx) && this.IsSelfEvaluating(ifFalseEx))
             {
                 var ifTrue = this.SharedState.EvaluateSubexpression(ifTrueEx);
                 var ifFalse = this.SharedState.EvaluateSubexpression(ifFalseEx);
@@ -1592,9 +1633,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value evaluated;
             var exType = this.SharedState.CurrentExpressionType();
 
-            // Special case: if the right hand side is self-evaluating (literal or simple identifier),
+            // Special case: if the right hand side is self-evaluating,
             // we can safely evaluate both expression without introducing a branching.
-            if (ExpressionIsSelfEvaluating(rhsEx))
+            if (this.IsSelfEvaluating(rhsEx))
             {
                 var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
                 var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
@@ -1630,9 +1671,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             Value evaluated;
             var exType = this.SharedState.CurrentExpressionType();
 
-            // Special case: if the right hand side is self-evaluating (literal or simple identifier),
+            // Special case: if the right hand side is self-evaluating,
             // we can safely evaluate both expression without introducing a branching.
-            if (ExpressionIsSelfEvaluating(rhsEx))
+            if (this.IsSelfEvaluating(rhsEx))
             {
                 var lhs = this.SharedState.EvaluateSubexpression(lhsEx);
                 var rhs = this.SharedState.EvaluateSubexpression(rhsEx);
