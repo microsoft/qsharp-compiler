@@ -146,6 +146,15 @@ let unitUpdate =
             base.Type((), updated)
     }
 
+let forParensUpdate =
+    { new Rewriter<_>() with
+        override _.For((), loop) =
+            { loop with
+                OpenParen = None
+                CloseParen = None
+            }
+    }
+
 let arraySyntaxUpdate =
 
     let getBuiltInDefault builtIn =
