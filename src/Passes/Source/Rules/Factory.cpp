@@ -421,7 +421,7 @@ namespace quantum
 
     void RuleFactory::optimiseBranchQuatumZero()
     {
-        // TODO: Not implemented
+        // TODO(tfr): Not implemented
     }
 
     void RuleFactory::optimiseBranchQuatumOne()

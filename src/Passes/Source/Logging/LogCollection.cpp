@@ -10,32 +10,32 @@ namespace microsoft
 namespace quantum
 {
 
-    void LogCollection::debug(String const& message) override
+    void LogCollection::debug(String const& message)
     {
-        messages_.emplace_back({Debug, current_location_, message});
+        messages_.push_back({Type::Debug, current_location_, message});
     }
 
-    void LogCollection::info(String const& message) override
+    void LogCollection::info(String const& message)
     {
-        messages_.emplace_back({Info, current_location_, message});
+        messages_.push_back({Type::Info, current_location_, message});
     }
 
-    void LogCollection::warning(String const& message) override
+    void LogCollection::warning(String const& message)
     {
-        messages_.emplace_back({Warning, current_location_, message});
+        messages_.push_back({Type::Warning, current_location_, message});
     }
 
-    void LogCollection::error(String const& message) override
+    void LogCollection::error(String const& message)
     {
-        messages_.emplace_back({Error, current_location_, message});
+        messages_.push_back({Type::Error, current_location_, message});
     }
 
-    void LogCollection::internalError(String const& message) override
+    void LogCollection::internalError(String const& message)
     {
-        messages_.emplace_back({InternalError, current_location_, message});
+        messages_.push_back({Type::InternalError, current_location_, message});
     }
 
-    void LogCollection::setLocation(String const& name, uint64_t row, uint64_t col) override
+    void LogCollection::setLocation(String const& name, uint64_t row, uint64_t col)
     {
         current_location_.name = name;
         current_location_.row  = row;

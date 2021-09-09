@@ -18,7 +18,7 @@ class TestAnalysis
     TestAnalysis(TestAnalysis const&) = delete;
     TestAnalysis(TestAnalysis&&)      = default;
     ~TestAnalysis()                   = default;
-    TestAnalysis(bool debug = false)
+    explicit TestAnalysis(bool debug = false)
       : loop_analysis_manager_{debug}
       , function_analysis_manager_{debug}
       , gscc_analysis_manager_{debug}

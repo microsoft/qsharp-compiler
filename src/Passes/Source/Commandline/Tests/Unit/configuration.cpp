@@ -36,7 +36,7 @@ class TestConfig1
         return param3_;
     }
 
-  public:
+  private:
     bool        param1_{false};
     std::string param2_{""};
     int32_t     param3_{9};
@@ -68,7 +68,7 @@ class TestConfig2
         return param3_;
     }
 
-  public:
+  private:
     bool        param1_{true};
     std::string param2_{"xxxx"};
     int32_t     param3_{9};

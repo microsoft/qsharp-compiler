@@ -9,7 +9,6 @@ namespace microsoft
 {
 namespace quantum
 {
-    // TODO: Get rid of this
     IConfigBind::~IConfigBind() = default;
 } // namespace quantum
 } // namespace microsoft
