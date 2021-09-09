@@ -229,6 +229,26 @@ let private qirSubmission (entryPoint: QsCallable) parameters parseResult =
     | Some args -> ``?`` (stream |> ``is assign`` "{ }" streamVar) (submission args, ``null``)
     | None -> upcast ``null``
 
+/// TODO: Document.
+let private generateAzurePayloadMethod context entryPoint parameters =
+    let parseResultParamName = "parseResult"
+    let settingsParamName = "settings"
+
+    arrow_method
+        "System.Threading.Tasks.Task<int>"
+        "GenerateAzurePayload"
+        ``<<``
+        []
+        ``>>``
+        ``(``
+        [
+            param parseResultParamName ``of`` (``type`` "System.CommandLine.Parsing.ParseResult")
+            param settingsParamName ``of`` (``type`` (driverNamespace + ".AzureSettings"))
+        ]
+        ``)``
+        [ ``public`` ]
+        (Some(``=>`` (ident ("Task") <.> (ident "Run", [``() =>`` [] (0 |> literal) :> ExpressionSyntax]))))
+
 /// Generates the Submit method for an entry point class.
 let private submitMethod context entryPoint parameters =
     let callableName, argTypeName, returnTypeName = callableTypeNames context entryPoint
@@ -317,6 +337,7 @@ let private entryPointClass context (entryPoint: QsCallable) =
             summaryProperty
             parameterOptionsProperty parameters
             createArgument context entryPoint
+            generateAzurePayloadMethod context entryPoint parameters
             submitMethod context entryPoint parameters
             simulateMethod context entryPoint
         ]
