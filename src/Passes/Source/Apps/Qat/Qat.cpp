@@ -108,7 +108,7 @@ int main(int argc, char **argv)
     // Extracting commandline parameters
 
     auto optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
-    auto profile            = std::make_shared<DefaultProfileGenerator>(configuration_manager);
+    auto profile            = std::make_shared<DefaultProfileGenerator>(&configuration_manager);
 
     // Setting the optimisation level
     if (config.opt1())

@@ -95,7 +95,7 @@ TEST(GeneratorsTestSuite, ConfigurationManager)
   configuration_manager.addConfig<RuleTransformationPassConfiguration>();
   configuration_manager.addConfig<LlvmPassesConfiguration>();
 
-  auto         profile = std::make_shared<DefaultProfileGenerator>(configuration_manager);
+  auto         profile = std::make_shared<DefaultProfileGenerator>(&configuration_manager);
   TestAnalysis test;
 
   profile->addFunctionAnalyses(test.functionAnalysisManager());

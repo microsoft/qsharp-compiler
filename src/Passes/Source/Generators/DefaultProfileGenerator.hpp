@@ -24,13 +24,21 @@ public:
   /// @{
   /// The constructor takes a lambda function which configures the ruleset. This
   /// function is invoked during the creation of the generation module.
-  explicit DefaultProfileGenerator(ConfigurationManager const &configuration);
+  explicit DefaultProfileGenerator(ConfigurationManager *configuration);
   explicit DefaultProfileGenerator(
       ConfigureFunction const &           configure,
       RuleTransformationPassConfiguration profile_pass_config =
           RuleTransformationPassConfiguration::disable(),
       LlvmPassesConfiguration llvm_config = LlvmPassesConfiguration::disable());
   /// @}
+
+  /*
+  template< typename R, typename C>
+  void registerAllocationManager(String const &name)
+  {
+
+  }
+  */
 
   /// Interface functions
   /// @{

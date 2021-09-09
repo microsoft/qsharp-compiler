@@ -14,16 +14,18 @@
 namespace microsoft {
 namespace quantum {
 
-DefaultProfileGenerator::DefaultProfileGenerator(ConfigurationManager const &configuration)
-  : factory_config_{configuration.get<FactoryConfiguration>()}
-  , profile_pass_config_{configuration.get<RuleTransformationPassConfiguration>()}
-  , llvm_config_{configuration.get<LlvmPassesConfiguration>()}
+DefaultProfileGenerator::DefaultProfileGenerator(ConfigurationManager *configuration)
+  : IProfileGenerator(configuration)
+  , factory_config_{configuration->get<FactoryConfiguration>()}
+  , profile_pass_config_{configuration->get<RuleTransformationPassConfiguration>()}
+  , llvm_config_{configuration->get<LlvmPassesConfiguration>()}
 {}
 
 DefaultProfileGenerator::DefaultProfileGenerator(
     ConfigureFunction const &configure, RuleTransformationPassConfiguration profile_pass_config,
     LlvmPassesConfiguration llvm_config)
-  : configure_ruleset_{configure}
+  : IProfileGenerator()
+  , configure_ruleset_{configure}
   , profile_pass_config_{std::move(profile_pass_config)}
   , llvm_config_{llvm_config}
 {}

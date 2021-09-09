@@ -76,7 +76,7 @@ public:
   using Rules                = std::vector<ReplacementRule>;
   using Value                = llvm::Value;
   using Builder              = ReplacementRule::Builder;
-  using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
+  using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
   using Captures             = RuleSet::Captures;
   using String               = std::string;
   using ConstantArguments    = std::unordered_map<std::string, llvm::ConstantInt *>;
