@@ -158,8 +158,8 @@ let arraySyntaxUpdate =
         | "String" -> { Prefix = []; Text = "\"\"" } |> Literal |> Some
         | "Result" -> { Prefix = []; Text = "Zero" } |> Literal |> Some
         | "Pauli" -> { Prefix = []; Text = "PauliI" } |> Literal |> Some
-        | "Range" -> { Prefix = []; Text = "1..0" } |> Literal |> Some // ToDo: Double-check that this literal is correct
-        | _ -> None // TODO: Throw Warning
+        | "Range" -> { Prefix = []; Text = "1..0" } |> Literal |> Some
+        | _ -> None
 
     let rec getDefaultValue (``type``: Type) =
         let space = " " |> Trivia.ofString
