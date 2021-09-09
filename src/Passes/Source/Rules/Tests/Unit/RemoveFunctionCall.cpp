@@ -52,7 +52,6 @@ TEST(RuleSetTestSuite, RemovingFunctionCall)
     };
 
     auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
-    llvm::errs() << *ir_manip->module() << "\n===>\n";
 
     ir_manip->applyProfile(profile);
     llvm::errs() << *ir_manip->module() << "\n";

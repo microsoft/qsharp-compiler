@@ -44,11 +44,6 @@ namespace quantum
         return ret;
     }
 
-    BasicAllocationManager::Address BasicAllocationManager::getAddress(Address const& address, Index const& n) const
-    {
-        return address + n;
-    }
-
     void BasicAllocationManager::release(Address const& address)
     {
         --allocation_index_;

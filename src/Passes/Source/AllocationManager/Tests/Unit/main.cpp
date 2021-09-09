@@ -89,3 +89,14 @@ TEST(AllocationManagerTestSuite, LinearAllocationTestNoReuse)
     arr2 = manager->allocate("test2", 10);
     EXPECT_EQ(arr2, 45);
 }
+
+TEST(AllocationManagerTestSuite, InvalidRelease)
+{
+    auto manager = microsoft::quantum::BasicAllocationManager::createNew();
+    auto q1      = manager->allocate();
+    EXPECT_EQ(q1, 0);
+    auto q2 = manager->allocate();
+    EXPECT_EQ(q2, 1);
+
+    EXPECT_THROW(manager->release(28837), std::runtime_error);
+}

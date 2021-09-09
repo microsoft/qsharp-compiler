@@ -64,9 +64,6 @@ namespace quantum
         /// future and to be future proof, please use AllocationManager::getAddress().
         Address allocate(String const& name = "", Index const& size = 1) override;
 
-        /// Gets the Address of n'th element in a segment given the segments address.
-        Address getAddress(Address const& address, Index const& n) const;
-
         /// Releases the segment by address.
         void release(Address const& address) override;
 

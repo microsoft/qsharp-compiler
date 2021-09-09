@@ -168,7 +168,7 @@ source_filename = "IrManipulationTestHelper.ll"
             script += "%" + op + " = type opaque\n";
         }
 
-        script += "define i8 @Main() local_unnamed_addr {\nentry:\n";
+        script += "define i8 @Main() local_unnamed_addr #0 {\nentry:\n";
         script += body;
         script += "\n  ret i8 0\n";
         script += "\n}\n\n";
@@ -177,7 +177,7 @@ source_filename = "IrManipulationTestHelper.ll"
         {
             script += "declare " + op + "\n";
         }
-        script += "\nattributes #0 = { \"InteropFriendly\" }\n";
+        script += "\nattributes #0 = { \"EntryPoint\" }\n";
         return script;
     }
 
