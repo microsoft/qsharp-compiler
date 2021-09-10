@@ -70,7 +70,7 @@ module NamespaceContext =
 /// tokens.
 /// </summary>
 type ParameterVisitor(tokens) =
-    inherit QSharpParserBaseVisitor<SymbolBinding>()
+    inherit QSharpParserBaseVisitor<ParameterBinding>()
 
     let typeVisitor = TypeVisitor tokens
 
@@ -84,11 +84,9 @@ type ParameterVisitor(tokens) =
     override _.VisitNamedItem context =
         {
             Name = context.name |> Node.toTerminal tokens
-            Type =
-                { Colon = context.colon |> Node.toTerminal tokens; Type = context.itemType |> typeVisitor.Visit }
-                |> Some
+            Type = { Colon = context.colon |> Node.toTerminal tokens; Type = context.itemType |> typeVisitor.Visit }
         }
-        |> SymbolDeclaration
+        |> ParameterDeclaration
 
     override visitor.VisitParameterTuple context =
         let parameters = context._parameters |> Seq.map visitor.Visit
@@ -99,7 +97,7 @@ type ParameterVisitor(tokens) =
             Items = Node.tupleItems parameters commas
             CloseParen = context.closeParen |> Node.toTerminal tokens
         }
-        |> SymbolTuple
+        |> ParameterTuple
 
 type CallableBodyVisitor(tokens) =
     inherit QSharpParserBaseVisitor<CallableBody>()

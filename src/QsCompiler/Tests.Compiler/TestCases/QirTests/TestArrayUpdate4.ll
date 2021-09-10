@@ -1,8 +1,8 @@
 define internal %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate4__body(%Array* %array) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %array, i32 1)
-  %item = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @6, i32 0, i32 0))
-  %0 = call %String* @__quantum__rt__string_create(i8* null)
+  %item = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @7, i32 0, i32 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @8, i32 0, i32 0))
   %1 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 0)
   %arr = alloca %Array*, align 8
   store %Array* %1, %Array** %arr, align 8

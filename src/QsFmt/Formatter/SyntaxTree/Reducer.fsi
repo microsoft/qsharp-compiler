@@ -132,6 +132,12 @@ type internal 'result Reducer =
     default Return: returns:Return -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="QubitDeclaration"/> statement node.
+    /// </summary>
+    abstract QubitDeclaration : decl: QubitDeclaration -> 'result
+    default QubitDeclaration : decl: QubitDeclaration -> 'result
+
+    /// <summary>
     /// Reduces an <see cref="If"/> statement node.
     /// </summary>
     abstract If: ifs:If -> 'result
@@ -144,16 +150,46 @@ type internal 'result Reducer =
     default Else: elses:Else -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="SymbolBinding"/> node.
+    /// Reduces a <see cref="ParameterBinding"/> node.
     /// </summary>
-    abstract SymbolBinding: binding:SymbolBinding -> 'result
-    default SymbolBinding: binding:SymbolBinding -> 'result
+    abstract ParameterBinding: binding:ParameterBinding -> 'result
+    default ParameterBinding: binding:ParameterBinding -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="SymbolDeclaration"/> node.
+    /// Reduces a <see cref="ParameterDeclaration"/> node.
     /// </summary>
-    abstract SymbolDeclaration: declaration:SymbolDeclaration -> 'result
-    default SymbolDeclaration: declaration:SymbolDeclaration -> 'result
+    abstract ParameterDeclaration: declaration:ParameterDeclaration -> 'result
+    default ParameterDeclaration: declaration:ParameterDeclaration -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="SymbolBinding"/> node.
+    /// </summary>
+    abstract SymbolBinding: symbol:SymbolBinding -> 'result
+    default SymbolBinding: symbol:SymbolBinding -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="QubitBinding"/> node.
+    /// </summary>
+    abstract QubitBinding: binding:QubitBinding -> 'result
+    default QubitBinding: binding:QubitBinding -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="QubitInitializer"/> node.
+    /// </summary>
+    abstract QubitInitializer: initializer:QubitInitializer -> 'result
+    default QubitInitializer: initializer:QubitInitializer -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="SingleQubit"/> node.
+    /// </summary>
+    abstract SingleQubit: newQubit:SingleQubit -> 'result
+    default SingleQubit: newQubit:SingleQubit -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="QubitArray"/> node.
+    /// </summary>
+    abstract QubitArray: newQubits:QubitArray -> 'result
+    default QubitArray: newQubits:QubitArray -> 'result
 
     /// <summary>
     /// Reduces an <see cref="InterpStringContent"/> node.
@@ -190,6 +226,12 @@ type internal 'result Reducer =
     /// </summary>
     abstract NewArray: newArray:NewArray -> 'result
     default NewArray: newArray:NewArray -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="NewSizedArray"/> expression node.
+    /// </summary>
+    abstract NewSizedArray: newSizedArray:NewSizedArray -> 'result
+    default NewSizedArray: newSizedArray:NewSizedArray -> 'result
 
     /// <summary>
     /// Reduces a <see cref="NamedItemAccess"/> expression node.
