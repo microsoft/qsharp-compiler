@@ -1933,11 +1933,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsString)
                 {
-                    var create = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.StringCreate);
-                    var value = this.SharedState.CurrentBuilder.Call(create, this.SharedState.Types.DataArrayPointer.GetNullValue());
-                    var built = this.SharedState.Values.From(value, type);
-                    this.SharedState.ScopeMgr.RegisterValue(built);
-                    return built;
+                    return CreateStringLiteral(this.SharedState, "");
                 }
                 else if (type.Resolution.IsBigInt)
                 {

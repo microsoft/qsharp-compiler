@@ -128,6 +128,12 @@ type internal 'context Rewriter =
     default Return: context:'context * returns:Return -> Return
 
     /// <summary>
+    /// Rewrites a <see cref="QubitDeclaration"/> statement node.
+    /// </summary>
+    abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
+    default QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
+
+    /// <summary>
     /// Rewrites an <see cref="If"/> statement node.
     /// </summary>
     abstract If: context:'context * ifs:If -> If
@@ -140,16 +146,46 @@ type internal 'context Rewriter =
     default Else: context:'context * elses:Else -> Else
 
     /// <summary>
-    /// Rewrites a <see cref="SymbolBinding"/> node.
+    /// Rewrites a <see cref="ParameterBinding"/> node.
     /// </summary>
-    abstract SymbolBinding: context:'context * binding:SymbolBinding -> SymbolBinding
-    default SymbolBinding: context:'context * binding:SymbolBinding -> SymbolBinding
+    abstract ParameterBinding: context:'context * binding:ParameterBinding -> ParameterBinding
+    default ParameterBinding: context:'context * binding:ParameterBinding -> ParameterBinding
 
     /// <summary>
-    /// Rewrites a <see cref="SymbolDeclaration"/> node.
+    /// Rewrites a <see cref="ParameterDeclaration"/> node.
     /// </summary>
-    abstract SymbolDeclaration: context:'context * declaration:SymbolDeclaration -> SymbolDeclaration
-    default SymbolDeclaration: context:'context * declaration:SymbolDeclaration -> SymbolDeclaration
+    abstract ParameterDeclaration: context:'context * declaration:ParameterDeclaration -> ParameterDeclaration
+    default ParameterDeclaration: context:'context * declaration:ParameterDeclaration -> ParameterDeclaration
+
+    /// <summary>
+    /// Rewrites a <see cref="SymbolBinding"/> node.
+    /// </summary>
+    abstract SymbolBinding: context:'context * symbol:SymbolBinding -> SymbolBinding
+    default SymbolBinding: context:'context * symbol:SymbolBinding -> SymbolBinding
+
+    /// <summary>
+    /// Rewrites a <see cref="QubitBinding"/> node.
+    /// </summary>
+    abstract QubitBinding: context:'context * binding:QubitBinding -> QubitBinding
+    default QubitBinding: context:'context * binding:QubitBinding -> QubitBinding
+
+    /// <summary>
+    /// Rewrites a <see cref="QubitInitializer"/> node.
+    /// </summary>
+    abstract QubitInitializer: context:'context * initializer:QubitInitializer -> QubitInitializer
+    default QubitInitializer: context:'context * initializer:QubitInitializer -> QubitInitializer
+
+    /// <summary>
+    /// Rewrites a <see cref="SingleQubit"/> node.
+    /// </summary>
+    abstract SingleQubit: context:'context * newQubit:SingleQubit -> SingleQubit
+    default SingleQubit: context:'context * newQubit:SingleQubit -> SingleQubit
+
+    /// <summary>
+    /// Rewrites a <see cref="QubitArray"/> node.
+    /// </summary>
+    abstract QubitArray: context:'context * newQubits:QubitArray -> QubitArray
+    default QubitArray: context:'context * newQubits:QubitArray -> QubitArray
 
     /// <summary>
     /// Rewrites an <see cref="InterpStringContent"/> node.
@@ -186,6 +222,12 @@ type internal 'context Rewriter =
     /// </summary>
     abstract NewArray: context:'context * newArray:NewArray -> NewArray
     default NewArray: context:'context * newArray:NewArray -> NewArray
+
+    /// <summary>
+    /// Rewrites a <see cref="NewSizedArray"/> expression node.
+    /// </summary>
+    abstract NewSizedArray: context:'context * newSizedArray:NewSizedArray -> NewSizedArray
+    default NewSizedArray: context:'context * newSizedArray:NewSizedArray -> NewSizedArray
 
     /// <summary>
     /// Rewrites a <see cref="NamedItemAccess"/> expression node.

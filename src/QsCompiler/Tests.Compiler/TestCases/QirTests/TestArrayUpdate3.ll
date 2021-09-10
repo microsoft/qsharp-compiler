@@ -48,7 +48,7 @@ condContinue__1:                                  ; preds = %condFalse__1, %exit
   call void @__quantum__rt__array_update_alias_count(%Array* %8, i32 -1)
   %13 = call %Array* @__quantum__rt__array_copy(%Array* %8, i1 false)
   %14 = icmp ne %Array* %8, %13
-  %15 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @5, i32 0, i32 0))
+  %15 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @6, i32 0, i32 0))
   %16 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %13, i64 1)
   %17 = bitcast i8* %16 to %String**
   call void @__quantum__rt__string_update_reference_count(%String* %15, i32 1)

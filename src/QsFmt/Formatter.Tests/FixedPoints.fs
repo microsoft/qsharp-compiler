@@ -10,6 +10,7 @@ open Antlr4.Runtime
 open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.QsFmt.Formatter.Tests
 open Microsoft.Quantum.QsFmt.Parser
+open System
 open System.IO
 open Xunit
 
@@ -31,7 +32,9 @@ let private testCases () =
 [<Theory>]
 [<MemberData "testCases">]
 let ``Identity preserves original source code`` source =
-    Assert.Equal(Ok source |> ShowResult, Formatter.identity source |> ShowResult)
+    let original = Ok source |> ShowResult
+    let transformed = Formatter.identity source |> ShowResult
+    Assert.Equal(original, transformed)
 
 [<FixedPoint>]
 let ``Namespace comments`` =
