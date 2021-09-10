@@ -186,4 +186,44 @@ TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit: 
          "tail call void @__quantum__qis__h__body(%Qubit* %leftMessage.i)",
          "tail call void @__quantum__qis__cnot__body(%Qubit* %leftMessage.i, %Qubit* "
          "%rightMessage.i)"}));
+
+    EXPECT_TRUE(ir_manip->hasInstructionSequence({
+        "%0 = inttoptr i64 2 to %Qubit*",
+        "%1 = inttoptr i64 4 to %Qubit*",
+        "tail call void @__quantum__qis__h__body(%Qubit* %0)",
+        "tail call void @__quantum__qis__cnot__body(%Qubit* %0, %Qubit* %1)",
+        "%2 = inttoptr i64 3 to %Qubit*",
+        "%3 = inttoptr i64 5 to %Qubit*",
+        "tail call void @__quantum__qis__h__body(%Qubit* %2)",
+        "tail call void @__quantum__qis__cnot__body(%Qubit* %2, %Qubit* %3)",
+        "%4 = inttoptr i64 2 to %Qubit*",
+        "%5 = inttoptr i64 4 to %Qubit*",
+        "tail call void @__quantum__qis__cnot__body(%Qubit* %rightMessage.i, %Qubit* %4)",
+        "tail call void @__quantum__qis__h__body(%Qubit* %rightMessage.i)",
+    }));
+
+    EXPECT_TRUE(ir_manip->hasInstructionSequence({
+        "%0 = inttoptr i64 2 to %Qubit*",
+        "%1 = inttoptr i64 4 to %Qubit*",
+        "tail call void @__quantum__qis__h__body(%Qubit* %0)",
+        "tail call void @__quantum__qis__cnot__body(%Qubit* %0, %Qubit* %1)",
+        "%2 = inttoptr i64 3 to %Qubit*",
+        "%3 = inttoptr i64 5 to %Qubit*",
+        "tail call void @__quantum__qis__h__body(%Qubit* %2)",
+        "tail call void @__quantum__qis__cnot__body(%Qubit* %2, %Qubit* %3)",
+        "%4 = inttoptr i64 2 to %Qubit*",
+        "%5 = inttoptr i64 4 to %Qubit*",
+        "tail call void @__quantum__qis__cnot__body(%Qubit* %rightMessage.i, %Qubit* %4)",
+        "tail call void @__quantum__qis__h__body(%Qubit* %rightMessage.i)",
+    }));
+
+    EXPECT_TRUE(ir_manip->hasInstructionSequence({
+        "call void @__quantum__qis__mz__body(%Qubit* %leftMessage.i, %Result* %result.i.i)",
+        "tail call void @__quantum__qis__reset__body(%Qubit* %leftMessage.i)",
+        "%13 = inttoptr i64 5 to %Qubit*",
+        "%result.i1.i = inttoptr i64 5 to %Result*",
+        "call void @__quantum__qis__mz__body(%Qubit* %13, %Result* %result.i1.i)",
+        "tail call void @__quantum__qis__reset__body(%Qubit* %13)",
+        "%14 = tail call %String* @__quantum__rt__result_to_string(%Result* %result.i1.i)",
+    }));
 }
