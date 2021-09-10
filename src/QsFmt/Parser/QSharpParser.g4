@@ -157,8 +157,7 @@ statement
     | 'until' expression (';' | 'fixup' scope) # UntilStatement
     | 'within' scope # WithinStatement
     | 'apply' scope # ApplyStatement
-    | ('use' | 'using') (qubitBinding | '(' qubitBinding ')') (';' | scope) # UseStatement
-    | ('borrow' | 'borrowing') (qubitBinding | '(' qubitBinding ')') (';' | scope) # BorrowStatement
+    | keyword=('use' | 'using' | 'borrow' | 'borrowing') (binding=qubitBinding | openParen='(' binding=qubitBinding closeParen=')') (body=scope | semicolon=';') # QubitDeclaration
     ;
 
 scope : openBrace=BraceLeft statements+=statement* closeBrace=BraceRight;
@@ -187,12 +186,12 @@ updateOperator
 
 forBinding : symbolBinding 'in' expression;
 
-qubitBinding : symbolBinding '=' qubitInitializer;
+qubitBinding : binding=symbolBinding equals='=' value=qubitInitializer;
 
 qubitInitializer
-    : 'Qubit' '(' ')'
-    | 'Qubit' '[' expression ']'
-    | '(' (qubitInitializer (',' qubitInitializer)* ','?)? ')'
+    : qubit='Qubit' openParen='(' closeParen=')' # SingleQubit
+    | qubit='Qubit' openBracket='[' length=expression closeBracket=']' # QubitArray
+    | openParen='(' (initializers+=qubitInitializer (commas+=',' initializers+=qubitInitializer)* ','?)? closeParen=')' # QubitTuple
     ;
 
 // Expression
@@ -210,6 +209,7 @@ expression
     | value=pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
+    | openBracket='[' value=expression comma=',' size=sizeKey equals='=' length=expression closeBracket=']' # SizedArrayExpression
     | new='new' itemType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
     | record=expression colon='::' name=Identifier # NamedItemAccessExpression
     | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression
@@ -236,6 +236,8 @@ expression
     | '...' # OpenRangeExpression
     | record=expression with='w/' item=expression arrow='<-' value=expression # UpdateExpression
     ;
+
+sizeKey : terminal=Identifier {_localctx.terminal.Text == "size"}?;
 
 typeTuple : openBracket='<' (typeArgs+=type (commas+=',' typeArgs+=type)* commas+=','?)? closeBracket='>';
 

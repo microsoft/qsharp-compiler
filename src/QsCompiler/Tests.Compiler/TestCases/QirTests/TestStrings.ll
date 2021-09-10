@@ -115,15 +115,105 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__string_update_reference_count(%String* %37, i32 -1)
   %53 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([8 x i8], [8 x i8]* @12, i32 0, i32 0))
   call void @__quantum__rt__string_update_reference_count(%String* %x, i32 1)
-  %54 = call %String* @__quantum__rt__string_concatenate(%String* %53, %String* %x)
+  %res = call %String* @__quantum__rt__string_concatenate(%String* %53, %String* %x)
   call void @__quantum__rt__string_update_reference_count(%String* %53, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %x, i32 -1)
+  %54 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @13, i32 0, i32 0))
+  %defaultArr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  br label %header__2
+
+header__2:                                        ; preds = %exiting__2, %exit__1
+  %55 = phi i64 [ 0, %exit__1 ], [ %59, %exiting__2 ]
+  %56 = icmp sle i64 %55, 0
+  br i1 %56, label %body__2, label %exit__2
+
+body__2:                                          ; preds = %header__2
+  %57 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %defaultArr, i64 %55)
+  %58 = bitcast i8* %57 to %String**
+  store %String* %54, %String** %58, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %54, i32 1)
+  br label %exiting__2
+
+exiting__2:                                       ; preds = %body__2
+  %59 = add i64 %55, 1
+  br label %header__2
+
+exit__2:                                          ; preds = %header__2
+  call void @__quantum__rt__array_update_alias_count(%Array* %defaultArr, i32 1)
+  %60 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @14, i32 0, i32 0))
+  %strArr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 1)
+  br label %header__3
+
+header__3:                                        ; preds = %exiting__3, %exit__2
+  %61 = phi i64 [ 0, %exit__2 ], [ %65, %exiting__3 ]
+  %62 = icmp sle i64 %61, 0
+  br i1 %62, label %body__3, label %exit__3
+
+body__3:                                          ; preds = %header__3
+  %63 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %strArr, i64 %61)
+  %64 = bitcast i8* %63 to %String**
+  store %String* %60, %String** %64, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %60, i32 1)
+  br label %exiting__3
+
+exiting__3:                                       ; preds = %body__3
+  %65 = add i64 %61, 1
+  br label %header__3
+
+exit__3:                                          ; preds = %header__3
+  call void @__quantum__rt__array_update_alias_count(%Array* %strArr, i32 1)
+  %66 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @15, i32 0, i32 0))
   call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %defaultArr, i32 -1)
+  call void @__quantum__rt__array_update_alias_count(%Array* %strArr, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %x, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %y, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %y, i32 -1)
   call void @__quantum__rt__bigint_update_reference_count(%BigInt* %9, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %i, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %data, i32 -1)
-  ret %String* %54
+  call void @__quantum__rt__string_update_reference_count(%String* %res, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %54, i32 -1)
+  br label %header__4
+
+header__4:                                        ; preds = %exiting__4, %exit__3
+  %67 = phi i64 [ 0, %exit__3 ], [ %72, %exiting__4 ]
+  %68 = icmp sle i64 %67, 0
+  br i1 %68, label %body__4, label %exit__4
+
+body__4:                                          ; preds = %header__4
+  %69 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %defaultArr, i64 %67)
+  %70 = bitcast i8* %69 to %String**
+  %71 = load %String*, %String** %70, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %71, i32 -1)
+  br label %exiting__4
+
+exiting__4:                                       ; preds = %body__4
+  %72 = add i64 %67, 1
+  br label %header__4
+
+exit__4:                                          ; preds = %header__4
+  call void @__quantum__rt__array_update_reference_count(%Array* %defaultArr, i32 -1)
+  call void @__quantum__rt__string_update_reference_count(%String* %60, i32 -1)
+  br label %header__5
+
+header__5:                                        ; preds = %exiting__5, %exit__4
+  %73 = phi i64 [ 0, %exit__4 ], [ %78, %exiting__5 ]
+  %74 = icmp sle i64 %73, 0
+  br i1 %74, label %body__5, label %exit__5
+
+body__5:                                          ; preds = %header__5
+  %75 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %strArr, i64 %73)
+  %76 = bitcast i8* %75 to %String**
+  %77 = load %String*, %String** %76, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %77, i32 -1)
+  br label %exiting__5
+
+exiting__5:                                       ; preds = %body__5
+  %78 = add i64 %73, 1
+  br label %header__5
+
+exit__5:                                          ; preds = %header__5
+  call void @__quantum__rt__array_update_reference_count(%Array* %strArr, i32 -1)
+  ret %String* %66
 }

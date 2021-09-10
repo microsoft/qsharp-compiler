@@ -11,6 +11,9 @@ namespace Microsoft.Quantum.Testing.QIR
         let z = $"{y}";
         let i = $"Constant double {1.2} bool {true} Pauli {PauliX} Result {One} BigInt {1L} Range {0..3}";
         let data = $"{arr}";
-        return $"a+b is {x}";
+        let res = $"a+b is {x}";
+        let defaultArr = new String[1];
+        let strArr = ["hello", size = 1];
+        return "";
     }
 }
