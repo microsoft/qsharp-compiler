@@ -441,7 +441,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // count of the old item is decreased and the one of the new item is increased. CopyAndUpdate
                 // takes care of that when updateItemAliasCount is set to true.
                 var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
-                this.SharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow: true);
+                this.SharedState.ScopeMgr.UnassignFromMutable(pointer, shallow: true);
 
                 QirExpressionKindTransformation.CopyAndUpdate(
                     this.SharedState,
@@ -449,21 +449,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     updateItemAliasCount: true);
                 var value = this.SharedState.ValueStack.Pop();
 
-                this.SharedState.ScopeMgr.IncreaseAliasCount(value, shallow: true);
+                this.SharedState.ScopeMgr.AssignToMutable(value, fromLocalId: null, shallow: true);
                 pointer.StoreValue(value);
             }
             else
             {
-                void RebindVariable(string varName, IValue value)
+                Action<string, IValue> RebindVariable(TypedExpression boundEx) =>
+                    (string varName, IValue value) =>
                     {
                         var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
-                        this.SharedState.ScopeMgr.IncreaseAliasCount(value); // FIXME: TEH REF COUNT INCREASE MUST BE DELAYED IF THE VALUE WAS FRESHLY CONSTRUCTED...
-                        this.SharedState.ScopeMgr.DecreaseAliasCount(pointer);
+                        QirExpressionKindTransformation.AccessViaLocalId(boundEx, out var fromLocalId);
+                        this.SharedState.ScopeMgr.AssignToMutable(value, fromLocalId: fromLocalId);
+                        this.SharedState.ScopeMgr.UnassignFromMutable(pointer);
                         pointer.StoreValue(value);
-                    }
+                    };
 
                 this.BindSymbolTuple(symbols, stm.Rhs, (syms, boundEx) =>
-                    this.BindSymbolTuple(syms, this.SharedState.EvaluateSubexpression(boundEx), RebindVariable));
+                    this.BindSymbolTuple(syms, this.SharedState.EvaluateSubexpression(boundEx), RebindVariable(boundEx)));
             }
 
             return QsStatementKind.EmptyStatement;

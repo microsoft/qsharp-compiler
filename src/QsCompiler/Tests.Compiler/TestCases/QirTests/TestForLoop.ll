@@ -13,8 +13,8 @@ entry:
   %5 = getelementptr inbounds { double, %String* }, { double, %String* }* %4, i32 0, i32 1
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 1)
   %6 = load %String*, %String** %5, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %6, i32 -1)
   store %String* %name, %String** %5, align 8
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %3, i32 1)
   store { double, %String* }* %4, { double, %String* }** %res, align 8
   %energy = alloca double, align 8
@@ -46,8 +46,6 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %6, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
   ret { double, %String* }* %11

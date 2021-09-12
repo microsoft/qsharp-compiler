@@ -22,8 +22,8 @@ repeat__1:                                        ; preds = %continue__1, %entry
   %5 = getelementptr inbounds { double, %String* }, { double, %String* }* %4, i32 0, i32 1
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 1)
   %6 = load %String*, %String** %5, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %6, i32 -1)
   store %String* %name, %String** %5, align 8
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %3, i32 1)
   store { double, %String* }* %4, { double, %String* }** %res, align 8
   %7 = load i64, i64* %n, align 4
@@ -51,8 +51,6 @@ then0__1:                                         ; preds = %fixup__1
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %6, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %9, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
@@ -65,10 +63,9 @@ continue__1:                                      ; preds = %fixup__1
   %15 = bitcast %Tuple* %14 to { double, %String* }*
   %16 = getelementptr inbounds { double, %String* }, { double, %String* }* %15, i32 0, i32 1
   %17 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @3, i32 0, i32 0))
-  call void @__quantum__rt__string_update_reference_count(%String* %17, i32 1)
   %18 = load %String*, %String** %16, align 8
+  call void @__quantum__rt__string_update_reference_count(%String* %18, i32 -1)
   store %String* %17, %String** %16, align 8
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 1)
   store { double, %String* }* %15, { double, %String* }** %res, align 8
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %14, i32 -1)
@@ -77,13 +74,8 @@ continue__1:                                      ; preds = %fixup__1
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %6, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %9, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %17, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %18, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %17, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %14, i32 -1)
   br label %repeat__1
@@ -94,8 +86,6 @@ rend__1:                                          ; preds = %until__1
   call void @__quantum__rt__string_update_reference_count(%String* %0, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %2, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
-  call void @__quantum__rt__string_update_reference_count(%String* %6, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %3, i32 -1)
   call void @__quantum__rt__result_update_reference_count(%Result* %9, i32 -1)
   call void @__quantum__rt__string_update_reference_count(%String* %name, i32 -1)

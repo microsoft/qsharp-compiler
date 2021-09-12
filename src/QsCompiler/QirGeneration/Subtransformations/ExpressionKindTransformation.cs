@@ -247,12 +247,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             bool unreferenceOriginal = false)
         {
             var (originalValue, accEx, updated) = copyAndUpdate;
-            void StoreElement(PointerValue pointer, IValue value, bool shallow = false)
+            AccessViaLocalId(updated, out var fromLocalId);
+
+            void StoreElement(PointerValue pointer, IValue value, string? fromLocalId, bool shallow = false)
             {
                 if (updateItemAliasCount)
                 {
-                    sharedState.ScopeMgr.IncreaseAliasCount(value, shallow);
-                    sharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow);
+                    sharedState.ScopeMgr.AssignToMutable(value, fromLocalId: fromLocalId, shallow: shallow);
+                    sharedState.ScopeMgr.UnassignFromMutable(pointer, shallow: shallow);
                 }
 
                 pointer.StoreValue(value);
@@ -278,7 +280,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
 
                     var newElement = getNewItemForIndex(index);
-                    StoreElement(elementPtr, newElement);
+                    StoreElement(elementPtr, newElement, fromLocalId);
                 }
 
                 if (accEx.ResolvedType.Resolution.IsInt)
@@ -359,7 +361,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         if (depth == location.Count - 1)
                         {
                             var newItemValue = sharedState.EvaluateSubexpression(updated);
-                            StoreElement(itemPointer, newItemValue);
+                            StoreElement(itemPointer, newItemValue, fromLocalId);
                         }
                         else
                         {
@@ -369,7 +371,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             var originalItem = (TupleValue)itemPointer.LoadValue();
                             var copyReturn = GetTupleCopy(originalItem);
                             copies.Push(copyReturn);
-                            StoreElement(itemPointer, copies.Peek(), shallow: true);
+                            StoreElement(itemPointer, copies.Peek(), null, shallow: true);
                         }
                     }
 

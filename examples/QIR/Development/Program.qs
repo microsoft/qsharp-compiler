@@ -13,8 +13,6 @@
 
     // FIXME: ADD MORE HORRIBLE TEST CASES WHERE THE SECOND MUTABLE VARIABLE IS ALSO UPDATED VIA COPY-AND-REASSIGN...
 
-    // FIXME: HORRIBLE, HORRIBLE CASES...
-
     function HorribleCase3(cond1 : Bool, cond2 : Bool, cond3 : Bool) : Unit {
 
         mutable value = [[0], [0,0]];
@@ -49,18 +47,35 @@
         Message($"{value}");
     }
 
+    //function HorribleCase1(cond : Bool) : Unit {
+    //
+    //    mutable value = [[0], [0,0]];
+    //    mutable arr = value;
+    //    set value = [];
+    //
+    //    if cond {
+    //        set arr w/= 0 <- [];
+    //    }
+    //
+    //    Message($"{value}");
+    //    Message($"{arr}");
+    //}
+
     function HorribleCase1(cond : Bool) : Unit {
 
-        mutable value = [[0], [0,0]];
+        mutable value = ["hello", "bye"];
         mutable arr = value;
+        // orig array literal has now alias count 2 and ref count 2
         set value = [];
+        // the empty array has alias count 1 and ref count 1
+        // orig array literal has alias count 1, ref count 2
 
         if cond {
-            set arr w/= 0 <- [];
+            set arr w/= 0 <- "";
         }
 
         Message($"{value}");
-        Message($"{arr}");
+        Message($"{arr[0]}, {arr[1]}"); // FIXME: STRING[] PRINT IS INCORRECT
     }
 
     // TODO: tests for straight out variable update (not copy and update)
@@ -344,6 +359,726 @@
         Message($"{coeffs}");
     }
 
+    newtype Tuple = (Item1 : String, Item2 : String);
+    newtype MyUdt = ((Item1: String, (Item2 : String, Item3 : Tuple)), Item4 : String);
+
+    function TestUdtUpdate1 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        set udt w/= Item1 <- "_";
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate1a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            set udt w/= Item1 <- "_";
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate1b () : Unit {
+
+        let value = "_";
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        set udt w/= Item1 <- value;
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate2 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        set udt w/= Item2 <- "_";
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate2a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            set udt w/= Item2 <- "_";
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate2b () : Unit {
+
+        let value = "_";
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        set udt w/= Item2 <- value;
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate3 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        set udt w/= Item3 <- Tuple("_", "_");
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate3a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            set udt w/= Item3 <- Tuple("_", "_");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate3b () : Unit {
+
+        let value = Tuple("_", "_");
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        set udt w/= Item3 <- value;
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate4 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        set udt w/= Item4 <- "_";
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate4a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            set udt w/= Item4 <- "_";
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate4b () : Unit {
+
+        let value = "_";
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        set udt w/= Item4 <- value;
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate5 () : Unit {
+
+        let value = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(value, "s3b"))), "s4");
+        set udt w/= Item1 <- "_";
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate5a (cond : Bool) : Unit {
+
+        let value = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(value, "s3b"))), "s4");
+        if cond {
+            set udt w/= Item1 <- "_";
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate5b () : Unit {
+
+        let value = "_";
+        let s = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(s, "s3b"))), "s4");
+        set udt w/= Item1 <- value;
+        Message($"{udt}");
+        Message($"{value}, {s}");
+    }
+
+    function TestUdtUpdate6 () : Unit {
+
+        let value = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(value, "s3b"))), "s4");
+        set udt w/= Item2 <- "_";
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate6a (cond : Bool) : Unit {
+
+        let value = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(value, "s3b"))), "s4");
+        if cond {
+            set udt w/= Item2 <- "_";
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate6b () : Unit {
+
+        let value = "_";
+        let s = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(s, "s3b"))), "s4");
+        set udt w/= Item2 <- value;
+        Message($"{udt}");
+        Message($"{value}, {s}");
+    }
+
+    function TestUdtUpdate7 () : Unit {
+
+        let value = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(value, "s3b"))), "s4");
+        set udt w/= Item3 <- Tuple("_", "_");
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate7a (cond : Bool) : Unit {
+
+        let value = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(value, "s3b"))), "s4");
+        if cond {
+            set udt w/= Item3 <- Tuple("_", "_");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate7b () : Unit {
+
+        let value = Tuple("_", "_");
+        let s = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(s, "s3b"))), "s4");
+        set udt w/= Item3 <- value;
+        Message($"{udt}");
+        Message($"{value}, {s}");
+    }
+
+    function TestUdtUpdate8 () : Unit {
+
+        let value = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(value, "s3b"))), "s4");
+        set udt w/= Item4 <- "_";
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate8a (cond : Bool) : Unit {
+
+        let value = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(value, "s3b"))), "s4");
+        if cond {
+            set udt w/= Item4 <- "_";
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate8b () : Unit {
+
+        let value = "_";
+        let s = " ";
+        mutable udt = MyUdt(("s1", ("s2", Tuple(s, "s3b"))), "s4");
+        set udt w/= Item4 <- value;
+        Message($"{udt}");
+        Message($"{value}, {s}");
+    }
+
+    //
+
+    function TestUdtUpdate9 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        mutable orig = udt;
+        set udt w/= Item1 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate9a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        mutable orig = udt;
+        if cond {
+            set udt w/= Item1 <- udt::Item4;
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate9b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            mutable orig = udt;
+            set orig w/= Item1 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate10 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        mutable orig = udt;
+        set udt w/= Item2 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate10a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        mutable orig = udt;
+        if cond {
+            set udt w/= Item2 <- udt::Item4;
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate10b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            mutable orig = udt;
+            set orig w/= Item2 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate11 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        mutable orig = udt;
+        set udt w/= Item3 <- Tuple("_", "_");
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate11a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        mutable orig = udt;
+        if cond {
+            mutable value = Tuple("_", "_");
+            set udt w/= Item3 <- value;
+            set value w/= Item1 <- "";
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate11b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            mutable orig = udt;
+            set orig w/= Item3 <- Tuple("_", "_");
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate12 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        mutable orig = udt;
+        set udt w/= Item4 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate12a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        mutable orig = udt;
+        if cond {
+            set udt w/= Item4 <- udt::Item1;
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate12b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            mutable orig = udt;
+            set orig w/= Item4 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    //
+
+    function TestUdtUpdate13 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        let value = udt::Item3;
+        set udt w/= Item1 <- "_";
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate13a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        let value = udt::Item3;
+        if cond {
+            set udt w/= Item1 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate13b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        if cond {
+            let value = udt::Item3;
+            set udt w/= Item1 <- "_";
+            Message($"{value}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate14 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        let value = udt::Item3;
+        set udt w/= Item2 <- "_";
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate14a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        let value = udt::Item3;
+        if cond {
+            set udt w/= Item2 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate14b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        if cond {
+            let value = udt::Item3;
+            set udt w/= Item2 <- "_";
+            Message($"{value}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate15 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        let value = udt::Item3;
+        set udt w/= Item3 <- Tuple("_", "_");
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate15a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        let value = udt::Item3;
+        if cond {
+            set udt w/= Item3 <- Tuple("_", "_");
+        }
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate15b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        if cond {
+            let value = udt::Item3;
+            set udt w/= Item3 <- Tuple("_", "_");
+            Message($"{value}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate16 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        let value = udt::Item3;
+        set udt w/= Item4 <- "_";
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate16a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        let value = udt::Item3;
+        if cond {
+            set udt w/= Item4 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{value}");
+    }
+
+    function TestUdtUpdate16b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("3a", "s3b"))), "s4");
+        if cond {
+            let value = udt::Item3;
+            set udt w/= Item4 <- "_";
+            Message($"{value}");
+        }
+        Message($"{udt}");
+    }
+
+    //
+
+    function TestUdtUpdate17 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let orig = udt::Item2;
+        set udt w/= Item1 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate17a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let orig = udt::Item2;
+        if cond {
+            set udt w/= Item1 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate17b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            let orig = udt::Item2;
+            set udt w/= Item1 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate18 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let orig = udt::Item2;
+        set udt w/= Item2 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate18a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let orig = udt::Item2;
+        if cond {
+            set udt w/= Item2 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate18b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            let orig = udt::Item2;
+            set udt w/= Item2 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate19 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let orig = udt::Item2;
+        set udt w/= Item3 <- Tuple("_", "_");
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate19a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let orig = udt::Item2;
+        if cond {
+            set udt w/= Item3 <- Tuple("_", "_");
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate19b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            let orig = udt::Item2;
+            set udt w/= Item3 <- Tuple("_", "_");
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate20 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let orig = udt::Item2;
+        set udt w/= Item4 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate20a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let orig = udt::Item2;
+        if cond {
+            set udt w/= Item4 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate20b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            let orig = udt::Item2;
+            set udt w/= Item4 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate21 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let ((_, orig), _) = udt!;
+        set udt w/= Item1 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate21a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let ((_, orig), _) = udt!;
+        if cond {
+            set udt w/= Item1 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate21b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            let ((_, orig), _) = udt!;
+            set udt w/= Item1 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate22 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let ((_, orig), _) = udt!;
+        set udt w/= Item2 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate22a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let ((_, orig), _) = udt!;
+        if cond {
+            set udt w/= Item2 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate22b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            let ((_, orig), _) = udt!;
+            set udt w/= Item2 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate23 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let ((_, orig), _) = udt!;
+        set udt w/= Item3 <- Tuple("_", "_");
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate23a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let ((_, orig), _) = udt!;
+        if cond {
+            set udt w/= Item3 <- Tuple("_", "_");
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate23b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            let ((_, orig), _) = udt!;
+            set udt w/= Item3 <- Tuple("_", "_");
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+    function TestUdtUpdate24 () : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let ((_, orig), _) = udt!;
+        set udt w/= Item4 <- "_";
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate24a (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        let ((_, orig), _) = udt!;
+        if cond {
+            set udt w/= Item4 <- "_";
+        }
+        Message($"{udt}");
+        Message($"{orig}");
+    }
+
+    function TestUdtUpdate24b (cond : Bool) : Unit {
+
+        mutable udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4");
+        if cond {
+            let ((_, orig), _) = udt!;
+            set udt w/= Item4 <- "_";
+            Message($"{orig}");
+        }
+        Message($"{udt}");
+    }
+
+
     @EntryPoint()
     operation RunExample() : String {
 
@@ -361,6 +1096,132 @@
         //// loop 5 is an alias count decrease of coeffs
         //// loop 6 is an alias count decrease of current ret
         //// loop 7 and 8 are the corresponding ref count decreases
+
+        TestUdtUpdate1();
+        TestUdtUpdate2();
+        TestUdtUpdate3();
+        TestUdtUpdate4();
+        TestUdtUpdate5();
+        TestUdtUpdate6();
+        TestUdtUpdate7();
+        TestUdtUpdate8();
+
+        TestUdtUpdate1b();
+        TestUdtUpdate2b();
+        TestUdtUpdate3b();
+        TestUdtUpdate4b();
+        TestUdtUpdate5b();
+        TestUdtUpdate6b();
+        TestUdtUpdate7b();
+        TestUdtUpdate8b();
+
+        TestUdtUpdate1a(true);
+        TestUdtUpdate2a(true);
+        TestUdtUpdate3a(true);
+        TestUdtUpdate4a(true);
+        TestUdtUpdate5a(true);
+        TestUdtUpdate6a(true);
+        TestUdtUpdate7a(true);
+        TestUdtUpdate8a(true);
+
+        TestUdtUpdate1a(false);
+        TestUdtUpdate2a(false);
+        TestUdtUpdate3a(false);
+        TestUdtUpdate4a(false);
+        TestUdtUpdate5a(false);
+        TestUdtUpdate6a(false);
+        TestUdtUpdate7a(false);
+        TestUdtUpdate8a(false);
+
+        TestUdtUpdate9();
+        TestUdtUpdate10();
+        TestUdtUpdate11();
+        TestUdtUpdate12();
+        TestUdtUpdate13();
+        TestUdtUpdate14();
+        TestUdtUpdate15();
+        TestUdtUpdate16();
+
+        TestUdtUpdate9a(true);
+        TestUdtUpdate10a(true);
+        TestUdtUpdate11a(true);
+        TestUdtUpdate12a(true);
+        TestUdtUpdate13a(true);
+        TestUdtUpdate14a(true);
+        TestUdtUpdate15a(true);
+        TestUdtUpdate16a(true);
+
+        TestUdtUpdate9a(false);
+        TestUdtUpdate10a(false);
+        TestUdtUpdate11a(false);
+        TestUdtUpdate12a(false);
+        TestUdtUpdate13a(false);
+        TestUdtUpdate14a(false);
+        TestUdtUpdate15a(false);
+        TestUdtUpdate16a(false);
+
+        TestUdtUpdate9b(true);
+        TestUdtUpdate10b(true);
+        TestUdtUpdate11b(true);
+        TestUdtUpdate12b(true);
+        TestUdtUpdate13b(true);
+        TestUdtUpdate14b(true);
+        TestUdtUpdate15b(true);
+        TestUdtUpdate16b(true);
+
+        TestUdtUpdate9b(false);
+        TestUdtUpdate10b(false);
+        TestUdtUpdate11b(false);
+        TestUdtUpdate12b(false);
+        TestUdtUpdate13b(false);
+        TestUdtUpdate14b(false);
+        TestUdtUpdate15b(false);
+        TestUdtUpdate16b(false);
+
+        TestUdtUpdate17();
+        TestUdtUpdate18();
+        TestUdtUpdate19();
+        TestUdtUpdate20();
+        TestUdtUpdate21();
+        TestUdtUpdate22();
+        TestUdtUpdate23();
+        TestUdtUpdate24();
+
+        TestUdtUpdate17a(true);
+        TestUdtUpdate18a(true);
+        TestUdtUpdate19a(true);
+        TestUdtUpdate20a(true);
+        TestUdtUpdate21a(true);
+        TestUdtUpdate22a(true);
+        TestUdtUpdate23a(true);
+        TestUdtUpdate24a(true);
+
+        TestUdtUpdate17a(false);
+        TestUdtUpdate18a(false);
+        TestUdtUpdate19a(false);
+        TestUdtUpdate20a(false);
+        TestUdtUpdate21a(false);
+        TestUdtUpdate22a(false);
+        TestUdtUpdate23a(false);
+        TestUdtUpdate24a(false);
+
+        TestUdtUpdate17b(true);
+        TestUdtUpdate18b(true);
+        TestUdtUpdate19b(true);
+        TestUdtUpdate20b(true);
+        TestUdtUpdate21b(true);
+        TestUdtUpdate22b(true);
+        TestUdtUpdate23b(true);
+        TestUdtUpdate24b(true);
+
+        TestUdtUpdate17b(false);
+        TestUdtUpdate18b(false);
+        TestUdtUpdate19b(false);
+        TestUdtUpdate20b(false);
+        TestUdtUpdate21b(false);
+        TestUdtUpdate22b(false);
+        TestUdtUpdate23b(false);
+        TestUdtUpdate24b(false);
 
         TestArray1();
         TestArray2();

@@ -33,13 +33,12 @@ then0__1:                                         ; preds = %entry
   %13 = getelementptr inbounds { %String*, { double, double }*, { double, double }* }, { %String*, { double, double }*, { double, double }* }* %12, i32 0, i32 1
   %14 = call { double, double }* @Microsoft__Quantum__Testing__QIR__Complex__body(double 0.000000e+00, double 0.000000e+00)
   %15 = bitcast { double, double }* %14 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %15, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %15, i32 1)
   %16 = load { double, double }*, { double, double }** %13, align 8
   %17 = bitcast { double, double }* %16 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %17, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i32 -1)
   store { double, double }* %14, { double, double }** %13, align 8
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %11, i32 1)
   store { %String*, { double, double }*, { double, double }* }* %12, { %String*, { double, double }*, { double, double }* }** %namedValue, align 8
   br i1 %cond, label %then0__2, label %continue__2
@@ -51,19 +50,15 @@ then0__2:                                         ; preds = %then0__1
   %20 = getelementptr inbounds { %String*, { double, double }*, { double, double }* }, { %String*, { double, double }*, { double, double }* }* %19, i32 0, i32 1
   %21 = call { double, double }* @Microsoft__Quantum__Testing__QIR__Complex__body(double 1.000000e+00, double 0.000000e+00)
   %22 = bitcast { double, double }* %21 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %22, i32 1)
   %23 = load { double, double }*, { double, double }** %20, align 8
   %24 = bitcast { double, double }* %23 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %24, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %24, i32 -1)
   store { double, double }* %21, { double, double }** %20, align 8
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %18, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %18, i32 1)
   store { %String*, { double, double }*, { double, double }* }* %19, { %String*, { double, double }*, { double, double }* }** %namedValue, align 8
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %22, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %24, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %18, i32 -1)
   br label %continue__2
 
 continue__2:                                      ; preds = %then0__2, %then0__1
@@ -76,22 +71,17 @@ continue__2:                                      ; preds = %then0__2, %then0__1
   %30 = getelementptr inbounds { %String*, { double, double }*, { double, double }* }, { %String*, { double, double }*, { double, double }* }* %25, i32 0, i32 1
   %31 = load { double, double }*, { double, double }** %30, align 8
   %32 = bitcast { double, double }* %31 to %Tuple*
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %32, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %32, i32 1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %32, i32 1)
   %33 = load { double, double }*, { double, double }** %29, align 8
   %34 = bitcast { double, double }* %33 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %34, i32 -1)
+  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %34, i32 -1)
   store { double, double }* %31, { double, double }** %29, align 8
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %27, i32 1)
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %27, i32 1)
   store { %String*, { double, double }*, { double, double }* }* %28, { %String*, { double, double }*, { double, double }* }** %namedValue, align 8
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %6, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %15, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %17, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %11, i32 -1)
   call void @__quantum__rt__tuple_update_reference_count(%Tuple* %26, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %34, i32 -1)
-  call void @__quantum__rt__tuple_update_reference_count(%Tuple* %27, i32 -1)
   br label %continue__1
 
 continue__1:                                      ; preds = %continue__2, %entry
