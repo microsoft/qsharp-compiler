@@ -305,6 +305,7 @@ type 'context Rewriter() =
         | InterpString interp -> rewriter.InterpString(context, interp) |> InterpString
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
         | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
+        | NewSizedArray newSizedArray -> rewriter.NewSizedArray(context, newSizedArray) |> NewSizedArray
         | NamedItemAccess namedItemAccess -> rewriter.NamedItemAccess(context, namedItemAccess) |> NamedItemAccess
         | ArrayAccess arrayAccess -> rewriter.ArrayAccess(context, arrayAccess) |> ArrayAccess
         | Call call -> rewriter.Call(context, call) |> Call
@@ -343,6 +344,19 @@ type 'context Rewriter() =
             OpenBracket = rewriter.Terminal(context, newArray.OpenBracket)
             Length = rewriter.Expression(context, newArray.Length)
             CloseBracket = rewriter.Terminal(context, newArray.CloseBracket)
+        }
+
+    abstract NewSizedArray : context: 'context * newSizedArray: NewSizedArray -> NewSizedArray
+
+    default rewriter.NewSizedArray(context, newSizedArray) =
+        {
+            OpenBracket = rewriter.Terminal(context, newSizedArray.OpenBracket)
+            Value = rewriter.Expression(context, newSizedArray.Value)
+            Comma = rewriter.Terminal(context, newSizedArray.Comma)
+            Size = rewriter.Terminal(context, newSizedArray.Size)
+            Equals = rewriter.Terminal(context, newSizedArray.Equals)
+            Length = rewriter.Expression(context, newSizedArray.Length)
+            CloseBracket = rewriter.Terminal(context, newSizedArray.CloseBracket)
         }
 
     abstract NamedItemAccess : context: 'context * namedItemAccess: NamedItemAccess -> NamedItemAccess

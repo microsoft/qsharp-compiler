@@ -133,3 +133,175 @@ let qubitBindingUpdate =
                         rewriter.Block((), rewriter.Statement, block) |> Block.mapPrefix ((@) closeTrivia) |> Block
             }
     }
+
+let unitUpdate =
+    { new Rewriter<_>() with
+        override _.Type((), typ) =
+            let updated =
+                match typ with
+                | Type.Tuple tuple when Seq.isEmpty tuple.Items ->
+                    { Prefix = tuple.OpenParen.Prefix; Text = "Unit" } |> Type.BuiltIn
+                | _ -> typ
+
+            base.Type((), updated)
+    }
+
+let arraySyntaxUpdate =
+
+    let getBuiltInDefault builtIn =
+        match builtIn.Text with
+        | "Unit" -> { Prefix = []; Text = "()" } |> Literal |> Some
+        | "Int" -> { Prefix = []; Text = "0" } |> Literal |> Some
+        | "BigInt" -> { Prefix = []; Text = "0L" } |> Literal |> Some
+        | "Double" -> { Prefix = []; Text = "0.0" } |> Literal |> Some
+        | "Bool" -> { Prefix = []; Text = "false" } |> Literal |> Some
+        | "String" -> { Prefix = []; Text = "\"\"" } |> Literal |> Some
+        | "Result" -> { Prefix = []; Text = "Zero" } |> Literal |> Some
+        | "Pauli" -> { Prefix = []; Text = "PauliI" } |> Literal |> Some
+        | "Range" -> { Prefix = []; Text = "1..0" } |> Literal |> Some // ToDo: Double-check that this literal is correct
+        | _ -> None // TODO: Throw Warning
+
+    let rec getDefaultValue (``type``: Type) =
+        let space = " " |> Trivia.ofString
+
+        match ``type`` with
+        | Type.BuiltIn builtIn -> getBuiltInDefault builtIn
+        | Type.Tuple tuple ->
+            let items =
+                tuple.Items
+                |> List.mapi
+                    (fun i item ->
+                        match item.Item with
+                        | Some t ->
+                            // When Item has a value, map the Type to and Expression, if valid
+                            match getDefaultValue t with
+                            | Some value ->
+                                // If the Type was mapped to an Expression successfully, create an Expression-SequenceItem
+                                {
+                                    Item =
+                                        // For all items after the first, we need to inject a space before each item
+                                        // For example: (0,0) goes to (0, 0)
+                                        if i > 0 then
+                                            value |> Expression.mapPrefix ((@) space) |> Some
+                                        else
+                                            value |> Some
+                                    Comma = item.Comma
+                                }
+                                |> Some
+                            | None -> None
+                        | None ->
+                            // A Type-SequenceItem object with Item=None becomes an Expression-SequenceItem with Item=None
+                            // ToDo: Don't know what the use-case is for an Item of None
+                            { Item = None; Comma = item.Comma } |> Some)
+            // If any of the items are None (which means invalid for update) return None
+            if items |> List.forall Option.isSome then
+                {
+                    OpenParen = { Prefix = []; Text = tuple.OpenParen.Text }
+                    Items = items |> List.choose id
+                    CloseParen = { Prefix = []; Text = tuple.CloseParen.Text }
+                }
+                |> Tuple
+                |> Some
+            else
+                None
+        | Type.Array arrayType ->
+            arrayType.ItemType
+            |> getDefaultValue
+            |> Option.map
+                (fun value ->
+                    {
+                        OpenBracket = { Prefix = []; Text = arrayType.OpenBracket.Text }
+                        Value = value
+                        Comma = { Prefix = []; Text = "," }
+                        Size = { Prefix = space; Text = "size" }
+                        Equals = { Prefix = space; Text = "=" }
+                        Length = { Prefix = space; Text = "0" } |> Literal
+                        CloseBracket = { Prefix = []; Text = arrayType.CloseBracket.Text }
+                    }
+                    |> NewSizedArray)
+        | _ -> None
+
+    { new Rewriter<_>() with
+        override rewriter.Expression(_, expression) =
+            let space = " " |> Trivia.ofString
+
+            match expression with
+            | NewArray newArray ->
+                match getDefaultValue newArray.ItemType with
+                | Some value ->
+                    {
+                        OpenBracket =
+                            rewriter.Terminal(
+                                (),
+                                newArray.OpenBracket |> Terminal.mapPrefix (fun _ -> newArray.New.Prefix)
+                            )
+                        Value = value
+                        Comma = rewriter.Terminal((), { Prefix = []; Text = "," })
+                        Size = rewriter.Terminal((), { Prefix = space; Text = "size" })
+                        Equals = rewriter.Terminal((), { Prefix = space; Text = "=" })
+                        Length = rewriter.Expression((), newArray.Length |> Expression.mapPrefix ((@) space))
+                        CloseBracket = rewriter.Terminal((), newArray.CloseBracket)
+                    }
+                    |> NewSizedArray
+                | None -> newArray |> NewArray // If the conversion is invalid, just leave the node as-is
+            | _ -> base.Expression((), expression)
+    }
+
+let updateChecker document =
+    let mutable lineNumber = 1
+    let mutable charNumber = 1
+
+    let processPrefix prefix =
+        let mutable lines = 0
+        let mutable characters = 0
+
+        for trivia in prefix do
+            match trivia with
+            | Whitespace space -> characters <- characters + space.Length
+            | NewLine _ ->
+                lines <- lines + 1
+                characters <- 0
+            | Comment comment -> characters <- characters + comment.Length
+
+        lines, characters
+
+    let reducer =
+        { new Reducer<string list>() with
+            override _.Combine(x, y) = x @ y
+
+            override _.Terminal terminal =
+                let lines, characters = processPrefix terminal.Prefix
+
+                if lines > 0 then
+                    lineNumber <- lineNumber + lines
+                    charNumber <- 1 + characters + terminal.Text.Length
+                else
+                    charNumber <- charNumber + characters + terminal.Text.Length
+
+                []
+
+            override reducer.Expression expression =
+                match expression with
+                | NewArray newArray ->
+                    let lineBefore, charBefore = lineNumber, charNumber
+                    let prefixLines, prefixChars = processPrefix newArray.New.Prefix
+                    let subWarnings = base.Expression expression
+
+                    let warning =
+                        sprintf
+                            "Warning: Unable to updated deprecated new array syntax from line %i, character %i to line %i, character %i."
+                            (lineBefore + prefixLines)
+                            (charBefore + prefixChars)
+                            lineNumber
+                            charNumber
+
+                    reducer.Combine(subWarnings, [ warning ])
+                | _ -> base.Expression expression
+
+            override _.Document document =
+                lineNumber <- 1
+                charNumber <- 1
+                base.Document document
+        }
+
+    reducer.Document document
