@@ -29,6 +29,10 @@ public:
   ~Profile() = default;
   /// @}
 
+  void apply(llvm::Module &module);
+  bool verify(llvm::Module &module);
+  void setModulePassManager(llvm::ModulePassManager &&manager);
+
   /// Acccess member functions
   /// @{
   llvm::PassBuilder &            passBuilder();
@@ -46,6 +50,8 @@ private:
   llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
   llvm::ModuleAnalysisManager   module_analysis_manager_;
   /// @}
+
+  llvm::ModulePassManager module_pass_manager_{};
 };
 
 }  // namespace quantum

@@ -18,7 +18,7 @@ DefaultProfileGenerator::DefaultProfileGenerator()
 {
   registerProfileComponent<RuleTransformationPassConfiguration>(
       "transformation-rules",
-      [this](RuleTransformationPassConfiguration const &config, IProfileGenerator *ptr) {
+      [this](RuleTransformationPassConfiguration const &config, IProfileGenerator *ptr, Profile &) {
         auto &ret = ptr->modulePassManager();
 
         // Defining the mapping
@@ -31,7 +31,7 @@ DefaultProfileGenerator::DefaultProfileGenerator()
       });
 
   registerProfileComponent<LlvmPassesConfiguration>(
-      "llvm-passes", [](LlvmPassesConfiguration const &config, IProfileGenerator *ptr) {
+      "llvm-passes", [](LlvmPassesConfiguration const &config, IProfileGenerator *ptr, Profile &) {
         // Configuring LLVM passes
         if (config.alwaysInline())
         {
@@ -52,8 +52,8 @@ DefaultProfileGenerator::DefaultProfileGenerator(
     LlvmPassesConfiguration const &            llvm_config)
 {
   registerProfileComponent<RuleTransformationPassConfiguration>(
-      "Transformation rules",
-      [configure](RuleTransformationPassConfiguration const &config, IProfileGenerator *ptr) {
+      "Transformation rules", [configure](RuleTransformationPassConfiguration const &config,
+                                          IProfileGenerator *ptr, Profile &) {
         // Defining the mapping
         auto &  ret = ptr->modulePassManager();
         RuleSet rule_set;
@@ -65,7 +65,7 @@ DefaultProfileGenerator::DefaultProfileGenerator(
       });
 
   registerProfileComponent<LlvmPassesConfiguration>(
-      "llvm-passes", [](LlvmPassesConfiguration const &config, IProfileGenerator *ptr) {
+      "llvm-passes", [](LlvmPassesConfiguration const &config, IProfileGenerator *ptr, Profile &) {
         // Configuring LLVM passes
         if (config.alwaysInline())
         {

@@ -126,18 +126,10 @@ int main(int argc, char **argv)
 
     // Checking if we are asked to generate a new QIR. If so, we will use
     // the profile to setup passes to
+    auto profile = generator->newProfile(optimisation_level, config.debug());
     if (config.generate())
     {
-      // Creating pass builder
-      Profile analyser{config.debug()};
-
-      // Preparing pass for generation based on profile
-      generator->addFunctionAnalyses(analyser.functionAnalysisManager());
-      auto module_pass_manager = generator->createGenerationModulePass(
-          analyser.passBuilder(), optimisation_level, config.debug());
-
-      // Running the pass built by the profile
-      module_pass_manager.run(*module, analyser.moduleAnalysisManager());
+      profile.apply(*module);
 
       // Priniting either human readible LL code or byte
       // code as a result, depending on the users preference.
@@ -145,25 +137,18 @@ int main(int argc, char **argv)
       {
         llvm::errs() << *module << "\n";
       }
-      else
-      {
-        llvm::errs() << "Byte code ouput is not supported yet. Please add -S to get human readible "
-                        "LL code.\n";
-      }
-
-      // Verifying the module.
-      if (config.verifyModule())
-      {
-        llvm::VerifierAnalysis verifier;
-        auto                   result = verifier.run(*module, analyser.moduleAnalysisManager());
-        if (result.IRBroken)
-        {
-          llvm::errs() << "IR is broken."
-                       << "\n";
-          exit(-1);
-        }
-      }
     }
+
+    // Verifying the module.
+    if (config.verifyModule())
+    {
+      if(!profile.verify(*module))
+      {
+        llvm::errs() << "IR is broken."
+                     << "\n";
+        exit(-1);
+      }
+    }    
 
     if (config.validate())
     {

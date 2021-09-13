@@ -26,6 +26,23 @@ Profile::Profile(bool debug)
                                      gscc_analysis_manager_, module_analysis_manager_);
 }
 
+void Profile::apply(llvm::Module &module)
+{
+  module_pass_manager_.run(module, module_analysis_manager_);
+}
+
+bool Profile::verify(llvm::Module &module)
+{
+  llvm::VerifierAnalysis verifier;
+  auto                   result = verifier.run(module, module_analysis_manager_);
+  return !result.IRBroken;
+}
+
+void Profile::setModulePassManager(llvm::ModulePassManager &&manager)
+{
+  module_pass_manager_ = std::move(manager);
+}
+
 llvm::PassBuilder &Profile::passBuilder()
 {
   return pass_builder_;
