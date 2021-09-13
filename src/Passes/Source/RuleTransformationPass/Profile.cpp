@@ -431,8 +431,6 @@ namespace quantum
 
     void RuleTransformationPass::runDeleteDeadCode(llvm::Module&, llvm::ModuleAnalysisManager&)
     {
-        std::vector<llvm::Instruction*> to_delete;
-
         // Removing all function references and scheduling blocks for deletion
         for (auto& function : functions_to_delete_)
         {
@@ -442,14 +440,32 @@ namespace quantum
             function->clearGC();
             function->clearMetadata();
 
+            // Deleteing blocks in reverse order
+            std::vector<llvm::BasicBlock*> blocks;
             for (auto& block : *function)
             {
-                llvm::errs() << "REMOVING" << block << "\n";
-                // Removing all instructions
+                blocks.push_back(&block);
+            }
+
+            // Removing backwards to avoid segfault
+            for (auto it = blocks.rbegin(); it != blocks.rend(); ++it)
+            {
+                auto& block = **it;
+                // Deleting instructions in reverse order (needed bauase it is a DAG structure)
+                std::vector<llvm::Instruction*> instructions;
                 for (auto& instr : block)
                 {
+                    instructions.push_back(&instr);
+                }
+
+                // Removing all instructions
+                for (auto it2 = instructions.rbegin(); it2 != instructions.rend(); ++it2)
+                {
+                    auto& instr = **it2;
+                    llvm::errs() << " -- " << instr << "\n";
                     instr.replaceAllUsesWith(llvm::UndefValue::get(instr.getType()));
-                    to_delete.push_back(&instr);
+                    instr.eraseFromParent();
+                    // to_delete.push_back(&instr);
                 }
 
                 // Removing all block references
@@ -458,12 +474,6 @@ namespace quantum
                 // Scheduling block deletion
                 blocks_to_delete_.push_back(&block);
             }
-        }
-
-        // Removing all instructions
-        for (auto& instr : to_delete)
-        {
-            instr->eraseFromParent();
         }
 
         // Deleting all blocks

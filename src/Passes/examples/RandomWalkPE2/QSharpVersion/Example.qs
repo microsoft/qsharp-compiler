@@ -2,6 +2,16 @@ namespace Microsoft.Quantum.Qir.Emission {
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;
     open Microsoft.Quantum.Measurement;
+
+
+    operation RzPi (theta : Double, qubit : Qubit) : Unit {
+        body intrinsic;
+    }
+
+    operation CRzPi (theta : Double, qubit : Qubit, target : Qubit) : Unit {
+        body intrinsic;
+    }
+
     // Model parameters used in this program are expressed in units of π / 2, such that
     // φ = 1 indicates an eigenphase of π / 2. Since we work in terms of the
     // standard deviation and not the variance, all quantities other than the
