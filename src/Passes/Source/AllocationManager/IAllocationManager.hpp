@@ -9,21 +9,23 @@
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-class IAllocationManager
+namespace microsoft
 {
-public:
-  using Address              = uint64_t;
-  using Index                = uint64_t;
-  using String               = std::string;
-  using AllocationManagerPtr = std::shared_ptr<IAllocationManager>;
+namespace quantum
+{
 
-  virtual ~IAllocationManager();
-  virtual Address allocate(String const &name = "", Index const &size = 1) = 0;
-  virtual void    release(Address const &address)                          = 0;
-};
+    class IAllocationManager
+    {
+      public:
+        using Address              = uint64_t;
+        using Index                = uint64_t;
+        using String               = std::string;
+        using AllocationManagerPtr = std::shared_ptr<IAllocationManager>;
 
-}  // namespace quantum
-}  // namespace microsoft
+        virtual ~IAllocationManager();
+        virtual Address allocate(String const& name = "", Index const& size = 1) = 0;
+        virtual void    release(Address const& address)                          = 0;
+    };
+
+} // namespace quantum
+} // namespace microsoft

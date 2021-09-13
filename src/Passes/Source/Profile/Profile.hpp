@@ -4,55 +4,57 @@
 
 #include "Llvm/Llvm.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-class Profile
+namespace microsoft
 {
-public:
-  /// Constructors
-  /// @{
-  explicit Profile(bool debug);
+namespace quantum
+{
 
-  // Default construction not allowed as this leads
-  // to invalid configuration of the managers.
-  Profile() = delete;
+    class Profile
+    {
+      public:
+        /// Constructors
+        /// @{
+        explicit Profile(bool debug);
 
-  // Copy construction prohibited due to restrictions
-  // on the member variables.
-  Profile(Profile const &) = delete;
+        // Default construction not allowed as this leads
+        // to invalid configuration of the managers.
+        Profile() = delete;
 
-  // Prefer move construction at all times.
-  Profile(Profile &&) = default;
+        // Copy construction prohibited due to restrictions
+        // on the member variables.
+        Profile(Profile const&) = delete;
 
-  // Default deconstruction.
-  ~Profile() = default;
-  /// @}
+        // Prefer move construction at all times.
+        Profile(Profile&&) = default;
 
-  void apply(llvm::Module &module);
-  bool verify(llvm::Module &module);
-  void setModulePassManager(llvm::ModulePassManager &&manager);
+        // Default deconstruction.
+        ~Profile() = default;
+        /// @}
 
-  /// Acccess member functions
-  /// @{
-  llvm::PassBuilder &            passBuilder();
-  llvm::LoopAnalysisManager &    loopAnalysisManager();
-  llvm::FunctionAnalysisManager &functionAnalysisManager();
-  llvm::CGSCCAnalysisManager &   gsccAnalysisManager();
-  llvm::ModuleAnalysisManager &  moduleAnalysisManager();
-  /// @}
-private:
-  /// Objects used to run a set of passes
-  /// @{
-  llvm::PassBuilder             pass_builder_;
-  llvm::LoopAnalysisManager     loop_analysis_manager_;
-  llvm::FunctionAnalysisManager function_analysis_manager_;
-  llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
-  llvm::ModuleAnalysisManager   module_analysis_manager_;
-  /// @}
+        void apply(llvm::Module& module);
+        bool verify(llvm::Module& module);
+        void setModulePassManager(llvm::ModulePassManager&& manager);
 
-  llvm::ModulePassManager module_pass_manager_{};
-};
+        /// Acccess member functions
+        /// @{
+        llvm::PassBuilder&             passBuilder();
+        llvm::LoopAnalysisManager&     loopAnalysisManager();
+        llvm::FunctionAnalysisManager& functionAnalysisManager();
+        llvm::CGSCCAnalysisManager&    gsccAnalysisManager();
+        llvm::ModuleAnalysisManager&   moduleAnalysisManager();
+        /// @}
+      private:
+        /// Objects used to run a set of passes
+        /// @{
+        llvm::PassBuilder             pass_builder_;
+        llvm::LoopAnalysisManager     loop_analysis_manager_;
+        llvm::FunctionAnalysisManager function_analysis_manager_;
+        llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
+        llvm::ModuleAnalysisManager   module_analysis_manager_;
+        /// @}
 
-}  // namespace quantum
-}  // namespace microsoft
+        llvm::ModulePassManager module_pass_manager_{};
+    };
+
+} // namespace quantum
+} // namespace microsoft
