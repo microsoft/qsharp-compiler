@@ -247,7 +247,7 @@ let private generateAzurePayloadMethod context entryPoint parameters =
         ]
         ``)``
         [ ``public`` ]
-        (Some(``=>`` (ident ("Task") <.> (ident "Run", [``() =>`` [] (0 |> literal) :> ExpressionSyntax]))))
+        (Some(``=>`` (ident ("System.Threading.Tasks.Task") <.> (ident "Run", [``() =>`` [] (0 |> literal) :> ExpressionSyntax]))))
 
 /// Generates the Submit method for an entry point class.
 let private submitMethod context entryPoint parameters =
