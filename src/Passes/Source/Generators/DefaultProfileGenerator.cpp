@@ -30,7 +30,7 @@ namespace quantum
                 factory.usingConfiguration(configurationManager().get<FactoryConfiguration>());
 
                 // Creating profile pass
-                ret.addPass(RuleTransformationPass(std::move(rule_set), config));
+                ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
             });
 
         registerProfileComponent<LlvmPassesConfiguration>(
@@ -55,7 +55,7 @@ namespace quantum
         LlvmPassesConfiguration const&             llvm_config)
     {
         registerProfileComponent<RuleTransformationPassConfiguration>(
-            "Transformation rules",
+            "transformation-rules",
             [configure](RuleTransformationPassConfiguration const& config, IProfileGenerator* ptr, Profile& profile) {
                 // Defining the mapping
                 auto&   ret = ptr->modulePassManager();
@@ -65,7 +65,7 @@ namespace quantum
                 configure(rule_set);
 
                 // Creating profile pass
-                ret.addPass(RuleTransformationPass(std::move(rule_set), config));
+                ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
             });
 
         registerProfileComponent<LlvmPassesConfiguration>(

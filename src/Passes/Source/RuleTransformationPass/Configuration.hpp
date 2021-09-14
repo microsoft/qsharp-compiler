@@ -20,6 +20,7 @@ namespace quantum
         bool        transformExecutionPathOnly() const;
         uint64_t    maxRecursion() const;
         bool        reuseQubits() const;
+        bool        annotateQubitUse() const;
         bool        groupMeasurements() const;
         bool        oneShotMeasurement() const;
         std::string entryPointAttr() const;
@@ -43,6 +44,7 @@ namespace quantum
         /// Allocation options
         /// @{
         bool reuse_qubits_{true}; // NOT IMPLEMENTED
+        bool annotate_qubit_use_{true};
         /// @}
 
         /// Measurement

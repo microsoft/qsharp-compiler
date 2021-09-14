@@ -13,13 +13,13 @@ namespace quantum
     Profile::Profile(
         bool                 debug,
         AllocationManagerPtr qubit_allocation_manager,
-        AllocationManagerPtr results_allocation_manager)
+        AllocationManagerPtr result_allocation_manager)
       : loop_analysis_manager_{debug}
       , function_analysis_manager_{debug}
       , gscc_analysis_manager_{debug}
       , module_analysis_manager_{debug}
       , qubit_allocation_manager_{qubit_allocation_manager}
-      , results_allocation_manager_{results_allocation_manager}
+      , result_allocation_manager_{result_allocation_manager}
 
     {
 
@@ -44,6 +44,16 @@ namespace quantum
         llvm::VerifierAnalysis verifier;
         auto                   result = verifier.run(module, module_analysis_manager_);
         return !result.IRBroken;
+    }
+
+    Profile::AllocationManagerPtr Profile::getQubitAllocationManager()
+    {
+        return qubit_allocation_manager_;
+    }
+
+    Profile::AllocationManagerPtr Profile::getResultAllocationManager()
+    {
+        return result_allocation_manager_;
     }
 
     void Profile::setModulePassManager(llvm::ModulePassManager&& manager)

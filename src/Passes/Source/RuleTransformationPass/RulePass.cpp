@@ -462,7 +462,6 @@ namespace quantum
                 for (auto it2 = instructions.rbegin(); it2 != instructions.rend(); ++it2)
                 {
                     auto& instr = **it2;
-                    llvm::outs() << " -- " << instr << "\n";
                     instr.replaceAllUsesWith(llvm::UndefValue::get(instr.getType()));
                     instr.eraseFromParent();
                     // to_delete.push_back(&instr);
@@ -574,6 +573,13 @@ namespace quantum
                     }
                     return value;
                 });
+
+                if (config_.annotateQubitUse())
+                {
+                    std::stringstream ss{""};
+                    ss << profile_->getQubitAllocationManager()->maxRegistersUsed();
+                    function.addFnAttr("requiredQubits", ss.str());
+                }
             }
         }
 

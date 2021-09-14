@@ -21,8 +21,8 @@ namespace quantum
         /// @{
         Profile(
             bool                 debug,
-            AllocationManagerPtr qubit_allocation_manager   = BasicAllocationManager::createNew(),
-            AllocationManagerPtr results_allocation_manager = BasicAllocationManager::createNew());
+            AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
+            AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());
 
         // Default construction not allowed as this leads
         // to invalid configuration of the managers.
@@ -67,7 +67,7 @@ namespace quantum
         llvm::ModulePassManager module_pass_manager_{};
 
         AllocationManagerPtr qubit_allocation_manager_{};
-        AllocationManagerPtr results_allocation_manager_{};
+        AllocationManagerPtr result_allocation_manager_{};
     };
 
 } // namespace quantum
