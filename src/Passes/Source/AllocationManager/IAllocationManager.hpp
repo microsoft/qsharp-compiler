@@ -25,6 +25,16 @@ namespace quantum
         virtual ~IAllocationManager();
         virtual Address allocate(String const& name = "", Index const& size = 1) = 0;
         virtual void    release(Address const& address)                          = 0;
+
+        uint64_t registersInUse() const;
+        uint64_t maxRegistersUsed() const;
+
+      protected:
+        void updateRegistersInUsed(uint64_t n);
+
+      private:
+        uint64_t registers_in_use_{0};
+        uint64_t max_registers_used_{0};
     };
 
 } // namespace quantum
