@@ -228,6 +228,12 @@ type internal 'result Reducer =
     default NewArray: newArray:NewArray -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="NewSizedArray"/> expression node.
+    /// </summary>
+    abstract NewSizedArray: newSizedArray:NewSizedArray -> 'result
+    default NewSizedArray: newSizedArray:NewSizedArray -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="NamedItemAccess"/> expression node.
     /// </summary>
     abstract NamedItemAccess: namedItemAccess:NamedItemAccess -> 'result

@@ -167,6 +167,12 @@ module Discoverer =
         do examples |> Seq.choose Example.toFixedPoint |> Seq.append fixedPoints |> Seq.iter data.Add
 
     /// <summary>
+    /// Ensures that the new line characters will conform to the standard of the environment's new line character.
+    /// </summary>
+    let standardizeNewLines (s: string) =
+        s.Replace("\r", "").Replace("\n", Environment.NewLine)
+
+    /// <summary>
     /// Asserts that the auto-discovered <see cref="Example"/> format test cases change from their
     /// 'Before' state to their 'After' state under formatting.
     /// </summary>
@@ -186,7 +192,10 @@ module Discoverer =
     let ``Code is updated correctly`` example =
         match example.Skip with
         | Some reason -> Skip.If(true, reason)
-        | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.update example.Before |> ShowResult)
+        | None ->
+            let after = example.After |> standardizeNewLines |> Ok |> ShowResult
+            let before = Formatter.update example.Before |> Result.map standardizeNewLines |> ShowResult
+            Assert.Equal(after, before)
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="FixedPoint"/> test cases do not change under formatting.

@@ -157,9 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var udtDefinition = this.getTypeDeclaration(udt.GetFullName());
             if (udtDefinition != null)
             {
-                this.builtType = udtDefinition.Type.Resolution.IsUnitType
-                    ? this.qirTypes.Tuple
-                    : this.LlvmStructTypeFromQsharpType(udtDefinition.Type).CreatePointerType();
+                this.builtType = this.LlvmStructTypeFromQsharpType(udtDefinition.Type).CreatePointerType();
             }
             else
             {
