@@ -3,29 +3,31 @@
 
 #include "AllocationManager/IAllocationManager.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-IAllocationManager::~IAllocationManager() = default;
-
-uint64_t IAllocationManager::registersInUse() const
+namespace microsoft
 {
-  return registers_in_use_;
-}
-
-uint64_t IAllocationManager::maxRegistersUsed() const
+namespace quantum
 {
-  return max_registers_used_;
-}
 
-void IAllocationManager::updateRegistersInUse(uint64_t n)
-{
-  registers_in_use_ = n;
-  if (n > max_registers_used_)
-  {
-    max_registers_used_ = n;
-  }
-}
+    IAllocationManager::~IAllocationManager() = default;
 
-}  // namespace quantum
-}  // namespace microsoft
+    uint64_t IAllocationManager::registersInUse() const
+    {
+        return registers_in_use_;
+    }
+
+    uint64_t IAllocationManager::maxRegistersUsed() const
+    {
+        return max_registers_used_;
+    }
+
+    void IAllocationManager::updateRegistersInUse(uint64_t n)
+    {
+        registers_in_use_ = n;
+        if (n > max_registers_used_)
+        {
+            max_registers_used_ = n;
+        }
+    }
+
+} // namespace quantum
+} // namespace microsoft
