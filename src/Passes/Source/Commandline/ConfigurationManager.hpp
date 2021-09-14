@@ -22,52 +22,22 @@ namespace quantum
       public:
         using String = std::string;
 
-        IConfigBind(String const& name, String const& description)
-          : name_{name}
-          , description_{description}
-        {
-        }
+        IConfigBind(String const& name, String const& description);
         virtual ~IConfigBind();
 
         virtual bool   setupArguments(ParameterParser& parser)  = 0;
         virtual bool   configure(ParameterParser const& parser) = 0;
         virtual String value()                                  = 0;
 
-        String name() const
-        {
-            return name_;
-        }
-
-        String description() const
-        {
-            return description_;
-        }
-
-        void setName(String const& name)
-        {
-            name_ = name;
-        }
-
-        bool isFlag() const
-        {
-            return is_flag_;
-        }
-
-        String defaultValue() const
-        {
-            return str_default_value_;
-        }
+        String name() const;
+        String description() const;
+        void   setName(String const& name);
+        bool   isFlag() const;
+        String defaultValue() const;
 
       protected:
-        void markAsFlag()
-        {
-            is_flag_ = true;
-        }
-
-        void setDefault(String const& v)
-        {
-            str_default_value_ = v;
-        }
+        void markAsFlag();
+        void setDefault(String const& v);
 
       private:
         String name_;

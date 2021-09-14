@@ -74,12 +74,12 @@ namespace quantum
             return disable_string_support_;
         }
 
-        bool optimiseBranchQuatumOne() const
+        bool optimiseBranchQuantumOne() const
         {
             return optimise_branch_quatum_one_;
         }
 
-        bool optimiseBranchQuatumZero() const
+        bool optimiseBranchQuantumZero() const
         {
             return optimise_branch_quatum_zero_;
         }
