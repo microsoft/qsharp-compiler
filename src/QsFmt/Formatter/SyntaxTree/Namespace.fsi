@@ -74,13 +74,13 @@ type internal CallableDeclaration =
         TypeParameters: TypeParameterBinding option
 
         /// The parameters of the callable.
-        Parameters: SymbolBinding
+        Parameters: ParameterBinding
 
         /// The return type of the callable.
         ReturnType: TypeAnnotation
 
         /// The characteristic section of the callable.
-        CharacteristicSection: CharacteristicSection Option
+        CharacteristicSection: CharacteristicSection option
 
         /// The body of the callable.
         Body: CallableBody
@@ -96,7 +96,7 @@ type internal NamespaceItem =
 
 module internal NamespaceItem =
     /// <summary>
-    /// Maps a namespace item by applying <paramref name="mapper"/> to its trivia prefix.
+    /// Maps a namespace item by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> NamespaceItem -> NamespaceItem
 

@@ -20,6 +20,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             // Note: items in one set are mutually exclusive with items from other sets
             protected const string ConnectionViaSocket = "connectionViaSocket";
             protected const string ConnectionViaPipe = "connectionViaPipe";
+            protected const string ConnectionViaStdInOut = "connectionViaStdInOut";
 
             [Option(
                 'l',
@@ -52,6 +53,14 @@ namespace Microsoft.Quantum.QsLanguageServer
                 SetName = ConnectionViaPipe,
                 HelpText = "Named pipe to read from.")]
             public string? ReaderPipeName { get; set; }
+
+            [Option(
+                's',
+                "stdinout",
+                Required = true,
+                SetName = ConnectionViaStdInOut,
+                HelpText = "Connect via stdin and stdout.")]
+            public bool UseStdInOut { get; set; }
         }
 
         public enum ReturnCode
@@ -64,7 +73,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             UNEXPECTED_ERROR = 100,
         }
 
-        private static int LogAndExit(ReturnCode code, string? logFile = null, string? message = null)
+        private static int LogAndExit(ReturnCode code, string? logFile = null, string? message = null, bool stdout = false)
         {
             var text = message ?? (
                 code == ReturnCode.SUCCESS ? "Exiting normally." :
@@ -73,7 +82,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 code == ReturnCode.MSBUILD_UNINITIALIZED ? "Failed to initialize MsBuild." :
                 code == ReturnCode.CONNECTION_ERROR ? "Failed to connect." :
                 code == ReturnCode.UNEXPECTED_ERROR ? "Exiting abnormally." : "");
-            Log(text, logFile);
+            Log(text, logFile, stdout: stdout);
             return (int)code;
         }
 
@@ -93,7 +102,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             return options.MapResult(
                 (Options opts) => Run(opts),
                 errs => errs.IsVersion()
-                    ? LogAndExit(ReturnCode.SUCCESS, message: Version)
+                    ? LogAndExit(ReturnCode.SUCCESS, message: Version, stdout: true)
                     : LogAndExit(ReturnCode.INVALID_ARGUMENTS, message: HelpText.AutoBuild(options)));
         }
 
@@ -136,9 +145,11 @@ namespace Microsoft.Quantum.QsLanguageServer
             QsLanguageServer server;
             try
             {
-                server = options.ReaderPipeName != null && options.WriterPipeName != null
-                    ? ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile)
-                    : ConnectViaSocket(port: options.Port, logFile: options.LogFile);
+                server = options.UseStdInOut
+                         ? ConnectViaStdInOut(options.LogFile)
+                         : options.ReaderPipeName != null && options.WriterPipeName != null
+                         ? ConnectViaNamedPipe(options.WriterPipeName, options.ReaderPipeName, options.LogFile)
+                         : ConnectViaSocket(port: options.Port, logFile: options.LogFile);
             }
             catch (Exception ex)
             {
@@ -163,7 +174,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 : LogAndExit(ReturnCode.UNEXPECTED_ERROR, options.LogFile);
         }
 
-        private static void Log(object msg, string? logFile = null)
+        private static void Log(object msg, string? logFile = null, bool stdout = false)
         {
             if (logFile != null)
             {
@@ -172,8 +183,17 @@ namespace Microsoft.Quantum.QsLanguageServer
             }
             else
             {
-                Console.WriteLine(msg);
+                // Unless we need to explicitly write to stdout (e.g.: for
+                // version info), write to error in order to prevent confusing
+                // language server clients.
+                (stdout ? Console.Out : Console.Error).WriteLine(msg);
             }
+        }
+
+        internal static QsLanguageServer ConnectViaStdInOut(string? logFile = null)
+        {
+            Log($"Connecting via stdin and stdout.", logFile);
+            return new QsLanguageServer(Console.OpenStandardOutput(), Console.OpenStandardInput());
         }
 
         internal static QsLanguageServer ConnectViaNamedPipe(string writerName, string readerName, string? logFile = null)
