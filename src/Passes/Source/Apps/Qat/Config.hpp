@@ -36,16 +36,16 @@ public:
   /// Indicates whether or not the QIR adaptor tool should emit LLVM IR to the standard output.
   bool emitLlvm() const;
 
-  /// Enables optimisation level 0.
+  /// Enables optimisation level 0. Note higher OX override lower ones.
   bool opt0() const;
 
-  /// Enables optimisation level 1.
+  /// Enables optimisation level 1. Note higher OX override lower ones.
   bool opt1() const;
 
-  /// Enables optimisation level 2.
+  /// Enables optimisation level 2. Note higher OX override lower ones.
   bool opt2() const;
 
-  /// Enables optimisation level 3.
+  /// Enables optimisation level 3. Note higher OX override lower ones.
   bool opt3() const;
 
   /// Enables debug output.
