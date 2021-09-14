@@ -233,6 +233,11 @@ let private qirSubmission (entryPoint: QsCallable) parameters parseResult =
 let private generateAzurePayloadMethod context entryPoint parameters =
     let parseResultParamName = "parseResult"
     let settingsParamName = "settings"
+    let args =
+        [
+            ident settingsParamName :> ExpressionSyntax
+            ident parseResultParamName |> qirSubmission entryPoint parameters
+        ]
 
     arrow_method
         "System.Threading.Tasks.Task<int>"
@@ -243,11 +248,11 @@ let private generateAzurePayloadMethod context entryPoint parameters =
         ``(``
         [
             param parseResultParamName ``of`` (``type`` "System.CommandLine.Parsing.ParseResult")
-            param settingsParamName ``of`` (``type`` (driverNamespace + ".AzureSettings"))
+            param settingsParamName ``of`` (``type`` (driverNamespace + ".GenerateAzurePayloadSettings"))
         ]
         ``)``
         [ ``public`` ]
-        (Some(``=>`` (ident ("System.Threading.Tasks.Task") <.> (ident "Run", [``() =>`` [] (0 |> literal) :> ExpressionSyntax]))))
+        (Some(``=>`` (ident (driverNamespace + ".Azure") <.> (ident "GenerateAzurePayload", args))))
 
 /// Generates the Submit method for an entry point class.
 let private submitMethod context entryPoint parameters =
