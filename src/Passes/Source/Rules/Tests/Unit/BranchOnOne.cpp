@@ -68,7 +68,7 @@ continue__1:
         auto factory = RuleFactory(rule_set);
         // factory.useStaticResultAllocation();
 
-        factory.optimiseBranchQuatumOne();
+        factory.optimiseBranchQuantumOne();
     };
 
     auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));

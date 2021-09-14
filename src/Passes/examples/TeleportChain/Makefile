@@ -15,5 +15,3 @@ QSharpVersion/qir/Example.ll:
 clean:
 	cd QSharpVersion && make clean
 
-
-# --no-disable-reference-counting --no-disable-reference-counting --no-disable-alias-counting --no-disable-string-support --no-optimise-branch-quatum-one --no-optimise-branch-quatum-zero --no-use-static-qubit-array-allocation --no-use-static-qubit-allocation --no-use-static-result-allocation

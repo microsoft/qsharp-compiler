@@ -39,14 +39,14 @@ namespace quantum
             disableStringSupport();
         }
 
-        if (config.optimiseBranchQuatumOne())
+        if (config.optimiseBranchQuantumOne())
         {
-            optimiseBranchQuatumOne();
+            optimiseBranchQuantumOne();
         }
 
-        if (config.optimiseBranchQuatumZero())
+        if (config.optimiseBranchQuantumZero())
         {
-            optimiseBranchQuatumZero();
+            optimiseBranchQuantumZero();
         }
 
         if (config.useStaticQubitArrayAllocation())
@@ -419,12 +419,12 @@ namespace quantum
         addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
     }
 
-    void RuleFactory::optimiseBranchQuatumZero()
+    void RuleFactory::optimiseBranchQuantumZero()
     {
         // TODO(tfr): Not implemented
     }
 
-    void RuleFactory::optimiseBranchQuatumOne()
+    void RuleFactory::optimiseBranchQuantumOne()
     {
         auto replace_branch_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
             auto result = cap["result"];
