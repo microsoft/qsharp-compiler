@@ -6,9 +6,11 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 open System
 open System.IO
 open System.Linq
+open System.Reflection
 open System.Text
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Xunit
 open Xunit.Abstractions
 
@@ -38,6 +40,47 @@ type ExecutionTests(output: ITestOutputHelper) =
         AssertEqual String.Empty err
         AssertEqual expectedOutput out
 
+    let WriteBitcode pathToBitcode files =
+        let pathToBitcode = Path.GetFullPath(pathToBitcode)
+        let outputDir = Path.GetDirectoryName(pathToBitcode)
+        let projName = Path.GetFileNameWithoutExtension(pathToBitcode)
+
+        let compilerArgs =
+            seq {
+                yield "build"
+                yield "-o"
+                yield outputDir
+                yield "--proj"
+                yield projName
+                yield "--build-exe"
+                yield "--input"
+
+                for file in files do yield file
+
+                yield "--load"
+
+                yield Path.Combine(
+                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                    "Microsoft.Quantum.QirGeneration.dll"
+                )
+
+                yield "--assembly-properties"
+                yield "QirOutputPath:qir"
+            }
+
+        let result = Program.Main (compilerArgs |> Seq.toArray)
+        Assert.Equal(ReturnCode.Success, result)
+
+    [<Fact>]
+    member this.``Jit compilation`` () =
+        let inputPaths =
+            [
+                ("TestCases", "QirTests", "ExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
+                ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine |> Path.GetFullPath
+            ]
+        let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
+        WriteBitcode bitcodePath inputPaths
+        Qir.JitCompilation.BuildAndRun(bitcodePath, "Microsoft__Quantum__Qir__Development__RunExample")
 
     [<Fact>]
     member this.``Loading via test names``() =

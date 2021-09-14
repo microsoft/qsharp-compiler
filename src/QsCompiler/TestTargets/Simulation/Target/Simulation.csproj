@@ -12,6 +12,13 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\CSharpGeneration\CSharpGeneration.fsproj" />
+    <ProjectReference Include="..\..\..\LlvmBindings\LlvmBindings.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="Development.bc">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
