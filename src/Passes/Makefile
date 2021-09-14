@@ -21,5 +21,6 @@ test-examples:
 clean:
 	rm -rf Release/
 	rm -rf Debug/
+	find . | grep ".profraw" | xargs rm	
 	cd examples && make clean
 
