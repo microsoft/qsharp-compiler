@@ -3,46 +3,68 @@
 
 module Microsoft.Quantum.QsFmt.App.Program
 
-open Argu
+open CommandLine
+open CommandLine.Text
 open Microsoft.Quantum.QsFmt.Formatter
 open System
 open System.IO
+open System.Collections.Generic
 
-/// A command-line argument.
-[<HelpDescription "Display this list of options.">]
-type Argument =
-    /// The path to the input file.
-    | [<MainCommand; Unique>] Input of string
+[<Verb("update", isDefault = true, HelpText = "Updates depreciated syntax in the input files.")>]
+type UpdateOptions = {
+    [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>] Backup : bool
+    [<Option('r', "recurse", HelpText = "Option to process the input folder recursively.")>] Recurse : bool
+    [<Value(0, Min = 1, MetaName = "Input", HelpText = "Input paths. Can be multiple folders or files.")>] Input : string seq
+}
+with
+    [<Usage(ApplicationAlias = "qsfmt")>]
+    static member examples
+        with get() = seq {
+           yield Example("Updates depreciated syntax in the input files", {Backup = false; Recurse = false; Input = seq {"Path\To\My\File.qs"} }) }
 
-    interface IArgParserTemplate with
-        member arg.Usage =
-            match arg with
-            | Input _ -> "File to format or \"-\" to read from standard input."
+[<Verb("format", HelpText = "Formats the source code in input files.")>]
+type FormatOptions = {
+    [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>] Backup : bool
+    [<Option('r', "recurse", HelpText = "Option to process the input folder recursively.")>] Recurse : bool
+    [<Value(0, Min = 1, MetaName = "Input", HelpText = "Input paths. Can be multiple folders or files.")>] Input : string seq
+}
+with
+    [<Usage(ApplicationAlias = "qsfmt")>]
+    static member examples
+        with get() = seq {
+           yield Example("Formats the source code in input files", {Backup = false; Recurse = false; Input = seq {"Path\To\My\File.qs"} }) }
 
-[<CompiledName "Main">]
-[<EntryPoint>]
-let main args =
-    let parser = ArgumentParser.Create()
-
+let doOne command inputFile =
     try
-        let results = parser.Parse args
-        let input = results.GetResult Input
-        let source = if input = "-" then stdin.ReadToEnd() else File.ReadAllText input
-
-        match Formatter.format source with
+        let source = if inputFile = "-" then stdin.ReadToEnd() else File.ReadAllText inputFile
+        match command source with
         | Ok result ->
-            printf "%s" result
+            printfn "%s:" inputFile
+            printfn "%s" result
             0
         | Error errors ->
             errors |> List.iter (eprintfn "%O")
             1
     with
-    | :? ArguParseException as ex ->
-        eprintf "%s" ex.Message
-        2
-    | :? IOException as ex ->
-        eprintfn "%s" ex.Message
-        3
-    | :? UnauthorizedAccessException as ex ->
-        eprintfn "%s" ex.Message
-        4
+        | :? IOException as ex ->
+            eprintfn "%s" ex.Message
+            3
+        | :? UnauthorizedAccessException as ex ->
+            eprintfn "%s" ex.Message
+            4
+
+let runUpdate (options : UpdateOptions) =
+    options.Input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne Formatter.update)) 0
+
+let runFormat (options : FormatOptions) =
+    options.Input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne Formatter.format)) 0
+
+[<CompiledName "Main">]
+[<EntryPoint>]
+let main args =
+    let result = CommandLine.Parser.Default.ParseArguments<UpdateOptions, FormatOptions> args
+    result.MapResult(
+        (fun (options: UpdateOptions) -> options |> runUpdate),
+        (fun (options: FormatOptions) -> options |> runFormat),
+        (fun (_ : IEnumerable<Error>) -> 2)
+    )
