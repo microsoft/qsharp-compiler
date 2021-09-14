@@ -19,7 +19,7 @@ namespace quantum
 
         /// Constructors
         /// @{
-        Profile(
+        explicit Profile(
             bool                 debug,
             AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
             AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());

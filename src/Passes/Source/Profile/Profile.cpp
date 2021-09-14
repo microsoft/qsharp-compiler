@@ -18,8 +18,8 @@ namespace quantum
       , function_analysis_manager_{debug}
       , gscc_analysis_manager_{debug}
       , module_analysis_manager_{debug}
-      , qubit_allocation_manager_{qubit_allocation_manager}
-      , result_allocation_manager_{result_allocation_manager}
+      , qubit_allocation_manager_{std::move(qubit_allocation_manager)}
+      , result_allocation_manager_{std::move(result_allocation_manager)}
 
     {
 

@@ -18,8 +18,8 @@ namespace quantum
         AllocationManagerPtr qubit_alloc_manager,
         AllocationManagerPtr result_alloc_manager)
       : rule_set_{rule_set}
-      , qubit_alloc_manager_{qubit_alloc_manager}
-      , result_alloc_manager_{result_alloc_manager}
+      , qubit_alloc_manager_{std::move(qubit_alloc_manager)}
+      , result_alloc_manager_{std::move(result_alloc_manager)}
     {
     }
 
