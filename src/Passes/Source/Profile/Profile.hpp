@@ -4,71 +4,66 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
-
 #include "Llvm/Llvm.hpp"
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+class Profile
 {
-namespace quantum
-{
+public:
+  using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
 
-    class Profile
-    {
-      public:
-        using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
+  // Constructors
+  //
 
-        /// Constructors
-        /// @{
-        explicit Profile(
-            bool                 debug,
-            AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
-            AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());
+  explicit Profile(
+      bool                 debug,
+      AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
+      AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());
 
-        // Default construction not allowed as this leads
-        // to invalid configuration of the managers.
-        Profile() = delete;
+  // Default construction not allowed as this leads
+  // to invalid configuration of the managers.
+  //
+  Profile()                = delete;
+  Profile(Profile const &) = delete;
+  Profile(Profile &&)      = default;
+  Profile &operator=(Profile const &) = delete;
+  Profile &operator=(Profile &&) = default;
+  ~Profile()                     = default;
 
-        // Copy construction prohibited due to restrictions
-        // on the member variables.
-        Profile(Profile const&) = delete;
+  void apply(llvm::Module &module);
+  bool verify(llvm::Module &module);
+  bool validate(llvm::Module &module);
 
-        // Prefer move construction at all times.
-        Profile(Profile&&) = default;
+  void setModulePassManager(llvm::ModulePassManager &&manager);
 
-        // Default deconstruction.
-        ~Profile() = default;
-        /// @}
+  AllocationManagerPtr getQubitAllocationManager();
+  AllocationManagerPtr getResultAllocationManager();
 
-        void apply(llvm::Module& module);
-        bool verify(llvm::Module& module);
-        void setModulePassManager(llvm::ModulePassManager&& manager);
+  // Access functions to LLVM instances for running the
+  // module pass manager
+  //
 
-        AllocationManagerPtr getQubitAllocationManager();
-        AllocationManagerPtr getResultAllocationManager();
+  llvm::PassBuilder &            passBuilder();
+  llvm::LoopAnalysisManager &    loopAnalysisManager();
+  llvm::FunctionAnalysisManager &functionAnalysisManager();
+  llvm::CGSCCAnalysisManager &   gsccAnalysisManager();
+  llvm::ModuleAnalysisManager &  moduleAnalysisManager();
 
-        /// Acccess member functions
-        /// @{
-        llvm::PassBuilder&             passBuilder();
-        llvm::LoopAnalysisManager&     loopAnalysisManager();
-        llvm::FunctionAnalysisManager& functionAnalysisManager();
-        llvm::CGSCCAnalysisManager&    gsccAnalysisManager();
-        llvm::ModuleAnalysisManager&   moduleAnalysisManager();
-        /// @}
-      private:
-        /// Objects used to run a set of passes
-        /// @{
-        llvm::PassBuilder             pass_builder_;
-        llvm::LoopAnalysisManager     loop_analysis_manager_;
-        llvm::FunctionAnalysisManager function_analysis_manager_;
-        llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
-        llvm::ModuleAnalysisManager   module_analysis_manager_;
-        /// @}
+private:
+  // LLVM logic to run the passes
+  //
+  llvm::PassBuilder             pass_builder_;
+  llvm::LoopAnalysisManager     loop_analysis_manager_;
+  llvm::FunctionAnalysisManager function_analysis_manager_;
+  llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
+  llvm::ModuleAnalysisManager   module_analysis_manager_;
 
-        llvm::ModulePassManager module_pass_manager_{};
+  llvm::ModulePassManager module_pass_manager_{};
+  AllocationManagerPtr    qubit_allocation_manager_{};
+  AllocationManagerPtr    result_allocation_manager_{};
+};
 
-        AllocationManagerPtr qubit_allocation_manager_{};
-        AllocationManagerPtr result_allocation_manager_{};
-    };
-
-} // namespace quantum
-} // namespace microsoft
+}  // namespace quantum
+}  // namespace microsoft
