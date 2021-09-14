@@ -229,7 +229,7 @@ let private qirSubmission (entryPoint: QsCallable) parameters parseResult =
     | Some args -> ``?`` (stream |> ``is assign`` "{ }" streamVar) (submission args, ``null``)
     | None -> upcast ``null``
 
-/// TODO: Document.
+/// Generates the GenerateAzurePayload method for an entry-point class.
 let private generateAzurePayloadMethod context entryPoint parameters =
     let parseResultParamName = "parseResult"
     let settingsParamName = "settings"
