@@ -8,3 +8,5 @@
 
 pub mod emit;
 pub mod interop;
+
+mod jit;
