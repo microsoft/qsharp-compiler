@@ -267,6 +267,8 @@ function Test-RunInContainer {
 
 function Build-PyQIR {
     $buildPath = Resolve-Path (Join-Path $PSScriptRoot '..')
+    $srcPath = (Get-RepoRoot)
+
     if (Test-RunInContainer) {
         function Build-ContainerImage {
             Write-Vso "Building container image manylinux-llvm-builder"
@@ -276,17 +278,17 @@ function Build-PyQIR {
         }
         function Invoke-ContainerImage {
             Write-Vso "Running container image:"
-            $ioVolume = "$($buildPath):/io"
+            $ioVolume = "$($srcPath):/io"
             $llvmVolume = "$($env:AQ_LLVM_INSTALL_DIR):/usr/lib/llvm"
 
-            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin /usr/bin/maturin build --release" "command"
+            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/src/QirTools/pyqir manylinux2014_x86_64_maturin /usr/bin/maturin build --release" "command"
             exec {
-                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin /usr/bin/maturin build --release
+                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/src/QirTools/pyqir manylinux2014_x86_64_maturin /usr/bin/maturin build --release
             }
 
-            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin python -m tox -e test" "command"
+            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/src/QirTools/pyqir manylinux2014_x86_64_maturin python -m tox -e test" "command"
             exec {
-                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin python -m tox -e test
+                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/src/QirTools/pyqir manylinux2014_x86_64_maturin python -m tox -e test
             }
 
             Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io manylinux2014_x86_64_maturin cargo test --package pyqir --package qirlib --lib -- --nocapture" "command"
@@ -322,7 +324,8 @@ function Build-PyQIR {
         }
 
         Write-Vso "& cargo test --package pyqir --package qirlib --lib -- --nocapture" "command"
-        exec { & cargo test --package pyqir --package qirlib --lib -- --nocapture }
+        exec -wd $srcPath { & cargo test --package pyqir --package qirlib --lib -- --nocapture }
+
     }
 }
 
