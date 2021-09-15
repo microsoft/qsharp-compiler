@@ -181,7 +181,10 @@ module Discoverer =
     let ``Code is formatted correctly`` example =
         match example.Skip with
         | Some reason -> Skip.If(true, reason)
-        | None -> Assert.Equal(Ok example.After |> ShowResult, Formatter.format example.Before |> ShowResult)
+        | None ->
+            let after = example.After |> standardizeNewLines |> Ok |> ShowResult
+            let before = Formatter.format example.Before |> Result.map standardizeNewLines |> ShowResult
+            Assert.Equal(after, before)
 
     /// <summary>
     /// Asserts that the auto-discovered <see cref="Example"/> update test cases change from their

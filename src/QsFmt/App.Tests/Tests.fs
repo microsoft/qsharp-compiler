@@ -57,14 +57,23 @@ let ``Shows help with no arguments`` () =
             Code = 2
             Out = ""
             Error =
-                "ERROR: missing argument '<string>'.
+                "ERROR: missing argument '<string>...'.
 
 INPUT:
 
-    <string>              File to format or \"-\" to read from standard input.
+    <string>...           File to format or \"-\" to read from standard input.
+
+SUBCOMMANDS:
+
+    update                Update depreciated syntax in the input files.
+    format                Format the source code in input files.
+
+    Use 'testhost.exe <subcommand> --help' for additional information.
 
 OPTIONS:
 
+    --backup              Create backup files of input files.
+    --recurse             Process the input folder recursively.
     --help                Display this list of options.
 "
         },
@@ -86,7 +95,7 @@ let ``Formats file`` path output =
             Out = output
             Error = ""
         },
-        run [| path |] ""
+        run [| "format"; path |] ""
     )
 
 [<Theory>]
@@ -105,7 +114,7 @@ let ``Formats standard input`` input output =
             Out = output
             Error = ""
         },
-        run [| "-" |] input
+        run [| "format"; "-" |] input
     )
 
 [<Theory>]

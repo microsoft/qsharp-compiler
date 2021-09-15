@@ -3,44 +3,38 @@
 
 module Microsoft.Quantum.QsFmt.App.Program
 
-open CommandLine
-open CommandLine.Text
+open Argu
 open Microsoft.Quantum.QsFmt.Formatter
 open System
 open System.IO
-open System.Collections.Generic
 
-[<Verb("update", isDefault = true, HelpText = "Updates depreciated syntax in the input files.")>]
-type UpdateOptions = {
-    [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>] Backup : bool
-    [<Option('r', "recurse", HelpText = "Option to process the input folder recursively.")>] Recurse : bool
-    [<Value(0, Min = 1, MetaName = "Input", HelpText = "Input paths. Can be multiple folders or files.")>] Input : string seq
-}
-with
-    [<Usage(ApplicationAlias = "qsfmt")>]
-    static member examples
-        with get() = seq {
-           yield Example("Updates depreciated syntax in the input files", {Backup = false; Recurse = false; Input = seq {"Path\To\My\File.qs"} }) }
+/// A command-line argument.
+[<HelpDescription "Display this list of options.">]
+type Argument =
+    /// The path to the input file.
+    | [<MainCommand; Unique; Last>] Input of string list
+    | [<InheritAttribute; Unique>] Backup
+    | [<InheritAttribute; Unique>] Recurse
+    | [<SubCommand; CliPrefix(CliPrefix.None)>] Update
+    | [<SubCommand; CliPrefix(CliPrefix.None)>] Format
 
-[<Verb("format", HelpText = "Formats the source code in input files.")>]
-type FormatOptions = {
-    [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>] Backup : bool
-    [<Option('r', "recurse", HelpText = "Option to process the input folder recursively.")>] Recurse : bool
-    [<Value(0, Min = 1, MetaName = "Input", HelpText = "Input paths. Can be multiple folders or files.")>] Input : string seq
-}
-with
-    [<Usage(ApplicationAlias = "qsfmt")>]
-    static member examples
-        with get() = seq {
-           yield Example("Formats the source code in input files", {Backup = false; Recurse = false; Input = seq {"Path\To\My\File.qs"} }) }
+    interface IArgParserTemplate with
+        member arg.Usage =
+            match arg with
+            | Input _ -> "File to format or \"-\" to read from standard input."
+            | Backup -> "Create backup files of input files."
+            | Recurse -> "Process the input folder recursively."
+            | Update _ -> "Update depreciated syntax in the input files."
+            | Format _ -> "Format the source code in input files."
 
 let doOne command inputFile =
     try
         let source = if inputFile = "-" then stdin.ReadToEnd() else File.ReadAllText inputFile
         match command source with
         | Ok result ->
-            printfn "%s:" inputFile
-            printfn "%s" result
+            //printfn "%s:" inputFile
+            //printfn "%s" result
+            printf "%s" result
             0
         | Error errors ->
             errors |> List.iter (eprintfn "%O")
@@ -53,18 +47,25 @@ let doOne command inputFile =
             eprintfn "%s" ex.Message
             4
 
-let runUpdate (options : UpdateOptions) =
-    options.Input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne Formatter.update)) 0
-
-let runFormat (options : FormatOptions) =
-    options.Input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne Formatter.format)) 0
+let run command input =
+    input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne command)) 0
 
 [<CompiledName "Main">]
 [<EntryPoint>]
 let main args =
-    let result = CommandLine.Parser.Default.ParseArguments<UpdateOptions, FormatOptions> args
-    result.MapResult(
-        (fun (options: UpdateOptions) -> options |> runUpdate),
-        (fun (options: FormatOptions) -> options |> runFormat),
-        (fun (_ : IEnumerable<Error>) -> 2)
-    )
+    let parser = ArgumentParser.Create()
+
+    try
+        let results = parser.Parse args
+        let inputs = results.GetResult Input
+        let command =
+            match results.TryGetSubCommand() with
+            | None // default to update command
+            | Some Update -> Formatter.update
+            | Some Format -> Formatter.format
+            | _ -> failwith "unrecognized command used"
+        inputs |> run command
+    with
+    | :? ArguParseException as ex ->
+        eprintf "%s" ex.Message
+        2
