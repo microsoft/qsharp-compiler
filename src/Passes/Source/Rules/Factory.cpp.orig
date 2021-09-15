@@ -39,6 +39,16 @@ namespace quantum
             disableStringSupport();
         }
 
+<<<<<<< HEAD
+        if (config.optimiseBranchQuatumOne())
+        {
+            optimiseBranchQuatumOne();
+        }
+
+        if (config.optimiseBranchQuatumZero())
+        {
+            optimiseBranchQuatumZero();
+=======
         if (config.optimiseBranchQuantumOne())
         {
             optimiseBranchQuantumOne();
@@ -47,6 +57,7 @@ namespace quantum
         if (config.optimiseBranchQuantumZero())
         {
             optimiseBranchQuantumZero();
+>>>>>>> features/llvm-passes
         }
 
         if (config.useStaticQubitArrayAllocation())
@@ -419,12 +430,20 @@ namespace quantum
         addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
     }
 
+<<<<<<< HEAD
+    void RuleFactory::optimiseBranchQuatumZero()
+=======
     void RuleFactory::optimiseBranchQuantumZero()
+>>>>>>> features/llvm-passes
     {
         // TODO(tfr): Not implemented
     }
 
+<<<<<<< HEAD
+    void RuleFactory::optimiseBranchQuatumOne()
+=======
     void RuleFactory::optimiseBranchQuantumOne()
+>>>>>>> features/llvm-passes
     {
         auto replace_branch_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
             auto result = cap["result"];

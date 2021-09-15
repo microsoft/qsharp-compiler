@@ -74,12 +74,20 @@ namespace quantum
             return disable_string_support_;
         }
 
+<<<<<<< HEAD
+        bool optimiseBranchQuatumOne() const
+=======
         bool optimiseBranchQuantumOne() const
+>>>>>>> features/llvm-passes
         {
             return optimise_branch_quatum_one_;
         }
 
+<<<<<<< HEAD
+        bool optimiseBranchQuatumZero() const
+=======
         bool optimiseBranchQuantumZero() const
+>>>>>>> features/llvm-passes
         {
             return optimise_branch_quatum_zero_;
         }

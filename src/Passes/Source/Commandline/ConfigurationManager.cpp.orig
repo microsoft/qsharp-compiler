@@ -9,6 +9,9 @@ namespace microsoft
 {
 namespace quantum
 {
+<<<<<<< HEAD
+    IConfigBind::~IConfigBind() = default;
+=======
 
     IConfigBind::IConfigBind(String const& name, String const& description)
       : name_{name}
@@ -38,7 +41,7 @@ namespace quantum
         return is_flag_;
     }
 
-    IConfigBind::String IConfigBind::defaultValue() const
+    String IConfigBind::defaultValue() const
     {
         return str_default_value_;
     }
@@ -53,5 +56,6 @@ namespace quantum
         str_default_value_ = v;
     }
 
+>>>>>>> features/llvm-passes
 } // namespace quantum
 } // namespace microsoft
