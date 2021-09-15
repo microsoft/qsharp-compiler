@@ -30,12 +30,6 @@
         return PI() * (mu - PI() * sigma / 2.0);
     }
 
-    // function ClassicalCompute(mu : Double, sigma : Double) : (Double, Double) {
-    //     let time = mu - PI() * sigma / 2.0;
-    //     let theta = 1.0 / sigma;
-    //     return (-theta * time, PI() * time);
-    // }
-
     function ClassicalUpdateMu(mu : Double, sigma : Double, res : Result) : Double {
         return res == Zero ? mu - sigma * 0.6065 | mu + sigma * 0.6065;
     }
@@ -43,10 +37,6 @@
     function ClassicalUpdateSigma(sigma : Double) : Double {
         return sigma * 0.7951;
     }
-
-    // function ClassicalUpdate(mu : Double, sigma : Double, res : Result) : (Double, Double) {
-    //     return (res == Zero ? mu - sigma * 0.6065 | mu + sigma * 0.6065, sigma * 0.7951);
-    // }
 
     @EntryPoint()
     operation EstimatePhaseByRandomWalk() : Double {
@@ -62,13 +52,11 @@
 
             let c1 = ClassicalComputeInput1(mu, sigma);
             let c2 = ClassicalComputeInput2(mu, sigma);
-            // let (c1, c2) = ClassicalCompute(mu, sigma);
 
             let datum = Iterate(c1, c2, target, aux);
 
             set mu = ClassicalUpdateMu(mu, sigma, datum);
             set sigma = ClassicalUpdateSigma(sigma);
-            // set (mu, sigma) = ClassicalUpdate(mu, sigma, datum);
 
         }
         return mu;
