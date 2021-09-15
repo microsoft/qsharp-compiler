@@ -5,6 +5,8 @@ trigger: none
 
 variables:
   CCACHE_DIR: $(Pipeline.Workspace)/ccache
+  CMAKE_INSTALL_PREFIX: $(Pipeline.Workspace)/LLVM
+  INSTALL_LLVM_PACKAGE: true
   AQ_LLVM_PACKAGE_GIT_VERSION: ""
 
 jobs:

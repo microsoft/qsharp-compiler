@@ -86,14 +86,16 @@ if ($IsLinux) {
         Assert (Test-Path $srcRoot) "$($srcRoot) is missing"
 
         Write-Vso "Running container image:"
-        $command = "docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $($srcRoot):$($srcRoot) -v $($cacheRoot):$($cacheRoot) manylinux-llvm-builder"
-        if(Test-Path env:\CMAKE_INSTALL_PREFIX) {
-            $command = "docker run --rm -t --user vsts -e CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX) -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $($srcRoot):$($srcRoot) -v $($cacheRoot):$($cacheRoot) manylinux-llvm-builder"
-        }
+        $srcVolume = "$($srcRoot):$($srcRoot)"
+        $cacheVolume = "$($cacheRoot):$($cacheRoot)"
 
-        Write-Vso $command
+        $flags = ""
+        if(Test-Path env:\CMAKE_INSTALL_PREFIX) {
+            $flags = "-e CMAKE_FLAGS=""-D CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX)"""
+        }
+        Write-Vso "docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume $flags manylinux-llvm-builder" "command"
         exec {
-            Invoke-Expression $command
+            docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume $flags manylinux-llvm-builder
         }
     }
 
@@ -122,7 +124,11 @@ else {
 
     exec -wd $llvmBuildDir {
         Write-Vso "Generating makefiles"
-        cmake -G Ninja -C $llvmCmakeFile $llvmDir
+        $flags = ""
+        if(Test-Path env:\CMAKE_INSTALL_PREFIX) {
+            $flags += "-D CMAKE_INSTALL_PREFIX=""$($Env:CMAKE_INSTALL_PREFIX)"""
+        }
+        cmake -G Ninja -C $llvmCmakeFile $flags $llvmDir
     }
 
     exec -wd $llvmBuildDir {
