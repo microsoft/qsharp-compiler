@@ -278,10 +278,20 @@ function Build-PyQIR {
             Write-Vso "Running container image:"
             $ioVolume = "$($buildPath):/io"
             $llvmVolume = "$($env:AQ_LLVM_INSTALL_DIR):/usr/lib/llvm"
-            Write-Vso "Command: docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin build --release"
 
+            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin /usr/bin/maturin build --release" "command"
             exec {
-                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin build --release
+                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin /usr/bin/maturin build --release
+            }
+
+            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin python -m tox -e test" "command"
+            exec {
+                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/pyqir manylinux2014_x86_64_maturin python -m tox -e test
+            }
+
+            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io manylinux2014_x86_64_maturin cargo test --package pyqir --package qirlib --lib -- --nocapture" "command"
+            exec {
+                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io manylinux2014_x86_64_maturin cargo test --package pyqir --package qirlib --lib -- --nocapture
             }
         }
 
@@ -299,8 +309,10 @@ function Build-PyQIR {
             }
             exec { & $python -m pip install --user -U pip }
             exec { & $python -m pip install --user maturin tox }
+            exec { & $python -m tox -e test }
             exec { & $python -m tox -e pack }
         }
+        exec { & cargo test --package pyqir --package qirlib --lib -- --nocapture }
     }
 }
 

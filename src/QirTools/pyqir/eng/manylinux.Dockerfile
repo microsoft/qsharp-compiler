@@ -35,5 +35,3 @@ COPY --from=builder /usr/bin/maturin /usr/bin/maturin
 WORKDIR /io
 
 RUN yum install -y libffi-devel
-
-ENTRYPOINT ["/usr/bin/maturin"]
