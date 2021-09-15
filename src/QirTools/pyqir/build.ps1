@@ -191,7 +191,8 @@ function Install-LlvmFromSource {
     )
     $Env:PKG_NAME = Get-PackageName
     $Env:CMAKE_INSTALL_PREFIX = $packagePath
-    . (Join-Path "build" "llvm.ps1")
+    $Env:INSTALL_LLVM_PACKAGE = $true
+    . (Join-Path (Get-RepoRoot) "build" "llvm.ps1")
     Use-LlvmInstallation $packagePath
 }
 

@@ -1,11 +1,15 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+function Get-RepoRoot {
+    git rev-parse --show-toplevel
+}
+
 . (Join-Path $PSScriptRoot "utils.ps1")
 
 # Build
 
-$srcRoot = Get-Location
+$srcRoot = Get-RepoRoot
 $buildDir = Join-Path $srcRoot build
 $llvmCmakeFile = Join-Path $buildDir llvm.cmake
 $llvmRootDir = Join-Path $srcRoot external llvm-project
@@ -125,4 +129,11 @@ else {
 exec -wd $llvmBuildDir {
     $package = Resolve-Path "$($Env:PKG_NAME)*"
     Assert (Test-Path $package) "Could not resolve package $package"
+}
+
+if((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE)) {
+    Write-Vso "ninja install" "command"
+    exec -wd $llvmBuildDir {
+        ninja install
+    }
 }
