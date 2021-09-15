@@ -26,7 +26,8 @@ type ExecutionTests(output: ITestOutputHelper) =
         let exitCode, ex = ref -101, ref null
         let out, err = ref (new StringBuilder()), ref (new StringBuilder())
         let exe = File.ReadAllLines("ReferenceTargets.txt").[engineIdx]
-        let ranToEnd = ProcessRunner.Run("dotnet", sprintf "\"%s\" %s" exe args, out, err, exitCode, ex, timeout = 10000)
+        let args = sprintf "\"%s\" %s" exe args
+        let ranToEnd = ProcessRunner.Run("dotnet", args, out, err, exitCode, ex, timeout = 10000)
         Assert.False(String.IsNullOrWhiteSpace exe)
         Assert.True(ranToEnd)
         Assert.Null(!ex)
@@ -54,32 +55,34 @@ type ExecutionTests(output: ITestOutputHelper) =
                 yield "--build-exe"
                 yield "--input"
 
-                for file in files do yield file
+                for file in files do
+                    yield file
 
                 yield "--load"
 
-                yield Path.Combine(
-                    Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
-                    "Microsoft.Quantum.QirGeneration.dll"
-                )
+                yield
+                    Path.Combine(
+                        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                        "Microsoft.Quantum.QirGeneration.dll"
+                    )
 
                 yield "--assembly-properties"
                 yield "QirOutputPath:qir"
             }
 
-        let result = Program.Main (compilerArgs |> Seq.toArray)
+        let result = Program.Main(compilerArgs |> Seq.toArray)
         Assert.Equal(ReturnCode.Success, result)
 
 
     [<Fact>]
-    member this.``QIR memory management`` () =
+    member this.``QIR memory management``() =
         let inputPaths =
             [
                 ("TestCases", "QirTests", "ExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
                 ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine |> Path.GetFullPath
             ]
 
-        let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath        
+        let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
         WriteBitcode bitcodePath inputPaths
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__RunExample"
