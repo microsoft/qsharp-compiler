@@ -16,7 +16,16 @@ $llvmRootDir = Join-Path $srcRoot external llvm-project
 $llvmBuildDir = Join-Path $llvmRootDir build
 $llvmDir = Join-Path $llvmRootDir llvm
 
-if ($null -ne (get-command ccache -ErrorAction SilentlyContinue) ) {
+if (Test-CommandExists sccache) {
+    Write-Vso "Found sccache command"
+    # Set cap and make sure dir is created
+    if((Test-Path Env:\SCCACHE_DIR)) {
+        mkdir $Env:SCCACHE_DIR | Out-Null
+        $Env:SCCACHE_DIR = Resolve-Path $Env:SCCACHE_DIR
+    }
+    $Env:SCCACHE_CACHE_SIZE = "2G"
+    & { sccache --start-server } -ErrorAction SilentlyContinue
+} elseif (Test-CommandExists ccache) {
     Write-Vso "Found ccache command"
 
     if (-not (Test-Path env:\CCACHE_DIR)) {
@@ -109,10 +118,6 @@ else {
                 Write-Host "setting env: $($matches[1]) = $($matches[2])"
             }
         }
-
-        # set up ccache env vars which are fed to ccache on the commandline on linux/mac
-        $Env:CCACHE_CPP2 = "yes"
-        $Env:CCACHE_HASHDIR = "yes"
     }
 
     exec -wd $llvmBuildDir {
