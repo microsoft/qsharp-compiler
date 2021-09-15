@@ -138,7 +138,8 @@ else {
 }
 
 exec -wd $llvmBuildDir {
-    $package = Resolve-Path "$($Env:PKG_NAME)*"
+    $package = Resolve-Path "$($Env:PKG_NAME)*" -ErrorAction SilentlyContinue
+    Assert ($null -ne $package) "Package is null"
     Assert (Test-Path $package) "Could not resolve package $package"
 }
 
