@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Profiles/RuleSetProfile.hpp"
+#include "Generators/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
@@ -61,7 +61,7 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationOffsets)
         factory.useStaticQubitArrayAllocation();
     };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
     ir_manip->applyProfile(profile);
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
@@ -99,7 +99,7 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationGetPtr)
         factory.useStaticQubitArrayAllocation();
     };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
     ir_manip->applyProfile(profile);
 
@@ -143,7 +143,7 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationAdvanced)
         factory.useStaticQubitArrayAllocation();
     };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
     ir_manip->applyProfile(profile);
 

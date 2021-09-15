@@ -3,6 +3,8 @@
 // Licensed under the MIT License.
 
 #include "AllocationManager/AllocationManager.hpp"
+#include "Commandline/ConfigurationManager.hpp"
+#include "Rules/FactoryConfig.hpp"
 #include "Rules/ReplacementRule.hpp"
 #include "Rules/RuleSet.hpp"
 
@@ -22,7 +24,7 @@ namespace quantum
       public:
         using String               = std::string;
         using ReplacementRulePtr   = std::shared_ptr<ReplacementRule>;
-        using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
+        using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
         using Replacements         = ReplacementRule::Replacements;
         using Captures             = IOperandPrototype::Captures;
         using Instruction          = llvm::Instruction;
@@ -38,6 +40,11 @@ namespace quantum
         RuleFactory(RuleFactory const&) = delete;
         RuleFactory(RuleFactory&&)      = default;
         ~RuleFactory()                  = default;
+        /// @}
+
+        ///
+        /// @{
+        void usingConfiguration(FactoryConfiguration const& config);
         /// @}
 
         /// Generic rules
@@ -57,8 +64,8 @@ namespace quantum
 
         /// Optimisations
         /// @{
-        void optimiseBranchQuatumOne();
-        void optimiseBranchQuatumZero();
+        void optimiseBranchQuantumOne();
+        void optimiseBranchQuantumZero();
         /// @}
 
         /// Disabling by feature
@@ -67,6 +74,8 @@ namespace quantum
         void disableAliasCounting();
         void disableStringSupport();
         /// @}
+
+        void setDefaultIntegerWidth(uint32_t v);
 
       private:
         ReplacementRulePtr addRule(ReplacementRule&& rule);
@@ -81,6 +90,8 @@ namespace quantum
         AllocationManagerPtr qubit_alloc_manager_{nullptr};
         AllocationManagerPtr result_alloc_manager_{nullptr};
         /// @}
+
+        uint32_t default_integer_width_{64};
     };
 
 } // namespace quantum

@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Profiles/IProfile.hpp"
+#include "Generators/IProfileGenerator.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -24,7 +24,7 @@ namespace quantum
         using ModulePtr         = std::unique_ptr<Module>;
         using Strings           = std::vector<String>;
         using OptimizationLevel = llvm::PassBuilder::OptimizationLevel;
-        using ProfilePtr        = std::shared_ptr<IProfile>;
+        using ProfilePtr        = std::shared_ptr<IProfileGenerator>;
 
         /// IrManipulationTestHelper is default constructible with no ability to move
         /// or copy.
@@ -43,7 +43,7 @@ namespace quantum
         String toString() const;
 
         /// Generates a list of instructions for the main function in the module.
-        Strings toBodyInstructions() const;
+        Strings toBodyInstructions();
         /// @}
 
         /// Test functions
@@ -93,10 +93,10 @@ namespace quantum
         /// ```
         ///
         /// Returns false if the IR is invalid.
-        bool fromBodyString(String const& body);
+        bool fromBodyString(String const& body, String const& args = "");
 
         /// Generates a script given the body of the main function.
-        String generateScript(String const& body) const;
+        String generateScript(String const& body, String const& args = "") const;
 
         /// Creates an LLVM module given from a fully specified IR. This function
         /// ignores all inputs from IrManipulationTestHelper::declareOpaque and
@@ -110,20 +110,18 @@ namespace quantum
 
         /// @}
 
+        bool isModuleBroken();
+
         /// Acccess member functions
         /// @{
-        llvm::PassBuilder&             passBuilder();
-        llvm::LoopAnalysisManager&     loopAnalysisManager();
-        llvm::FunctionAnalysisManager& functionAnalysisManager();
-        llvm::CGSCCAnalysisManager&    gsccAnalysisManager();
-        llvm::ModuleAnalysisManager&   moduleAnalysisManager();
-        ModulePtr&                     module();
+        ModulePtr& module();
         /// @}
       private:
         std::unordered_set<std::string> opaque_declarations_{};
         std::unordered_set<std::string> function_declarations_{};
 
         /// @{
+        bool         compilation_failed_{false};
         SMDiagnostic error_;
         LLVMContext  context_;
         ModulePtr    module_;

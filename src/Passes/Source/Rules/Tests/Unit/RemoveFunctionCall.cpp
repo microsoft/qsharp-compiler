@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Profiles/RuleSetProfile.hpp"
+#include "Generators/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
@@ -51,9 +51,10 @@ TEST(RuleSetTestSuite, RemovingFunctionCall)
         factory.removeFunctionCall("__quantum__qis__h__body");
     };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
-    ir_manip->applyProfile(profile);
+    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
+    ir_manip->applyProfile(profile);
+    llvm::errs() << *ir_manip->module() << "\n";
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
         {"%qubit = tail call %Qubit* @__quantum__rt__qubit_allocate()",
          "tail call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}));

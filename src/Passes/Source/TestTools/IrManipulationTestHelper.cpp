@@ -44,8 +44,9 @@ namespace quantum
 
     bool IrManipulationTestHelper::fromString(String const& data)
     {
-        module_ = llvm::parseIR(llvm::MemoryBufferRef(data, "IrManipulationTestHelper"), error_, context_);
-        return module_ != nullptr;
+        module_             = llvm::parseIR(llvm::MemoryBufferRef(data, "IrManipulationTestHelper"), error_, context_);
+        compilation_failed_ = (module_ == nullptr);
+        return !compilation_failed_;
     }
 
     IrManipulationTestHelper::String IrManipulationTestHelper::toString() const
@@ -57,11 +58,17 @@ namespace quantum
         return str;
     }
 
-    IrManipulationTestHelper::Strings IrManipulationTestHelper::toBodyInstructions() const
+    IrManipulationTestHelper::Strings IrManipulationTestHelper::toBodyInstructions()
     {
+        if (isModuleBroken())
+        {
+            return {};
+        }
+
         String  data = toString();
         Strings ret;
 
+        // TODO(tfr): Add support for args
         auto pos = data.find("define i8 @Main() local_unnamed_addr");
 
         if (pos == String::npos)
@@ -77,13 +84,11 @@ namespace quantum
         }
 
         auto last_pos = data.find('\n', pos);
-        if (last_pos == String::npos)
-        {
-            return {};
-        }
+        assert(last_pos != String::npos);
 
         auto next_pos   = data.find('\n', last_pos + 1);
         auto terminator = data.find('}', pos);
+
         while ((next_pos != String::npos) && (next_pos < terminator))
         {
             auto val = data.substr(last_pos, next_pos - last_pos);
@@ -115,6 +120,7 @@ namespace quantum
             {
                 ++i;
             }
+
             ++j;
         }
 
@@ -135,7 +141,13 @@ namespace quantum
 
         // Running the pass built by the profile
         assert(module_ != nullptr);
-        module_pass_manager.run(*module_, moduleAnalysisManager());
+        module_pass_manager.run(*module_, module_analysis_manager_);
+
+        // Verifying that the module is valid
+        if (isModuleBroken())
+        {
+            throw std::runtime_error("Module was broken after applying result");
+        }
     }
 
     void IrManipulationTestHelper::declareOpaque(String const& name)
@@ -148,7 +160,8 @@ namespace quantum
         function_declarations_.insert(declaration);
     }
 
-    IrManipulationTestHelper::String IrManipulationTestHelper::generateScript(String const& body) const
+    IrManipulationTestHelper::String IrManipulationTestHelper::generateScript(String const& body, String const& args)
+        const
     {
         String script = R"script(
 ; ModuleID = 'IrManipulationTestHelper'
@@ -162,7 +175,7 @@ source_filename = "IrManipulationTestHelper.ll"
             script += "%" + op + " = type opaque\n";
         }
 
-        script += "define i8 @Main() local_unnamed_addr {\nentry:\n";
+        script += "define i8 @Main(" + args + ") local_unnamed_addr #0 {\nentry:\n";
         script += body;
         script += "\n  ret i8 0\n";
         script += "\n}\n\n";
@@ -171,7 +184,7 @@ source_filename = "IrManipulationTestHelper.ll"
         {
             script += "declare " + op + "\n";
         }
-        script += "\nattributes #0 = { \"InteropFriendly\" }\n";
+        script += "\nattributes #0 = { \"EntryPoint\" }\n";
         return script;
     }
 
@@ -203,36 +216,27 @@ source_filename = "IrManipulationTestHelper.ll"
         return str;
     }
 
-    bool IrManipulationTestHelper::fromBodyString(String const& body)
+    bool IrManipulationTestHelper::fromBodyString(String const& body, String const& args)
     {
-        auto script = generateScript(body);
+        auto script = generateScript(body, args);
         return fromString(script);
-    }
-
-    llvm::PassBuilder& IrManipulationTestHelper::passBuilder()
-    {
-        return pass_builder_;
-    }
-    llvm::LoopAnalysisManager& IrManipulationTestHelper::loopAnalysisManager()
-    {
-        return loop_analysis_manager_;
-    }
-    llvm::FunctionAnalysisManager& IrManipulationTestHelper::functionAnalysisManager()
-    {
-        return function_analysis_manager_;
-    }
-    llvm::CGSCCAnalysisManager& IrManipulationTestHelper::gsccAnalysisManager()
-    {
-        return gscc_analysis_manager_;
-    }
-    llvm::ModuleAnalysisManager& IrManipulationTestHelper::moduleAnalysisManager()
-    {
-        return module_analysis_manager_;
     }
 
     IrManipulationTestHelper::ModulePtr& IrManipulationTestHelper::module()
     {
         return module_;
+    }
+
+    bool IrManipulationTestHelper::isModuleBroken()
+    {
+        if (compilation_failed_)
+        {
+            return compilation_failed_;
+        }
+
+        llvm::VerifierAnalysis verifier;
+        auto                   result = verifier.run(*module_, module_analysis_manager_);
+        return result.IRBroken;
     }
 
 } // namespace quantum

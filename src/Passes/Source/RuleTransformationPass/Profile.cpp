@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "ProfilePass/Profile.hpp"
+#include "RuleTransformationPass/Profile.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/Notation/Notation.hpp"
 #include "Rules/ReplacementRule.hpp"
@@ -16,7 +16,7 @@ namespace microsoft
 namespace quantum
 {
 
-    void ProfilePass::setupCopyAndExpand()
+    void RuleTransformationPass::setupCopyAndExpand()
     {
         using namespace microsoft::quantum::notation;
         addConstExprRule(
@@ -57,14 +57,14 @@ namespace quantum
              }});
     }
 
-    void ProfilePass::addConstExprRule(ReplacementRule&& rule)
+    void RuleTransformationPass::addConstExprRule(ReplacementRule&& rule)
     {
         auto ret = std::make_shared<ReplacementRule>(std::move(rule));
 
         const_expr_replacements_.addRule(ret);
     }
 
-    void ProfilePass::constantFoldFunction(llvm::Function& function)
+    void RuleTransformationPass::constantFoldFunction(llvm::Function& function)
     {
         std::vector<llvm::Instruction*> to_delete;
 
@@ -123,7 +123,9 @@ namespace quantum
         }
     }
 
-    llvm::Value* ProfilePass::copyAndExpand(llvm::Value* input, DeletableInstructions& schedule_instruction_deletion)
+    llvm::Value* RuleTransformationPass::copyAndExpand(
+        llvm::Value*           input,
+        DeletableInstructions& schedule_instruction_deletion)
     {
         llvm::Value* ret        = input;
         auto*        call_instr = llvm::dyn_cast<llvm::CallBase>(input);
@@ -192,8 +194,9 @@ namespace quantum
 
                     // Deleting instruction
                     schedule_instruction_deletion.push_back(&instr);
-                    // TODO(tfr): Delete instruction, instr.deleteInstru??;
 
+                    // Folding constants in the newfunction as we may have replaced some of
+                    // the arguments with constants
                     constantFoldFunction(*new_callee);
 
                     // Recursion: Returning the new call as the instruction to be analysed
@@ -211,17 +214,17 @@ namespace quantum
         return ret;
     }
 
-    llvm::Value* ProfilePass::detectActiveCode(llvm::Value* input, DeletableInstructions&)
+    llvm::Value* RuleTransformationPass::detectActiveCode(llvm::Value* input, DeletableInstructions&)
     {
         active_pieces_.insert(input);
         return input;
     }
 
-    bool ProfilePass::runOnFunction(llvm::Function& function, InstructionModifier const& modifier)
+    bool RuleTransformationPass::runOnFunction(llvm::Function& function, InstructionModifier const& modifier)
     {
-        if (depth_ >= max_recursion_)
+        if (depth_ >= config_.maxRecursion())
         {
-            llvm::errs() << "Exceed max recursion of " << max_recursion_ << "\n";
+            llvm::errs() << "Exceed max recursion of " << config_.maxRecursion() << "\n";
             return false;
         }
         ++depth_;
@@ -306,19 +309,19 @@ namespace quantum
         return true;
     }
 
-    bool ProfilePass::isActive(llvm::Value* value) const
+    bool RuleTransformationPass::isActive(llvm::Value* value) const
     {
         return active_pieces_.find(value) != active_pieces_.end();
     }
 
-    void ProfilePass::runCopyAndExpand(llvm::Module& module, llvm::ModuleAnalysisManager&)
+    void RuleTransformationPass::runCopyAndExpand(llvm::Module& module, llvm::ModuleAnalysisManager&)
     {
         replacements_.clear();
         // For every instruction in every block, we attempt a match
         // and replace.
         for (auto& function : module)
         {
-            if (function.hasFnAttribute("EntryPoint"))
+            if (function.hasFnAttribute(config_.entryPointAttr()))
             {
                 runOnFunction(function, [this](llvm::Value* value, DeletableInstructions& modifier) {
                     return copyAndExpand(value, modifier);
@@ -329,7 +332,7 @@ namespace quantum
         // Dead code detection
         for (auto& function : module)
         {
-            if (function.hasFnAttribute("EntryPoint"))
+            if (function.hasFnAttribute(config_.entryPointAttr()))
             {
                 // Marking function as active
                 active_pieces_.insert(&function);
@@ -344,7 +347,7 @@ namespace quantum
         applyReplacements();
     }
 
-    void ProfilePass::applyReplacements()
+    void RuleTransformationPass::applyReplacements()
     {
         // Applying all replacements
 
@@ -402,7 +405,7 @@ namespace quantum
         replacements_.clear();
     }
 
-    void ProfilePass::runDetectActiveCode(llvm::Module& module, llvm::ModuleAnalysisManager&)
+    void RuleTransformationPass::runDetectActiveCode(llvm::Module& module, llvm::ModuleAnalysisManager&)
     {
         blocks_to_delete_.clear();
         functions_to_delete_.clear();
@@ -426,7 +429,7 @@ namespace quantum
         }
     }
 
-    void ProfilePass::runDeleteDeadCode(llvm::Module&, llvm::ModuleAnalysisManager&)
+    void RuleTransformationPass::runDeleteDeadCode(llvm::Module&, llvm::ModuleAnalysisManager&)
     {
         std::vector<llvm::Instruction*> to_delete;
 
@@ -441,6 +444,7 @@ namespace quantum
 
             for (auto& block : *function)
             {
+                llvm::errs() << "REMOVING" << block << "\n";
                 // Removing all instructions
                 for (auto& instr : block)
                 {
@@ -482,7 +486,7 @@ namespace quantum
         }
     }
 
-    void ProfilePass::runReplacePhi(llvm::Module& module, llvm::ModuleAnalysisManager&)
+    void RuleTransformationPass::runReplacePhi(llvm::Module& module, llvm::ModuleAnalysisManager&)
     {
         using namespace microsoft::quantum::notation;
         auto                            rule = phi("b1"_cap = _, "b2"_cap = _);
@@ -534,14 +538,14 @@ namespace quantum
         }
     }
 
-    void ProfilePass::runApplyRules(llvm::Module& module, llvm::ModuleAnalysisManager&)
+    void RuleTransformationPass::runApplyRules(llvm::Module& module, llvm::ModuleAnalysisManager&)
     {
         replacements_.clear();
 
         std::unordered_set<llvm::Value*> already_visited;
         for (auto& function : module)
         {
-            if (function.hasFnAttribute("EntryPoint"))
+            if (function.hasFnAttribute(config_.entryPointAttr()))
             {
                 runOnFunction(function, [this, &already_visited](llvm::Value* value, DeletableInstructions&) {
                     auto instr = llvm::dyn_cast<llvm::Instruction>(value);
@@ -566,10 +570,10 @@ namespace quantum
         applyReplacements();
     }
 
-    llvm::PreservedAnalyses ProfilePass::run(llvm::Module& module, llvm::ModuleAnalysisManager& mam)
+    llvm::PreservedAnalyses RuleTransformationPass::run(llvm::Module& module, llvm::ModuleAnalysisManager& mam)
     {
         // In case the module is istructed to clone functions,
-        if (clone_functions_)
+        if (config_.cloneFunctions())
         {
             setupCopyAndExpand();
             runCopyAndExpand(module, mam);
@@ -579,7 +583,7 @@ namespace quantum
         // of three steps: detecting dead code, removing phi nodes (and references)
         // and finally deleting the code. This implementation is aggressive in the sense
         // that any code that we cannot prove to be active is considered dead.
-        if (delete_dead_code_)
+        if (config_.deleteDeadCode())
         {
             runDetectActiveCode(module, mam);
             runReplacePhi(module, mam);
@@ -587,12 +591,15 @@ namespace quantum
         }
 
         // Applying rule set
-        if (!apply_to_inactive_code_)
+        if (config_.transformExecutionPathOnly())
         {
+            // We only apply transformation rules to code which is reachable
+            // via the execution path.
             runApplyRules(module, mam);
         }
         else
         {
+            // Otherwise we apply to all sections of the code.
             replacements_.clear();
             for (auto& function : module)
             {
@@ -611,7 +618,9 @@ namespace quantum
         return llvm::PreservedAnalyses::none();
     }
 
-    llvm::Function* ProfilePass::expandFunctionCall(llvm::Function& callee, ConstantArguments const& const_args)
+    llvm::Function* RuleTransformationPass::expandFunctionCall(
+        llvm::Function&          callee,
+        ConstantArguments const& const_args)
     {
         auto              module  = callee.getParent();
         auto&             context = module->getContext();
@@ -662,8 +671,7 @@ namespace quantum
 
         llvm::SmallVector<llvm::ReturnInst*, 8> returns; // Ignore returns cloned.
 
-        // TODO(QAT-private-issue-28): In LLVM 13 upgrade 'true' to
-        // 'llvm::CloneFunctionChangeType::LocalChangesOnly'
+        // Note: In LLVM 13 upgrade 'true' to 'llvm::CloneFunctionChangeType::LocalChangesOnly'
         llvm::CloneFunctionInto(function, &callee, remapper, true, returns, "", nullptr);
 
         verifyFunction(*function);
@@ -671,7 +679,12 @@ namespace quantum
         return function;
     }
 
-    bool ProfilePass::isRequired()
+    void RuleTransformationPass::setLogger(ILoggerPtr logger)
+    {
+        logger_ = std::move(logger);
+    }
+
+    bool RuleTransformationPass::isRequired()
     {
         return true;
     }

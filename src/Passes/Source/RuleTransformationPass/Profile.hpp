@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Logging/ILogger.hpp"
+#include "RuleTransformationPass/Configuration.hpp"
 #include "Rules/RuleSet.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -69,7 +71,7 @@ namespace quantum
     ///                                     │                               │
     ///                                     └───────────────────────────────┘
     ///
-    class ProfilePass : public llvm::PassInfoMixin<ProfilePass>
+    class RuleTransformationPass : public llvm::PassInfoMixin<RuleTransformationPass>
     {
       public:
         using Replacements         = ReplacementRule::Replacements;
@@ -77,47 +79,40 @@ namespace quantum
         using Rules                = std::vector<ReplacementRule>;
         using Value                = llvm::Value;
         using Builder              = ReplacementRule::Builder;
-        using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
+        using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
         using Captures             = RuleSet::Captures;
         using String               = std::string;
         using ConstantArguments    = std::unordered_map<std::string, llvm::ConstantInt*>;
+        using ILoggerPtr           = std::shared_ptr<ILogger>;
 
         /// Construction and destruction configuration.
         /// @{
 
         /// Custom default constructor
-        explicit ProfilePass(
-            RuleSet&& rule_set,
-            bool      clone_functions        = true,
-            bool      delete_dead_code       = true,
-            bool      apply_to_inactive_code = false,
-            uint64_t  max_recursion          = 512)
+        explicit RuleTransformationPass(RuleSet&& rule_set, RuleTransformationPassConfiguration const& config)
           : rule_set_{std::move(rule_set)}
-          , clone_functions_{clone_functions}
-          , delete_dead_code_{delete_dead_code}
-          , apply_to_inactive_code_{apply_to_inactive_code}
-          , max_recursion_{max_recursion}
+          , config_{config}
         {
         }
 
         /// Copy construction is banned.
-        ProfilePass(ProfilePass const&) = delete;
+        RuleTransformationPass(RuleTransformationPass const&) = delete;
 
         /// We allow move semantics.
-        ProfilePass(ProfilePass&&) = default;
+        RuleTransformationPass(RuleTransformationPass&&) = default;
 
         /// Default destruction.
-        ~ProfilePass() = default;
+        ~RuleTransformationPass() = default;
         /// @}
 
         /// Operators
         /// @{
 
         /// Copy assignment is banned.
-        ProfilePass& operator=(ProfilePass const&) = delete;
+        RuleTransformationPass& operator=(RuleTransformationPass const&) = delete;
 
         /// Move assignement is permitted.
-        ProfilePass& operator=(ProfilePass&&) = default;
+        RuleTransformationPass& operator=(RuleTransformationPass&&) = default;
         /// @}
 
         /// Implements the transformation analysis which uses the supplied ruleset to make substitutions
@@ -167,15 +162,18 @@ namespace quantum
         static bool isRequired();
         /// @}
 
+        /// Logger
+        /// @{
+        void setLogger(ILoggerPtr logger);
+        /// @}
       private:
         /// Pass configuration
         /// @{
-        RuleSet  rule_set_{};
-        bool     clone_functions_{true};
-        bool     delete_dead_code_{true};
-        bool     apply_to_inactive_code_{false};
-        uint64_t max_recursion_{512};
+        RuleSet                             rule_set_{};
+        RuleTransformationPassConfiguration config_{};
         /// @}
+
+        ILoggerPtr logger_{nullptr};
 
         /// Generic
         /// @{

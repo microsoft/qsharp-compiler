@@ -2,7 +2,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "AllocationManager/AllocationManager.hpp"
+#include "AllocationManager/IAllocationManager.hpp"
 #include "Rules/OperandPrototype.hpp"
 #include "Rules/ReplacementRule.hpp"
 
@@ -30,7 +30,7 @@ namespace quantum
         using Instruction          = llvm::Instruction;
         using Value                = llvm::Value;
         using Builder              = ReplacementRule::Builder;
-        using AllocationManagerPtr = AllocationManager::AllocationManagerPtr;
+        using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
 
         /// Constructors
         /// @{

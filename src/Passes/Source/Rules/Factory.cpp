@@ -15,9 +15,54 @@ namespace quantum
 
     RuleFactory::RuleFactory(RuleSet& rule_set)
       : rule_set_{rule_set}
-      , qubit_alloc_manager_{AllocationManager::createNew()}
-      , result_alloc_manager_{AllocationManager::createNew()}
+      , qubit_alloc_manager_{BasicAllocationManager::createNew()}
+      , result_alloc_manager_{BasicAllocationManager::createNew()}
     {
+    }
+
+    void RuleFactory::usingConfiguration(FactoryConfiguration const& config)
+    {
+        default_integer_width_ = config.defaultIntegerWidth();
+
+        if (config.disableReferenceCounting())
+        {
+            disableReferenceCounting();
+        }
+
+        if (config.disableAliasCounting())
+        {
+            disableAliasCounting();
+        }
+
+        if (config.disableStringSupport())
+        {
+            disableStringSupport();
+        }
+
+        if (config.optimiseBranchQuantumOne())
+        {
+            optimiseBranchQuantumOne();
+        }
+
+        if (config.optimiseBranchQuantumZero())
+        {
+            optimiseBranchQuantumZero();
+        }
+
+        if (config.useStaticQubitArrayAllocation())
+        {
+            useStaticQubitArrayAllocation();
+        }
+
+        if (config.useStaticQubitAllocation())
+        {
+            useStaticQubitAllocation();
+        }
+
+        if (config.useStaticResultAllocation())
+        {
+            useStaticResultAllocation();
+        }
     }
 
     void RuleFactory::removeFunctionCall(String const& name)
@@ -31,8 +76,9 @@ namespace quantum
         auto qubit_alloc_manager = qubit_alloc_manager_;
 
         /// Allocation
+        auto default_iw = default_integer_width_;
         auto allocation_replacer =
-            [qubit_alloc_manager](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
+            [default_iw, qubit_alloc_manager](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
                 auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
                 if (cst == nullptr)
                 {
@@ -56,8 +102,7 @@ namespace quantum
                 auto offset    = qubit_alloc_manager->allocate(name, size);
 
                 // Creating a new index APInt that is shifted by the offset of the allocation
-                // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from QIR
-                auto idx = llvm::APInt(64, offset);
+                auto idx = llvm::APInt(default_iw, offset);
 
                 // Computing offset
                 auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
@@ -177,8 +222,9 @@ namespace quantum
     void RuleFactory::useStaticQubitAllocation()
     {
         auto qubit_alloc_manager = qubit_alloc_manager_;
+        auto default_iw          = default_integer_width_;
         auto allocation_replacer =
-            [qubit_alloc_manager](Builder& builder, Value* val, Captures&, Replacements& replacements) {
+            [default_iw, qubit_alloc_manager](Builder& builder, Value* val, Captures&, Replacements& replacements) {
                 // Getting the type pointer
                 auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
                 if (ptr_type == nullptr)
@@ -193,8 +239,7 @@ namespace quantum
                 auto offset = qubit_alloc_manager->allocate(qubit_name);
 
                 // Creating a new index APInt that is shifted by the offset of the allocation
-                // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from QIR
-                auto idx = llvm::APInt(64, offset);
+                auto idx = llvm::APInt(default_iw, offset);
 
                 // Computing offset
                 auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
@@ -292,75 +337,74 @@ namespace quantum
     void RuleFactory::useStaticResultAllocation()
     {
         auto result_alloc_manager = result_alloc_manager_;
-        auto replace_measurement =
-            [result_alloc_manager](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-                // Getting the type pointer
-                auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
-                if (ptr_type == nullptr)
+        auto default_iw           = default_integer_width_;
+        auto replace_measurement  = [default_iw, result_alloc_manager](
+                                       Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
+            // Getting the type pointer
+            auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
+            if (ptr_type == nullptr)
+            {
+                return false;
+            }
+
+            // Computing the index by getting the current index value and offseting by
+            // the offset at which the qubit array is allocated.
+            auto offset = result_alloc_manager->allocate();
+
+            // Creating a new index APInt that is shifted by the offset of the allocation
+            auto idx = llvm::APInt(default_iw, offset);
+
+            // Computing offset
+            auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+
+            auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+
+            if (instr == nullptr)
+            {
+                return false;
+            }
+
+            instr->takeName(val);
+
+            auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+            if (orig_instr == nullptr)
+            {
+                return false;
+            }
+
+            auto module   = orig_instr->getModule();
+            auto function = module->getFunction("__quantum__qis__mz__body");
+
+            std::vector<llvm::Value*> arguments;
+            arguments.push_back(cap["qubit"]);
+            arguments.push_back(instr);
+
+            if (!function)
+            {
+                std::vector<llvm::Type*> types;
+                types.resize(arguments.size());
+                for (uint64_t i = 0; i < types.size(); ++i)
                 {
-                    return false;
+                    types[i] = arguments[i]->getType();
                 }
 
-                // Computing the index by getting the current index value and offseting by
-                // the offset at which the qubit array is allocated.
-                auto offset = result_alloc_manager->allocate();
+                auto return_type = llvm::Type::getVoidTy(val->getContext());
 
-                // Creating a new index APInt that is shifted by the offset of the allocation
-                // TODO(QAT-private-issue-32): Make default integer width a module parameter or extract from
-                // QIR
-                auto idx = llvm::APInt(64, offset);
+                llvm::FunctionType* fnc_type = llvm::FunctionType::get(return_type, types, false);
+                function                     = llvm::Function::Create(
+                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qis__mz__body", module);
+            }
 
-                // Computing offset
-                auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+            // Ensuring we are inserting after the instruction being deleted
+            builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val)->getNextNode());
 
-                auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+            builder.CreateCall(function, arguments);
 
-                if (instr == nullptr)
-                {
-                    return false;
-                }
+            // Replacing the instruction with new instruction
+            replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
 
-                instr->takeName(val);
-
-                auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
-                if (orig_instr == nullptr)
-                {
-                    return false;
-                }
-
-                auto module   = orig_instr->getModule();
-                auto function = module->getFunction("__quantum__qis__mz__body");
-
-                std::vector<llvm::Value*> arguments;
-                arguments.push_back(cap["qubit"]);
-                arguments.push_back(instr);
-
-                if (!function)
-                {
-                    std::vector<llvm::Type*> types;
-                    types.resize(arguments.size());
-                    for (uint64_t i = 0; i < types.size(); ++i)
-                    {
-                        types[i] = arguments[i]->getType();
-                    }
-
-                    auto return_type = llvm::Type::getVoidTy(val->getContext());
-
-                    llvm::FunctionType* fnc_type = llvm::FunctionType::get(return_type, types, false);
-                    function                     = llvm::Function::Create(
-                        fnc_type, llvm::Function::ExternalLinkage, "__quantum__qis__mz__body", module);
-                }
-
-                // Ensuring we are inserting after the instruction being deleted
-                builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val)->getNextNode());
-
-                builder.CreateCall(function, arguments);
-
-                // Replacing the instruction with new instruction
-                replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
-
-                return true;
-            };
+            return true;
+        };
 
         // This rules identifies result allocations through the function "__quantum__qis__m__body".
         // As an example, the following
@@ -375,7 +419,12 @@ namespace quantum
         addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
     }
 
-    void RuleFactory::optimiseBranchQuatumOne()
+    void RuleFactory::optimiseBranchQuantumZero()
+    {
+        // TODO(tfr): Not implemented
+    }
+
+    void RuleFactory::optimiseBranchQuantumOne()
     {
         auto replace_branch_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
             auto result = cap["result"];
@@ -479,6 +528,11 @@ namespace quantum
         rule_set_.addRule(ret);
 
         return ret;
+    }
+
+    void RuleFactory::setDefaultIntegerWidth(uint32_t v)
+    {
+        default_integer_width_ = v;
     }
 
 } // namespace quantum
