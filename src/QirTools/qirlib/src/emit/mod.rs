@@ -22,7 +22,7 @@ pub fn write(model: &SemanticModel, file_name: &str) -> Result<(), String> {
     let context = Context::new(&ctx, model.name.as_str());
 
     build_entry_function(&context, model)?;
-    context.emit_ir(file_name);
+    context.emit_ir(file_name)?;
 
     Ok(())
 }
@@ -159,11 +159,12 @@ impl<'ctx> Context<'ctx> {
         self.module.write_bitcode_to_path(&bitcode_path);
     }
 
-    pub fn emit_ir(&self, file_path: &str) {
+    pub fn emit_ir(&self, file_path: &str) -> Result<(), String> {
         let ir_path = Path::new(file_path);
-        if let Err(_) = self.module.print_to_file(ir_path) {
-            todo!()
+        if let Err(llvmstr) = self.module.print_to_file(ir_path) {
+            return Err(llvmstr.to_string());
         }
+        Ok(())
     }
 
     pub fn get_ir_string(&self) -> String {

@@ -373,10 +373,7 @@ fn write_single_qubit_model_with_measurement(file_name: &str) {
     model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
     model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
 
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
+    model.add_inst(Instruction::M(String::from("qr0"), String::from("qc0")));
 
     Emitter::write(&model, file_name).unwrap();
 }
@@ -388,10 +385,7 @@ fn write_one_to_one_or_zero_h_measure(file_name: &str) {
 
     model.add_inst(Instruction::X(Single::new(String::from("qr0"))));
     model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
+    model.add_inst(Instruction::M(String::from("qr0"), String::from("qc0")));
     Emitter::write(&model, file_name).unwrap();
 }
 fn write_zero_to_one_or_zero_h_measure(file_name: &str) {
@@ -401,10 +395,7 @@ fn write_zero_to_one_or_zero_h_measure(file_name: &str) {
     model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
 
     model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
+    model.add_inst(Instruction::M(String::from("qr0"), String::from("qc0")));
     Emitter::write(&model, file_name).unwrap();
 }
 fn write_zero_to_one_x_measure(file_name: &str) {
@@ -414,10 +405,7 @@ fn write_zero_to_one_x_measure(file_name: &str) {
     model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
 
     model.add_inst(Instruction::X(Single::new(String::from("qr0"))));
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
+    model.add_inst(Instruction::M(String::from("qr0"), String::from("qc0")));
     Emitter::write(&model, file_name).unwrap();
 }
 fn write_bell_measure(file_name: &str) {
@@ -432,14 +420,8 @@ fn write_bell_measure(file_name: &str) {
         String::from("qr0"),
         String::from("qr1"),
     )));
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr1"),
-        target: String::from("qc1"),
-    });
+    model.add_inst(Instruction::M(String::from("qr0"), String::from("qc0")));
+    model.add_inst(Instruction::M(String::from("qr1"), String::from("qc1")));
     Emitter::write(&model, file_name).unwrap();
 }
 
@@ -483,30 +465,33 @@ fn write_bernstein_vazirani(file_name: &str) {
     model.add_inst(Instruction::H(Single::new(String::from("input_2"))));
     model.add_inst(Instruction::H(Single::new(String::from("input_3"))));
     model.add_inst(Instruction::H(Single::new(String::from("input_4"))));
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_0"),
-        target: String::from("output_0"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_1"),
-        target: String::from("output_1"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_2"),
-        target: String::from("output_2"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_3"),
-        target: String::from("output_3"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_4"),
-        target: String::from("output_4"),
-    });
+
+    model.add_inst(Instruction::M(
+        String::from("input_0"),
+        String::from("output_0"),
+    ));
+    model.add_inst(Instruction::M(
+        String::from("input_1"),
+        String::from("output_1"),
+    ));
+    model.add_inst(Instruction::M(
+        String::from("input_2"),
+        String::from("output_2"),
+    ));
+    model.add_inst(Instruction::M(
+        String::from("input_3"),
+        String::from("output_3"),
+    ));
+    model.add_inst(Instruction::M(
+        String::from("input_4"),
+        String::from("output_4"),
+    ));
+
     model.add_inst(Instruction::Reset(Single::new(String::from("input_0"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_1"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_2"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_3"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_4"))));
+
     Emitter::write(&model, file_name).unwrap();
 }

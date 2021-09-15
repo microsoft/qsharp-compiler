@@ -179,6 +179,12 @@ impl PyQIR {
     }
 
     fn write(&self, file_name: &str) -> PyResult<()> {
+        if let Err(msg) = qirlib::emit::write(&self.model, file_name) {
+            let err: PyErr = PyOSError::new_err::<String>(msg);
+            return Err(err);
+        }
+        Ok(())
+    }
 
     fn enable_logging(&self) -> PyResult<()> {
         let _ = env_logger::try_init();
