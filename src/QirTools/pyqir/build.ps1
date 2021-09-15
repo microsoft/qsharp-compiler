@@ -82,11 +82,11 @@ function Test-AllowedToDownloadLlvm {
 }
 
 function Get-AqCacheDirectory {
-    $aqCacheDirectory = Join-Path (Get-DefaultInstallDirectory) ".azure-quantum"
+    $aqCacheDirectory = (Get-DefaultInstallDirectory)
     if (!(Test-Path $aqCacheDirectory)) {
         mkdir $aqCacheDirectory | Out-Null
     }
-    $aqCacheDirectory
+    Resolve-Path $aqCacheDirectory
 }
 
 function Get-LlvmDownloadBaseUrl {
@@ -121,10 +121,11 @@ function Get-LlvmArchiveShaFileName {
 }
 
 function Get-DefaultInstallDirectory {
-    if (!(Test-Path "$HOME")) {
-        mkdir "$HOME" | Out-Null
+    if(Test-Path env:\AQ_CACHE_DIR) {
+        $env:AQ_CACHE_DIR
+    } else {
+        Join-Path "$HOME" ".azure-quantum"
     }
-    "$HOME"
 }
 
 function Get-InstallationDirectory {
