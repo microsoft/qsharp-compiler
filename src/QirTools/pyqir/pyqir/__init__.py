@@ -212,3 +212,30 @@ class QirBuilder:
         :type file_path: str
         """
         self.pyqir.write(file_path)
+
+    def enable_logging(self):
+        """
+        Enables the logging infrastructure
+        Controlled via the RUST_LOG environment variable.
+        See https://docs.rs/env_logger/0.9.0/env_logger/#enabling-logging for details
+
+        Example:
+        in tests.py:
+            def test_logging():
+                builder = QirBuilder("logging test")
+                builder.enable_logging()
+                builder.add_quantum_register("qr", 1)
+                builder.h("qr0")
+                builder.build("test.ll")
+
+        PowerShell:
+            $env:RUST_LOG="info"
+            python -m pytest
+        Bash:
+            RUST_LOG=info python -m pytest
+
+        Example Output:
+        [2021-09-15T16:55:46Z INFO  pyqir::python] Adding qr[0]
+        [2021-09-15T16:55:46Z INFO  pyqir::python] h => qr0
+        """
+        self.pyqir.enable_logging()

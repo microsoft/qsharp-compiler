@@ -1,12 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qirlib::{
-    emit::Emitter,
-    interop::{
-        ClassicalRegister, Controlled, Instruction, QuantumRegister, Rotated, SemanticModel, Single,
-    },
+use qirlib::interop::{
+    ClassicalRegister, Controlled, Instruction, QuantumRegister, Rotated, SemanticModel, Single,
 };
+
 use serial_test::serial;
 use std::{env, fs};
 use std::{
@@ -14,6 +12,7 @@ use std::{
     path::PathBuf,
 };
 use std::{ops::Add, path::Path};
+use tempfile::tempdir;
 
 #[test]
 #[serial]
@@ -141,7 +140,7 @@ fn bernstein_vazirani() {
 }
 
 fn get_compiler_name() -> &'static str {
-    // todo: resolve which clang is needed here.
+    todo!("resolve which clang is needed here.");
     if cfg!(target_os = "windows") {
         return r"C:\LLVM\bin\clang++";
     } else {
@@ -149,25 +148,15 @@ fn get_compiler_name() -> &'static str {
     }
 }
 fn execute(name: &str, generator: fn(&str) -> (), expected_results: Vec<&str>) {
-    // set up test dir
-    // todo: create new random tmp dir. The copies for now overwrite
-    let mut test_dir = env::temp_dir();
-    test_dir.push("tests");
+    let dir = tempdir()?;
 
-    if let Err(_) = fs::create_dir(&test_dir) {
-        // todo: check if the dir exists. Rust implementation returns an error
-        // instead of being idempotent.
-    }
-    println!("{}", test_dir.display());
+    let ir_path = dir.path().join(format!("{}.ll", name.replace(" ", "_")));
 
     // generate the QIR
-    let mut ir_path = PathBuf::from(&test_dir);
-    ir_path.push(name.replace(" ", "_"));
-    ir_path.set_extension("ll");
-    generator(ir_path.to_str().unwrap());
+    println!("Writing {:?}", ir_path);
+    generator(ir_path.display().to_string().as_str());
 
-    let mut app = PathBuf::from(&test_dir);
-    app.push(name);
+    let mut app = dir.path().join(name);
 
     // todo change extension based on platform
     // ie exe on windows.

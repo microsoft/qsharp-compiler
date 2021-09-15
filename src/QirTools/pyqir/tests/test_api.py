@@ -1,7 +1,7 @@
 from pyqir import QirBuilder
 import pytest
 
-def test_bell():
+def test_bell(tmpdir):
     builder = QirBuilder("Bell circuit")
     builder.add_quantum_register("qr", 2)
     builder.add_classical_register("qc", 2)
@@ -9,16 +9,22 @@ def test_bell():
     builder.cx("qr0", "qr1")
     builder.m("qr0", "qc0")
     builder.m("qr1", "qc1")
-    builder.build("bell_measure.ll")
 
-def test_bell_no_measure():
+    file = tmpdir.mkdir("sub").join("bell_measure.ll")
+    print(f'Writing {file}')
+    builder.build(str(file))
+
+def test_bell_no_measure(tmpdir):
     builder = QirBuilder("Bell circuit")
     builder.add_quantum_register("qr", 2)
     builder.h("qr0")
     builder.cx("qr0", "qr1")
-    builder.build("bell_no_measure.ll")
 
-def test_bernstein_vazirani():
+    file = tmpdir.mkdir("sub").join("bell_no_measure.ll")
+    print(f'Writing {file}')
+    builder.build(str(file))
+
+def test_bernstein_vazirani(tmpdir):
     builder = QirBuilder("Bernstein-Vazirani")
     builder.add_quantum_register("input", 5)
     builder.add_quantum_register("target", 1)
@@ -50,10 +56,12 @@ def test_bernstein_vazirani():
     builder.m("input3", "output3")
     builder.m("input4", "output4")
 
-    builder.build("bernstein_vazirani.ll")
+    file = tmpdir.mkdir("sub").join("bernstein_vazirani.ll")
+    print(f'Writing {file}')
+    builder.build(str(file))
 
-def test_all_gates():
-    builder = QirBuilder("sample")
+def test_all_gates(tmpdir):
+    builder = QirBuilder("All Gates")
     builder.add_quantum_register("q", 4)
     builder.add_quantum_register("control", 1)
     builder.add_classical_register("c", 4)
@@ -78,4 +86,7 @@ def test_all_gates():
     builder.m("q1", "c1")
     builder.m("q2", "c2")
     builder.m("q3", "c3")
-    builder.build("pytest.ll")
+
+    file = tmpdir.mkdir("sub").join("all_gates.ll")
+    print(f'Writing {file}')
+    builder.build(str(file))
