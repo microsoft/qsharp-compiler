@@ -15,7 +15,9 @@
 namespace microsoft {
 namespace quantum {
 
-/// Generic implementation of the bind inteface for different types.
+/// Generic implementation of the bind inteface for different types. This class holds the reference
+/// to the variable and the name of the parameter. It implements serialisers and deserialisers to
+/// allow transforming strings to native values and vice versa.
 template <typename T>
 class ConfigBind : public IConfigBind
 {
@@ -28,7 +30,6 @@ public:
 
   // Constructors, operators and destructor
   //
-  ConfigBind(Type &bind, T default_value, String const &name, String const &description);
 
   ConfigBind()                   = delete;
   ConfigBind(ConfigBind const &) = delete;
@@ -36,6 +37,10 @@ public:
   ConfigBind &operator=(ConfigBind const &) = delete;
   ConfigBind &operator=(ConfigBind &&) = delete;
   ~ConfigBind() override               = default;
+
+  /// Constructor to bind value to parameter. This class holds a reference to a variable together
+  /// with the name it is expected to have when passed through the parameter parser.
+  ConfigBind(Type &bind, T default_value, String const &name, String const &description);
 
   // Interface implementation
   //

@@ -16,13 +16,24 @@
 namespace microsoft {
 namespace quantum {
 
-struct ConfigurationManager
+/// ConfigurationManager is a class that holds a collection of configurations (sections). Each of
+/// these sections are embodied in their own class with a one-to-one mapping between configuration
+/// section and the configuration type. As an example, if one wishes to make a configuration for the
+/// class Foo, one would create a class FooConfig which would hold all the variables that are
+/// configurable and then add FooConfig to the ConfigurationManager using `addConfig()`. For
+/// FooConfig to fulfill the concept of a configuration, it must implement a setup functions whose
+/// first argument is the ConfigurationManager.
+class ConfigurationManager
 {
 public:
-  using String         = std::string;
-  using IConfigBindPtr = std::shared_ptr<IConfigBind>;
-  using ConfigList     = std::vector<IConfigBindPtr>;
-  using VoidPtr        = std::shared_ptr<void>;
+  using String = std::string;
+  using IConfigBindPtr =
+      std::shared_ptr<IConfigBind>;  ///< Pointer class used to bind a parameter to a value.
+  using ConfigList = std::vector<IConfigBindPtr>;  ///< List of bound variables.
+  using VoidPtr    = std::shared_ptr<void>;        ///< Type-erased configuration pointer.
+
+  /// Section defines a section in the configuration. It hole
+
   struct Section
   {
     std::type_index type{std::type_index(typeid(nullptr_t))};
@@ -34,32 +45,69 @@ public:
   };
   using Sections = std::vector<Section>;
 
+  // Constructors, copy and move operators, destructir
+  //
+
+  /// Configuration manager is default constructible, non-copyable and non-movable.
   ConfigurationManager()                             = default;
   ConfigurationManager(ConfigurationManager const &) = delete;
   ConfigurationManager(ConfigurationManager &&)      = delete;
   ConfigurationManager &operator=(ConfigurationManager const &) = delete;
   ConfigurationManager &operator=(ConfigurationManager &&) = delete;
 
+  // Configuration setup
+  //
+
+  /// Adds all bound variables as parser arguments.
   void setupArguments(ParameterParser &parser);
+
+  /// Configures the value of each bound variable given a parser instance.
   void configure(ParameterParser const &parser);
-  void printHelp() const;
-  void printConfiguration() const;
 
-  void setSectionName(String const &name, String const &description);
+  // Managing configuration
+  //
 
-  template <typename T>
-  inline void addConfig();
+  /// Given an instance of the ConfigurationManager, this method override settings of class T.
   template <typename T>
   inline void setConfig(T const &value);
+
+  /// Gets the configuration instance of type T.
   template <typename T>
   inline T const &get() const;
+
+  // Support functions
+  //
+
+  /// Prints options for configurability to the terminal.
+  void printHelp() const;
+
+  /// Prints the configuration to the terminal. The configuration print is LLVM IR compatible
+  /// meaning that every line starts with a semicolon ; to ensure that it is interpreted as a
+  /// comment.
+  void printConfiguration() const;
+
+  // Configuration functions
+  //
+
+  /// Adds a new configuration of type T.
+  template <typename T>
+  inline void addConfig();
+
+  /// Sets the section name. This method is used by the configuration class to set a section name.
+  void setSectionName(String const &name, String const &description);
+
+  /// Adds a new parameter with a default value to the configuration section. This function should
+  /// be used by the configuration class.
   template <typename T>
   inline void addParameter(T &bind, T default_value, String const &name, String const &description);
+
+  /// Adds a new parameter to the configuration section. This method uses the bound variable value
+  /// as default value. This function should be used by the configuration class.
   template <typename T>
   inline void addParameter(T &bind, String const &name, String const &description);
 
 private:
-  Sections config_sections_;
+  Sections config_sections_{};
 };
 
 template <typename T>
