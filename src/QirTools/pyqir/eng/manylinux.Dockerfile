@@ -35,3 +35,5 @@ COPY --from=builder /usr/bin/maturin /usr/bin/maturin
 WORKDIR /io
 
 RUN yum install -y libffi-devel
+
+RUN python -m pip install --user -U tox

@@ -307,11 +307,21 @@ function Build-PyQIR {
                     $python = "python"
                 }
             }
+
+            Write-Vso "& $python -m pip install --user -U pip" "command"
             exec { & $python -m pip install --user -U pip }
+
+            Write-Vso "& $python -m pip install --user maturin tox" "command"
             exec { & $python -m pip install --user maturin tox }
+
+            Write-Vso "& $python -m tox -e test" "command"
             exec { & $python -m tox -e test }
+
+            Write-Vso "& $python -m tox -e pack" "command"
             exec { & $python -m tox -e pack }
         }
+
+        Write-Vso "& cargo test --package pyqir --package qirlib --lib -- --nocapture" "command"
         exec { & cargo test --package pyqir --package qirlib --lib -- --nocapture }
     }
 }
