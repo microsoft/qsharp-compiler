@@ -2,207 +2,226 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Llvm/Llvm.hpp"
 #include "Logging/ILogger.hpp"
 #include "Profile/Profile.hpp"
 #include "RuleTransformationPass/Configuration.hpp"
 #include "Rules/RuleSet.hpp"
 
-#include "Llvm/Llvm.hpp"
-
 #include <functional>
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+/// This class applies a set of transformation rules to the IR to transform it into a new IR. The
+/// rules are added using the RuleSet class which allows the developer to create one or more rules
+/// on how to transform the IR.
+///
+///
+/// The module executes the following steps:
+///
+///
+///
+///           ┌─────────────────┐
+///           │  Apply profile  │
+///           └─────────────────┘
+///                    │
+///                    │
+///                    │
+///                    │
+///                    │                ┌───────────────────────────────┐
+///                    │                │                               │
+///                    ├───────────────▶│   Copy and expand functions   │──┐
+///                    │     clone      │                               │  │
+///                    │   functions?   └───────────────────────────────┘  │
+///                    │                                │ delete dead      │
+///                    │                                │    code?         │
+///                    │                                ▼                  │
+///                    │                ┌───────────────────────────────┐  │
+///                    │                │                               │  │
+///                    ├───────────────▶│     Determine active code     │  │
+///                    │  delete dead   │                               │  │
+///                    │     code?      └───────────────────────────────┘  │
+///                    │                                │                  │
+///                    │                                │                  │
+///                    │                                ▼                  │
+///                    │                ┌───────────────────────────────┐  │  leave dead
+///                    │                │                               │  │    code?
+///                    │                │      Simplify phi nodes       │  │
+///                    │                │                               │  │
+///                    │                └───────────────────────────────┘  │
+///                    │                                │                  │
+///                    │                                │                  │
+///                    │                                ▼                  │
+///                    │                ┌───────────────────────────────┐  │
+///                    │                │                               │  │
+///                    │                │       Delete dead code        │  │
+///                    │                │                               │  │
+///                    │                └───────────────────────────────┘  │
+///                    │                                │                  │
+///                    │                                │                  │
+///                    │                                ▼                  │
+///                    │                ┌───────────────────────────────┐  │
+///                    │    fallback    │                               │  │
+///                    └───────────────▶│          Apply rules          │◀─┘
+///                                     │                               │
+///                                     └───────────────────────────────┘
+///
+class RuleTransformationPass : public llvm::PassInfoMixin<RuleTransformationPass>
 {
-namespace quantum
-{
+public:
+  using Replacements         = ReplacementRule::Replacements;
+  using Instruction          = llvm::Instruction;
+  using Rules                = std::vector<ReplacementRule>;
+  using Value                = llvm::Value;
+  using Builder              = ReplacementRule::Builder;
+  using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
+  using Captures             = RuleSet::Captures;
+  using String               = std::string;
+  using ConstantArguments    = std::unordered_map<std::string, llvm::ConstantInt *>;
+  using ILoggerPtr           = std::shared_ptr<ILogger>;
 
-    /// This class applies a set of transformation rules to the IR to transform it into a new IR. The
-    /// rules are added using the RuleSet class which allows the developer to create one or more rules
-    /// on how to transform the IR.
-    ///
-    ///
-    /// The module executes the following steps:
-    ///
-    ///
-    ///
-    ///           ┌─────────────────┐
-    ///           │  Apply profile  │
-    ///           └─────────────────┘
-    ///                    │
-    ///                    │
-    ///                    │
-    ///                    │
-    ///                    │                ┌───────────────────────────────┐
-    ///                    │                │                               │
-    ///                    ├───────────────▶│   Copy and expand functions   │──┐
-    ///                    │     clone      │                               │  │
-    ///                    │   functions?   └───────────────────────────────┘  │
-    ///                    │                                │ delete dead      │
-    ///                    │                                │    code?         │
-    ///                    │                                ▼                  │
-    ///                    │                ┌───────────────────────────────┐  │
-    ///                    │                │                               │  │
-    ///                    ├───────────────▶│     Determine active code     │  │
-    ///                    │  delete dead   │                               │  │
-    ///                    │     code?      └───────────────────────────────┘  │
-    ///                    │                                │                  │
-    ///                    │                                │                  │
-    ///                    │                                ▼                  │
-    ///                    │                ┌───────────────────────────────┐  │  leave dead
-    ///                    │                │                               │  │    code?
-    ///                    │                │      Simplify phi nodes       │  │
-    ///                    │                │                               │  │
-    ///                    │                └───────────────────────────────┘  │
-    ///                    │                                │                  │
-    ///                    │                                │                  │
-    ///                    │                                ▼                  │
-    ///                    │                ┌───────────────────────────────┐  │
-    ///                    │                │                               │  │
-    ///                    │                │       Delete dead code        │  │
-    ///                    │                │                               │  │
-    ///                    │                └───────────────────────────────┘  │
-    ///                    │                                │                  │
-    ///                    │                                │                  │
-    ///                    │                                ▼                  │
-    ///                    │                ┌───────────────────────────────┐  │
-    ///                    │    fallback    │                               │  │
-    ///                    └───────────────▶│          Apply rules          │◀─┘
-    ///                                     │                               │
-    ///                                     └───────────────────────────────┘
-    ///
-    class RuleTransformationPass : public llvm::PassInfoMixin<RuleTransformationPass>
-    {
-      public:
-        using Replacements         = ReplacementRule::Replacements;
-        using Instruction          = llvm::Instruction;
-        using Rules                = std::vector<ReplacementRule>;
-        using Value                = llvm::Value;
-        using Builder              = ReplacementRule::Builder;
-        using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
-        using Captures             = RuleSet::Captures;
-        using String               = std::string;
-        using ConstantArguments    = std::unordered_map<std::string, llvm::ConstantInt*>;
-        using ILoggerPtr           = std::shared_ptr<ILogger>;
+  // Construction and destruction configuration.
+  //
 
-        /// Construction and destruction configuration.
-        /// @{
+  /// Custom default constructor
+  RuleTransformationPass(RuleSet &&rule_set, RuleTransformationPassConfiguration const &config,
+                         Profile *profile)
+    : rule_set_{std::move(rule_set)}
+    , config_{config}
+    , profile_{profile}
+  {}
 
-        /// Custom default constructor
-        RuleTransformationPass(RuleSet&& rule_set, RuleTransformationPassConfiguration const& config, Profile* profile)
-          : rule_set_{std::move(rule_set)}
-          , config_{config}
-          , profile_{profile}
-        {
-        }
+  /// Copy construction is banned.
+  RuleTransformationPass(RuleTransformationPass const &) = delete;
 
-        /// Copy construction is banned.
-        RuleTransformationPass(RuleTransformationPass const&) = delete;
+  /// We allow move semantics.
+  RuleTransformationPass(RuleTransformationPass &&) = default;
 
-        /// We allow move semantics.
-        RuleTransformationPass(RuleTransformationPass&&) = default;
+  /// Default destruction.
+  ~RuleTransformationPass() = default;
 
-        /// Default destruction.
-        ~RuleTransformationPass() = default;
-        /// @}
+  // Operators
+  //
 
-        /// Operators
-        /// @{
+  /// Copy assignment is banned.
+  RuleTransformationPass &operator=(RuleTransformationPass const &) = delete;
 
-        /// Copy assignment is banned.
-        RuleTransformationPass& operator=(RuleTransformationPass const&) = delete;
+  /// Move assignment is permitted.
+  RuleTransformationPass &operator=(RuleTransformationPass &&) = default;
 
-        /// Move assignement is permitted.
-        RuleTransformationPass& operator=(RuleTransformationPass&&) = default;
-        /// @}
+  /// Implements the transformation analysis which uses the supplied ruleset to make substitutions
+  /// in each function.
+  llvm::PreservedAnalyses run(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
 
-        /// Implements the transformation analysis which uses the supplied ruleset to make substitutions
-        /// in each function.
-        llvm::PreservedAnalyses run(llvm::Module& module, llvm::ModuleAnalysisManager& mam);
+  using DeletableInstructions = std::vector<llvm::Instruction *>;
+  using InstructionModifier = std::function<llvm::Value *(llvm::Value *, DeletableInstructions &)>;
 
-        using DeletableInstructions = std::vector<llvm::Instruction*>;
-        using InstructionModifier   = std::function<llvm::Value*(llvm::Value*, DeletableInstructions&)>;
+  // Generic helper functions
+  //
 
-        /// Generic helper funcntions
-        /// @{
-        bool runOnFunction(llvm::Function& function, InstructionModifier const& modifier);
-        void applyReplacements();
-        /// @}
+  /// Generic function to apply a instructionModifier (lambda function) to every instruction in the
+  /// function `function`. This method follows the execution path to the extend possible and deals
+  /// with branching if the branch statement can be evaluated at compile time.
+  bool runOnFunction(llvm::Function &function, InstructionModifier const &modifier);
 
-        /// Copy and expand
-        /// @{
-        void            runCopyAndExpand(llvm::Module& module, llvm::ModuleAnalysisManager& mam);
-        void            setupCopyAndExpand();
-        void            addConstExprRule(ReplacementRule&& rule);
-        llvm::Value*    copyAndExpand(llvm::Value* input, DeletableInstructions&);
-        llvm::Function* expandFunctionCall(llvm::Function& callee, ConstantArguments const& const_args = {});
-        void            constantFoldFunction(llvm::Function& callee);
-        /// @}
+  /// Applies each of the replacements in the `replacements_` variable.
+  void applyReplacements();
 
-        /// Dead code detection
-        /// @{
-        void         runDetectActiveCode(llvm::Module& module, llvm::ModuleAnalysisManager& mam);
-        void         runDeleteDeadCode(llvm::Module& module, llvm::ModuleAnalysisManager& mam);
-        llvm::Value* detectActiveCode(llvm::Value* input, DeletableInstructions&);
-        llvm::Value* deleteDeadCode(llvm::Value* input, DeletableInstructions&);
-        bool         isActive(llvm::Value* value) const;
-        /// @}
+  // Copy and expand
+  //
 
-        /// @{
-        void runReplacePhi(llvm::Module& module, llvm::ModuleAnalysisManager& mam);
-        /// @}
+  /// Configuration function for copy and expand to setup the necessary rules.
+  void setupCopyAndExpand();
 
-        /// Rules
-        /// @{
-        void runApplyRules(llvm::Module& module, llvm::ModuleAnalysisManager& mam);
-        bool onQubitRelease(llvm::Instruction* instruction, Captures& captures);
-        bool onQubitAllocate(llvm::Instruction* instruction, Captures& captures);
-        /// @}
+  /// Main function for running the copy and expand functionality. This function first identifies
+  /// the entry point and then follows every execution path to copy the callee function for every
+  /// call instruction encountered. This makes that every call in the code has its own unique callee
+  /// function which ensures that when allocating qubits or results, the assigned registers are not
+  /// accidentality reused.
+  void runCopyAndExpand(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
 
-        /// Whether or not this pass is required to run.
-        static bool isRequired();
-        /// @}
+  /// Test whether the instruction is a call instruction and copy the callee in case it is. This
+  /// function collects instructions which are scheduled for deletion at a later point.
+  llvm::Value *copyAndExpand(llvm::Value *input, DeletableInstructions &);
 
-        /// Logger
-        /// @{
-        void setLogger(ILoggerPtr logger);
-        /// @}
-      private:
-        /// Pass configuration
-        /// @{
-        RuleSet                             rule_set_{};
-        RuleTransformationPassConfiguration config_{};
-        /// @}
+  /// Copies the function body and replace function arguments whenever arguments are constant.
+  llvm::Function *expandFunctionCall(llvm::Function &         callee,
+                                     ConstantArguments const &const_args = {});
 
-        ILoggerPtr logger_{nullptr};
+  /// Folds all constant expression in function.
+  void constantFoldFunction(llvm::Function &callee);
 
-        /// Generic
-        /// @{
-        uint64_t depth_{0};
-        /// @}
+  /// Helper function to create replacements for constant expressions.
+  void addConstExprRule(ReplacementRule &&rule);
 
-        /// Copy and expand
-        /// @{
-        RuleSet const_expr_replacements_{};
-        /// @}
+  // Dead code detection
+  //
+  void         runDetectActiveCode(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
+  void         runDeleteDeadCode(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
+  llvm::Value *detectActiveCode(llvm::Value *input, DeletableInstructions &);
+  llvm::Value *deleteDeadCode(llvm::Value *input, DeletableInstructions &);
+  bool         isActive(llvm::Value *value) const;
 
-        /// Dead code
-        /// @{
-        std::unordered_set<Value*>     active_pieces_{};
-        std::vector<llvm::BasicBlock*> blocks_to_delete_;
-        std::vector<llvm::Function*>   functions_to_delete_;
-        /// @}
+  // Phi replacement
+  //
 
-        // Phi detection
+  /// Function which replaces phi nodes which refer to inactive blocks. That is, in cases where
+  /// branch statement evaluates at compile time, only one block will be marked as active. For those
+  /// case we can eliminate the phi nodes. In the case where branch statements cannot be evaluated
+  /// all are marked as active. In this case, phi nodes are left unchanged.
+  void runReplacePhi(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
 
-        /// Applying rules
-        /// @{
-        Replacements replacements_; ///< Registered replacements to be executed.
-                                    /// @}
+  // Rules
+  //
 
-        Profile* profile_{nullptr};
-    };
+  void runApplyRules(llvm::Module &module, llvm::ModuleAnalysisManager &mam);
+  bool onQubitRelease(llvm::Instruction *instruction, Captures &captures);
+  bool onQubitAllocate(llvm::Instruction *instruction, Captures &captures);
 
-} // namespace quantum
-} // namespace microsoft
+  /// Whether or not this pass is required to run.
+  static bool isRequired();
+
+  // Logger
+  //
+  void setLogger(ILoggerPtr logger);
+
+private:
+  // Pass configuration
+  //
+  RuleSet                             rule_set_{};
+  RuleTransformationPassConfiguration config_{};
+
+  ILoggerPtr logger_{nullptr};
+
+  /// Generic
+  /// @{
+  uint64_t depth_{0};
+  /// @}
+
+  /// Copy and expand
+  /// @{
+  RuleSet const_expr_replacements_{};
+  /// @}
+
+  /// Dead code
+  /// @{
+  std::unordered_set<Value *>     active_pieces_{};
+  std::vector<llvm::BasicBlock *> blocks_to_delete_;
+  std::vector<llvm::Function *>   functions_to_delete_;
+  /// @}
+
+  // Phi detection
+
+  /// Applying rules
+  /// @{
+  Replacements replacements_;  ///< Registered replacements to be executed.
+                               /// @}
+
+  Profile *profile_{nullptr};
+};
+
+}  // namespace quantum
+}  // namespace microsoft
