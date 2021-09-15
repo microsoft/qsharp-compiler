@@ -6,7 +6,7 @@ namespace TeleportChain {
     open Microsoft.Quantum.Preparation;  
 
     @EntryPoint()
-    operation Main(): Int
+    operation QuantumProgram(): Int
     {
         use q = Qubit();    
 

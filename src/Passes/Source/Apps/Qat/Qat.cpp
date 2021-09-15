@@ -10,13 +10,46 @@
 /// The tool itself make use of LLVM passes to perform analysis and transformations of the supplied
 /// IR. These transfornations are described through high-level tasks such as
 /// `useStaticQubitArrayAllocation`.
+///
+/// To provide an overview of the structure of this tool, we here provide a diagram showing the
+/// relation between different instances in the program:
+///
+///
+/// ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─
+///            User input          │                  │      "Use" relation
+/// └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─                   ▼
+///                 │  argc, argv
+///                 ▼                                 ─ ─▶   "Produce" relation
+/// ┌──────────────────────────────┐
+/// │       ParameterParser        │◀─┐ Setup arguments
+/// └──────────────────────────────┘  │
+///    Load config  │                 │
+///                 ▼                 │
+/// ┌──────────────────────────────┐  │            ┌──────────────────────────────────┐
+/// │     ConfigurationManager     │──┘    ┌ ─ ─ ─▶│             Ruleset              │
+/// └──────────────────────────────┘               └──────────────────────────────────┘
+///  Provide config │                      │                         │   Rules for
+///                 ▼                                                ▼ transformation
+/// ┌───────────────────────────────┐─ ─ ─ ┘       ┌──────────────────────────────────┐
+/// │    DefaultProfileGenerator    │─ ─ ─ ─ ─ ─ ─▶│           RuleTransformationPass            │
+/// └───────────────────────────────┘              └──────────────────────────────────┘
+///                                                                  │  LLVM module
+///                                                                  ▼      pass
+/// ┌ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─                ┌──────────────────────────────────┐
+///              Output            │◀─ ─ ─ ─ ─ ─ ─ ┤  QAT / LLVM Module Pass Manager  │
+/// └ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─ ─      stdout    └──────────────────────────────────┘
+///
+///
+///
 
+#include "Apps/Qat/Config.hpp"
 #include "Apps/Qat/LlvmAnalysis.hpp"
+#include "Commandline/ConfigurationManager.hpp"
 #include "Commandline/ParameterParser.hpp"
-#include "Commandline/Settings.hpp"
-#include "Profiles/BaseProfile.hpp"
-#include "Profiles/IProfile.hpp"
-#include "Profiles/RuleSetProfile.hpp"
+#include "Generators/DefaultProfileGenerator.hpp"
+#include "Generators/LlvmPassesConfig.hpp"
+#include "RuleTransformationPass/Configuration.hpp"
+#include "Rules/FactoryConfig.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -31,35 +64,33 @@ int main(int argc, char** argv)
 {
     try
     {
-        // Parsing commmandline arguments
-        Settings settings{
-            {{"debug", "false"},
-             {"generate", "false"},
-             {"validate", "false"},
-             {"profile", "baseProfile"},
-             {"S", "false"},
-             {"O0", "false"},
-             {"O1", "false"},
-             {"O2", "false"},
-             {"O3", "false"},
-             {"verify-module", "false"}}};
+        auto profile = std::make_shared<DefaultProfileGenerator>();
 
-        ParameterParser parser(settings);
-        parser.addFlag("debug");
-        parser.addFlag("generate");
-        parser.addFlag("validate");
-        parser.addFlag("verify-module");
-        parser.addFlag("S");
-        parser.addFlag("O0");
-        parser.addFlag("O1");
-        parser.addFlag("O2");
-        parser.addFlag("O3");
+        ConfigurationManager& configuration_manager = profile->configurationManager();
+        configuration_manager.addConfig<QatConfig>();
+        configuration_manager.addConfig<FactoryConfiguration>();
 
+        // Parsing command line arguments
+        ParameterParser parser;
+        configuration_manager.setupArguments(parser);
         parser.parseArgs(argc, argv);
+        configuration_manager.configure(parser);
+
+        // Getting the main configuration
+        auto const& config = configuration_manager.get<QatConfig>();
+
+        // In case we debug, we also print the settings to allow provide a full
+        // picture of what is going.
+        if (config.dumpConfig())
+        {
+            configuration_manager.printConfiguration();
+        }
 
         if (parser.arguments().empty())
         {
             std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
+            configuration_manager.printHelp();
+            std::cerr << "\n";
             exit(-1);
         }
 
@@ -75,53 +106,43 @@ int main(int argc, char** argv)
         }
 
         // Extracting commandline parameters
-        bool                      debug              = settings.get("debug") == "true";
-        bool                      generate           = settings.get("generate") == "true";
-        bool                      validate           = settings.get("validate") == "true";
-        auto                      optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
-        std::shared_ptr<IProfile> profile            = std::make_shared<BaseProfile>();
+
+        auto optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
 
         // Setting the optimisation level
-        if (settings.get("O1") == "true")
+        if (config.opt1())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O1;
         }
 
-        if (settings.get("O2") == "true")
+        if (config.opt2())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O2;
         }
 
-        if (settings.get("O3") == "true")
+        if (config.opt3())
         {
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O3;
         }
 
-        // In case we debug, we also print the settings to allow provide a full
-        // picture of what is going.
-        if (debug)
-        {
-            settings.print();
-        }
-
         // Checking if we are asked to generate a new QIR. If so, we will use
         // the profile to setup passes to
-        if (generate)
+        if (config.generate())
         {
             // Creating pass builder
-            LlvmAnalyser analyser{debug};
+            LlvmAnalyser analyser{config.debug()};
 
             // Preparing pass for generation based on profile
             profile->addFunctionAnalyses(analyser.functionAnalysisManager());
             auto module_pass_manager =
-                profile->createGenerationModulePass(analyser.passBuilder(), optimisation_level, debug);
+                profile->createGenerationModulePass(analyser.passBuilder(), optimisation_level, config.debug());
 
             // Running the pass built by the profile
             module_pass_manager.run(*module, analyser.moduleAnalysisManager());
 
             // Priniting either human readible LL code or byte
             // code as a result, depending on the users preference.
-            if (settings.get("S") == "true")
+            if (config.emitLlvm())
             {
                 llvm::errs() << *module << "\n";
             }
@@ -132,7 +153,7 @@ int main(int argc, char** argv)
             }
 
             // Verifying the module.
-            if (settings.get("verify-module") == "true")
+            if (config.verifyModule())
             {
                 llvm::VerifierAnalysis verifier;
                 auto                   result = verifier.run(*module, analyser.moduleAnalysisManager());
@@ -145,14 +166,14 @@ int main(int argc, char** argv)
             }
         }
 
-        if (validate)
+        if (config.validate())
         {
             // Creating pass builder
-            LlvmAnalyser analyser{debug};
+            LlvmAnalyser analyser{config.debug()};
 
             // Creating a validation pass manager
             auto module_pass_manager =
-                profile->createValidationModulePass(analyser.passBuilder(), optimisation_level, debug);
+                profile->createValidationModulePass(analyser.passBuilder(), optimisation_level, config.debug());
             module_pass_manager.run(*module, analyser.moduleAnalysisManager());
         }
     }

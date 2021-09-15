@@ -2,8 +2,6 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Commandline/Settings.hpp"
-
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -19,19 +17,17 @@ namespace quantum
     class ParameterParser
     {
       public:
-        using String    = std::string;
-        using Arguments = std::vector<String>;
-        using Flags     = std::unordered_set<String>;
+        using String      = std::string;
+        using Arguments   = std::vector<String>;
+        using Flags       = std::unordered_set<String>;
+        using SettingsMap = std::unordered_map<String, String>;
 
         /// Construction and deconstrution configuration
         /// @{
         /// Parameter parsers requires a setting class to store
         /// parameters passed. The parameter parser takes a set of
         /// default Settings as its first argument.
-        explicit ParameterParser(Settings& settings);
-
-        // No default construction.
-        ParameterParser() = delete;
+        ParameterParser() = default;
 
         // No copy construction.
         ParameterParser(ParameterParser const& other) = delete;
@@ -67,6 +63,16 @@ namespace quantum
         /// Returns the n'th commandline argument.
         String const& getArg(uint64_t const& n);
         /// @}
+
+        /// @{
+        /// Gets a named setting, falling back to a default if the key is not found.
+        String get(String const& name, String const& default_value) const noexcept;
+
+        /// Gets a named setting. This method throws if the setting is not present.
+        String get(String const& name) const;
+
+        bool has(String const& name) const noexcept;
+        ///@}
       private:
         struct ParsedValue
         {
@@ -89,9 +95,10 @@ namespace quantum
 
         /// Storage of parsed data
         /// @{
-        Settings& settings_;    ///< Map of settings
         Arguments arguments_{}; ///< List of remaining arguments
                                 /// @}
+
+        SettingsMap settings_; ///< Settings map that keeps all specified settings.
     };
 
 } // namespace quantum

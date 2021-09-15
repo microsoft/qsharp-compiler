@@ -1,14 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Profiles/IProfile.hpp"
+#include "AllocationManager/IAllocationManager.hpp"
 
 namespace microsoft
 {
 namespace quantum
 {
 
-    IProfile::~IProfile() = default;
+    IAllocationManager::~IAllocationManager() = default;
 
 } // namespace quantum
 } // namespace microsoft

@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Profiles/RuleSetProfile.hpp"
+#include "Generators/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/ReplacementRule.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
@@ -68,10 +68,10 @@ continue__1:
         auto factory = RuleFactory(rule_set);
         // factory.useStaticResultAllocation();
 
-        factory.optimiseBranchQuatumOne();
+        factory.optimiseBranchQuantumOne();
     };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
     ir_manip->applyProfile(profile);
 
     // This optimistation is specific to the the __quantum__qir__read_result which

@@ -12,15 +12,15 @@ namespace microsoft
 namespace quantum
 {
 
-    AllocationManager::AllocationManagerPtr AllocationManager::createNew()
+    BasicAllocationManager::BasicAllocationManagerPtr BasicAllocationManager::createNew()
     {
-        AllocationManagerPtr ret;
-        ret.reset(new AllocationManager());
+        BasicAllocationManagerPtr ret;
+        ret.reset(new BasicAllocationManager());
 
         return ret;
     }
 
-    AllocationManager::Index AllocationManager::allocate(String const& name, Index const& size)
+    BasicAllocationManager::Index BasicAllocationManager::allocate(String const& name, Index const& size)
     {
         auto ret = next_qubit_index_;
 
@@ -44,12 +44,7 @@ namespace quantum
         return ret;
     }
 
-    AllocationManager::Address AllocationManager::getAddress(Address const& address, Index const& n) const
-    {
-        return address + n;
-    }
-
-    void AllocationManager::release(Address const& address)
+    void BasicAllocationManager::release(Address const& address)
     {
         --allocation_index_;
         auto it = mappings_.begin();
@@ -67,15 +62,23 @@ namespace quantum
         }
 
         mappings_.erase(it);
-        if (mappings_.empty())
+        if (reuse_qubits_)
         {
-            next_qubit_index_ = 0;
+            if (mappings_.empty())
+            {
+                next_qubit_index_ = 0;
+            }
+            else
+            {
+                auto& b           = mappings_.back();
+                next_qubit_index_ = b.start + b.size;
+            }
         }
-        else
-        {
-            auto& b           = mappings_.back();
-            next_qubit_index_ = b.start + b.size;
-        }
+    }
+
+    void BasicAllocationManager::setReuseQubits(bool val)
+    {
+        reuse_qubits_ = val;
     }
 
 } // namespace quantum

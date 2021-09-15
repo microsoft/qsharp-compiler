@@ -11,11 +11,6 @@ namespace microsoft
 namespace quantum
 {
 
-    ParameterParser::ParameterParser(Settings& settings)
-      : settings_{settings}
-    {
-    }
-
     void ParameterParser::parseArgs(int argc, char** argv)
     {
         uint64_t                 i = 1;
@@ -59,6 +54,34 @@ namespace quantum
     void ParameterParser::addFlag(String const& v)
     {
         flags_.insert(v);
+    }
+
+    ParameterParser::String ParameterParser::get(String const& name, String const& default_value) const noexcept
+    {
+        auto it = settings_.find(name);
+        if (it == settings_.end())
+        {
+            return default_value;
+        }
+
+        return it->second;
+    }
+
+    ParameterParser::String ParameterParser::get(String const& name) const
+    {
+        auto it = settings_.find(name);
+        if (it == settings_.end())
+        {
+            throw std::runtime_error("Could not find setting '" + name + "'.");
+        }
+
+        return it->second;
+    }
+
+    bool ParameterParser::has(String const& name) const noexcept
+    {
+        auto it = settings_.find(name);
+        return (it != settings_.end());
     }
 
     ParameterParser::Arguments const& ParameterParser::arguments() const

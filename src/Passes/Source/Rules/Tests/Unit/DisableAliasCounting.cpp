@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Profiles/RuleSetProfile.hpp"
+#include "Generators/DefaultProfileGenerator.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
@@ -57,7 +57,7 @@ TEST(RuleSetTestSuite, DisablingArrayhAliasCounting)
         factory.disableAliasCounting();
     };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
     // We expect that the calls are there initially
     EXPECT_TRUE(
@@ -99,7 +99,7 @@ TEST(RuleSetTestSuite, DisablingStringAliasCounting)
         factory.disableAliasCounting();
     };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
     // We expect that the calls are there initially
     EXPECT_TRUE(
@@ -142,7 +142,7 @@ TEST(RuleSetTestSuite, DisablingResultAliasCounting)
         factory.disableAliasCounting();
     };
 
-    auto profile = std::make_shared<RuleSetProfile>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
     // We expect that the calls are there initially
     EXPECT_TRUE(
