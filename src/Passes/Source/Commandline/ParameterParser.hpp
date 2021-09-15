@@ -7,92 +7,96 @@
 #include <unordered_set>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-/// Parameter parser class which allows the developer to specify a set of default settings and
-/// update those using the commandline argc and argv.
-class ParameterParser
+namespace microsoft
 {
-public:
-  using String      = std::string;
-  using Arguments   = std::vector<String>;
-  using Flags       = std::unordered_set<String>;
-  using SettingsMap = std::unordered_map<String, String>;
+namespace quantum
+{
 
-  // Construction and deconstrution configuration
-  //
+    /// Parameter parser class which allows the developer to specify a set of default settings and
+    /// update those using the commandline argc and argv.
+    class ParameterParser
+    {
+      public:
+        using String      = std::string;
+        using Arguments   = std::vector<String>;
+        using Flags       = std::unordered_set<String>;
+        using SettingsMap = std::unordered_map<String, String>;
 
-  /// Parameter parsers requires a setting class to store
-  /// parameters passed. The parameter parser takes a set of
-  /// default Settings as its first argument.
-  ParameterParser() = default;
+        // Construction and deconstrution configuration
+        //
 
-  // No copy construction.
-  ParameterParser(ParameterParser const &other) = delete;
+        /// Parameter parsers requires a setting class to store
+        /// parameters passed. The parameter parser takes a set of
+        /// default Settings as its first argument.
+        ParameterParser() = default;
 
-  // Allow move semantics.
-  ParameterParser(ParameterParser &&other) = default;
+        // No copy construction.
+        ParameterParser(ParameterParser const& other) = delete;
 
-  // Default destruction.
-  ~ParameterParser() = default;
+        // Allow move semantics.
+        ParameterParser(ParameterParser&& other) = default;
 
-  // Configuration
-  //
+        // Default destruction.
+        ~ParameterParser() = default;
 
-  /// Marks a name as a flag (as opposed to an option).
-  /// This ensures that no parameter is expected after
-  /// the flag is specified. For instance `--debug` is
-  /// a flag as opposed to `--log-level 3` which is an
-  /// option.
-  void addFlag(String const &v);
+        // Configuration
+        //
 
-  // Operation
-  //
+        /// Marks a name as a flag (as opposed to an option).
+        /// This ensures that no parameter is expected after
+        /// the flag is specified. For instance `--debug` is
+        /// a flag as opposed to `--log-level 3` which is an
+        /// option.
+        void addFlag(String const& v);
 
-  /// Parses the command line arguments given the argc and argv
-  /// from the main function.
-  void parseArgs(int argc, char **argv);
+        // Operation
+        //
 
-  /// Returns list of arguments without flags and/or options
-  /// included.
-  Arguments const &arguments() const;
+        /// Parses the command line arguments given the argc and argv
+        /// from the main function.
+        void parseArgs(int argc, char** argv);
 
-  /// Returns the n'th commandline argument.
-  String const &getArg(uint64_t const &n);
+        /// Returns list of arguments without flags and/or options
+        /// included.
+        Arguments const& arguments() const;
 
-  /// Gets a named setting, falling back to a default if the key is not found.
-  String get(String const &name, String const &default_value) const noexcept;
+        /// Returns the n'th commandline argument.
+        String const& getArg(uint64_t const& n);
 
-  /// Gets a named setting. This method throws if the setting is not present.
-  String get(String const &name) const;
+        /// Gets a named setting, falling back to a default if the key is not found.
+        String get(String const& name, String const& default_value) const noexcept;
 
-  bool has(String const &name) const noexcept;
+        /// Gets a named setting. This method throws if the setting is not present.
+        String get(String const& name) const;
 
-private:
-  struct ParsedValue
-  {
-    bool   is_key{false};
-    String value;
-  };
+        /// Checks whether or not a given parameter is present.
+        bool has(String const& name) const noexcept;
 
-  // Helper functions
-  //
+      private:
+        /// Struct that contains parsed and intepreted values of commandline arguments.
+        struct ParsedValue
+        {
+            bool   is_key{false}; ///< Whether or not a parsed value should be considered a key
+            String value;         ///< Value after parsing.
+        };
 
-  // Parses a single argument and returns the parsed value. This function
-  // determines if the string was specified to be a key or a value.
-  ParsedValue parseSingleArg(String key);
+        // Helper functions
+        //
 
-  /// Checks whether a key is an option (or a flag). Returns true if it is
-  /// and option and false if it is a flags.
-  bool isOption(String const &key);
+        // Parses a single argument and returns the parsed value. This function
+        // determines if the string was specified to be a key or a value.
+        ParsedValue parseSingleArg(String key);
 
-  // Storage of parsed data
-  //
-  Flags       flags_{};      ///< Set of flags
-  Arguments   arguments_{};  ///< List of remaining arguments
-  SettingsMap settings_;     ///< Settings map that keeps all specified settings.
-};
+        /// Checks whether a key is an option (or a flag). Returns true if it is
+        /// and option and false if it is a flags.
+        bool isOption(String const& key);
 
-}  // namespace quantum
-}  // namespace microsoft
+        // Storage of parsed data
+        //
+        Flags       flags_{};     ///< Set of flags
+        Arguments   arguments_{}; ///< List of remaining arguments
+        SettingsMap settings_;    ///< Settings map that keeps all specified settings.
+    };
+
+} // namespace quantum
+} // namespace microsoft
