@@ -7,7 +7,11 @@ variables:
   CCACHE_DIR: $(Pipeline.Workspace)/ccache
   CMAKE_INSTALL_PREFIX: $(Pipeline.Workspace)/LLVM
   INSTALL_LLVM_PACKAGE: true
+  SCCACHE_DIR: $(Pipeline.Workspace)\sccache
   AQ_LLVM_PACKAGE_GIT_VERSION: ""
+  ENABLE_COMPILER: false
+  ENABLE_VSIX: false
+  ENABLE_LLVM_BUILDS: true
 
 jobs:
 - job: GetLlvmSha
@@ -57,7 +61,7 @@ jobs:
         version2 | ccache | "$(Agent.OS)"
     displayName: ccache
 
-  - pwsh: ./build/llvm.ps1
+  - pwsh: ./build/build.ps1
     displayName: "LLVM"
     workingDirectory: $(System.DefaultWorkingDirectory)
 
@@ -103,7 +107,7 @@ jobs:
         version7 | sccache | "$(Agent.OS)"
     displayName: sccache
 
-  - pwsh: .\build\llvm.ps1
+  - pwsh: .\build\build.ps1
     displayName: "LLVM"
     workingDirectory: $(System.DefaultWorkingDirectory)
 
@@ -150,7 +154,7 @@ jobs:
         ccache | "$(Agent.OS)"
     displayName: ccache
 
-  - pwsh: ./build/llvm.ps1
+  - pwsh: ./build/build.ps1
     displayName: "LLVM"
     workingDirectory: $(System.DefaultWorkingDirectory)
 
