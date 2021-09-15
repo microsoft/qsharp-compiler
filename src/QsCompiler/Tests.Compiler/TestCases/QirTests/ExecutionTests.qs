@@ -1,18 +1,9 @@
-﻿namespace Microsoft.Quantum.Intrinsic {
-
-    function Message (arg : String) : Unit {
-        body intrinsic;
-    }
-}
-
-namespace Microsoft.Quantum.Qir.Development {
+﻿namespace Microsoft.Quantum.Testing.ExecutionTests {
 
     open Microsoft.Quantum.Intrinsic;
 
     newtype Foo = Int;
     newtype Register = (Data : Int[], Foo : Foo);
-
-    // FIXME: ADD MORE HORRIBLE TEST CASES WHERE THE SECOND MUTABLE VARIABLE IS ALSO UPDATED VIA COPY-AND-REASSIGN...
 
     function TestIssue7(cond1 : Bool, cond2 : Bool, cond3 : Bool) : Unit {
 
@@ -73,12 +64,8 @@ namespace Microsoft.Quantum.Qir.Development {
         }
 
         Message($"{value}");
-        Message($"{arr[0]}, {arr[1]}"); // FIXME: STRING[] PRINT IS INCORRECT
+        Message($"{arr}");
     }
-
-    // TODO: tests for straight out variable update (not copy and update)
-
-    // FIXME: ADD A TEST FOR CONDITIONAL EXPRESSIONS WHERE ONE ARRAY IS COPIED AND THE OTHER BRANCH IS NOT
     
     function TestIssue3 (cond : Bool) : Unit {
 
@@ -119,8 +106,6 @@ namespace Microsoft.Quantum.Qir.Development {
         Message($"{value}");
         Message($"{arr}");
     }
-
-    // SAME TESTS JUST WITH INNER BLOCKS BEING CALLS?
 
     function TestUdt8 (cond : Bool) : Unit {
         let defaultVal = Register([], Foo(-1));
@@ -241,8 +226,6 @@ namespace Microsoft.Quantum.Qir.Development {
         Message($"{reg}");
     }
 
-    ///
-
     function TestArray8 () : Unit {
         let defaultArr = [Foo(-1), size = 3];
         mutable coeffs = defaultArr;
@@ -270,8 +253,6 @@ namespace Microsoft.Quantum.Qir.Development {
 
         Message($"{coeffs}");
     }
-
-    ///
 
     function TestArray6 () : Unit {
         let value = Foo(0);
@@ -325,8 +306,6 @@ namespace Microsoft.Quantum.Qir.Development {
         Message($"{value}");
         Message($"{coeffs}");
     }
-
-    ///
 
     function TestArray2 () : Unit {
         let defaultArr = [Foo(-1), size = 3];
@@ -1063,9 +1042,16 @@ namespace Microsoft.Quantum.Qir.Development {
         Message($"{udt}");
     }
 
+    internal function PrintSection(sectionIdx : Int, sectionTitle : String) : Unit {
+        Message("\n********************");
+        Message($"Section {sectionIdx}: {sectionTitle}");
+        Message("********************\n");
+    }
 
     @EntryPoint()
     operation RunExample() : Unit {
+
+        PrintSection(1, "");
 
         TestUdtUpdate1();
         TestUdtUpdate2();
@@ -1076,6 +1062,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate7();
         TestUdtUpdate8();
 
+        PrintSection(2, "");
+
         TestUdtUpdate1b();
         TestUdtUpdate2b();
         TestUdtUpdate3b();
@@ -1084,6 +1072,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate6b();
         TestUdtUpdate7b();
         TestUdtUpdate8b();
+
+        PrintSection(3, "");
 
         TestUdtUpdate1a(true);
         TestUdtUpdate2a(true);
@@ -1103,6 +1093,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate7a(false);
         TestUdtUpdate8a(false);
 
+        PrintSection(4, "");
+
         TestUdtUpdate9();
         TestUdtUpdate10();
         TestUdtUpdate11();
@@ -1111,6 +1103,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate14();
         TestUdtUpdate15();
         TestUdtUpdate16();
+
+        PrintSection(5, "");
 
         TestUdtUpdate9a(true);
         TestUdtUpdate10a(true);
@@ -1130,6 +1124,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate15a(false);
         TestUdtUpdate16a(false);
 
+        PrintSection(6, "");
+
         TestUdtUpdate9b(true);
         TestUdtUpdate10b(true);
         TestUdtUpdate11b(true);
@@ -1148,6 +1144,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate15b(false);
         TestUdtUpdate16b(false);
 
+        PrintSection(7, "");
+
         TestUdtUpdate17();
         TestUdtUpdate18();
         TestUdtUpdate19();
@@ -1156,6 +1154,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate22();
         TestUdtUpdate23();
         TestUdtUpdate24();
+
+        PrintSection(8, "");
 
         TestUdtUpdate17a(true);
         TestUdtUpdate18a(true);
@@ -1175,6 +1175,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate23a(false);
         TestUdtUpdate24a(false);
 
+        PrintSection(9, "");
+
         TestUdtUpdate17b(true);
         TestUdtUpdate18b(true);
         TestUdtUpdate19b(true);
@@ -1193,6 +1195,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdtUpdate23b(false);
         TestUdtUpdate24b(false);
 
+        PrintSection(10, "");
+
         TestArray1();
         TestArray2();
         TestArray3();
@@ -1201,7 +1205,9 @@ namespace Microsoft.Quantum.Qir.Development {
         TestArray6();
         TestArray7();
         TestArray8();
-        
+
+        PrintSection(11, "");
+
         TestUdt1(true);
         TestUdt2(true);
         TestUdt3(true);
@@ -1210,6 +1216,7 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdt6(true);
         TestUdt7(true);
         TestUdt8(true);
+
         TestUdt1(false);
         TestUdt2(false);
         TestUdt3(false);
@@ -1218,6 +1225,8 @@ namespace Microsoft.Quantum.Qir.Development {
         TestUdt6(false);
         TestUdt7(false);
         TestUdt8(false);
+
+        PrintSection(12, "");
         
         TestIssue1(true);
         TestIssue1(false);
@@ -1225,7 +1234,6 @@ namespace Microsoft.Quantum.Qir.Development {
         TestIssue2(false);
         TestIssue3(true);
         TestIssue3(false);
-
         TestIssue4(true);
         TestIssue4(false);
         TestIssue5(true);
@@ -1244,5 +1252,17 @@ namespace Microsoft.Quantum.Qir.Development {
         TestIssue7(false, false, false);
 
         Message("Executed successfully!");
+    }
+
+    @EntryPoint()
+    function CheckFail() : Unit {
+        fail "expected failure in CheckFail";
+    }
+}
+
+namespace Microsoft.Quantum.Intrinsic {
+
+    function Message (arg : String) : Unit {
+        body intrinsic;
     }
 }

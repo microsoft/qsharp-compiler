@@ -5,7 +5,6 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
 open System.IO
-open System.Linq
 open System.Reflection
 open System.Text
 open System.Text.RegularExpressions
@@ -23,20 +22,20 @@ type ExecutionTests(output: ITestOutputHelper) =
     let AssertEqual expected got =
         Assert.True(stripWS expected = stripWS got, sprintf "expected: \n%s\ngot: \n%s" expected got)
 
-    let ExecuteOnQuantumSimulator cName =
+    let ExecuteOnReferenceTarget engineIdx args =
         let exitCode, ex = ref -101, ref null
         let out, err = ref (new StringBuilder()), ref (new StringBuilder())
-        let exe = File.ReadAllLines("ReferenceTargets.txt").First()
-        let args = sprintf "\"%s\" %s.%s" exe "Microsoft.Quantum.Testing.ExecutionTests" cName
-        let ranToEnd = ProcessRunner.Run("dotnet", args, out, err, exitCode, ex, timeout = 10000)
+        let exe = File.ReadAllLines("ReferenceTargets.txt").[engineIdx]
+        let ranToEnd = ProcessRunner.Run("dotnet", sprintf "\"%s\" %s" exe args, out, err, exitCode, ex, timeout = 10000)
         Assert.False(String.IsNullOrWhiteSpace exe)
         Assert.True(ranToEnd)
         Assert.Null(!ex)
-        Assert.Equal(0, !exitCode)
-        (!out).ToString(), (!err).ToString()
+        !exitCode, (!out).ToString(), (!err).ToString()
 
     let ExecuteAndCompareOutput cName expectedOutput =
-        let out, err = ExecuteOnQuantumSimulator cName
+        let args = sprintf "%s.%s" "Microsoft.Quantum.Testing.ExecutionTests" cName
+        let exitCode, out, err = args |> ExecuteOnReferenceTarget 0
+        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
         AssertEqual expectedOutput out
 
@@ -71,16 +70,33 @@ type ExecutionTests(output: ITestOutputHelper) =
         let result = Program.Main (compilerArgs |> Seq.toArray)
         Assert.Equal(ReturnCode.Success, result)
 
+
     [<Fact>]
-    member this.``Jit compilation`` () =
+    member this.``QIR memory management`` () =
         let inputPaths =
             [
                 ("TestCases", "QirTests", "ExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
                 ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine |> Path.GetFullPath
             ]
-        let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
+
+        let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath        
         WriteBitcode bitcodePath inputPaths
-        Qir.JitCompilation.BuildAndRun(bitcodePath, "Microsoft__Quantum__Qir__Development__RunExample")
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__RunExample"
+        let args = sprintf "%s %s" bitcodePath functionName
+        let exitCode, out, err = args |> ExecuteOnReferenceTarget 1
+        output.WriteLine(out)
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
+
+        // Sanity test to check if we properly detect when a runtime exception is thrown:
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__CheckFail"
+        let args = sprintf "%s %s" bitcodePath functionName
+        let exitCode, out, err = args |> ExecuteOnReferenceTarget 1
+        Assert.NotEqual(0, exitCode)
+        AssertEqual String.Empty err
+        Assert.Contains(err, "expected failure in CheckFail")
+
 
     [<Fact>]
     member this.``Loading via test names``() =

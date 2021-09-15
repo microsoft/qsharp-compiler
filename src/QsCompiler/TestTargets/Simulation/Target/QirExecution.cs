@@ -19,16 +19,20 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
         public static extern void InitializeQirContext(IntPtr driver);
 
         [UnmanagedFunctionPointer(System.Runtime.InteropServices.CallingConvention.Cdecl)]
-        private delegate long SimpleFunction();
+        private delegate void SimpleFunction();
+
+        // For testing purposes I needed to make this an executable such that we can properly detect when the invoked
+        // native code throws a runtime exception; I failed to find out how to catch these exceptions as part of a unit test
+        // (usually that should be possible, but it might require a different setup - rather than do this, I opted for
+        // making it an out of process call for unit testing purposes).
+        private static void Main(string[] args) =>
+            BuildAndRun(args[0], args[1..]);
 
         public static void BuildAndRun(string pathToBitcode, params string[] functionNames)
         {
-            var output = new StreamWriter(Path.GetFullPath("output.txt"));
-            Console.SetOut(output);
-
             // To get this line to work, I had to change the CreateFullstateSimulator API to use raw pointers instead of shared pointers,
             // and I had to update both calls to be "extern 'C'" otherwise name mangling makes then impossible to call here.
-            // This should be an important consideration as we look at how to update our ABI for compatibility across langauges.
+            // This should be revised more broadly as we move the runtime to a C-style API for ABI compatibility across langauges.
             InitializeQirContext(CreateFullstateSimulator(0));
 
             if (!File.Exists(pathToBitcode))
@@ -58,8 +62,6 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Qir
                 var function = engine.GetPointerToGlobal<SimpleFunction>(funcDef.ValueHandle);
                 function();
             }
-
-            Console.WriteLine("done");
         }
     }
 }
