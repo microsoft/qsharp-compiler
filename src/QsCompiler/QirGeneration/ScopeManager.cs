@@ -58,9 +58,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.decreaseCounts = decreaseCounts;
             }
 
-            private static bool ValueEquals((IValue, bool) tracked, IValue expected) =>
-                tracked.Item1.Value == expected.Value && tracked.Item2;
-
             private static bool ValueEquals((IValue, bool) tracked, (IValue, bool) expected) =>
                 tracked.Item1.Value == expected.Item1.Value && tracked.Item2 == expected.Item2;
 
