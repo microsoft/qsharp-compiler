@@ -110,6 +110,8 @@ jobs:
         version7 | sccache | "$(Agent.OS)"
     displayName: sccache
 
+  - template: init.yml
+
   - pwsh: .\build\build.ps1
     displayName: "LLVM"
     workingDirectory: $(System.DefaultWorkingDirectory)
@@ -156,6 +158,8 @@ jobs:
       restoreKeys: |
         ccache | "$(Agent.OS)"
     displayName: ccache
+
+  - template: init.yml
 
   - pwsh: ./build/build.ps1
     displayName: "LLVM"

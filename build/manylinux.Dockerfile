@@ -30,6 +30,8 @@ RUN echo "#!/bin/bash" >> /tmp/entrypoint.sh && \
     echo "cmake -G Ninja -C \${LLVM_CMAKEFILE} \${CMAKE_FLAGS} \${LLVM_DIR}" >> /tmp/entrypoint.sh && \
     echo "echo \"ninja package\"" >> /tmp/entrypoint.sh && \
     echo "ninja package" >> /tmp/entrypoint.sh && \
+    echo "echo \"[ -v CMAKE_FLAGS ] && ninja install\"" >> /tmp/entrypoint.sh && \
+    echo "[ -v CMAKE_FLAGS ] && ninja install" >> /tmp/entrypoint.sh && \
     chmod +x /tmp/entrypoint.sh && \
     chown ${USER_UID}:${USER_GID} /tmp/entrypoint.sh
 
