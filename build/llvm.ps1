@@ -19,13 +19,14 @@ $llvmDir = Join-Path $llvmRootDir llvm
 if (Test-CommandExists sccache) {
     Write-Vso "Found sccache command"
     # Set cap and make sure dir is created
-    if((Test-Path Env:\SCCACHE_DIR)) {
+    if ((Test-Path Env:\SCCACHE_DIR)) {
         mkdir $Env:SCCACHE_DIR | Out-Null
         $Env:SCCACHE_DIR = Resolve-Path $Env:SCCACHE_DIR
     }
     $Env:SCCACHE_CACHE_SIZE = "2G"
     & { sccache --start-server } -ErrorAction SilentlyContinue
-} elseif (Test-CommandExists ccache) {
+}
+elseif (Test-CommandExists ccache) {
     Write-Vso "Found ccache command"
 
     if (-not (Test-Path env:\CCACHE_DIR)) {
@@ -35,7 +36,7 @@ if (Test-CommandExists sccache) {
     Assert (![string]::IsNullOrWhiteSpace($Env:CCACHE_DIR)) "CCACHE_DIR is not set"
 
     # Set cap and make sure dir is created
-    if(!(Test-Path $Env:CCACHE_DIR)) {
+    if (!(Test-Path $Env:CCACHE_DIR)) {
         mkdir $Env:CCACHE_DIR | Out-Null
     }
     $Env:CCACHE_DIR = Resolve-Path $Env:CCACHE_DIR
@@ -58,11 +59,11 @@ Assert (![string]::IsNullOrWhiteSpace($Env:PKG_NAME)) "PKG_NAME is not set"
 
 Assert (Test-CommandExists "cmake") "CMAKE not found"
 Assert (Test-CommandExists "ninja") "Ninja-Build not found"
-if($IsLinux) {
+if ($IsLinux) {
     Assert (Test-CommandExists "docker") "Docker not found"
 }
 
-if(!(Test-Path $llvmBuildDir)) {
+if (!(Test-Path $llvmBuildDir)) {
     mkdir $llvmBuildDir | Out-Null
 }
 
@@ -129,7 +130,7 @@ else {
     exec -wd $llvmBuildDir {
         Write-Vso "Generating makefiles"
         $flags = ""
-        if(Test-Path env:\CMAKE_INSTALL_PREFIX) {
+        if (Test-Path env:\CMAKE_INSTALL_PREFIX) {
             $flags += "-D CMAKE_INSTALL_PREFIX=""$($Env:CMAKE_INSTALL_PREFIX)"""
         }
         cmake -G Ninja -C $llvmCmakeFile $flags $llvmDir
@@ -147,7 +148,7 @@ exec -wd $llvmBuildDir {
     Assert (Test-Path $package) "Could not resolve package $package"
 }
 
-if((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE)) {
+if ((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE)) {
     Write-Vso "ninja install" "command"
     exec -wd $llvmBuildDir {
         ninja install
