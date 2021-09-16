@@ -62,6 +62,8 @@ jobs:
         version2 | ccache | "$(Agent.OS)"
     displayName: ccache
 
+  - template: init.yml
+
   - pwsh: ./build/build.ps1
     displayName: "LLVM"
     workingDirectory: $(System.DefaultWorkingDirectory)
