@@ -5,17 +5,17 @@ entry:
   %2 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %1, i1 false)
   %3 = bitcast %Tuple* %2 to { %Callable*, %Callable*, %Callable* }*
   %4 = getelementptr inbounds { %Callable*, %Callable*, %Callable* }, { %Callable*, %Callable*, %Callable* }* %3, i32 0, i32 0
-  %5 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Intrinsic__Message, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %5 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Intrinsic__Message__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   store %Callable* %5, %Callable** %4, align 8
   %6 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %2, i1 false)
   %7 = bitcast %Tuple* %6 to { %Callable*, %Callable*, %Callable* }*
   %8 = getelementptr inbounds { %Callable*, %Callable*, %Callable* }, { %Callable*, %Callable*, %Callable* }* %7, i32 0, i32 1
-  %9 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Diagnostics__DumpMachine, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %9 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Diagnostics__DumpMachine__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   store %Callable* %9, %Callable** %8, align 8
   %10 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %6, i1 false)
   %options = bitcast %Tuple* %10 to { %Callable*, %Callable*, %Callable* }*
   %11 = getelementptr inbounds { %Callable*, %Callable*, %Callable* }, { %Callable*, %Callable*, %Callable* }* %options, i32 0, i32 2
-  %12 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Diagnostics__DumpMachine, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %12 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Diagnostics__DumpMachine__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   store %Callable* %12, %Callable** %11, align 8
   %13 = getelementptr inbounds { %Callable*, %Callable*, %Callable* }, { %Callable*, %Callable*, %Callable* }* %options, i32 0, i32 0
   %14 = load %Callable*, %Callable** %13, align 8
