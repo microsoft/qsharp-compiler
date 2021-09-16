@@ -235,8 +235,10 @@ let public WithAbsolutePosition (this: LocalDeclarations) (updatePosition: Func<
     LocalDeclarations.New(
         this
             .Variables
-            .Select(Func<_, _>
-                        (fun (d: LocalVariableDeclaration<_>) ->
-                            { d with Position = updatePosition.Invoke d.Position |> Value }))
+            .Select(
+                Func<_, _>
+                    (fun (d: LocalVariableDeclaration<_>) ->
+                        { d with Position = updatePosition.Invoke d.Position |> Value })
+            )
             .ToImmutableArray()
     )

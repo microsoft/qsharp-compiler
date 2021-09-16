@@ -419,6 +419,7 @@ type WarningCode =
 
     | InvalidAssemblyProperties = 8101
     | MissingTargetInstructionName = 8102
+    | DuplicateAssemblyProperty = 8103
 
 
 type InformationCode =
@@ -457,12 +458,12 @@ type DiagnosticItem =
 
         try
             String.Format(str, args)
-        with _ -> str // let's fail silently for now
+        with
+        | _ -> str // let's fail silently for now
 
     static member Message(code: ErrorCode, args: IEnumerable<string>) =
-        let ApplyArguments =
-            DiagnosticItem.ApplyArguments args
-            << function
+        let message =
+            match code with
             | ErrorCode.TypeMismatch ->
                 "The type {1} does not match the type {0}.\nActual type:   {3}\nExpected type: {2}"
             | ErrorCode.TypeIntersectionMismatch ->
@@ -929,12 +930,11 @@ type DiagnosticItem =
 
             | _ -> ""
 
-        code |> ApplyArguments
+        DiagnosticItem.ApplyArguments args message
 
     static member Message(code: WarningCode, args: IEnumerable<string>) =
-        let ApplyArguments =
-            DiagnosticItem.ApplyArguments args
-            << function
+        let message =
+            match code with
             | WarningCode.ExcessSemicolon -> "Extra semicolon will be ignored."
             | WarningCode.ExcessComma -> "Extra comma will be ignored."
             | WarningCode.DeprecatedUnitType -> "Deprecated syntax. Use the type name \"Unit\" instead."
@@ -1040,14 +1040,15 @@ type DiagnosticItem =
                 "Some of the specified assembly properties could not be processed. Either they did not match the expected format, or they duplicate existing ones."
             | WarningCode.MissingTargetInstructionName ->
                 "Missing target instruction name for intrinsic callable. The automatically determined name conflicts with another target instruction."
+            | WarningCode.DuplicateAssemblyProperty ->
+                "The assembly property \"{0}\" has been declared multiple times. Its value will be set to \"{1}\"."
             | _ -> ""
 
-        code |> ApplyArguments
+        DiagnosticItem.ApplyArguments args message
 
     static member Message(code: InformationCode, args: IEnumerable<string>) =
-        let ApplyArguments =
-            DiagnosticItem.ApplyArguments args
-            << function
+        let message =
+            match code with
             | InformationCode.CommandLineArguments -> "Compiling with command line arguments"
             | InformationCode.CompilingWithSourceFiles -> "Compiling source files"
             | InformationCode.CompilingWithAssemblies -> "Compiling with referenced assemblies"
@@ -1067,4 +1068,4 @@ type DiagnosticItem =
             | InformationCode.QirEmissionGeneratedInfo -> ""
             | _ -> ""
 
-        code |> ApplyArguments
+        DiagnosticItem.ApplyArguments args message

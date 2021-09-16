@@ -68,24 +68,6 @@ type NamespaceManager
 
         namespaces
 
-    /// Returns the full name of all entry points currently resolved in any of the tracked source files.
-    let GetEntryPoints () =
-        let entryPoints =
-            Namespaces.Values
-            |> Seq.collect
-                (fun ns ->
-                    ns.CallablesDefinedInAllSources()
-                    |> Seq.choose
-                        (fun kvPair ->
-                            let cName, (source, (_, decl)) = kvPair.Key, kvPair.Value
-
-                            if decl.ResolvedAttributes |> Seq.exists BuiltIn.MarksEntryPoint then
-                                Some({ Namespace = ns.Name; Name = cName }, source)
-                            else
-                                None))
-
-        entryPoints.ToImmutableArray()
-
     /// <summary>
     /// If a namespace with the given name exists, returns that namespace
     /// as well as all imported namespaces for that namespace in the given source file.
@@ -163,7 +145,9 @@ type NamespaceManager
             match (ns.ImportedNamespaces source).TryGetValue builtIn.FullName.Namespace with
             | true, null when
                 not (ns.TryFindType builtIn.FullName.Name |> ResolutionResult.IsAccessible)
-                || nsName = builtIn.FullName.Namespace -> [ ""; builtIn.FullName.Namespace ]
+                || nsName = builtIn.FullName.Namespace
+                ->
+                [ ""; builtIn.FullName.Namespace ]
             | true, null -> [ builtIn.FullName.Namespace ] // the built-in type or callable is shadowed
             | true, alias -> [ alias; builtIn.FullName.Namespace ]
             | false, _ -> [ builtIn.FullName.Namespace ]
@@ -552,7 +536,8 @@ type NamespaceManager
 
                     match box decl.Defined with
                     | :? CallableSignature as signature when
-                        signature |> isUnitToUnit && not (signature.TypeParameters.Any()) ->
+                        signature |> isUnitToUnit && not (signature.TypeParameters.Any())
+                        ->
                         let arg =
                             att.Argument |> AttributeAnnotation.NonInterpolatedStringArgument(fun ex -> ex.Expression)
 

@@ -11,7 +11,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// <summary>
     /// Transformation class used to generate QIR.
     /// </summary>
-    public class Generator : SyntaxTreeTransformation<GenerationContext>
+    public class Generator : SyntaxTreeTransformation<GenerationContext>, IDisposable
     {
         /// <summary>
         /// The compilation unit for which QIR is generated.
@@ -37,7 +37,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
         public Generator(QsCompilation compilation)
-        : base(new GenerationContext(compilation.Namespaces), TransformationOptions.NoRebuild)
+        : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0), TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
 
@@ -102,5 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new IOException(errorMessage);
             }
         }
+
+        public void Dispose() =>
+            this.SharedState.Dispose();
     }
 }

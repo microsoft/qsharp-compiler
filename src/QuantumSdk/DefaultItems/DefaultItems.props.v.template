@@ -33,6 +33,7 @@
     <CSharpGeneration>true</CSharpGeneration> <!-- at some point we may want to make False the default -->
     <IncludeQSharpCorePackages>true</IncludeQSharpCorePackages>
     <IncludeProviderPackages>true</IncludeProviderPackages>
+    <IncludeCSharpRuntime>true</IncludeCSharpRuntime>
     <!--
       For generation properties, three different values are recognized:
 

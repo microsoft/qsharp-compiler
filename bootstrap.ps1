@@ -60,7 +60,7 @@ Get-ChildItem -Recurse *.v.template `
                     Replace("#SEMVER_VERSION#", $SemverVersion).
                     Replace("#ENABLE_TELEMETRY#", $Telemetry)
             } `
-            | Set-Content $Target 
+            | Set-Content $Target
     }
 
 If ($Env:ASSEMBLY_VERSION -eq $null) { $Env:ASSEMBLY_VERSION ="$AssemblyVersion" }
@@ -71,6 +71,9 @@ Write-Host "##vso[task.setvariable variable=VsVsix.Version]$VsVsixVersion"
 
 Write-Host "##[info]Finding NuSpec references..."
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/Compiler')
+.\FindNuspecReferences.ps1;
+Pop-Location
+Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/CSharpGeneration')
 .\FindNuspecReferences.ps1;
 Pop-Location
 Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/QirGeneration')

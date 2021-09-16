@@ -10,6 +10,7 @@ open Microsoft.Quantum.QsFmt.Formatter.Printer
 open Microsoft.Quantum.QsFmt.Formatter.Rules
 open Microsoft.Quantum.QsFmt.Formatter.Utils
 open Microsoft.Quantum.QsFmt.Parser
+open System
 open System.Collections.Immutable
 
 /// <summary>
@@ -33,14 +34,47 @@ let parse (source: string) =
 
 [<CompiledName "Format">]
 let format source =
-    parse source
-    |> Result.map (
-        curry collapsedSpaces.Document ()
-        >> curry operatorSpacing.Document ()
-        >> curry newLines.Document ()
-        >> curry indentation.Document 0
-        >> printer.Document
-    )
+    let formatDocument document =
+        let unparsed = printer.Document document
+
+        // Test whether there is data loss during parsing and unparsing
+        if unparsed = source then
+            // The actual format process
+            document
+            |> curry collapsedSpaces.Document ()
+            |> curry operatorSpacing.Document ()
+            |> curry newLines.Document ()
+            |> curry indentation.Document 0
+            |> printer.Document
+        // Report error if the unparsing result does not match the original source
+        else
+            failwith (
+                "The formatter's syntax tree is inconsistent with the input source code or unparsed wrongly. "
+                + "Please let us know by filing a new issue in https://github.com/microsoft/qsharp-compiler/issues/new/choose."
+                + "The unparsed code is: \n"
+                + unparsed
+            )
+
+    parse source |> Result.map formatDocument
+
+[<CompiledName "Update">]
+let update source =
+    let updateDocument document =
+
+        let updatedDocument =
+            document
+            |> curry qubitBindingUpdate.Document ()
+            |> curry unitUpdate.Document ()
+            |> curry forParensUpdate.Document ()
+            |> curry arraySyntaxUpdate.Document ()
+
+        let warningList = updatedDocument |> updateChecker
+        let printedDocument = updatedDocument |> printer.Document
+
+        // For now, let's just combine the warnings to the end of the document
+        String.concat Environment.NewLine (printedDocument :: warningList)
+
+    parse source |> Result.map updateDocument
 
 [<CompiledName "Identity">]
 let identity source =

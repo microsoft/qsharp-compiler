@@ -3,7 +3,7 @@ entry:
   %0 = icmp sgt i64 %a, %b
   %c = select i1 %0, i64 %a, i64 %b
   %1 = mul i64 %c, %a
-  %2 = udiv i64 %b, 7
+  %2 = sdiv i64 %b, 7
   %d = sub i64 %1, %2
   %e = ashr i64 %d, 3
   %3 = sitofp i64 %d to double

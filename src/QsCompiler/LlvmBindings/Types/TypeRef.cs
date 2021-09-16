@@ -110,6 +110,12 @@ namespace Ubiquity.NET.Llvm.Types
             return FromHandle<IPointerType>(LLVM.PointerType(this.TypeRefHandle, addressSpace));
         }
 
+        public bool TryGetExtendedPropertyValue<T>(string id, [MaybeNullWhen(false)] out T value)
+            => this.extensibleProperties.TryGetExtendedPropertyValue(id, out value);
+
+        public void AddExtendedPropertyValue(string id, object? value)
+            => this.extensibleProperties.AddExtendedPropertyValue(id, value);
+
         /// <summary>Builds a string representation for this type in LLVM assembly language form.</summary>
         /// <returns>Formatted string for this type.</returns>
         public override string ToString() => this.TypeRefHandle.PrintToString();
@@ -133,7 +139,7 @@ namespace Ubiquity.NET.Llvm.Types
             }
 
             var hContext = handle.Context;
-            return ContextCache.GetContextFor(hContext);
+            return ThreadContextCache.GetOrCreateAndRegister(hContext);
         }
 
         internal class InterningFactory
@@ -158,5 +164,7 @@ namespace Ubiquity.NET.Llvm.Types
                 };
             }
         }
+
+        private readonly ExtensiblePropertyContainer extensibleProperties = new ExtensiblePropertyContainer();
     }
 }

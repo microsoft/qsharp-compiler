@@ -8,6 +8,11 @@ namespace Microsoft.Quantum.Testing.QIR {
         Data: Double[]
     );
 
+    internal function Identity<'T>(input : 'T)
+    : 'T {
+        return input;
+    }
+
     operation TestPendingRefCountIncreases(cond : Bool) : HasString {
         let s = HasString("<", [0.0]);
         let updated = s w/ Data <- [0.1, 0.2];
@@ -24,4 +29,14 @@ namespace Microsoft.Quantum.Testing.QIR {
             set ops w/= 0 <- new Int[3];
         }
     }
+
+    @EntryPoint()
+    operation Main() : Unit {
+        let _ = TestPendingRefCountIncreases(true);
+        TestRefCountsForItemUpdate(true);
+
+        let id = Identity;
+        let _ = id(0, 0);
+    }
+
 }

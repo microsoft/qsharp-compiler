@@ -46,6 +46,8 @@ let private compilerArgs target (name: string) =
 
         "--verbosity"
         "Diagnostic"
+        "--assembly-properties"
+        "QirOutputPath:qir"
     }
 
 let private customTest name compilerArgs snippets =
@@ -77,7 +79,7 @@ let ``QIR alias counts`` () = qirTest false "TestAliasCounts"
 
 [<Fact>]
 let ``QIR reference counts`` () =
-    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2" ]
+    qirMultiTest false "TestReferenceCounts" [ "TestReferenceCounts1"; "TestReferenceCounts2"; "TestReferenceCounts3" ]
 
 [<Fact>]
 let ``QIR built-in functions`` () = qirTest false "TestBuiltIn"
@@ -113,7 +115,8 @@ let ``QIR array update`` () =
 let ``QIR tuple deconstructing`` () = qirTest false "TestDeconstruct"
 
 [<Fact>]
-let ``QIR UDT constructor`` () = qirTest false "TestUdt"
+let ``QIR UDT constructor`` () =
+    qirMultiTest false "TestUdt" [ "TestUdt1"; "TestUdt2" ]
 
 [<Fact>]
 let ``QIR UDT construction`` () = qirTest false "TestUdtConstruction"
@@ -247,3 +250,15 @@ let ``QIR targeting`` () =
         |> Seq.toArray
 
     customTest "TestTargeting" compilerArgs [ "TestTargeting" ]
+
+[<Fact>]
+let ``QIR Library generation`` () =
+    let compilerArgs =
+        Seq.append (compilerArgs true "TestLibraryGeneration") [ "QSharpOutputType:QSharpLibrary" ]
+        |> Seq.filter (fun arg -> arg <> "--build-exe")
+        |> Seq.toArray
+
+    customTest
+        "TestLibraryGeneration"
+        compilerArgs
+        [ "TestLibraryGeneration1"; "TestLibraryGeneration2"; "TestLibraryGeneration3" ]

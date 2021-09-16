@@ -1,10 +1,11 @@
-﻿<Project Sdk="Microsoft.Quantum.Sdk/0.16.2105140327-beta">
+﻿<Project Sdk="Microsoft.Quantum.Sdk/0.18.2107151063-beta">
   <PropertyGroup>
     <QscVerbosity>Detailed</QscVerbosity>
     <OutputType>Exe</OutputType>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <ExposeReferencesViaTestNames>true</ExposeReferencesViaTestNames>
     <IncludeQSharpCorePackages>false</IncludeQSharpCorePackages>
+    <IncludeProviderPackages>false</IncludeProviderPackages>
     <CSharpGeneration>false</CSharpGeneration> <!--we provide our own C# generation for the sake of also generating C# for all references-->
     <NoWarn>
       QS6202; <!-- Q# executable has no entry point. -->
@@ -16,7 +17,7 @@
   <PropertyGroup>
     <GeneratedFilesOutputPath>generated/</GeneratedFilesOutputPath>
     <ExecutionTestsDir>ExecutionTests/</ExecutionTestsDir>
-    <SimulationTarget>../Target/bin/$(Configuration)/netstandard2.1/Simulation.dll</SimulationTarget>
+    <SimulationTarget>../Target/bin/$(Configuration)/netcoreapp3.1/Simulation.dll</SimulationTarget>
     <AdditionalQscArguments>--load $(SimulationTarget)</AdditionalQscArguments>
     <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll"</QscExe>
   </PropertyGroup>

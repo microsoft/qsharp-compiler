@@ -47,12 +47,13 @@ namespace Ubiquity.NET.Llvm
         private readonly BitcodeModule.InterningFactory moduleCache;
         private readonly TypeRef.InterningFactory typeCache;
         private readonly AttributeValue.InterningFactory attributeValueCache;
+        private readonly LlvmMetadata.InterningFactory metadataCache;
 
         /// <summary>Initializes a new instance of the <see cref="Context"/> class.Creates a new context.</summary>
         public Context()
             : this(LLVM.ContextCreate())
         {
-            ContextCache.Add(this);
+            ThreadContextCache.Register(this);
         }
 
         internal Context(LLVMContextRef contextRef)
@@ -68,6 +69,7 @@ namespace Ubiquity.NET.Llvm
             this.moduleCache = new BitcodeModule.InterningFactory(this);
             this.typeCache = new TypeRef.InterningFactory(this);
             this.attributeValueCache = new AttributeValue.InterningFactory(this);
+            this.metadataCache = new LlvmMetadata.InterningFactory(this);
 
             LLVM.ContextSetDiagnosticHandler(this.ContextHandle, this.activeHandler, (void*)default);
         }
@@ -116,6 +118,9 @@ namespace Ubiquity.NET.Llvm
 
         /// <summary>Gets the LLVM PPC 128-bit floating point type.</summary>
         public ITypeRef PpcFloat128Type => TypeRef.FromHandle(LLVM.PPCFP128TypeInContext(this.ContextHandle))!;
+
+        /// <summary>Gets an enumerable collection of all the metadata created in this context</summary>
+        public IEnumerable<LlvmMetadata> Metadata => this.metadataCache;
 
         /// <summary>Gets the modules created in this context.</summary>
         public IEnumerable<BitcodeModule> Modules => this.moduleCache;
@@ -392,7 +397,10 @@ namespace Ubiquity.NET.Llvm
         public ConstantDataArray CreateConstantString(string value, bool nullTerminate)
         {
             var handle = LLVM.ConstStringInContext(this.ContextHandle, value.AsMarshaledString(), (uint)value.Length, !nullTerminate ? 1 : 0);
-            return Value.FromHandle<ConstantDataArray>(handle)!;
+            var created = Value.FromHandle(handle);
+            return created is ConstantDataArray dataArr
+                ? dataArr
+                : new ConstantDataArray(created.ValueHandle);
         }
 
         /// <summary>Creates a new <see cref="ConstantInt"/> with a bit length of 1.</summary>
@@ -540,47 +548,12 @@ namespace Ubiquity.NET.Llvm
             return AttributeValue.FromHandle(this, handle);
         }
 
-        /// <summary>Creates an attribute with an integer value parameter.</summary>
-        /// <param name="kind">The kind of attribute.</param>
-        /// <param name="value">Value for the attribute.</param>
-        /// <remarks>
-        /// <para>Not all attributes support a value and those that do don't all support
-        /// a full 64bit value. The following table provides the kinds of attributes
-        /// accepting a value and the allowed size of the values.</para>
-        /// <list type="table">
-        /// <listheader><term><see cref="AttributeKind"/></term><term>Bit Length</term></listheader>
-        /// <item><term><see cref="AttributeKind.Alignment"/></term><term>32</term></item>
-        /// <item><term><see cref="AttributeKind.StackAlignment"/></term><term>32</term></item>
-        /// <item><term><see cref="AttributeKind.Dereferenceable"/></term><term>64</term></item>
-        /// <item><term><see cref="AttributeKind.DereferenceableOrNull"/></term><term>64</term></item>
-        /// </list>
-        /// </remarks>
-        /// <returns><see cref="AttributeValue"/> with the specified kind and value.</returns>
-        public AttributeValue CreateAttribute(AttributeKind kind, ulong value)
-        {
-            if (!kind.RequiresIntValue())
-            {
-                throw new ArgumentException();
-            }
-
-            var handle = LLVM.CreateEnumAttribute(
-                this.ContextHandle,
-                kind.GetEnumAttributeId(),
-                value);
-            return AttributeValue.FromHandle(this, handle);
-        }
-
         /// <summary>Adds a valueless named attribute.</summary>
         /// <param name="name">Attribute name.</param>
         /// <returns><see cref="AttributeValue"/> with the specified name.</returns>
-        public AttributeValue CreateAttribute(string name) => this.CreateAttribute(name, string.Empty);
-
-        /// <summary>Adds a Target specific named attribute with value.</summary>
-        /// <param name="name">Name of the attribute.</param>
-        /// <param name="value">Value of the attribute.</param>
-        /// <returns><see cref="AttributeValue"/> with the specified name and value.</returns>
-        public AttributeValue CreateAttribute(string name, string value)
+        public AttributeValue CreateAttribute(string name, string? value = null)
         {
+            value ??= string.Empty;
             var handle = LLVM.CreateStringAttribute(this.ContextHandle, name.AsMarshaledString(), (uint)name.Length, value.AsMarshaledString(), (uint)value.Length);
             return AttributeValue.FromHandle(this, handle);
         }
@@ -638,6 +611,11 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
+        internal void RemoveDeletedNode(MDNode node)
+        {
+            this.metadataCache.Remove(node.MetadataHandle);
+        }
+
         internal BitcodeModule GetModuleFor(LLVMModuleRef moduleRef)
         {
             if (moduleRef == default)
@@ -665,6 +643,11 @@ namespace Ubiquity.NET.Llvm
             return this.typeCache.GetOrCreateItem(typeRef);
         }
 
+        internal LlvmMetadata GetNodeFor(LLVMMetadataRef handle)
+        {
+            return this.metadataCache.GetOrCreateItem(handle);
+        }
+
         /// <summary>Disposes the context to release unmanaged resources deterministically.</summary>
         /// <param name="disposing">Indicates whether this is from a call to Dispose (<see langword="true"/>) or if from a finalizer.</param>
         /// <remarks>
@@ -686,7 +669,7 @@ namespace Ubiquity.NET.Llvm
             LLVM.ContextSetDiagnosticHandler(this.ContextHandle, default, (void*)default);
             this.activeHandler.Dispose();
 
-            ContextCache.TryRemove(this.ContextHandle);
+            ThreadContextCache.Unregister(this.ContextHandle);
 
             this.ContextHandle.Dispose();
         }

@@ -32,6 +32,13 @@ namespace Microsoft.Quantum.Testing.QIR {
         let i = DoubleAsInt(d);
         let bi = IntAsBigInt(arg);
         let t = Truncate(d);
+        let range = 5 .. -2 .. 0;
+        let rev = RangeReverse(range);
         return (d, i, bi, t);
+    }
+
+    @EntryPoint()
+    function Main() : Unit {
+        let _ = TestBuiltIn(0);
     }
 }
