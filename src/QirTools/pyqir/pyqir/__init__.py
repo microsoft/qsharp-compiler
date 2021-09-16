@@ -213,6 +213,12 @@ class QirBuilder:
         """
         self.pyqir.write(file_path)
 
+    def get_ir_string(self):
+        """
+        Returns the modeled circuit as a string.
+        """
+        return self.pyqir.get_ir_string()
+
     def enable_logging(self):
         """
         Enables the logging infrastructure

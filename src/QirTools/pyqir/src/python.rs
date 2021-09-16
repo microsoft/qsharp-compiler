@@ -186,6 +186,16 @@ impl PyQIR {
         Ok(())
     }
 
+    fn get_ir_string(&self) -> PyResult<String> {
+        match qirlib::emit::get_ir_string(&self.model) {
+            Err(msg) => {
+                let err: PyErr = PyOSError::new_err::<String>(msg);
+                Err(err)
+            }
+            Ok(ir) => Ok(ir),
+        }
+    }
+
     fn enable_logging(&self) -> PyResult<()> {
         let _ = env_logger::try_init();
         Ok(())

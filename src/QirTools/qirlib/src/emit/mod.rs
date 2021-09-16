@@ -32,8 +32,9 @@ pub fn get_ir_string(model: &SemanticModel) -> Result<String, String> {
     let context = Context::new(&ctx, model.name.as_str());
 
     build_entry_function(&context, model)?;
+    let ir = context.get_ir_string();
 
-    Ok(context.get_ir_string())
+    Ok(ir)
 }
 
 fn build_entry_function(context: &Context<'_>, model: &SemanticModel) -> Result<(), String> {
