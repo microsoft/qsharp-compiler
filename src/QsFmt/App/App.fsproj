@@ -7,8 +7,6 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Include="AltProgram.fsi" />
-    <Compile Include="AltProgram.fs" />
     <Compile Include="Program.fsi" />
     <Compile Include="Program.fs" />
   </ItemGroup>
@@ -19,6 +17,5 @@
 
   <ItemGroup>
     <PackageReference Include="Argu" Version="6.1.1" />
-    <PackageReference Include="CommandLineParser" Version="2.8.0" />
   </ItemGroup>
 </Project>
