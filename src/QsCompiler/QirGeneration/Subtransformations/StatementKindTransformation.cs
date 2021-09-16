@@ -42,34 +42,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         // private helpers
 
         /// <summary>
-        /// Defines a new variable with the given name and binds it to the given value.
-        /// </summary>
-        /// <param name="varName">The name of the variable</param>
-        /// <param name="value">The value to bind the variable to</param>
-        /// <param name="mutable">Is true the variable may be rebound to another value</param>
-        private void CreateVariable(string varName, IValue value, bool mutable = false)
-        {
-            if (mutable)
-            {
-                var ptr = this.SharedState.Values.CreatePointer(value);
-                this.SharedState.ScopeMgr.RegisterVariable(varName, ptr);
-            }
-            else
-            {
-                this.SharedState.ScopeMgr.RegisterVariable(varName, value);
-            }
-        }
-
-        /// <summary>
-        /// Binds a symbol tuple by invoking the given action for each symbol name with a suitable value.
+        /// Binds a symbol tuple by invoking the given action for each sub-binding with a suitable value.
         /// to a Value.
         /// </summary>
         /// <param name="symbols">The symbols to bind</param>
         /// <param name="ex">
-        /// <param name="bindVariable">The action to invoke to bind each symbol</param>
+        /// <param name="bindVariables">The action to invoke to bind each symbol or symbol tuple to a value</param>
         /// The Q# expression that defines the value to bind the symbols to; it will be deconstructed if necessary
         /// </param>
-        private void BindSymbolTuple(SymbolTuple symbols, TypedExpression ex, Action<string, IValue> bindVariable)
+        private void BindSymbolTuple(SymbolTuple symbols, TypedExpression ex, Action<SymbolTuple, TypedExpression> bindVariables)
         {
             if (symbols is SymbolTuple.VariableNameTuple syms
                 && ex.Expression is ResolvedExpressionKind.ValueTuple vs)
@@ -81,13 +62,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 foreach (var (sym, value) in syms.Item.Zip(vs.Item, (s, v) => (s, v)))
                 {
-                    this.BindSymbolTuple(sym, value, bindVariable);
+                    this.BindSymbolTuple(sym, value, bindVariables);
                 }
             }
             else
             {
-                var rhs = this.SharedState.EvaluateSubexpression(ex);
-                this.BindSymbolTuple(symbols, rhs, bindVariable);
+                bindVariables(symbols, ex);
             }
         }
 
@@ -203,7 +183,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     switch (item)
                     {
                         case SymbolTuple.VariableName v:
-                            this.SharedState.ScopeMgr.RegisterVariable(v.Item, Allocate(itemInit));
+                            this.SharedState.ScopeMgr.RegisterVariable(v.Item, Allocate(itemInit), fromLocalId: null);
                             break;
 
                         case SymbolTuple.VariableNameTuple syms:
@@ -339,6 +319,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.SharedState.ScopeMgr.CloseScope(isTerminated);
             };
 
+            QirExpressionKindTransformation.AccessViaLocalId(stm.IterationValues, out var accessedViaLocal);
             if (stm.IterationValues.ResolvedType.Resolution.IsRange)
             {
                 void ExecuteBody(Value loopVariable)
@@ -350,7 +331,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var variableValue = this.SharedState.Values.From(loopVariable, ResolvedType.New(ResolvedTypeKind.Int));
                     if (loopVarName != null)
                     {
-                        this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue);
+                        this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue, fromLocalId: accessedViaLocal);
                     }
 
                     this.Transformation.Statements.OnScope(stm.Body);
@@ -364,7 +345,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 void ExecuteBody(IValue arrayItem)
                 {
                     // If we iterate through an array, we inject a binding at the beginning of the body.
-                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, (n, v) => this.CreateVariable(n, v));
+                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, (varName, value) =>
+                        this.SharedState.ScopeMgr.RegisterVariable(varName, value, fromLocalId: accessedViaLocal));
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
 
@@ -455,11 +437,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // omitted. We can omit that alias count manipulation for inner items, since besides the
                 // items that are updated, all counts will remain the same and while also doing the same for
                 // inner items could avoid copies in rare edge cases it is not worth the increased cost for
-                // the majority of cases. For the items that are updated, we need to make sure that the access
+                // the majority of cases. For the items that are updated, we need to make sure that the alias
                 // count of the old item is decreased and the one of the new item is increased. CopyAndUpdate
                 // takes care of that when updateItemAliasCount is set to true.
                 var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName.Item);
-                this.SharedState.ScopeMgr.DecreaseAliasCount(pointer, shallow: true);
+                this.SharedState.ScopeMgr.UnassignFromMutable(pointer, shallow: true);
 
                 QirExpressionKindTransformation.CopyAndUpdate(
                     this.SharedState,
@@ -467,20 +449,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     updateItemAliasCount: true);
                 var value = this.SharedState.ValueStack.Pop();
 
-                this.SharedState.ScopeMgr.IncreaseAliasCount(value, shallow: true);
+                this.SharedState.ScopeMgr.AssignToMutable(value, fromLocalId: null, shallow: true);
                 pointer.StoreValue(value);
             }
             else
             {
-                void RebindVariable(string varName, IValue value)
-                {
-                    var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
-                    this.SharedState.ScopeMgr.IncreaseAliasCount(value);
-                    this.SharedState.ScopeMgr.DecreaseAliasCount(pointer);
-                    pointer.StoreValue(value);
-                }
+                Action<string, IValue> RebindVariable(TypedExpression boundEx) =>
+                    (string varName, IValue value) =>
+                    {
+                        var pointer = (PointerValue)this.SharedState.ScopeMgr.GetVariable(varName);
+                        QirExpressionKindTransformation.AccessViaLocalId(boundEx, out var fromLocalId);
+                        this.SharedState.ScopeMgr.AssignToMutable(value, fromLocalId: fromLocalId);
+                        this.SharedState.ScopeMgr.UnassignFromMutable(pointer);
+                        pointer.StoreValue(value);
+                    };
 
-                this.BindSymbolTuple(symbols, stm.Rhs, RebindVariable);
+                this.BindSymbolTuple(symbols, stm.Rhs, (syms, boundEx) =>
+                    this.BindSymbolTuple(syms, this.SharedState.EvaluateSubexpression(boundEx), RebindVariable(boundEx)));
             }
 
             return QsStatementKind.EmptyStatement;
@@ -488,9 +473,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnVariableDeclaration(QsBinding<TypedExpression> stm)
         {
-            void BindVariable(string varName, IValue value) =>
-                 this.CreateVariable(varName, value, stm.Kind.IsMutableBinding);
-            this.BindSymbolTuple(stm.Lhs, stm.Rhs, BindVariable);
+            Action<string, IValue> BindVariable(TypedExpression ex) =>
+                (string varName, IValue value) =>
+                {
+                    if (stm.Kind.IsMutableBinding)
+                    {
+                        value = this.SharedState.Values.CreatePointer(value);
+                    }
+
+                    QirExpressionKindTransformation.AccessViaLocalId(ex, out var localId);
+                    this.SharedState.ScopeMgr.RegisterVariable(varName, value, fromLocalId: localId);
+                };
+
+            this.BindSymbolTuple(stm.Lhs, stm.Rhs, (syms, boundEx) =>
+                this.BindSymbolTuple(syms, this.SharedState.EvaluateSubexpression(boundEx), BindVariable(boundEx)));
             return QsStatementKind.EmptyStatement;
         }
 
