@@ -548,47 +548,12 @@ namespace Ubiquity.NET.Llvm
             return AttributeValue.FromHandle(this, handle);
         }
 
-        /// <summary>Creates an attribute with an integer value parameter.</summary>
-        /// <param name="kind">The kind of attribute.</param>
-        /// <param name="value">Value for the attribute.</param>
-        /// <remarks>
-        /// <para>Not all attributes support a value and those that do don't all support
-        /// a full 64bit value. The following table provides the kinds of attributes
-        /// accepting a value and the allowed size of the values.</para>
-        /// <list type="table">
-        /// <listheader><term><see cref="AttributeKind"/></term><term>Bit Length</term></listheader>
-        /// <item><term><see cref="AttributeKind.Alignment"/></term><term>32</term></item>
-        /// <item><term><see cref="AttributeKind.StackAlignment"/></term><term>32</term></item>
-        /// <item><term><see cref="AttributeKind.Dereferenceable"/></term><term>64</term></item>
-        /// <item><term><see cref="AttributeKind.DereferenceableOrNull"/></term><term>64</term></item>
-        /// </list>
-        /// </remarks>
-        /// <returns><see cref="AttributeValue"/> with the specified kind and value.</returns>
-        public AttributeValue CreateAttribute(AttributeKind kind, ulong value)
-        {
-            if (!kind.RequiresIntValue())
-            {
-                throw new ArgumentException();
-            }
-
-            var handle = LLVM.CreateEnumAttribute(
-                this.ContextHandle,
-                kind.GetEnumAttributeId(),
-                value);
-            return AttributeValue.FromHandle(this, handle);
-        }
-
         /// <summary>Adds a valueless named attribute.</summary>
         /// <param name="name">Attribute name.</param>
         /// <returns><see cref="AttributeValue"/> with the specified name.</returns>
-        public AttributeValue CreateAttribute(string name) => this.CreateAttribute(name, string.Empty);
-
-        /// <summary>Adds a Target specific named attribute with value.</summary>
-        /// <param name="name">Name of the attribute.</param>
-        /// <param name="value">Value of the attribute.</param>
-        /// <returns><see cref="AttributeValue"/> with the specified name and value.</returns>
-        public AttributeValue CreateAttribute(string name, string value)
+        public AttributeValue CreateAttribute(string name, string? value = null)
         {
+            value ??= string.Empty;
             var handle = LLVM.CreateStringAttribute(this.ContextHandle, name.AsMarshaledString(), (uint)name.Length, value.AsMarshaledString(), (uint)value.Length);
             return AttributeValue.FromHandle(this, handle);
         }
