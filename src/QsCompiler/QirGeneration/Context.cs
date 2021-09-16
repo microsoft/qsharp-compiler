@@ -657,7 +657,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var name = outerArgItems[0].Item1;
                 if (name != null)
                 {
-                    this.ScopeMgr.RegisterVariable(name, innerTuple);
+                    this.ScopeMgr.RegisterVariable(name, innerTuple, fromLocalId: null);
                 }
                 else
                 {
@@ -676,7 +676,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (argName != null)
                     {
                         this.CurrentFunction.Parameters[i].Name = argName;
-                        this.ScopeMgr.RegisterVariable(argName, argValue);
+                        this.ScopeMgr.RegisterVariable(argName, argValue, fromLocalId: null);
                     }
                     else
                     {
@@ -700,7 +700,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var element = tupleValue.GetTupleElement(i);
                     if (argName != null)
                     {
-                        this.ScopeMgr.RegisterVariable(argName, element);
+                        this.ScopeMgr.RegisterVariable(argName, element, fromLocalId: null);
                     }
                     else
                     {
