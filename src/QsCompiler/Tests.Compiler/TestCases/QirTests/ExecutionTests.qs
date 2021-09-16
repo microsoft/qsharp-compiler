@@ -5,10 +5,6 @@
     newtype Foo = Int;
     newtype Register = (Data : Int[], Foo : Foo);
 
-    // todo: get rid of all these strings...
-    //todo: decide what to do with printing ranges
-    // FIXME: ADD MORE HORRIBLE TEST CASES WHERE THE SECOND MUTABLE VARIABLE IS ALSO UPDATED VIA COPY-AND-REASSIGN...
-
     function TestIssue7(cond1 : Bool, cond2 : Bool, cond3 : Bool) : Unit {
 
         mutable value = [[0], [0,0]];
@@ -70,10 +66,6 @@
         Message($"{value}");
         Message($"{arr}");
     }
-
-    // TODO: tests for straight out variable update (not copy and update)
-
-    // FIXME: ADD A TEST FOR CONDITIONAL EXPRESSIONS WHERE ONE ARRAY IS COPIED AND THE OTHER BRANCH IS NOT
     
     function TestIssue3 (cond : Bool) : Unit {
 
@@ -114,8 +106,6 @@
         Message($"{value}");
         Message($"{arr}");
     }
-
-    // SAME TESTS JUST WITH INNER BLOCKS BEING CALLS?
 
     function TestUdt8 (cond : Bool) : Unit {
         let defaultVal = Register([], Foo(-1));
@@ -236,8 +226,6 @@
         Message($"{reg}");
     }
 
-    ///
-
     function TestArray8 () : Unit {
         let defaultArr = [Foo(-1), size = 3];
         mutable coeffs = defaultArr;
@@ -265,8 +253,6 @@
 
         Message($"{coeffs}");
     }
-
-    ///
 
     function TestArray6 () : Unit {
         let value = Foo(0);
@@ -320,8 +306,6 @@
         Message($"{value}");
         Message($"{coeffs}");
     }
-
-    ///
 
     function TestArray2 () : Unit {
         let defaultArr = [Foo(-1), size = 3];
