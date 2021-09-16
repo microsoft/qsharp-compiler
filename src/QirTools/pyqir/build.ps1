@@ -291,9 +291,9 @@ function Build-PyQIR {
                 docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io/src/QirTools/pyqir manylinux2014_x86_64_maturin python -m tox -e test
             }
 
-            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io manylinux2014_x86_64_maturin cargo test --package pyqir --package qirlib --lib -vv -- --nocapture" "command"
+            Write-Vso "docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io manylinux2014_x86_64_maturin cargo test --package qirlib --lib -vv -- --nocapture" "command"
             exec {
-                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io manylinux2014_x86_64_maturin cargo test --package pyqir --package qirlib --lib -vv -- --nocapture
+                docker run --rm -v $ioVolume -v $llvmVolume -e LLVM_SYS_110_PREFIX=/usr/lib/llvm -w /io manylinux2014_x86_64_maturin cargo test --package qirlib --lib -vv -- --nocapture
             }
         }
 
@@ -323,9 +323,8 @@ function Build-PyQIR {
             exec { & $python -m tox -e pack }
         }
 
-        Write-Vso "& cargo test --package pyqir --package qirlib --lib -vv -- --nocapture" "command"
-        exec -wd $srcPath { & cargo test --package pyqir --package qirlib --lib -vv -- --nocapture }
-
+        Write-Vso "& cargo test --package qirlib --lib -vv -- --nocapture" "command"
+        exec -wd $srcPath { & cargo test --package qirlib --lib -vv -- --nocapture }
     }
 }
 
