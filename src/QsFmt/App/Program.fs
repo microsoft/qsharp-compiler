@@ -48,10 +48,7 @@ let doOne command inputFile =
             4
 
 let run command input =
-    printfn "%A" input
-    0
-
-    //input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne command)) 0
+    input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne command)) 0
 
 [<CompiledName "Main">]
 [<EntryPoint>]
