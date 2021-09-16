@@ -1,7 +1,18 @@
 define internal %BigInt* @Microsoft__Quantum__Testing__QIR__TestBigInts__body(%BigInt* %a, %BigInt* %b) {
 entry:
   %0 = call i1 @__quantum__rt__bigint_greater(%BigInt* %a, %BigInt* %b)
-  %c = select i1 %0, %BigInt* %a, %BigInt* %b
+  br i1 %0, label %condTrue__1, label %condFalse__1
+
+condTrue__1:                                      ; preds = %entry
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %a, i32 1)
+  br label %condContinue__1
+
+condFalse__1:                                     ; preds = %entry
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %b, i32 1)
+  br label %condContinue__1
+
+condContinue__1:                                  ; preds = %condFalse__1, %condTrue__1
+  %c = phi %BigInt* [ %a, %condTrue__1 ], [ %b, %condFalse__1 ]
   %1 = call %BigInt* @__quantum__rt__bigint_multiply(%BigInt* %c, %BigInt* %a)
   %2 = call %BigInt* @__quantum__rt__bigint_create_i64(i64 7)
   %3 = call %BigInt* @__quantum__rt__bigint_divide(%BigInt* %b, %BigInt* %2)
@@ -12,6 +23,7 @@ entry:
   %5 = call %BigInt* @__quantum__rt__bigint_create_i64(i64 65535)
   %g = call %BigInt* @__quantum__rt__bigint_bitor(%BigInt* %4, %BigInt* %5)
   %6 = call %BigInt* @__quantum__rt__bigint_bitnot(%BigInt* %g)
+  call void @__quantum__rt__bigint_update_reference_count(%BigInt* %c, i32 -1)
   call void @__quantum__rt__bigint_update_reference_count(%BigInt* %1, i32 -1)
   call void @__quantum__rt__bigint_update_reference_count(%BigInt* %2, i32 -1)
   call void @__quantum__rt__bigint_update_reference_count(%BigInt* %3, i32 -1)

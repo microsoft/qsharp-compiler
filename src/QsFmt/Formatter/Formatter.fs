@@ -65,6 +65,7 @@ let update source =
             document
             |> curry qubitBindingUpdate.Document ()
             |> curry unitUpdate.Document ()
+            |> curry forParensUpdate.Document ()
             |> curry arraySyntaxUpdate.Document ()
 
         let warningList = updatedDocument |> updateChecker
