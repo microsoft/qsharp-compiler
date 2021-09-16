@@ -164,6 +164,7 @@ type 'context Rewriter() =
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
+        | For loop -> rewriter.For(context, loop) |> For
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
     abstract Let : context: 'context * lets: Let -> Let
@@ -218,6 +219,17 @@ type 'context Rewriter() =
             Block = rewriter.Block(context, rewriter.Statement, elses.Block)
         }
 
+    abstract For : context: 'context * loop: For -> For
+
+    default rewriter.For(context, loop) =
+        {
+            ForKeyword = rewriter.Terminal(context, loop.ForKeyword)
+            OpenParen = loop.OpenParen |> Option.map (curry rewriter.Terminal context)
+            Binding = rewriter.ForBinding(context, loop.Binding)
+            CloseParen = loop.CloseParen |> Option.map (curry rewriter.Terminal context)
+            Block = rewriter.Block(context, rewriter.Statement, loop.Block)
+        }
+
     abstract ParameterBinding : context: 'context * binding: ParameterBinding -> ParameterBinding
 
     default rewriter.ParameterBinding(context, binding) =
@@ -248,6 +260,15 @@ type 'context Rewriter() =
             Name = rewriter.SymbolBinding(context, binding.Name)
             Equals = rewriter.Terminal(context, binding.Equals)
             Initializer = rewriter.QubitInitializer(context, binding.Initializer)
+        }
+
+    abstract ForBinding : context: 'context * binding: ForBinding -> ForBinding
+
+    default rewriter.ForBinding(context, binding) =
+        {
+            Name = rewriter.SymbolBinding(context, binding.Name)
+            In = rewriter.Terminal(context, binding.In)
+            Value = rewriter.Expression(context, binding.Value)
         }
 
     abstract QubitInitializer : context: 'context * initializer: QubitInitializer -> QubitInitializer
