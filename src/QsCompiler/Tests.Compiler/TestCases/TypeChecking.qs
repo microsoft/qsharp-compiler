@@ -177,7 +177,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         return xs[undefinedVariable];
     }
 
-    // utils for testing variance behavior
+    // utils for testing variance behavior 
 
     function TakesBigEndian (a : BigEndian) : Unit {}
     function TakesOpArray<'T> (a : ('T => Unit)[]) : Unit {}
@@ -191,7 +191,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     function TakesAdjFctFunction<'T> (fct : ((('T => Unit is Adj) -> Unit) -> Unit)) : Unit {}
     function TakesAdjFctFctFunction<'T> (fct : (((('T => Unit is Adj) -> Unit) -> Unit) -> Unit)) : Unit {}
     function TakesUnitaryArray<'T> (a : ('T => Unit is Adj + Ctl)[]) : Unit {}
-    function TakesAnyArray<'T> (a : 'T[]) : Unit {}
+    function TakesAnyArray<'T> (a : 'T[]) : Unit {}    
     function TakesIntFunction (fct : (Int -> Unit)) : Unit {}
     function TakesAnyFunction<'T> (fct : ('T -> Unit)) : Unit {}
     function TakesAnyArrayFunction<'T> (fct : ('T[] -> Unit)) : Unit {}
@@ -199,10 +199,10 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     function TakesAnyOperation<'T> (op : ('T => Unit)) : Unit {}
     function TakesAnyAdjointable<'T> (op : ('T => Unit is Adj)) : Unit {}
     function TakesAnyUnitary<'T> (op : ('T => Unit is Adj + Ctl)) : Unit {}
-
-
-    // variance behavior
-
+    
+    
+    // variance behavior 
+    
     function Variance1 () : Unit {
         let opArray = new (Qubit => Unit)[0];
         let adjArray = new (Qubit => Unit is Adj)[0];
@@ -215,15 +215,15 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         TakesAnyArray(new Qubit[0]);
         TakesAnyArray(opArray);
         TakesAnyArray(adjArray);
-        TakesAnyArray(unitaryArray);
+        TakesAnyArray(unitaryArray); 
     }
 
     function Variance2 () : Unit {
-        TakesBigEndian(new Qubit[0]);
+        TakesBigEndian(new Qubit[0]); 
     }
 
     function Variance3 () : Unit {
-        TakesAnyArray(BigEndian(new Qubit[0]));
+        TakesAnyArray(BigEndian(new Qubit[0])); 
     }
 
     function Variance4 () : Unit {
@@ -255,18 +255,18 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
 
     function Variance8 () : Unit {
         TakesAnyArrayFunction(TakesAnyArray);
-        TakesOpArrayFunction(TakesOpArray);
-        TakesAdjArrayFunction(TakesAdjArray);
+        TakesOpArrayFunction(TakesOpArray); 
+        TakesAdjArrayFunction(TakesAdjArray); 
 
-        TakesOpFunction(TakesAnyOperation);
-        TakesAdjFunction(TakesAnyAdjointable);
-        TakesAdjFunction(TakesAnyOperation);
+        TakesOpFunction(TakesAnyOperation); 
+        TakesAdjFunction(TakesAnyAdjointable); 
+        TakesAdjFunction(TakesAnyOperation); 
 
-        TakesOpFctFunction(TakesOpFunction);
-        TakesAdjFctFunction(TakesAdjFunction);
-        TakesOpFctFunction(TakesAdjFunction);
+        TakesOpFctFunction(TakesOpFunction); 
+        TakesAdjFctFunction(TakesAdjFunction); 
+        TakesOpFctFunction(TakesAdjFunction); 
 
-        TakesOpFctFctFunction(TakesOpFctFunction);
+        TakesOpFctFctFunction(TakesOpFctFunction); 
         TakesAdjFctFctFunction(TakesAdjFctFunction);
         TakesAdjFctFctFunction(TakesOpFctFunction);
     }
@@ -280,32 +280,32 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function Variance11 () : Unit {
-        TakesAdjArrayFunction(TakesOpArray);
+        TakesAdjArrayFunction(TakesOpArray); 
     }
 
     function Variance12 () : Unit {
-        TakesOpFunction(TakesAnyAdjointable);
+        TakesOpFunction(TakesAnyAdjointable); 
     }
 
     function Variance13 () : Unit {
-        TakesAdjFctFunction(TakesOpFunction);
+        TakesAdjFctFunction(TakesOpFunction); 
     }
 
     function Variance14 () : Unit {
-        TakesOpFctFctFunction(TakesAdjFctFunction);
+        TakesOpFctFctFunction(TakesAdjFctFunction); 
     }
 
 
     // utils for determining common base type
 
-    newtype OpTuple = ((Unit => Unit), (Unit => Unit));
-    newtype AdjCtlTuple = ((Unit => Unit is Adj), (Unit => Unit is Ctl));
+    newtype OpTuple = ((Unit => Unit), (Unit => Unit)); 
+    newtype AdjCtlTuple = ((Unit => Unit is Adj), (Unit => Unit is Ctl)); 
 
     operation SelfAdjOp () : Unit {
         adjoint self;
     }
 
-    operation IntrinsicAdj () : Unit
+    operation IntrinsicAdj () : Unit 
     is Adj {
         body intrinsic;
     }
@@ -314,75 +314,75 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     // determine common base type
 
     function CommonBaseType1 () : (Unit => Unit)[] {
-        let arr1 = new (Unit => Unit)[0];
-        let arr2 = new (Unit => Unit)[0];
+        let arr1 = new (Unit => Unit)[0]; 
+        let arr2 = new (Unit => Unit)[0]; 
         return arr1 + arr2;
     }
 
     function CommonBaseType2 () : (Unit => Unit)[] {
-        let arr1 = new (Unit => Unit is Adj)[0];
-        let arr2 = new (Unit => Unit)[0];
+        let arr1 = new (Unit => Unit is Adj)[0]; 
+        let arr2 = new (Unit => Unit)[0]; 
         return arr1 + arr2;
     }
 
     function CommonBaseType3 () : (Unit => Unit)[] {
-        let arr1 = new (Unit => Unit is Adj)[0];
-        let arr2 = new (Unit => Unit is Adj + Ctl)[0];
+        let arr1 = new (Unit => Unit is Adj)[0]; 
+        let arr2 = new (Unit => Unit is Adj + Ctl)[0]; 
         return arr1 + arr2;
     }
 
     function CommonBaseType4 () : (Unit => Unit)[] {
-        let arr1 = new (Unit => Unit is Adj)[0];
-        let arr2 = new (Unit => Unit is Adj)[0];
+        let arr1 = new (Unit => Unit is Adj)[0]; 
+        let arr2 = new (Unit => Unit is Adj)[0]; 
         return arr1 + arr2;
     }
 
     function CommonBaseType5 (
-        op1 : (Unit => Unit),
-        op2 : (Unit => Unit))
+        op1 : (Unit => Unit), 
+        op2 : (Unit => Unit)) 
     : (Unit => Unit)[] {
         return [op1, op2];
     }
 
     function CommonBaseType6 (
-        op1 : (Unit => Unit is Adj),
-        op2 : (Unit => Unit))
+        op1 : (Unit => Unit is Adj), 
+        op2 : (Unit => Unit)) 
     : (Unit => Unit)[] {
         return [op1, op2];
     }
 
     function CommonBaseType7 (
-        op1 : (Unit => Unit is Adj),
-        op2 : (Unit => Unit is Adj + Ctl))
+        op1 : (Unit => Unit is Adj), 
+        op2 : (Unit => Unit is Adj + Ctl)) 
     : (Unit => Unit is Adj)[] {
         return [op1, op2];
     }
 
     function CommonBaseType8 (
-        op1 : (Unit => Unit is Adj),
-        op2 : (Unit => Unit is Adj + Ctl))
+        op1 : (Unit => Unit is Adj), 
+        op2 : (Unit => Unit is Adj + Ctl)) 
     : (Unit => Unit)[] {
         return [op1, op2];
     }
 
     function CommonBaseType9 (
-        op1 : (Unit => Unit),
-        op2 : (Unit => Unit is Adj),
-        op3 : (Unit => Unit is Adj + Ctl))
+        op1 : (Unit => Unit), 
+        op2 : (Unit => Unit is Adj), 
+        op3 : (Unit => Unit is Adj + Ctl)) 
     : (Unit => Unit)[] {
         mutable res = [op1, op2, op3];
         set res = [op2, op3, op1];
         set res = [op3, op1, op2];
-        set res = [op1, op3, op2];
-        set res = [op3, op2, op1];
-        set res = [op2, op1, op3];
-        set res = [op2, op3, op1];
+        set res = [op1, op3, op2]; 
+        set res = [op3, op2, op1]; 
+        set res = [op2, op1, op3]; 
+        set res = [op2, op3, op1]; 
         return res;
     }
 
     function CommonBaseType10 (
         op1 : (Unit => Unit is Adj + Ctl),
-        op2 : (Unit => Unit is Ctl + Adj))
+        op2 : (Unit => Unit is Ctl + Adj)) 
     : (Unit => Unit is Ctl + Adj)[] {
         mutable arr = [op1];
         set arr += [op2];
@@ -390,27 +390,27 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function CommonBaseType11 () : BigInt {
-        return 1 + 1;
+        return 1 + 1; 
     }
 
     function CommonBaseType12 () : BigInt {
-        return 1L + 1;
+        return 1L + 1; 
     }
 
     function CommonBaseType13 (arg1 : OpTuple, arg2 : OpTuple) : OpTuple[] {
-        return [arg1, arg2];
+        return [arg1, arg2]; 
     }
 
     function CommonBaseType14 (arg1 : OpTuple, arg2 : AdjCtlTuple) : ((Unit => Unit), (Unit => Unit))[] {
-        return [arg1!, arg2!];
+        return [arg1!, arg2!]; 
     }
 
     function CommonBaseType15 (arg1 : OpTuple, arg2 : AdjCtlTuple) : OpTuple[] {
-        return [arg1!, arg2!];
+        return [arg1!, arg2!]; 
     }
 
     function CommonBaseType16 (arg1 : OpTuple, arg2 : AdjCtlTuple) : OpTuple[] {
-        return [arg1, arg2];
+        return [arg1, arg2]; 
     }
 
     function CommonBaseType17 () : (Unit => Unit is Adj)[] {
@@ -499,7 +499,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function GenSimpleArray<'A> (arg : 'A[]) : 'A {
-        return arg[0];
+        return arg[0]; 
     }
 
     function GenPairOfSame<'A> (a1 : 'A, a2 : 'A) : 'A {
@@ -530,66 +530,66 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function MatchArgument5 () : Int {
-        return GenSimpleArray([1,2,3]);
-    }
+        return GenSimpleArray([1,2,3]); 
+    } 
 
     function MatchArgument6 () : Int[] {
-        return GenSimpleArray([[1,2,3]]);
-    }
+        return GenSimpleArray([[1,2,3]]); 
+    } 
 
     function MatchArgument7<'T> (a : 'T[]) : 'T {
-        return GenSimpleArray(a);
-    }
+        return GenSimpleArray(a); 
+    } 
 
     function MatchArgument8 (op : (Unit => Unit is Ctl)) : (Unit => Unit) {
-        return GenSimpleArray([op]);
-    }
+        return GenSimpleArray([op]); 
+    } 
 
     function MatchArgument9<'T> (a : 'T) : Unit {
-        let _ = GenSimpleArray(a);
-    }
+        let _ = GenSimpleArray(a); 
+    } 
 
     function MatchArgument10 () : (Int, String) {
         return GenPairOfSame(1,"");
-    }
+    } 
 
     function MatchArgument11 () : String {
         return GenPairOfSame("","");
-    }
+    } 
 
     function MatchArgument12<'T> (a : 'T) : 'T {
-        let b = GenSimple(a);
+        let b = GenSimple(a); 
         return GenPairOfSame(a,b);
-    }
+    } 
 
     function MatchArgument13 () : (Int, Double) {
         return GenPair(1,1.);
-    }
+    } 
 
     function MatchArgument14 () : (Int, Double) {
         let pair = (1, 1.);
         return GenPair(pair);
-    }
+    } 
 
     function MatchArgument15 () : ((Int, Double), String) {
         return GenPair((1, 1.), "");
-    }
+    } 
 
     function MatchArgument16 () : ((Int, Unit), String) {
         return GenPair((1, ()), "");
-    }
+    } 
 
     function MatchArgument17 () : (Int, (Unit, String)) {
         return GenPair(1, ((), ""));
-    }
+    } 
 
     function MatchArgument18 () : (Double, Double) {
         return GenPairOfSame((GenPairOfSame(1.,2.), GenPairOfSame(1.,2.)), GenPair(1.,2.));
-    }
+    } 
 
     function MatchArgument19 () : Unit {
         let _ = GenPair(1, 1., "");
-    }
+    } 
 
 
     // utils for testing partial application
@@ -604,92 +604,92 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     // partial application
 
     function PartialApplication1 () : Unit {
-        let f3 = TakesTriplet;
-        let f2 = f3(_,_,Zero);
-        let f1 = f2(1,_);
-        f1(1.);
+        let f3 = TakesTriplet; 
+        let f2 = f3(_,_,Zero); 
+        let f1 = f2(1,_); 
+        f1(1.); 
     }
 
     function PartialApplication2 () : Unit {
-        let _ = TakesTriplet(_,Zero);
+        let _ = TakesTriplet(_,Zero); 
     }
 
     function PartialApplication3 () : Unit {
         let f2 = TakesTriplet(_,1.,_);
-        let _ = f2 (_, 1);
+        let _ = f2 (_, 1); 
     }
 
     function PartialApplication4 () : Unit {
         let f2 = TakesTriplet(_,1.,_);
-        let _ = f2 ("",_);
+        let _ = f2 ("",_); 
     }
 
     function PartialApplication5 () : Unit {
         let f2 = TakesTriplet(_,1.,_);
         let f1 = f2 (1,_);
-        f1("");
+        f1(""); 
     }
-
+    
     function PartialApplication6 () : Unit {
         let f1 = TakesNestedTriplet ((1,1,1),_);
         let f2 = f1((1.,1.), _);
         f2(Zero,Zero,Zero);
     }
-
+    
     function PartialApplication7 () : Unit {
         let f1 = TakesNestedTriplet ((1,1,1),(1.,1.), _);
-        f1(Zero,Zero,Zero);
+        f1(Zero,Zero,Zero);    
     }
-
+    
     function PartialApplication8 () : Unit {
         let f1 = TakesNestedTriplet ((1,_,1),((1.,1.), _));
         f1(1,Zero,Zero,Zero);
     }
-
+    
     function PartialApplication9 () : Unit {
         let f1 = TakesNestedTriplet ((1,1,1),((1.,1.), _));
-        f1(Zero,Zero,Zero);
+        f1(Zero,Zero,Zero);    
     }
-
+    
     function PartialApplication10 () : Unit {
         let f1 = TakesNestedTriplet ((1,_,1),((1.,1.), _));
-        f1(1,(Zero,Zero,Zero));
+        f1(1,(Zero,Zero,Zero));    
     }
-
+    
     function PartialApplication11 () : Unit {
         let f1 = TakesNestedTriplet ((1,_,1),((_,1.), (Zero,_,Zero)));
-        f1(1,(1.,Zero));
+        f1(1,(1.,Zero));    
     }
-
+    
     function PartialApplication12 () : Unit {
-        (TakesNestedTriplet ((1,_,1),((_,1.), (Zero,_,Zero)))) (1,(1.,Zero));
+        (TakesNestedTriplet ((1,_,1),((_,1.), (Zero,_,Zero)))) (1,(1.,Zero));    
     }
-
+    
     function PartialApplication13 () : Unit {
-        ((TakesNestedTriplet ((1,_,1),((_,1.), (Zero,_,Zero)))) (1,(_,Zero)))(1.);
+        ((TakesNestedTriplet ((1,_,1),((_,1.), (Zero,_,Zero)))) (1,(_,Zero)))(1.);    
     }
-
+    
     function PartialApplication14 () : Unit {
         let f1 = TakesNestedTriplet ((1,_,1),(_, (Zero,_,Zero)));
-        f1(1,((1.,1.),Zero));
+        f1(1,((1.,1.),Zero));    
     }
-
+    
     function PartialApplication15 () : Unit {
         let f1 = TakesNestedTriplet ((1,_,1),((_,1.), (Zero,_,Zero)));
-        f1(1.,(1,Zero));
+        f1(1.,(1,Zero));    
     }
-
+    
     function PartialApplication16 () : Unit {
         let f1 = TakesNestedTriplet ((1,_,1),(_, (Zero,_,Zero)));
-        f1(1,(1.,Zero));
+        f1(1,(1.,Zero));    
     }
-
+    
     function PartialApplication17 () : Unit {
         (TakesTriplet(_,_,Zero))(1,1.);
     }
-
+    
     function PartialApplication18 () : Unit {
-        (TakesTripletOp(_,_,Zero))(1,1.);
+        (TakesTripletOp(_,_,Zero))(1,1.);    
     }
 
     operation PartialApplication19 () : Unit {
@@ -726,7 +726,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     operation PartialApplication25 (qs : Qubit[]) : Unit {
         Controlled (TakesTripletAdj(_,1.,_))(qs, 1,Zero);
     }
-
+    
     operation PartialApplication26 (qs : Qubit[]) : Unit {
         let ctl = TakesTripletCtl(_,1.,_);
         Adjoint ctl(qs, 1,Zero);
@@ -745,7 +745,7 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
     }
 
     function PartialApplication30 () : Unit {
-        (PartialApplication29())(1);
+        (PartialApplication29())(1); 
         let fct = PartialApplication29();
         fct(1);
     }
