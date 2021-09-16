@@ -12,6 +12,7 @@ variables:
   ENABLE_COMPILER: false
   ENABLE_VSIX: false
   ENABLE_LLVM_BUILDS: true
+  AQ_DOWNLOAD_LLVM: false
 
 jobs:
 - job: GetLlvmSha
