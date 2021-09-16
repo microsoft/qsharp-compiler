@@ -135,11 +135,11 @@ extern "C" void loadComponent(IProfileGenerator *generator)
 To run this pass,
 
 ```sh
-./Source/Apps/qat --load ./ComponentExamples/libInlinePassComponent.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll --S --generate --no-always-inline --custom-inliner
+./Source/Apps/qat --load ./ComponentExamples/libInlinePassComponent.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll --S --apply --no-always-inline --custom-inliner
 ```
 
 Compare the output against
 
 ```sh
-./Source/Apps/qat --load ./ComponentExamples/libInlinePassComponent.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll --S --generate --no-always-inline
+./Source/Apps/qat --load ./ComponentExamples/libInlinePassComponent.dylib ../QirExamples/LoopRecursion/QSharpVersion/qir/Example.ll --S --apply --no-always-inline
 ```
