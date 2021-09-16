@@ -83,31 +83,14 @@ int main(int argc, char** argv)
         configuration_manager.configure(parser);
 
         // Getting the main configuration
-        auto const& config = configuration_manager.get<QatConfig>();
-
-        // In case we debug, we also print the settings to allow provide a full
-        // picture of what is going. This step deliberately comes before validating
-        // the input to allow dumping the configuration if something goes wrong.
-        if (config.dumpConfig())
-        {
-            configuration_manager.printConfiguration();
-        }
-
-        // Checking that we have sufficient information to proceed. If not we print
-        // usage instructions and the corresponding description of how to use the tool.
-        if (parser.arguments().empty())
-        {
-            std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
-            configuration_manager.printHelp();
-            std::cerr << "\n";
-            exit(-1);
-        }
+        auto config = configuration_manager.get<QatConfig>();
 
         // Loading components
         //
 
         if (!config.load().empty())
         {
+            // TODO (tfr): Dynamically load components
         }
 
         generator->registerProfileComponent<RuleTransformationPassConfiguration>(
@@ -139,6 +122,28 @@ int main(int argc, char** argv)
                     ret.addPass(std::move(inliner_pass));
                 }
             });
+
+        // Reconfiguring to get all the arguments of the passes registered
+        configuration_manager.setupArguments(parser);
+        configuration_manager.configure(parser);
+
+        // In case we debug, we also print the settings to allow provide a full
+        // picture of what is going. This step deliberately comes before validating
+        // the input to allow dumping the configuration if something goes wrong.
+        if (config.dumpConfig())
+        {
+            configuration_manager.printConfiguration();
+        }
+
+        // Checking that we have sufficient information to proceed. If not we print
+        // usage instructions and the corresponding description of how to use the tool.
+        if (parser.arguments().empty())
+        {
+            std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
+            configuration_manager.printHelp();
+            std::cerr << "\n";
+            exit(-1);
+        }
 
         // Loading IR from file.
         //
