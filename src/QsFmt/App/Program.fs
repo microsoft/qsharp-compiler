@@ -13,8 +13,8 @@ open System.IO
 type Argument =
     /// The path to the input file.
     | [<MainCommand; Unique; Last>] Input of string list
-    | [<InheritAttribute; Unique>] Backup
-    | [<InheritAttribute; Unique>] Recurse
+    | [<InheritAttribute; Unique; AltCommandLine("-b")>] Backup
+    | [<InheritAttribute; Unique; AltCommandLine("-r")>] Recurse
     | [<SubCommand; CliPrefix(CliPrefix.None)>] Update
     | [<SubCommand; CliPrefix(CliPrefix.None)>] Format
 
@@ -48,7 +48,10 @@ let doOne command inputFile =
             4
 
 let run command input =
-    input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne command)) 0
+    printfn "%A" input
+    0
+
+    //input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne command)) 0
 
 [<CompiledName "Main">]
 [<EntryPoint>]
@@ -67,7 +70,8 @@ let main args =
 
     try
         let results = parser.Parse args
-        let inputs = results.GetResult Input |> List.map (processDirecories false) |> List.concat
+        let recurseFlag = results.Contains Recurse
+        let inputs = results.GetResult Input |> List.map (processDirecories recurseFlag) |> List.concat
 
         let command =
             match results.TryGetSubCommand() with
