@@ -569,17 +569,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
         public void CloseScope(bool isTerminated)
         {
-            if (!isTerminated)
+            if (isTerminated)
             {
-                this.ExecutePendingCalls();
+                // Note that it is perfectly possible that the scope has pending calls to increase reference counts;
+                // This can happen when code at the end of this scope is unreachable and all execution paths terminate
+                // in return or fail statements in inner scopes that have already been closed. In that case, the still
+                // pending references in this scope should have been properly applied when closing the inner scope(s).
+                this.scopes.Pop();
             }
             else
             {
-                var scope = this.scopes.Pop();
-                if (scope.HasPendingReferences)
-                {
-                    throw new InvalidOperationException("cannot close scope that has pending calls to increase reference counts");
-                }
+                this.ExecutePendingCalls();
             }
         }
 

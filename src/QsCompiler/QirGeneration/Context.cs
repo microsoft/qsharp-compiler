@@ -285,7 +285,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // to-string conversion functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntToString, this.Types.String, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BoolToString, this.Types.String, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.DoubleToString, this.Types.String, this.Context.DoubleType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.IntToString, this.Types.String, this.Context.Int64Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.PauliToString, this.Types.String, this.Types.Pauli);
@@ -521,9 +520,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
 
-            if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
+            if (this.CurrentBlock.Terminator == null)
             {
-                this.CurrentBuilder.Return();
+                if (this.CurrentFunction.ReturnType.IsVoid)
+                {
+                    this.CurrentBuilder.Return();
+                }
+                else
+                {
+                    this.CurrentBuilder.Unreachable();
+                }
             }
 
             if (generatePending)
@@ -820,7 +826,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Build the callable table
             var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
-            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
+            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
         }
 
         /// <inheritdoc cref="CreateCallableTable"/>
@@ -891,7 +897,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             funcs[1] = func;
 
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
-            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
+            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
             this.memoryManagementTables.Add(type, table);
             this.pendingMemoryManagementTables.Add(type);
             return table;
@@ -1092,10 +1098,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             foreach (var type in this.pendingMemoryManagementTables)
             {
                 var table = this.memoryManagementTables[type];
+                var name = table.Name.Substring(0, table.Name.Length - "__FunctionTable".Length);
                 var functions = new List<(string, Action<Value, IValue>)>
                 {
-                    ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
-                    ($"{table.Name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
+                    ($"{name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
+                    ($"{name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
                 };
 
                 foreach (var (funcName, updateCounts) in functions)

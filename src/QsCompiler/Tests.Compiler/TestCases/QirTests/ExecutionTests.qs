@@ -5,6 +5,8 @@
     newtype Foo = Int;
     newtype Register = (Data : Int[], Foo : Foo);
 
+    // FIXME: ADD MORE HORRIBLE TEST CASES WHERE THE SECOND MUTABLE VARIABLE IS ALSO UPDATED VIA COPY-AND-REASSIGN...
+
     function TestIssue7(cond1 : Bool, cond2 : Bool, cond3 : Bool) : Unit {
 
         mutable value = [[0], [0,0]];
@@ -66,6 +68,10 @@
         Message($"{value}");
         Message($"{arr}");
     }
+
+    // TODO: tests for straight out variable update (not copy and update)
+
+    // FIXME: ADD A TEST FOR CONDITIONAL EXPRESSIONS WHERE ONE ARRAY IS COPIED AND THE OTHER BRANCH IS NOT
     
     function TestIssue3 (cond : Bool) : Unit {
 
@@ -106,6 +112,8 @@
         Message($"{value}");
         Message($"{arr}");
     }
+
+    // SAME TESTS JUST WITH INNER BLOCKS BEING CALLS?
 
     function TestUdt8 (cond : Bool) : Unit {
         let defaultVal = Register([], Foo(-1));
@@ -226,6 +234,8 @@
         Message($"{reg}");
     }
 
+    ///
+
     function TestArray8 () : Unit {
         let defaultArr = [Foo(-1), size = 3];
         mutable coeffs = defaultArr;
@@ -253,6 +263,8 @@
 
         Message($"{coeffs}");
     }
+
+    ///
 
     function TestArray6 () : Unit {
         let value = Foo(0);
@@ -306,6 +318,8 @@
         Message($"{value}");
         Message($"{coeffs}");
     }
+
+    ///
 
     function TestArray2 () : Unit {
         let defaultArr = [Foo(-1), size = 3];
@@ -1046,6 +1060,54 @@
         Message("\n********************");
         Message($"Section {sectionIdx}: {sectionTitle}");
         Message("********************\n");
+    }
+
+    @EntryPoint()
+    operation TestInterpolatedStrings() : String {
+
+        let arr1 = [1,2,3];
+        let arr2 = ["1","2","3"];
+        let arr3 = ["","2","","4"];
+        let tuple1 = (1,(2,3));
+        let tuple2 = ("1",("2","3"));
+        let tuple3 = ("1",("","3"));
+        let res = One;
+        let pauli = PauliX;
+        let pauliArr = [PauliY, PauliI];
+        let range = 0..-1..0;
+        let (fct, op) = (PrintSection, RunExample);
+        let udt = Tuple("Hello", "World");
+        
+        Message("simple string");
+        Message($"{"interpolated string"}");
+        // Todo: bigint is not yet supported in the runtime
+        Message($"{true} or {false}, {res == Zero ? false | true}, {res == One ? false | true}, {res == One ? true | false}, {res == Zero ? true | false}");
+        Message($"{1}, {-1}, {1 - 1}");
+        Message($"{1.}, {2.0}, {1e5}, {.1}, {-1.}, {1. - 1.}");
+        Message($"{Zero}, {res}");
+        Message($"{PauliZ}, {pauli}, {pauliArr[0]}, {pauliArr[1...]}");
+        Message($"{1..3}, {3..-1..1}, {range}");
+        Message($"{[1,2,3]}, {["1","2","3"]}, {arr1}, {arr2}, {arr3}");
+        Message($"{()}, {(1,(2,3))}, {("1",("2","3"))}, {tuple1}, {tuple2}, {tuple3}");
+        
+        use (q, qs) = (Qubit(), Qubit[3]);
+        Message($"{q}, {qs}");
+        Message($"{PrintSection}, {RunExample}, {(fct, op)}");
+        Message($"{udt::Item1}, {Foo(1)}, {udt}");
+        return "All good!";
+    }
+
+    @EntryPoint()
+    operation NoReturn() : Unit {}
+
+    @EntryPoint()
+    operation ReturnsUnit() : Unit {
+        return ();
+    }
+
+    @EntryPoint()
+    operation ReturnsString() : String {
+        return "Success!";
     }
 
     @EntryPoint()
