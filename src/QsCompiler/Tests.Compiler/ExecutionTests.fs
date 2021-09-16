@@ -79,6 +79,7 @@ type ExecutionTests(output: ITestOutputHelper) =
                 ("TestCases", "QirTests", "ExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
                 ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine |> Path.GetFullPath
             ]
+
         let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
         WriteBitcode bitcodePath inputPaths
         bitcodePath
@@ -98,19 +99,19 @@ type ExecutionTests(output: ITestOutputHelper) =
         let exitCode, out, err = QirExecutionTest functionName
         Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
-        AssertEqual "()" out;
+        AssertEqual "()" out
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__ReturnsUnit"
         let exitCode, out, err = QirExecutionTest functionName
         Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
-        AssertEqual "()" out;
+        AssertEqual "()" out
 
         let functionName = "Microsoft__Quantum__Testing__ExecutionTests__ReturnsString"
         let exitCode, out, err = QirExecutionTest functionName
         Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
-        AssertEqual "\"Success!\"" out; // the quotes are correct and needed here
+        AssertEqual "\"Success!\"" out // the quotes are correct and needed here
 
 
     [<Fact>]
@@ -138,7 +139,8 @@ type ExecutionTests(output: ITestOutputHelper) =
             "Hello", Microsoft.Quantum.Testing.ExecutionTests.Foo(1), Microsoft.Quantum.Testing.ExecutionTests.Tuple("Hello", "World")
             "All good!"
             """
-        AssertEqual expected out;
+
+        AssertEqual expected out
 
 
     [<Fact>]
