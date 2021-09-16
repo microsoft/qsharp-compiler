@@ -1,5 +1,5 @@
 nothing:
-	@echo "Preventing the user from accidently running the clean command."
+	@echo "Preventing the user from accidentality running the first command."
 
 documentation:
 	docker build -f Docker/Docs.dockerfile -t qir-passes-docs:latest .	
@@ -16,11 +16,11 @@ doxygen:
 
 test-examples:
 	# Run all examples and verify that the output is a valid IR
-	cd examples && make all
+	cd QirExamples && make all
 
 clean:
 	rm -rf Release/
 	rm -rf Debug/
 	find . | grep ".profraw" | xargs rm	
-	cd examples && make clean
+	cd QirExamples && make clean
 

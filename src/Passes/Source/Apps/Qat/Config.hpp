@@ -23,6 +23,9 @@ namespace quantum
         // Flags and options
         //
 
+        /// List of dynamic libraries to load.
+        String load() const;
+
         /// Flag that indicates whether or not we are generating a new QIR by applying a profile.
         bool generate() const;
 
@@ -59,7 +62,7 @@ namespace quantum
       private:
         // Variables to be bound to the configuration manager
         //
-
+        String load_{""};
         bool   generate_{false};
         bool   validate_{false};
         String profile_{"baseProfile"};

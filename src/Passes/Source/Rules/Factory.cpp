@@ -434,7 +434,8 @@ namespace quantum
 
     void RuleFactory::optimiseBranchQuantumZero()
     {
-        throw std::logic_error("Optimisation not implemented yet.");
+        // TODO(tfr): implement this logic - do not throw std::logic_error("Optimisation not implemented
+        // yet.");
     }
 
     void RuleFactory::optimiseBranchQuantumOne()

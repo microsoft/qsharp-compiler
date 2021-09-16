@@ -49,6 +49,8 @@
 #include "Generators/LlvmPassesConfig.hpp"
 #include "Profile/Profile.hpp"
 #include "RuleTransformationPass/Configuration.hpp"
+#include "RuleTransformationPass/RulePass.hpp"
+#include "Rules/Factory.hpp"
 #include "Rules/FactoryConfig.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -66,7 +68,7 @@ int main(int argc, char** argv)
     {
         // Default generator. A future version of QAT may allow the generator to be selected
         // through the command line, but it is hard coded for now.
-        auto generator = std::make_shared<DefaultProfileGenerator>();
+        auto generator = std::make_shared<IProfileGenerator>();
 
         // Configuration and command line parsing
         //
@@ -100,6 +102,43 @@ int main(int argc, char** argv)
             std::cerr << "\n";
             exit(-1);
         }
+
+        // Loading components
+        //
+
+        if (!config.load().empty())
+        {
+        }
+
+        generator->registerProfileComponent<RuleTransformationPassConfiguration>(
+            "transformation-rules",
+            [](RuleTransformationPassConfiguration const& cfg, IProfileGenerator* ptr, Profile& profile) {
+                auto& ret = ptr->modulePassManager();
+
+                // Defining the mapping
+                RuleSet rule_set;
+                auto    factory =
+                    RuleFactory(rule_set, profile.getQubitAllocationManager(), profile.getResultAllocationManager());
+                factory.usingConfiguration(ptr->configurationManager().get<FactoryConfiguration>());
+
+                // Creating profile pass
+                ret.addPass(RuleTransformationPass(std::move(rule_set), cfg, &profile));
+            });
+
+        generator->registerProfileComponent<LlvmPassesConfiguration>(
+            "llvm-passes", [](LlvmPassesConfiguration const& cfg, IProfileGenerator* ptr, Profile&) {
+                // Configuring LLVM passes
+                if (cfg.alwaysInline())
+                {
+                    auto& ret          = ptr->modulePassManager();
+                    auto& pass_builder = ptr->passBuilder();
+                    ret.addPass(llvm::AlwaysInlinerPass());
+
+                    auto inliner_pass = pass_builder.buildInlinerPipeline(
+                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
+                    ret.addPass(std::move(inliner_pass));
+                }
+            });
 
         // Loading IR from file.
         //
