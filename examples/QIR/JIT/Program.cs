@@ -115,7 +115,8 @@ namespace JIT
                 "i64" => typeof(long),
                 "i8" => interop ? typeof(bool) : typeof(String),
                 "i8*" => interop ? typeof(Int64) : typeof(InteropString),
-                _ => typeof(object),//throw new NotImplementedException($"Can't handle type '{llvmTypeString}'"),
+                "{ i64, i8* }*" => interop ? typeof(Int64) : typeof(InteropArray),
+                _ => typeof(object),
             };
         }
 
@@ -144,8 +145,70 @@ namespace JIT
             {
                 if (this.Value != default)
                 {
-                    Marshal.FreeHGlobal((IntPtr)this.Value);
+                    Marshal.FreeHGlobal(this.Value);
                     this.Value = default;
+                }
+            }
+
+            public TypeCode GetTypeCode() => TypeCode.Int64;
+
+            public Int64 ToInt64(IFormatProvider f) => (Int64)this.Value;
+
+            public bool ToBoolean(IFormatProvider f) => throw new InvalidCastException();
+            public byte ToByte(IFormatProvider f) => throw new InvalidCastException();
+            public char ToChar(IFormatProvider f) => throw new InvalidCastException();
+            public DateTime ToDateTime(IFormatProvider f) => throw new InvalidCastException();
+            public Decimal ToDecimal(IFormatProvider f) => throw new InvalidCastException();
+            public double ToDouble(IFormatProvider f) => throw new InvalidCastException();
+            public Int16 ToInt16(IFormatProvider f) => throw new InvalidCastException();
+            public int ToInt32(IFormatProvider f) => throw new InvalidCastException();
+            public sbyte ToSByte(IFormatProvider f) => throw new InvalidCastException();
+            public float ToSingle(IFormatProvider f) => throw new InvalidCastException();
+            public string ToString(IFormatProvider f) => throw new InvalidCastException();
+            public object ToType(Type conversionType, IFormatProvider provider) => throw new NotImplementedException();
+            public ushort ToUInt16(IFormatProvider f) => throw new InvalidCastException();
+            public uint ToUInt32(IFormatProvider f) => throw new InvalidCastException();
+            public ulong ToUInt64(IFormatProvider f) => throw new InvalidCastException();
+        }
+
+        internal unsafe struct InteropArray : IConvertible, IDisposable
+        {
+            public InteropArray(string source)
+            {
+                if (string.IsNullOrEmpty(source))
+                {
+                    this.Value = Marshal.AllocHGlobal(sizeof(long) + sizeof(Int64));
+                    this.InnerValue = default;
+                    Marshal.WriteInt64(this.Value, 0);
+                    Marshal.WriteInt64(this.Value + sizeof(long), 0);
+                }
+                else
+                {
+                    long[] values = source.Split(",").Select(s => Int64.Parse(s)).ToArray();
+                    long length = values.Length;
+                    this.Value = Marshal.AllocHGlobal(sizeof(long) + sizeof(IntPtr));
+                    this.InnerValue = Marshal.AllocHGlobal(sizeof(long) * (int)length);
+                    Marshal.WriteInt64(this.Value, length);
+                    Marshal.WriteInt64(this.Value + sizeof(long), (Int64)this.InnerValue);
+                    for (var i = 0; i < length; i++)
+                    {
+                        Marshal.WriteInt64(this.InnerValue + (i * sizeof(long)), values[i]);
+                    }
+                }
+            }
+
+            public IntPtr Value { get; private set;}
+
+            public IntPtr InnerValue { get; private set; }
+
+            public void Dispose()
+            {
+                if (this.Value != default)
+                {
+                    Marshal.FreeHGlobal(this.Value);
+                    Marshal.FreeHGlobal(this.InnerValue);
+                    this.Value = default;
+                    this.InnerValue = default;
                 }
             }
 
