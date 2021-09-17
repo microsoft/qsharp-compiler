@@ -97,7 +97,7 @@ namespace JIT
                         var argument = new System.CommandLine.Argument($"{param.Name}")
                         {
                             ArgumentType = argType,
-                            Description = $"Type: {interopType} ({param.NativeType.ToString()})"
+                            Description = $"Type: {interopType} from {param.NativeType.ToString()}"
                         };
                         entryCommand.AddArgument(argument);
                     }

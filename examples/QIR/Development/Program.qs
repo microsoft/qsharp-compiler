@@ -31,6 +31,11 @@
     }
 
     @EntryPoint()
+    operation EveryOther(list : Int[]) : Int[] {
+        return list[0..2...];
+    }
+
+    @EntryPoint()
     operation SampleTeleport(input : Bool) : Result {
         // Use two qubits to form the bell pair.
         use bellPair = Qubit[2];
