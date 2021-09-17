@@ -2,9 +2,8 @@
 using System.Runtime.InteropServices;
 using System.CommandLine;
 using System.CommandLine.Invocation;
-using System.Collections.Generic;
-using System.Reflection;
 using System.Linq;
+using System.Text;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.Values;
 using System.IO;
@@ -19,17 +18,6 @@ namespace JIT
 
         [DllImport("Microsoft.Quantum.Qir.Runtime", ExactSpelling = true, CallingConvention = System.Runtime.InteropServices.CallingConvention.Cdecl)]
         public static extern void InitializeQirContext(IntPtr driver);
-
-        [StructLayout(LayoutKind.Sequential)]
-        public unsafe struct InteropArray
-        {
-            public long Length;
-            public void* Array;
-        }
-
-        // const string ADD_FUNCTION_NAME = "Microsoft__Quantum__Qir__Emission__Add__body";
-        // const string SUM_FUNCTION_NAME = "Microsoft__Quantum__Qir__Emission__Sum__Interop";
-        // const string TELEPORT_FUNCTION_NAME = "Microsoft__Quantum__Qir__Emission__SampleTeleport";
 
         const string BITCODE_PATH = "C:\\Users\\swern\\Programming\\qsharp-compiler\\examples\\QIR\\Development\\obj\\qsharp\\Development.bc";
 
@@ -57,17 +45,6 @@ namespace JIT
             }
 
             var rootCommand = GenerateCommands(module);
-            // var options = new List<Option>();
-            // foreach (var param in funcDef.Parameters)
-            // {
-            //     var option = new Option($"--{param.Name}", ConvertLlvmType(param.NativeType.ToString()).Name, ConvertLlvmType(param.NativeType.ToString()))
-            //     {
-            //         IsRequired = true,
-            //     };
-            //     rootCommand.AddOption(option);
-            //     options = options.Append(option).ToList();
-            // }
-
             var ic = new InvocationContext(rootCommand.Parse(args));
             if (ic.ParseResult.Errors.Count > 0)
             {
@@ -102,70 +79,6 @@ namespace JIT
             }
 
             return 0;
-            // if (funcDef.Parameters.Count == 0)
-            // {
-            //     rootCommand.Handler = CommandHandler.Create(GetUnsafeAction(function));
-            // }
-            // else
-            // {
-            //     var lambda = typeof(Program).GetMethods()
-            //         .Where(m => m.Name == "GetUnsafeAction" && m.IsGenericMethod && m.GetGenericMethodDefinition().GetGenericArguments().Length == funcDef.Parameters.Count)
-            //         .Single()
-            //         .MakeGenericMethod(funcTypes)
-            //         .Invoke(null, new object[] { function });
-
-            //     rootCommand.Handler = typeof(CommandHandler).GetMethods()
-            //         .Where(m => m.Name == "Create" && m.IsGenericMethod && m.GetGenericMethodDefinition().GetGenericArguments().Length == funcDef.Parameters.Count && m.GetParameters().Length == 1 && m.GetParameters().Single().ParameterType.Name == $"Action`{funcDef.Parameters.Count}")
-            //         .First()
-            //         .MakeGenericMethod(funcTypes)
-            //         .Invoke(null, new object[] { lambda }) as ICommandHandler;
-            // }
-
-            // return rootCommand.Invoke(args.Skip(1).ToArray());
-
-            // if (!module.TryGetFunction(ADD_FUNCTION_NAME, out IrFunction funcDef))
-            // {
-            //     throw new ExternalException(String.Format("Failed to find function '{0}'", ADD_FUNCTION_NAME));
-            // }
-
-            // LLVM.InitializeNativeTarget();
-            // LLVM.InitializeNativeAsmParser();
-            // LLVM.InitializeNativeAsmPrinter();
-
-            // var engine = module.ModuleHandle.CreateMCJITCompiler();
-            // var function = engine.GetPointerToGlobal<BinaryAddOperation>(funcDef.ValueHandle);
-            // var result = function(2, 3);
-
-            // Console.WriteLine(result);
-
-            // if (!module.TryGetFunction(SUM_FUNCTION_NAME, out IrFunction funcDef2))
-            // {
-            //     throw new ExternalException(string.Format("Failed to find function '{0}'", SUM_FUNCTION_NAME));
-            // }
-
-            // var function2 = engine.GetPointerToGlobal<BinarySumArrayOperation>(funcDef2.ValueHandle);
-            // var innerArray = new long[]{1, 2, 3, 4, 5};
-            // unsafe
-            // {
-            //     fixed (long* rawArray = &innerArray[0])
-            //     {
-            //         var array = new InteropArray {
-            //             Length = innerArray.Length,
-            //             Array = rawArray
-            //         };
-            //         result = function2(&array);
-            //     }
-            // }
-
-            // Console.WriteLine(result);
-
-            // if (!module.TryGetFunction(TELEPORT_FUNCTION_NAME, out IrFunction funcDef3))
-            // {
-            //     throw new ExternalException(string.Format("Failed to find function '{0}'", TELEPORT_FUNCTION_NAME));
-            // }
-
-            // var function3 = engine.GetPointerToGlobal<TeleportOperation>(funcDef3.ValueHandle);
-            // function3((char)1);
         }
 
         internal static RootCommand GenerateCommands(BitcodeModule module)
@@ -201,8 +114,60 @@ namespace JIT
             {
                 "i64" => typeof(long),
                 "i8" => interop ? typeof(bool) : typeof(String),
+                "i8*" => interop ? typeof(Int64) : typeof(InteropString),
                 _ => typeof(object),//throw new NotImplementedException($"Can't handle type '{llvmTypeString}'"),
             };
+        }
+
+        internal unsafe struct InteropString : IConvertible, IDisposable
+        {
+            public InteropString(string source)
+            {
+                if (string.IsNullOrEmpty(source))
+                {
+                    this.Value = Marshal.AllocHGlobal(1);
+                    Marshal.WriteByte(this.Value, 0, 0);
+                }
+                else
+                {
+                    var valueBytes = Encoding.UTF8.GetBytes(source);
+                    var length = valueBytes.Length;
+                    this.Value = Marshal.AllocHGlobal(length + 1);
+                    Marshal.Copy(valueBytes, 0, this.Value, length);
+                    Marshal.WriteByte(this.Value, length, 0);
+                }
+            }
+
+            public IntPtr Value { get; private set;}
+
+            public void Dispose()
+            {
+                if (this.Value != default)
+                {
+                    Marshal.FreeHGlobal((IntPtr)this.Value);
+                    this.Value = default;
+                }
+            }
+
+            public TypeCode GetTypeCode() => TypeCode.Int64;
+
+            public Int64 ToInt64(IFormatProvider f) => (Int64)this.Value;
+
+            public bool ToBoolean(IFormatProvider f) => throw new InvalidCastException();
+            public byte ToByte(IFormatProvider f) => throw new InvalidCastException();
+            public char ToChar(IFormatProvider f) => throw new InvalidCastException();
+            public DateTime ToDateTime(IFormatProvider f) => throw new InvalidCastException();
+            public Decimal ToDecimal(IFormatProvider f) => throw new InvalidCastException();
+            public double ToDouble(IFormatProvider f) => throw new InvalidCastException();
+            public Int16 ToInt16(IFormatProvider f) => throw new InvalidCastException();
+            public int ToInt32(IFormatProvider f) => throw new InvalidCastException();
+            public sbyte ToSByte(IFormatProvider f) => throw new InvalidCastException();
+            public float ToSingle(IFormatProvider f) => throw new InvalidCastException();
+            public string ToString(IFormatProvider f) => throw new InvalidCastException();
+            public object ToType(Type conversionType, IFormatProvider provider) => throw new NotImplementedException();
+            public ushort ToUInt16(IFormatProvider f) => throw new InvalidCastException();
+            public uint ToUInt32(IFormatProvider f) => throw new InvalidCastException();
+            public ulong ToUInt64(IFormatProvider f) => throw new InvalidCastException();
         }
 
         public static unsafe void InvokeUnsafeFunction(IntPtr func) => ((delegate* unmanaged<void>)func)();
@@ -213,6 +178,11 @@ namespace JIT
             where T1 : unmanaged
             where T2 : unmanaged
         => ((delegate*<T1, T2, void>)func)(a, b);
+        public static unsafe void InvokeUnsafeFunction<T1, T2, T3>(IntPtr func, T1 a, T2 b, T3 c)
+            where T1 : unmanaged
+            where T2 : unmanaged
+            where T3 : unmanaged
+        => ((delegate*<T1, T2, T3, void>)func)(a, b, c);
 
     }
 }

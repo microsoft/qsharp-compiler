@@ -26,6 +26,11 @@
     }
 
     @EntryPoint()
+    operation Echo(str : String) : String {
+        return str;
+    }
+
+    @EntryPoint()
     operation SampleTeleport(input : Bool) : Result {
         // Use two qubits to form the bell pair.
         use bellPair = Qubit[2];
