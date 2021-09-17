@@ -20,6 +20,8 @@
 
     @EntryPoint()
     operation Add(x : Int, y : Int) : Int {
+        Message($"x = {x}");
+        Message($"y = {y}");
         return x + y;
     }
 

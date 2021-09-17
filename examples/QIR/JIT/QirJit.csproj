@@ -7,9 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\..\src\QsCompiler\LlvmBindings\LlvmBindings.csproj" />
+    <PackageReference Include="libLLVM.runtime.win-x64" Version="11.0.0" />
     <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.0.1-alpha" />
-    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.15.2104137891-alpha" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.2109163574-beta" />
+
+    <PackageReference Include="System.CommandLine" Version="2.0.0-beta1.21308.1" />
   </ItemGroup>
 
 </Project>

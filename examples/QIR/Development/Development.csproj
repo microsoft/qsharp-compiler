@@ -99,7 +99,7 @@
   This is all usually handled by the Sdk and only a temporary set-up for this example.
   -->
 
-  <Target Name="CreateCppDriver">
+  <!-- <Target Name="CreateCppDriver">
     <PropertyGroup>
       <DriverCode>
         #include "QirContext.hpp"
@@ -141,6 +141,6 @@
     <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Copy SourceFiles="@(_QirRuntimeHeaderFiles)" DestinationFolder="$(BuildOutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
     <Exec Command="$(ClangCommand)" IgnoreExitCode="false" />
-  </Target>
+  </Target> -->
 
 </Project>
