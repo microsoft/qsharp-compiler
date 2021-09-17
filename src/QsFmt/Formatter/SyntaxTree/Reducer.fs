@@ -165,6 +165,7 @@ type internal 'result Reducer() as reducer =
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
+        | For loop -> reducer.For loop
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
     abstract Let : lets: Let -> 'result
@@ -223,6 +224,19 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract For : loop: For -> 'result
+
+    default _.For loop =
+        [
+            reducer.Terminal loop.ForKeyword |> Some
+            loop.OpenParen |> Option.map reducer.Terminal
+            reducer.ForBinding(loop.Binding) |> Some
+            loop.CloseParen |> Option.map reducer.Terminal
+            reducer.Block(reducer.Statement, loop.Block) |> Some
+        ]
+        |> List.choose id
+        |> reduce
+
     abstract ParameterBinding : binding: ParameterBinding -> 'result
 
     default _.ParameterBinding binding =
@@ -249,6 +263,16 @@ type internal 'result Reducer() as reducer =
             reducer.SymbolBinding binding.Name
             reducer.Terminal binding.Equals
             reducer.QubitInitializer binding.Initializer
+        ]
+        |> reduce
+
+    abstract ForBinding : binding: ForBinding -> 'result
+
+    default _.ForBinding binding =
+        [
+            reducer.SymbolBinding binding.Name
+            reducer.Terminal binding.In
+            reducer.Expression binding.Value
         ]
         |> reduce
 

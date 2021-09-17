@@ -12,7 +12,7 @@ let private callables =
     CompilerTests.Compile(
         "TestCases",
         [ "CapabilityTests/Verification.qs"; "CapabilityTests/Inference.qs" ],
-        references = [ (File.ReadAllLines "ReferenceTargets.txt").[1] ]
+        references = [ (File.ReadAllLines "ReferenceTargets.txt").[2] ]
     )
     |> fun compilation -> compilation.BuiltCompilation
     |> CapabilityInference.InferCapabilities

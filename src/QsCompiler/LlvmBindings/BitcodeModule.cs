@@ -240,7 +240,7 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        internal ref LLVMModuleRef ModuleHandle => ref this.moduleHandle;
+        public ref LLVMModuleRef ModuleHandle => ref this.moduleHandle;
 
         /// <summary>Load a bit-code module from a given file.</summary>
         /// <param name="path">path of the file to load.</param>
@@ -268,12 +268,11 @@ namespace Ubiquity.NET.Llvm
         /// single context in order to link them into a single final module for
         /// optimization.
         /// </remarks>
-        [SuppressMessage("Reliability", "CA2000:Dispose objects before losing scope", Justification = "Module created here is owned, and disposed of via the projected BitcodeModule")]
         public static BitcodeModule LoadFrom(MemoryBuffer buffer, Context context)
         {
             return context.ContextHandle.TryParseBitcode(buffer.BufferHandle, out LLVMModuleRef modRef, out string message)
-                ? throw new InternalCodeGeneratorException(message)
-                : context.GetModuleFor(modRef);
+                ? context.GetModuleFor(modRef)
+                : throw new InternalCodeGeneratorException(message);
         }
 
         /// <summary>Disposes the <see cref="BitcodeModule"/>, releasing resources associated with the module in native code.</summary>
