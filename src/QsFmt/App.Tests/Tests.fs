@@ -276,3 +276,28 @@ namespace NestedExample2 {
         },
         run [| "format"; "-r"; "Example1.qs"; "-"; "SubExamples1"; "SubExamples2" |] (input |> standardizeNewLines)
     )
+
+[<Fact>]
+let ``Process correct files while erroring on incorrect`` () =
+    let input = "namespace StandardIn { function Bar() : Int { return 0; } }
+"
+    let output = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace StandardIn {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace Example2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+    let result = run [| "format"; "Example1.qs"; "-"; "NotFound.qs"; "Example2.qs" |] (input |> standardizeNewLines)
+    Assert.Equal(3, result.Code)
+    Assert.Equal(output |> standardizeNewLines, result.Out)
+    Assert.NotEmpty(result.Error)

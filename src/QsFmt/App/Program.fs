@@ -27,18 +27,25 @@ type Argument =
             | Update _ -> "Update depreciated syntax in the input files."
             | Format _ -> "Format the source code in input files."
 
-let doOne command inputFile =
+let rec doOne command recurse input =
     try
-        let source = if inputFile = "-" then stdin.ReadToEnd() else File.ReadAllText inputFile
-        match command source with
-        | Ok result ->
-            //printfn "%s:" inputFile
-            //printfn "%s" result
-            printf "%s" result
-            0
-        | Error errors ->
-            errors |> List.iter (eprintfn "%O")
-            1
+        if input <> "-" && (File.GetAttributes input).HasFlag(FileAttributes.Directory) then
+            let newInputs = 
+                let topLevelFiles = Directory.EnumerateFiles(input, "*.qs") |> List.ofSeq
+                if recurse then
+                    topLevelFiles @ (Directory.EnumerateDirectories input |> List.ofSeq)
+                else
+                    topLevelFiles
+            newInputs |> run command recurse
+        else
+            let source = if input = "-" then stdin.ReadToEnd() else File.ReadAllText input
+            match command source with
+            | Ok result ->
+                printf "%s" result
+                0
+            | Error errors ->
+                errors |> List.iter (eprintfn "%O")
+                1
     with
         | :? IOException as ex ->
             eprintfn "%s" ex.Message
@@ -47,43 +54,25 @@ let doOne command inputFile =
             eprintfn "%s" ex.Message
             4
 
-let run command input =
-    input |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne command)) 0
+and run command recurse inputs =
+    inputs |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne command recurse)) 0
 
 [<CompiledName "Main">]
 [<EntryPoint>]
 let main args =
     let parser = ArgumentParser.Create()
-
-    let rec processDirecories recurse dir =
-        if dir <> "-" && (File.GetAttributes dir).HasFlag(FileAttributes.Directory) then
-            let topLevelFiles = Directory.EnumerateFiles(dir, "*.qs") |> List.ofSeq
-            if recurse then
-                topLevelFiles @ (Directory.EnumerateDirectories dir |> Seq.map (processDirecories recurse) |> Seq.concat |> List.ofSeq)
-            else
-                topLevelFiles
-        else
-            [dir]
-
     try
         let results = parser.Parse args
+        let inputs = results.GetResult Input
         let recurseFlag = results.Contains Recurse
-        let inputs = results.GetResult Input |> List.map (processDirecories recurseFlag) |> List.concat
-
         let command =
             match results.TryGetSubCommand() with
             | None // default to update command
             | Some Update -> Formatter.update
             | Some Format -> Formatter.format
             | _ -> failwith "unrecognized command used"
-        inputs |> run command
+        inputs |> run command recurseFlag
     with
     | :? ArguParseException as ex ->
         eprintf "%s" ex.Message
         2
-    | :? IOException as ex ->
-        eprintfn "%s" ex.Message
-        3
-    | :? UnauthorizedAccessException as ex ->
-        eprintfn "%s" ex.Message
-        4
