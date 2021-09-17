@@ -87,8 +87,8 @@ OPTIONS:
     )
 
 [<Theory>]
-[<InlineData("Example.qs",
-             "namespace Foo {
+[<InlineData("Example1.qs",
+             "namespace Example1 {
     function Bar() : Int {
         return 0;
     }
@@ -144,3 +144,135 @@ let ``Shows file not found error`` path =
     Assert.Equal(3, result.Code)
     Assert.Empty result.Out
     Assert.NotEmpty result.Error
+
+[<Fact>]
+let ``Input multiple files`` () =
+    let output = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace Example2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output |> standardizeNewLines
+            Error = ""
+        },
+        run [| "format"; "Example1.qs"; "Example2.qs" |] ""
+    )
+
+[<Fact>]
+let ``Input directories`` () =
+    let output = "namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample3 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output |> standardizeNewLines
+            Error = ""
+        },
+        run [| "format"; "SubExamples1"; "SubExamples2" |] ""
+    )
+
+[<Fact>]
+let ``Input directories with files and stdin`` () =
+    let input = "namespace StandardIn { function Bar() : Int { return 0; } }
+"
+    let output = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace StandardIn {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output |> standardizeNewLines
+            Error = ""
+        },
+        run [| "format"; "Example1.qs"; "-"; "SubExamples1" |] (input |> standardizeNewLines)
+    )
+
+[<Fact>]
+let ``Input directories with recursive flag`` () =
+    let input = "namespace StandardIn { function Bar() : Int { return 0; } }
+"
+    let output = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace StandardIn {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample3 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace NestedExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace NestedExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output |> standardizeNewLines
+            Error = ""
+        },
+        run [| "format"; "-r"; "Example1.qs"; "-"; "SubExamples1"; "SubExamples2" |] (input |> standardizeNewLines)
+    )
