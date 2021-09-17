@@ -139,6 +139,8 @@ entry:
   ret %Array* %results
 }
 
+declare void @__quantum__qis__dumpmachine__body(i8*)
+
 declare %Qubit* @__quantum__rt__qubit_allocate()
 
 declare void @__quantum__rt__qubit_release(%Qubit*)

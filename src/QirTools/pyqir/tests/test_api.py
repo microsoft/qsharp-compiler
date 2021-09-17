@@ -20,6 +20,8 @@ def test_bell_no_measure(tmpdir):
     builder.h("qr0")
     builder.cx("qr0", "qr1")
 
+    builder.dump_machine()
+
     file = tmpdir.mkdir("sub").join("bell_no_measure.ll")
     print(f'Writing {file}')
     builder.build(str(file))

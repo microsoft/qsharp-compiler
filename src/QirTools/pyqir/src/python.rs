@@ -148,6 +148,13 @@ impl PyQIR {
         Ok(())
     }
 
+    fn dump_machine(&mut self) -> PyResult<()> {
+        log::info!("dump_machine");
+        let inst = Instruction::DumpMachine;
+        self.model.add_inst(inst);
+        Ok(())
+    }
+
     fn z(&mut self, qubit: String) -> PyResult<()> {
         log::info!("z => {}", qubit);
         let single = Single::new(qubit);

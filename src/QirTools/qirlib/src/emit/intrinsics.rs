@@ -23,6 +23,7 @@ pub(crate) struct Intrinsics<'ctx> {
     pub(crate) s_adj: FunctionValue<'ctx>,
     pub(crate) t: FunctionValue<'ctx>,
     pub(crate) t_adj: FunctionValue<'ctx>,
+    pub(crate) dumpmachine: FunctionValue<'ctx>,
 }
 
 impl<'ctx> Intrinsics<'ctx> {
@@ -59,7 +60,17 @@ impl<'ctx> Intrinsics<'ctx> {
                 .expect("T gate must be defined"),
             t_adj: Intrinsics::get_intrinsic_function_adj(module, "T")
                 .expect("T_adj gate must be defined"),
+            dumpmachine: Intrinsics::get_qis_intrinsic_function_body(module, "dumpmachine")
+                .expect("dumpmachine must be defined"),
         }
+    }
+
+    fn get_qis_intrinsic_function_body(
+        module: &Module<'ctx>,
+        name: &str,
+    ) -> Option<FunctionValue<'ctx>> {
+        let function_name = format!("__quantum__qis__{}__body", name);
+        Intrinsics::get_function(module, function_name.as_str())
     }
 
     fn get_intrinsic_function_body(

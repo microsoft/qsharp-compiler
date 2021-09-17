@@ -162,6 +162,12 @@ class QirBuilder:
         """
         self.pyqir.z(qubit)
 
+    def dump_machine(self):
+        """
+
+        """
+        self.pyqir.dump_machine()
+
     def add_classical_register(self, name: str, size: int):
         """
         Models a classical register of the given size. The individual values
