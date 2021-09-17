@@ -34,6 +34,7 @@ suite('Extension Test Suite', () => {
 
 	});
 
+	
 	test("Should create a standalone console application and run it successfully", async () => {
 		// prepare stubs
 		sinon.stub(vscode.window, 'showQuickPick').resolves( Object('Standalone console application'));
@@ -46,13 +47,14 @@ suite('Extension Test Suite', () => {
 		await vscode.commands.executeCommand("quantum.newProject");
 		
 		// dotnet run
+		//let sp = cp.spawnSync('dotnet run', ['--project', projectPath], {encoding: 'utf8', shell: true});
 		let results = await promisify(cp.exec)("dotnet run --project " + projectPath);
-		
+	
 		//assert
 		assert.equal(results.stderr, "");
 		assert.equal(results.stdout, "Hello quantum world!\r\n");
 		
-		//TODO: clear stubs?
+		//clear stubs
 		(vscode.window['showQuickPick'] as any).restore();
 		(vscode.window['showSaveDialog'] as any).restore(); 
 
@@ -76,7 +78,7 @@ suite('Extension Test Suite', () => {
 		assert.equal(results.stderr, "");
 		assert.notEqual(results.stdout.indexOf('Build succeeded'), -1);
 		
-		//TODO: clear stubs?
+		//clear stubs
 		(vscode.window['showQuickPick'] as any).restore();
 		(vscode.window['showSaveDialog'] as any).restore(); 
 
@@ -98,16 +100,36 @@ suite('Extension Test Suite', () => {
 		
 		//assert
 		assert.equal(results.stderr, "");
-		assert.notEqual(results.stdout.indexOf('Passed!'), -1);
+		assert.notEqual(results.stdout.indexOf('Test Run Successful.'), -1);
 		
-		//TODO: clear stubs?
+		//clear stubs
 		(vscode.window['showQuickPick'] as any).restore();
 		(vscode.window['showSaveDialog'] as any).restore(); 
 
 	});
+	
+	
+	/*
+
+	test("Testing IntelliSense", async () => {
+		let projectPath  = path.join(__dirname, '/test/unittest/Tests.qs')
+		let uri = vscode.Uri.file(projectPath);
+
+		const textDocument = await vscode.workspace.openTextDocument(uri);
+		await vscode.window.showTextDocument(textDocument);
+		var lens = await vscode.commands.executeCommand('vscode.executeCodeLensProvider', uri) as vscode.CodeLens[];
+		const pos: vscode.Position = new vscode.Position(10, 18);
+		var a = await vscode.commands.executeCommand('vscode.executeHoverProvider', uri, pos);
+		var b = await vscode.commands.executeCommand('vscode.executeCodeActionProvider', uri, new vscode.Selection(0, 0, 0, 15));
 
 
+		console.log(lens);
+		console.log(a);
+		console.log(b);
 
+
+	});
+	*/
 
 });
 
