@@ -62,8 +62,9 @@ let ``Shows help with no arguments`` () =
         {
             Code = 2
             Out = ""
-            Error = standardizeNewLines
-                "ERROR: missing argument '<string>...'.
+            Error =
+                standardizeNewLines
+                    "ERROR: missing argument '<string>...'.
 
 INPUT:
 
@@ -147,7 +148,8 @@ let ``Shows file not found error`` path =
 
 [<Fact>]
 let ``Input multiple files`` () =
-    let output = "namespace Example1 {
+    let output =
+        "namespace Example1 {
     function Bar() : Int {
         return 0;
     }
@@ -158,6 +160,7 @@ namespace Example2 {
     }
 }
 "
+
     Assert.Equal(
         {
             Code = 0
@@ -169,7 +172,8 @@ namespace Example2 {
 
 [<Fact>]
 let ``Input directories`` () =
-    let output = "namespace SubExample1 {
+    let output =
+        "namespace SubExample1 {
     function Bar() : Int {
         return 0;
     }
@@ -185,6 +189,7 @@ namespace SubExample3 {
     }
 }
 "
+
     Assert.Equal(
         {
             Code = 0
@@ -196,9 +201,12 @@ namespace SubExample3 {
 
 [<Fact>]
 let ``Input directories with files and stdin`` () =
-    let input = "namespace StandardIn { function Bar() : Int { return 0; } }
+    let input =
+        "namespace StandardIn { function Bar() : Int { return 0; } }
 "
-    let output = "namespace Example1 {
+
+    let output =
+        "namespace Example1 {
     function Bar() : Int {
         return 0;
     }
@@ -219,6 +227,7 @@ namespace SubExample2 {
     }
 }
 "
+
     Assert.Equal(
         {
             Code = 0
@@ -230,9 +239,12 @@ namespace SubExample2 {
 
 [<Fact>]
 let ``Input directories with recursive flag`` () =
-    let input = "namespace StandardIn { function Bar() : Int { return 0; } }
+    let input =
+        "namespace StandardIn { function Bar() : Int { return 0; } }
 "
-    let output = "namespace Example1 {
+
+    let output =
+        "namespace Example1 {
     function Bar() : Int {
         return 0;
     }
@@ -268,6 +280,7 @@ namespace NestedExample2 {
     }
 }
 "
+
     Assert.Equal(
         {
             Code = 0
@@ -279,9 +292,12 @@ namespace NestedExample2 {
 
 [<Fact>]
 let ``Process correct files while erroring on incorrect`` () =
-    let input = "namespace StandardIn { function Bar() : Int { return 0; } }
+    let input =
+        "namespace StandardIn { function Bar() : Int { return 0; } }
 "
-    let output = "namespace Example1 {
+
+    let output =
+        "namespace Example1 {
     function Bar() : Int {
         return 0;
     }
@@ -297,6 +313,7 @@ namespace Example2 {
     }
 }
 "
+
     let result = run [| "format"; "Example1.qs"; "-"; "NotFound.qs"; "Example2.qs" |] (input |> standardizeNewLines)
     Assert.Equal(3, result.Code)
     Assert.Equal(output |> standardizeNewLines, result.Out)
