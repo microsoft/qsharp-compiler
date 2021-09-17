@@ -151,7 +151,7 @@ statement
     | if='if' condition=expression body=scope # IfStatement
     | 'elif' expression scope # ElifStatement
     | else='else' body=scope # ElseStatement
-    | 'for' (forBinding | '(' forBinding ')') scope # ForStatement
+    | for='for' (binding=forBinding | openParen='(' binding=forBinding closeParen=')') body=scope # ForStatement
     | 'while' expression scope # WhileStatement
     | 'repeat' scope # RepeatStatement
     | 'until' expression (';' | 'fixup' scope) # UntilStatement
@@ -184,7 +184,7 @@ updateOperator
     | 'or='
     ;
 
-forBinding : symbolBinding 'in' expression;
+forBinding : binding=symbolBinding in='in' value=expression;
 
 qubitBinding : binding=symbolBinding equals='=' value=qubitInitializer;
 
