@@ -23,9 +23,9 @@ namespace JIT
 
         static int Main(string[] args)
         {
-            var fullstateSim = NativeLibrary.Load("Microsoft.Quantum.Simulator.Runtime", typeof(InteropArray).Assembly, null);
-            var qsharpFoundationLibrary = NativeLibrary.Load("Microsoft.Quantum.Qir.QSharp.Foundation", typeof(InteropArray).Assembly, null);
-            var qsharpCoreLibrary = NativeLibrary.Load("Microsoft.Quantum.Qir.QSharp.Core", typeof(InteropArray).Assembly, null);
+            var fullstateSim = NativeLibrary.Load("Microsoft.Quantum.Simulator.Runtime", typeof(Program).Assembly, null);
+            var qsharpFoundationLibrary = NativeLibrary.Load("Microsoft.Quantum.Qir.QSharp.Foundation", typeof(Program).Assembly, null);
+            var qsharpCoreLibrary = NativeLibrary.Load("Microsoft.Quantum.Qir.QSharp.Core", typeof(Program).Assembly, null);
 
             // To get this line to work, I had to change the CreateFullstateSimulator API to use raw pointers instead of shared pointers,
             // and I had to update both calls to be "extern 'C'" otherwise name mangling makes then impossible to call here.
