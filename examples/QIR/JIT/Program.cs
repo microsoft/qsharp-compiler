@@ -56,33 +56,28 @@ namespace JIT
                 throw new ExternalException(String.Format("Failed to verify module: {0}", verifyMessage));
             }
 
-            if (args.Length == 0)
-            {
-                throw new ArgumentException("First argument must be QIR Entry Point Function name!");
-            }
+            var rootCommand = GenerateCommands(module);
+            // var options = new List<Option>();
+            // foreach (var param in funcDef.Parameters)
+            // {
+            //     var option = new Option($"--{param.Name}", ConvertLlvmType(param.NativeType.ToString()).Name, ConvertLlvmType(param.NativeType.ToString()))
+            //     {
+            //         IsRequired = true,
+            //     };
+            //     rootCommand.AddOption(option);
+            //     options = options.Append(option).ToList();
+            // }
 
-            if (!module.TryGetFunction(args[0], out IrFunction funcDef))
-            {
-                throw new ExternalException(String.Format("Failed to find entrypoint function '{0}'", args[0]));
-            }
-
-            var rootCommand = new RootCommand { Description = "Program for JIT Execution of QIR", TreatUnmatchedTokensAsErrors = true };
-            var options = new List<Option>();
-            foreach (var param in funcDef.Parameters)
-            {
-                var option = new Option($"--{param.Name}", ConvertLlvmType(param.NativeType.ToString()).Name, ConvertLlvmType(param.NativeType.ToString()))
-                {
-                    IsRequired = true,
-                };
-                rootCommand.AddOption(option);
-                options = options.Append(option).ToList();
-            }
-
-            var ic = new InvocationContext(rootCommand.Parse(args.Skip(1).ToArray()));
+            var ic = new InvocationContext(rootCommand.Parse(args));
             if (ic.ParseResult.Errors.Count > 0)
             {
                 new ParseErrorResult(null).Apply(ic);
                 return -1;
+            }
+
+            if (!module.TryGetFunction(ic.ParseResult.CommandResult.Command.Name, out IrFunction funcDef))
+            {
+                throw new ExternalException(String.Format("Failed to find entrypoint function '{0}'", ic.ParseResult.CommandResult.Command.Name));
             }
 
             LLVM.InitializeNativeTarget();
@@ -91,6 +86,7 @@ namespace JIT
 
             var function = engine.GetPointerToGlobal(funcDef.ValueHandle);
             var funcTypes = funcDef.Parameters.Select(p => ConvertLlvmType(p.NativeType.ToString())).ToArray();
+            var interopTypes = funcDef.Parameters.Select(p => ConvertLlvmType(p.NativeType.ToString(), interop: true)).ToArray();
 
             if (funcDef.Parameters.Count == 0)
             {
@@ -101,8 +97,8 @@ namespace JIT
                 typeof(Program).GetMethods()
                     .Where(m => m.Name == "InvokeUnsafeFunction" && m.IsGenericMethod && m.GetGenericMethodDefinition().GetGenericArguments().Length == funcDef.Parameters.Count)
                     .Single()
-                    .MakeGenericMethod(funcTypes)
-                    .Invoke(null, options.Select(o => ic.ParseResult.ValueForOption(o)).Prepend(function).ToArray());
+                    .MakeGenericMethod(interopTypes)
+                    .Invoke(null, ic.ParseResult.CommandResult.Command.Arguments.Select((a, i) => Convert.ChangeType(ic.ParseResult.ValueForArgument(a.Name), interopTypes[i])).Prepend(function).ToArray());
             }
 
             return 0;
@@ -172,13 +168,40 @@ namespace JIT
             // function3((char)1);
         }
 
+        internal static RootCommand GenerateCommands(BitcodeModule module)
+        {
+            var rootCommand = new RootCommand { Description = "Program for JIT Execution of QIR", TreatUnmatchedTokensAsErrors = true };
+
+            foreach (var funcDef in module.Functions)
+            {
+                if (funcDef.Attributes.Any(attrList => attrList.Value.Any(attr => attr.Name == "EntryPoint")))
+                {
+                    var entryCommand = new Command(funcDef.Name);
+                    foreach (var param in funcDef.Parameters)
+                    {
+                        var argType = ConvertLlvmType(param.NativeType.ToString());
+                        var interopType = ConvertLlvmType(param.NativeType.ToString(), interop: true);
+                        var argument = new System.CommandLine.Argument($"{param.Name}")
+                        {
+                            ArgumentType = argType,
+                            Description = $"Type: {interopType} ({param.NativeType.ToString()})"
+                        };
+                        entryCommand.AddArgument(argument);
+                    }
+                    rootCommand.AddCommand(entryCommand);
+                }
+            }
+
+            return rootCommand;
+        }
+
         internal static Type ConvertLlvmType(string llvmTypeString, bool interop = false)
         {
             return llvmTypeString switch
             {
                 "i64" => typeof(long),
-                "i8" => typeof(bool),
-                _ => throw new NotImplementedException($"Can't handle type '{llvmTypeString}'"),
+                "i8" => interop ? typeof(bool) : typeof(String),
+                _ => typeof(object),//throw new NotImplementedException($"Can't handle type '{llvmTypeString}'"),
             };
         }
 
