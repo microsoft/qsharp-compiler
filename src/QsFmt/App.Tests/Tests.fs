@@ -23,6 +23,12 @@ type private Result =
     }
 
 /// <summary>
+/// Ensures that the new line characters will conform to the standard of the environment's new line character.
+/// </summary>
+let standardizeNewLines (s: string) =
+    s.Replace("\r", "").Replace("\n", Environment.NewLine)
+
+/// <summary>
 /// Runs the application with the command-line arguments, <paramref name="args"/>, and the standard input,
 /// <paramref name="input"/>.
 /// </summary>
@@ -42,8 +48,8 @@ let private run args input =
 
         {
             Code = main args
-            Out = out.ToString()
-            Error = error.ToString()
+            Out = out.ToString() |> standardizeNewLines
+            Error = error.ToString() |> standardizeNewLines
         }
     finally
         Console.SetIn previousInput
@@ -56,7 +62,7 @@ let ``Shows help with no arguments`` () =
         {
             Code = 2
             Out = ""
-            Error =
+            Error = standardizeNewLines
                 "ERROR: missing argument '<string>...'.
 
 INPUT:
@@ -72,8 +78,8 @@ SUBCOMMANDS:
 
 OPTIONS:
 
-    --backup              Create backup files of input files.
-    --recurse             Process the input folder recursively.
+    --backup, -b          Create backup files of input files.
+    --recurse, -r         Process the input folder recursively.
     --help                Display this list of options.
 "
         },
@@ -92,7 +98,7 @@ let ``Formats file`` path output =
     Assert.Equal(
         {
             Code = 0
-            Out = output
+            Out = output |> standardizeNewLines
             Error = ""
         },
         run [| "format"; path |] ""
@@ -111,7 +117,7 @@ let ``Formats standard input`` input output =
     Assert.Equal(
         {
             Code = 0
-            Out = output
+            Out = output |> standardizeNewLines
             Error = ""
         },
         run [| "format"; "-" |] input
@@ -126,7 +132,7 @@ let ``Shows syntax errors`` input errors =
         {
             Code = 1
             Out = ""
-            Error = errors
+            Error = errors |> standardizeNewLines
         },
         run [| "-" |] input
     )

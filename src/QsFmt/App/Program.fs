@@ -56,7 +56,7 @@ let main args =
     let parser = ArgumentParser.Create()
 
     let rec processDirecories recurse dir =
-        if (File.GetAttributes dir).HasFlag(FileAttributes.Directory) then
+        if dir <> "-" && (File.GetAttributes dir).HasFlag(FileAttributes.Directory) then
             let topLevelFiles = Directory.EnumerateFiles(dir, "*.qs") |> List.ofSeq
             if recurse then
                 topLevelFiles @ (Directory.EnumerateDirectories dir |> Seq.map (processDirecories recurse) |> Seq.concat |> List.ofSeq)
@@ -81,3 +81,9 @@ let main args =
     | :? ArguParseException as ex ->
         eprintf "%s" ex.Message
         2
+    | :? IOException as ex ->
+        eprintfn "%s" ex.Message
+        3
+    | :? UnauthorizedAccessException as ex ->
+        eprintfn "%s" ex.Message
+        4
