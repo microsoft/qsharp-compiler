@@ -8,12 +8,14 @@ open Microsoft.Quantum.QsFmt.Formatter
 open System
 open System.IO
 
+// ToDo: implement the --backup flag
+
 /// A command-line argument.
 [<HelpDescription "Display this list of options.">]
 type Argument =
     /// The path to the input file.
     | [<MainCommand; Unique; Last>] Input of string list
-    | [<InheritAttribute; Unique; AltCommandLine("-b")>] Backup
+    //| [<InheritAttribute; Unique; AltCommandLine("-b")>] Backup
     | [<InheritAttribute; Unique; AltCommandLine("-r")>] Recurse
     | [<SubCommand; CliPrefix(CliPrefix.None)>] Update
     | [<SubCommand; CliPrefix(CliPrefix.None)>] Format
@@ -22,7 +24,7 @@ type Argument =
         member arg.Usage =
             match arg with
             | Input _ -> "File to format or \"-\" to read from standard input."
-            | Backup -> "Create backup files of input files."
+            //| Backup -> "Create backup files of input files."
             | Recurse -> "Process the input folder recursively."
             | Update _ -> "Update depreciated syntax in the input files."
             | Format _ -> "Format the source code in input files."

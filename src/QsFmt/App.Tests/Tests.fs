@@ -79,7 +79,6 @@ SUBCOMMANDS:
 
 OPTIONS:
 
-    --backup, -b          Create backup files of input files.
     --recurse, -r         Process the input folder recursively.
     --help                Display this list of options.
 "
