@@ -71,8 +71,8 @@ let update source =
         let warningList = updatedDocument |> updateChecker
         let printedDocument = updatedDocument |> printer.Document
 
-        // For now, let's just combine the warnings to the end of the document
-        String.concat Environment.NewLine (printedDocument :: warningList)
+        warningList |> List.iter (eprintfn "%s")
+        printedDocument
 
     parse source |> Result.map updateDocument
 
