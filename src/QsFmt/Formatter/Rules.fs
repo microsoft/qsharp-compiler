@@ -146,6 +146,20 @@ let unitUpdate =
             base.Type((), updated)
     }
 
+let forParensUpdate =
+    { new Rewriter<_>() with
+        override rewriter.For((), loop) =
+            let openTrivia = loop.OpenParen |> getTrivia
+            let closeTrivia = loop.CloseParen |> getTrivia
+
+            { loop with
+                OpenParen = None
+                Binding = loop.Binding |> ForBinding.mapPrefix ((@) openTrivia)
+                CloseParen = None
+                Block = rewriter.Block((), rewriter.Statement, loop.Block) |> Block.mapPrefix ((@) closeTrivia)
+            }
+    }
+
 let arraySyntaxUpdate =
 
     let getBuiltInDefault builtIn =
@@ -158,8 +172,8 @@ let arraySyntaxUpdate =
         | "String" -> { Prefix = []; Text = "\"\"" } |> Literal |> Some
         | "Result" -> { Prefix = []; Text = "Zero" } |> Literal |> Some
         | "Pauli" -> { Prefix = []; Text = "PauliI" } |> Literal |> Some
-        | "Range" -> { Prefix = []; Text = "1..0" } |> Literal |> Some // ToDo: Double-check that this literal is correct
-        | _ -> None // TODO: Throw Warning
+        | "Range" -> { Prefix = []; Text = "1..0" } |> Literal |> Some
+        | _ -> None
 
     let rec getDefaultValue (``type``: Type) =
         let space = " " |> Trivia.ofString

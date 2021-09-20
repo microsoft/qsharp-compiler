@@ -98,6 +98,25 @@ module internal QubitBinding =
     /// </summary>
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> binding: QubitBinding -> QubitBinding
 
+/// The binding for a for-loop variable.
+type internal ForBinding =
+    {
+        /// The symbol binding.
+        Name: SymbolBinding
+
+        /// The <c>in</c> keyword.
+        In: Terminal
+
+        /// The value of the symbol binding.
+        Value: Expression
+    }
+    
+module internal ForBinding =
+    /// <summary>
+    /// Maps <paramref name="binding"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix: mapper:(Trivia list -> Trivia list) -> binding: ForBinding -> ForBinding
+
 /// <summary>
 /// A <c>let</c> statement.
 /// </summary>
@@ -212,6 +231,29 @@ and internal Else =
         /// The conditional block.
         Block: Statement Block
     }
+    
+/// <summary>
+/// A <c>for</c> statement.
+/// </summary>
+and internal For =
+    {
+        /// <summary>
+        /// The <c>for</c> keyword.
+        /// </summary>
+        ForKeyword: Terminal
+
+        /// The optional open parenthesis.
+        OpenParen: Terminal option
+
+        /// The binding for loop variable.
+        Binding: ForBinding
+
+        /// The optional close parenthesis.
+        CloseParen: Terminal option
+
+        /// The loop body.
+        Block: Statement Block
+    }
 
 /// A statement.
 and internal Statement =
@@ -237,6 +279,11 @@ and internal Statement =
     /// An <c>else</c> statement.
     /// </summary>
     | Else of Else
+
+    /// <summary>
+    /// A <c>for</c> statement.
+    /// </summary>
+    | For of For
 
     /// An unknown statement.
     | Unknown of Terminal
