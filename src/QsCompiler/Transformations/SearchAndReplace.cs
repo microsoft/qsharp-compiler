@@ -233,16 +233,17 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.SearchAndReplace
 
             public override ResolvedType OnType(ResolvedType type)
             {
-                switch (type.Resolution)
+                var id = type.Resolution switch
                 {
-                    case QsTypeKind.UserDefinedType { Item: var udt }:
-                        var id = Identifier.NewGlobalCallable(new QsQualifiedName(udt.Namespace, udt.Name));
-                        this.SharedState.LogIdentifierLocation(id, TypeRangeModule.TryRange(type.Range));
-                        break;
-                    case QsTypeKind.TypeParameter _:
-                        id = Identifier.NewLocalVariable(SyntaxTreeToQsharp.Default.ToCode(type) ?? "");
-                        this.SharedState.LogIdentifierLocation(id, TypeRangeModule.TryRange(type.Range));
-                        break;
+                    QsTypeKind.UserDefinedType udt =>
+                        Identifier.NewGlobalCallable(new QsQualifiedName(udt.Item.Namespace, udt.Item.Name)),
+                    QsTypeKind.TypeParameter _ => Identifier.NewLocalVariable(SyntaxTreeToQsharp.Default.ToCode(type)),
+                    _ => null,
+                };
+
+                if (!(id is null) && type.Range is TypeRange.Annotated annotatedRange)
+                {
+                    this.SharedState.LogIdentifierLocation(id, QsNullable<Range>.NewValue(annotatedRange.Item));
                 }
 
                 return base.OnType(type);
