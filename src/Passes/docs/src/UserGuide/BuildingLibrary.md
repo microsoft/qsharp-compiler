@@ -53,7 +53,7 @@ then
 
 ## Building the documentation
 
-To build the documnetation Docker image, run:
+To build the documentation Docker image, run:
 
 ```
 make documentation
