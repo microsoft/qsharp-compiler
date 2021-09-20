@@ -18,5 +18,7 @@ Developer guide:
 - [Creating a pass based component](DeveloperGuide/AddingPass.md)
 - [Rule based extensions](DeveloperGuide/WritingRuleTests.md)
 
+Additional developer info:
+
 - [Code quality](DeveloperGuide/CodeQuality.md)
 - [Developer FAQ](DeveloperGuide/DeveloperFAQ.md)
