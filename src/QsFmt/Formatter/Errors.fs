@@ -18,7 +18,7 @@ type SyntaxError =
     }
 
     override error.ToString() =
-        sprintf "Line %d, character %d: %s" error.line error.character error.message
+        sprintf "Line %d, Character %d: %s" error.line error.character error.message
 
 [<Sealed>]
 type ListErrorListener() =

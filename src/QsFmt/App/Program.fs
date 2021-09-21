@@ -56,7 +56,7 @@ let rec doOne command recurse backup input =
                     File.WriteAllText(input, result)
                 0
             | Error errors ->
-                errors |> List.iter (eprintfn "%O")
+                errors |> List.iter (eprintfn "%s, %O" input)
                 1
     with
     | :? IOException as ex ->
