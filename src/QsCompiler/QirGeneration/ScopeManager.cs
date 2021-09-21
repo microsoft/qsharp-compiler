@@ -306,7 +306,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// unreferenced when executing pending calls in preparation for exiting or closing the scope.
             /// Any release function that has been specified when adding the value will still execute.
             /// </summary>
-            internal bool TryRemoveValue(IValue value, bool recurIntoInnerItems = true) =>
+            private bool TryRemoveValue(IValue value, bool recurIntoInnerItems = true) =>
                 TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, (value, recurIntoInnerItems)));
 
             /// <summary>
@@ -740,14 +740,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var release = this.sharedState.GetOrCreateRuntimeFunction(releaseFunctionName);
             this.scopes.Peek().RegisterRelease(value, loaded => this.sharedState.CurrentBuilder.Call(release, loaded.Value));
         }
-
-        /// <summary>
-        /// Removes the given value from the list of registered values such that it will no longer be
-        /// unreferenced when exiting or closing the scope.
-        /// Any release function that has been specified when registering the value will still execute.
-        /// </summary>
-        internal bool TryRemoveValueFromCurrentScope(IValue value) =>
-            this.scopes.Peek().TryRemoveValue(value);
 
         /// <summary>
         /// Gets the value of a named variable.

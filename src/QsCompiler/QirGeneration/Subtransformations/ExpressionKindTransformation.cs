@@ -246,6 +246,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             bool updateItemAliasCount = false,
             bool unreferenceOriginal = false)
         {
+            if (updateItemAliasCount && unreferenceOriginal)
+            {
+                throw new InvalidOperationException("cannot unreference original upon assignment of a copy-and-update expression to a variable");
+            }
+
             var (originalValue, accEx, updated) = copyAndUpdate;
             AccessViaLocalId(updated, out var fromLocalId);
 
@@ -274,12 +279,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
                 {
                     var elementPtr = array.GetArrayElementPointer(index);
+                    var newElement = getNewItemForIndex(index);
+
                     if (unreferenceOriginal)
                     {
+                        sharedState.ScopeMgr.IncreaseReferenceCount(newElement);
                         sharedState.ScopeMgr.DecreaseReferenceCount(elementPtr);
                     }
 
-                    var newElement = getNewItemForIndex(index);
                     StoreElement(elementPtr, newElement, fromLocalId);
                 }
 
@@ -340,9 +347,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
                 }
 
-                var value = GetTupleCopy(originalValue);
-                sharedState.ScopeMgr.RegisterValue(value);
-
                 var udtName = originalValue.TypeName;
                 if (udtName == null || !sharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
                 {
@@ -352,15 +356,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     && id.Item1 is Identifier.LocalVariable name
                     && FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
                 {
+                    var originalTuples = new Stack<TupleValue>();
+                    originalTuples.Push(originalValue);
+
                     var copies = new Stack<TupleValue>();
+                    var value = GetTupleCopy(originalValue);
                     copies.Push(value);
+                    sharedState.ScopeMgr.RegisterValue(value);
 
                     for (int depth = 0; depth < location.Count; depth++)
                     {
                         var itemPointer = copies.Peek().GetTupleElementPointer(location[depth]);
                         if (depth == location.Count - 1)
                         {
+                            // needs to be before the ref count decrease in case it accesses the old value
                             var newItemValue = sharedState.EvaluateSubexpression(updated);
+
+                            if (unreferenceOriginal)
+                            {
+                                sharedState.ScopeMgr.IncreaseReferenceCount(newItemValue);
+                                sharedState.ScopeMgr.DecreaseReferenceCount(itemPointer);
+                            }
+
                             StoreElement(itemPointer, newItemValue, fromLocalId);
                         }
                         else
@@ -369,29 +386,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                             // and replace it with a copy of it (if a copy is needed),
                             // such that we can then proceed to modify that copy (the next inner tuple).
                             var originalItem = (TupleValue)itemPointer.LoadValue();
-                            var copyReturn = GetTupleCopy(originalItem);
-                            copies.Push(copyReturn);
-                            StoreElement(itemPointer, copies.Peek(), null, shallow: true);
+                            originalTuples.Push(originalItem);
+                            var copy = GetTupleCopy(originalItem);
+                            copies.Push(copy);
+                            StoreElement(itemPointer, copy, null, shallow: true);
                         }
                     }
 
-                    // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                    // reference counts always need to be modified recursively. However, while the reference count for
-                    // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
-                    // to increase the reference count of the contained items due to lacking type information.
-                    // In the same way that we increase the reference count when we populate a tuple, we hence need to
-                    // manually (recursively) increase the reference counts for all items.
-                    sharedState.ScopeMgr.IncreaseReferenceCount(value);
-                    while (copies.TryPop(out var copy))
+                    if (!unreferenceOriginal)
                     {
-                        sharedState.ScopeMgr.DecreaseReferenceCount(copy, shallow: true);
+                        // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                        // reference counts always need to be modified recursively. However, while the reference count for
+                        // the value returned by TupleCopy is set to 1 or increased by 1, it is not possible for the runtime
+                        // to increase the reference count of the contained items due to lacking type information.
+                        // In the same way that we increase the reference count when we populate a tuple, we hence need to
+                        // manually (recursively) increase the reference counts for all items.
+                        sharedState.ScopeMgr.IncreaseReferenceCount(value);
+                        while (copies.TryPop(out var copy))
+                        {
+                            sharedState.ScopeMgr.DecreaseReferenceCount(copy, shallow: true);
+                        }
                     }
-
-                    // We need to be careful to not unreference the old value before we have properly populated and
-                    // referenced all items in the new value.
-                    if (unreferenceOriginal)
+                    else
                     {
-                        sharedState.ScopeMgr.DecreaseReferenceCount(originalValue);
+                        while (originalTuples.TryPop(out var original))
+                        {
+                            sharedState.ScopeMgr.DecreaseReferenceCount(original, shallow: true);
+                        }
                     }
 
                     return value;
@@ -879,7 +900,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (!modifyInPlace)
             {
                 // Since we track alias counts for callables there is no need to force the copy.
-                // While making a copy ensures that the callable is created with reference count 1,
+                // While making a copy ensures that either a new callable is created with reference count 1,
+                // or the reference count of the existing callable is increased by 1,
                 // we also need to increase the reference counts for all contained items; i.e. for the capture tuple in this case.
                 var makeCopy = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CallableCopy);
                 var forceCopy = this.SharedState.Context.CreateConstant(false);
@@ -1233,8 +1255,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override ResolvedExpressionKind OnCopyAndUpdateExpression(TypedExpression lhs, TypedExpression accEx, TypedExpression rhs)
         {
-            var originalValue = this.SharedState.EvaluateSubexpression(lhs);
-            return CopyAndUpdate(this.SharedState, (originalValue, accEx, rhs));
+            // We need to be careful here when the lhs is a freshly create value; in that case, the copy will not be executed
+            // during construction of the copy-and-update expression, and we hence must ensure that the created value is not queued
+            // for a ref count decrease at the end of the scope (otherwise that ref count decrease will access the updated items
+            // instead of the original ones due to the in-place modification).
+            // We hence first check whether the lhs is accessed via a local identifier (i.e. can be accessed after the copy-and-update),
+            // and if it is, we can (and must) delay the reference count decrease until the end of the scope.
+            // If it is not, then we need to make sure that ...
+            var isFromIdentifier = AccessViaLocalId(lhs, out var _);
+            var originalValue = isFromIdentifier
+                ? this.SharedState.EvaluateSubexpression(lhs)
+                : this.SharedState.BuildSubitem(lhs);
+            return CopyAndUpdate(this.SharedState, (originalValue, accEx, rhs), unreferenceOriginal: !isFromIdentifier);
         }
 
         public override ResolvedExpressionKind OnDivision(TypedExpression lhsEx, TypedExpression rhsEx)
