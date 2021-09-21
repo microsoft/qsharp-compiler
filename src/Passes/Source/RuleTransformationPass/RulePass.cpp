@@ -464,7 +464,6 @@ namespace quantum
                     auto& instr = **it2;
                     instr.replaceAllUsesWith(llvm::UndefValue::get(instr.getType()));
                     instr.eraseFromParent();
-                    // to_delete.push_back(&instr);
                 }
 
                 // Removing all block references
@@ -478,10 +477,13 @@ namespace quantum
         // Deleting all blocks
         for (auto block : blocks_to_delete_)
         {
-            block->replaceAllUsesWith(llvm::UndefValue::get(block->getType()));
             if (block->use_empty())
             {
                 block->eraseFromParent();
+            }
+            else
+            {
+                llvm::errs() << "; INTERNAL ERROR: block was supposed to be unused.\n";
             }
         }
 

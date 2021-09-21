@@ -228,6 +228,24 @@ let ``Updates Unit Types`` =
 }"""
 
 [<Example(ExampleKind.Update)>]
+let ``Removes For-Loop Parens`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        for (i in 0..3) {
+            Message("HelloQ");
+        }
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        for i in 0..3 {
+            Message("HelloQ");
+        }
+    }
+}"""
+
+[<Example(ExampleKind.Update)>]
 let ``Allows size as an Identifier`` =
     """namespace Foo {
     operation Bar() : Unit {
