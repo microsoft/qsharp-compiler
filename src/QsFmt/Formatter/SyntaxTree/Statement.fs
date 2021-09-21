@@ -50,6 +50,17 @@ module QubitBinding =
     let mapPrefix mapper (binding: QubitBinding) =
         { binding with Name = SymbolBinding.mapPrefix mapper binding.Name }
 
+type ForBinding =
+    {
+        Name: SymbolBinding
+        In: Terminal
+        Value: Expression
+    }
+
+module ForBinding =
+    let mapPrefix mapper (binding: ForBinding) =
+        { binding with Name = SymbolBinding.mapPrefix mapper binding.Name }
+
 type Let =
     {
         LetKeyword: Terminal
@@ -93,12 +104,22 @@ and If =
 
 and Else = { ElseKeyword: Terminal; Block: Statement Block }
 
+and For =
+    {
+        ForKeyword: Terminal
+        OpenParen: Terminal option
+        Binding: ForBinding
+        CloseParen: Terminal option
+        Block: Statement Block
+    }
+
 and Statement =
     | Let of Let
     | Return of Return
     | QubitDeclaration of QubitDeclaration
     | If of If
     | Else of Else
+    | For of For
     | Unknown of Terminal
 
 module Statement =
@@ -110,4 +131,5 @@ module Statement =
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
+        | For loop -> { loop with ForKeyword = loop.ForKeyword |> Terminal.mapPrefix mapper } |> For
         | Unknown terminal -> Terminal.mapPrefix mapper terminal |> Unknown
