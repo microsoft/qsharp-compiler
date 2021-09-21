@@ -10,15 +10,15 @@ type SyntaxError =
         /// The line number.
         line: int
 
-        /// The column number.
-        column: int
+        /// The character number.
+        character: int
 
         /// The error message.
         message: string
     }
 
     override error.ToString() =
-        sprintf "Line %d, column %d: %s" error.line error.column error.message
+        sprintf "Line %d, character %d: %s" error.line error.character error.message
 
 [<Sealed>]
 type ListErrorListener() =
@@ -27,11 +27,11 @@ type ListErrorListener() =
     member _.SyntaxErrors = errors
 
     interface IToken IAntlrErrorListener with
-        member _.SyntaxError(_, _, _, line, column, message, _) =
+        member _.SyntaxError(_, _, _, line, character, message, _) =
             let error =
                 {
                     line = line
-                    column = column
+                    character = character
                     message = message
                 }
 
