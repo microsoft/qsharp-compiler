@@ -33,7 +33,7 @@ TEST(TestToolsTestSuite, IrParitalConstruction)
 
     if (input.isModuleBroken())
     {
-        llvm::errs() << input.getErrorMessage() << "\n";
+        llvm::outs() << input.getErrorMessage() << "\n";
         exit(-1);
     }
 

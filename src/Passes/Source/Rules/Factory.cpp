@@ -13,10 +13,13 @@ namespace quantum
     using ReplacementRulePtr = RuleFactory::ReplacementRulePtr;
     using namespace microsoft::quantum::notation;
 
-    RuleFactory::RuleFactory(RuleSet& rule_set)
+    RuleFactory::RuleFactory(
+        RuleSet&             rule_set,
+        AllocationManagerPtr qubit_alloc_manager,
+        AllocationManagerPtr result_alloc_manager)
       : rule_set_{rule_set}
-      , qubit_alloc_manager_{BasicAllocationManager::createNew()}
-      , result_alloc_manager_{BasicAllocationManager::createNew()}
+      , qubit_alloc_manager_{std::move(qubit_alloc_manager)}
+      , result_alloc_manager_{std::move(result_alloc_manager)}
     {
     }
 
@@ -315,8 +318,8 @@ namespace quantum
                  {
 
                      // TODO(tfr): report error
-                     llvm::errs() << "FAILED due to unnamed non standard allocation:\n";
-                     llvm::errs() << *val << "\n\n";
+                     llvm::outs() << "FAILED due to unnamed non standard allocation:\n";
+                     llvm::outs() << *val << "\n\n";
 
                      // Deleting the instruction in order to proceed
                      // and trying to discover as many other errors as possible
@@ -324,9 +327,9 @@ namespace quantum
                  }
 
                  // TODO(tfr): report error
-                 llvm::errs() << "FAILED due to non standard allocation:\n";
-                 llvm::errs() << *cap["name"] << "\n";
-                 llvm::errs() << *val << "\n\n";
+                 llvm::outs() << "FAILED due to non standard allocation:\n";
+                 llvm::outs() << *cap["name"] << "\n";
+                 llvm::outs() << *val << "\n\n";
 
                  return deleter(builder, val, cap, rep);
              }

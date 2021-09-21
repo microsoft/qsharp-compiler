@@ -192,151 +192,95 @@ namespace quantum
         ConfigurationManager& operator=(ConfigurationManager const&) = delete;
         ConfigurationManager& operator=(ConfigurationManager&&) = delete;
 
-        void setupArguments(ParameterParser& parser)
-        {
-            for (auto& section : config_sections_)
-            {
-                for (auto& c : section.settings)
-                {
-                    c->setupArguments(parser);
-                }
-            }
-        }
+        void setupArguments(ParameterParser& parser);
+        void configure(ParameterParser const& parser);
+        void printHelp() const;
+        void printConfiguration() const;
 
-        void configure(ParameterParser const& parser)
-        {
-            for (auto& section : config_sections_)
-            {
-                for (auto& c : section.settings)
-                {
-                    c->configure(parser);
-                }
-            }
-        }
+        void setSectionName(String const& name, String const& description);
 
-        void printHelp() const
-        {
-            std::cout << std::setfill(' ');
-            for (auto& section : config_sections_)
-            {
-                std::cout << std::endl;
-                std::cout << section.name << " - ";
-                std::cout << section.description << std::endl;
-                std::cout << std::endl;
-
-                for (auto& c : section.settings)
-                {
-                    if (c->isFlag())
-                    {
-                        if (c->defaultValue() == "false")
-                        {
-                            std::cout << std::setw(50) << std::left << ("--" + c->name()) << c->description() << " ";
-                        }
-                        else
-                        {
-                            std::cout << std::setw(50) << std::left << ("--[no-]" + c->name()) << c->description()
-                                      << " ";
-                        }
-                    }
-                    else
-                    {
-                        std::cout << std::setw(50) << std::left << ("--" + c->name()) << c->description() << " ";
-                    }
-                    std::cout << "Default: " << c->defaultValue() << std::endl;
-                }
-            }
-        }
-
-        void printConfiguration() const
-        {
-            std::cout << std::setfill('.');
-            for (auto& section : config_sections_)
-            {
-                std::cout << "; # " << section.name << "\n";
-                for (auto& c : section.settings)
-                {
-                    std::cout << "; " << std::setw(50) << std::left << c->name() << ": " << c->value() << "\n";
-                }
-                std::cout << "; \n";
-            }
-        }
-
-        template <typename T> void addConfig()
-        {
-            Section new_section{std::type_index(typeid(T))};
-
-            auto ptr                  = std::make_shared<T>();
-            new_section.configuration = ptr;
-
-            config_sections_.emplace_back(std::move(new_section));
-            ptr->setup(*this);
-        }
-
-        template <typename T> void setConfig(T const& value)
-        {
-            auto    type = std::type_index(typeid(T));
-            VoidPtr ptr{nullptr};
-            for (auto& section : config_sections_)
-            {
-                if (section.type == type)
-                {
-                    ptr = section.configuration;
-                    break;
-                }
-            }
-
-            if (ptr == nullptr)
-            {
-                throw std::runtime_error("Could not find configuration class.");
-            }
-
-            auto& config = *static_cast<T*>(ptr.get());
-            config       = value;
-        }
-
-        template <typename T> T const& get() const
-        {
-            VoidPtr ptr{nullptr};
-            auto    type = std::type_index(typeid(T));
-
-            for (auto& section : config_sections_)
-            {
-                if (section.type == type)
-                {
-                    ptr = section.configuration;
-                    break;
-                }
-            }
-
-            if (ptr == nullptr)
-            {
-                throw std::runtime_error("Could not find configuration class.");
-            }
-
-            return *static_cast<T*>(ptr.get());
-        }
-
-        void setSectionName(String const& name, String const& description)
-        {
-            config_sections_.back().name        = name;
-            config_sections_.back().description = description;
-        }
-
-        template <typename T> void addParameter(T& bind, T default_value, String const& name, String const& description)
-        {
-            auto ptr = std::make_shared<ConfigBind<T>>(bind, default_value, name, description);
-            config_sections_.back().settings.push_back(ptr);
-        }
-
-        template <typename T> void addParameter(T& bind, String const& name, String const& description)
-        {
-            auto ptr = std::make_shared<ConfigBind<T>>(bind, T(bind), name, description);
-            config_sections_.back().settings.push_back(ptr);
-        }
+        template <typename T> inline void     addConfig();
+        template <typename T> inline void     setConfig(T const& value);
+        template <typename T> inline T const& get() const;
+        template <typename T>
+        inline void addParameter(T& bind, T default_value, String const& name, String const& description);
+        template <typename T> inline void addParameter(T& bind, String const& name, String const& description);
 
       private:
         Sections config_sections_;
     };
 
+    template <typename T> inline void ConfigurationManager::addConfig()
+    {
+        Section new_section{std::type_index(typeid(T))};
+
+        auto ptr                  = std::make_shared<T>();
+        new_section.configuration = ptr;
+
+        config_sections_.emplace_back(std::move(new_section));
+        ptr->setup(*this);
+    }
+
+    template <typename T> inline void ConfigurationManager::setConfig(T const& value)
+    {
+        auto    type = std::type_index(typeid(T));
+        VoidPtr ptr{nullptr};
+        for (auto& section : config_sections_)
+        {
+            if (section.type == type)
+            {
+                ptr = section.configuration;
+                break;
+            }
+        }
+
+        if (ptr == nullptr)
+        {
+            throw std::runtime_error("Could not find configuration class.");
+        }
+
+        auto& config = *static_cast<T*>(ptr.get());
+        config       = value;
+    }
+
+    template <typename T> inline T const& ConfigurationManager::get() const
+    {
+        VoidPtr ptr{nullptr};
+        auto    type = std::type_index(typeid(T));
+
+        for (auto& section : config_sections_)
+        {
+            if (section.type == type)
+            {
+                ptr = section.configuration;
+                break;
+            }
+        }
+
+        if (ptr == nullptr)
+        {
+            throw std::runtime_error("Could not find configuration class.");
+        }
+
+        return *static_cast<T*>(ptr.get());
+    }
+
+    template <typename T>
+    inline void ConfigurationManager::addParameter(
+        T&            bind,
+        T             default_value,
+        String const& name,
+        String const& description)
+    {
+        auto ptr = std::make_shared<ConfigBind<T>>(bind, default_value, name, description);
+        config_sections_.back().settings.push_back(ptr);
+    }
+
+    template <typename T>
+    inline void ConfigurationManager::addParameter(T& bind, String const& name, String const& description)
+    {
+        auto ptr = std::make_shared<ConfigBind<T>>(bind, T(bind), name, description);
+        config_sections_.back().settings.push_back(ptr);
+    }
 } // namespace quantum
 } // namespace microsoft

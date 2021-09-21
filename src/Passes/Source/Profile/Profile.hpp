@@ -2,6 +2,9 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "AllocationManager/AllocationManager.hpp"
+#include "AllocationManager/IAllocationManager.hpp"
+
 #include "Llvm/Llvm.hpp"
 
 namespace microsoft
@@ -9,27 +12,39 @@ namespace microsoft
 namespace quantum
 {
 
-    class LlvmAnalyser
+    class Profile
     {
       public:
+        using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
+
         /// Constructors
         /// @{
-        explicit LlvmAnalyser(bool debug);
+        explicit Profile(
+            bool                 debug,
+            AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
+            AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());
 
         // Default construction not allowed as this leads
         // to invalid configuration of the managers.
-        LlvmAnalyser() = delete;
+        Profile() = delete;
 
         // Copy construction prohibited due to restrictions
         // on the member variables.
-        LlvmAnalyser(LlvmAnalyser const&) = delete;
+        Profile(Profile const&) = delete;
 
         // Prefer move construction at all times.
-        LlvmAnalyser(LlvmAnalyser&&) = default;
+        Profile(Profile&&) = default;
 
         // Default deconstruction.
-        ~LlvmAnalyser() = default;
+        ~Profile() = default;
         /// @}
+
+        void apply(llvm::Module& module);
+        bool verify(llvm::Module& module);
+        void setModulePassManager(llvm::ModulePassManager&& manager);
+
+        AllocationManagerPtr getQubitAllocationManager();
+        AllocationManagerPtr getResultAllocationManager();
 
         /// Acccess member functions
         /// @{
@@ -48,6 +63,11 @@ namespace quantum
         llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
         llvm::ModuleAnalysisManager   module_analysis_manager_;
         /// @}
+
+        llvm::ModulePassManager module_pass_manager_{};
+
+        AllocationManagerPtr qubit_allocation_manager_{};
+        AllocationManagerPtr result_allocation_manager_{};
     };
 
 } // namespace quantum

@@ -24,7 +24,7 @@ namespace quantum
         using ModulePtr         = std::unique_ptr<Module>;
         using Strings           = std::vector<String>;
         using OptimizationLevel = llvm::PassBuilder::OptimizationLevel;
-        using ProfilePtr        = std::shared_ptr<IProfileGenerator>;
+        using GeneratorPtr      = std::shared_ptr<IProfileGenerator>;
 
         /// IrManipulationTestHelper is default constructible with no ability to move
         /// or copy.
@@ -56,7 +56,7 @@ namespace quantum
         /// Applies a profile to the module to allow which transforms the IR. This
         /// allow us to write small profiles to test a single piece of transformation.
         void applyProfile(
-            ProfilePtr const&        profile,
+            GeneratorPtr const&      profile,
             OptimizationLevel const& optimisation_level = OptimizationLevel::O0,
             bool                     debug              = false);
         /// @}

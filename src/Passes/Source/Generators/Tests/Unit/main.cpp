@@ -9,7 +9,7 @@
 #include "gtest/gtest.h"
 
 using namespace microsoft::quantum;
-using ProfilePtr = std::shared_ptr<DefaultProfileGenerator>;
+using GeneratorPtr = std::shared_ptr<DefaultProfileGenerator>;
 namespace
 {
 class TestAnalysis
@@ -75,33 +75,35 @@ class TestAnalysis
 
 TEST(GeneratorsTestSuite, ConfigureFunction)
 {
+    Profile  profile{false};
     uint64_t call_count{0};
     auto     configure = [&call_count](RuleSet&) { ++call_count; };
-    auto     profile   = std::make_shared<DefaultProfileGenerator>(configure);
+    auto     generator = std::make_shared<DefaultProfileGenerator>(configure);
 
     TestAnalysis test;
-    profile->addFunctionAnalyses(test.functionAnalysisManager());
+    generator->addFunctionAnalyses(test.functionAnalysisManager());
     auto module_pass_manager =
-        profile->createGenerationModulePass(test.passBuilder(), llvm::PassBuilder::OptimizationLevel::O0, false);
+        generator->createGenerationModulePass(profile, llvm::PassBuilder::OptimizationLevel::O0, false);
 
     EXPECT_EQ(call_count, 1);
-    EXPECT_TRUE(profile->profilePassConfig().isDisabled());
-    EXPECT_TRUE(profile->llvmConfig().isDisabled());
+    EXPECT_TRUE(generator->profilePassConfig().isDisabled());
+    EXPECT_TRUE(generator->llvmConfig().isDisabled());
 }
 
 TEST(GeneratorsTestSuite, ConfigurationManager)
 {
-    auto                  profile               = std::make_shared<DefaultProfileGenerator>();
-    ConfigurationManager& configuration_manager = profile->configurationManager();
+    Profile               profile{false};
+    auto                  generator             = std::make_shared<DefaultProfileGenerator>();
+    ConfigurationManager& configuration_manager = generator->configurationManager();
     configuration_manager.addConfig<FactoryConfiguration>();
 
     TestAnalysis test;
 
-    profile->addFunctionAnalyses(test.functionAnalysisManager());
+    generator->addFunctionAnalyses(test.functionAnalysisManager());
     auto module_pass_manager =
-        profile->createGenerationModulePass(test.passBuilder(), llvm::PassBuilder::OptimizationLevel::O0, false);
+        generator->createGenerationModulePass(profile, llvm::PassBuilder::OptimizationLevel::O0, false);
 
-    EXPECT_TRUE(profile->profilePassConfig().isDefault());
-    EXPECT_TRUE(profile->llvmConfig().isDefault());
-    EXPECT_FALSE(profile->profilePassConfig().isDisabled());
+    EXPECT_TRUE(generator->profilePassConfig().isDefault());
+    EXPECT_TRUE(generator->llvmConfig().isDefault());
+    EXPECT_FALSE(generator->profilePassConfig().isDisabled());
 }

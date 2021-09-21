@@ -1,7 +1,7 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "RuleTransformationPass/Profile.hpp"
+#include "RuleTransformationPass/RulePass.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/Notation/Notation.hpp"
 #include "Rules/ReplacementRule.hpp"
@@ -224,7 +224,7 @@ namespace quantum
     {
         if (depth_ >= config_.maxRecursion())
         {
-            llvm::errs() << "Exceed max recursion of " << config_.maxRecursion() << "\n";
+            llvm::outs() << "Exceed max recursion of " << config_.maxRecursion() << "\n";
             return false;
         }
         ++depth_;
@@ -365,7 +365,7 @@ namespace quantum
 
             if (instr1 == nullptr)
             {
-                llvm::errs() << "; WARNING: cannot deal with non-instruction replacements\n";
+                llvm::outs() << "; WARNING: cannot deal with non-instruction replacements\n";
                 continue;
             }
 
@@ -376,7 +376,7 @@ namespace quantum
                 auto instr2 = llvm::dyn_cast<llvm::Instruction>(it->second);
                 if (instr2 == nullptr)
                 {
-                    llvm::errs() << "; WARNING: cannot replace instruction with non-instruction\n";
+                    llvm::outs() << "; WARNING: cannot replace instruction with non-instruction\n";
                     continue;
                 }
                 llvm::ReplaceInstWithInst(instr1, instr2);
@@ -575,6 +575,13 @@ namespace quantum
                     }
                     return value;
                 });
+
+                if (config_.annotateQubitUse())
+                {
+                    std::stringstream ss{""};
+                    ss << profile_->getQubitAllocationManager()->maxRegistersUsed();
+                    function.addFnAttr("requiredQubits", ss.str());
+                }
             }
         }
 

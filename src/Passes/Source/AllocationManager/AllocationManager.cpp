@@ -41,6 +41,8 @@ namespace quantum
         // Advancing the allocation index
         ++allocation_index_;
 
+        updateRegistersInUse(registersInUse() + size);
+
         return ret;
     }
 
@@ -61,9 +63,21 @@ namespace quantum
             throw std::runtime_error("Qubit segment not found.");
         }
 
-        mappings_.erase(it);
-        if (reuse_qubits_)
+        if (!reuse_qubits_)
         {
+            mappings_.erase(it);
+        }
+        else
+        {
+            if (it->size > registersInUse())
+            {
+                throw std::runtime_error("Attempting to release more qubits than what is currently allocated.");
+            }
+
+            updateRegistersInUse(registersInUse() - it->size);
+
+            mappings_.erase(it);
+
             if (mappings_.empty())
             {
                 next_qubit_index_ = 0;

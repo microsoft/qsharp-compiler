@@ -43,11 +43,11 @@
 ///
 
 #include "Apps/Qat/Config.hpp"
-#include "Apps/Qat/LlvmAnalysis.hpp"
 #include "Commandline/ConfigurationManager.hpp"
 #include "Commandline/ParameterParser.hpp"
 #include "Generators/DefaultProfileGenerator.hpp"
 #include "Generators/LlvmPassesConfig.hpp"
+#include "Profile/Profile.hpp"
 #include "RuleTransformationPass/Configuration.hpp"
 #include "Rules/FactoryConfig.hpp"
 
@@ -64,9 +64,9 @@ int main(int argc, char** argv)
 {
     try
     {
-        auto profile = std::make_shared<DefaultProfileGenerator>();
+        auto generator = std::make_shared<DefaultProfileGenerator>();
 
-        ConfigurationManager& configuration_manager = profile->configurationManager();
+        ConfigurationManager& configuration_manager = generator->configurationManager();
         configuration_manager.addConfig<QatConfig>();
         configuration_manager.addConfig<FactoryConfiguration>();
 
@@ -127,59 +127,44 @@ int main(int argc, char** argv)
 
         // Checking if we are asked to generate a new QIR. If so, we will use
         // the profile to setup passes to
+        auto profile = generator->newProfile(optimisation_level, config.debug());
         if (config.generate())
         {
-            // Creating pass builder
-            LlvmAnalyser analyser{config.debug()};
+            profile.apply(*module);
 
-            // Preparing pass for generation based on profile
-            profile->addFunctionAnalyses(analyser.functionAnalysisManager());
-            auto module_pass_manager =
-                profile->createGenerationModulePass(analyser.passBuilder(), optimisation_level, config.debug());
+            // Priniting either human readible LL code if requested to do so.
 
-            // Running the pass built by the profile
-            module_pass_manager.run(*module, analyser.moduleAnalysisManager());
-
-            // Priniting either human readible LL code or byte
-            // code as a result, depending on the users preference.
             if (config.emitLlvm())
             {
-                llvm::errs() << *module << "\n";
+                llvm::outs() << *module << "\n";
             }
-            else
-            {
-                llvm::errs() << "Byte code ouput is not supported yet. Please add -S to get human readible "
-                                "LL code.\n";
-            }
+        }
 
-            // Verifying the module.
-            if (config.verifyModule())
+        // Verifying the module.
+        if (config.verifyModule())
+        {
+            if (!profile.verify(*module))
             {
-                llvm::VerifierAnalysis verifier;
-                auto                   result = verifier.run(*module, analyser.moduleAnalysisManager());
-                if (result.IRBroken)
-                {
-                    llvm::errs() << "IR is broken."
-                                 << "\n";
-                    exit(-1);
-                }
+                llvm::outs() << "IR is broken."
+                             << "\n";
+                exit(-1);
             }
         }
 
         if (config.validate())
         {
             // Creating pass builder
-            LlvmAnalyser analyser{config.debug()};
+            Profile analyser{config.debug()};
 
             // Creating a validation pass manager
             auto module_pass_manager =
-                profile->createValidationModulePass(analyser.passBuilder(), optimisation_level, config.debug());
+                generator->createValidationModulePass(analyser.passBuilder(), optimisation_level, config.debug());
             module_pass_manager.run(*module, analyser.moduleAnalysisManager());
         }
     }
     catch (std::exception const& e)
     {
-        llvm::errs() << "An error occured: " << e.what() << "\n";
+        llvm::outs() << "An error occured: " << e.what() << "\n";
     }
 
     return 0;

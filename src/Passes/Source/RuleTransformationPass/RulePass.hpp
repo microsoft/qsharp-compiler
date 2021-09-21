@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 
 #include "Logging/ILogger.hpp"
+#include "Profile/Profile.hpp"
 #include "RuleTransformationPass/Configuration.hpp"
 #include "Rules/RuleSet.hpp"
 
@@ -89,9 +90,10 @@ namespace quantum
         /// @{
 
         /// Custom default constructor
-        explicit RuleTransformationPass(RuleSet&& rule_set, RuleTransformationPassConfiguration const& config)
+        RuleTransformationPass(RuleSet&& rule_set, RuleTransformationPassConfiguration const& config, Profile* profile)
           : rule_set_{std::move(rule_set)}
           , config_{config}
+          , profile_{profile}
         {
         }
 
@@ -198,6 +200,8 @@ namespace quantum
         /// @{
         Replacements replacements_; ///< Registered replacements to be executed.
                                     /// @}
+
+        Profile* profile_{nullptr};
     };
 
 } // namespace quantum

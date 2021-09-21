@@ -30,7 +30,7 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
 
     if (!ir_manip->fromBodyString(script))
     {
-        llvm::errs() << ir_manip->getErrorMessage() << "\n";
+        llvm::outs() << ir_manip->getErrorMessage() << "\n";
         exit(-1);
     }
     return ir_manip;
@@ -48,7 +48,7 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
   )script");
 
     auto configure_profile = [](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
         factory.useStaticQubitAllocation();
     };
 
@@ -72,7 +72,7 @@ TEST(RuleSetTestSuite, MultipleAllocationsNoRelease)
   )script");
 
     auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
         factory.useStaticQubitAllocation();
     });
@@ -123,7 +123,7 @@ TEST(RuleSetTestSuite, AllocateReleaseMultipleTimes)
   )script");
 
     auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
         factory.useStaticQubitAllocation();
     });
@@ -167,7 +167,7 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByName)
   )script");
 
     auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
         factory.useStaticQubitAllocation();
     });
@@ -185,7 +185,7 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByNameWithNoName)
   )script");
 
     auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
         factory.useStaticQubitAllocation();
     });
@@ -204,7 +204,7 @@ TEST(RuleSetTestSuite, ErrorReleaseWithTypeErasedAllocation)
   )script");
 
     auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
         factory.useStaticQubitAllocation();
     });

@@ -56,8 +56,8 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
 
     if (!ir_manip->fromBodyString(script))
     {
-        llvm::errs() << ir_manip->generateScript(script) << "\n\n";
-        llvm::errs() << ir_manip->getErrorMessage() << "\n";
+        llvm::outs() << ir_manip->generateScript(script) << "\n\n";
+        llvm::outs() << ir_manip->getErrorMessage() << "\n";
         exit(-1);
     }
     return ir_manip;

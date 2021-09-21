@@ -16,7 +16,9 @@ namespace quantum
         config.addParameter(clone_functions_, "clone-functions", "Clone functions to ensure correct qubit allocation.");
 
         config.addParameter(max_recursion_, "max-recursion", "max-recursion");
+
         config.addParameter(reuse_qubits_, "reuse-qubits", "reuse-qubits");
+        config.addParameter(annotate_qubit_use_, "annotate-qubit-use", "Annotate the number of qubits used");
 
         config.addParameter(
             entry_point_attr_, "entry-point-attr", "Specifies the attribute indicating the entry point.");
@@ -34,6 +36,7 @@ namespace quantum
         ret.transform_execution_path_only_ = false;
         ret.max_recursion_                 = 512;
         ret.reuse_qubits_                  = false;
+        ret.annotate_qubit_use_            = false;
         ret.group_measurements_            = false;
         ret.one_shot_measurement_          = false;
         return ret;
@@ -62,6 +65,11 @@ namespace quantum
     bool RuleTransformationPassConfiguration::reuseQubits() const
     {
         return reuse_qubits_;
+    }
+
+    bool RuleTransformationPassConfiguration::annotateQubitUse() const
+    {
+        return annotate_qubit_use_;
     }
 
     bool RuleTransformationPassConfiguration::groupMeasurements() const

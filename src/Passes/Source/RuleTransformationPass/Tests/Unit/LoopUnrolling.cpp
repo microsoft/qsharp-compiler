@@ -35,8 +35,8 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
 
     if (!ir_manip->fromBodyString(script))
     {
-        llvm::errs() << ir_manip->generateScript(script) << "\n\n";
-        llvm::errs() << ir_manip->getErrorMessage() << "\n";
+        llvm::outs() << ir_manip->generateScript(script) << "\n\n";
+        llvm::outs() << ir_manip->getErrorMessage() << "\n";
         exit(-1);
     }
     return ir_manip;
@@ -89,5 +89,5 @@ exit__1:                                          ; preds = %header__1
          "%4 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
          "%5 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)"}));
 
-    llvm::errs() << *ir_manip->module() << "\n";
+    llvm::outs() << *ir_manip->module() << "\n";
 }

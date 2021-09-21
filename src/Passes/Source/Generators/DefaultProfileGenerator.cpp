@@ -2,7 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Generators/DefaultProfileGenerator.hpp"
-#include "RuleTransformationPass/Profile.hpp"
+#include "RuleTransformationPass/RulePass.hpp"
 #include "Rules/Factory.hpp"
 #include "Rules/FactoryConfig.hpp"
 #include "Rules/RuleSet.hpp"
@@ -19,20 +19,22 @@ namespace quantum
     DefaultProfileGenerator::DefaultProfileGenerator()
     {
         registerProfileComponent<RuleTransformationPassConfiguration>(
-            "transformation-rules", [this](RuleTransformationPassConfiguration const& config, IProfileGenerator* ptr) {
+            "transformation-rules",
+            [this](RuleTransformationPassConfiguration const& config, IProfileGenerator* ptr, Profile& profile) {
                 auto& ret = ptr->modulePassManager();
 
                 // Defining the mapping
                 RuleSet rule_set;
-                auto    factory = RuleFactory(rule_set);
+                auto    factory =
+                    RuleFactory(rule_set, profile.getQubitAllocationManager(), profile.getResultAllocationManager());
                 factory.usingConfiguration(configurationManager().get<FactoryConfiguration>());
 
                 // Creating profile pass
-                ret.addPass(RuleTransformationPass(std::move(rule_set), config));
+                ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
             });
 
         registerProfileComponent<LlvmPassesConfiguration>(
-            "llvm-passes", [](LlvmPassesConfiguration const& config, IProfileGenerator* ptr) {
+            "llvm-passes", [](LlvmPassesConfiguration const& config, IProfileGenerator* ptr, Profile&) {
                 // Configuring LLVM passes
                 if (config.alwaysInline())
                 {
@@ -53,20 +55,21 @@ namespace quantum
         LlvmPassesConfiguration const&             llvm_config)
     {
         registerProfileComponent<RuleTransformationPassConfiguration>(
-            "Transformation rules",
-            [configure](RuleTransformationPassConfiguration const& config, IProfileGenerator* ptr) {
+            "transformation-rules",
+            [configure](RuleTransformationPassConfiguration const& config, IProfileGenerator* ptr, Profile& profile) {
                 // Defining the mapping
                 auto&   ret = ptr->modulePassManager();
                 RuleSet rule_set;
-                auto    factory = RuleFactory(rule_set);
+                auto    factory =
+                    RuleFactory(rule_set, profile.getQubitAllocationManager(), profile.getResultAllocationManager());
                 configure(rule_set);
 
                 // Creating profile pass
-                ret.addPass(RuleTransformationPass(std::move(rule_set), config));
+                ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
             });
 
         registerProfileComponent<LlvmPassesConfiguration>(
-            "llvm-passes", [](LlvmPassesConfiguration const& config, IProfileGenerator* ptr) {
+            "llvm-passes", [](LlvmPassesConfiguration const& config, IProfileGenerator* ptr, Profile&) {
                 // Configuring LLVM passes
                 if (config.alwaysInline())
                 {

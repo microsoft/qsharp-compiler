@@ -35,7 +35,10 @@ namespace quantum
         /// rule set to be configured, which can be moved using move
         /// semantics. No copy allowed.
         /// @{
-        explicit RuleFactory(RuleSet& rule_set);
+        RuleFactory(
+            RuleSet&             rule_set,
+            AllocationManagerPtr qubit_alloc_manager,
+            AllocationManagerPtr result_alloc_manager);
         RuleFactory()                   = delete;
         RuleFactory(RuleFactory const&) = delete;
         RuleFactory(RuleFactory&&)      = default;

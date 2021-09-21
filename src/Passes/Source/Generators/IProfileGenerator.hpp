@@ -3,6 +3,7 @@
 // Licensed under the MIT License.
 
 #include "Commandline/ConfigurationManager.hpp"
+#include "Profile/Profile.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -18,17 +19,17 @@ namespace quantum
         using OptimizationLevel                   = PassBuilder::OptimizationLevel;
         using FunctionAnalysisManager             = llvm::FunctionAnalysisManager;
         using String                              = std::string;
-        using SetupFunctionWrapper                = std::function<void(IProfileGenerator*)>;
-        template <typename R> using SetupFunction = std::function<void(R const&, IProfileGenerator*)>;
+        using SetupFunctionWrapper                = std::function<void(IProfileGenerator*, Profile&)>;
+        template <typename R> using SetupFunction = std::function<void(R const&, IProfileGenerator*, Profile&)>;
         using Components                          = std::vector<std::pair<String, SetupFunctionWrapper>>;
 
         template <typename R> void registerProfileComponent(String const& name, SetupFunction<R> setup)
         {
             configuration_manager_.addConfig<R>();
 
-            auto setup_wrapper = [setup](IProfileGenerator* ptr) {
+            auto setup_wrapper = [setup](IProfileGenerator* ptr, Profile& profile) {
                 auto& config = ptr->configuration_manager_.get<R>();
-                setup(config, ptr);
+                setup(config, ptr, profile);
             };
 
             components_.push_back({name, std::move(setup_wrapper)});
@@ -37,8 +38,10 @@ namespace quantum
         IProfileGenerator()  = default;
         ~IProfileGenerator() = default;
 
+        Profile newProfile(OptimizationLevel const& optimisation_level, bool debug);
+
         llvm::ModulePassManager createGenerationModulePass(
-            PassBuilder&             pass_builder,
+            Profile&                 profile,
             OptimizationLevel const& optimisation_level,
             bool                     debug);
 

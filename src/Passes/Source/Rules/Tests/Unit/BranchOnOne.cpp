@@ -35,7 +35,7 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
 
     if (!ir_manip->fromBodyString(script))
     {
-        llvm::errs() << ir_manip->getErrorMessage() << "\n";
+        llvm::outs() << ir_manip->getErrorMessage() << "\n";
         exit(-1);
     }
     return ir_manip;
@@ -65,7 +65,7 @@ continue__1:
   )script");
 
     auto configure_profile = [](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
         // factory.useStaticResultAllocation();
 
         factory.optimiseBranchQuantumOne();

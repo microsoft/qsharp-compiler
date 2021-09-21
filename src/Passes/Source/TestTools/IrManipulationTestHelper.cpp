@@ -133,15 +133,12 @@ namespace quantum
     }
 
     void IrManipulationTestHelper::applyProfile(
-        ProfilePtr const&        profile,
+        GeneratorPtr const&      generator,
         OptimizationLevel const& optimisation_level,
         bool                     debug)
     {
-        auto module_pass_manager = profile->createGenerationModulePass(pass_builder_, optimisation_level, debug);
-
-        // Running the pass built by the profile
-        assert(module_ != nullptr);
-        module_pass_manager.run(*module_, module_analysis_manager_);
+        auto profile = generator->newProfile(optimisation_level, debug);
+        profile.apply(*module_);
 
         // Verifying that the module is valid
         if (isModuleBroken())

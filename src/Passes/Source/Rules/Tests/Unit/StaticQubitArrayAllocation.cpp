@@ -30,7 +30,7 @@ IrManipulationTestHelperPtr newIrManip(std::string const& script)
 
     if (!ir_manip->fromBodyString(script))
     {
-        llvm::errs() << ir_manip->getErrorMessage() << "\n";
+        llvm::outs() << ir_manip->getErrorMessage() << "\n";
         exit(-1);
     }
 
@@ -57,7 +57,7 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationOffsets)
   )script");
 
     auto configure_profile = [](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
         factory.useStaticQubitArrayAllocation();
     };
 
@@ -95,7 +95,7 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationGetPtr)
     // Consequently the pattern fails.
 
     auto configure_profile = [](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
         factory.useStaticQubitArrayAllocation();
     };
 
@@ -139,7 +139,7 @@ TEST(RuleSetTestSuite, StaticQubitArrayAllocationAdvanced)
   )script");
 
     auto configure_profile = [](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set);
+        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
         factory.useStaticQubitArrayAllocation();
     };
 
