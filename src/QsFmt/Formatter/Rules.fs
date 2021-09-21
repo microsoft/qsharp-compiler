@@ -261,7 +261,7 @@ let arraySyntaxUpdate =
             | _ -> base.Expression((), expression)
     }
 
-let updateChecker document =
+let updateChecker fileName document =
     let mutable lineNumber = 1
     let mutable charNumber = 1
 
@@ -301,9 +301,17 @@ let updateChecker document =
                     let prefixLines, prefixChars = processPrefix newArray.New.Prefix
                     let subWarnings = base.Expression expression
 
+                    // Change the "-" input to say "input" in the warning
+                    let fileName =
+                        if fileName = "-" then
+                            "input"
+                        else
+                            fileName
+
                     let warning =
                         sprintf
-                            "Warning: Unable to updated deprecated new array syntax from line %i, character %i to line %i, character %i."
+                            "Warning: Unable to updated deprecated new array syntax in %s from line %i, character %i to line %i, character %i."
+                            fileName
                             (lineBefore + prefixLines)
                             (charBefore + prefixChars)
                             lineNumber

@@ -48,7 +48,7 @@ let rec doOne command recurse backup input =
                         File.Copy(input, (input + "~"), true)
                     File.ReadAllText input
 
-            match command source with
+            match command input source with
             | Ok result ->
                 if input = "-" then
                     printf "%s" result
