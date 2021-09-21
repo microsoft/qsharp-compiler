@@ -1,4 +1,4 @@
-﻿namespace Microsoft.Quantum.Qir.Emission {
+namespace Microsoft.Quantum.Qir.Emission {
 
     open Microsoft.Quantum.Intrinsic;
     open Microsoft.Quantum.Math;

@@ -1,8 +1,9 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
+    <OutputType>Exe</OutputType>
     <AssemblyName>Simulation</AssemblyName>
-    <TargetFramework>netstandard2.1</TargetFramework>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
     <CopyLocalLockFileAssemblies>true</CopyLocalLockFileAssemblies>
   </PropertyGroup>
 
@@ -12,6 +13,32 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\..\CSharpGeneration\CSharpGeneration.fsproj" />
+    <ProjectReference Include="..\..\..\LlvmBindings\LlvmBindings.csproj" />
   </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="libLLVM.runtime.win-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.osx-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" PrivateAssets="All" />    
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.210932364-alpha" ExcludeAssets="all" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.210932364-alpha" GeneratePathProperty="true" />
+  </ItemGroup>
+
+  <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
+    <PropertyGroup>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/osx-x64/native</QirRuntimeLibs>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/win-x64/native</QirRuntimeLibs>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/linux-x64/native</QirRuntimeLibs>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+    </PropertyGroup>
+    <ItemGroup>
+      <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
+    </ItemGroup>
+    <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(OutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  </Target>
 
 </Project>

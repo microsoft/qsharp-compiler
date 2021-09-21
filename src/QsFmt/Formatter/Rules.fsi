@@ -26,6 +26,9 @@ val qubitBindingUpdate: unit Rewriter
 /// Will not replace `()` when referencing the Unit value literal.
 val unitUpdate : unit Rewriter
 
+/// Updates for-loops to remove deprecated parentheses.
+val forParensUpdate: unit Rewriter
+
 /// Updates the `new <Type>[n]` array syntax to the new `[val, size = n]` array syntax.
 val arraySyntaxUpdate: unit Rewriter
 

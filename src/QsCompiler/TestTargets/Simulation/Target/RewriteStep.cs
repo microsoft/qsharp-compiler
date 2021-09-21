@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.QsCompiler.Testing.Simulation
     /// This project serves as example for defining a rewrite step that can integrated into the compilation process
     /// by given it as target to the Q# command line compiler (via -t path/To/Simulation.dll).
     /// Any class in this dll that implements the IRewriteStep interface will be detected during compilation,
-    /// and its transformation and verfication step (if implemented) will be executed.
+    /// and its transformation and verification step (if implemented) will be executed.
     /// </summary>
     public class CSharpGeneration : IRewriteStep
     {

@@ -38,7 +38,7 @@ namespace quantum
         return is_flag_;
     }
 
-    String IConfigBind::defaultValue() const
+    IConfigBind::String IConfigBind::defaultValue() const
     {
         return str_default_value_;
     }
