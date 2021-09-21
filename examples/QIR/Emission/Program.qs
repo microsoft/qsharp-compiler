@@ -30,8 +30,8 @@
     
         for _ in 1 .. nrIter {
     
-            let time = mu - PI() * sigma / 2.0;
-            let theta = 1.0 / sigma;
+            let theta = mu - PI() * sigma / 2.0;
+            let time = 1.0 / sigma;
 
             let datum = Iterate(time, theta, target);
     

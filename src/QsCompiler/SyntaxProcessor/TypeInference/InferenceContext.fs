@@ -532,6 +532,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match resolvedType.Resolution, index.Resolution with
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
+            | ArrayType _, InvalidType -> []
             | ArrayType _, _ ->
                 [
                     QsCompilerDiagnostic.Error
