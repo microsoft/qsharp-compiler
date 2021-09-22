@@ -318,14 +318,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     throw new InvalidOperationException("invalid item name in named item access");
                 }
 
-                // In order to accurately reflect which items are still in use and thus need to remain allocated,
-                // reference counts always need to be modified recursively. However, while the reference count for
-                // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
-                // to increase the reference count of the contained items due to lacking type information.
-                // In the same way that we increase the reference count when we populate an array, we hence need to
-                // manually (recursively) increase the reference counts for all items.
                 if (!unreferenceOriginal)
                 {
+                    // In order to accurately reflect which items are still in use and thus need to remain allocated,
+                    // reference counts always need to be modified recursively. However, while the reference count for
+                    // the value returned by ArrayCopy is set to 1 or increased by 1, it is not possible for the runtime
+                    // to increase the reference count of the contained items due to lacking type information.
+                    // In the same way that we increase the reference count when we populate an array, we hence need to
+                    // manually (recursively) increase the reference counts for all items.
                     sharedState.ScopeMgr.IncreaseReferenceCount(array);
                     sharedState.ScopeMgr.DecreaseReferenceCount(array, shallow: true);
                 }
@@ -417,6 +417,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     }
                     else
                     {
+                        // We effectively decrease the reference count for the unmodified tuple items by not increasing it
+                        // to reflect their use in the copy, and we have manually decreased the reference count for the updated item(s).
+                        // What's left to do is to unreference the original tuple(s) that has/have been replaced.
                         while (originalTuples.TryPop(out var original))
                         {
                             sharedState.ScopeMgr.DecreaseReferenceCount(original, shallow: true);
@@ -1289,12 +1292,14 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // for a ref count decrease at the end of the scope (otherwise that ref count decrease will access the updated items
             // instead of the original ones due to the in-place modification).
             // We hence first check whether the lhs is accessed via a local identifier (i.e. can be accessed after the copy-and-update),
-            // and if it is, we can (and must) delay the reference count decrease until the end of the scope.
-            // If it is not, then we need to make sure that ...
+            // and if it is, we can (and must) delay the reference count decrease until the end of the scope, since the copy will be
+            // executed in this case. If it is not, then we need to make sure that any newly created value is not registered with
+            // the scope manager. Instead, we ensure that the necessary ref count decrease happens by unreferencing the original value
+            // (lhs of the expression) as part of building the copy-and-update expression.
             var isFromIdentifier = AccessViaLocalId(lhs, out var _);
             var originalValue = isFromIdentifier
                 ? this.SharedState.EvaluateSubexpression(lhs)
-                : this.SharedState.BuildSubitem(lhs);
+                : this.SharedState.BuildSubitem(lhs); // ensures that newly created values are not registered with the scope manager
             return CopyAndUpdate(this.SharedState, (originalValue, accEx, rhs), unreferenceOriginal: !isFromIdentifier);
         }
 
