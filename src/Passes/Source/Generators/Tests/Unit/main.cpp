@@ -15,7 +15,6 @@ namespace
 class ExposedDefaultProfileGenerator : public DefaultProfileGenerator
 {
   public:
-    using DefaultProfileGenerator::addFunctionAnalyses;
     using DefaultProfileGenerator::createGenerationModulePass;
     using DefaultProfileGenerator::createValidationModulePass;
     using DefaultProfileGenerator::DefaultProfileGenerator;
@@ -90,7 +89,7 @@ TEST(GeneratorsTestSuite, ConfigureFunction)
     auto     generator = std::make_shared<ExposedDefaultProfileGenerator>(configure);
 
     TestAnalysis test;
-    generator->addFunctionAnalyses(test.functionAnalysisManager());
+
     auto module_pass_manager =
         generator->createGenerationModulePass(profile, llvm::PassBuilder::OptimizationLevel::O0, false);
 
@@ -108,7 +107,6 @@ TEST(GeneratorsTestSuite, ConfigurationManager)
 
     TestAnalysis test;
 
-    generator->addFunctionAnalyses(test.functionAnalysisManager());
     auto module_pass_manager =
         generator->createGenerationModulePass(profile, llvm::PassBuilder::OptimizationLevel::O0, false);
 

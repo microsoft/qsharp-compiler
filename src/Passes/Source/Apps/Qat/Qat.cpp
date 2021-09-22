@@ -117,10 +117,10 @@ int main(int argc, char** argv)
             else
             {
                 using LoadFunctionPtr = void (*)(IProfileGenerator*);
-                LoadFunctionPtr loadComponent;
-                loadComponent = reinterpret_cast<LoadFunctionPtr>(dlsym(handle, "loadComponent"));
+                LoadFunctionPtr load_component;
+                load_component = reinterpret_cast<LoadFunctionPtr>(dlsym(handle, "loadComponent"));
 
-                loadComponent(generator.get());
+                load_component(generator.get());
             }
         }
 
