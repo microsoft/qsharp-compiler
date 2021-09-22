@@ -147,7 +147,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // If the change on the other hand also applies to inner items, then it needs to be
                     // applied immediately, to ensure that it is applied to the currently stored inner items,
                     // in case the container is modified in place later on.
-                    this.decreaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    if (!TryRemoveValue(this.pendingReferences, v => ValueEquals(v, (value, !shallow))))
+                    {
+                        this.decreaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    }
                 }
             }
 

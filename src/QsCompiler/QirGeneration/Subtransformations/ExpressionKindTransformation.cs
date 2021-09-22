@@ -242,7 +242,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </param>
         internal static ResolvedExpressionKind CopyAndUpdate(
             GenerationContext sharedState,
-            (IValue, TypedExpression, TypedExpression) copyAndUpdate,
+            ((string?, IValue), TypedExpression, TypedExpression) copyAndUpdate,
             bool updateItemAliasCount = false,
             bool unreferenceOriginal = false)
         {
@@ -267,51 +267,77 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             IValue CopyAndUpdateArray(ArrayValue originalArray)
             {
-                // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
-                // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
-                // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
-                var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
-                var forceCopy = sharedState.Context.CreateConstant(false);
-                var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
-                var array = sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
-                sharedState.ScopeMgr.RegisterValue(array);
-
-                void UpdateElement(Func<Value, IValue> getNewItemForIndex, Value index)
+                ArrayValue GetArrayCopy(bool needsToBeCopied)
                 {
-                    var elementPtr = array.GetArrayElementPointer(index);
-                    var newElement = getNewItemForIndex(index);
+                    // Since we keep track of alias counts for arrays we always ask the runtime to create a shallow copy
+                    // if needed. The runtime function ArrayCopy creates a new value with reference count 1 if the current
+                    // alias count is larger than 0, and otherwise merely increases the reference count of the array by 1.
+                    var createShallowCopy = sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArrayCopy);
+                    var forceCopy = sharedState.Context.CreateConstant(needsToBeCopied);
+                    var copy = sharedState.CurrentBuilder.Call(createShallowCopy, originalArray.OpaquePointer, forceCopy);
+                    return sharedState.Values.FromArray(copy, originalArray.QSharpElementType);
+                }
+
+                void UpdateElement(Func<IValue> getNewItemForIndex, PointerValue itemToUpdate)
+                {
+                    var newElement = getNewItemForIndex();
 
                     if (unreferenceOriginal)
                     {
                         sharedState.ScopeMgr.IncreaseReferenceCount(newElement);
-                        sharedState.ScopeMgr.DecreaseReferenceCount(elementPtr);
+                        sharedState.ScopeMgr.DecreaseReferenceCount(itemToUpdate);
                     }
 
-                    StoreElement(elementPtr, newElement, fromLocalId);
+                    StoreElement(itemToUpdate, newElement, fromLocalId);
                 }
 
+                ArrayValue array;
                 if (accEx.ResolvedType.Resolution.IsInt)
                 {
+                    array = GetArrayCopy(false);
+
                     // do not increase the ref count here - we will increase the ref count of all new items at the end
                     IValue newItemValue = sharedState.EvaluateSubexpression(updated);
                     var index = sharedState.EvaluateSubexpression(accEx);
-                    UpdateElement(_ => newItemValue, index.Value);
+                    UpdateElement(() => newItemValue, array.GetArrayElementPointer(index.Value));
                 }
                 else if (accEx.ResolvedType.Resolution.IsRange)
                 {
+                    // fixme: if fromLocalId equals the lhs then we need to make a deep copy of updated ...
+                    // or rather: force a copy and store the things to unreference rather than applying the unref...
+                    var updateFromSelf = originalValue.Item1 != null && originalValue.Item1 == fromLocalId;
+                    array = GetArrayCopy(updateFromSelf);
+
                     // do not increase the ref count here - we will increase the ref count of all new items at the end
                     var newItemValues = (ArrayValue)sharedState.EvaluateSubexpression(updated);
                     var (getStart, getStep, getEnd) = sharedState.Functions.RangeItems(accEx);
                     sharedState.IterateThroughArray(newItemValues, getStart(), (newItem, targetIdx) =>
                     {
                         sharedState.ScopeMgr.OpenScope();
-                        UpdateElement(_ => newItem, targetIdx!);
+                        var elementPtr = array.GetArrayElementPointer(targetIdx!);
+                        if (updateFromSelf)
+                        {
+                            sharedState.ScopeMgr.IncreaseReferenceCount(elementPtr);
+                        }
+
+                        UpdateElement(() => newItem, elementPtr);
                         var step = getStep() ?? sharedState.Context.CreateConstant(1L);
                         var nextIdx = sharedState.CurrentBuilder.Add(targetIdx!, step);
                         var isTerminated = sharedState.CurrentBlock?.Terminator != null;
                         sharedState.ScopeMgr.CloseScope(isTerminated);
                         return nextIdx;
                     });
+
+                    if (updateFromSelf)
+                    {
+                        sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), targetIdx =>
+                        {
+                            sharedState.ScopeMgr.OpenScope();
+                            sharedState.ScopeMgr.DecreaseReferenceCount(originalArray.GetArrayElement(targetIdx));
+                            var isTerminated = sharedState.CurrentBlock?.Terminator != null;
+                            sharedState.ScopeMgr.CloseScope(isTerminated);
+                        });
+                    }
                 }
                 else
                 {
@@ -337,10 +363,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     sharedState.ScopeMgr.DecreaseReferenceCount(originalArray, shallow: true);
                 }
 
+                sharedState.ScopeMgr.RegisterValue(array);
                 return array;
             }
 
-            IValue CopyAndUpdateUdt(TupleValue originalValue)
+            IValue CopyAndUpdateUdt(TupleValue originalTuple)
             {
                 TupleValue GetTupleCopy(TupleValue original)
                 {
@@ -355,7 +382,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         : sharedState.Values.FromCustomType(copy, new UserDefinedType(original.TypeName.Namespace, original.TypeName.Name, QsNullable<DataTypes.Range>.Null));
                 }
 
-                var udtName = originalValue.TypeName;
+                var udtName = originalTuple.TypeName;
                 if (udtName == null || !sharedState.TryGetCustomType(udtName, out QsCustomType? udtDecl))
                 {
                     throw new InvalidOperationException("Q# declaration for type not found");
@@ -365,12 +392,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     && FindNamedItem(name.Item, udtDecl.TypeItems, out var location))
                 {
                     var originalTuples = new Stack<TupleValue>();
-                    originalTuples.Push(originalValue);
+                    originalTuples.Push(originalTuple);
 
                     var copies = new Stack<TupleValue>();
-                    var value = GetTupleCopy(originalValue);
+                    var value = GetTupleCopy(originalTuple);
                     copies.Push(value);
-                    sharedState.ScopeMgr.RegisterValue(value);
 
                     for (int depth = 0; depth < location.Count; depth++)
                     {
@@ -426,6 +452,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         }
                     }
 
+                    sharedState.ScopeMgr.RegisterValue(value);
                     return value;
                 }
                 else
@@ -435,11 +462,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             IValue value;
-            if (originalValue is ArrayValue originalArray)
+            if (originalValue.Item2 is ArrayValue originalArray)
             {
                 value = CopyAndUpdateArray(originalArray);
             }
-            else if (originalValue is TupleValue originalTuple && originalTuple.TypeName != null)
+            else if (originalValue.Item2 is TupleValue originalTuple && originalTuple.TypeName != null)
             {
                 value = CopyAndUpdateUdt(originalTuple);
             }
@@ -1296,11 +1323,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // executed in this case. If it is not, then we need to make sure that any newly created value is not registered with
             // the scope manager. Instead, we ensure that the necessary ref count decrease happens by unreferencing the original value
             // (lhs of the expression) as part of building the copy-and-update expression.
-            var isFromIdentifier = AccessViaLocalId(lhs, out var _);
+            var isFromIdentifier = AccessViaLocalId(lhs, out var fromId);
             var originalValue = isFromIdentifier
                 ? this.SharedState.EvaluateSubexpression(lhs)
                 : this.SharedState.BuildSubitem(lhs); // ensures that newly created values are not registered with the scope manager
-            return CopyAndUpdate(this.SharedState, (originalValue, accEx, rhs), unreferenceOriginal: !isFromIdentifier);
+            return CopyAndUpdate(this.SharedState, ((fromId, originalValue), accEx, rhs), unreferenceOriginal: !isFromIdentifier);
         }
 
         public override ResolvedExpressionKind OnDivision(TypedExpression lhsEx, TypedExpression rhsEx)

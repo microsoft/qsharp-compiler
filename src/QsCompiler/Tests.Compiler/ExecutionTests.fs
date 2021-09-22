@@ -144,6 +144,34 @@ type ExecutionTests(output: ITestOutputHelper) =
 
 
     [<Fact>]
+    member this.``QIR array slicing``() =
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestArraySlicing"
+        let exitCode, out, err = QirExecutionTest functionName
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
+
+        let expected =
+            """
+            [1, 2, 3, 4], [4, 3, 2, 1]
+            [4, 3, 2, 1], [1, 2, 3, 4]
+            [4, 3, 2, 1], [2, 2, 1, 4]
+            [4, 3, 2, 1], [2, 2, 1, 4]
+            [[1], [0], []], [[3], [2], [1]]
+            [[0], [2], []], [[1], [2], [3]]
+            [[5], [10], [5], [10], [5]], [[1], [2], [3]]
+            [[0], [0, 0], [1, 1, 1]]
+            [[0, 0], [0], [1, 1, 1]]
+            [[1, 1, 1], [0], [0, 0]]
+            [[0, 0], [0], [1, 1, 1]]
+            [1, 2, 3, 4], [1, 2, 3, 4]
+            1..3..5
+            """
+
+        AssertEqual expected out
+
+
+    [<Fact>]
     member this.``QIR memory management``() =
 
         // Sanity test to check if we properly detect when a runtime exception is thrown:

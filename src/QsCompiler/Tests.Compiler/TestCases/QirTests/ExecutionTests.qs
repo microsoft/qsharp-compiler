@@ -1091,6 +1091,241 @@
         Message($"{coeffs}");
     }
 
+    function TestArrayUpdate1a (cond : Bool) : Unit {
+
+        let value = [0];
+        mutable arr = [value, [0,0]];
+
+
+        if cond {
+            set arr w/= 0 <- [];
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate1b (cond : Bool) : Unit {
+
+        let value = [0];
+        mutable arr = [value, [0,0]];
+
+
+        if cond {
+            set arr w/= 1..-1..0 <- arr;
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate2a (cond : Bool) : Unit {
+
+        mutable arr = [[0], [0,0]];
+        let value = arr[0];
+
+        if cond {
+            set arr w/= 0 <- [];
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate2b (cond : Bool) : Unit {
+
+        mutable arr = [[0], [0,0], []];
+        let value = arr[0];
+
+        if cond {
+            set arr w/= 0..2..2 <- [[1], [2]];
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate3a (cond : Bool) : Unit {
+
+        mutable arr = [[0], [0,0]];
+        let value = arr;
+
+        if cond {
+            set arr w/= 0 <- [];
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate3b (cond : Bool) : Unit {
+
+        mutable arr = [[0], [0,0]];
+        let value = arr;
+
+        if cond {
+            set arr w/= 0..-1 <- [];
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate4a (cond : Bool) : Unit {
+        mutable arr = [[0], [0,0]];
+        let value = arr;
+
+        set arr = cond
+            ? [[0], size = 5] w/ 3 <- [1]
+            | (value w/ 1 <- []);
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate4b (cond : Bool) : Unit {
+        mutable arr = [[0], [0,0], []];
+        let value = arr;
+
+        set arr = cond
+            ? [[0], size = 5] w/ 4..-2..-1 <- [[], size = 3]
+            | (value w/ 0..2..3 <- arr[1...]);
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate5a(cond : Bool) : Unit {
+
+        mutable value = ["hello", "bye"];
+        mutable arr = value;
+        set value = [];
+
+        if cond {
+            set arr w/= 0 <- "";
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate5b(cond : Bool) : Unit {
+
+        mutable value = ["hello", "bye"];
+        mutable arr = value;
+        set value = [""];
+
+        if cond {
+            set arr w/= 0 <- "";
+            set value w/= 0 <- arr[1];
+        }
+
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate6a(cond : Bool) : Unit {
+    
+        mutable value = [[0], [0,0]];
+        mutable arr = value;
+        set value = [];
+    
+        if cond {
+            set arr w/= 0 <- [];
+        }
+    
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate6b(cond : Bool) : Unit {
+    
+        mutable value = [[0], [0,0]];
+        mutable arr = value;
+        set value = [[]];
+    
+        if cond {
+            let item = [1,2];
+            set arr w/= 0 <- [];
+            set value w/= 0 <- (item w/ 1 <- 0);
+        }
+    
+        Message($"{value}");
+        Message($"{arr}");
+    }
+
+    function TestArrayUpdate7a(cond1 : Bool, cond2 : Bool) : Unit {
+
+        mutable value = [[0], [0,0]];
+        if cond1 {
+            mutable arr = value;
+            set value = [];
+
+            if cond2 {
+                set arr w/= 0 <- [];
+            }
+
+            Message($"{arr}");
+
+        }
+        Message($"{value}");
+    }
+
+    function TestArrayUpdate7b(cond1 : Bool, cond2 : Bool) : Unit {
+
+        mutable value = [[0], [0,0]];
+        if cond1 {
+            mutable arr = value;
+            set value = [[],[]];
+
+            if cond2 {
+                set arr w/= 0 <- [];
+                set value w/= 1 <- [1];
+            }
+
+            Message($"{arr}");
+
+        }
+        Message($"{value}");
+    }
+
+
+    function TestArrayUpdate8a(cond1 : Bool, cond2 : Bool, cond3 : Bool) : Unit {
+
+        mutable value = [[0], [0,0]];
+        if cond1 {
+            mutable arr = value;
+            if cond2 {
+                set value = [];
+
+                if cond2 {
+                    set arr w/= 0 <- [];
+                }
+            }
+            Message($"{arr}");
+        }
+        Message($"{value}");
+    }
+
+    function TestArrayUpdate8b(cond1 : Bool, cond2 : Bool, cond3 : Bool) : Unit {
+
+        mutable value = [[0], [0,0]];
+        if cond1 {
+            mutable arr = value;
+            if cond2 {
+                set value = [[1],[2]];
+
+                if cond2 {
+                    set arr w/= 0 <- [];
+                    set value w/= 1 <- (value[1] w/ 0 <- 0);
+                }
+            }
+            Message($"{arr}");
+        }
+        Message($"{value}");
+    }
+
+
     function TestCopyAndUpdate1 () : Unit {
 
         let udt = MyUdt(("s1", ("s2", Tuple("s3a", "s3b"))), "s4") w/ Item1 <- "";
@@ -1322,118 +1557,55 @@
         Message($"{arr}");
     }
 
-    function TestArrayUpdate1 (cond : Bool) : Unit {
+    // todo: get rid of all these strings...
+    // TODO: tests for straight out variable update (not copy and update)
 
-        let value = [0];
-        mutable arr = [value, [0,0]];
+    // TODO: add a test that also checks the prints for the slices
 
+    @EntryPoint()
+    operation TestArraySlicing() : Range {
 
-        if cond {
-            set arr w/= 0 <- [];
+        mutable arr = [1,2,3,4];
+        Message($"{arr}, {arr[...-1...]}");
+        mutable value = arr;
+        let check1 = value;
+        mutable check2 = arr;
+
+        if arr[0] == 1 {
+            set arr w/= 3..-1..0 <- arr;
+            Message($"{arr}, {value}");
+            set value w/= 0..2..2 <- arr[Length(arr)/2...];
+            Message($"{arr}, {value}");
+            set arr w/= 0..-1 <- [];
+            Message($"{arr}, {value}");
         }
 
-        Message($"{value}");
-        Message($"{arr}");
-    }
+        mutable arrarr = [[], [0], [1]];
+        set arrarr w/= 2..-1..0 <- arrarr;
+        let iter = [[1],[2],[3]];
+        Message($"{arrarr}, {iter w/ 2..-1..0 <- iter}");
 
-    function TestArrayUpdate2 (cond : Bool) : Unit {
+        set arrarr = value[0] == 1
+            ? [[10], size = 5] w/ 4..-2..-1 <- [[6], size = 3]
+            | (iter w/ 0..2..3 <- arrarr[1...]);
+        Message($"{arrarr}, {iter}");
 
-        mutable arr = [[0], [0,0]];
-        let value = arr[0];
+        set arrarr = value[0] != 1
+            ? [[10], size = 5] w/ 4..-2..-1 <- [[5], size = 3]
+            | (iter w/ 0..2..3 <- arrarr[1...]);
+        Message($"{arrarr}, {iter}");
 
-        if cond {
-            set arr w/= 0 <- [];
-        }
+        set arrarr = [[0], [0,0], [1,1,1]];
+        Message($"{arrarr}");
+        set arrarr w/= 1..-1..0 <- arrarr[0..1];
+        Message($"{arrarr}");
+        set arrarr w/= 2..-1..0 <- arrarr;
+        Message($"{arrarr}");
+        set arrarr w/= 0..2..3 <- arrarr[0..2..3][...-1...];
+        Message($"{arrarr}");
 
-        Message($"{value}");
-        Message($"{arr}");
-    }
-
-    function TestArrayUpdate3 (cond : Bool) : Unit {
-
-        mutable arr = [[0], [0,0]];
-        let value = arr;
-
-        if cond {
-            set arr w/= 0 <- [];
-        }
-
-        Message($"{value}");
-        Message($"{arr}");
-    }
-
-    function TestArrayUpdate4 (cond : Bool) : Unit {
-        mutable arr = [[0], [0,0]];
-        let value = arr;
-
-        set arr = cond
-            ? [[0], size = 5] w/ 3 <- [1]
-            | value w/ 1 <- [];
-
-        Message($"{value}");
-        Message($"{arr}");
-    }
-
-    function TestArrayUpdate5(cond : Bool) : Unit {
-
-        mutable value = ["hello", "bye"];
-        mutable arr = value;
-        set value = [];
-
-        if cond {
-            set arr w/= 0 <- "";
-        }
-
-        Message($"{value}");
-        Message($"{arr}");
-    }
-
-    function TestArrayUpdate6(cond : Bool) : Unit {
-    
-        mutable value = [[0], [0,0]];
-        mutable arr = value;
-        set value = [];
-    
-        if cond {
-            set arr w/= 0 <- [];
-        }
-    
-        Message($"{value}");
-        Message($"{arr}");
-    }
-
-    function TestArrayUpdate7(cond1 : Bool, cond2 : Bool) : Unit {
-
-        mutable value = [[0], [0,0]];
-        if cond1 {
-            mutable arr = value;
-            set value = [];
-
-            if cond2 {
-                set arr w/= 0 <- [];
-            }
-
-            Message($"{arr}");
-
-        }
-        Message($"{value}");
-    }
-
-    function TestArrayUpdate8(cond1 : Bool, cond2 : Bool, cond3 : Bool) : Unit {
-
-        mutable value = [[0], [0,0]];
-        if cond1 {
-            mutable arr = value;
-            if cond2 {
-                set value = [];
-
-                if cond2 {
-                    set arr w/= 0 <- [];
-                }
-            }
-            Message($"{arr}");
-        }
-        Message($"{value}");
+        Message($"{check1}, {check2}");
+        return 1..3..5;
     }
 
     internal function PrintSection(sectionIdx : Int, sectionTitle : String) : Unit {
@@ -1690,35 +1862,63 @@
         
         PrintSection(13, "");
         
-        TestArrayUpdate1(true);
-        TestArrayUpdate1(false);
-        TestArrayUpdate2(true);
-        TestArrayUpdate2(false);
-        TestArrayUpdate3(true);
-        TestArrayUpdate3(false);
-        TestArrayUpdate4(true);
-        TestArrayUpdate4(false);
+        TestArrayUpdate1a(true);
+        TestArrayUpdate1a(false);
+        TestArrayUpdate2a(true);
+        TestArrayUpdate2a(false);
+        TestArrayUpdate3a(true);
+        TestArrayUpdate3a(false);
+        TestArrayUpdate4a(true);
+        TestArrayUpdate4a(false);
+
+        TestArrayUpdate1b(true);
+        TestArrayUpdate1b(false);
+        TestArrayUpdate2b(true);
+        TestArrayUpdate2b(false);
+        TestArrayUpdate3b(true);
+        TestArrayUpdate3b(false);
+        TestArrayUpdate4b(true);
+        TestArrayUpdate4b(false);
 
         PrintSection(14, "");
 
-        TestArrayUpdate5(true);
-        TestArrayUpdate5(false);
-        TestArrayUpdate6(true);
-        TestArrayUpdate6(false);
-        TestArrayUpdate7(true, true);
-        TestArrayUpdate7(false, true);
-        TestArrayUpdate7(true, false);
-        TestArrayUpdate7(false, false);
-        TestArrayUpdate8(true, true, true);
-        TestArrayUpdate8(false, true, true);
-        TestArrayUpdate8(true, false, true);
-        TestArrayUpdate8(false, false, true);
-        TestArrayUpdate8(true, true, false);
-        TestArrayUpdate8(false, true, false);
-        TestArrayUpdate8(true, false, false);
-        TestArrayUpdate8(false, false, false);
+        TestArrayUpdate5a(true);
+        TestArrayUpdate5a(false);
+        TestArrayUpdate6a(true);
+        TestArrayUpdate6a(false);
+        TestArrayUpdate7a(true, true);
+        TestArrayUpdate7a(false, true);
+        TestArrayUpdate7a(true, false);
+        TestArrayUpdate7a(false, false);
+        TestArrayUpdate8a(true, true, true);
+        TestArrayUpdate8a(false, true, true);
+        TestArrayUpdate8a(true, false, true);
+        TestArrayUpdate8a(false, false, true);
+        TestArrayUpdate8a(true, true, false);
+        TestArrayUpdate8a(false, true, false);
+        TestArrayUpdate8a(true, false, false);
+        TestArrayUpdate8a(false, false, false);
 
         PrintSection(15, "");
+
+        TestArrayUpdate5b(true);
+        TestArrayUpdate5b(false);
+        TestArrayUpdate6b(true);
+        TestArrayUpdate6b(false);
+        TestArrayUpdate7b(true, true);
+        TestArrayUpdate7b(false, true);
+        TestArrayUpdate7b(true, false);
+        TestArrayUpdate7b(false, false);
+        TestArrayUpdate8b(true, true, true);
+        TestArrayUpdate8b(false, true, true);
+        TestArrayUpdate8b(true, false, true);
+        TestArrayUpdate8b(false, false, true);
+        TestArrayUpdate8b(true, true, false);
+        TestArrayUpdate8b(false, true, false);
+        TestArrayUpdate8b(true, false, false);
+        TestArrayUpdate8b(false, false, false);
+
+        PrintSection(16, "");
 
         TestCopyAndUpdate1();
         TestCopyAndUpdate2();
@@ -1733,7 +1933,7 @@
         TestCopyAndUpdate7b();
         TestCopyAndUpdate8b();
 
-        PrintSection(16, "");
+        PrintSection(17, "");
 
         TestCopyAndUpdate9a();
         TestCopyAndUpdate10a();
