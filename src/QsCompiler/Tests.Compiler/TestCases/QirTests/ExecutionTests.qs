@@ -1742,7 +1742,7 @@
         TestCopyAndUpdate13a();
         TestCopyAndUpdate14a();
         TestCopyAndUpdate15a();
-        //TestCopyAndUpdate16a(); // todo
+        TestCopyAndUpdate16a();
 
         TestCopyAndUpdate9b();
         TestCopyAndUpdate10b();
@@ -1751,7 +1751,7 @@
         TestCopyAndUpdate13b();
         TestCopyAndUpdate14b();
         TestCopyAndUpdate15b();
-        //TestCopyAndUpdate16b(); // todo
+        TestCopyAndUpdate16b();
 
         Message("Executed successfully!");
     }

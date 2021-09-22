@@ -300,10 +300,18 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 else if (accEx.ResolvedType.Resolution.IsRange)
                 {
                     // do not increase the ref count here - we will increase the ref count of all new items at the end
-                    var newItemValue = (ArrayValue)sharedState.EvaluateSubexpression(updated);
+                    var newItemValues = (ArrayValue)sharedState.EvaluateSubexpression(updated);
                     var (getStart, getStep, getEnd) = sharedState.Functions.RangeItems(accEx);
-                    sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), index => UpdateElement(newItemValue.GetArrayElement, index));
-                    sharedState.ScopeMgr.DecreaseReferenceCount(newItemValue, shallow: true); // the items get unreferenced with the value of the copy-and-update expression
+                    sharedState.IterateThroughArray(newItemValues, getStart(), (newItem, targetIdx) =>
+                    {
+                        sharedState.ScopeMgr.OpenScope();
+                        UpdateElement(_ => newItem, targetIdx!);
+                        var step = getStep() ?? sharedState.Context.CreateConstant(1L);
+                        var nextIdx = sharedState.CurrentBuilder.Add(targetIdx!, step);
+                        var isTerminated = sharedState.CurrentBlock?.Terminator != null;
+                        sharedState.ScopeMgr.CloseScope(isTerminated);
+                        return nextIdx;
+                    });
                 }
                 else
                 {
@@ -1061,7 +1069,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // the comment there is exactly one.
                 var forceCopy = this.SharedState.Context.CreateConstant(true);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
-                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
+                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value);
                 value = this.SharedState.Values.FromArray(slice, elementType);
 
                 // The explicit ref count increase for all items is necessary for the sake of
