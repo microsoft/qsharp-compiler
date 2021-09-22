@@ -1557,10 +1557,6 @@
         Message($"{arr}");
     }
 
-    // todo: get rid of all these strings...
-    // TODO: tests for straight out variable update (not copy and update)
-
-    // TODO: add a test that also checks the prints for the slices
 
     @EntryPoint()
     operation TestArraySlicing() : Range {
