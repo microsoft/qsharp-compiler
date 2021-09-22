@@ -7,9 +7,8 @@ module Microsoft.Quantum.QsFmt.Formatter.Formatter
 open Microsoft.Quantum.QsFmt.Formatter.Errors
 
 /// Formats the given Q# source code.
-/// Takes a Q# file name and source code.
 [<CompiledName "Format">]
-val format: string -> string -> Result<string, SyntaxError list>
+val format: string -> Result<string, SyntaxError list>
 
 /// Updates deprecated syntax in the given source code.
 /// Takes a Q# file name and source code.

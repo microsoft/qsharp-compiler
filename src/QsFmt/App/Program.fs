@@ -27,28 +27,47 @@ type Argument =
             | Update _ -> "Update depreciated syntax in the input files."
             | Format _ -> "Format the source code in input files."
 
-let rec doOne command recurse backup input =
+type CommandKind =
+    | Update
+    | Format
+
+type Arguments =
+    {
+        CommandKind : CommandKind
+        RecurseFlag : bool
+        BackupFlag : bool
+        Inputs : string list
+    }
+
+let rec doOne arguments input =
     try
         if input <> "-" && (File.GetAttributes input).HasFlag(FileAttributes.Directory) then
             let newInputs =
                 let topLevelFiles = Directory.EnumerateFiles(input, "*.qs") |> List.ofSeq
 
-                if recurse then
+                if arguments.RecurseFlag then
                     topLevelFiles @ (Directory.EnumerateDirectories input |> List.ofSeq)
                 else
                     topLevelFiles
 
-            newInputs |> run command recurse backup
+            newInputs |> run arguments
         else
             let source =
                 if input = "-" then
                     stdin.ReadToEnd()
                 else
-                    if backup then
+                    if arguments.BackupFlag then
                         File.Copy(input, (input + "~"), true)
                     File.ReadAllText input
 
-            match command input source with
+            let command =
+                match arguments.CommandKind with
+                | Update ->
+                        Formatter.update input
+                | Format ->
+                    Formatter.format
+
+            match command source with
             | Ok result ->
                 if input = "-" then
                     printf "%s" result
@@ -66,9 +85,12 @@ let rec doOne command recurse backup input =
         eprintfn "%s" ex.Message
         4
 
-and run command recurse backup inputs =
+and run (arguments : Arguments) inputs =
     inputs
-    |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne command recurse backup)) 0
+    |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne arguments)) 0
+
+let updateCommand source =
+    ()
 
 [<CompiledName "Main">]
 [<EntryPoint>]
@@ -77,18 +99,27 @@ let main args =
 
     try
         let results = parser.Parse args
-        let inputs = results.GetResult Input
-        let recurseFlag = results.Contains Recurse
-        let backupFlag = results.Contains Backup
+        let args =
+            {
+                CommandKind =
+                    match results.TryGetSubCommand() with
+                    | None // default to update command
+                    | Some Argument.Update -> Update
+                    | Some Argument.Format -> Format
+                    | _ -> failwith "unrecognized command used"
+                RecurseFlag = results.Contains Recurse
+                BackupFlag = results.Contains Backup
+                Inputs = results.GetResult Input
+            }
 
-        let command =
+        let command : CommandKind =
             match results.TryGetSubCommand() with
             | None // default to update command
-            | Some Update -> Formatter.update
-            | Some Format -> Formatter.format
+            | Some Argument.Update -> Update //Formatter.update
+            | Some Argument.Format -> Format //Formatter.format
             | _ -> failwith "unrecognized command used"
 
-        inputs |> run command recurseFlag backupFlag
+        args.Inputs |> run args
     with
     | :? ArguParseException as ex ->
         eprintf "%s" ex.Message

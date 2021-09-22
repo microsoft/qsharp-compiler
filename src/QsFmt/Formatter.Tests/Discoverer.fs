@@ -183,7 +183,7 @@ module Discoverer =
         | Some reason -> Skip.If(true, reason)
         | None ->
             let after = example.After |> standardizeNewLines |> Ok |> ShowResult
-            let before = Formatter.format "" example.Before |> Result.map standardizeNewLines |> ShowResult
+            let before = Formatter.format example.Before |> Result.map standardizeNewLines |> ShowResult
             Assert.Equal(after, before)
 
     /// <summary>
@@ -210,5 +210,5 @@ module Discoverer =
         | Some reason -> Skip.If(true, reason)
         | None ->
             let original = Ok fixedPoint.Source |> ShowResult
-            let formatted = Formatter.format "" fixedPoint.Source |> ShowResult
+            let formatted = Formatter.format fixedPoint.Source |> ShowResult
             Assert.Equal(original, formatted)
