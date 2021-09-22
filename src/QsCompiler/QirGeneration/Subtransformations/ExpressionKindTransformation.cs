@@ -294,6 +294,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 ArrayValue array;
                 if (accEx.ResolvedType.Resolution.IsInt)
                 {
+                    // Even if the rhs contains an access to the same array as the lhs that is updated,
+                    // and the update is done in place, we don't need to force the copy since we will never
+                    // load more than a single item, i.e. the update happens only after the rhs value is evaluated.
                     array = GetArrayCopy(false);
 
                     // do not increase the ref count here - we will increase the ref count of all new items at the end
@@ -303,8 +306,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (accEx.ResolvedType.Resolution.IsRange)
                 {
-                    // fixme: if fromLocalId equals the lhs then we need to make a deep copy of updated ...
-                    // or rather: force a copy and store the things to unreference rather than applying the unref...
+                    // In the case where we update a range of values in the original array, we need to be more careful
+                    // when the values on the rhs are subitems of the array that is updated. In this case, we need to
+                    // ensure that we can still load the original values even after updates have already been performed.
+                    // We hence for the (shallow) copy of the array in that case.
                     var updateFromSelf = originalValue.Item1 != null && originalValue.Item1 == fromLocalId;
                     array = GetArrayCopy(updateFromSelf);
 
@@ -317,6 +322,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         var elementPtr = array.GetArrayElementPointer(targetIdx!);
                         if (updateFromSelf)
                         {
+                            // We need to make sure that the old value is not unreferenced before all values
+                            // have been updated, since a subsequent iteration may still need to access it.
+                            // The old values are instead unreferenced in a separate loop at the end.
                             sharedState.ScopeMgr.IncreaseReferenceCount(elementPtr);
                         }
 
@@ -330,6 +338,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                     if (updateFromSelf)
                     {
+                        // separate loop after we have performed all updates to unreferenced the old values
                         sharedState.IterateThroughRange(getStart(), getStep(), getEnd(), targetIdx =>
                         {
                             sharedState.ScopeMgr.OpenScope();
