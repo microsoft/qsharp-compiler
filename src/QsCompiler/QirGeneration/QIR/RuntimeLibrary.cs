@@ -29,7 +29,6 @@ namespace Microsoft.Quantum.QIR
         public const string BigIntToString = "bigint_to_string";
         public const string DoubleToString = "double_to_string";
         public const string IntToString = "int_to_string";
-        public const string PauliToString = "pauli_to_string";
         public const string QubitToString = "qubit_to_string";
         public const string RangeToString = "range_to_string";
         public const string ResultToString = "result_to_string";

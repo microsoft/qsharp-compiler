@@ -637,7 +637,28 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (ty.IsPauli)
                 {
-                    return SimpleToString(RuntimeLibrary.PauliToString);
+                    Value LoadPauli(QsPauli pauli)
+                    {
+                        sharedState.ExpressionTypeStack.Push(ResolvedType.New(ResolvedTypeKind.Pauli));
+                        sharedState.Transformation.ExpressionKinds.OnPauliLiteral(pauli);
+                        return sharedState.ValueStack.Pop().Value;
+                    }
+
+                    Value CompareValueEquals(QsPauli pauli) =>
+                        sharedState.CurrentBuilder.Compare(IntPredicate.Equal, LoadPauli(pauli), evaluated.Value);
+
+                    IValue EvaluateEqualityComparison(QsPauli pauli, string pauliStr, Func<IValue> continuation) =>
+                        CreateStringValue(
+                            sharedState.ConditionalEvaluation(
+                                CompareValueEquals(pauli),
+                                onCondTrue: () => CreateStringValue(CreateConstantString(pauliStr)),
+                                onCondFalse: continuation,
+                                increaseReferenceCount: false)); // CreateConstantString already increases the reference count
+
+                    return EvaluateEqualityComparison(QsPauli.PauliX, "PauliX", () =>
+                           EvaluateEqualityComparison(QsPauli.PauliY, "PauliY", () =>
+                           EvaluateEqualityComparison(QsPauli.PauliZ, "PauliZ", () =>
+                           CreateStringValue(CreateConstantString("PauliI"))))).Value;
                 }
                 else if (ty.IsQubit)
                 {
