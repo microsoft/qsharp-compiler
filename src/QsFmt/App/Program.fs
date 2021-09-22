@@ -75,6 +75,12 @@ let rec doOne arguments input =
                     File.WriteAllText(input, result)
                 0
             | Error errors ->
+                // Change the "-" input to say "<Standard Input>" in the error
+                let input =
+                    if input = "-" then
+                        "<Standard Input>"
+                    else
+                        input
                 errors |> List.iter (eprintfn "%s, %O" input)
                 1
     with

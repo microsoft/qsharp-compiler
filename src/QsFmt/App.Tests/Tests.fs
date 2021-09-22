@@ -126,7 +126,7 @@ let ``Formats standard input`` input output =
 
 [<Theory>]
 [<InlineData("namespace Foo { invalid syntax; } ",
-             "Line 1, column 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
+             "<Standard Input>, Line 1, Character 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
 ")>]
 let ``Shows syntax errors`` input errors =
     Assert.Equal(
