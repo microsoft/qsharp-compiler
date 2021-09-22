@@ -4,98 +4,104 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
-
 #include "Llvm/Llvm.hpp"
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+class IProfileGenerator;
+
+/// Profile class that defines a set of rules which constitutes the profile definition. Each of the
+/// rules can be used to transform a generic QIR and/or validate that the QIR is compliant with said
+/// rule.
+class Profile
 {
-namespace quantum
-{
+public:
+  /// Allocation manager pointer type. Used to reference to concrete allocation manager
+  /// implementations which defines the allocation logic of the profile.
+  using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
 
-    class IProfileGenerator;
+  // Constructors
+  //
 
-    /// Profile class that defines a set of rules which constitutes the profile definition. Each of the
-    /// rules can be used to transform a generic QIR and/or validate that the QIR is compliant with said
-    /// rule.
-    class Profile
-    {
-      public:
-        /// Allocation manager pointer type. Used to reference to concrete allocation manager
-        /// implementations which defines the allocation logic of the profile.
-        using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
+  explicit Profile(
+      bool                 debug,
+      AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
+      AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());
 
-        // Constructors
-        //
+  // Default construction not allowed as this leads to invalid configuration of the allocation
+  // managers.
 
-        explicit Profile(
-            bool                 debug,
-            AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
-            AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());
+  Profile()                = delete;
+  Profile(Profile const &) = delete;
+  Profile(Profile &&)      = default;
+  Profile &operator=(Profile const &) = delete;
+  Profile &operator=(Profile &&) = default;
+  ~Profile()                     = default;
 
-        // Default construction not allowed as this leads to invalid configuration of the allocation
-        // managers.
+  // Profile methods
+  //
 
-        Profile()               = delete;
-        Profile(Profile const&) = delete;
-        Profile(Profile&&)      = default;
-        Profile& operator=(Profile const&) = delete;
-        Profile& operator=(Profile&&) = default;
-        ~Profile()                    = default;
+  /// Applies the profile to a module.
+  void apply(llvm::Module &module);
 
-        // Profile methods
-        //
+  /// Verifies that a module is a valid LLVM IR.
+  bool verify(llvm::Module &module);
 
-        /// Applies the profile to a module.
-        void apply(llvm::Module& module);
+  /// Validates that a module complies with the specified QIR profile.
+  bool validate(llvm::Module &module);
 
-        /// Verifies that a module is a valid LLVM IR.
-        bool verify(llvm::Module& module);
+  AllocationManagerPtr getQubitAllocationManager();
+  AllocationManagerPtr getResultAllocationManager();
 
-        /// Validates that a module complies with the specified QIR profile.
-        bool validate(llvm::Module& module);
+  // Access functions to LLVM instances for running the
+  // module pass manager
+  //
 
-        AllocationManagerPtr getQubitAllocationManager();
-        AllocationManagerPtr getResultAllocationManager();
+protected:
+  // Ensuring that IProfileGenerator has access to following protected functions.
+  friend class IProfileGenerator;
 
-        // Access functions to LLVM instances for running the
-        // module pass manager
-        //
+  /// Sets the module pass manager used for the transformation of the IR.
+  void setModulePassManager(llvm::ModulePassManager &&manager);
 
-      protected:
-        // Ensuring that IProfileGenerator has access to following protected functions.
-        friend class IProfileGenerator;
+  /// Returns a reference to the pass builder.
+  llvm::PassBuilder &passBuilder();
 
-        /// Sets the module pass manager used for the transformation of the IR.
-        void setModulePassManager(llvm::ModulePassManager&& manager);
+  /// Returns a reference to the loop analysis manager.
+  llvm::LoopAnalysisManager &loopAnalysisManager();
 
-        /// Returns a reference to the pass builder.
-        llvm::PassBuilder& passBuilder();
+  /// Returns a reference to the function analysis manager.
+  llvm::FunctionAnalysisManager &functionAnalysisManager();
 
-        /// Returns a reference to the loop analysis manager.
-        llvm::LoopAnalysisManager& loopAnalysisManager();
+  /// Returns a reference to the GSCC analysis manager.
+  llvm::CGSCCAnalysisManager &gsccAnalysisManager();
 
-        /// Returns a reference to the function analysis manager.
-        llvm::FunctionAnalysisManager& functionAnalysisManager();
+  /// Returns a reference to the module analysis manager.
+  llvm::ModuleAnalysisManager &moduleAnalysisManager();
 
-        /// Returns a reference to the GSCC analysis manager.
-        llvm::CGSCCAnalysisManager& gsccAnalysisManager();
+private:
+  // LLVM logic to run the passes
+  //
+  llvm::PassBuilder             pass_builder_;
+  llvm::LoopAnalysisManager     loop_analysis_manager_;
+  llvm::FunctionAnalysisManager function_analysis_manager_;
+  llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
+  llvm::ModuleAnalysisManager   module_analysis_manager_;
 
-        /// Returns a reference to the module analysis manager.
-        llvm::ModuleAnalysisManager& moduleAnalysisManager();
+  llvm::ModulePassManager module_pass_manager_{};
 
-      private:
-        // LLVM logic to run the passes
-        //
-        llvm::PassBuilder             pass_builder_;
-        llvm::LoopAnalysisManager     loop_analysis_manager_;
-        llvm::FunctionAnalysisManager function_analysis_manager_;
-        llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
-        llvm::ModuleAnalysisManager   module_analysis_manager_;
+  // Allocation management
+  //
 
-        llvm::ModulePassManager module_pass_manager_{};
-        AllocationManagerPtr    qubit_allocation_manager_{};
-        AllocationManagerPtr    result_allocation_manager_{};
-    };
+  /// Interface pointer to the qubit allocation manager. Mode of operation depends on the concrete
+  /// implementation of the manager which is swappable through the interface.
+  AllocationManagerPtr qubit_allocation_manager_{};
 
-} // namespace quantum
-} // namespace microsoft
+  /// Interface pointer to the results allocation manager. Again here the manager behaviour is
+  /// determined by its implementation details.
+  AllocationManagerPtr result_allocation_manager_{};
+};
+
+}  // namespace quantum
+}  // namespace microsoft

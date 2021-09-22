@@ -7,92 +7,97 @@
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+
+/// IOperandPrototype describes an IR pattern and allows matching against
+/// LLVMs llvm::Value type. Each value may or may not be captured during the
+/// matching process which means that they are stored in a map under a given name.
+/// Capturing is enabled using `enableCapture(name)` which sets the name the
+/// value should be stored under.
+class IOperandPrototype
 {
-namespace quantum
-{
+public:
+  using Instruction = llvm::Instruction;
+  using String      = std::string;
+  using Value       = llvm::Value;
+  using Child       = std::shared_ptr<IOperandPrototype>;
+  using Children    = std::vector<Child>;
+  using Captures    = std::unordered_map<std::string, Value *>;
 
-    /// IOperandPrototype describes an IR pattern and allows matching against
-    /// LLVMs llvm::Value type. Each value may or may not be captured during the
-    /// matching process which means that they are stored in a map under a given name.
-    /// Capturing is enabled using `enableCapture(name)` which sets the name the
-    /// value should be stored under.
-    class IOperandPrototype
-    {
-      public:
-        using Instruction = llvm::Instruction;
-        using String      = std::string;
-        using Value       = llvm::Value;
-        using Child       = std::shared_ptr<IOperandPrototype>;
-        using Children    = std::vector<Child>;
-        using Captures    = std::unordered_map<std::string, Value*>;
+  // Constructors and destructors
+  //
 
-        // Constructors and destructors
-        //
+  IOperandPrototype() = default;
+  virtual ~IOperandPrototype();
 
-        IOperandPrototype() = default;
-        virtual ~IOperandPrototype();
+  // Interface functions
+  //
 
-        // Interface functions
-        //
-        virtual bool  match(Value* value, Captures& captures) const = 0;
-        virtual Child copy() const                                  = 0;
+  /// Interface function which determines if a given Value (and its precessors) matches the
+  /// implemented pattern. If any Values are required to be captured, they will be recorded in the
+  /// captures variable.
+  virtual bool match(Value *value, Captures &captures) const = 0;
 
-        // Shared functionality
-        //
+  /// Interface function which defines a copy operation of the underlying implementation. Note that
+  /// unlike normal copy operators this operation returns a shared pointer to the new copy.
+  virtual Child copy() const = 0;
 
-        /// Adds a child to be matched against the matches children. Children
-        /// are matched in order and by size.
-        void addChild(Child const& child);
+  // Shared functionality
+  //
 
-        /// Flags that this operand should be captured. This function ensures
-        /// that the captured operand is given a name. The subsequent logic
-        /// in this class is responsible for capturing (upon match) and
-        /// uncapturing (upon backtrack) with specified name
-        void enableCapture(std::string capture_name);
+  /// Adds a child to be matched against the matches children. Children
+  /// are matched in order and by size.
+  void addChild(Child const &child);
 
-      protected:
-        // Function to indicate match success or failure. Either of these
-        // must be called prior to return from an implementation of
-        // IOperandPrototype::match.
-        //
+  /// Flags that this operand should be captured. This function ensures
+  /// that the captured operand is given a name. The subsequent logic
+  /// in this class is responsible for capturing (upon match) and
+  /// uncapturing (upon backtrack) with specified name
+  void enableCapture(std::string capture_name);
 
-        /// Function which should be called whenever a match fails.
-        bool fail(Value* value, Captures& captures) const;
+protected:
+  // Function to indicate match success or failure. Either of these
+  // must be called prior to return from an implementation of
+  // IOperandPrototype::match.
+  //
 
-        /// Function which should be called whenever a match is successful.
-        bool success(Value* value, Captures& captures) const;
+  /// Function which should be called whenever a match fails.
+  bool fail(Value *value, Captures &captures) const;
 
-        // Helper functions for the capture logic.
-        //
+  /// Function which should be called whenever a match is successful.
+  bool success(Value *value, Captures &captures) const;
 
-        /// Subroutine to match all children.
-        bool matchChildren(Value* value, Captures& captures) const;
+  // Helper functions for the capture logic.
+  //
 
-        /// Captures the value into the captures table if needed.
-        void capture(Value* value, Captures& captures) const;
+  /// Subroutine to match all children.
+  bool matchChildren(Value *value, Captures &captures) const;
 
-        /// Removes any captures from the captures table upon backtracking
-        void uncapture(Value* value, Captures& captures) const;
+  /// Captures the value into the captures table if needed.
+  void capture(Value *value, Captures &captures) const;
 
-        // Helper functions for operation
-        //
+  /// Removes any captures from the captures table upon backtracking
+  void uncapture(Value *value, Captures &captures) const;
 
-        /// Shallow copy of the operand to allow name change
-        /// of the capture
-        void copyPropertiesFrom(IOperandPrototype const& other)
-        {
-            capture_name_ = other.capture_name_;
-            children_     = other.children_;
-        }
+  // Helper functions for operation
+  //
 
-      private:
-        // Data variables for common matching functionality
-        //
+  /// Shallow copy of the operand to allow name change
+  /// of the capture
+  void copyPropertiesFrom(IOperandPrototype const &other)
+  {
+    capture_name_ = other.capture_name_;
+    children_     = other.children_;
+  }
 
-        std::string capture_name_{""}; ///< Name to captured value. Empty means no capture.
-        Children    children_{};       ///< Children to match against the values children.
-    };
+private:
+  // Data variables for common matching functionality
+  //
 
-} // namespace quantum
-} // namespace microsoft
+  std::string capture_name_{""};  ///< Name to captured value. Empty means no capture.
+  Children    children_{};        ///< Children to match against the values children.
+};
+
+}  // namespace quantum
+}  // namespace microsoft
