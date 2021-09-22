@@ -688,6 +688,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     {
                         sharedState.ExpressionTypeStack.Push(ResolvedType.New(ResolvedTypeKind.Pauli));
                         sharedState.Transformation.ExpressionKinds.OnPauliLiteral(pauli);
+                        sharedState.ExpressionTypeStack.Pop();
                         return sharedState.ValueStack.Pop().Value;
                     }
 
@@ -1071,7 +1072,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else
             {
-                throw new NotSupportedException("invalid type for addition");
+                throw new NotSupportedException($"invalid type {exType.Resolution} for addition");
             }
 
             this.SharedState.ValueStack.Push(value);
