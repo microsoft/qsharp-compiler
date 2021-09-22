@@ -85,12 +85,9 @@ let rec doOne arguments input =
         eprintfn "%s" ex.Message
         4
 
-and run (arguments : Arguments) inputs =
+and run arguments inputs =
     inputs
     |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne arguments)) 0
-
-let updateCommand source =
-    ()
 
 [<CompiledName "Main">]
 [<EntryPoint>]
@@ -111,13 +108,6 @@ let main args =
                 BackupFlag = results.Contains Backup
                 Inputs = results.GetResult Input
             }
-
-        let command : CommandKind =
-            match results.TryGetSubCommand() with
-            | None // default to update command
-            | Some Argument.Update -> Update //Formatter.update
-            | Some Argument.Format -> Format //Formatter.format
-            | _ -> failwith "unrecognized command used"
 
         args.Inputs |> run args
     with

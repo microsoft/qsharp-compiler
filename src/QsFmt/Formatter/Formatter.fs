@@ -78,9 +78,3 @@ let update fileName source =
 [<CompiledName "Identity">]
 let identity source =
     parse source |> Result.map printer.Document
-
-//let validationUpdate fileName updatedDocument =
-//    let warningList = updatedDocument |> updateChecker fileName
-//    warningList |> List.iter (eprintfn "%s")
-//
-//let printDocument 
