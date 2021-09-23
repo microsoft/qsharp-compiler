@@ -4,6 +4,8 @@ all:
 	cd LoopRecursion && make all && make clean
 	cd RandomWalkPE1 && make all && make clean
 	cd RandomWalkPE2 && make all && make clean
+	cd ConstArray && make all && make clean
+
 
 clean:
 	cd SimpleLoop && make clean	
@@ -11,3 +13,4 @@ clean:
 	cd LoopRecursion && make clean
 	cd RandomWalkPE1 && make clean
 	cd RandomWalkPE2 && make clean
+	cd ConstArray &&  make clean
