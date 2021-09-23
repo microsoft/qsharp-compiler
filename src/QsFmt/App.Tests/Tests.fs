@@ -22,6 +22,12 @@ type private Result =
         Error: string
     }
 
+type private TestFile =
+    {
+        Name: string
+        Content: string
+    }
+
 /// <summary>
 /// Ensures that the new line characters will conform to the standard of the environment's new line character.
 /// </summary>
@@ -96,14 +102,20 @@ OPTIONS:
 }
 ")>]
 let ``Formats file`` path output =
-    Assert.Equal(
-        {
-            Code = 0
-            Out = output |> standardizeNewLines
-            Error = ""
-        },
-        run [| "format"; path |] ""
-    )
+    let original = File.ReadAllText path
+    try
+        Assert.Equal(
+            {
+                Code = 0
+                Out = ""
+                Error = ""
+            },
+            run [| "format"; path |] ""
+        )
+        let after = File.ReadAllText path |> standardizeNewLines
+        Assert.Equal(output |> standardizeNewLines, after)
+    finally
+        File.WriteAllText(path, original)
 
 [<Theory>]
 [<InlineData("namespace Foo { function Bar() : Int { return 0; } }
@@ -172,32 +184,49 @@ namespace Example2 {
 
 [<Fact>]
 let ``Input directories`` () =
-    let output =
-        "namespace SubExample1 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace SubExample2 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace SubExample3 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-"
-
-    Assert.Equal(
+    let outputs = [
         {
-            Code = 0
-            Out = output |> standardizeNewLines
-            Error = ""
-        },
-        run [| "format"; "SubExamples1"; "SubExamples2" |] ""
-    )
+            Name = "SubExamples1\\SubExample1.qs"
+            Content = "namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples1\\SubExample2.qs"
+            Content = "namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples2\\SubExample3.qs"
+            Content = "namespace SubExample3 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+    ]
+
+    let originals = outputs |> List.map (fun file -> { file with Content = File.ReadAllText file.Name})
+    try
+        Assert.Equal(
+            {
+                Code = 0
+                Out = ""
+                Error = ""
+            },
+            run [| "format"; "SubExamples1"; "SubExamples2" |] ""
+        )
+        for file in outputs do
+            let after = File.ReadAllText file.Name |> standardizeNewLines
+            Assert.Equal(file.Content |> standardizeNewLines, after)
+    finally
+        for file in originals do
+            File.WriteAllText(file.Name, file.Content)
 
 [<Fact>]
 let ``Input directories with files and stdin`` () =
