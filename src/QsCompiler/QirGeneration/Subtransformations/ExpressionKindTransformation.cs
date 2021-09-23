@@ -534,13 +534,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // way to do this, but it's simple and clear, and strings are uncommon in Q#.
                 var cleanStr = s.Replace("\\{", "{").Replace("\\\\", "\\").Replace("\\n", "\n")
                     .Replace("\\r", "\r").Replace("\\t", "\t").Replace("\\\"", "\"");
-                var constantString = sharedState.Context.CreateConstantString(cleanStr, true);
-                var globalConstant = sharedState.Module.AddGlobal(
-                    constantString.NativeType, true, Linkage.Internal, constantString);
 
                 var sizedDataArrayPtr = sharedState.CurrentBuilder.GetElementPtr(
                     sharedState.Context.Int8Type.CreateArrayType((uint)cleanStr.Length + 1), // +1 because zero terminated
-                    globalConstant,
+                    sharedState.GetOrCreateStringConstant(cleanStr),
                     new[] { sharedState.Context.CreateConstant(0) });
                 var dataArrayPtr = sharedState.CurrentBuilder.BitCast(
                         sizedDataArrayPtr,
@@ -635,7 +632,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // Creates a string value that needs to be queued for unreferencing.
                 Value ArrayToString(ArrayValue array)
                 {
-                    Value comma = CreateConstantString(", ");
+                    var comma = CreateConstantString(", ");
                     var openParens = CreateConstantString("[");
                     UpdateStringRefCount(openParens, 1); // added to avoid dangling pointer in comparison inside loop
                     var outputStr = sharedState.IterateThroughArray(array, openParens, (item, str) =>
@@ -658,7 +655,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var ty = evaluated.QSharpType.Resolution;
                 if (ty.IsString)
                 {
-                    Value quote = CreateConstantString("\"");
+                    var quote = CreateConstantString("\"");
                     var stringValue = DoAppend(quote, evaluated.Value, unreferenceCurrent: false, unreferenceNext: false);
                     return DoAppend(stringValue, quote);
                 }

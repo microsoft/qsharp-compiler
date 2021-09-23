@@ -99,7 +99,7 @@ then0__1:                                         ; preds = %body__1
   %41 = getelementptr inbounds { %Callable*, %String*, %Qubit* }, { %Callable*, %String*, %Qubit* }* %39, i32 0, i32 1
   %42 = getelementptr inbounds { %Callable*, %String*, %Qubit* }, { %Callable*, %String*, %Qubit* }* %39, i32 0, i32 2
   %43 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TakesNestedTuple__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
-  %44 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @1, i32 0, i32 0))
+  %44 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @0, i32 0, i32 0))
   store %Callable* %43, %Callable** %40, align 8
   store %String* %44, %String** %41, align 8
   store %Qubit* %qb, %Qubit** %42, align 8

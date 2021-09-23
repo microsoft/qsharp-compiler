@@ -105,6 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Stack<IValue> inlineLevels;
         private readonly Dictionary<string, int> uniqueLocalNames = new Dictionary<string, int>();
         private readonly Dictionary<string, int> uniqueGlobalNames = new Dictionary<string, int>();
+        private readonly Dictionary<string, GlobalVariable> definedStrings = new Dictionary<string, GlobalVariable>();
 
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
@@ -463,6 +464,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>The LLVM function object</returns>
         internal IrFunction GetOrCreateTargetInstruction(string name) =>
             this.quantumInstructionSet.GetOrCreateFunction(name);
+
+        /// <summary>
+        /// Gets or creates a global constant (data array) that stores the given string.
+        /// The global constant contains a data array with the zero-terminated representation of the string.
+        /// </summary>
+        internal GlobalVariable GetOrCreateStringConstant(string str)
+        {
+            if (!this.definedStrings.TryGetValue(str, out var constant))
+            {
+                var constantString = this.Context.CreateConstantString(str, true);
+                constant = this.Module.AddGlobal(constantString.NativeType, true, Linkage.Internal, constantString);
+                this.definedStrings.Add(str, constant);
+            }
+
+            return constant;
+        }
 
         /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
