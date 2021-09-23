@@ -4,85 +4,87 @@
 
 #include "Commandline/ConfigurationManager.hpp"
 
-namespace microsoft {
-namespace quantum {
-
-class RuleTransformationPassConfiguration
+namespace microsoft
 {
-public:
-  // Setup and construction
-  //
+namespace quantum
+{
 
-  /// Setup function that attached the configuration to the ConfigurationManager.
-  void setup(ConfigurationManager &config);
+    class RuleTransformationPassConfiguration
+    {
+      public:
+        // Setup and construction
+        //
 
-  /// Creates a configuration where all functionality is disabled.
-  static RuleTransformationPassConfiguration disable();
+        /// Setup function that attached the configuration to the ConfigurationManager.
+        void setup(ConfigurationManager& config);
 
-  // Configuration classes
-  //
+        /// Creates a configuration where all functionality is disabled.
+        static RuleTransformationPassConfiguration disable();
 
-  /// Testing whether this is the default configuration.
-  bool isDisabled() const;
+        // Configuration classes
+        //
 
-  /// Tests whether all functionality is disabled for this component.
-  bool isDefault() const;
+        /// Testing whether this is the default configuration.
+        bool isDisabled() const;
 
-  // Properties
-  //
+        /// Tests whether all functionality is disabled for this component.
+        bool isDefault() const;
 
-  /// Whether or not the component should delete dead code.
-  bool deleteDeadCode() const;
+        // Properties
+        //
 
-  /// Whether or not the component should clone functions. This is relevant in relation to qubit
-  /// allocation if execution paths are expanded.
-  bool cloneFunctions() const;
+        /// Whether or not the component should delete dead code.
+        bool deleteDeadCode() const;
 
-  /// Whether or not the component should follow the execution path only or it should be applied to
-  /// all parts of the code. For statically allocated qubits one generally wants to follow the
-  /// execution path whereas it makes more sense to apply to all parts of the code for dynamic qubit
-  /// allocation.
-  bool transformExecutionPathOnly() const;
+        /// Whether or not the component should clone functions. This is relevant in relation to qubit
+        /// allocation if execution paths are expanded.
+        bool cloneFunctions() const;
 
-  /// The maximum recursion acceptable when unrolling the execution path.
-  uint64_t maxRecursion() const;
+        /// Whether or not the component should follow the execution path only or it should be applied to
+        /// all parts of the code. For statically allocated qubits one generally wants to follow the
+        /// execution path whereas it makes more sense to apply to all parts of the code for dynamic qubit
+        /// allocation.
+        bool transformExecutionPathOnly() const;
 
-  /// Whether or not to reuse qubits.
-  bool reuseQubits() const;
+        /// The maximum recursion acceptable when unrolling the execution path.
+        uint64_t maxRecursion() const;
 
-  /// Whether or not to annotate entry point with the number of qubits they use.
-  bool annotateQubitUse() const;
+        /// Whether or not to reuse qubits.
+        bool reuseQubits() const;
 
-  /// Whether or not the component should attempt to group measurements.
-  bool groupMeasurements() const;
+        /// Whether or not to annotate entry point with the number of qubits they use.
+        bool annotateQubitUse() const;
 
-  /// Whether or not the target supports measurement (and result interpretation) during the circuit
-  /// execution.
-  bool oneShotMeasurement() const;
+        /// Whether or not the component should attempt to group measurements.
+        bool groupMeasurements() const;
 
-  /// Attribute which indicate that a function is the entry point.
-  std::string entryPointAttr() const;
+        /// Whether or not the target supports measurement (and result interpretation) during the circuit
+        /// execution.
+        bool oneShotMeasurement() const;
 
-private:
-  // Code expansion and trimming
-  //
+        /// Attribute which indicate that a function is the entry point.
+        std::string entryPointAttr() const;
 
-  bool        delete_dead_code_{true};
-  bool        clone_functions_{true};
-  bool        transform_execution_path_only_{true};
-  uint64_t    max_recursion_{512};
-  std::string entry_point_attr_{"EntryPoint"};
+      private:
+        // Code expansion and trimming
+        //
 
-  // Allocation options
-  //
-  bool reuse_qubits_{true};
-  bool annotate_qubit_use_{true};
+        bool        delete_dead_code_{true};
+        bool        clone_functions_{true};
+        bool        transform_execution_path_only_{true};
+        uint64_t    max_recursion_{512};
+        std::string entry_point_attr_{"EntryPoint"};
 
-  // Measurement
-  //
-  bool group_measurements_{false};
-  bool one_shot_measurement_{true};
-};
+        // Allocation options
+        //
+        bool reuse_qubits_{true};
+        bool annotate_qubit_use_{true};
 
-}  // namespace quantum
-}  // namespace microsoft
+        // Measurement
+        //
+        bool group_measurements_{false};
+        bool one_shot_measurement_{true};
+    };
+
+} // namespace quantum
+} // namespace microsoft
