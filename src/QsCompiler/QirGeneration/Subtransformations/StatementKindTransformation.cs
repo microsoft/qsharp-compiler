@@ -445,7 +445,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 QirExpressionKindTransformation.CopyAndUpdate(
                     this.SharedState,
-                    (pointer.LoadValue(), ex.Item2, ex.Item3),
+                    ((varName.Item, pointer.LoadValue()), ex.Item2, ex.Item3),
                     updateItemAliasCount: true);
                 var value = this.SharedState.ValueStack.Pop();
 
