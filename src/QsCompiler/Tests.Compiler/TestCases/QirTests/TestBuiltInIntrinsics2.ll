@@ -7,6 +7,8 @@ entry:
   ret void
 }
 
+declare void @__quantum__rt__tuple_update_reference_count(%Tuple*, i32)
+
 define internal void @Microsoft__Quantum__Diagnostics__DumpMachine__body__wrapper(%Tuple* %capture-tuple, %Tuple* %arg-tuple, %Tuple* %result-tuple) {
 entry:
   %0 = bitcast %Tuple* %arg-tuple to { i8* }*
