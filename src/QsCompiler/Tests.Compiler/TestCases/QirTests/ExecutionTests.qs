@@ -2,7 +2,7 @@
 
     open Microsoft.Quantum.Intrinsic;
 
-    newtype Foo = Int;
+    newtype Foo = (Value : Int);
     newtype Register = (Data : Int[], Foo : Foo);
     newtype Tuple = (Item1 : String, Item2 : String);
     newtype MyUdt = ((Item1: String, (Item2 : String, Item3 : Tuple)), Item4 : String);
@@ -1557,6 +1557,99 @@
         Message($"{arr}");
     }
 
+    function TestVariableReassignment1 () : Unit {
+
+        mutable (foo, rep) = (Foo(1), 1);
+        while rep < 3 {
+            set (foo, rep) = (Foo(foo::Value + 1), rep + 1);
+        }
+
+        Message($"{foo::Value}");
+    }
+
+    function TestVariableReassignment2 () : Unit {
+
+        mutable foo = "";
+        for i in 1 .. 5 {
+            set foo += $"{i},";
+        }
+        Message(foo);
+    }
+
+    function TestVariableReassignment3 () : Unit {
+
+        mutable foo = Tuple("iter", "0");
+        for i in 1 .. 5 {
+            set foo = Tuple(foo::Item1, foo::Item2 + $",{i}");
+        }
+        Message($"{foo}");
+    }
+
+    operation TestVariableReassignment4 () : Unit {
+
+        mutable (foo, rep) = (Foo(1), "");
+        repeat {
+            set foo = Foo(foo::Value + 1);
+        }
+        until (rep == "   ")
+        fixup
+        {
+            set rep += " ";
+        }
+
+        Message($"{foo::Value}");
+    }
+
+    operation TestVariableReassignment5 () : Unit {
+
+        mutable (foo, rep) = (Foo(1), "");
+        repeat {
+            set foo = Foo(foo::Value + 1);
+            set rep += " ";
+        }
+        until (rep == "   ");
+
+        Message($"{foo}");
+    }
+
+    operation TestVariableReassignment6 () : Unit {
+
+        mutable foo = "";
+        use q = Qubit(){
+            set foo = "updated";
+        }
+        Message(foo);
+    }
+
+    operation TestVariableReassignment7 () : Unit {
+
+        mutable foo = "";
+        use q = Qubit();
+        set foo = "reset";
+        Message(foo);
+    }
+
+    function TestVariableReassignment8 (str : String, value : String) : Unit {
+
+        mutable foo = "";
+        if str == "a" {
+            set foo = "a";
+        }
+        elif str == "b" {
+            set foo = "b";
+        }
+        elif str == "c" {
+            set foo = str;
+        }
+        elif str == "d" {
+            set foo = value;
+        }
+        else {
+            set foo += "unknown";
+        }
+        Message(foo);
+    }
+
 
     @EntryPoint()
     operation TestArraySlicing() : Range {
@@ -1948,6 +2041,21 @@
         TestCopyAndUpdate14b();
         TestCopyAndUpdate15b();
         TestCopyAndUpdate16b();
+
+        PrintSection(18, "");
+
+        TestVariableReassignment1();
+        TestVariableReassignment2();
+        TestVariableReassignment3();
+        TestVariableReassignment4();
+        TestVariableReassignment5();
+        TestVariableReassignment6();
+        TestVariableReassignment7();
+        TestVariableReassignment8("a", "?");
+        TestVariableReassignment8("b", "?");
+        TestVariableReassignment8("c", "?");
+        TestVariableReassignment8("d", "?");
+        TestVariableReassignment8("e", "?");
 
         Message("Executed successfully!");
     }
