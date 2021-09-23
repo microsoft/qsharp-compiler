@@ -62,6 +62,20 @@ let private run args input =
         Console.SetOut previousOutput
         Console.SetError previousError
 
+let private runWithFiles files standardInput expectedOutput args =
+    let originals = files |> List.map (fun file -> { file with Content = File.ReadAllText file.Name})
+    try
+        Assert.Equal(
+            expectedOutput,
+            run args standardInput
+        )
+        for file in files do
+            let after = File.ReadAllText file.Name |> standardizeNewLines
+            Assert.Equal(file.Content |> standardizeNewLines, after)
+    finally
+        for file in originals do
+            File.WriteAllText(file.Name, file.Content)
+
 [<Fact>]
 let ``Shows help with no arguments`` () =
     Assert.Equal(
@@ -102,20 +116,7 @@ OPTIONS:
 }
 ")>]
 let ``Formats file`` path output =
-    let original = File.ReadAllText path
-    try
-        Assert.Equal(
-            {
-                Code = 0
-                Out = ""
-                Error = ""
-            },
-            run [| "format"; path |] ""
-        )
-        let after = File.ReadAllText path |> standardizeNewLines
-        Assert.Equal(output |> standardizeNewLines, after)
-    finally
-        File.WriteAllText(path, original)
+    runWithFiles [{ Name = path; Content = output }] "" { Code = 0; Out = ""; Error = "" } [| "format"; path |]
 
 [<Theory>]
 [<InlineData("namespace Foo { function Bar() : Int { return 0; } }
@@ -160,31 +161,30 @@ let ``Shows file not found error`` path =
 
 [<Fact>]
 let ``Input multiple files`` () =
-    let output =
-        "namespace Example1 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace Example2 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-"
-
-    Assert.Equal(
+    let files = [
         {
-            Code = 0
-            Out = output |> standardizeNewLines
-            Error = ""
-        },
-        run [| "format"; "Example1.qs"; "Example2.qs" |] ""
-    )
+            Name = "Example1.qs"
+            Content = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "Example2.qs"
+            Content = "namespace Example2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+    ]
+
+    runWithFiles files "" { Code = 0; Out = ""; Error = "" } [| "format"; "Example1.qs"; "Example2.qs" |]
 
 [<Fact>]
 let ``Input directories`` () =
-    let outputs = [
+    let files = [
         {
             Name = "SubExamples1\\SubExample1.qs"
             Content = "namespace SubExample1 {
@@ -211,7 +211,7 @@ let ``Input directories`` () =
 "       }
     ]
 
-    let originals = outputs |> List.map (fun file -> { file with Content = File.ReadAllText file.Name})
+    let originals = files |> List.map (fun file -> { file with Content = File.ReadAllText file.Name })
     try
         Assert.Equal(
             {
@@ -221,7 +221,7 @@ let ``Input directories`` () =
             },
             run [| "format"; "SubExamples1"; "SubExamples2" |] ""
         )
-        for file in outputs do
+        for file in files do
             let after = File.ReadAllText file.Name |> standardizeNewLines
             Assert.Equal(file.Content |> standardizeNewLines, after)
     finally
@@ -230,120 +230,147 @@ let ``Input directories`` () =
 
 [<Fact>]
 let ``Input directories with files and stdin`` () =
+    let files = [
+        {
+            Name = "Example1.qs"
+            Content = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples1\\SubExample1.qs"
+            Content = "namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples1\\SubExample2.qs"
+            Content = "namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+    ]
     let input =
         "namespace StandardIn { function Bar() : Int { return 0; } }
 "
-
     let output =
-        "namespace Example1 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace StandardIn {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace SubExample1 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace SubExample2 {
+        "namespace StandardIn {
     function Bar() : Int {
         return 0;
     }
 }
 "
-
-    Assert.Equal(
-        {
-            Code = 0
-            Out = output |> standardizeNewLines
-            Error = ""
-        },
-        run [| "format"; "Example1.qs"; "-"; "SubExamples1" |] (input |> standardizeNewLines)
-    )
+    runWithFiles files input { Code = 0; Out = output |> standardizeNewLines; Error = "" } [| "format"; "Example1.qs"; "-"; "SubExamples1" |]
 
 [<Fact>]
 let ``Input directories with recursive flag`` () =
+    let files = [
+        {
+            Name = "Example1.qs"
+            Content = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples1\\SubExample1.qs"
+            Content = "namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples1\\SubExample2.qs"
+            Content = "namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples2\\SubExample3.qs"
+            Content = "namespace SubExample3 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples2\\NestedExamples\\NestedExample1.qs"
+            Content = "namespace NestedExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "SubExamples2\\NestedExamples\\NestedExample2.qs"
+            Content = "namespace NestedExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+    ]
     let input =
         "namespace StandardIn { function Bar() : Int { return 0; } }
 "
-
     let output =
-        "namespace Example1 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace StandardIn {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace SubExample1 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace SubExample2 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace SubExample3 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace NestedExample1 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace NestedExample2 {
+        "namespace StandardIn {
     function Bar() : Int {
         return 0;
     }
 }
 "
-
-    Assert.Equal(
-        {
-            Code = 0
-            Out = output |> standardizeNewLines
-            Error = ""
-        },
-        run [| "format"; "-r"; "Example1.qs"; "-"; "SubExamples1"; "SubExamples2" |] (input |> standardizeNewLines)
-    )
+    runWithFiles files input { Code = 0; Out = output |> standardizeNewLines; Error = "" } [| "format"; "-r"; "Example1.qs"; "-"; "SubExamples1"; "SubExamples2" |]
 
 [<Fact>]
 let ``Process correct files while erroring on incorrect`` () =
+    let files = [
+        {
+            Name = "Example1.qs"
+            Content = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "Example2.qs"
+            Content = "namespace Example2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+    ]
     let input =
         "namespace StandardIn { function Bar() : Int { return 0; } }
 "
-
     let output =
-        "namespace Example1 {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace StandardIn {
-    function Bar() : Int {
-        return 0;
-    }
-}
-namespace Example2 {
+        "namespace StandardIn {
     function Bar() : Int {
         return 0;
     }
 }
 "
-
-    let result = run [| "format"; "Example1.qs"; "-"; "NotFound.qs"; "Example2.qs" |] (input |> standardizeNewLines)
-    Assert.Equal(3, result.Code)
-    Assert.Equal(output |> standardizeNewLines, result.Out)
-    Assert.NotEmpty(result.Error)
+    let originals = files |> List.map (fun file -> { file with Content = File.ReadAllText file.Name})
+    try
+        let result = run [| "format"; "Example1.qs"; "-"; "NotFound.qs"; "Example2.qs" |] (input |> standardizeNewLines)
+        Assert.Equal(3, result.Code)
+        Assert.Equal(output |> standardizeNewLines, result.Out)
+        Assert.NotEmpty(result.Error)
+        for file in files do
+            let after = File.ReadAllText file.Name |> standardizeNewLines
+            Assert.Equal(file.Content |> standardizeNewLines, after)
+    finally
+        for file in originals do
+            File.WriteAllText(file.Name, file.Content)

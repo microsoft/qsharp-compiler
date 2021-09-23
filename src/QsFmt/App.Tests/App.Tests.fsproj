@@ -19,10 +19,10 @@
     <Content Include="SubExamples2\SubExample3.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="SubExamples2\NestedExample2\NestedExample1.qs">
+    <Content Include="SubExamples2\NestedExamples\NestedExample1.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
-    <Content Include="SubExamples2\NestedExample2\NestedExample2.qs">
+    <Content Include="SubExamples2\NestedExamples\NestedExample2.qs">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
     <Compile Include="Tests.fs" />
