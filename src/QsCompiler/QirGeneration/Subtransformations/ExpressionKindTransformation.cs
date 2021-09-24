@@ -1106,7 +1106,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // the comment there is exactly one.
                 var forceCopy = this.SharedState.Context.CreateConstant(true);
                 var sliceArray = this.SharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.ArraySlice1d);
-                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value);
+                var slice = this.SharedState.CurrentBuilder.Call(sliceArray, array.Value, index.Value, forceCopy);
                 value = this.SharedState.Values.FromArray(slice, elementType);
 
                 // The explicit ref count increase for all items is necessary for the sake of
