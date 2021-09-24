@@ -303,7 +303,7 @@ let updateChecker fileName document =
 
                     // Change the "-" input to say "input" in the warning
                     let fileName =
-                        if fileName = "-" then
+                        if fileName = "-" or fileName = "" then
                             "input"
                         else
                             fileName
