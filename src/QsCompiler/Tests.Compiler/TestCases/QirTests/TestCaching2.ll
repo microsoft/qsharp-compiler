@@ -29,7 +29,7 @@ condContinue__2:                                  ; preds = %condFalse__2, %cond
   %7 = insertvalue %Range %6, i64 %2, 0
   %8 = insertvalue %Range %7, i64 2, 1
   %9 = insertvalue %Range %8, i64 %5, 2
-  %10 = call %Array* @__quantum__rt__array_slice_1d(%Array* %vals, %Range %9)
+  %10 = call %Array* @__quantum__rt__array_slice_1d(%Array* %vals, %Range %9, i1 true)
   call void @__quantum__rt__array_update_reference_count(%Array* %10, i32 1)
   call void @__quantum__rt__array_update_alias_count(%Array* %vals, i32 -1)
   call void @__quantum__rt__array_update_reference_count(%Array* %10, i32 -1)
