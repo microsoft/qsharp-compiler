@@ -358,3 +358,60 @@ let ``Process correct files while erroring on incorrect`` () =
     finally
         for file in originals do
             File.WriteAllText(file.Name, file.Content)
+
+[<Fact>]
+let ``Backup flag`` () =
+    let files = [
+        {
+            Name = "Examples\\Example1.qs"
+            Content = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "Examples\\SubExamples2\\SubExample3.qs"
+            Content = "namespace SubExample3 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+    ]
+    let input =
+        "namespace StandardIn { function Bar() : Int { return 0; } }
+"
+    let output =
+        "namespace StandardIn {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+    let originals = files |> List.map (fun file -> { file with Content = File.ReadAllText file.Name })
+    try
+        let result = run [| "format"; "-b"; "-"; "Examples\\Example1.qs"; "Examples\\SubExamples2"; |] (input |> standardizeNewLines)
+
+        Assert.Equal(
+            {
+                Code = 0;
+                Out = output |> standardizeNewLines;
+                Error = ""
+            },
+            result
+        )
+
+        for file in originals do
+            Assert.True(File.Exists(file.Name + "~"))
+            let backup = File.ReadAllText(file.Name + "~") |> standardizeNewLines
+            Assert.Equal(file.Content |> standardizeNewLines, backup)
+
+        for file in files do
+            let after = File.ReadAllText file.Name |> standardizeNewLines
+            Assert.Equal(file.Content |> standardizeNewLines, after)
+    finally
+        for file in originals do
+            File.WriteAllText(file.Name, file.Content)
+            if File.Exists(file.Name + "~") then
+                File.Delete(file.Name + "~")
