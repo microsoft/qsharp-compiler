@@ -415,3 +415,42 @@ let ``Backup flag`` () =
             File.WriteAllText(file.Name, file.Content)
             if File.Exists(file.Name + "~") then
                 File.Delete(file.Name + "~")
+
+[<Fact>]
+let ``Error when same input given multiple times`` () =
+    let files = [
+        {
+            Name = "Examples\\Example1.qs"
+            Content = "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "Examples\\SubExamples1\\SubExample1.qs"
+            Content = "namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+        {
+            Name = "Examples\\SubExamples1\\SubExample2.qs"
+            Content = "namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"       }
+    ]
+    let outputResult =
+        {
+            Code = 5
+            Out = ""
+            Error = "This input has already been processed: Examples\SubExamples1\SubExample1.qs
+This input has already been processed: Examples\Example1.qs
+" |> standardizeNewLines
+        }
+    let arguments = [| "format"; "Examples\\Example1.qs"; "Examples\\SubExamples1"; "Examples\\SubExamples1\\SubExample1.qs"; "Examples\\Example1.qs" |]
+    runWithFiles files "" outputResult arguments
