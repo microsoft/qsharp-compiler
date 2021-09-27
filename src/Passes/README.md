@@ -23,7 +23,7 @@ and then make your target
 make qat
 ```
 
-For full instructions on dependencies and how to build, follow [these instructions](./docs/src/DeveloperGuide/Building.md).
+For full instructions on dependencies and how to build, follow [these instructions](./docs/src/UserGuide/BuildingLibrary.md).
 
 ## Getting started
 

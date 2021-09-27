@@ -8,7 +8,7 @@ cd Debug
 make qat
 ```
 
-A more detailed documentation of this step is available in the [build steps section](./BuildingLibrary). Once the build has been completed successfully, we will create a QIR in order to have an example code we can apply a profile to. The next step does not need to be completed if you already have a QIR. We will be using the Q# front end to generate the QIR and use the example `SimpleLoop`. However, you are free to choose another example in the `QirExamples` folder and/or another frontend. Go to the folder `./QirExamples/SimpleLoop/QSharpVersion` and type
+A more detailed documentation of this step is available in the [build steps section](./BuildingLibrary.md). Once the build has been completed successfully, we will create a QIR in order to have an example code we can apply a profile to. The next step does not need to be completed if you already have a QIR. We will be using the Q# front end to generate the QIR and use the example `SimpleLoop`. However, you are free to choose another example in the `QirExamples` folder and/or another frontend. Go to the folder `./QirExamples/SimpleLoop/QSharpVersion` and type
 
 ```sh
 make qir/Example.ll
