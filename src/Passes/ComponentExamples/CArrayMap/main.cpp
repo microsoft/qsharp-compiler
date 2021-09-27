@@ -209,7 +209,6 @@ extern "C" void loadComponent(IProfileGenerator *generator)
       "c-array-map", [](CArrayMapConfig const &cfg, IProfileGenerator *ptr, Profile &profile) {
         auto &ret = ptr->modulePassManager();
 
-        // Removal of arrays need a separate pass to ensure correctness of the algorithm
         if (cfg.removeArrayCopies())
         {
           RuleSet rule_set;
@@ -218,22 +217,22 @@ extern "C" void loadComponent(IProfileGenerator *generator)
           ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
         }
 
-        // Defining the mapping
-        RuleSet rule_set;
-
+        // TODO(tfr): These two passes could be combined into one if RulePass had support
+        // for reverse DAG traversal
         if (cfg.replaceAccess())
         {
+          RuleSet rule_set;
           replaceAccess(rule_set);
+          auto config = RuleTransformationPassConfiguration::disable();
+          ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
         }
 
         if (cfg.replaceAllocators())
         {
+          RuleSet rule_set;
           activateAllocatorReplacement(rule_set);
+          auto config = RuleTransformationPassConfiguration::disable();
+          ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
         }
-
-        // Creating profile pass
-        auto config = RuleTransformationPassConfiguration::disable();
-
-        ret.addPass(RuleTransformationPass(std::move(rule_set), config, &profile));
       });
 }

@@ -1,6 +1,5 @@
 
 %Range = type { i64, i64, i64 }
-%Qubit = type opaque
 %Array = type opaque
 %String = type opaque
 
@@ -10,9 +9,8 @@
 @PauliZ = internal constant i2 -2
 @EmptyRange = internal constant %Range { i64 0, i64 1, i64 -1 }
 
-define internal i64 @SimpleLoop__Main__body() {
+define internal i64 @ConstArrayReduction__Main__body() {
 entry:
-  %q = call %Qubit* @SimpleLoop__Test__body()
   %0 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 10)
   %1 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %0, i64 0)
   %2 = bitcast i8* %1 to i64*
@@ -82,33 +80,6 @@ entry:
   ret i64 %34
 }
 
-define internal %Qubit* @SimpleLoop__Test__body() {
-entry:
-  %q1 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %q2 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %q3 = call %Qubit* @__quantum__rt__qubit_allocate()
-  %arr = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 3)
-  %0 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
-  %1 = bitcast i8* %0 to %Qubit**
-  %2 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 1)
-  %3 = bitcast i8* %2 to %Qubit**
-  %4 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 2)
-  %5 = bitcast i8* %4 to %Qubit**
-  store %Qubit* %q1, %Qubit** %1, align 8
-  store %Qubit* %q2, %Qubit** %3, align 8
-  store %Qubit* %q3, %Qubit** %5, align 8
-  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 1)
-  %6 = call i8* @__quantum__rt__array_get_element_ptr_1d(%Array* %arr, i64 0)
-  %7 = bitcast i8* %6 to %Qubit**
-  %8 = load %Qubit*, %Qubit** %7, align 8
-  call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 -1)
-  call void @__quantum__rt__array_update_reference_count(%Array* %arr, i32 -1)
-  call void @__quantum__rt__qubit_release(%Qubit* %q1)
-  call void @__quantum__rt__qubit_release(%Qubit* %q2)
-  call void @__quantum__rt__qubit_release(%Qubit* %q3)
-  ret %Qubit* %8
-}
-
 declare %Array* @__quantum__rt__array_create_1d(i32, i64)
 
 declare i8* @__quantum__rt__array_get_element_ptr_1d(%Array*, i64)
@@ -119,21 +90,15 @@ declare void @__quantum__rt__array_update_reference_count(%Array*, i32)
 
 declare %Array* @__quantum__rt__array_copy(%Array*, i1)
 
-declare %Qubit* @__quantum__rt__qubit_allocate()
-
-declare %Array* @__quantum__rt__qubit_allocate_array(i64)
-
-declare void @__quantum__rt__qubit_release(%Qubit*)
-
-define i64 @SimpleLoop__Main__Interop() #0 {
+define i64 @ConstArrayReduction__Main__Interop() #0 {
 entry:
-  %0 = call i64 @SimpleLoop__Main__body()
+  %0 = call i64 @ConstArrayReduction__Main__body()
   ret i64 %0
 }
 
-define void @SimpleLoop__Main() #1 {
+define void @ConstArrayReduction__Main() #1 {
 entry:
-  %0 = call i64 @SimpleLoop__Main__body()
+  %0 = call i64 @ConstArrayReduction__Main__body()
   %1 = call %String* @__quantum__rt__int_to_string(i64 %0)
   call void @__quantum__rt__message(%String* %1)
   call void @__quantum__rt__string_update_reference_count(%String* %1, i32 -1)
