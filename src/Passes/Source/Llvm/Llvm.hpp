@@ -59,6 +59,9 @@
 // Const folding
 #include "llvm/Analysis/ConstantFolding.h"
 
+// Linking
+#include "llvm/Linker/Linker.h"
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif

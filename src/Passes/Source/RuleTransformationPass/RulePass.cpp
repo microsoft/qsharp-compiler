@@ -490,6 +490,12 @@ void RuleTransformationPass::runDeleteDeadCode(llvm::Module &, llvm::ModuleAnaly
     else
     {
       llvm::errs() << "; INTERNAL ERROR: block was supposed to be unused.\n";
+      for (auto x : block->users())
+      {
+        llvm::errs() << " - " << *x << "\n";
+      }
+      llvm::errs() << " ----- \n";
+      llvm::errs() << *block << "\n";
     }
   }
 

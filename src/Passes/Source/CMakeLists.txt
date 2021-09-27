@@ -9,6 +9,10 @@ microsoft_add_library_tests(Commandline)
 microsoft_add_library(Profile)
 microsoft_add_library_tests(Profile)
 
+
+# microsoft_add_library(ModuleLoader)
+
+
 microsoft_add_library(AllocationManager)
 microsoft_add_library_tests(AllocationManager)
 

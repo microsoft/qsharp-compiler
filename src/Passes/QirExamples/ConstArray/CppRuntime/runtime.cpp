@@ -4,14 +4,14 @@
 class Array
 {
 public:
-  Array(int64_t size_, int64_t count_)
+  Array(int64_t size_, int64_t count_) noexcept
     : size{std::move(size_)}
     , count{std::move(count_)}
   {
     data = new int8_t[size * count];
   }
 
-  Array(Array *ref)
+  Array(Array *ref) noexcept
     : size{ref->size}
     , count{ref->count}
   {
@@ -19,17 +19,17 @@ public:
     memcpy(ref->data, data, size * count);
   }
 
-  ~Array()
+  ~Array() noexcept
   {
     delete[] data;
   }
+
   int64_t size;
   int64_t count;
   int8_t *data;
+  int64_t alias_count{0};
+  int64_t ref_count{1};
 };
-
-std::unordered_map<Array *, int32_t> alias_count;
-std::unordered_map<Array *, int32_t> ref_count;
 
 extern "C"
 {
@@ -51,12 +51,12 @@ extern "C"
 
   void __quantum__rt__array_update_alias_count(Array *arr, int32_t n)
   {
-    alias_count[arr] += n;
+    arr->alias_count += n;
   }
 
   void __quantum__rt__array_update_reference_count(Array *arr, int32_t n)
   {
-    ref_count[arr] += n;
+    arr->ref_count += n;
   }
 
   Array *__quantum__rt__array_copy(Array *arr, bool force)
@@ -66,8 +66,9 @@ extern "C"
       return nullptr;
     }
 
-    if (force || alias_count[arr] > 0)
+    if (force || arr->alias_count > 0)
     {
+      //      return arr;
       return new Array(arr);
     }
 
