@@ -3,6 +3,7 @@
 
 #include "Commandline/ParameterParser.hpp"
 
+#include <stdexcept>
 #include <string>
 #include <unordered_map>
 

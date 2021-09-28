@@ -177,7 +177,7 @@ namespace quantum
         using VoidPtr        = std::shared_ptr<void>;
         struct Section
         {
-            std::type_index type{std::type_index(typeid(nullptr_t))};
+            std::type_index type{std::type_index(typeid(std::nullptr_t))};
             String          name{};
             String          description{};
             VoidPtr         configuration{};
