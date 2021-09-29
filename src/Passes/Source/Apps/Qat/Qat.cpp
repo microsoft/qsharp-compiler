@@ -179,7 +179,7 @@ int main(int argc, char** argv)
         //
 
         LLVMContext  context;
-        auto         module = std::make_unique<Module>("llvm-link", context);
+        auto         module = std::make_unique<Module>("qat-link", context);
         ModuleLoader loader(module.get());
 
         for (auto const& arg : parser.arguments())
