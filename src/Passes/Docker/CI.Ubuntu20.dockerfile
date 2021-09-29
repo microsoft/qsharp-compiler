@@ -32,7 +32,6 @@ ENV CC=clang-11 \
   PYTHON_BIN_PATH=/usr/bin/python3
 
 WORKDIR /src/
-RUN  export CC=clang-11  && \
-     export CXX=clang++-11 && \
-     ./manage runci
+ENV  export CC=clang-11   \
+     export CXX=clang++-11  
 

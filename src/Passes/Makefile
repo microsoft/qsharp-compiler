@@ -14,6 +14,12 @@ doxygen:
 	doxygen doxygen.cfg
 
 
+linux-docker:
+	docker build -f Docker/CI.Ubuntu20.dockerfile -t qir-passes-ubuntu:latest .
+
+linux-ci: linux-docker
+	docker run -it --rm -t qir-passes-ubuntu:latest ./manage runci
+
 test-examples:
 	# Run all examples and verify that the output is a valid IR
 	cd examples && make all
