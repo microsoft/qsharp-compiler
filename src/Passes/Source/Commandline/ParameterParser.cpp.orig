@@ -3,8 +3,11 @@
 
 #include "Commandline/ParameterParser.hpp"
 
+<<<<<<< HEAD
 #include <iostream>
+=======
 #include <stdexcept>
+>>>>>>> feature/qat-documenation
 #include <string>
 #include <unordered_map>
 

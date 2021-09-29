@@ -19,5 +19,4 @@ steps:
       pip3 install --user -r requirements.txt      
       chmod +x manage
       ./manage runci
-      rm -rf vendors/*
 
