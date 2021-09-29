@@ -68,7 +68,7 @@ let ``Shows help with no arguments`` () =
 
 INPUT:
 
-    <string>...           File to format or \"-\" to read from standard input.
+    <string>...           Files or folders to format or \"-\" to read from standard input.
 
 SUBCOMMANDS:
 

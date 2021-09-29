@@ -14,7 +14,7 @@ open System.IO
 [<HelpDescription "Display this list of options.">]
 type Argument =
     /// The path to the input file.
-    | [<MainCommand; Unique; Last>] Input of string list
+    | [<MainCommand; Unique; Last>] Inputs of string list
     //| [<InheritAttribute; Unique; AltCommandLine("-b")>] Backup
     | [<InheritAttribute; Unique; AltCommandLine("-r")>] Recurse
     | [<SubCommand; CliPrefix(CliPrefix.None)>] Update
@@ -23,7 +23,7 @@ type Argument =
     interface IArgParserTemplate with
         member arg.Usage =
             match arg with
-            | Input _ -> "File to format or \"-\" to read from standard input."
+            | Inputs _ -> "Files or folders to format or \"-\" to read from standard input."
             //| Backup -> "Create backup files of input files."
             | Recurse -> "Process the input folder recursively."
             | Update _ -> "Update depreciated syntax in the input files."
@@ -70,7 +70,7 @@ let main args =
 
     try
         let results = parser.Parse args
-        let inputs = results.GetResult Input
+        let inputs = results.GetResult Inputs
         let recurseFlag = results.Contains Recurse
 
         let command =
