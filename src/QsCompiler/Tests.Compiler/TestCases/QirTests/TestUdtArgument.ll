@@ -1,6 +1,6 @@
 define internal { i64, { i2, i64 }* }* @Microsoft__Quantum__Testing__QIR__TestUdtArgument__body() {
 entry:
-  %0 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType1, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %0 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType1__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   %udt1 = call { i64 }* @Microsoft__Quantum__Testing__QIR_____GUID___Build__body(%Callable* %0)
   %1 = bitcast { i64 }* %udt1 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %1, i32 1)
@@ -8,11 +8,11 @@ entry:
   %3 = bitcast %Tuple* %2 to { %Callable*, i2 }*
   %4 = getelementptr inbounds { %Callable*, i2 }, { %Callable*, i2 }* %3, i32 0, i32 0
   %5 = getelementptr inbounds { %Callable*, i2 }, { %Callable*, i2 }* %3, i32 0, i32 1
-  %6 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType2, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %6 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType2__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   %7 = load i2, i2* @PauliX, align 1
   store %Callable* %6, %Callable** %4, align 8
   store i2 %7, i2* %5, align 1
-  %8 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1, [2 x void (%Tuple*, i32)*]* @MemoryManagement__1, %Tuple* %2)
+  %8 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__1__FunctionTable, [2 x void (%Tuple*, i32)*]* @MemoryManagement__1__FunctionTable, %Tuple* %2)
   %udt2 = call { i2, i64 }* @Microsoft__Quantum__Testing__QIR_____GUID___Build__body(%Callable* %8)
   %9 = bitcast { i2, i64 }* %udt2 to %Tuple*
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %9, i32 1)
@@ -21,12 +21,12 @@ entry:
   %12 = getelementptr inbounds { %Callable*, i2, double }, { %Callable*, i2, double }* %11, i32 0, i32 0
   %13 = getelementptr inbounds { %Callable*, i2, double }, { %Callable*, i2, double }* %11, i32 0, i32 1
   %14 = getelementptr inbounds { %Callable*, i2, double }, { %Callable*, i2, double }* %11, i32 0, i32 2
-  %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType3, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
+  %15 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @Microsoft__Quantum__Testing__QIR__TestType3__FunctionTable, [2 x void (%Tuple*, i32)*]* null, %Tuple* null)
   %16 = load i2, i2* @PauliX, align 1
   store %Callable* %15, %Callable** %12, align 8
   store i2 %16, i2* %13, align 1
   store double 2.000000e+00, double* %14, align 8
-  %17 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__2, [2 x void (%Tuple*, i32)*]* @MemoryManagement__2, %Tuple* %10)
+  %17 = call %Callable* @__quantum__rt__callable_create([4 x void (%Tuple*, %Tuple*, %Tuple*)*]* @PartialApplication__2__FunctionTable, [2 x void (%Tuple*, i32)*]* @MemoryManagement__2__FunctionTable, %Tuple* %10)
   %udt3 = call { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR_____GUID___Build__body(%Callable* %17)
   %18 = getelementptr inbounds { { i2, i64 }*, double }, { { i2, i64 }*, double }* %udt3, i32 0, i32 0
   %19 = load { i2, i64 }*, { i2, i64 }** %18, align 8

@@ -105,6 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Stack<IValue> inlineLevels;
         private readonly Dictionary<string, int> uniqueLocalNames = new Dictionary<string, int>();
         private readonly Dictionary<string, int> uniqueGlobalNames = new Dictionary<string, int>();
+        private readonly Dictionary<string, GlobalVariable> definedStrings = new Dictionary<string, GlobalVariable>();
 
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
@@ -285,10 +286,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // to-string conversion functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntToString, this.Types.String, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BoolToString, this.Types.String, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.DoubleToString, this.Types.String, this.Context.DoubleType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.IntToString, this.Types.String, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.PauliToString, this.Types.String, this.Types.Pauli);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitToString, this.Types.String, this.Types.Qubit);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.RangeToString, this.Types.String, this.Types.Range);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultToString, this.Types.String, this.Types.Result);
@@ -329,7 +328,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateReferenceCount, this.Context.VoidType, this.Types.Array, this.Context.Int32Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Context.BoolType);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Types.Bool);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetSize1d, this.Context.Int64Type, this.Types.Array);
 
             // callable library functions
@@ -467,6 +466,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.quantumInstructionSet.GetOrCreateFunction(name);
 
         /// <summary>
+        /// Gets or creates a global constant (data array) that stores the given string.
+        /// The global constant contains a data array with the zero-terminated representation of the string.
+        /// </summary>
+        internal GlobalVariable GetOrCreateStringConstant(string str)
+        {
+            if (!this.definedStrings.TryGetValue(str, out var constant))
+            {
+                var constantString = this.Context.CreateConstantString(str, true);
+                constant = this.Module.AddGlobal(constantString.NativeType, true, Linkage.Internal, constantString);
+                this.definedStrings.Add(str, constant);
+            }
+
+            return constant;
+        }
+
+        /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
         /// </summary>
         /// <param name="fullName">The callable's qualified name</param>
@@ -521,9 +536,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
 
-            if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
+            if (this.CurrentBlock.Terminator == null)
             {
-                this.CurrentBuilder.Return();
+                if (this.CurrentFunction.ReturnType.IsVoid)
+                {
+                    this.CurrentBuilder.Return();
+                }
+                else
+                {
+                    this.CurrentBuilder.Unreachable();
+                }
             }
 
             if (generatePending)
@@ -820,7 +842,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Build the callable table
             var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
-            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
+            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
         }
 
         /// <inheritdoc cref="CreateCallableTable"/>
@@ -891,7 +913,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             funcs[1] = func;
 
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
-            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
+            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
             this.memoryManagementTables.Add(type, table);
             this.pendingMemoryManagementTables.Add(type);
             return table;
@@ -1092,10 +1114,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             foreach (var type in this.pendingMemoryManagementTables)
             {
                 var table = this.memoryManagementTables[type];
+                var name = table.Name.Substring(0, table.Name.Length - "__FunctionTable".Length);
                 var functions = new List<(string, Action<Value, IValue>)>
                 {
-                    ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
-                    ($"{table.Name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
+                    ($"{name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
+                    ($"{name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
                 };
 
                 foreach (var (funcName, updateCounts) in functions)
