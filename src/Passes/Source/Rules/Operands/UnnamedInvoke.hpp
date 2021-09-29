@@ -2,45 +2,48 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Llvm/Llvm.hpp"
 #include "Rules/OperandPrototype.hpp"
+
+#include "Llvm/Llvm.hpp"
 
 #include <unordered_map>
 #include <vector>
 
-namespace microsoft {
-namespace quantum {
-
-class UnnamedInvokePattern : public IOperandPrototype
+namespace microsoft
 {
-public:
-  using String = std::string;
+namespace quantum
+{
 
-  // Construction
-  //
+    class UnnamedInvokePattern : public IOperandPrototype
+    {
+      public:
+        using String = std::string;
 
-  UnnamedInvokePattern() = default;
+        // Construction
+        //
 
-  /// Copy construction prohibited.
-  UnnamedInvokePattern(UnnamedInvokePattern const &other) = delete;
+        UnnamedInvokePattern() = default;
 
-  /// Move construction allowed.
-  UnnamedInvokePattern(UnnamedInvokePattern &&other) = default;
+        /// Copy construction prohibited.
+        UnnamedInvokePattern(UnnamedInvokePattern const& other) = delete;
 
-  /// Destructor implementation.
-  ~UnnamedInvokePattern() override;
+        /// Move construction allowed.
+        UnnamedInvokePattern(UnnamedInvokePattern&& other) = default;
 
-  // Call implementation of the member functions in IOperandPrototype.
-  //
+        /// Destructor implementation.
+        ~UnnamedInvokePattern() override;
 
-  /// Matches the callee by name.
-  bool match(Value *instr, Captures &captures) const override;
+        // Call implementation of the member functions in IOperandPrototype.
+        //
 
-  /// Creates a copy of itself.
-  Child copy() const override;
+        /// Matches the callee by name.
+        bool match(Value* instr, Captures& captures) const override;
 
-private:
-};
+        /// Creates a copy of itself.
+        Child copy() const override;
 
-}  // namespace quantum
-}  // namespace microsoft
+      private:
+    };
+
+} // namespace quantum
+} // namespace microsoft
