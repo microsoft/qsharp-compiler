@@ -23,6 +23,12 @@ type private Result =
     }
 
 /// <summary>
+/// Ensures that the new line characters will conform to the standard of the environment's new line character.
+/// </summary>
+let standardizeNewLines (s: string) =
+    s.Replace("\r", "").Replace("\n", Environment.NewLine)
+
+/// <summary>
 /// Runs the application with the command-line arguments, <paramref name="args"/>, and the standard input,
 /// <paramref name="input"/>.
 /// </summary>
@@ -42,8 +48,8 @@ let private run args input =
 
         {
             Code = main args
-            Out = out.ToString()
-            Error = error.ToString()
+            Out = out.ToString() |> standardizeNewLines
+            Error = error.ToString() |> standardizeNewLines
         }
     finally
         Console.SetIn previousInput
@@ -57,14 +63,24 @@ let ``Shows help with no arguments`` () =
             Code = 2
             Out = ""
             Error =
-                "ERROR: missing argument '<string>'.
+                standardizeNewLines
+                    "ERROR: missing argument '<string>...'.
 
-INPUT:
+INPUTS:
 
-    <string>              File to format or \"-\" to read from standard input.
+    <string>...           Files or folders to format or \"-\" to read from
+                          standard input.
+
+SUBCOMMANDS:
+
+    update                Update depreciated syntax in the input files.
+    format                Format the source code in input files.
+
+    Use 'testhost.exe <subcommand> --help' for additional information.
 
 OPTIONS:
 
+    --recurse, -r         Process the input folder recursively.
     --help                Display this list of options.
 "
         },
@@ -72,8 +88,8 @@ OPTIONS:
     )
 
 [<Theory>]
-[<InlineData("Example.qs",
-             "namespace Foo {
+[<InlineData("Example1.qs",
+             "namespace Example1 {
     function Bar() : Int {
         return 0;
     }
@@ -83,10 +99,10 @@ let ``Formats file`` path output =
     Assert.Equal(
         {
             Code = 0
-            Out = output
+            Out = output |> standardizeNewLines
             Error = ""
         },
-        run [| path |] ""
+        run [| "format"; path |] ""
     )
 
 [<Theory>]
@@ -102,10 +118,10 @@ let ``Formats standard input`` input output =
     Assert.Equal(
         {
             Code = 0
-            Out = output
+            Out = output |> standardizeNewLines
             Error = ""
         },
-        run [| "-" |] input
+        run [| "format"; "-" |] input
     )
 
 [<Theory>]
@@ -117,7 +133,7 @@ let ``Shows syntax errors`` input errors =
         {
             Code = 1
             Out = ""
-            Error = errors
+            Error = errors |> standardizeNewLines
         },
         run [| "-" |] input
     )
@@ -129,3 +145,176 @@ let ``Shows file not found error`` path =
     Assert.Equal(3, result.Code)
     Assert.Empty result.Out
     Assert.NotEmpty result.Error
+
+[<Fact>]
+let ``Input multiple files`` () =
+    let output =
+        "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace Example2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output |> standardizeNewLines
+            Error = ""
+        },
+        run [| "format"; "Example1.qs"; "Example2.qs" |] ""
+    )
+
+[<Fact>]
+let ``Input directories`` () =
+    let output =
+        "namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample3 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output |> standardizeNewLines
+            Error = ""
+        },
+        run [| "format"; "SubExamples1"; "SubExamples2" |] ""
+    )
+
+[<Fact>]
+let ``Input directories with files and stdin`` () =
+    let input =
+        "namespace StandardIn { function Bar() : Int { return 0; } }
+"
+
+    let output =
+        "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace StandardIn {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output |> standardizeNewLines
+            Error = ""
+        },
+        run [| "format"; "Example1.qs"; "-"; "SubExamples1" |] (input |> standardizeNewLines)
+    )
+
+[<Fact>]
+let ``Input directories with recursive flag`` () =
+    let input =
+        "namespace StandardIn { function Bar() : Int { return 0; } }
+"
+
+    let output =
+        "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace StandardIn {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace SubExample3 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace NestedExample1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace NestedExample2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+
+    Assert.Equal(
+        {
+            Code = 0
+            Out = output |> standardizeNewLines
+            Error = ""
+        },
+        run [| "format"; "-r"; "Example1.qs"; "-"; "SubExamples1"; "SubExamples2" |] (input |> standardizeNewLines)
+    )
+
+[<Fact>]
+let ``Process correct files while erroring on incorrect`` () =
+    let input =
+        "namespace StandardIn { function Bar() : Int { return 0; } }
+"
+
+    let output =
+        "namespace Example1 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace StandardIn {
+    function Bar() : Int {
+        return 0;
+    }
+}
+namespace Example2 {
+    function Bar() : Int {
+        return 0;
+    }
+}
+"
+
+    let result = run [| "format"; "Example1.qs"; "-"; "NotFound.qs"; "Example2.qs" |] (input |> standardizeNewLines)
+    Assert.Equal(3, result.Code)
+    Assert.Equal(output |> standardizeNewLines, result.Out)
+    Assert.NotEmpty(result.Error)

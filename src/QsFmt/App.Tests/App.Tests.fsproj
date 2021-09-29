@@ -6,7 +6,25 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="Example.qs" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Example1.qs" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Example2.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SubExamples1\SubExample1.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SubExamples1\SubExample2.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SubExamples2\SubExample3.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SubExamples2\NestedExample2\NestedExample1.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
+    <Content Include="SubExamples2\NestedExample2\NestedExample2.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Tests.fs" />
   </ItemGroup>
 
