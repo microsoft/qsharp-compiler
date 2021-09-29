@@ -21,6 +21,9 @@ void RuleTransformationPassConfiguration::setup(ConfigurationManager &config)
   config.addParameter(max_recursion_, "max-recursion",
                       "Defines the maximum recursion when unrolling the execution path");
 
+  config.addParameter(assume_no_exceptions_, "assume-no-except",
+                      "Assumes that no exception will occur during runtime.");
+
   config.addParameter(reuse_qubits_, "reuse-qubits",
                       "Use to define whether or not to reuse qubits.");
   config.addParameter(annotate_qubit_use_, "annotate-qubit-use",
@@ -93,6 +96,11 @@ bool RuleTransformationPassConfiguration::oneShotMeasurement() const
 std::string RuleTransformationPassConfiguration::entryPointAttr() const
 {
   return entry_point_attr_;
+}
+
+bool RuleTransformationPassConfiguration::assumeNoExceptions() const
+{
+  return assume_no_exceptions_;
 }
 
 bool RuleTransformationPassConfiguration::isDisabled() const

@@ -60,6 +60,42 @@ void RuleTransformationPass::setupCopyAndExpand()
 
          return true;
        }});
+
+  if (config_.assumeNoExceptions())
+  {
+    // Replacing all invokes with calls
+    addConstExprRule(
+        {unnamedInvoke(), [](Builder &builder, Value *val, Captures &, Replacements &replacements) {
+           auto invoke = llvm::dyn_cast<llvm::InvokeInst>(val);
+           if (invoke == nullptr)
+           {
+             return false;
+           }
+
+           auto callee_function = invoke->getCalledFunction();
+
+           // List with new call arguments
+           std::vector<llvm::Value *> new_arguments;
+           for (unsigned i = 0; i < invoke->getNumArgOperands(); ++i)
+           {
+             // Getting the i'th argument
+             llvm::Value *arg = invoke->getArgOperand(i);
+
+             new_arguments.push_back(arg);
+           }
+
+           // Creating a new call
+           auto *new_call = builder.CreateCall(callee_function, new_arguments);
+           builder.CreateBr(invoke->getNormalDest());
+
+           new_call->takeName(invoke);
+
+           // Replace all calls to old function with calls to new function
+           invoke->replaceAllUsesWith(new_call);
+           replacements.push_back({invoke, nullptr});
+           return true;
+         }});
+  }
 }
 
 void RuleTransformationPass::addConstExprRule(ReplacementRule &&rule)
@@ -132,7 +168,7 @@ llvm::Value *RuleTransformationPass::copyAndExpand(
     llvm::Value *input, DeletableInstructions &schedule_instruction_deletion)
 {
   llvm::Value *ret        = input;
-  auto *       call_instr = llvm::dyn_cast<llvm::CallBase>(input);
+  auto *       call_instr = llvm::dyn_cast<llvm::CallInst>(input);
   auto         instr_ptr  = llvm::dyn_cast<llvm::Instruction>(input);
   if (call_instr != nullptr && instr_ptr != nullptr)
   {
@@ -192,6 +228,15 @@ llvm::Value *RuleTransformationPass::copyAndExpand(
         // Creating a new call
         auto *new_call = builder.CreateCall(new_callee, new_arguments);
         new_call->takeName(call_instr);
+        new_call->setTailCall(call_instr->isTailCall());
+        new_call->setTailCallKind(call_instr->getTailCallKind());
+        if (call_instr->canReturnTwice())
+        {
+          new_call->setCanReturnTwice();
+        }
+
+        new_call->setCallingConv(call_instr->getCallingConv());
+        new_call->setAttributes(call_instr->getAttributes());
 
         // Replace all calls to old function with calls to new function
         instr.replaceAllUsesWith(new_call);
@@ -199,7 +244,7 @@ llvm::Value *RuleTransformationPass::copyAndExpand(
         // Deleting instruction
         schedule_instruction_deletion.push_back(&instr);
 
-        // Folding constants in the newfunction as we may have replaced some of
+        // Folding constants in the new function as we may have replaced some of
         // the arguments with constants
         constantFoldFunction(*new_callee);
 
@@ -298,6 +343,29 @@ bool RuleTransformationPass::runOnFunction(llvm::Function &           function,
               blocks_queued.insert(bb);
             }
           }
+        }
+        continue;
+      }
+
+      // Checking if this is an invoke call
+      auto *invoke_inst = llvm::dyn_cast<llvm::InvokeInst>(&instr);
+      if (invoke_inst != nullptr)
+      {
+        // Checking that configuration is correct
+        if (!config_.assumeNoExceptions())
+        {
+          // TODO(tfr): Unify error reporting
+          throw std::runtime_error(
+              "Exceptions paths cannot be handled at compile time. Either disable "
+              "transform-execution-path-only or add assumption assume-no-except");
+        }
+
+        // Adding the block which is the on the "no except" path
+        auto bb = invoke_inst->getNormalDest();
+        if (blocks_queued.find(bb) == blocks_queued.end())
+        {
+          queue.push_back(bb);
+          blocks_queued.insert(bb);
         }
       }
     }
@@ -642,32 +710,6 @@ llvm::PreservedAnalyses RuleTransformationPass::run(llvm::Module &              
           rule_set_.matchAndReplace(&instr, replacements_);
         }
       }
-      /*
-      // Apply rules in reverse
-      std::vector<llvm::BasicBlock*> blocks;
-      for (auto& block : function)
-      {
-          blocks.push_back(&block);
-      }
-
-      for (auto it = blocks.rbegin(); it != blocks.rend(); ++it)
-      {
-          auto& block = **it;
-
-          // Reversing instruction order
-          std::vector<llvm::Instruction*> instructions;
-          for (auto& instr : block)
-          {
-              instructions.push_back(&instr);
-          }
-
-          // Applying to all instructions
-          for (auto it2 = instructions.rbegin(); it2 != instructions.rend(); ++it2)
-          {
-              rule_set_.matchAndReplace(*it2, replacements_);
-          }
-      }
-      */
     }
 
     applyReplacements();

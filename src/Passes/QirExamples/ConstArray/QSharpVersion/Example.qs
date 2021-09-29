@@ -1,6 +1,7 @@
 namespace ConstArrayReduction {
     open Microsoft.Quantum.Arrays;
 
+
     @EntryPoint()
     operation Main(): Int
     {
