@@ -16,11 +16,10 @@ microsoft_add_library(RuleTransformationPass)
 target_link_libraries(RuleTransformationPass PRIVATE Rules)
 microsoft_add_library_tests(RuleTransformationPass Rules RuleTransformationPass AllocationManager Commandline Generators)
 
-
 microsoft_add_library(Rules)
 microsoft_add_library_tests(Rules Rules RuleTransformationPass AllocationManager Commandline Generators)
 
-target_link_libraries(Rules PRIVATE AllocationManager)
+target_link_libraries(Rules PRIVATE AllocationManager RuleTransformationPass)
 
 microsoft_add_library(Generators)
 target_link_libraries(Generators PRIVATE Rules Commandline AllocationManager Profile)
