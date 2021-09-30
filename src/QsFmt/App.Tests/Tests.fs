@@ -138,38 +138,6 @@ let private runWithFiles isUpdate files standardInput expectedOutput args =
             File.WriteAllText(file.Path, file.Original)
 
 [<Fact>]
-let ``Shows help with no arguments`` () =
-    Assert.Equal(
-        {
-            Code = 2
-            Out = ""
-            Error =
-                standardizeNewLines
-                    "ERROR: missing argument '<string>...'.
-
-INPUTS:
-
-    <string>...           Files or folders to format or \"-\" to read from
-                          standard input.
-
-SUBCOMMANDS:
-
-    update                Update depreciated syntax in the input files.
-    format                Format the source code in input files.
-
-    Use 'testhost.exe <subcommand> --help' for additional information.
-
-OPTIONS:
-
-    --backup, -b          Create backup files of input files.
-    --recurse, -r         Process the input folder recursively.
-    --help                Display this list of options.
-"
-        },
-        run [||] ""
-    )
-
-[<Fact>]
 let ``Updates file`` () =
     runWithFiles true [ Example1 ] "" CleanResult [| "update"; Example1.Path |]
 
