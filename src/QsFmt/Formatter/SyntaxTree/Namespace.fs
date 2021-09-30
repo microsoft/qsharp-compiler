@@ -3,13 +3,36 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
+type Attribute = { At: Terminal; Expression: Expression }
+
+type TypeParameterBinding =
+    {
+        OpenBracket: Terminal
+        Parameters: Terminal SequenceItem list
+        CloseBracket: Terminal
+    }
+
+type SpecializationGenerator =
+    | BuiltIn of name: Terminal * semicolon: Terminal
+    | Provided of parameters: Terminal option * statements: Statement Block
+
+type Specialization = { Names: Terminal list; Generator: SpecializationGenerator }
+
+type CallableBody =
+    | Statements of Statement Block
+    | Specializations of Specialization Block
+
 type CallableDeclaration =
     {
+        Attributes: Attribute list
+        Access: Terminal option
         CallableKeyword: Terminal
         Name: Terminal
-        Parameters: SymbolBinding
+        TypeParameters: TypeParameterBinding option
+        Parameters: ParameterBinding
         ReturnType: TypeAnnotation
-        Block: Statement Block
+        CharacteristicSection: CharacteristicSection option
+        Body: CallableBody
     }
 
 type NamespaceItem =

@@ -20,13 +20,15 @@ namespace Microsoft.Quantum.QsCompiler
     /// </summary>
     internal class LoadedStep : IRewriteStep
     {
-        internal readonly Uri Origin;
+        internal Uri Origin { get; }
+
         private readonly IRewriteStep? selfAsStep;
         private readonly object selfAsObject;
 
         private readonly MethodInfo[]? interfaceMethods;
 
         private MethodInfo? InterfaceMethod(string name) =>
+
             // This choice of filtering the interface methods may seem a bit particular.
             // However, unless you know what you are doing, please don't change it.
             // If you are sure you know what you are doing, please make sure the loading via reflection works for rewrite steps
@@ -133,7 +135,7 @@ namespace Microsoft.Quantum.QsCompiler
                               Start = new Position(0, 0),
                               End = new Position(0, 0),
                           }
-                        : diagnostic.Range.ToLsp()
+                        : diagnostic.Range.ToLsp(),
             };
         }
 
@@ -152,6 +154,7 @@ namespace Microsoft.Quantum.QsCompiler
                 {
                     return this.selfAsStep.GeneratedDiagnostics;
                 }
+
                 static bool IEnumerableInterface(Type t) => t.IsGenericType && t.GetGenericTypeDefinition() == typeof(IEnumerable<>);
                 var enumerable = this.GetViaReflection(nameof(IRewriteStep.GeneratedDiagnostics)) as IEnumerable;
                 var itemType = enumerable?.GetType().GetInterfaces().FirstOrDefault(IEnumerableInterface)?.GetGenericArguments().FirstOrDefault();
@@ -167,14 +170,16 @@ namespace Microsoft.Quantum.QsCompiler
                     {
                         continue;
                     }
+
                     diagnostics.Add(new IRewriteStep.Diagnostic
                     {
                         Severity = (CodeAnalysis.DiagnosticSeverity)itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Severity)).GetValue(obj, null),
                         Message = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Message)).GetValue(obj, null) as string,
                         Source = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Source)).GetValue(obj, null) as string,
-                        Range = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Range)).GetValue(obj, null) as Range
+                        Range = itemType.GetProperty(nameof(IRewriteStep.Diagnostic.Range)).GetValue(obj, null) as Range,
                     });
                 }
+
                 return diagnostics.ToImmutable();
             }
         }
@@ -203,6 +208,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 return this.selfAsStep.Transformation(compilation, out transformed);
             }
+
             var args = new object?[] { compilation, null };
             var success = this.InvokeViaReflection<bool>(nameof(IRewriteStep.Transformation), args);
             transformed = success ? args[1] as QsCompilation ?? compilation : compilation;

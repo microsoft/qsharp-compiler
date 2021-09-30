@@ -26,10 +26,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             {
                 content.Add(string.Empty); // ReadAllLines will ignore the last line if it is empty
             }
+
             for (var lineNr = 0; lineNr < content.Count - 1; ++lineNr)
             {
                 content[lineNr] += Environment.NewLine;
             }
+
             return content;
         }
 
@@ -49,8 +51,8 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 {
                     Workspace = new WorkspaceClientCapabilities(),
                     TextDocument = new TextDocumentClientCapabilities(),
-                    Experimental = new object()
-                }
+                    Experimental = new object(),
+                },
             };
         }
 
@@ -102,6 +104,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             {
                 changeLength += content[line].Length;
             }
+
             return changeLength + range.End.Character;
         }
 
@@ -125,10 +128,12 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             {
                 newText = content[--startLine] + newText;
             }
+
             if (endLine + 1 < content.Count)
             {
                 newText = newText + content[++endLine];
             }
+
             var lineChanges = Builder.SplitLines(newText);
             if (lineChanges.Length == 0 || (endLine + 1 == content.Count() && Builder.EndOfLine.Match(lineChanges.Last()).Success))
             {

@@ -7,6 +7,13 @@ $ErrorActionPreference = 'Stop'
 $all_ok = $True
 Write-Host "Assembly version: $Env:ASSEMBLY_VERSION"
 
+choco install llvm --version=11.1.0
+if (!(Get-Command clang -ErrorAction SilentlyContinue) -and (choco find --idonly -l llvm) -contains "llvm") {
+    # For some reason, adding to the path does not work on our build servers, even after calling refreshenv.
+    # LLVM was installed by Chocolatey, so add the install location to the path.
+    $env:PATH += ";$($env:SystemDrive)\Program Files\LLVM\bin"
+}
+
 ##
 # Q# compiler and Sdk tools
 ##
@@ -41,8 +48,27 @@ function Build-One {
 ##
 function Build-VSCode() {
     Write-Host "##[info]Building VS Code extension..."
+
     Push-Location (Join-Path $PSScriptRoot '../src/VSCodeExtension')
     if (Get-Command npm -ErrorAction SilentlyContinue) {
+        $npmVersion = (npm --version);
+        @{
+            "npm" = $npmVersion;
+            "node" = (node --version);
+        } | Format-Table | Write-Output;
+
+        # Check if npm is up to date enough.
+        if ([semver]::new($npmVersion) -lt [semver]::new(7, 0, 0)) {
+            $IsCI = "$Env:TF_BUILD" -ne "" -or "$Env:CI" -eq "true";
+            $msg = "npm was version $npmVersion, but building the VS Code extension requires 7.0 or later.";
+            if ($IsCI) {
+                Write-Host "##[error]$msg";
+            } else {
+                Write-Error $msg;
+            }
+            throw;
+        }
+
         Try {
             npm ci
             npm run compile

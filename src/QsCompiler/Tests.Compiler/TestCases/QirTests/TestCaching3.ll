@@ -1,4 +1,4 @@
-define { double, double }* @Microsoft__Quantum__Testing__QIR__Conditional__body(%Result* %res, { double, double }* %0) {
+define internal { double, double }* @Microsoft__Quantum__Testing__QIR__Conditional__body(%Result* %res, { double, double }* %0) {
 entry:
   %1 = getelementptr inbounds { double, double }, { double, double }* %0, i32 0, i32 0
   %x = load double, double* %1, align 8

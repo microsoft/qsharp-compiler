@@ -6,6 +6,7 @@ using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
 using System.Linq;
+using System.Text.RegularExpressions;
 using Microsoft.Quantum.QsCompiler.CompilationBuilder.DataStructures;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 using Microsoft.Quantum.QsCompiler.SyntaxProcessing;
@@ -29,11 +30,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </summary>
         private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits)
         {
-            var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = 1 }; // setting version to null here won't work in VS Code ...
+            var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = file.Version ?? 1 };
             return new WorkspaceEdit
             {
                 DocumentChanges = new[] { new TextDocumentEdit { TextDocument = versionedFileId, Edits = edits } },
-                Changes = new Dictionary<string, TextEdit[]> { { file.FileName, edits } }
+                Changes = new Dictionary<string, TextEdit[]> { { file.FileName, edits } },
             };
         }
 
@@ -128,6 +129,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Enumerable.Empty<CodeFragment>();
             }
+
             var (start, end) = (range.Start.Line, range.End.Line);
 
             var fragAtStart = file.TryGetFragmentAt(range.Start, out _, includeEnd: true);
@@ -142,6 +144,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 fragments.Add(fragAtStart);
             }
+
             fragments.AddRange(inRange);
             return fragments.ToImmutableArray();
         }
@@ -190,7 +193,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 return new TextEdit
                 {
                     Range = new Lsp.Range { Start = insertOpenDirAt.ToLsp(), End = insertOpenDirAt.ToLsp() },
-                    NewText = $"{directive};{whitespaceAfterOpenDir}"
+                    NewText = $"{directive};{whitespaceAfterOpenDir}",
                 };
             });
         }
@@ -211,6 +214,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
+
             var ambiguousCallables = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousCallable));
             var ambiguousTypes = diagnostics.Where(DiagnosticTools.ErrorType(ErrorCode.AmbiguousType));
             if (!ambiguousCallables.Any() && !ambiguousTypes.Any())
@@ -223,7 +227,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var edit = new TextEdit
                 {
                     Range = new Lsp.Range { Start = pos.ToLsp(), End = pos.ToLsp() },
-                    NewText = $"{suggestedNS}."
+                    NewText = $"{suggestedNS}.",
                 };
                 return id is null
                     ? null as (string, WorkspaceEdit)?
@@ -307,6 +311,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             UnknownIdNamespaceSuggestions(file, compilation, lineNr, diagnostics)
                 .Concat(UnknownIdCaseSuggestions(file, compilation, diagnostics));
 
+        private static readonly Regex QubitBindingsMatcher = new Regex("(using|borrowing)\\s*\\((.*)\\)", RegexOptions.Compiled | RegexOptions.Singleline, TimeSpan.FromSeconds(1));
+
         internal static IEnumerable<(string, WorkspaceEdit)> BindingSuggestions(
             this FileContentManager file, CompilationUnit compilation, IReadOnlyCollection<Diagnostic> diagnostics)
         {
@@ -331,6 +337,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         }
                     }
                 }
+
                 return edits;
             }
 
@@ -359,11 +366,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         text = $" {text}";
                     }
+
                     if (afterEdit.Any() && NeedsWs(afterEdit.First()))
                     {
                         text = $"{text} ";
                     }
                 }
+
                 var edit = new TextEdit { Range = range, NewText = text };
                 return ($"Replace with \"{text.Trim()}\".", file.GetWorkspaceEdit(edit));
             }
@@ -378,8 +387,29 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var orSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedORoperator))
                 .Select(d => ReplaceWith(Keywords.qsORop.op, d.Range));
 
-            // update deprecated operation characteristics syntax
+            var qubitBindingSuggestions = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.DeprecatedQubitBindingKeyword))
+                .Select(d =>
+                {
+                    var fragment = file.TryGetFragmentAt(d.Range.ToQSharp().Start, out _);
+                    if (fragment != null)
+                    {
+                        var match = QubitBindingsMatcher.Match(fragment.Text);
+                        if (match.Success && match.Groups.Count == 3)
+                        {
+#pragma warning disable 0618
+                            var newText = (match.Groups[1].Value == Keywords.qsUsing.id ? Keywords.qsUse.id : Keywords.qsBorrow.id) + " " + match.Groups[2].Value.Trim();
+#pragma warning restore 0618
+                            var edit = new TextEdit { Range = fragment.Range.ToLsp(), NewText = newText };
+                            return ($"Replace with \"{edit.NewText.Trim()}\".", file.GetWorkspaceEdit(edit));
+                        }
+                    }
 
+#pragma warning disable 0618
+                    return d.Message.Contains($"\"{Keywords.qsUsing.id}\"") ? ReplaceWith(Keywords.qsUse.id, d.Range) : ReplaceWith(Keywords.qsBorrow.id, d.Range);
+#pragma warning restore 0618
+                });
+
+            // update deprecated operation characteristics syntax
             static IEnumerable<Characteristics> GetCharacteristics(QsTuple<Tuple<QsSymbol, QsType>> argTuple) =>
                 SyntaxGenerator.ExtractItems(argTuple)
                     .SelectMany(item => item.Item2.ExtractCharacteristics())
@@ -402,12 +432,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return Enumerable.Empty<(string, WorkspaceEdit)>();
                     }
+
                     var characteristics = fragment.Kind switch
                     {
                         QsFragmentKind.FunctionDeclaration function => GetCharacteristics(function.Item.Signature.Argument),
                         QsFragmentKind.OperationDeclaration operation => GetCharacteristics(operation.Item.Signature.Argument),
                         QsFragmentKind.TypeDefinition type => GetCharacteristics(type.Item.UnderlyingType),
-                        _ => Enumerable.Empty<Characteristics>()
+                        _ => Enumerable.Empty<Characteristics>(),
                     };
                     return
                         from characteristic in characteristics
@@ -420,7 +451,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Concat(unitSuggestions)
                 .Concat(notSuggestions)
                 .Concat(andSuggestions)
-                .Concat(orSuggestions);
+                .Concat(orSuggestions)
+                .Concat(qubitBindingSuggestions);
         }
 
         /// <summary>
@@ -439,6 +471,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             (string, WorkspaceEdit?) SuggestedCopyAndUpdateExpr(CodeFragment fragment)
             {
                 var exprInfo = Parsing.ProcessUpdateOfArrayItemExpr.Invoke(fragment.Text);
+
                 // Skip if the statement did not match a pattern for which we can give a code action
                 if (exprInfo == null || (exprInfo.Item1.Line == 1 && exprInfo.Item1.Column == 1))
                 {
@@ -470,20 +503,28 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             [NotNullWhen(true)] out Range? argRange)
         {
             if (
+
                 // iterable expression is a valid range literal
                 iterExpr.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.RangeLiteral rangeExpression && iterExpr.Range.IsValue &&
+
                 // .. starting at 0 ..
                 rangeExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral intLiteralExpression && intLiteralExpression.Item == 0L &&
+
                 // .. and ending in subtracting ..
                 rangeExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.SUB sUBExpression &&
+
                 // .. 1 from ..
                 sUBExpression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.IntLiteral subIntLiteralExpression && subIntLiteralExpression.Item == 1L &&
+
                 // .. a call ..
                 sUBExpression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.CallLikeExpression callLikeExression &&
+
                 // .. to and identifier ..
                 callLikeExression.Item1.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.Identifier identifier &&
+
                 // .. "Length" called with ..
                 identifier.Item1.Symbol is QsSymbolKind<QsSymbol>.Symbol symName && symName.Item == BuiltIn.Length.FullName.Name &&
+
                 // .. a valid argument tuple
                 callLikeExression.Item2.Expression is QsExpressionKind<QsExpression, QsSymbol, QsType>.ValueTuple valueTuple && callLikeExression.Item2.Range.IsValue)
             {
@@ -517,6 +558,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
+
             var indexRange = compilation.GlobalSymbols.TryGetCallable(
                 BuiltIn.IndexRange.FullName,
                 nsName,
@@ -536,12 +578,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     yield return new TextEdit
                     {
                         Range = new Lsp.Range { Start = iterExprRange.Start.ToLsp(), End = argTupleRange.Start.ToLsp() },
-                        NewText = BuiltIn.IndexRange.FullName.Name
+                        NewText = BuiltIn.IndexRange.FullName.Name,
                     };
                     yield return new TextEdit
                     {
                         Range = new Lsp.Range { Start = argTupleRange.End.ToLsp(), End = iterExprRange.End.ToLsp() },
-                        NewText = ""
+                        NewText = "",
                     };
                 }
             }
@@ -570,6 +612,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Enumerable.Empty<(string, WorkspaceEdit)>();
             }
+
             var unreachableCode = diagnostics.Where(DiagnosticTools.WarningType(WarningCode.UnreachableCode));
 
             WorkspaceEdit? SuggestedRemoval(Position? pos)
@@ -591,6 +634,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     lastFragToken = currentFragToken;
                     currentFragToken = currentFragToken.NextOnScope(true);
                 }
+
                 var lastInScope = lastFragToken.GetFragment();
                 var eraseEnd = lastInScope.Range.End;
 
@@ -649,6 +693,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 att = line?.Reverse().TakeWhile(t => t.Kind is QsFragmentKind.DeclarationAttribute).LastOrDefault();
                 return att != null || (line != null && !line.Any());
             }
+
             var preceding = file.GetTokenizedLine(declStart.Line).TakeWhile(ContextBuilder.TokensUpTo(Position.Create(0, declStart.Column)));
             for (var lineNr = declStart.Line; EmptyOrFirstAttribute(preceding, out var precedingAttribute);)
             {
@@ -656,6 +701,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     declStart = Position.Create(declStart.Line + lineNr, declStart.Column);
                 }
+
                 preceding = lineNr-- > 0 ? file.GetTokenizedLine(lineNr) : (IEnumerable<CodeFragment>?)null;
             }
 
@@ -677,12 +723,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var args = argTuple == null ? ImmutableArray<Tuple<QsSymbol, QsType>>.Empty : SyntaxGenerator.ExtractItems(argTuple);
             docString = string.Concat(
                 docString,
-                // Document Input Parameters
+                /* Document Input Parameters */
                 args.Any() ? $"{docPrefix}# Input{endLine}" : string.Empty,
                 string.Concat(args.Select(x => $"{docPrefix}## {x.Item1.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}")),
-                // Document Output
+                /* Document Output */
                 hasOutput ? $"{docPrefix}# Output{endLine}{docPrefix}{endLine}" : string.Empty,
-                // Document Type Parameters
+                /* Document Type Parameters */
                 typeParams.Any() ? $"{docPrefix}# Type Parameters{endLine}" : string.Empty,
                 string.Concat(typeParams.Select(x => $"{docPrefix}## '{x.Symbol.AsDeclarationName(null)}{endLine}{docPrefix}{endLine}")));
 
@@ -690,7 +736,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             var suggestedEdit = file.GetWorkspaceEdit(new TextEdit
             {
                 Range = new Lsp.Range { Start = declStart.ToLsp(), End = declStart.ToLsp() },
-                NewText = docString
+                NewText = docString,
             });
             return new[] { ($"Add documentation{whichDecl}.", suggestedEdit) };
         }

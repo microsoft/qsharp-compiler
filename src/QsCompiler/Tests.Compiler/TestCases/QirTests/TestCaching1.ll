@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestCaching__body(%Array* %arr) {
+define internal i64 @Microsoft__Quantum__Testing__QIR__TestCaching__body(%Array* %arr) {
 entry:
   call void @__quantum__rt__array_update_alias_count(%Array* %arr, i32 1)
   %q = call %Qubit* @__quantum__rt__qubit_allocate()

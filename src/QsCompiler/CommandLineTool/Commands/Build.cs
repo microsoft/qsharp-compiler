@@ -101,6 +101,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                         {
                             return false;
                         }
+
                         fromResponseFiles.UpdateSetIndependentSettings(options);
                         options = fromResponseFiles;
                     }
@@ -110,6 +111,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                         return false;
                     }
                 }
+
                 incorporated = options;
                 incorporated.ResponseFiles = responseFiles;
                 return true;
@@ -137,10 +139,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 {
                     inQuote = !inQuote;
                 }
+
                 if (inQuote && parmChars[index] == '\n')
                 {
                     parmChars[index] = ' ';
                 }
+
                 if (!inQuote && !precededByBackslash && char.IsWhiteSpace(parmChars[index]))
                 {
                     parmChars[index] = '\n';
@@ -215,11 +219,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             options.SetupLoadingContext();
 
             var usesPlugins = options.Plugins != null && options.Plugins.Any();
-            if (!options.ParseAssemblyProperties(out var assemblyConstants))
-            {
-                logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
-            }
-
+            options.ParseAssemblyProperties(logger, out var assemblyConstants);
             var loadOptions = new CompilationLoader.Configuration
             {
                 ProjectName = options.ProjectName,

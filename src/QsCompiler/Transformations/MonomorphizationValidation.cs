@@ -10,8 +10,17 @@ using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
 namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validation
 {
+    /// <summary>
+    /// Validates that the monomorphization transformation has removed all references to
+    /// generic objects.
+    /// </summary>
     public class ValidateMonomorphization : SyntaxTreeTransformation<ValidateMonomorphization.TransformationState>
     {
+        /// <summary>
+        /// Applies the transformation that walks through the syntax tree, checking to ensure
+        /// that all generic data has been removed. If allowTypeParametersForIntrinsics is true,
+        /// then generic data is allowed for type parameters of callables that have an intrinsic body.
+        /// </summary>
         public static void Apply(QsCompilation compilation, bool allowTypeParametersForIntrinsics = true)
         {
             var intrinsicCallableSet = allowTypeParametersForIntrinsics
@@ -26,7 +35,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.Monomorphization.Validati
 
         public class TransformationState
         {
-            public readonly ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet;
+            public ImmutableHashSet<QsQualifiedName> IntrinsicCallableSet { get; }
 
             public TransformationState(ImmutableHashSet<QsQualifiedName> intrinsicCallableSet)
             {

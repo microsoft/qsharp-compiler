@@ -1,5 +1,4 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
-  <Import Project="..\..\Common\AssemblyCommon.props" />
 
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
@@ -26,6 +25,9 @@
     </Content>
     <Content Include="TestCases\QirTests\QirTarget.qs">
         <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\ExecutionTests.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestAliasCounts.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
@@ -103,6 +105,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestConditional3.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestConditional4.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestConditional.qs">
@@ -204,6 +209,18 @@
     <Content Include="TestCases\QirTests\TestIntegers.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestLibraryGeneration1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestLibraryGeneration2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestLibraryGeneration3.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestLibraryGeneration.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestLocalCallables1.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -246,6 +263,9 @@
     <Content Include="TestCases\QirTests\TestPartials6.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="TestCases\QirTests\TestPartials7.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="TestCases\QirTests\TestPartials.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -265,6 +285,9 @@
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestReferenceCounts2.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestReferenceCounts3.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestReferenceCounts.qs">
@@ -306,7 +329,10 @@
     <Content Include="TestCases\QirTests\TestTargeting.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="TestCases\QirTests\TestUdt.ll">
+    <Content Include="TestCases\QirTests\TestUdt1.ll">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="TestCases\QirTests\TestUdt2.ll">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
     <Content Include="TestCases\QirTests\TestUdt.qs">
@@ -505,7 +531,6 @@
     <None Include="TestCases\CompilationLoader.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
-    <Compile Include="..\..\Common\DelaySign.fs" Link="DelaySign.fs" />
     <Compile Include="ExternalRewriteStepsManagerTests.fs" />
     <Compile Include="TextTests.fs" />
     <Compile Include="SyntaxTests.fs" />
@@ -517,7 +542,6 @@
     <Compile Include="TypeCheckingTests.fs" />
     <Compile Include="AutoGenerationTests.fs" />
     <Compile Include="TransformationTests.fs" />
-    <Compile Include="ExecutionTests.fs" />
     <Compile Include="LinkingTests.fs" />
     <Compile Include="CallGraphTests.fs" />
     <Compile Include="ClassicalControlTests.fs" />
@@ -531,13 +555,16 @@
     <Compile Include="CompilationLoaderTests.fs" />
     <Compile Include="CompilationTrackerTests.fs" />
     <Compile Include="QirTests.fs" />
+    <Compile Include="ExecutionTests.fs" />
 </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="libLLVM.runtime.win-x64" Version="11.0.0" PrivateAssets="All" />
     <PackageReference Include="libLLVM.runtime.osx-x64" Version="11.0.0" PrivateAssets="All" />
     <PackageReference Include="libLLVM.runtime.ubuntu.20.04-x64" Version="11.0.0" PrivateAssets="All" />
-    <PackageReference Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" PrivateAssets="All" />      
+    <PackageReference Include="libLLVM.runtime.ubuntu.18.04-x64" Version="11.0.0" PrivateAssets="All" />
+    <PackageReference Include="Microsoft.Quantum.Qir.Runtime" Version="0.18.210932364-alpha" GeneratePathProperty="true" />
+    <PackageReference Include="Microsoft.Quantum.Simulators" Version="0.18.210932364-alpha" GeneratePathProperty="true" />
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.3.0" />
     <PackageReference Include="xunit" Version="2.4.1" />
     <PackageReference Include="xunit.runner.visualstudio" Version="2.4.1">
@@ -550,6 +577,7 @@
   <ItemGroup>
     <ProjectReference Include="..\CommandLineTool\CommandLineTool.csproj" />
     <ProjectReference Include="..\QirGeneration\QirGeneration.csproj" />
+    <ProjectReference Include="..\TestTargets\Simulation\Target\Simulation.csproj" />
     <ProjectReference Include="..\TestTargets\Simulation\Example\Example.csproj">
       <ReferenceOutputAssembly>false</ReferenceOutputAssembly>
     </ProjectReference>
@@ -563,9 +591,23 @@
   <Target Name="PrepareReferenceTests" Condition="'$(DesignTimeBuild)' != 'true'" BeforeTargets="CoreCompile">
     <PropertyGroup>
       <ExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Example\bin\$(Configuration)\netcoreapp3.1\Example.dll</ExecutionTarget>
+      <QirExecutionTarget>$(MSBuildThisFileDirectory)..\TestTargets\Simulation\Target\bin\$(Configuration)\netcoreapp3.1\Simulation.dll</QirExecutionTarget>
       <LibraryTarget>$(MSBuildThisFileDirectory)..\TestTargets\Libraries\Library1\bin\$(Configuration)\netcoreapp3.1\Library1.dll</LibraryTarget>
     </PropertyGroup>
-    <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(LibraryTarget)" Overwrite="true" />
+    <WriteLinesToFile File="$(OutputPath)ReferenceTargets.txt" Lines="$(ExecutionTarget); $(QirExecutionTarget); $(LibraryTarget)" Overwrite="true" />
+    <PropertyGroup>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/osx-x64/native</QirRuntimeLibs>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/win-x64/native</QirRuntimeLibs>
+      <QirRuntimeLibs Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Qir_Runtime)/runtimes/linux-x64/native</QirRuntimeLibs>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('OSX'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/osx-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Windows'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/win-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+      <SimulatorRuntime Condition="$([MSBuild]::IsOsPlatform('Linux'))">$(PkgMicrosoft_Quantum_Simulators)/runtimes/linux-x64/native/Microsoft.Quantum.Simulator.Runtime.dll</SimulatorRuntime>
+    </PropertyGroup>
+    <ItemGroup>
+      <_QirRuntimeLibFiles Include="$(QirRuntimeLibs)/**/*.*" Exclude="$(QirRuntimeLibs)/**/*.exe" />
+    </ItemGroup>
+    <Copy SourceFiles="$(SimulatorRuntime)" DestinationFolder="$(OutputPath)" SkipUnchangedFiles="true" />
+    <Copy SourceFiles="@(_QirRuntimeLibFiles)" DestinationFolder="$(OutputPath)\%(RecursiveDir)" SkipUnchangedFiles="true" />
   </Target>
 
 </Project>

@@ -161,18 +161,18 @@ namespace Microsoft.Quantum.QsCompiler
         }
 
         /// <summary>
-        /// Loads any QIR byte code included as a resource from <paramref name="assemblyFileInfo"/>.
+        /// Loads any QIR bitcode included as a resource from <paramref name="assemblyFileInfo"/>.
         /// </summary>
-        /// <param name="assemblyFileInfo">The file info of a .NET DLL from which to load the QIR byte code.</param>
-        /// <param name="qirByteStream">A stream to store the QIR byte code embedded to<paramref name="assemblyFileInfo"/> as a resource.</param>
+        /// <param name="assemblyFileInfo">The file info of a .NET DLL from which to load the QIR bitcode.</param>
+        /// <param name="qirStream">A stream to store the QIR bitcode embedded to<paramref name="assemblyFileInfo"/> as a resource.</param>
         /// <returns>
-        /// True if <paramref name="assemblyFileInfo"/> includes the QIR byte code resource, false otherwise.
+        /// True if <paramref name="assemblyFileInfo"/> includes the QIR bitcode resource, false otherwise.
         /// </returns>
         /// <exception cref="FileNotFoundException"><paramref name="assemblyFileInfo"/> does not exist.</exception>
-        public static bool LoadQirByteCode(FileInfo assemblyFileInfo, Stream qirByteStream)
+        public static bool LoadQirBitcode(FileInfo assemblyFileInfo, Stream qirStream)
         {
             using var assemblyFile = GetAssemblyReader(assemblyFileInfo.FullName);
-            return LoadResource(DotnetCoreDll.ResourceNameQsDataQirV1, assemblyFile, qirByteStream);
+            return LoadResource(DotnetCoreDll.ResourceNameQsDataQirV1, assemblyFile, qirStream);
         }
 
         /// <summary>
@@ -189,6 +189,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 throw new FileNotFoundException($"The file '{assemblyPath}' given to the assembly loader does not exist.");
             }
+
             return new PEReader(File.OpenRead(assemblyPath));
         }
 
@@ -273,6 +274,7 @@ namespace Microsoft.Quantum.QsCompiler
             {
                 isNewtonSoftResourcePresent = true;
             }
+
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.LoadDataFromReferenceToStream);
 
             // Use the correct method depending on the resource.
@@ -349,6 +351,7 @@ namespace Microsoft.Quantum.QsCompiler
                     return null;
                 }
             }
+
             return null;
         }
 

@@ -45,6 +45,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("missing specification of the fragment kind");
             }
+
             var code = fragment.Kind.InvalidEnding;
             if (!Diagnostics.ExpectedEndings(code).Contains(fragment.FollowedBy))
             {
@@ -95,16 +96,19 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                             checkEnding = false;
                         }
                     }
+
                     if (checkEnding)
                     {
                         diagnostics.AddRange(fragment.CheckFragmentDelimiters(filename));
                     }
                 }
+
                 if (outputs.Length == 0)
                 {
                     processedFragments.Add(snippet); // keep empty fragments around (note that the kind is set to null in this case!)
                 }
             }
+
             QsCompilerError.RaiseOnFailure(() => ContextBuilder.VerifyTokenOrdering(processedFragments), "processed fragments are not ordered properly and/or overlap");
             fragments = processedFragments;
             return diagnostics;
@@ -126,6 +130,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException($"cannot extract code snippet for the given range \n range: {range.DiagnosticString()}");
             }
+
             string CodeLine(CodeLine line) => line.WithoutEnding + line.LineEnding;
 
             var start = range.Start.Line;
@@ -152,7 +157,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             }
         }
 
-        // private utils for determining suitable ranges to parse
+        /* private utils for determining suitable ranges to parse */
 
         private static readonly Func<string, int> StatementEndDelimiters =
             code => code.LastIndexOfAny(CodeFragment.DelimitingChars.ToArray());
@@ -208,6 +213,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("file is empty", nameof(file));
             }
+
             return Position.Create(file.NrLines() - 1, file.GetLine(file.NrLines() - 1).Text.Length);
         }
 
@@ -222,10 +228,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("file is null or missing content", nameof(file));
             }
+
             var endIndex = file.NrLines();
             while (endIndex-- > 0 && file.GetLine(endIndex).WithoutEnding.Trim().Length == 0)
             {
             }
+
             return endIndex < 0
                 ? Position.Zero
                 : Position.Create(endIndex, file.GetLine(endIndex).WithoutEnding.Length);
@@ -248,6 +256,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("given position is not within file");
             }
+
             var lastInFile = LastInFile(file);
             if (lastInFile <= current)
             {
@@ -268,6 +277,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     trimmed = file.GetLine(current.Line).WithoutEnding.TrimStart();
                 }
+
                 if (current.Line < file.NrLines())
                 {
                     current = Position.Create(
@@ -287,6 +297,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 endChar = file.GetLine(endIndex).StatementStart();
             }
+
             return endIndex < file.NrLines() ? Position.Create(endIndex, endChar + 1) : lastInFile;
         }
 
@@ -306,12 +317,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("given position is not within file");
             }
+
             var startIndex = current.Line;
             var startChar = file.GetLine(startIndex).StatementEnd(0, current.Column);
             while (startChar < 0 && startIndex-- > 0)
             {
                 startChar = file.GetLine(startIndex).StatementEnd();
             }
+
             return startIndex < 0 ? Position.Zero : Position.Create(startIndex, startChar + 1);
         }
 
@@ -326,7 +339,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         private static IEnumerable<CodeFragment> FragmentsToProcess(this FileContentManager file, SortedSet<int> changedLines)
         {
             // NOTE: I suggest not to touch this routine unless absolutely necessary...(things *will* break)
-
             var iter = changedLines.GetEnumerator();
             var lastInFile = LastInFile(file);
 
@@ -366,6 +378,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         var codeRange = Range.Create(processed, Position.Create(nextEnding.Line, endChar));
                         yield return new CodeFragment(file.IndentationAt(codeRange.Start), codeRange, code.Substring(0, code.Length - 1), code.Last());
                     }
+
                     processed = nextEnding;
                 }
             }
@@ -385,6 +398,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentOutOfRangeException(nameof(start));
             }
+
             if (count < 0 || start + count > file.NrLines())
             {
                 throw new ArgumentOutOfRangeException(nameof(count));
@@ -392,6 +406,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
             // if no piece of code exists before the start of the modifications, then the check effectively starts at the beginning of the file
             var syntaxCheckStart = file.PositionAfterPrevious(Position.Create(start, 0)); // position (0,0) if there is no previous fragment
+
             // if the modification goes past what is currently the last piece of code, then the effectively the check extends to the end of the file
             var firstAfterModified = Position.Create(start + count, 0);
             var lastInFile = LastInFile(file);

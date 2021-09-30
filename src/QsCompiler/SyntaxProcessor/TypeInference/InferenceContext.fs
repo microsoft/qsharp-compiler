@@ -367,9 +367,12 @@ type InferenceContext(symbolTracker: SymbolTracker) =
         |> rememberErrors (resolvedType :: Constraint.types typeConstraint)
 
     member internal context.Resolve resolvedType =
-        let resolveWithRange type' =
-            let type' = context.Resolve type'
-            type' |> ResolvedType.withRange (type'.Range |> TypeRange.orElse resolvedType.Range)
+        let resolveWithRange type_ =
+            let resolvedType' = context.Resolve type_
+
+            // Prefer the original type range since it may be closer to the source of an error, but otherwise fall back
+            // to the newly resolved type range.
+            resolvedType' |> ResolvedType.withRange (resolvedType.Range |> TypeRange.orElse resolvedType'.Range)
 
         match resolvedType.Resolution with
         | TypeParameter param ->
@@ -529,6 +532,7 @@ type InferenceContext(symbolTracker: SymbolTracker) =
             match resolvedType.Resolution, index.Resolution with
             | ArrayType actualItem, Int -> context.Unify(item, actualItem)
             | ArrayType _, Range -> context.Unify(item, resolvedType)
+            | ArrayType _, InvalidType -> []
             | ArrayType _, _ ->
                 [
                     QsCompilerDiagnostic.Error

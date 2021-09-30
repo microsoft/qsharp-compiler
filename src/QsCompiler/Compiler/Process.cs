@@ -68,6 +68,7 @@ namespace Microsoft.Quantum.QsCompiler
                     process.OutputDataReceived -= AddOutput;
                     process.ErrorDataReceived -= AddError;
                 }
+
                 return ex == null;
             }
         }
@@ -98,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler
                 CreateNoWindow = true,
                 UseShellExecute = false,
                 RedirectStandardError = true,
-                RedirectStandardOutput = true
+                RedirectStandardOutput = true,
             };
 
             var origEnvVariables = new Dictionary<string, string>();

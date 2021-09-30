@@ -1,4 +1,4 @@
-define i64 @Microsoft__Quantum__Testing__QIR__TestAccessors__body() {
+define internal i64 @Microsoft__Quantum__Testing__QIR__TestAccessors__body() {
 entry:
   %0 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ i2, i64 }* getelementptr ({ i2, i64 }, { i2, i64 }* null, i32 1) to i64))
   %1 = bitcast %Tuple* %0 to { i2, i64 }*
@@ -24,7 +24,7 @@ entry:
   ret i64 %y
 }
 
-define { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__body({ i2, i64 }* %0, double %D) {
+define internal { { i2, i64 }*, double }* @Microsoft__Quantum__Testing__QIR__TestType__body({ i2, i64 }* %0, double %D) {
 entry:
   %1 = call %Tuple* @__quantum__rt__tuple_create(i64 ptrtoint ({ { i2, i64 }*, double }* getelementptr ({ { i2, i64 }*, double }, { { i2, i64 }*, double }* null, i32 1) to i64))
   %2 = bitcast %Tuple* %1 to { { i2, i64 }*, double }*

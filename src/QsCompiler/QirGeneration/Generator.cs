@@ -3,7 +3,6 @@
 
 using System;
 using System.IO;
-using Microsoft.Quantum.QIR;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Microsoft.Quantum.QsCompiler.Transformations.Core;
 
@@ -12,33 +11,33 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// <summary>
     /// Transformation class used to generate QIR.
     /// </summary>
-    public class Generator : SyntaxTreeTransformation<GenerationContext>
+    public class Generator : SyntaxTreeTransformation<GenerationContext>, IDisposable
     {
         /// <summary>
         /// The compilation unit for which QIR is generated.
         /// </summary>
-        public readonly QsCompilation Compilation;
+        public QsCompilation Compilation { get; }
 
         /// <summary>
         /// The runtime library that is used during QIR generation.
         /// It is automatically populated with the functions that are expected
         /// to be supported by the runtime according to the QIR specs.
         /// </summary>
-        public readonly FunctionLibrary RuntimeLibrary;
+        public FunctionLibrary RuntimeLibrary { get; }
 
         /// <summary>
         /// The quantum instruction set that is used during QIR generation.
         /// It is automatically populated with the callables that are
         /// declared as intrinsic in the compilation.
         /// </summary>
-        public readonly FunctionLibrary QuantumInstructionSet;
+        public FunctionLibrary QuantumInstructionSet { get; }
 
         /// <summary>
         /// Instantiates a transformation capable of emitting QIR for the given compilation.
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
         public Generator(QsCompilation compilation)
-        : base(new GenerationContext(compilation.Namespaces), TransformationOptions.NoRebuild)
+        : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0), TransformationOptions.NoRebuild)
         {
             this.Compilation = compilation;
 
@@ -46,10 +45,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.StatementKinds = new QirStatementKindTransformation(this, TransformationOptions.NoRebuild);
             this.Expressions = new QirExpressionTransformation(this, TransformationOptions.NoRebuild);
             this.ExpressionKinds = new QirExpressionKindTransformation(this, TransformationOptions.NoRebuild);
-            this.Types = new QirTypeTransformation(this, TransformationOptions.NoRebuild);
+            this.Types = new TypeTransformation<GenerationContext>(this, TransformationOptions.Disabled);
 
             // needs to be *after* the proper subtransformations are set
-            this.SharedState.SetTransformation(this, out this.RuntimeLibrary, out this.QuantumInstructionSet);
+            this.SharedState.SetTransformation(this, out var runtimeLibrary, out var quantumInstructionSet);
+            this.RuntimeLibrary = runtimeLibrary;
+            this.QuantumInstructionSet = quantumInstructionSet;
             this.SharedState.InitializeRuntimeLibrary();
             this.SharedState.RegisterQuantumInstructionSet();
         }
@@ -101,5 +102,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new IOException(errorMessage);
             }
         }
+
+        public void Dispose() =>
+            this.SharedState.Dispose();
     }
 }

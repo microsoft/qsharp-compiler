@@ -34,6 +34,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     throw new ArgumentException($"the given tokens to update are not ordered according to their range - \n" +
                         $"Ranges were: {string.Join("\n", tokens.Select(t => t.Range.DiagnosticString()))}");
                 }
+
                 previousEnding = token.Range.End;
             }
         }
@@ -48,6 +49,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             while (file.GetTokenizedLine(lineNr).Length == 0 && ++lineNr < file.NrLines())
             {
             }
+
             return lineNr == file.NrLines()
                 ? null
                 : new CodeFragment.TokenIndex(file, lineNr, 0);
@@ -63,6 +65,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             while (lastNonEmpty-- > 0 && file.GetTokenizedLine(lastNonEmpty).Length == 0)
             {
             }
+
             return lastNonEmpty < 0
                 ? null
                 : new CodeFragment.TokenIndex(file, lastNonEmpty, file.GetTokenizedLine(lastNonEmpty).Length - 1);
@@ -127,12 +130,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var start = pos.Line;
             var previous = file.GetTokenizedLine(start).Where(token => token.Range.Start.Column <= pos.Column).ToImmutableArray();
             while (!previous.Any() && --start >= 0)
             {
                 previous = file.GetTokenizedLine(start);
             }
+
             if (!previous.Any())
             {
                 return null;
@@ -159,6 +164,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var namespaces = file.GetNamespaceDeclarations();
             var preceding = namespaces.TakeWhile(tuple => tuple.Item2.Start < pos);
             return preceding.Any() ? preceding.Last().Item1 : null;
@@ -189,6 +195,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return null;
                 }
+
                 var ((kind, gen), typeArgs) = specDecl.Item; // note: if we want to support type specializations we need to compute the signature of the spec to find the right one
                 return kind;
             }
@@ -197,6 +204,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             file.SyncRoot.EnterReadLock();
             try
             {
@@ -224,6 +232,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     // the given position is within a callable declaration
                     return ((callableName, callablePosition), (null, null));
                 }
+
                 return lastPreceding == null
                     ? ((callableName, callablePosition), (QsSpecializationKind.QsBody, callablePosition))
                     : ((callableName, callablePosition), (GetSpecializationKind(lastPreceding), lastPreceding.Range.Start));
@@ -319,6 +328,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             while (++index < list.Count && list[index].Range.Start < tokenRange.Start)
             {
             }
+
             return index < list.Count && list[index].Equals(token) ? index : -1;
         }
 
@@ -340,6 +350,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     break; // ignore empty fragments
                 }
             }
+
             return current != null && current.GetFragment().Indentation == indentation - 1 ? current : null;
         }
 
@@ -397,6 +408,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     break;
                 }
             }
+
             return current != null && current.GetFragment().Indentation == indentation ? current : null;
         }
 
@@ -417,6 +429,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     break;
                 }
             }
+
             return current != null && current.GetFragment().Indentation == indentation ? current : null;
         }
 
@@ -484,6 +497,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     tokenIndex.MarkAsExcluded();
                 }
+
                 verifiedLines.Add(tokenIndex.Line);
 
                 // if a token is newly included in or excluded from the compilation,
@@ -499,6 +513,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         messages.AddRange(Verify(token));
                     }
                 }
+
                 return messages;
             }
 
@@ -543,6 +558,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     yield return TypeCheckingRange(preceding.Last(), following);
                 }
+
                 if (following.Any() && following.First().Start.Line == lineNr)
                 {
                     yield return TypeCheckingRange(following.First(), following.Skip(1));
@@ -567,6 +583,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     return;
                 }
+
                 QsCompilerError.RaiseOnFailure(
                     () =>
                     {

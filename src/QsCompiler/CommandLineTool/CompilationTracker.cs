@@ -25,12 +25,12 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             /// <summary>
             /// Represents the name of the parent compilation task.
             /// </summary>
-            public readonly string? ParentName;
+            public string? ParentName { get; }
 
             /// <summary>
             /// Represents the name of the compilation task.
             /// </summary>
-            public readonly string Name;
+            public string Name { get; }
 
             /// <summary>
             /// Identifier of the task.
@@ -163,8 +163,9 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         /// </summary>
         private class CompilationTaskNode
         {
-            public readonly CompilationTask Task;
-            public readonly IDictionary<string, CompilationTaskNode> Children;
+            public CompilationTask Task { get; }
+
+            public IDictionary<string, CompilationTaskNode> Children { get; }
 
             public CompilationTaskNode(CompilationTask task)
             {
@@ -223,7 +224,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         private static readonly IDictionary<CompilationTaskEventType, CompilationTaskEventTypeHandler> CompilationEventTypeHandlers = new Dictionary<CompilationTaskEventType, CompilationTaskEventTypeHandler>
         {
             { CompilationTaskEventType.Start, CompilationEventStartHandler },
-            { CompilationTaskEventType.End, CompilationEventEndHandler }
+            { CompilationTaskEventType.End, CompilationEventEndHandler },
         };
 
         /// <summary>
@@ -346,7 +347,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             using var file = File.CreateText(Path.Combine(outputPath, CompilationPerfDataFileName));
             var jsonWriterOptions = new JsonWriterOptions()
             {
-                Indented = true
+                Indented = true,
             };
 
             using var jsonWriter = new Utf8JsonWriter(file.BaseStream, jsonWriterOptions);

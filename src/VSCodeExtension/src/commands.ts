@@ -9,7 +9,6 @@ import { DotnetInfo, findIQSharpVersion } from './dotnet';
 import { IPackageInfo } from './packageInfo';
 import * as semver from 'semver';
 import { promisify } from 'util';
-import { oc } from 'ts-optchain';
 import { QSharpGenerator } from './yeoman-generator';
 
 import * as yeoman from 'yeoman-environment';
@@ -25,22 +24,25 @@ export function registerCommand(context: vscode.ExtensionContext, name: string, 
     )
 }
 
-export function createNewProject(context: vscode.ExtensionContext) {
+export async function createNewProject(context: vscode.ExtensionContext) {
     let env = yeoman.createEnv();
-    env.options.extensionPath = context.extensionPath;
     env.registerStub(QSharpGenerator, 'qsharp:app');
-    env.run('qsharp:app', (err: null | Error) => {
-        if (err) {
-            let errorMessage = err.name + ": " + err.message;
-            console.log(errorMessage);
-            vscode.window.showErrorMessage(errorMessage);
-        }
+    // Disable type checking on the env object at this point due to
+    // https://github.com/yeoman/environment/issues/273.
+    let anyEnv = env as any;
+    let err = await anyEnv.run('qsharp:app', {
+        extensionPath: context.extensionPath
     });
+    if (err) {
+        let errorMessage = err.name + ": " + err.message;
+        console.log(errorMessage);
+        vscode.window.showErrorMessage(errorMessage);
+    }
 }
 
 export function installTemplates(dotNetSdk: DotnetInfo, packageInfo?: IPackageInfo) {
     let packageVersion =
-        oc(packageInfo).nugetVersion()
+        packageInfo?.nugetVersion
         ? `::${packageInfo!.nugetVersion}`
         : "";
     let proc = cp.spawn(

@@ -79,6 +79,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         param.Uri = parentFolder;
                     }
+
                     publishDiagnostics?.Invoke(param);
                 }
             };
@@ -112,6 +113,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 return false;
             }
+
             var projectInstance = this.projectLoader.TryGetQsProjectInstance(projectFile.LocalPath, out var telemetryProps);
             if (projectInstance == null)
             {
@@ -229,6 +231,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentException("invalid text document identifier");
             }
+
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
@@ -245,6 +248,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 // Currently it is not possible to handle both the behavior of VS and VS Code for changes on disk in a manner that will never fail.
                 // To mitigate the impact of failures we choose to just log them as info.
                 var file = this.openFiles.GetOrAdd(textDocument.Uri, newManager);
+
                 // this may be the case (depending on the editor) e.g. when opening a version control diff ...
                 if (file != newManager)
                 {
@@ -265,6 +269,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                     {
                         _ = manager.TryRemoveSourceFileAsync(textDocument.Uri);
                     }
+
                     this.publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = Array.Empty<Diagnostic>() });
                     return;
                 }
@@ -276,8 +281,12 @@ namespace Microsoft.Quantum.QsLanguageServer
                         MessageType.Info);
                 }
 
+                // When opening a file, the initial LSP version might have already changed.
+                file.Version = textDocument.Version;
+
                 _ = manager.AddOrUpdateSourceFileAsync(file);
             });
+
             // reloading from disk in case we encountered a file already open error above
             return this.projects.SourceFileChangedOnDiskAsync(textDocument.Uri, this.GetOpenFile); // NOTE: relies on that the manager task is indeed executed first!
         }
@@ -293,6 +302,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentException("invalid text document identifier");
             }
+
             return this.projects.ManagerTaskAsync(param.TextDocument.Uri, (manager, __) =>
             {
                 if (this.IgnoreFile(param.TextDocument.Uri))
@@ -306,6 +316,7 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     return;
                 }
+
                 _ = manager.SourceFileDidChangeAsync(param); // independent on whether the file does or doesn't belong to a project
             });
         }
@@ -322,6 +333,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentException("invalid text document identifier");
             }
+
             return this.projects.ManagerTaskAsync(textDocument.Uri, (manager, __) =>
             {
                 if (this.IgnoreFile(textDocument.Uri))
@@ -357,6 +369,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             {
                 throw new ArgumentException("invalid text document identifier");
             }
+
             _ = this.projects.ManagerTaskAsync(textDocument.Uri, (manager, associatedWithProject) => // needs to be *first* (due to the modification of OpenFiles)
             {
                 if (this.IgnoreFile(textDocument.Uri))
@@ -377,8 +390,10 @@ namespace Microsoft.Quantum.QsLanguageServer
                 {
                     _ = manager.TryRemoveSourceFileAsync(textDocument.Uri);
                 }
+
                 this.publish(new PublishDiagnosticParams { Uri = textDocument.Uri, Diagnostics = Array.Empty<Diagnostic>() });
             });
+
             // When edits are made in a file, but those are discarded by closing the file and hitting "no, don't save",
             // no notification is sent for the now discarded changes;
             // hence we reload the file content from disk upon closing.

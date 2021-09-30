@@ -24,15 +24,21 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
         {
             public abstract class TransformationState
             {
-                internal TNode? CurrentNode;
-                internal readonly TGraph Graph;
+                internal TNode? CurrentNode { get; set; }
+
+                internal TGraph Graph { get; }
 
                 // The type parameter resolutions of the current expression.
-                internal Stack<TypeParameterResolutions> ExprTypeParamResolutions = new Stack<TypeParameterResolutions>();
-                internal QsNullable<Position> CurrentStatementOffset;
-                internal QsNullable<Range> CurrentExpressionRange;
-                internal readonly Stack<TNode> RequestStack = new Stack<TNode>(); // Used to keep track of the nodes that still need to be walked by the walker.
-                internal readonly HashSet<TNode> ResolvedNodeSet = new HashSet<TNode>(); // Used to keep track of the nodes that have already been walked by the walker.
+                internal Stack<TypeParameterResolutions> ExprTypeParamResolutions { get; set; } =
+                    new Stack<TypeParameterResolutions>();
+
+                internal QsNullable<Position> CurrentStatementOffset { get; set; }
+
+                internal QsNullable<Range> CurrentExpressionRange { get; set; }
+
+                internal Stack<TNode> RequestStack { get; } = new Stack<TNode>(); // Used to keep track of the nodes that still need to be walked by the walker.
+
+                internal HashSet<TNode> ResolvedNodeSet { get; } = new HashSet<TNode>(); // Used to keep track of the nodes that have already been walked by the walker.
 
                 internal TransformationState(TGraph graph)
                 {
@@ -80,6 +86,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.CallGraphWalker
                     {
                         this.SharedState.ExprTypeParamResolutions.Push(ex.TypeParameterResolutions);
                     }
+
                     var result = base.OnTypedExpression(ex);
                     this.SharedState.CurrentExpressionRange = contextRange;
                     return result;

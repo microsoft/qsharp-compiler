@@ -83,6 +83,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             if (file.GetLine(position.Line).WithoutEnding.Length < position.Column)
             {
                 return Enumerable.Empty<CompletionItem>().ToCompletionList(false);
@@ -126,11 +127,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var documentation = TryGetDocumentation(compilation, data, item.Kind, format == MarkupKind.Markdown);
             if (documentation != null)
             {
                 item.Documentation = new MarkupContent { Kind = format, Value = documentation };
             }
+
             return item;
         }
 
@@ -147,6 +150,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 fragment = null;
                 return (null, null);
             }
+
             var token = GetTokenAtOrBefore(file, position);
             if (token is null)
             {
@@ -198,8 +202,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         member.Item2,
                         ResolveNamespaceAlias(file, compilation, position, member.Item1));
                 case CompletionKind.Keyword keyword:
-                    return new[] { new CompletionItem { Label = keyword.Item, Kind = CompletionItemKind.Keyword } };
+                    return new[] { GetKeywordCompletionItem(keyword.Item) };
             }
+
             var currentNamespace = file.TryGetNamespaceAt(position);
             var openNamespaces =
                 namespacePrefix == "" ? GetOpenNamespaces(file, compilation, position) : new[] { namespacePrefix };
@@ -226,6 +231,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         .Concat(GetGlobalNamespaceCompletions(compilation, namespacePrefix))
                         .Concat(GetNamespaceAliasCompletions(file, compilation, position, namespacePrefix));
             }
+
             return Enumerable.Empty<CompletionItem>();
         }
 
@@ -263,10 +269,11 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     .Concat(GetGlobalNamespaceCompletions(compilation, resolvedNsPath))
                     .Concat(GetNamespaceAliasCompletions(file, compilation, position, nsPath));  // unresolved NS path
             }
+
             var openNamespaces = GetOpenNamespaces(file, compilation, position);
             return
                 Keywords.ReservedKeywords
-                .Select(keyword => new CompletionItem { Label = keyword, Kind = CompletionItemKind.Keyword })
+                .Select(keyword => GetKeywordCompletionItem(keyword))
                 .Concat(GetLocalCompletions(file, compilation, position))
                 .Concat(GetCallableCompletions(file, compilation, currentNamespace, openNamespaces))
                 .Concat(GetTypeCompletions(file, compilation, currentNamespace, openNamespaces))
@@ -290,7 +297,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 .Select(variable => new CompletionItem
                 {
                     Label = variable.VariableName,
-                    Kind = CompletionItemKind.Variable
+                    Kind = CompletionItemKind.Variable,
                 });
 
         /// <summary>
@@ -311,6 +318,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Array.Empty<CompletionItem>();
             }
+
             return
                 compilation.GlobalSymbols.AccessibleCallables()
                 .Where(callable =>
@@ -324,7 +332,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Data = new CompletionItemData(
                         textDocument: new TextDocumentIdentifier { Uri = file.Uri },
                         qualifiedName: callable.QualifiedName,
-                        sourceFile: callable.Source.AssemblyOrCodeFile)
+                        sourceFile: callable.Source.AssemblyOrCodeFile),
                 });
         }
 
@@ -346,6 +354,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Array.Empty<CompletionItem>();
             }
+
             return
                 compilation.GlobalSymbols.AccessibleTypes()
                 .Where(type => IsAccessibleAsUnqualifiedName(type.QualifiedName, currentNamespace, openNamespaces))
@@ -357,7 +366,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Data = new CompletionItemData(
                         textDocument: new TextDocumentIdentifier { Uri = file.Uri },
                         qualifiedName: type.QualifiedName,
-                        sourceFile: type.Source.AssemblyOrCodeFile)
+                        sourceFile: type.Source.AssemblyOrCodeFile),
                 });
         }
 
@@ -373,13 +382,14 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Array.Empty<CompletionItem>();
             }
+
             return compilation.GlobalSymbols.AccessibleTypes()
                 .SelectMany(type => ExtractItems(type.TypeItems))
                 .Where(item => item.IsNamed)
                 .Select(item => new CompletionItem
                 {
                     Label = ((QsTypeItem.Named)item).Item.VariableName,
-                    Kind = CompletionItemKind.Field
+                    Kind = CompletionItemKind.Field,
                 });
         }
 
@@ -399,6 +409,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 prefix += ".";
             }
+
             return
                 compilation.GlobalSymbols.NamespaceNames()
                 .Where(name => name.StartsWith(prefix))
@@ -408,7 +419,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     Label = name,
                     Kind = CompletionItemKind.Module,
-                    Detail = prefix + name
+                    Detail = prefix + name,
                 });
         }
 
@@ -427,11 +438,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 prefix += ".";
             }
+
             var ns = file.TryGetNamespaceAt(position);
             if (ns == null || !compilation.GlobalSymbols.NamespaceExists(ns))
             {
                 return Array.Empty<CompletionItem>();
             }
+
             return compilation
                 .GetOpenDirectives(ns)[file.FileName]
                 .SelectNotNull(open => open.Item2?.Apply(alias => (open.Item1, alias)))
@@ -443,7 +456,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     Kind = CompletionItemKind.Module,
                     Detail = open.Count() == 1 && prefix + open.Key == open.Single().alias
                         ? open.Single().Item1
-                        : prefix + open.Key
+                        : prefix + open.Key,
                 });
         }
 
@@ -475,6 +488,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     {
                         return null;
                     }
+
                     var signature = useMarkdown ? $"```qsharp\n{callable.Item.PrintSignature()}\n```" : callable.Item.PrintSignature();
                     var documentation = callable.Item.Documentation.PrintSummary(useMarkdown);
                     return signature.Trim() + "\n\n" + documentation.Trim();
@@ -504,6 +518,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return Array.Empty<string>();
             }
+
             return compilation
                 .GetOpenDirectives(@namespace)[file.FileName]
                 .Where(open => open.Item2 == null) // Only include open directives without an alias.
@@ -523,6 +538,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             var startAt = GetTextIndexFromPosition(fragment, position);
             var match = Utils.QualifiedSymbolRTL.Match(fragment.Text, startAt);
             if (match.Success && match.Index + match.Length == startAt && match.Value.LastIndexOf('.') != -1)
@@ -569,6 +585,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return alias;
             }
+
             return compilation.GlobalSymbols.TryResolveNamespaceAlias(alias, nsName, file.FileName) ?? alias;
         }
 
@@ -594,6 +611,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return null;
             }
+
             return new CodeFragment.TokenIndex(file, line, index);
         }
 
@@ -607,6 +625,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 throw new ArgumentException("Code fragment has a missing delimiter", nameof(fragment));
             }
+
             var end = fragment.Range.End;
             var position = file.FragmentEnd(ref end);
             return Position.Create(position.Line, position.Column - 1);
@@ -637,6 +656,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             {
                 return "";
             }
+
             return fragment.Range.End < position
                 ? fragment.Text + " "
                 : fragment.Text.Substring(0, GetTextIndexFromPosition(fragment, position));
@@ -657,7 +677,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             new CompletionList
             {
                 IsIncomplete = isIncomplete,
-                Items = items?.ToArray() ?? new CompletionItem[] { }
+                Items = items?.ToArray() ?? new CompletionItem[] { },
             };
 
         /// <summary>
@@ -677,5 +697,12 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> openNamespaces) =>
             openNamespaces.Contains(qualifiedName.Namespace) &&
             (!qualifiedName.Name.StartsWith("_") || qualifiedName.Namespace == currentNamespace);
+
+        /// <summary>
+        /// Returns the <see cref="CompletionItem"/> with the appropriate <see cref="CompletionItemKind"/> for a keyword
+        /// </summary>
+        /// <param name="keyword">The Q# keyword.</param>
+        private static CompletionItem GetKeywordCompletionItem(string keyword) =>
+            new CompletionItem { Label = keyword, Kind = Keywords.KeywordLiterals.Contains(keyword) ? CompletionItemKind.Constant : CompletionItemKind.Keyword };
     }
 }

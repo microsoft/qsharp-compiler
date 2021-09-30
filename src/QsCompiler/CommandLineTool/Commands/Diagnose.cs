@@ -91,6 +91,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 {
                     inMemory = inMemory.Skip(2).Take(inMemory.Count() - 4);
                 }
+
                 logger.Log(
                     InformationCode.FileContentInMemory,
                     Enumerable.Empty<string>(),
@@ -118,6 +119,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 {
                     tokenization = tokenization.Skip(2).Take(tokenization.Count() - 4).ToImmutableArray();
                 }
+
                 var serialization = tokenization
                     .Select(line => line.Select(item => JsonConvert.SerializeObject(item, Newtonsoft.Json.Formatting.Indented)))
                     .Zip(
@@ -210,6 +212,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 throw incorrectWrapperException;
             }
+
             if (syntaxTree.Single().Elements.Single() is QsNamespaceElement.QsCallable callable &&
                 callable.Item.Specializations.Count() == 1 &&
                 callable.Item.Specializations.Single().Implementation is SpecializationImplementation.Provided impl)
@@ -231,11 +234,7 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
         {
             options.Print(logger);
             options.SetupLoadingContext();
-            if (!options.ParseAssemblyProperties(out var assemblyConstants))
-            {
-                logger.Log(WarningCode.InvalidAssemblyProperties, Array.Empty<string>());
-            }
-
+            options.ParseAssemblyProperties(logger, out var assemblyConstants);
             var loadOptions = new CompilationLoader.Configuration
             {
                 AssemblyConstants = assemblyConstants,
@@ -250,13 +249,15 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 IsExecutable = options.MakeExecutable,
                 RewriteStepAssemblies = options.Plugins?.Select(step => (step, (string?)null)) ?? ImmutableArray<(string, string)>.Empty,
                 EnableAdditionalChecks = true,
-                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames
+                ExposeReferencesViaTestNames = options.ExposeReferencesViaTestNames,
             };
+
             var loaded = new CompilationLoader(
                 options.LoadSourcesOrSnippet(logger),
                 options.References ?? Enumerable.Empty<string>(),
                 loadOptions,
                 logger);
+
             if (loaded.VerifiedCompilation == null)
             {
                 return ReturnCode.Status(loaded);
@@ -266,22 +267,27 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
             {
                 logger.Verbosity = DiagnosticSeverity.Information;
             }
+
             if (options.PrintTextRepresentation)
             {
                 PrintFileContentInMemory(loaded.VerifiedCompilation, logger);
             }
+
             if (options.PrintTokenization)
             {
                 PrintContentTokenization(loaded.VerifiedCompilation, logger);
             }
+
             if (options.PrintSyntaxTree)
             {
                 PrintSyntaxTree(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
             }
+
             if (options.PrintCompiledCode)
             {
                 PrintGeneratedQs(loaded.CompilationOutput?.Namespaces, loaded.VerifiedCompilation, logger);
             }
+
             return ReturnCode.Status(loaded);
         }
     }
