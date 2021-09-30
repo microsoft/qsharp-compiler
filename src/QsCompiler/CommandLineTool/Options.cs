@@ -169,25 +169,6 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 LoadContext.UnmanagedDllPaths.Add(llvmLibs);
             }
         }
-
-        /// <summary>
-        /// Configures the LoadingContext for this assembly depending on the defined options.
-        /// </summary>
-        internal void SetupLoadingContext()
-        {
-            var current = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-            var fallbackFolders = this.PackageLoadFallbackFolders.Prepend(current);
-            CompilationLoader.LoadAssembly = path =>
-                LoadContext.LoadAssembly(path, fallbackFolders.ToArray());
-
-            var llvmLibs = this.LlvmLibs != null
-                ? LoadContext.ResolveFromPaths("libLLVM", new[] { this.LlvmLibs })
-                : null;
-            if (llvmLibs != null)
-            {
-                LoadContext.UnmanagedDllPaths.Add(llvmLibs);
-            }
-        }
     }
 
     public class Options
