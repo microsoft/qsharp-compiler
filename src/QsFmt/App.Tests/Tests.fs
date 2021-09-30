@@ -152,18 +152,18 @@ OPTIONS:
     )
 
 [<Fact>]
-let ``Formats file`` () =
-    runWithFiles false [Example1] "" CleanResult [| "format"; Example1.Path |]
+let ``Updates file`` () =
+    runWithFiles true [Example1] "" CleanResult [| "update"; Example1.Path |]
 
 [<Fact>]
-let ``Formats standard input`` () =
+let ``Updates standard input`` () =
     Assert.Equal(
         {
             Code = 0
-            Out = StandardInputTest.Formatted
+            Out = StandardInputTest.Updated
             Error = ""
         },
-        run [| "format"; "-" |] StandardInputTest.Original
+        run [| "update"; "-" |] StandardInputTest.Original
     )
 
 [<Theory>]
@@ -195,7 +195,7 @@ let ``Input multiple files`` () =
         Example2
     ]
 
-    runWithFiles false files "" CleanResult [| "format"; Example1.Path; Example2.Path |]
+    runWithFiles true files "" CleanResult [| "update"; Example1.Path; Example2.Path |]
 
 [<Fact>]
 let ``Input directories`` () =
@@ -204,7 +204,7 @@ let ``Input directories`` () =
         SubExample2
         SubExample3
     ]
-    runWithFiles false files "" CleanResult [| "format"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+    runWithFiles true files "" CleanResult [| "update"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
 
 [<Fact>]
 let ``Input directories with files and stdin`` () =
@@ -213,8 +213,8 @@ let ``Input directories with files and stdin`` () =
         SubExample1
         SubExample2
     ]
-    [| "format"; Example1.Path; "-"; "Examples\\SubExamples1" |]
-    |> runWithFiles false files StandardInputTest.Original { Code = 0; Out = StandardInputTest.Formatted; Error = "" }
+    [| "update"; Example1.Path; "-"; "Examples\\SubExamples1" |]
+    |> runWithFiles true files StandardInputTest.Original { Code = 0; Out = StandardInputTest.Updated; Error = "" }
 
 [<Fact>]
 let ``Input directories with recursive flag`` () =
@@ -226,8 +226,8 @@ let ``Input directories with recursive flag`` () =
         NestedExample1
         NestedExample2
     ]
-    [| "format"; "-r"; Example1.Path; "-"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
-    |> runWithFiles false files StandardInputTest.Original { Code = 0; Out = StandardInputTest.Formatted; Error = "" }
+    [| "update"; "-r"; Example1.Path; "-"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+    |> runWithFiles true files StandardInputTest.Original { Code = 0; Out = StandardInputTest.Updated; Error = "" }
 
 [<Fact>]
 let ``Process correct files while erroring on incorrect`` () =
@@ -254,12 +254,12 @@ let ``Backup flag`` () =
         SubExample3
     ]
     try
-        let result = run [| "format"; "-b"; "-"; Example1.Path; "Examples\\SubExamples2"; |] StandardInputTest.Original
+        let result = run [| "update"; "-b"; "-"; Example1.Path; "Examples\\SubExamples2"; |] StandardInputTest.Original
 
         Assert.Equal(
             {
                 Code = 0;
-                Out = StandardInputTest.Formatted
+                Out = StandardInputTest.Updated
                 Error = ""
             },
             result
@@ -270,7 +270,7 @@ let ``Backup flag`` () =
             let backup = File.ReadAllText(file.Path + "~") |> standardizeNewLines
             Assert.Equal(file.Original |> standardizeNewLines, backup)
             let after = File.ReadAllText file.Path |> standardizeNewLines
-            Assert.Equal(file.Formatted, after)
+            Assert.Equal(file.Updated, after)
     finally
         for file in files do
             File.WriteAllText(file.Path, file.Original)
@@ -292,5 +292,5 @@ let ``Error when same input given multiple times`` () =
 This input has already been processed: Examples\Example1.qs
 " |> standardizeNewLines
         }
-    [| "format"; "Examples\\Example1.qs"; "Examples\\SubExamples1"; "Examples\\SubExamples1\\SubExample1.qs"; "Examples\\Example1.qs" |]
-    |> runWithFiles false files "" outputResult
+    [| "update"; Example1.Path; "Examples\\SubExamples1"; SubExample1.Path; Example1.Path |]
+    |> runWithFiles true files "" outputResult
