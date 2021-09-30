@@ -29,7 +29,7 @@ entry:
   call void @__quantum__rt__tuple_update_alias_count(%Tuple* %13, i32 -1)
   store { double, %String* }* %15, { double, %String* }** %11, align 8
   %16 = getelementptr inbounds { double, %String* }, { double, %String* }* %15, i32 0, i32 1
-  %17 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @2, i32 0, i32 0))
+  %17 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([6 x i8], [6 x i8]* @1, i32 0, i32 0))
   %18 = load %String*, %String** %16, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %18, i32 -1)
   store %String* %17, %String** %16, align 8

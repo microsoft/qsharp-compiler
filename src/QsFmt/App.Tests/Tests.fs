@@ -130,9 +130,10 @@ let ``Shows help with no arguments`` () =
                 standardizeNewLines
                     "ERROR: missing argument '<string>...'.
 
-INPUT:
+INPUTS:
 
-    <string>...           File to format or \"-\" to read from standard input.
+    <string>...           Files or folders to format or \"-\" to read from
+                          standard input.
 
 SUBCOMMANDS:
 
