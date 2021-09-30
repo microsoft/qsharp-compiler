@@ -77,6 +77,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             {
                 var line = e.After.GetLineFromPosition(change.NewPosition);
                 var column = change.NewPosition - line.Start.Position;
+
                 if (EndsBlock(change.NewText) && IsInIndentation(line, column))
                 {
                     int indent = GetIndentation(line.GetText());
