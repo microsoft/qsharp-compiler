@@ -83,7 +83,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
                     int desiredIndent = GetDesiredIndentation(line) ?? 0;
                     if (indent != desiredIndent)
                         e.After.TextBuffer.Replace(
-                            new Span(line.Start.Position, line.GetText().TakeWhile(IsIndentationChar).Count()),
+                            new Span(line.Start.Position, line.GetText().TakeWhile(char.IsWhiteSpace).Count()),
                             CreateIndentation(desiredIndent));
                 }
             }
@@ -94,7 +94,7 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
         /// </summary>
         private int GetIndentation(string line) =>
             line
-            .TakeWhile(IsIndentationChar)
+            .TakeWhile(char.IsWhiteSpace)
             .Aggregate(0, (indent, c) => indent + (c == '\t' ? textView.Options.GetTabSize() : 1));
 
         /// <summary>
@@ -124,15 +124,10 @@ namespace Microsoft.Quantum.QsLanguageExtensionVS
             brackets.Any(bracket => line.TrimStart().StartsWith(bracket.close));
 
         /// <summary>
-        /// Returns true if the character is an indentation character (a space or a tab).
-        /// </summary>
-        private static bool IsIndentationChar(char c) => c == ' ' || c == '\t';
-
-        /// <summary>
         /// Returns true if the column occurs within the indentation region at the beginning of the line.
         /// </summary>
         private static bool IsInIndentation(ITextSnapshotLine line, int column) =>
-            line.GetText().Substring(0, column).All(IsIndentationChar);
+            line.GetText().Substring(0, column).All(char.IsWhiteSpace);
 
         /// <summary>
         /// Returns the last non-empty line before the given line. A non-empty line is any line that contains at least
