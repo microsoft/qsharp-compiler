@@ -19,6 +19,7 @@ let private run input expectedOutput expectedWarnings =
     use error = new StringWriter()
     let expectedOutput = expectedOutput |> standardizeNewLines |> Ok
     let expectedWarnings = expectedWarnings |> standardizeNewLines
+
     try
         Console.SetError error
         let output = Formatter.update "" input |> Result.map standardizeNewLines
@@ -30,7 +31,8 @@ let private run input expectedOutput expectedWarnings =
 
 [<Fact>]
 let ``Array Syntax Qubit Types`` () =
-    let input = """namespace Foo {
+    let input =
+        """namespace Foo {
     operation Bar() : Unit {
         let t1 = new Int[3];
         let t2 = new Qubit[3];
@@ -39,7 +41,9 @@ let ``Array Syntax Qubit Types`` () =
         let t5 = new Double[3];
     }
 }"""
-    let expectedOutput = """namespace Foo {
+
+    let expectedOutput =
+        """namespace Foo {
     operation Bar() : Unit {
         let t1 = [0, size = 3];
         let t2 = new Qubit[3];
@@ -48,15 +52,19 @@ let ``Array Syntax Qubit Types`` () =
         let t5 = [0.0, size = 3];
     }
 }"""
-    let expectedWarnings = """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 30.
+
+    let expectedWarnings =
+        """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 30.
 Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 32.
 Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 63.
 """
+
     run input expectedOutput expectedWarnings
 
 [<Fact>]
 let ``Array Syntax UDT Types`` () =
-    let input = """namespace Foo {
+    let input =
+        """namespace Foo {
     newtype MyType = (First: Int, Second: Double);
     operation Bar() : Unit {
         let t1 = new Int[3];
@@ -66,7 +74,9 @@ let ``Array Syntax UDT Types`` () =
         let t5 = new Double[3];
     }
 }"""
-    let expectedOutput = """namespace Foo {
+
+    let expectedOutput =
+        """namespace Foo {
     newtype MyType = (First: Int, Second: Double);
     operation Bar() : Unit {
         let t1 = [0, size = 3];
@@ -76,15 +86,19 @@ let ``Array Syntax UDT Types`` () =
         let t5 = [0.0, size = 3];
     }
 }"""
-    let expectedWarnings = """Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 31.
+
+    let expectedWarnings =
+        """Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 31.
 Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 33.
 Warning: Unable to updated deprecated new array syntax in input from line 7, character 18 to line 7, character 64.
 """
+
     run input expectedOutput expectedWarnings
 
 [<Fact>]
 let ``Array Syntax Type Parameter Types`` () =
-    let input = """namespace Foo {
+    let input =
+        """namespace Foo {
     operation Bar<'T>() : Unit {
         let t1 = new Int[3];
         let t2 = new 'T[3];
@@ -93,7 +107,9 @@ let ``Array Syntax Type Parameter Types`` () =
         let t5 = new Double[3];
     }
 }"""
-    let expectedOutput = """namespace Foo {
+
+    let expectedOutput =
+        """namespace Foo {
     operation Bar<'T>() : Unit {
         let t1 = [0, size = 3];
         let t2 = new 'T[3];
@@ -102,15 +118,19 @@ let ``Array Syntax Type Parameter Types`` () =
         let t5 = [0.0, size = 3];
     }
 }"""
-    let expectedWarnings = """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 27.
+
+    let expectedWarnings =
+        """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 27.
 Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 29.
 Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 60.
 """
+
     run input expectedOutput expectedWarnings
 
 [<Fact>]
 let ``Array Syntax Function Types`` () =
-    let input = """namespace Foo {
+    let input =
+        """namespace Foo {
     operation Bar() : Unit {
         let t1 = new Int[3];
         let t2 = new (Int -> Unit)[3];
@@ -119,7 +139,9 @@ let ``Array Syntax Function Types`` () =
         let t5 = new Double[3];
     }
 }"""
-    let expectedOutput = """namespace Foo {
+
+    let expectedOutput =
+        """namespace Foo {
     operation Bar() : Unit {
         let t1 = [0, size = 3];
         let t2 = new (Int -> Unit)[3];
@@ -128,15 +150,19 @@ let ``Array Syntax Function Types`` () =
         let t5 = [0.0, size = 3];
     }
 }"""
-    let expectedWarnings = """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 38.
+
+    let expectedWarnings =
+        """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 38.
 Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 40.
 Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 71.
 """
+
     run input expectedOutput expectedWarnings
 
 [<Fact>]
 let ``Array Syntax Operation Types`` () =
-    let input = """namespace Foo {
+    let input =
+        """namespace Foo {
     operation Bar() : Unit {
         let t1 = new Int[3];
         let t2 = new (Int => Unit)[3];
@@ -145,7 +171,9 @@ let ``Array Syntax Operation Types`` () =
         let t5 = new Double[3];
     }
 }"""
-    let expectedOutput = """namespace Foo {
+
+    let expectedOutput =
+        """namespace Foo {
     operation Bar() : Unit {
         let t1 = [0, size = 3];
         let t2 = new (Int => Unit)[3];
@@ -154,8 +182,11 @@ let ``Array Syntax Operation Types`` () =
         let t5 = [0.0, size = 3];
     }
 }"""
-    let expectedWarnings = """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 38.
+
+    let expectedWarnings =
+        """Warning: Unable to updated deprecated new array syntax in input from line 4, character 18 to line 4, character 38.
 Warning: Unable to updated deprecated new array syntax in input from line 5, character 18 to line 5, character 40.
 Warning: Unable to updated deprecated new array syntax in input from line 6, character 18 to line 6, character 71.
 """
+
     run input expectedOutput expectedWarnings

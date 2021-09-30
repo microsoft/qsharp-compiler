@@ -302,11 +302,7 @@ let updateChecker fileName document =
                     let subWarnings = base.Expression expression
 
                     // Change the "-" input to say "input" in the warning
-                    let fileName =
-                        if fileName = "-" or fileName = "" then
-                            "input"
-                        else
-                            fileName
+                    let fileName = if fileName = "-" || fileName = "" then "input" else fileName
 
                     let warning =
                         sprintf

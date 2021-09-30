@@ -33,17 +33,14 @@ type CommandKind =
 
 type Arguments =
     {
-        CommandKind : CommandKind
-        RecurseFlag : bool
-        BackupFlag : bool
-        Inputs : string list
+        CommandKind: CommandKind
+        RecurseFlag: bool
+        BackupFlag: bool
+        Inputs: string list
     }
 
 let makeFullPath input =
-    if input = "-" then
-        input
-    else
-        Path.GetFullPath input
+    if input = "-" then input else Path.GetFullPath input
 
 let run arguments inputs =
 
@@ -53,15 +50,12 @@ let run arguments inputs =
         // Make sure inputs are not processed more than once.
         if input |> makeFullPath |> paths.Contains then
             // Change the "-" input to say "<Standard Input>" in the error
-            let input =
-                if input = "-" then
-                    "<Standard Input>"
-                else
-                    input
+            let input = if input = "-" then "<Standard Input>" else input
             eprintfn "This input has already been processed: %s" input
             5
         else
             paths <- input |> makeFullPath |> paths.Add
+
             try
                 if input <> "-" && (File.GetAttributes input).HasFlag(FileAttributes.Directory) then
                     let newInputs =
@@ -78,31 +72,21 @@ let run arguments inputs =
                         if input = "-" then
                             stdin.ReadToEnd()
                         else
-                            if arguments.BackupFlag then
-                                File.Copy(input, (input + "~"), true)
+                            if arguments.BackupFlag then File.Copy(input, (input + "~"), true)
                             File.ReadAllText input
 
                     let command =
                         match arguments.CommandKind with
-                        | Update ->
-                                Formatter.update input
-                        | Format ->
-                            Formatter.format
+                        | Update -> Formatter.update input
+                        | Format -> Formatter.format
 
                     match command source with
                     | Ok result ->
-                        if input = "-" then
-                            printf "%s" result
-                        else
-                            File.WriteAllText(input, result)
+                        if input = "-" then printf "%s" result else File.WriteAllText(input, result)
                         0
                     | Error errors ->
                         // Change the "-" input to say "<Standard Input>" in the error
-                        let input =
-                            if input = "-" then
-                                "<Standard Input>"
-                            else
-                                input
+                        let input = if input = "-" then "<Standard Input>" else input
                         errors |> List.iter (eprintfn "%s, %O" input)
                         1
             with
@@ -114,8 +98,7 @@ let run arguments inputs =
                 4
 
     and doMany arguments inputs =
-        inputs
-        |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne arguments)) 0
+        inputs |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne arguments)) 0
 
     doMany arguments inputs
 
@@ -126,6 +109,7 @@ let main args =
 
     try
         let results = parser.Parse args
+
         let args =
             {
                 CommandKind =
