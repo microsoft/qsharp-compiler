@@ -27,11 +27,11 @@ namespace quantum
             config.addParameter(
                 disable_string_support_, "disable-string-support", "Disables string support by instruction removal.");
             config.addParameter(
-                optimise_branch_quatum_one_, "optimise-branch-quatum-one",
+                optimise_branch_quantum_one_, "optimise-branch-quatum-one",
                 "Maps branching based on quantum measurements compared to one to base profile "
                 "type measurement.");
             config.addParameter(
-                optimise_branch_quatum_zero_, "optimise-branch-quatum-zero",
+                optimise_branch_quantum_zero_, "optimise-branch-quatum-zero",
                 "Maps branching based on quantum measurements compared to zero to base profile "
                 "type measurement.");
             config.addParameter(
@@ -51,8 +51,8 @@ namespace quantum
             ret.disable_reference_counting_        = false;
             ret.disable_alias_counting_            = false;
             ret.disable_string_support_            = false;
-            ret.optimise_branch_quatum_one_        = false;
-            ret.optimise_branch_quatum_zero_       = false;
+            ret.optimise_branch_quantum_one_        = false;
+            ret.optimise_branch_quantum_zero_       = false;
             ret.use_static_qubit_array_allocation_ = false;
             ret.use_static_qubit_allocation_       = false;
             ret.use_static_result_allocation_      = false;
@@ -76,12 +76,17 @@ namespace quantum
 
         bool optimiseBranchQuantumOne() const
         {
-            return optimise_branch_quatum_one_;
+            return optimise_branch_quantum_one_;
         }
 
         bool optimiseBranchQuantumZero() const
         {
-            return optimise_branch_quatum_zero_;
+            return optimise_branch_quantum_zero_;
+        }
+
+        bool optimiseSelectQuantumOne() const
+        {
+            return optimise_select_quatnum_zero_;
         }
 
         bool useStaticQubitArrayAllocation() const
@@ -108,8 +113,8 @@ namespace quantum
         {
             return (
                 disable_reference_counting_ == false && disable_alias_counting_ == false &&
-                disable_string_support_ == false && optimise_branch_quatum_one_ == false &&
-                optimise_branch_quatum_zero_ == false && use_static_qubit_array_allocation_ == false &&
+                disable_string_support_ == false && optimise_branch_quantum_one_ == false &&
+                optimise_branch_quantum_zero_ == false && use_static_qubit_array_allocation_ == false &&
                 use_static_qubit_allocation_ == false && use_static_result_allocation_ == false);
         }
 
@@ -121,8 +126,8 @@ namespace quantum
                 disable_reference_counting_ == ref.disable_reference_counting_ &&
                 disable_alias_counting_ == ref.disable_alias_counting_ &&
                 disable_string_support_ == ref.disable_string_support_ &&
-                optimise_branch_quatum_one_ == ref.optimise_branch_quatum_one_ &&
-                optimise_branch_quatum_zero_ == ref.optimise_branch_quatum_zero_ &&
+                optimise_branch_quantum_one_ == ref.optimise_branch_quantum_one_ &&
+                optimise_branch_quantum_zero_ == ref.optimise_branch_quantum_zero_ &&
                 use_static_qubit_array_allocation_ == ref.use_static_qubit_array_allocation_ &&
                 use_static_qubit_allocation_ == ref.use_static_qubit_allocation_ &&
                 use_static_result_allocation_ == ref.use_static_result_allocation_);
@@ -138,8 +143,9 @@ namespace quantum
 
         /// Optimisations
         /// @{
-        bool optimise_branch_quatum_one_{true};
-        bool optimise_branch_quatum_zero_{true};
+        bool optimise_branch_quantum_one_{true};
+        bool optimise_branch_quantum_zero_{true};
+        bool optimise_select_quatnum_zero_{true};
         /// @}
 
         bool use_static_qubit_array_allocation_{true};
