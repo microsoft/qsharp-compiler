@@ -51,8 +51,8 @@ namespace quantum
             ret.disable_reference_counting_        = false;
             ret.disable_alias_counting_            = false;
             ret.disable_string_support_            = false;
-            ret.optimise_branch_quantum_one_        = false;
-            ret.optimise_branch_quantum_zero_       = false;
+            ret.optimise_branch_quantum_one_       = false;
+            ret.optimise_branch_quantum_zero_      = false;
             ret.use_static_qubit_array_allocation_ = false;
             ret.use_static_qubit_allocation_       = false;
             ret.use_static_result_allocation_      = false;
