@@ -11,6 +11,7 @@ if (!(Test-Path env:\TEMP)) {
     $env:TEMP = [System.IO.Path]::GetTempPath()
 }
 
+# Test whether we build the compiler components.
 function Test-BuildCompiler {
     # By default we want to build the compiler
     # If no env var is defined we default to true
@@ -24,15 +25,23 @@ function Test-BuildCompiler {
     }
 }
 
+# Test whether we build the VSIX components.
 function Test-BuildVsix {
     ($Env:ENABLE_VSIX -ne "false") -and $IsWindows
 }
 
+# Test whether we build the LLVM components.
 function Test-BuildLlvmComponents {
     ((Test-Path env:\ENABLE_LLVM_BUILDS) -and ($env:ENABLE_LLVM_BUILDS -eq $true))
 }
 
+####
 # Utilities
+####
+
+# executes the sciptblock. If the working directory is specitied, the block is
+# exeucted in that directory. If the $LASTEXITCODE from the block is not 0,
+# an exception is thrown.
 function exec {
     [CmdletBinding()]
     param(
@@ -61,6 +70,8 @@ function exec {
     }
 }
 
+# tests whether a condition is true. Throws an exception with the specified error message
+# if the condition check fails.
 function Assert {
     [CmdletBinding()]
     param(
@@ -76,6 +87,7 @@ function Assert {
     }
 }
 
+# returns true if the script is running on a build agent, false otherwise
 function Test-CI {
     if (Test-Path env:\TF_BUILD) {
         $true
@@ -88,6 +100,7 @@ function Test-CI {
     }
 }
 
+# Writes an Azure DevOps message with default debug severity
 function Write-Vso {
     param (
         [Parameter(Mandatory = $true)]
@@ -99,10 +112,17 @@ function Write-Vso {
     Write-Host "##[$severity]$message"
 }
 
+# Returns true if a command with the specified name exists.
 function Test-CommandExists($name) {
     $null -ne (Get-Command $name -ErrorAction SilentlyContinue)
 }
 
+# Returns true if the current environment is a dev container.
+function Test-InDevContainer {
+    $IsLinux -and (Test-Path env:\IN_DEV_CONTAINER)
+}
+
+# Updates the cargo package version with the version specified.
 function Restore-CargoTomlWithVersionInfo ($inputFile, $outputFile, $version) {
     $outFile = New-Item -ItemType File -Path $outputFile
     $inPackageSection = $false
@@ -127,5 +147,130 @@ function Restore-CargoTomlWithVersionInfo ($inputFile, $outputFile, $version) {
         default {
             Add-Content -Path $outFile -Value $_
         }
+    }
+}
+
+# Copies the default config.toml and sets the [env] config
+# section to specify the variables needed for llvm-sys/inkwell
+# This allows us to not need the user to specify env vars to build.
+function Restore-ConfigTomlWithLlvmInfo {
+    $cargoPath = Resolve-Path (Join-Path (Get-RepoRoot) '.cargo')
+    $configTemplatePath = Join-Path $cargoPath config.toml.template
+    $configPath = Join-Path $cargoPath config.toml
+
+    # remove the old file if it exists.
+    if (Test-Path $configPath) {
+        Remove-Item $configPath
+    }
+
+    # ensure the output folder is there, `mkdir -p` equivalent
+    New-Item -ItemType Directory -Path $cargoPath -Force | Out-Null
+
+    # copy the template
+    Copy-Item $configTemplatePath $configPath
+
+    # append the env vars to the new config
+    $installationDirectory = Resolve-InstallationDirectory
+    Add-Content -Path $configPath -Value "[env]"
+    Add-Content -Path $configPath -Value "LLVM_SYS_110_PREFIX = ""$installationDirectory"""
+}
+
+# Get the current git hash. This code is depenedent on the current working directory
+function Get-CommitHash {
+    # rev-parse changes length based on your git settings, use length = 9
+    # to match azure devops
+    exec { git rev-parse --short=9 HEAD }
+}
+
+# Gets the LLVM package triple for the current platform
+function Get-TargetTriple {
+    $triple = "unknown"
+    if ($IsWindows) {
+        $triple = "x86_64-pc-windows-msvc-static"
+    }
+    elseif ($IsLinux) {
+        $triple = "x86_64-unknown-linux-gnu"
+    }
+    elseif ($IsMacOS) {
+        $triple = "x86_64-apple-darwin"
+    }
+    $triple
+}
+
+# This method should be able to be removed when Rust 1.56 is released
+# which contains the feature for env sections in the .cargo/config.toml
+function Use-LlvmInstallation {
+    param (
+        [string]$path
+    )
+    Write-Vso "LLVM installation set to: $path"
+    $env:LLVM_SYS_110_PREFIX = $path
+}
+
+# Gets the LLVM version git hash
+# on the CI this will come as an env var
+function Get-LlvmSha {
+    if (Test-Path env:\AQ_LLVM_PACKAGE_GIT_VERSION) {
+        $env:AQ_LLVM_PACKAGE_GIT_VERSION
+    }
+    else {
+        $srcRoot = Get-RepoRoot
+        if (Test-Path env:\BUILD_SOURCESDIRECTORY) {
+            Write-Vso "Build.SourcesDirectory: $($env:BUILD_SOURCESDIRECTORY)"
+            $srcRoot = Resolve-Path $($env:BUILD_SOURCESDIRECTORY)
+        }
+        $llvmDir = Join-Path $srcRoot external llvm-project
+
+        Assert (Test-Path $llvmDir) "llvm-project submodule is missing"
+        $sha = exec -wd $llvmDir { Get-CommitHash }
+        $sha
+    }
+}
+
+function Get-PackageName {
+    $sha = Get-LlvmSha
+    $TARGET_TRIPLE = Get-TargetTriple
+    $packageName = "aq-llvm-$($TARGET_TRIPLE)-$($sha)"
+    $packageName
+}
+
+function Get-DefaultInstallDirectory {
+    if (Test-Path env:\AQ_CACHE_DIR) {
+        $env:AQ_CACHE_DIR
+    }
+    else {
+        Join-Path "$HOME" ".azure-quantum"
+    }
+}
+
+function Get-AqCacheDirectory {
+    $aqCacheDirectory = (Get-DefaultInstallDirectory)
+    if (!(Test-Path $aqCacheDirectory)) {
+        mkdir $aqCacheDirectory | Out-Null
+    }
+    Resolve-Path $aqCacheDirectory
+}
+
+function Get-InstallationDirectory {
+    [CmdletBinding()]
+    param (
+        [Parameter()]
+        [string]
+        $packageName
+    )
+    $aqCacheDirectory = Get-AqCacheDirectory
+    $packagePath = Join-Path $aqCacheDirectory $packageName
+    $packagePath
+}
+
+function Resolve-InstallationDirectory {
+    if (Test-Path env:\AQ_LLVM_EXTERNAL_DIR) {
+        return $env:AQ_LLVM_EXTERNAL_DIR
+    }
+    else {
+        $packageName = Get-PackageName
+
+        $packagePath = Get-InstallationDirectory $packageName
+        return $packagePath
     }
 }
