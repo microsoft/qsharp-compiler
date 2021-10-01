@@ -33,4 +33,5 @@ val forParensUpdate: unit Rewriter
 val arraySyntaxUpdate: unit Rewriter
 
 /// Provides warnings for deprecated syntax still in the syntax tree.
-val updateChecker: Document -> string list
+/// Takes the file name as well as the syntax tree.
+val updateChecker: string -> Document -> string list
