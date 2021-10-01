@@ -266,8 +266,9 @@ let ``Backup flag`` () =
         )
 
         for file in files do
-            Assert.True(File.Exists(file.Path + "~"))
-            let backup = File.ReadAllText(file.Path + "~") |> standardizeNewLines
+            let backup = file.Path + "~"
+            Assert.True(File.Exists(backup))
+            let backup = File.ReadAllText(backup) |> standardizeNewLines
             Assert.Equal(file.Original |> standardizeNewLines, backup)
             let after = File.ReadAllText file.Path |> standardizeNewLines
             Assert.Equal(file.Updated, after)
