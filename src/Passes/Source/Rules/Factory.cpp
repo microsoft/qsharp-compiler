@@ -528,7 +528,7 @@ namespace quantum
             {
                 std::vector<llvm::Type*> types;
                 types.resize(arguments.size());
-                for (uint64_t i = 0; i < types.size(); ++i)
+                for (auto i = 0; i < types.size(); ++i)
                 {
                     types[i] = arguments[i]->getType();
                 }
