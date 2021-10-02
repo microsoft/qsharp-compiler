@@ -31,7 +31,7 @@ namespace quantum
                 "Maps branching based on quantum measurements compared to one to base profile "
                 "type measurement.");
             config.addParameter(
-                optimise_branch_quantum_zero_, "optimise-branch-quatum-zero",
+                optimise_branch_quantum_zero_, "optimise-branch-quantum-zero",
                 "Maps branching based on quantum measurements compared to zero to base profile "
                 "type measurement.");
             config.addParameter(
