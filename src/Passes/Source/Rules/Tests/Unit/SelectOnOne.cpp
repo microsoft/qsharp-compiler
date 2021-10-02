@@ -48,7 +48,6 @@ TEST(RuleSetTestSuite, SelectOnOne)
   %1 = tail call i1 @__quantum__rt__result_equal(%Result* nonnull inttoptr (i64 1 to %Result*), %Result* %0)
   %2 = select i1 %1, i8 3, i8 4
   %3 = add i8 2, %2
-  tail call void @bye_message()
   ret i8 %3
   )script");
 
@@ -62,7 +61,7 @@ TEST(RuleSetTestSuite, SelectOnOne)
     auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
     ir_manip->applyProfile(profile);
 
-    // This optimistation is specific to the the __quantum__qir__read_result which
+    // This optimisation is specific to the the __quantum__qir__read_result which
     // returns 1 or 0 depending on the result. We expect that
     //
     // %1 = tail call %Result* @__quantum__rt__result_get_one()
