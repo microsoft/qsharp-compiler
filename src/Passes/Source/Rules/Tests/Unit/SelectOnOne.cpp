@@ -55,7 +55,7 @@ TEST(RuleSetTestSuite, SelectOnOne)
         auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
         // factory.useStaticResultAllocation();
 
-        factory.optimiseBranchQuantumOne();
+        factory.optimiseSelectQuantumOne();
     };
 
     auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
