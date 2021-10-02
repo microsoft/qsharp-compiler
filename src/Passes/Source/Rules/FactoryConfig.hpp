@@ -27,7 +27,7 @@ namespace quantum
             config.addParameter(
                 disable_string_support_, "disable-string-support", "Disables string support by instruction removal.");
             config.addParameter(
-                optimise_branch_quantum_one_, "optimise-branch-quatum-one",
+                optimise_branch_quantum_one_, "optimise-branch-quantum-one",
                 "Maps branching based on quantum measurements compared to one to base profile "
                 "type measurement.");
             config.addParameter(
