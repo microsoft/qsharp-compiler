@@ -45,7 +45,7 @@ TEST(RuleSetTestSuite, SelectOnOne)
   tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))
   tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
   %0 = tail call %Result* @__quantum__rt__result_get_one()
-  %1 = tail call i1 @__quantum__rt__result_equal(%Result* nonnull inttoptr (i64 1 to %Result*), %Result* %6)
+  %1 = tail call i1 @__quantum__rt__result_equal(%Result* nonnull inttoptr (i64 1 to %Result*), %Result* %0)
   %2 = select i1 %1, i8 3, i8 4
   %3 = add i8 2, %2
   tail call void @bye_message()
@@ -76,9 +76,9 @@ TEST(RuleSetTestSuite, SelectOnOne)
 
     EXPECT_FALSE(
         ir_manip->hasInstructionSequence({"%1 = call i1 @__quantum__rt__result_equal(%Result* nonnull inttoptr (i64 1 "
-                                          "to %Result*), %Result* %6)"}) ||
+                                          "to %Result*), %Result* %0)"}) ||
         ir_manip->hasInstructionSequence({"%1 = tail call i1 @__quantum__rt__result_equal(%Result* nonnull inttoptr "
-                                          "(i64 1 to %Result*), %Result* %6)"}));
+                                          "(i64 1 to %Result*), %Result* %0)"}));
 
     EXPECT_FALSE(
         ir_manip->hasInstructionSequence({"%0 = call %Result* @__quantum__rt__result_get_one()"}) ||
