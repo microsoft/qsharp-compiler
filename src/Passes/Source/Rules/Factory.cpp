@@ -2,9 +2,11 @@
 // Licensed under the MIT License.
 
 #include "Rules/Factory.hpp"
+
 #include "Rules/Notation/Notation.hpp"
 
 #include "Llvm/Llvm.hpp"
+
 
 namespace microsoft
 {
