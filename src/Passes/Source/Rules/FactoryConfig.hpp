@@ -86,7 +86,7 @@ namespace quantum
 
         bool optimiseSelectQuantumOne() const
         {
-            return optimise_select_quantum_zero_;
+            return optimise_select_quantum_one_;
         }
 
         bool useStaticQubitArrayAllocation() const
