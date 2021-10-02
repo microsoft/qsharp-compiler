@@ -7,7 +7,6 @@
 
 #include "Llvm/Llvm.hpp"
 
-
 namespace microsoft
 {
 namespace quantum
