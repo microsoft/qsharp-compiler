@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 #include "Rules/Factory.hpp"
+
 #include "Rules/Notation/Notation.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -528,7 +529,7 @@ namespace quantum
             {
                 std::vector<llvm::Type*> types;
                 types.resize(arguments.size());
-                for (auto i = 0; i < types.size(); ++i)
+                for (size_t i = 0; i < types.size(); ++i)
                 {
                     types[i] = arguments[i]->getType();
                 }

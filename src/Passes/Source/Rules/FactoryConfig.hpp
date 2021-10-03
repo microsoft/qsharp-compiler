@@ -145,6 +145,7 @@ namespace quantum
         /// @{
         bool optimise_branch_quantum_one_{true};
         bool optimise_branch_quantum_zero_{true};
+        bool optimise_select_quantum_one_{true};
         bool optimise_select_quantum_zero_{true};
         /// @}
 
