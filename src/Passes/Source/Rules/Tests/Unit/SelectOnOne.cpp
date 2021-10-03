@@ -60,6 +60,7 @@ TEST(RuleSetTestSuite, SelectOnOne)
 
     auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
     ir_manip->applyProfile(profile);
+    printf(ir_manip->toString().c_str());
 
     // This optimisation is specific to the the __quantum__qir__read_result which
     // returns 1 or 0 depending on the result. We expect that
