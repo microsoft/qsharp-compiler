@@ -97,14 +97,17 @@
   <!-- Computes the ResolvedTargetSpecificDecompositions property. Generates a build error if more than one target package has been specified. -->
   <Target Name="ResolveTargetPackage" DependsOnTargets="ResolveProjectReferences;ResolveAssemblyReferences" BeforeTargets="BeforeQSharpCompile">
     <ItemGroup>
+      <ResolvedTargetSpecificDecompositions Include="@(_ResolvedProjectReferencePaths)" Condition="@(_ResolvedProjectReferencePaths->Count()) &gt; 0 And %(_ResolvedProjectReferencePaths.IsTargetPackage)" />
+    </ItemGroup>
+    <ItemGroup>
       <_TargetPackageReference Include="@(PackageReference)" Condition="@(PackageReference->Count()) &gt; 0 And %(PackageReference.IsTargetPackage)" />
       <_TargetPackageReferencePathProperty Include="@(_TargetPackageReference->'QscRef_$([System.String]::Copy('%(_TargetPackageReference.Identity)').Replace('.','_'))')" />
       <_ResolvedTargetPackageReference Include="$(%(_TargetPackageReferencePathProperty.Identity))" />
       <ResolvedTargetSpecificDecompositions Include="@(_ResolvedTargetPackageReference->Split(`;`))" />
     </ItemGroup>
-    <Error Condition="@(_TargetPackageReference->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
+    <Error Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 1" Text="More than one target package was defined. The defined target package needs to be unique." />
     <Error
-      Condition="@(ResolvedTargetSpecificDecompositions->Count()) == 0 And @(_TargetPackageReference->Count()) &gt; 0"
+      Condition="@(ResolvedTargetSpecificDecompositions->Count()) == 0 And @(_ResolvedTargetPackageReference->Count()) &gt; 0"
       Text="Invalid target package. The target package is expected to specify the dll containing the decompositions to load." />
     <Message
       Condition="@(ResolvedTargetSpecificDecompositions->Count()) &gt; 0 And ('$(QscVerbosity)' == 'Detailed' Or '$(QscVerbosity)' == 'Diagnostic')"

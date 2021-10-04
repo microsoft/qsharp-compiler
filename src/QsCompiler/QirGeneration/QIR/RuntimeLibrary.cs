@@ -27,13 +27,11 @@ namespace Microsoft.Quantum.QIR
 
         // to-string
         public const string BigIntToString = "bigint_to_string";
-        public const string BoolToString = "bool_to_string";
         public const string DoubleToString = "double_to_string";
         public const string IntToString = "int_to_string";
-        public const string PauliToString = "pauli_to_string";
         public const string QubitToString = "qubit_to_string";
-        public const string RangeToString = "range_to_string";
-        public const string ResultToString = "result_to_string";
+        public const string RangeToString = "range_to_string"; // todo: eliminate
+        public const string ResultToString = "result_to_string"; // todo: eliminate
 
         // bigint functions
         public const string BigIntCreateI64 = "bigint_create_i64";
