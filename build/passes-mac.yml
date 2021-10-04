@@ -18,5 +18,5 @@ steps:
       cd src/Passes/
       pip3 install --user -r requirements.txt      
       chmod +x manage
-      ./manage runci
+      ./manage runci && make test-examples
 
