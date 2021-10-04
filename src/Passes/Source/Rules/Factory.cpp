@@ -440,7 +440,7 @@ namespace quantum
     void RuleFactory::optimiseBranchQuantumOne()
     {
         auto replace_branch_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-            auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+            auto cond = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
             if (cond == nullptr)
             {
                 return false;
@@ -515,7 +515,7 @@ namespace quantum
     void RuleFactory::optimiseSelectQuantumOne()
     {
         auto replace_select_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-            auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+            auto cond = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
             if (cond == nullptr)
             {
                 return false;
