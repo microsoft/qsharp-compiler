@@ -19,9 +19,8 @@ pub mod types;
 
 pub fn write(model: &SemanticModel, file_name: &str) -> Result<(), String> {
     let ctx = inkwell::context::Context::create();
-    let context = Context::new(&ctx, model.name.as_str());
+    let context = populate_context(&ctx, &model)?;
 
-    build_entry_function(&context, model)?;
     context.emit_ir(file_name)?;
 
     Ok(())
@@ -29,12 +28,22 @@ pub fn write(model: &SemanticModel, file_name: &str) -> Result<(), String> {
 
 pub fn get_ir_string(model: &SemanticModel) -> Result<String, String> {
     let ctx = inkwell::context::Context::create();
-    let context = Context::new(&ctx, model.name.as_str());
+    let context = populate_context(&ctx, &model)?;
 
-    build_entry_function(&context, model)?;
     let ir = context.get_ir_string();
 
     Ok(ir)
+}
+
+pub fn populate_context<'a>(
+    ctx: &'a inkwell::context::Context,
+    model: &'a SemanticModel,
+) -> Result<Context<'a>, String> {
+    let context = Context::new(&ctx, model.name.as_str());
+
+    build_entry_function(&context, model)?;
+
+    Ok(context)
 }
 
 fn build_entry_function(context: &Context<'_>, model: &SemanticModel) -> Result<(), String> {

@@ -10,9 +10,16 @@ pub(crate) struct RuntimeLibrary<'ctx> {
     pub(crate) result_update_reference_count: FunctionValue<'ctx>,
     pub(crate) result_equal: FunctionValue<'ctx>,
     pub(crate) array_create_1d: FunctionValue<'ctx>,
+    pub(crate) array_get_size_1d: FunctionValue<'ctx>,
     pub(crate) array_get_element_ptr_1d: FunctionValue<'ctx>,
     pub(crate) array_update_alias_count: FunctionValue<'ctx>,
     pub(crate) array_update_reference_count: FunctionValue<'ctx>,
+    pub(crate) memory_allocate: Option<FunctionValue<'ctx>>,
+    pub(crate) message: FunctionValue<'ctx>,
+    pub(crate) string_create: FunctionValue<'ctx>,
+    pub(crate) string_update_reference_count: FunctionValue<'ctx>,
+    pub(crate) string_concatenate: FunctionValue<'ctx>,
+    pub(crate) result_to_string: FunctionValue<'ctx>,
     pub(crate) qubit_allocate: FunctionValue<'ctx>,
     pub(crate) qubit_allocate_array: Option<FunctionValue<'ctx>>,
     pub(crate) qubit_release: FunctionValue<'ctx>,
@@ -36,6 +43,8 @@ impl<'ctx> RuntimeLibrary<'ctx> {
 
             array_create_1d: RuntimeLibrary::get_function(module, "array_create_1d")
                 .expect("__quantum__rt__array_create_1d function must be defined"),
+            array_get_size_1d: RuntimeLibrary::get_function(module, "array_get_size_1d")
+                .expect("__quantum__rt__array_get_size_1d function must be defined"),
             array_get_element_ptr_1d: RuntimeLibrary::get_function(
                 module,
                 "array_get_element_ptr_1d",
@@ -51,7 +60,20 @@ impl<'ctx> RuntimeLibrary<'ctx> {
                 "array_update_reference_count",
             )
             .expect("__quantum__rt__array_update_reference_count function must be defined"),
-
+            memory_allocate: RuntimeLibrary::get_function(module, "memory_allocate"),
+            message: RuntimeLibrary::get_function(module, "message")
+                .expect("__quantum__rt__message function must be defined"),
+            string_create: RuntimeLibrary::get_function(module, "string_create")
+                .expect("__quantum__rt__string_create function must be defined"),
+            string_update_reference_count: RuntimeLibrary::get_function(
+                module,
+                "string_update_reference_count",
+            )
+            .expect("__quantum__rt__string_update_reference_count function must be defined"),
+            string_concatenate: RuntimeLibrary::get_function(module, "string_concatenate")
+                .expect("__quantum__rt__string_concatenate function must be defined"),
+            result_to_string: RuntimeLibrary::get_function(module, "result_to_string")
+                .expect("__quantum__rt__result_to_string function must be defined"),
             qubit_allocate: RuntimeLibrary::get_function(module, "qubit_allocate")
                 .expect("__quantum__rt__qubit_allocate function must be defined"),
             qubit_allocate_array: RuntimeLibrary::get_function(module, "qubit_allocate_array"),

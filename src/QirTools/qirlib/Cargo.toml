@@ -12,6 +12,8 @@ log = "0.4.14"
 [dev-dependencies]
 serial_test = "0.5.1"
 tempfile = "3.2.0"
+libloading = "0.7.0"
+cty="0.2.1"
 
 [lib]
 name = "qirlib"
