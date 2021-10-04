@@ -57,6 +57,11 @@ namespace quantum
             optimiseSelectQuantumOne();
         }
 
+        if (config.optimiseSelectQuantumZero())
+        {
+            optimiseSelectQuantumZero();
+        }
+
         if (config.useStaticQubitArrayAllocation())
         {
             useStaticQubitArrayAllocation();
@@ -435,8 +440,12 @@ namespace quantum
     void RuleFactory::optimiseBranchQuantumOne()
     {
         auto replace_branch_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-            auto result = cap["result"];
             auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+            if (cond == nullptr)
+            {
+                return false;
+            }
+            auto result = cap["result"];
             // Replacing result
             auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
             if (orig_instr == nullptr)
@@ -467,10 +476,6 @@ namespace quantum
 
             builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
             auto new_call = builder.CreateCall(function, arguments);
-            if (cond == nullptr)
-            {
-                return false;
-            }
 
             new_call->takeName(cond);
 
@@ -485,7 +490,7 @@ namespace quantum
             replacements.push_back({cond, nullptr});
             replacements.push_back({cap["one"], nullptr});
 
-            return false;
+            return true;
         };
 
         /*
@@ -510,8 +515,12 @@ namespace quantum
     void RuleFactory::optimiseSelectQuantumOne()
     {
         auto replace_select_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-            auto result = cap["result"];
             auto cond   = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+            if (cond == nullptr)
+            {
+                return false;
+            }
+            auto result = cap["result"];
             // Replacing result
             auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
             if (orig_instr == nullptr)
@@ -542,10 +551,6 @@ namespace quantum
 
             builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
             auto new_call = builder.CreateCall(function, arguments);
-            if (cond == nullptr)
-            {
-                return false;
-            }
 
             new_call->takeName(cond);
 
@@ -560,7 +565,7 @@ namespace quantum
             replacements.push_back({cond, nullptr});
             replacements.push_back({cap["one"], nullptr});
 
-            return false;
+            return true;
         };
 
         /*
@@ -581,6 +586,11 @@ namespace quantum
         addRule(
             {select("cond"_cap = call("__quantum__rt__result_equal", "one"_cap = get_one, "result"_cap = _), _, _),
              replace_select_positive});
+    }
+
+    void RuleFactory::optimiseSelectQuantumZero()
+    {
+        // TODO(swernli): Not implemented
     }
 
     void RuleFactory::disableReferenceCounting()
