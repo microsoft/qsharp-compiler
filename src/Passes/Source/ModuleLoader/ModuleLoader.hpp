@@ -19,7 +19,7 @@ namespace quantum
         using FunctionAnalysisManager = llvm::FunctionAnalysisManager;
         using String                  = std::string;
 
-        SingleModuleTransformation(
+        explicit SingleModuleTransformation(
             OptimizationLevel const& optimisation_level = OptimizationLevel::O0,
             bool                     debug              = false)
           : loop_analysis_manager_{debug}
