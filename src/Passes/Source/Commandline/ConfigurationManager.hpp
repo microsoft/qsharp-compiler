@@ -40,11 +40,11 @@ namespace quantum
         /// of parameter bindings.
         struct Section
         {
-            TypeId     type{TypeId(typeid(nullptr_t))}; ///< Type of the configuration.
-            String     name{};                          ///< Name of the section.
-            String     description{};                   ///< Description of the section.
-            VoidPtr    configuration{};                 ///< Configuration class instance.
-            ConfigList settings{};                      ///< List of parameter bindings.
+            TypeId     type{TypeId(typeid(std::nullptr_t))}; ///< Type of the configuration.
+            String     name{};                               ///< Name of the section.
+            String     description{};                        ///< Description of the section.
+            VoidPtr    configuration{};                      ///< Configuration class instance.
+            ConfigList settings{};                           ///< List of parameter bindings.
         };
 
         using Sections = std::vector<Section>; ///< List of available sections
