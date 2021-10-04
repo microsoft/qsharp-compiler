@@ -33,9 +33,10 @@ let parse (source: string) =
     else
         errorListener.SyntaxErrors |> Error
 
+let simpleRule (rule : unit Rewriter) =
+    curry rule.Document ()
+
 let versionToFormatRules (version : Version option) =
-    let simpleRule (rule : unit Rewriter) =
-        curry rule.Document ()
     let rules =
         match version with
         // The following lines are provided as examples of different rules for different versions:
@@ -74,8 +75,6 @@ let format (qsharp_version : Version option) source =
     parse source |> Result.map formatDocument
 
 let versionToUpdateRules (version : Version option) =
-    let simpleRule (rule : unit Rewriter) =
-        curry rule.Document ()
     let rules =
         match version with
         // The following lines are provided as examples of different rules for different versions:
