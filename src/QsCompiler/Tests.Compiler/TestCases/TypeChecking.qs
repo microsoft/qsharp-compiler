@@ -135,6 +135,48 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         let _ = x!;
     }
 
+    // Indexed types
+
+    function Indexed1(xs : Int[], i : Int) : Int {
+        return xs[i];
+    }
+
+    function Indexed2<'a>(xs : 'a[], i : Int) : 'a {
+        return xs[i];
+    }
+
+    function Indexed3(xs : Int[], r : Range) : Int[] {
+        return xs[r];
+    }
+
+    function Indexed4<'a>(xs : 'a[], r : Range) : 'a[] {
+        return xs[r];
+    }
+
+    function IndexedInvalid1(xs : Int, i : Int) : Int {
+        return xs[i];
+    }
+
+    function IndexedInvalid2<'a>(xs : 'a, i : Int) : 'a {
+        return xs[i];
+    }
+
+    function IndexedInvalid3<'a>(xs : Int[], i : 'a) : Int {
+        return xs[i];
+    }
+
+    function IndexedInvalid4<'a>(xs : Int[], i : 'a) : Int[] {
+        return xs[i];
+    }
+
+    function IndexedInvalid5(i : Int) : Int {
+        return undefinedVariable[i];
+    }
+
+    function IndexedInvalid6(xs : Int[]) : Int {
+        return xs[undefinedVariable];
+    }
+
     // utils for testing variance behavior 
 
     function TakesBigEndian (a : BigEndian) : Unit {}

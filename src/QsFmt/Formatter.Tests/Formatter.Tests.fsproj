@@ -10,6 +10,7 @@
       <Link>TestCases\%(FileName)%(Extension)</Link>
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
+    <Compile Include="Tests.fs" />
   </ItemGroup>
 
   <ItemGroup>
