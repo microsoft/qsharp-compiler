@@ -56,6 +56,25 @@ let format source =
 
     parse source |> Result.map formatDocument
 
+[<CompiledName "Update">]
+let update fileName source =
+    let updateDocument document =
+
+        let updatedDocument =
+            document
+            |> curry qubitBindingUpdate.Document ()
+            |> curry unitUpdate.Document ()
+            |> curry forParensUpdate.Document ()
+            |> curry arraySyntaxUpdate.Document ()
+
+        let warningList = updatedDocument |> updateChecker fileName
+        let printedDocument = updatedDocument |> printer.Document
+
+        warningList |> List.iter (eprintfn "%s")
+        printedDocument
+
+    parse source |> Result.map updateDocument
+
 [<CompiledName "Identity">]
 let identity source =
     parse source |> Result.map printer.Document

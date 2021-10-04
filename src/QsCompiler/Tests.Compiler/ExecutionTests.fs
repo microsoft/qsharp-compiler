@@ -5,10 +5,11 @@ namespace Microsoft.Quantum.QsCompiler.Testing
 
 open System
 open System.IO
-open System.Linq
+open System.Reflection
 open System.Text
 open System.Text.RegularExpressions
 open Microsoft.Quantum.QsCompiler
+open Microsoft.Quantum.QsCompiler.CommandLineCompiler
 open Xunit
 open Xunit.Abstractions
 
@@ -21,22 +22,170 @@ type ExecutionTests(output: ITestOutputHelper) =
     let AssertEqual expected got =
         Assert.True(stripWS expected = stripWS got, sprintf "expected: \n%s\ngot: \n%s" expected got)
 
-    let ExecuteOnQuantumSimulator cName =
+    let ExecuteOnReferenceTarget engineIdx args =
         let exitCode, ex = ref -101, ref null
         let out, err = ref (new StringBuilder()), ref (new StringBuilder())
-        let exe = File.ReadAllLines("ReferenceTargets.txt").First()
-        let args = sprintf "\"%s\" %s.%s" exe "Microsoft.Quantum.Testing.ExecutionTests" cName
+        let exe = File.ReadAllLines("ReferenceTargets.txt").[engineIdx]
+        let args = sprintf "\"%s\" %s" exe args
         let ranToEnd = ProcessRunner.Run("dotnet", args, out, err, exitCode, ex, timeout = 10000)
         Assert.False(String.IsNullOrWhiteSpace exe)
         Assert.True(ranToEnd)
         Assert.Null(!ex)
-        Assert.Equal(0, !exitCode)
-        (!out).ToString(), (!err).ToString()
+        !exitCode, (!out).ToString(), (!err).ToString()
 
     let ExecuteAndCompareOutput cName expectedOutput =
-        let out, err = ExecuteOnQuantumSimulator cName
+        let args = sprintf "%s.%s" "Microsoft.Quantum.Testing.ExecutionTests" cName
+        let exitCode, out, err = args |> ExecuteOnReferenceTarget 0
+        Assert.Equal(0, exitCode)
         AssertEqual String.Empty err
         AssertEqual expectedOutput out
+
+    let WriteBitcode pathToBitcode files =
+        let pathToBitcode = Path.GetFullPath(pathToBitcode)
+        let outputDir = Path.GetDirectoryName(pathToBitcode)
+        let projName = Path.GetFileNameWithoutExtension(pathToBitcode)
+
+        let compilerArgs =
+            seq {
+                yield "build"
+                yield "-o"
+                yield outputDir
+                yield "--proj"
+                yield projName
+                yield "--build-exe"
+                yield "--input"
+
+                for file in files do
+                    yield file
+
+                yield "--load"
+
+                yield
+                    Path.Combine(
+                        Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location),
+                        "Microsoft.Quantum.QirGeneration.dll"
+                    )
+
+                yield "--assembly-properties"
+                yield "QirOutputPath:qir"
+            }
+
+        let result = Program.Main(compilerArgs |> Seq.toArray)
+        Assert.Equal(ReturnCode.Success, result)
+
+    let compiledQirExecutionTest =
+        let inputPaths =
+            [
+                ("TestCases", "QirTests", "ExecutionTests.qs") |> Path.Combine |> Path.GetFullPath
+                ("TestCases", "QirTests", "QirCore.qs") |> Path.Combine |> Path.GetFullPath
+            ]
+
+        let bitcodePath = ("outputFolder", "ExecutionTests.bc") |> Path.Combine |> Path.GetFullPath
+        WriteBitcode bitcodePath inputPaths
+        bitcodePath
+
+    let QirExecutionTest functionName =
+        output.WriteLine(sprintf "Testing execution of %s:\n" functionName)
+        let args = sprintf "%s %s" compiledQirExecutionTest functionName
+        let exitCode, out, err = args |> ExecuteOnReferenceTarget 1
+        output.WriteLine(out)
+        exitCode, out, err
+
+
+    [<Fact>]
+    member this.``QIR entry point return value``() =
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__NoReturn"
+        let exitCode, out, err = QirExecutionTest functionName
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
+        AssertEqual "()" out
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__ReturnsUnit"
+        let exitCode, out, err = QirExecutionTest functionName
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
+        AssertEqual "()" out
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__ReturnsString"
+        let exitCode, out, err = QirExecutionTest functionName
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
+        AssertEqual "\"Success!\"" out // the quotes are correct and needed here
+
+
+    [<Fact>]
+    member this.``QIR string interpolation``() =
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestInterpolatedStrings"
+        let exitCode, out, err = QirExecutionTest functionName
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
+
+        let expected =
+            """
+            simple string
+            "interpolated string"
+            true or false, true, false, true, false
+            1, -1, 0
+            1.0, 2.0, 100000.0, 0.10000000000000001, -1.0, 0.0
+            Zero, One
+            PauliZ, PauliX, PauliY, [PauliI]
+            1..3, 3..-1..1, 0..-1..0
+            [1, 2, 3], ["1", "2", "3"], [1, 2, 3], ["1", "2", "3"], ["", "2", "", "4"]
+            (), (1, (2, 3)), ("1", ("2", "3")), (1, (2, 3)), ("1", ("2", "3")), ("1", ("", "3"))
+            0, [1, 2, 3]
+            <function>, <operation>, (<function>, <operation>)
+            "Hello", Microsoft.Quantum.Testing.ExecutionTests.Foo(1), Microsoft.Quantum.Testing.ExecutionTests.Tuple("Hello", "World")
+            "All good!"
+            """
+
+        AssertEqual expected out
+
+
+    [<Fact>]
+    member this.``QIR array slicing``() =
+
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__TestArraySlicing"
+        let exitCode, out, err = QirExecutionTest functionName
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
+
+        let expected =
+            """
+            [1, 2, 3, 4], [4, 3, 2, 1]
+            [4, 3, 2, 1], [1, 2, 3, 4]
+            [4, 3, 2, 1], [2, 2, 1, 4]
+            [4, 3, 2, 1], [2, 2, 1, 4]
+            [[1], [0], []], [[3], [2], [1]]
+            [[0], [2], []], [[1], [2], [3]]
+            [[5], [10], [5], [10], [5]], [[1], [2], [3]]
+            [[0], [0, 0], [1, 1, 1]]
+            [[0, 0], [0], [1, 1, 1]]
+            [[1, 1, 1], [0], [0, 0]]
+            [[0, 0], [0], [1, 1, 1]]
+            [1, 2, 3, 4], [1, 2, 3, 4]
+            1..3..5
+            """
+
+        AssertEqual expected out
+
+
+    [<Fact>]
+    member this.``QIR memory management``() =
+
+        // Sanity test to check if we properly detect when a runtime exception is thrown:
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__CheckFail"
+        let exitCode, out, err = QirExecutionTest functionName
+        Assert.NotEqual(0, exitCode)
+        AssertEqual String.Empty err
+        AssertEqual "expected failure in CheckFail" out
+
+        // ... and now the actual tests
+        let functionName = "Microsoft__Quantum__Testing__ExecutionTests__RunExample"
+        let exitCode, _, err = QirExecutionTest functionName
+        Assert.Equal(0, exitCode)
+        AssertEqual String.Empty err
 
 
     [<Fact>]

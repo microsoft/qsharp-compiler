@@ -14,7 +14,7 @@ type AccessModifierTests() =
     inherit CompilerTests(AccessModifierTests.Compile())
 
     static member private Compile() =
-        CompilerTests.Compile("TestCases", [ "AccessModifiers.qs" ], [ File.ReadAllLines("ReferenceTargets.txt").[1] ])
+        CompilerTests.Compile("TestCases", [ "AccessModifiers.qs" ], [ File.ReadAllLines("ReferenceTargets.txt").[2] ])
 
     member private this.Expect name (diagnostics: IEnumerable<DiagnosticItem>) =
         let ns = "Microsoft.Quantum.Testing.AccessModifiers"

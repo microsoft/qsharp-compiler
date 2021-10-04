@@ -3,23 +3,119 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
-/// A declaration for a new symbol.
-type internal SymbolDeclaration =
+/// A declaration for a new parameter.
+type internal ParameterDeclaration =
     {
-        /// The name of the symbol.
+        /// The name of the parameter.
         Name: Terminal
 
-        /// The type of the symbol.
-        Type: TypeAnnotation option
+        /// The type of the parameter.
+        Type: TypeAnnotation
     }
+
+/// A binding for one or more new parameters.
+type internal ParameterBinding =
+    /// A declaration for a new parameter.
+    | ParameterDeclaration of ParameterDeclaration
+
+    /// A declaration for a tuple of new parameters.
+    | ParameterTuple of ParameterBinding Tuple
 
 /// A binding for one or more new symbols.
 type internal SymbolBinding =
-    /// A declaration for a new symbol.
-    | SymbolDeclaration of SymbolDeclaration
+    /// A declaration for a new symbols.
+    | SymbolDeclaration of Terminal
 
     /// A declaration for a tuple of new symbols.
     | SymbolTuple of SymbolBinding Tuple
+
+module internal SymbolBinding =
+    /// <summary>
+    /// Maps a symbol binding by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix: mapper:(Trivia list -> Trivia list) -> SymbolBinding -> SymbolBinding
+
+/// Initializer for a single qubit.
+type internal SingleQubit =
+    {
+        /// <summary>
+        /// The <c>Qubit</c> type.
+        /// </summary>
+        Qubit: Terminal
+
+        /// The opening parenthesis.
+        OpenParen: Terminal
+
+        /// The closing parenthesis.
+        CloseParen: Terminal
+    }
+
+/// Initializer for an array of qubits.
+type internal QubitArray =
+    {
+        /// <summary>
+        /// The <c>Qubit</c> type.
+        /// </summary>
+        Qubit: Terminal
+
+        /// The opening bracket.
+        OpenBracket: Terminal
+
+        /// The length of the created array.
+        Length: Expression
+
+        /// The closing bracket.
+        CloseBracket: Terminal
+    }
+
+/// An initializer for one or more qubits.
+type internal QubitInitializer =
+    /// Initializes a single qubit.
+    | SingleQubit of SingleQubit
+
+    // Initializes an array of qubits.
+    | QubitArray of QubitArray
+
+    // Initializes a tuple of qubits.
+    | QubitTuple of QubitInitializer Tuple
+
+/// A qubit binding statement.
+type internal QubitBinding =
+    {
+        /// The symbol binding.
+        Name: SymbolBinding
+
+        /// The equals symbol.
+        Equals: Terminal
+
+        /// The qubit initializer.
+        Initializer: QubitInitializer
+    }
+
+module internal QubitBinding =
+    /// <summary>
+    /// Maps <paramref name="binding"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix: mapper:(Trivia list -> Trivia list) -> binding: QubitBinding -> QubitBinding
+
+/// The binding for a for-loop variable.
+type internal ForBinding =
+    {
+        /// The symbol binding.
+        Name: SymbolBinding
+
+        /// The <c>in</c> keyword.
+        In: Terminal
+
+        /// The value of the symbol binding.
+        Value: Expression
+    }
+    
+module internal ForBinding =
+    /// <summary>
+    /// Maps <paramref name="binding"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
+    /// </summary>
+    val mapPrefix: mapper:(Trivia list -> Trivia list) -> binding: ForBinding -> ForBinding
 
 /// <summary>
 /// A <c>let</c> statement.
@@ -61,10 +157,54 @@ type internal Return =
         Semicolon: Terminal
     }
 
+/// The kind of qubit declaration.
+type internal QubitDeclarationKind =
+
+    /// <summary>
+    /// Indicates a <c>use</c> qubit declaration.
+    /// </summary>
+    | Use
+
+    /// <summary>
+    /// Indicates a <c>borrow</c> qubit declaration.
+    /// </summary>
+    | Borrow
+
+/// The concluding section of a qubit declaration.
+type internal QubitDeclarationCoda =
+
+    /// The semicolon.
+    | Semicolon of Terminal
+
+    /// The block of statements after the declaration.
+    | Block of Statement Block
+
+/// A qubit declaration statement.
+and internal QubitDeclaration =
+    {
+        /// The kind of qubit declaration.
+        Kind: QubitDeclarationKind
+
+        /// The keyword used in the declaration.
+        Keyword: Terminal
+
+        /// Optional open parentheses.
+        OpenParen: Terminal option
+
+        /// The qubit binding.
+        Binding: QubitBinding
+
+        /// Optional close parentheses.
+        CloseParen: Terminal option
+
+        /// The concluding section.
+        Coda: QubitDeclarationCoda
+    }
+
 /// <summary>
 /// An <c>if</c> statement.
 /// </summary>
-type internal If =
+and internal If =
     {
         /// <summary>
         /// The <c>if</c> keyword.
@@ -91,6 +231,29 @@ and internal Else =
         /// The conditional block.
         Block: Statement Block
     }
+    
+/// <summary>
+/// A <c>for</c> statement.
+/// </summary>
+and internal For =
+    {
+        /// <summary>
+        /// The <c>for</c> keyword.
+        /// </summary>
+        ForKeyword: Terminal
+
+        /// The optional open parenthesis.
+        OpenParen: Terminal option
+
+        /// The binding for loop variable.
+        Binding: ForBinding
+
+        /// The optional close parenthesis.
+        CloseParen: Terminal option
+
+        /// The loop body.
+        Block: Statement Block
+    }
 
 /// A statement.
 and internal Statement =
@@ -104,6 +267,9 @@ and internal Statement =
     /// </summary>
     | Return of Return
 
+    /// A qubit declaration statement.
+    | QubitDeclaration of QubitDeclaration
+
     /// <summary>
     /// An <c>if</c> statement.
     /// </summary>
@@ -114,11 +280,16 @@ and internal Statement =
     /// </summary>
     | Else of Else
 
+    /// <summary>
+    /// A <c>for</c> statement.
+    /// </summary>
+    | For of For
+
     /// An unknown statement.
     | Unknown of Terminal
 
 module internal Statement =
     /// <summary>
-    /// Maps a statement by applying <paramref name="mapper"/> to its trivia prefix.
+    /// Maps a statement by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> Statement -> Statement
