@@ -72,7 +72,7 @@ TEST(RuleSetTestSuite, SelectOnOne)
     //
     // will be mapped to using this instruction.
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"% 0= call i1 @__quantum__qir__read_result(%Result* inttoptr (i64 1 to %Result*))",
+        {"%0 = call i1 @__quantum__qir__read_result(%Result* inttoptr (i64 1 to %Result*))",
          "%1 = select i1 %0, i8 5, i8 6"}));
 
     EXPECT_FALSE(
