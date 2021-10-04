@@ -178,7 +178,7 @@ function Restore-ConfigTomlWithLlvmInfo {
     # append the env vars to the new config
     $installationDirectory = Resolve-InstallationDirectory
     Add-Content -Path $configPath -Value "[env]"
-    Add-Content -Path $configPath -Value "LLVM_SYS_110_PREFIX = ""$installationDirectory"""
+    Add-Content -Path $configPath -Value "LLVM_SYS_110_PREFIX = '$installationDirectory'"
 }
 
 # Get the current git hash. This code is depenedent on the current working directory
