@@ -69,6 +69,8 @@ namespace quantum
         /// @{
         void optimiseBranchQuantumOne();
         void optimiseBranchQuantumZero();
+        void optimiseSelectQuantumOne();
+        void optimiseSelectQuantumZero();
         /// @}
 
         /// Disabling by feature
