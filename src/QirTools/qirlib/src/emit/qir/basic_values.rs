@@ -5,7 +5,6 @@ use inkwell::values::{BasicValue, BasicValueEnum};
 
 use crate::emit::Context;
 
-
 pub(crate) fn i8_null_ptr<'ctx>(context: &Context<'ctx>) -> BasicValueEnum<'ctx> {
     context
         .context

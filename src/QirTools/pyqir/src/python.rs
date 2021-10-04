@@ -216,7 +216,10 @@ mod tests {
     use tempfile::tempdir;
 
     fn init() {
-        let _ = env_logger::builder().filter_level(log::LevelFilter::Info).is_test(true).try_init();
+        let _ = env_logger::builder()
+            .filter_level(log::LevelFilter::Info)
+            .is_test(true)
+            .try_init();
     }
 
     #[test]

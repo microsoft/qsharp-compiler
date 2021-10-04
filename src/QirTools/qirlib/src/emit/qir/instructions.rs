@@ -103,9 +103,11 @@ pub(crate) fn emit<'ctx>(
         Instruction::Z(inst) => {
             calls::emit_void_call(context, intrinsics.z, &[find_qubit(&inst.qubit)])
         }
-        Instruction::DumpMachine => {
-            calls::emit_void_call(context, intrinsics.dumpmachine, &[basic_values::i8_null_ptr(context)])
-        }
+        Instruction::DumpMachine => calls::emit_void_call(
+            context,
+            intrinsics.dumpmachine,
+            &[basic_values::i8_null_ptr(context)],
+        ),
     }
 
     fn measure<'ctx>(
