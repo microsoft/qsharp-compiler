@@ -62,7 +62,7 @@ continue__1:                                      ; preds = %fixup__1
   %14 = call %Tuple* @__quantum__rt__tuple_copy(%Tuple* %3, i1 false)
   %15 = bitcast %Tuple* %14 to { double, %String* }*
   %16 = getelementptr inbounds { double, %String* }, { double, %String* }* %15, i32 0, i32 1
-  %17 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @3, i32 0, i32 0))
+  %17 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @1, i32 0, i32 0))
   %18 = load %String*, %String** %16, align 8
   call void @__quantum__rt__string_update_reference_count(%String* %18, i32 -1)
   store %String* %17, %String** %16, align 8

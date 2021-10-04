@@ -10,7 +10,7 @@ open System.IO
 open Xunit
 
 /// The result of running the application.
-type private Result =
+type Result =
     {
         /// The exit status code.
         Code: int
@@ -20,6 +20,81 @@ type private Result =
 
         /// The standard error.
         Error: string
+    }
+
+type TestFile =
+    {
+        Path: string
+        Original: string
+        Formatted: string
+        Updated: string
+    }
+
+/// <summary>
+/// Ensures that the new line characters will conform to the standard of the environment's new line character.
+/// </summary>
+let standardizeNewLines (s: string) =
+    s.Replace("\r", "").Replace("\n", Environment.NewLine)
+
+let CleanResult =
+    {
+        Code = 0
+        Out = ""
+        Error = ""
+    }
+
+let makeTestFile (path: string) =
+    let name = path.[(path.LastIndexOf "\\") + 1..(path.LastIndexOf ".qs") - 1]
+
+    {
+        Path = path
+        Original = File.ReadAllText path
+        Formatted =
+            name
+            |> sprintf
+                "namespace %s {
+    function Bar() : Int {
+        for (i in 0..1) {}
+        return 0;
+    }
+}
+"
+            |> standardizeNewLines
+        Updated =
+            name
+            |> sprintf
+                "namespace %s { function Bar() : Int { for i in 0..1 {} return 0; } }
+"
+            |> standardizeNewLines
+    }
+
+let Example1 = makeTestFile "Examples\\Example1.qs"
+let Example2 = makeTestFile "Examples\\Example2.qs"
+let SubExample1 = makeTestFile "Examples\\SubExamples1\\SubExample1.qs"
+let SubExample2 = makeTestFile "Examples\\SubExamples1\\SubExample2.qs"
+let SubExample3 = makeTestFile "Examples\\SubExamples2\\SubExample3.qs"
+let NestedExample1 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample1.qs"
+let NestedExample2 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample2.qs"
+
+let StandardInputTest =
+    {
+        Path = "-"
+        Original =
+            "namespace StandardIn { function Bar() : Int { for (i in 0..1) {} return 0; } }
+"
+        Formatted =
+            "namespace StandardIn {
+    function Bar() : Int {
+        for (i in 0..1) {}
+        return 0;
+    }
+}
+"
+            |> standardizeNewLines
+        Updated =
+            "namespace StandardIn { function Bar() : Int { for i in 0..1 {} return 0; } }
+"
+            |> standardizeNewLines
     }
 
 /// <summary>
@@ -42,90 +117,186 @@ let private run args input =
 
         {
             Code = main args
-            Out = out.ToString()
-            Error = error.ToString()
+            Out = out.ToString() |> standardizeNewLines
+            Error = error.ToString() |> standardizeNewLines
         }
     finally
         Console.SetIn previousInput
         Console.SetOut previousOutput
         Console.SetError previousError
 
+let private runWithFiles isUpdate files standardInput expectedOutput args =
+    try
+        Assert.Equal(expectedOutput, run args standardInput)
+
+        for file in files do
+            let after = File.ReadAllText file.Path |> standardizeNewLines
+            let expected = (if isUpdate then file.Updated else file.Formatted)
+            Assert.Equal(expected, after)
+    finally
+        for file in files do
+            File.WriteAllText(file.Path, file.Original)
+
 [<Fact>]
-let ``Shows help with no arguments`` () =
-    Assert.Equal(
-        {
-            Code = 2
-            Out = ""
-            Error =
-                "ERROR: missing argument '<string>'.
+let ``Updates file`` () =
+    runWithFiles true [ Example1 ] "" CleanResult [| "update"; Example1.Path |]
 
-INPUT:
-
-    <string>              File to format or \"-\" to read from standard input.
-
-OPTIONS:
-
-    --help                Display this list of options.
-"
-        },
-        run [||] ""
-    )
-
-[<Theory>]
-[<InlineData("Example.qs",
-             "namespace Foo {
-    function Bar() : Int {
-        return 0;
-    }
-}
-")>]
-let ``Formats file`` path output =
+[<Fact>]
+let ``Updates standard input`` () =
     Assert.Equal(
         {
             Code = 0
-            Out = output
+            Out = StandardInputTest.Updated
             Error = ""
         },
-        run [| path |] ""
-    )
-
-[<Theory>]
-[<InlineData("namespace Foo { function Bar() : Int { return 0; } }
-",
-             "namespace Foo {
-    function Bar() : Int {
-        return 0;
-    }
-}
-")>]
-let ``Formats standard input`` input output =
-    Assert.Equal(
-        {
-            Code = 0
-            Out = output
-            Error = ""
-        },
-        run [| "-" |] input
+        run [| "update"; "-" |] StandardInputTest.Original
     )
 
 [<Theory>]
 [<InlineData("namespace Foo { invalid syntax; } ",
-             "Line 1, column 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
+             "<Standard Input>, Line 1, Character 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
 ")>]
 let ``Shows syntax errors`` input errors =
     Assert.Equal(
         {
             Code = 1
             Out = ""
-            Error = errors
+            Error = errors |> standardizeNewLines
         },
         run [| "-" |] input
     )
 
 [<Theory>]
-[<InlineData "NotFound.qs">]
+[<InlineData "Examples\\NotFound.qs">]
 let ``Shows file not found error`` path =
     let result = run [| path |] ""
     Assert.Equal(3, result.Code)
     Assert.Empty result.Out
     Assert.NotEmpty result.Error
+
+[<Fact>]
+let ``Input multiple files`` () =
+    let files = [ Example1; Example2 ]
+
+    runWithFiles true files "" CleanResult [| "update"; Example1.Path; Example2.Path |]
+
+[<Fact>]
+let ``Input directories`` () =
+    let files = [ SubExample1; SubExample2; SubExample3 ]
+    runWithFiles true files "" CleanResult [| "update"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+
+[<Fact>]
+let ``Input directories with files and stdin`` () =
+    let files = [ Example1; SubExample1; SubExample2 ]
+
+    [| "update"; Example1.Path; "-"; "Examples\\SubExamples1" |]
+    |> runWithFiles
+        true
+        files
+        StandardInputTest.Original
+        {
+            Code = 0
+            Out = StandardInputTest.Updated
+            Error = ""
+        }
+
+[<Fact>]
+let ``Input directories with recursive flag`` () =
+    let files =
+        [
+            Example1
+            SubExample1
+            SubExample2
+            SubExample3
+            NestedExample1
+            NestedExample2
+        ]
+
+    [|
+        "update"
+        "-r"
+        Example1.Path
+        "-"
+        "Examples\\SubExamples1"
+        "Examples\\SubExamples2"
+    |]
+    |> runWithFiles
+        true
+        files
+        StandardInputTest.Original
+        {
+            Code = 0
+            Out = StandardInputTest.Updated
+            Error = ""
+        }
+
+[<Fact>]
+let ``Process correct files while erroring on incorrect`` () =
+    let files = [ Example1; Example2 ]
+
+    try
+        let result =
+            run [| "update"; Example1.Path; "-"; "Examples\\NotFound.qs"; Example2.Path |] StandardInputTest.Original
+
+        Assert.Equal(3, result.Code)
+        Assert.Equal(StandardInputTest.Updated, result.Out)
+        Assert.NotEmpty(result.Error)
+
+        for file in files do
+            let after = File.ReadAllText file.Path |> standardizeNewLines
+            Assert.Equal(file.Updated, after)
+    finally
+        for file in files do
+            File.WriteAllText(file.Path, file.Original)
+
+[<Fact>]
+let ``Backup flag`` () =
+    let files = [ Example1; SubExample3 ]
+
+    try
+        let result = run [| "update"; "-b"; "-"; Example1.Path; "Examples\\SubExamples2" |] StandardInputTest.Original
+
+        Assert.Equal(
+            {
+                Code = 0
+                Out = StandardInputTest.Updated
+                Error = ""
+            },
+            result
+        )
+
+        for file in files do
+            let backup = file.Path + "~"
+            Assert.True(File.Exists(backup))
+            let backup = File.ReadAllText(backup) |> standardizeNewLines
+            Assert.Equal(file.Original |> standardizeNewLines, backup)
+            let after = File.ReadAllText file.Path |> standardizeNewLines
+            Assert.Equal(file.Updated, after)
+    finally
+        for file in files do
+            File.WriteAllText(file.Path, file.Original)
+            if File.Exists(file.Path + "~") then File.Delete(file.Path + "~")
+
+[<Fact>]
+let ``Error when same input given multiple times`` () =
+    let files = [ Example1; SubExample1; SubExample2 ]
+
+    let outputResult =
+        {
+            Code = 5
+            Out = ""
+            Error =
+                "This input has already been processed: Examples\SubExamples1\SubExample1.qs
+This input has already been processed: Examples\Example1.qs
+"
+                |> standardizeNewLines
+        }
+
+    [|
+        "update"
+        Example1.Path
+        "Examples\\SubExamples1"
+        SubExample1.Path
+        Example1.Path
+    |]
+    |> runWithFiles true files "" outputResult
