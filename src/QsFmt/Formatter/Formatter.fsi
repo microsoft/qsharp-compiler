@@ -10,9 +10,10 @@ open Microsoft.Quantum.QsFmt.Formatter.Errors
 [<CompiledName "Format">]
 val format: string -> Result<string, SyntaxError list>
 
-/// Updates deprecated syntax in the given Q# source code.
+/// Updates deprecated syntax in the given source code.
+/// Takes a Q# file name and source code.
 [<CompiledName "Update">]
-val update: string -> Result<string, SyntaxError list>
+val update: string -> string -> Result<string, SyntaxError list>
 
 /// Parses then un-parses the given Q# source code without formatting.
 [<CompiledName "Identity">]

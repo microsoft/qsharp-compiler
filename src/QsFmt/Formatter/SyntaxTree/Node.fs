@@ -56,7 +56,7 @@ module Trivia =
         | Prefix "\r\n" (_, rest) -> NewLine "\r\n" :: ofString rest
         | Prefix "\r" (_, rest) -> NewLine "\r" :: ofString rest
         | Prefix "\n" (_, rest) -> NewLine "\n" :: ofString rest
-        | Prefix "\s+" (result, rest) -> Whitespace result :: ofString rest
+        | Prefix "[^\S\r\n]+" (result, rest) -> Whitespace result :: ofString rest
         | Prefix "//[^\r\n]*" (result, rest) -> Comment result :: ofString rest
         | _ ->
             // TODO: Use option.
