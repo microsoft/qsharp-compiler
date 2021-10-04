@@ -12,6 +12,7 @@ open Microsoft.Quantum.QsFmt.Formatter.Utils
 open Microsoft.Quantum.QsFmt.Parser
 open System
 open System.Collections.Immutable
+open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 /// <summary>
 /// Parses the Q# source code into a <see cref="QsFmt.Formatter.SyntaxTree.Document"/>.
@@ -32,6 +33,24 @@ let parse (source: string) =
     else
         errorListener.SyntaxErrors |> Error
 
+let versionToFormatRules (version : Version option) =
+    let simpleRule (rule : unit Rewriter) =
+        curry rule.Document ()
+    let rules =
+        match version with
+        // The following lines are provided as examples of different rules for different versions:
+        //| Some v when v < new Version("1.0") -> [simpleRule collapsedSpaces]
+        //| Some v when v < new Version("1.5") -> [simpleRule operatorSpacing]
+        | None
+        | Some _ ->
+            [
+                simpleRule collapsedSpaces
+                simpleRule operatorSpacing
+                simpleRule newLines
+                curry indentation.Document 0
+            ]
+    rules |> List.fold (>>) id
+
 [<CompiledName "Format">]
 let format (qsharp_version : Version option) source =
     let formatDocument document =
@@ -41,10 +60,7 @@ let format (qsharp_version : Version option) source =
         if unparsed = source then
             // The actual format process
             document
-            |> curry collapsedSpaces.Document ()
-            |> curry operatorSpacing.Document ()
-            |> curry newLines.Document ()
-            |> curry indentation.Document 0
+            |> versionToFormatRules qsharp_version
             |> printer.Document
         // Report error if the unparsing result does not match the original source
         else
@@ -57,18 +73,35 @@ let format (qsharp_version : Version option) source =
 
     parse source |> Result.map formatDocument
 
+let versionToUpdateRules (version : Version option) =
+    let simpleRule (rule : unit Rewriter) =
+        curry rule.Document ()
+    let rules =
+        match version with
+        // The following lines are provided as examples of different rules for different versions:
+        //| Some v when v < new Version("1.0") -> [simpleRule forParensUpdate]
+        //| Some v when v < new Version("1.5") -> [simpleRule unitUpdate]
+        | None
+        | Some _ ->
+            [
+                simpleRule qubitBindingUpdate
+                simpleRule unitUpdate
+                simpleRule forParensUpdate
+                simpleRule arraySyntaxUpdate
+            ]
+    rules |> List.fold (>>) id
+
 [<CompiledName "Update">]
 let update fileName (qsharp_version : Version option) source =
     let updateDocument document =
 
-        let updatedDocument =
-            document
-            |> curry qubitBindingUpdate.Document ()
-            |> curry unitUpdate.Document ()
-            |> curry forParensUpdate.Document ()
-            |> curry arraySyntaxUpdate.Document ()
-
-        let warningList = updatedDocument |> updateChecker fileName
+        let updatedDocument = versionToUpdateRules qsharp_version document
+        let warningList =
+            match qsharp_version with
+            // The following line is provided as an example of different rules for different versions:
+            //| Some v when v < new Version("1.5") -> []
+            | None
+            | Some _ -> updatedDocument |> checkArraySyntax fileName
         let printedDocument = updatedDocument |> printer.Document
 
         warningList |> List.iter (eprintfn "%s")
