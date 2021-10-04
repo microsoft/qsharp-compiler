@@ -10,6 +10,7 @@ open Microsoft.Quantum.QsFmt.Formatter.Printer
 open Microsoft.Quantum.QsFmt.Formatter.Rules
 open Microsoft.Quantum.QsFmt.Formatter.Utils
 open Microsoft.Quantum.QsFmt.Parser
+open System
 open System.Collections.Immutable
 
 /// <summary>
@@ -32,7 +33,7 @@ let parse (source: string) =
         errorListener.SyntaxErrors |> Error
 
 [<CompiledName "Format">]
-let format source =
+let format (qsharp_version : Version option) source =
     let formatDocument document =
         let unparsed = printer.Document document
 
@@ -57,7 +58,7 @@ let format source =
     parse source |> Result.map formatDocument
 
 [<CompiledName "Update">]
-let update fileName source =
+let update fileName (qsharp_version : Version option) source =
     let updateDocument document =
 
         let updatedDocument =
