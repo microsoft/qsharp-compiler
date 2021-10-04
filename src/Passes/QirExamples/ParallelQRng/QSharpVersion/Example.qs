@@ -7,6 +7,11 @@ namespace Microsoft.Quantum.Samples {
     open Microsoft.Quantum.Measurement;
     open Microsoft.Quantum.Intrinsic;
 
+    operation T(q: Qubit): Int
+    {
+        return 0;
+    }
+
     /// # Summary
     /// Samples a random number by measuring a register of qubits in parallel.
     ///
@@ -26,6 +31,8 @@ namespace Microsoft.Quantum.Samples {
         ApplyToEachA(H, register);
 
         // Measure all qubits and return.
+        let y = ForEach(T, register);
+        let x = ForEach(MResetZ, register);
         return ForEach(MResetZ, register);
 
     }
