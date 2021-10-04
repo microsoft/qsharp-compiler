@@ -1,0 +1,29 @@
+cmake_minimum_required(VERSION 3.4.3)
+
+microsoft_add_library(TestTools)
+microsoft_add_library_tests(TestTools Generators)
+
+microsoft_add_library(Commandline)
+microsoft_add_library_tests(Commandline)
+
+microsoft_add_library(Profile)
+microsoft_add_library_tests(Profile)
+
+microsoft_add_library(AllocationManager)
+microsoft_add_library_tests(AllocationManager)
+
+microsoft_add_library(RuleTransformationPass)
+target_link_libraries(RuleTransformationPass PRIVATE Rules)
+microsoft_add_library_tests(RuleTransformationPass Rules RuleTransformationPass AllocationManager Commandline Generators)
+
+
+microsoft_add_library(Rules)
+microsoft_add_library_tests(Rules Rules RuleTransformationPass AllocationManager Commandline Generators)
+
+target_link_libraries(Rules PRIVATE AllocationManager)
+
+microsoft_add_library(Generators)
+target_link_libraries(Generators PRIVATE Rules Commandline AllocationManager RuleTransformationPass Profile)
+microsoft_add_library_tests(Generators Rules RuleTransformationPass AllocationManager Commandline Generators)
+
+add_subdirectory(Apps)
