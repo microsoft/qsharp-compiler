@@ -6,6 +6,12 @@ if (Test-Path function:\exec) {
     return
 }
 
+if (!(Test-Path function:\Get-RepoRoot)) {
+    function Get-RepoRoot {
+        git rev-parse --show-toplevel
+    }
+}
+
 # Fix temp path for non-windows platforms if missing
 if (!(Test-Path env:\TEMP)) {
     $env:TEMP = [System.IO.Path]::GetTempPath()
