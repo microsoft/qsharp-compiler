@@ -147,7 +147,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     // If the change on the other hand also applies to inner items, then it needs to be
                     // applied immediately, to ensure that it is applied to the currently stored inner items,
                     // in case the container is modified in place later on.
-                    this.decreaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    if (!TryRemoveValue(this.pendingReferences, v => ValueEquals(v, (value, !shallow))))
+                    {
+                        this.decreaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    }
                 }
             }
 
@@ -306,7 +309,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// unreferenced when executing pending calls in preparation for exiting or closing the scope.
             /// Any release function that has been specified when adding the value will still execute.
             /// </summary>
-            internal bool TryRemoveValue(IValue value, bool recurIntoInnerItems = true) =>
+            private bool TryRemoveValue(IValue value, bool recurIntoInnerItems = true) =>
                 TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, (value, recurIntoInnerItems)));
 
             /// <summary>
@@ -569,17 +572,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
         public void CloseScope(bool isTerminated)
         {
-            if (!isTerminated)
+            if (isTerminated)
             {
-                this.ExecutePendingCalls();
+                // Note that it is perfectly possible that the scope has pending calls to increase reference counts;
+                // This can happen when code at the end of this scope is unreachable and all execution paths terminate
+                // in return or fail statements in inner scopes that have already been closed. In that case, the still
+                // pending references in this scope should have been properly applied when closing the inner scope(s).
+                this.scopes.Pop();
             }
             else
             {
-                var scope = this.scopes.Pop();
-                if (scope.HasPendingReferences)
-                {
-                    throw new InvalidOperationException("cannot close scope that has pending calls to increase reference counts");
-                }
+                this.ExecutePendingCalls();
             }
         }
 
@@ -740,14 +743,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             var release = this.sharedState.GetOrCreateRuntimeFunction(releaseFunctionName);
             this.scopes.Peek().RegisterRelease(value, loaded => this.sharedState.CurrentBuilder.Call(release, loaded.Value));
         }
-
-        /// <summary>
-        /// Removes the given value from the list of registered values such that it will no longer be
-        /// unreferenced when exiting or closing the scope.
-        /// Any release function that has been specified when registering the value will still execute.
-        /// </summary>
-        internal bool TryRemoveValueFromCurrentScope(IValue value) =>
-            this.scopes.Peek().TryRemoveValue(value);
 
         /// <summary>
         /// Gets the value of a named variable.

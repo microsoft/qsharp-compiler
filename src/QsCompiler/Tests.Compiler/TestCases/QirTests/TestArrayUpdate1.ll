@@ -1,6 +1,6 @@
 define internal %Array* @Microsoft__Quantum__Testing__QIR__TestArrayUpdate1__body(%String* %even) {
 entry:
-  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @3, i32 0, i32 0))
+  %0 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([1 x i8], [1 x i8]* @0, i32 0, i32 0))
   %1 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 10)
   br label %header__1
 
@@ -37,7 +37,7 @@ body__2:                                          ; preds = %header__2
   br i1 %9, label %condTrue__1, label %condFalse__1
 
 condTrue__1:                                      ; preds = %body__2
-  %10 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @4, i32 0, i32 0))
+  %10 = call %String* @__quantum__rt__string_create(i8* getelementptr inbounds ([4 x i8], [4 x i8]* @1, i32 0, i32 0))
   br label %condContinue__1
 
 condFalse__1:                                     ; preds = %body__2
