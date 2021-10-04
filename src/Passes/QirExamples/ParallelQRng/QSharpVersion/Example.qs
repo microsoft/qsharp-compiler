@@ -1,42 +1,32 @@
-namespace TeleportChain {
-    open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Canon;
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
+namespace Microsoft.Quantum.Samples {
     open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Measurement;
-    open Microsoft.Quantum.Preparation;  
+    open Microsoft.Quantum.Intrinsic;
 
-    operation PrepareEntangledPair(left : Qubit, right : Qubit) : Unit is Adj + Ctl {
-        H(left);
-        CNOT(left, right);
+    /// # Summary
+    /// Samples a random number by measuring a register of qubits in parallel.
+    ///
+    /// # Input
+    /// ## nQubits
+    /// The number of qubits to measure.
+    @EntryPoint() // The EntryPoint attribute is used to mark that this
+                  // operation is where your quantum program will start running.
+    operation SampleRandomNumber(nQubits : Int) : Result[] {
+
+        // We prepare a register of qubits in a uniform
+        // superposition state, such that when we measure,
+        // all bitstrings occur with equal probability.
+        use register = Qubit[nQubits];
+
+        // Set qubits in superposition.
+        ApplyToEachA(H, register);
+
+        // Measure all qubits and return.
+        return ForEach(MResetZ, register);
+
     }
-
-    operation ApplyCorrection(src : Qubit, intermediary : Qubit, dest : Qubit) : Unit {
-        if (MResetZ(src) == One) { Z(dest); }
-        if (MResetZ(intermediary) == One) { X(dest); }
-    }
-
-    operation TeleportQubitUsingPresharedEntanglement(src : Qubit, intermediary : Qubit, dest : Qubit) : Unit {
-        Adjoint PrepareEntangledPair(src, intermediary);
-        ApplyCorrection(src, intermediary, dest);
-    }
-
-    @EntryPoint()
-    operation DemonstrateTeleportationUsingPresharedEntanglement() : Result {
-        let nPairs = 2;
-        use (leftMessage, rightMessage, leftPreshared, rightPreshared) = (Qubit(), Qubit(), Qubit[nPairs], Qubit[nPairs]);
-        PrepareEntangledPair(leftMessage, rightMessage);
-        for i in 0..nPairs-1 {
-            PrepareEntangledPair(leftPreshared[i], rightPreshared[i]);
-        }
-
-        TeleportQubitUsingPresharedEntanglement(rightMessage, leftPreshared[0], rightPreshared[0]);
-        for i in 1..nPairs-1 {
-            TeleportQubitUsingPresharedEntanglement(rightPreshared[i-1], leftPreshared[i], rightPreshared[i]);
-        }
-        
-        let _ = MResetZ(leftMessage);
-        return  MResetZ(rightPreshared[nPairs-1]);
-    }
-
-
 }
