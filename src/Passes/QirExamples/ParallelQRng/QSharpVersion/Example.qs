@@ -15,8 +15,8 @@ namespace Microsoft.Quantum.Samples {
     /// The number of qubits to measure.
     @EntryPoint() // The EntryPoint attribute is used to mark that this
                   // operation is where your quantum program will start running.
-    operation SampleRandomNumber(nQubits : Int) : Result[] {
-
+    operation SampleRandomNumber() : Result[] {
+        let nQubits = 5;
         // We prepare a register of qubits in a uniform
         // superposition state, such that when we measure,
         // all bitstrings occur with equal probability.

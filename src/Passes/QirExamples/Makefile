@@ -10,7 +10,7 @@ all:
 	cd HiddenShift && make all && make clean	
 	cd IsingModel && make all && make clean
 	cd ParallelQRng && make all && make clean
-
+	cd Bernstein–Vazirani && make all && make clean
 
 clean:
 	cd SimpleLoop && make clean	
@@ -24,3 +24,4 @@ clean:
 	cd HiddenShift && make clean	
 	cd IsingModel && make clean
 	cd ParallelQRng && make clean
+	cd Bernstein–Vazirani && make clean
