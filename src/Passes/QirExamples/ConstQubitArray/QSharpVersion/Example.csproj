@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.Quantum.Sdk/0.18.2108157818-beta">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp3.1</TargetFramework>
+    <QirGeneration>true</QirGeneration>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Quantum.Type1.Core" Version="0.18.2108157818-beta" IsTargetPackage="true" />
+  </ItemGroup>
+
+</Project>

@@ -5,6 +5,7 @@ all:
 	cd RandomWalkPE1 && make all && make clean
 	cd RandomWalkPE2 && make all && make clean
 	cd ConstArray && make all && make clean
+	cd ConstQubitArray && make all && make clean
 	cd Grover && make all && make clean
 	cd HiddenShift && make all && make clean	
 	cd IsingModel && make all && make clean
@@ -18,6 +19,7 @@ clean:
 	cd RandomWalkPE1 && make clean
 	cd RandomWalkPE2 && make clean
 	cd ConstArray &&  make clean
+	cd ConstQubitArray && make clean	
 	cd Grover && make clean
 	cd HiddenShift && make clean	
 	cd IsingModel && make clean
