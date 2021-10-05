@@ -20,4 +20,4 @@ QSharpVersion/qir/Example.ll:
 clean:
 	cd QSharpVersion && make clean
 	cd CppRuntime && make clean
-	rm *.ll
+	rm -f *.ll
