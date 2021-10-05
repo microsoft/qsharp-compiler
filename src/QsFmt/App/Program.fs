@@ -7,6 +7,8 @@ open Argu
 open Microsoft.Quantum.QsFmt.Formatter
 open System
 open System.IO
+open Microsoft.Build.Locator
+open System.Runtime.Loader
 
 /// A command-line argument.
 [<HelpDescription "Display this list of options.">]
@@ -74,12 +76,12 @@ let run arguments inputs =
                         else
                             if arguments.BackupFlag then File.Copy(input, (input + "~"), true)
                             File.ReadAllText input
-
+                    
                     let command =
                         match arguments.CommandKind with
                         | Update -> Formatter.update input
                         | Format -> Formatter.format
-
+                    
                     match command source with
                     | Ok result ->
                         if input = "-" then printf "%s" result else File.WriteAllText(input, result)
@@ -105,6 +107,28 @@ let run arguments inputs =
 [<CompiledName "Main">]
 [<EntryPoint>]
 let main args =
+
+    // We need to set the current directory to the same directory of
+    // the LanguageServer executable so that it will pick the global.json file
+    // and force the MSBuildLocator to use .NET Core SDK 3.1
+    Directory.SetCurrentDirectory(AppDomain.CurrentDomain.BaseDirectory);
+    // In the case where we actually instantiate a server, we need to "configure" the design time build.
+    // This needs to be done before any MsBuild packages are loaded.
+    try
+        let vsi = MSBuildLocator.RegisterDefaults();
+
+        // We're using the installed version of the binaries to avoid a dependency between
+        // the .NET Core SDK version and NuGet. This is a workaround due to the issue below:
+        // https://github.com/microsoft/MSBuildLocator/issues/86
+        AssemblyLoadContext.Default.add_Resolving(new Func<_, _, _>(fun assemblyLoadContext assemblyName ->
+            let path = Path.Combine(vsi.MSBuildPath, sprintf "%s.dll" assemblyName.Name);
+            if File.Exists(path) then
+                assemblyLoadContext.LoadFromAssemblyPath path;
+            else null))
+    with | _ ->
+        // TODO: give some meaningful warning?
+        ()
+
     let parser = ArgumentParser.Create()
 
     try
