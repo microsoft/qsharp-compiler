@@ -1,5 +1,5 @@
 link: QSharpVersion/qir/Example.ll CppRuntime/runtime.ll build-qat
-	../../Debug/Source/Apps/qat  QSharpVersion/qir/Example.ll CppRuntime/runtime.ll -S --apply --assume-no-except --no-transform-execution-path-only > combined.ll 
+	../../Debug/Source/Apps/qat  QSharpVersion/qir/Example.ll CppRuntime/runtime.ll -O3 -S --apply --assume-no-except > combined.ll 
 	opt -O3 -S combined.ll > optimised.ll
 
 CppRuntime/runtime.ll:

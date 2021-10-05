@@ -65,6 +65,9 @@ namespace quantum
         /// execution.
         bool oneShotMeasurement() const;
 
+        /// Whether or not simplify the IR using LLVM passes prior to transforming the IR.
+        bool simplifyPriorTransform() const;
+
         /// Attribute which indicate that a function is the entry point.
         std::string entryPointAttr() const;
 
@@ -77,6 +80,8 @@ namespace quantum
         bool        transform_execution_path_only_{true};
         uint64_t    max_recursion_{512};
         std::string entry_point_attr_{"EntryPoint"};
+
+        bool simplify_prior_transformation_{true};
 
         // Branching
         bool assume_no_exceptions_{false};

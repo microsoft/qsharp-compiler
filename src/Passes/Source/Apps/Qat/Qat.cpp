@@ -96,6 +96,15 @@ int main(int argc, char** argv)
             [](RuleTransformationPassConfiguration const& cfg, IProfileGenerator* ptr, Profile& profile) {
                 auto& ret = ptr->modulePassManager();
 
+                // Default optimisation pipeline
+                if (cfg.simplifyPriorTransform())
+                {
+                    auto&                   pass_builder = ptr->passBuilder();
+                    llvm::ModulePassManager pipeline =
+                        pass_builder.buildPerModuleDefaultPipeline(ptr->optimisationLevel());
+                    ret.addPass(std::move(pipeline));
+                }
+
                 // Defining the mapping
                 RuleSet rule_set;
                 auto    factory =
@@ -130,6 +139,7 @@ int main(int argc, char** argv)
                 auto pass_pipeline = cfg.passPipeline();
                 if (!pass_pipeline.empty())
                 {
+
                     auto& pass_builder = ptr->passBuilder();
                     auto& npm          = ptr->modulePassManager();
                     if (!pass_builder.parsePassPipeline(npm, pass_pipeline, false, false))
@@ -137,9 +147,7 @@ int main(int argc, char** argv)
                         throw std::runtime_error("Failed to set pass pipeline up.");
                     }
                 }
-
-                // Configuring LLVM passes
-                if (cfg.alwaysInline())
+                else if (cfg.alwaysInline())
                 {
                     auto& ret          = ptr->modulePassManager();
                     auto& pass_builder = ptr->passBuilder();
@@ -148,6 +156,20 @@ int main(int argc, char** argv)
                     auto inliner_pass = pass_builder.buildInlinerPipeline(
                         ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
                     ret.addPass(std::move(inliner_pass));
+                }
+                else if (!cfg.disableDefaultPipeline())
+                {
+                    auto& mpm = ptr->modulePassManager();
+
+                    // If not explicitly disabled, we fall back to the default LLVM pipeline
+                    auto&                   pass_builder = ptr->passBuilder();
+                    llvm::ModulePassManager pipeline1 =
+                        pass_builder.buildPerModuleDefaultPipeline(ptr->optimisationLevel());
+                    mpm.addPass(std::move(pipeline1));
+
+                    llvm::ModulePassManager pipeline2 = pass_builder.buildModuleSimplificationPipeline(
+                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None);
+                    mpm.addPass(std::move(pipeline2));
                 }
             });
 

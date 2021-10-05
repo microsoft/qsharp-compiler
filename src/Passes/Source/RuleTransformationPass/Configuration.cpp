@@ -29,6 +29,10 @@ namespace quantum
         config.addParameter(
             entry_point_attr_, "entry-point-attr", "Specifies the attribute indicating the entry point.");
 
+        config.addParameter(
+            simplify_prior_transformation_, "simplify-prior-transform",
+            "When active, the IR is simplified using LLVM passes before transformation.");
+
         // Not implemented yet
         config.addParameter(group_measurements_, "group-measurements", "NOT IMPLEMENTED - group-measurements");
         config.addParameter(one_shot_measurement_, "one-shot-measurement", "NOT IMPLEMENTED - one-shot-measurement");
@@ -41,11 +45,17 @@ namespace quantum
         ret.clone_functions_               = false;
         ret.transform_execution_path_only_ = false;
         ret.max_recursion_                 = 512;
+        ret.simplify_prior_transformation_ = false;
         ret.reuse_qubits_                  = false;
         ret.annotate_qubit_use_            = false;
         ret.group_measurements_            = false;
         ret.one_shot_measurement_          = false;
         return ret;
+    }
+
+    bool RuleTransformationPassConfiguration::simplifyPriorTransform() const
+    {
+        return simplify_prior_transformation_;
     }
 
     bool RuleTransformationPassConfiguration::deleteDeadCode() const
@@ -100,10 +110,10 @@ namespace quantum
 
     bool RuleTransformationPassConfiguration::isDisabled() const
     {
-
         return (
-            delete_dead_code_ == false && clone_functions_ == false && transform_execution_path_only_ == false &&
-            reuse_qubits_ == false && group_measurements_ == false && one_shot_measurement_ == false);
+            delete_dead_code_ == false && clone_functions_ == false && simplify_prior_transformation_ == false &&
+            transform_execution_path_only_ == false && reuse_qubits_ == false && group_measurements_ == false &&
+            one_shot_measurement_ == false);
     }
 
     bool RuleTransformationPassConfiguration::isDefault() const
