@@ -12,7 +12,7 @@ set(MICROSOFT_ROOT_VENDOR_DIR ${MICROSOFT_ROOT_PASSES_DIR}/vendors)
 message(STATUS "Passes dir: ${MICROSOFT_ROOT_PASSES_DIR}")
 message(STATUS "Vendor dir: ${MICROSOFT_ROOT_VENDOR_DIR}")
 
-find_package(LLVM REQUIRED CONFIG)
+find_package(LLVM 11.0 REQUIRED CONFIG)
 include(CheckCXXCompilerFlag)
 
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
