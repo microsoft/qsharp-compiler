@@ -146,6 +146,12 @@ type internal 'context Rewriter =
     default Else: context:'context * elses:Else -> Else
 
     /// <summary>
+    /// Rewrites a <see cref="For"/> statement node.
+    /// </summary>
+    abstract For : context: 'context * loop: For -> For
+    default For : context: 'context * loop: For -> For
+
+    /// <summary>
     /// Rewrites a <see cref="ParameterBinding"/> node.
     /// </summary>
     abstract ParameterBinding: context:'context * binding:ParameterBinding -> ParameterBinding
@@ -168,6 +174,12 @@ type internal 'context Rewriter =
     /// </summary>
     abstract QubitBinding: context:'context * binding:QubitBinding -> QubitBinding
     default QubitBinding: context:'context * binding:QubitBinding -> QubitBinding
+
+    /// <summary>
+    /// Rewrites a <see cref="ForBinding"/> node.
+    /// </summary>
+    abstract ForBinding : context: 'context * binding: ForBinding -> ForBinding
+    default ForBinding : context: 'context * binding: ForBinding -> ForBinding
 
     /// <summary>
     /// Rewrites a <see cref="QubitInitializer"/> node.
@@ -222,6 +234,12 @@ type internal 'context Rewriter =
     /// </summary>
     abstract NewArray: context:'context * newArray:NewArray -> NewArray
     default NewArray: context:'context * newArray:NewArray -> NewArray
+
+    /// <summary>
+    /// Rewrites a <see cref="NewSizedArray"/> expression node.
+    /// </summary>
+    abstract NewSizedArray: context:'context * newSizedArray:NewSizedArray -> NewSizedArray
+    default NewSizedArray: context:'context * newSizedArray:NewSizedArray -> NewSizedArray
 
     /// <summary>
     /// Rewrites a <see cref="NamedItemAccess"/> expression node.

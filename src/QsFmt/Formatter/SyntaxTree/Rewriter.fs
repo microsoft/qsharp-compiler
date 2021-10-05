@@ -164,6 +164,7 @@ type 'context Rewriter() =
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
+        | For loop -> rewriter.For(context, loop) |> For
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
 
     abstract Let : context: 'context * lets: Let -> Let
@@ -218,6 +219,17 @@ type 'context Rewriter() =
             Block = rewriter.Block(context, rewriter.Statement, elses.Block)
         }
 
+    abstract For : context: 'context * loop: For -> For
+
+    default rewriter.For(context, loop) =
+        {
+            ForKeyword = rewriter.Terminal(context, loop.ForKeyword)
+            OpenParen = loop.OpenParen |> Option.map (curry rewriter.Terminal context)
+            Binding = rewriter.ForBinding(context, loop.Binding)
+            CloseParen = loop.CloseParen |> Option.map (curry rewriter.Terminal context)
+            Block = rewriter.Block(context, rewriter.Statement, loop.Block)
+        }
+
     abstract ParameterBinding : context: 'context * binding: ParameterBinding -> ParameterBinding
 
     default rewriter.ParameterBinding(context, binding) =
@@ -248,6 +260,15 @@ type 'context Rewriter() =
             Name = rewriter.SymbolBinding(context, binding.Name)
             Equals = rewriter.Terminal(context, binding.Equals)
             Initializer = rewriter.QubitInitializer(context, binding.Initializer)
+        }
+
+    abstract ForBinding : context: 'context * binding: ForBinding -> ForBinding
+
+    default rewriter.ForBinding(context, binding) =
+        {
+            Name = rewriter.SymbolBinding(context, binding.Name)
+            In = rewriter.Terminal(context, binding.In)
+            Value = rewriter.Expression(context, binding.Value)
         }
 
     abstract QubitInitializer : context: 'context * initializer: QubitInitializer -> QubitInitializer
@@ -305,6 +326,7 @@ type 'context Rewriter() =
         | InterpString interp -> rewriter.InterpString(context, interp) |> InterpString
         | Tuple tuple -> rewriter.Tuple(context, rewriter.Expression, tuple) |> Tuple
         | NewArray newArray -> rewriter.NewArray(context, newArray) |> NewArray
+        | NewSizedArray newSizedArray -> rewriter.NewSizedArray(context, newSizedArray) |> NewSizedArray
         | NamedItemAccess namedItemAccess -> rewriter.NamedItemAccess(context, namedItemAccess) |> NamedItemAccess
         | ArrayAccess arrayAccess -> rewriter.ArrayAccess(context, arrayAccess) |> ArrayAccess
         | Call call -> rewriter.Call(context, call) |> Call
@@ -343,6 +365,19 @@ type 'context Rewriter() =
             OpenBracket = rewriter.Terminal(context, newArray.OpenBracket)
             Length = rewriter.Expression(context, newArray.Length)
             CloseBracket = rewriter.Terminal(context, newArray.CloseBracket)
+        }
+
+    abstract NewSizedArray : context: 'context * newSizedArray: NewSizedArray -> NewSizedArray
+
+    default rewriter.NewSizedArray(context, newSizedArray) =
+        {
+            OpenBracket = rewriter.Terminal(context, newSizedArray.OpenBracket)
+            Value = rewriter.Expression(context, newSizedArray.Value)
+            Comma = rewriter.Terminal(context, newSizedArray.Comma)
+            Size = rewriter.Terminal(context, newSizedArray.Size)
+            Equals = rewriter.Terminal(context, newSizedArray.Equals)
+            Length = rewriter.Expression(context, newSizedArray.Length)
+            CloseBracket = rewriter.Terminal(context, newSizedArray.CloseBracket)
         }
 
     abstract NamedItemAccess : context: 'context * namedItemAccess: NamedItemAccess -> NamedItemAccess
