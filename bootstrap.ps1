@@ -90,18 +90,19 @@ Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/QirGeneration')
 .\FindNuspecReferences.ps1;
 Pop-Location
 
-try {
-    Push-Location (Join-Path $PSScriptRoot "src" "QirTools" "pyqir")
-    if (Test-Path Cargo.toml) {
-        Remove-Item Cargo.toml
+if ($Env:SKIP_QIRTOOLS -ne $true) {
+    try {
+        Push-Location (Join-Path $PSScriptRoot "src" "QirTools" "pyqir")
+        if (Test-Path Cargo.toml) {
+            Remove-Item Cargo.toml
+        }
+        Restore-CargoTomlWithVersionInfo Cargo.toml.template Cargo.toml $env:WHEEL_VERSION
+
+        Restore-ConfigTomlWithLlvmInfo
+
+        . ./prerequisites.ps1
     }
-    Restore-CargoTomlWithVersionInfo Cargo.toml.template Cargo.toml $env:WHEEL_VERSION
-
-    Restore-ConfigTomlWithLlvmInfo
-
-    . ./prerequisites.ps1
+    finally {
+        Pop-Location
+    }
 }
-finally {
-    Pop-Location
-}
-
