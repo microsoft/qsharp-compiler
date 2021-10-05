@@ -33,10 +33,9 @@ let parse (source: string) =
     else
         errorListener.SyntaxErrors |> Error
 
-let simpleRule (rule : unit Rewriter) =
-    curry rule.Document ()
+let simpleRule (rule: unit Rewriter) = curry rule.Document ()
 
-let versionToFormatRules (version : Version option) =
+let versionToFormatRules (version: Version option) =
     let rules =
         match version with
         // The following lines are provided as examples of different rules for different versions:
@@ -50,19 +49,18 @@ let versionToFormatRules (version : Version option) =
                 simpleRule newLines
                 curry indentation.Document 0
             ]
+
     rules |> List.fold (>>) id
 
 [<CompiledName "Format">]
-let format (qsharp_version : Version option) source =
+let format (qsharp_version: Version option) source =
     let formatDocument document =
         let unparsed = printer.Document document
 
         // Test whether there is data loss during parsing and unparsing
         if unparsed = source then
             // The actual format process
-            document
-            |> versionToFormatRules qsharp_version
-            |> printer.Document
+            document |> versionToFormatRules qsharp_version |> printer.Document
         // Report error if the unparsing result does not match the original source
         else
             failwith (
@@ -74,7 +72,7 @@ let format (qsharp_version : Version option) source =
 
     parse source |> Result.map formatDocument
 
-let versionToUpdateRules (version : Version option) =
+let versionToUpdateRules (version: Version option) =
     let rules =
         match version with
         // The following lines are provided as examples of different rules for different versions:
@@ -88,19 +86,22 @@ let versionToUpdateRules (version : Version option) =
                 simpleRule forParensUpdate
                 simpleRule arraySyntaxUpdate
             ]
+
     rules |> List.fold (>>) id
 
 [<CompiledName "Update">]
-let update fileName (qsharp_version : Version option) source =
+let update fileName (qsharp_version: Version option) source =
     let updateDocument document =
 
         let updatedDocument = versionToUpdateRules qsharp_version document
+
         let warningList =
             match qsharp_version with
             // The following line is provided as an example of different rules for different versions:
             //| Some v when v < new Version("1.5") -> []
             | None
             | Some _ -> updatedDocument |> checkArraySyntax fileName
+
         let printedDocument = updatedDocument |> printer.Document
 
         warningList |> List.iter (eprintfn "%s")
