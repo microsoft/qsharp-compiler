@@ -102,6 +102,9 @@ jobs:
       choco install --accept-license -y sccache ninja
     displayName: Install build dependencies, sccache, and update PATH to use linked versions of gcc, cc, etc
 
+  - pwsh: mkdir $(SCCACHE_DIR)
+    displayName: "Create sccache dir"
+
   - task: Cache@2
     inputs:
       key: 'version7 | sccache | "$(Agent.OS)"'

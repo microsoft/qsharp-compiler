@@ -156,7 +156,9 @@ exec -wd $llvmBuildDir {
 
 if ((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE)) {
     Write-Vso "ninja install" "command"
-    exec -wd $llvmBuildDir {
-        ninja install
+    $installScriptBlock = { ninja install }
+    if ($IsLinux) {
+        $installScriptBlock = { sudo ninja install }
     }
+    exec -wd $llvmBuildDir $installScriptBlock
 }
