@@ -154,7 +154,7 @@ exec -wd $llvmBuildDir {
     Assert (Test-Path $package) "Could not resolve package $package"
 }
 
-if ((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE)) {
+if ((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE) -and !$IsLinux) {
     Write-Vso "ninja install" "command"
     exec -wd $llvmBuildDir {
         ninja install
