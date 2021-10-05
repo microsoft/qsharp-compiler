@@ -110,11 +110,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
             else if (typeName == TypeNames.BigInt)
             {
-                // FIXME: CHECK THAT BIGINTS ARE DISTINCT FROM STRING ARRAYS
+                // BigInts are passed as arrays of Ints
                 return context.CreateStructType(
                     packed: false,
                     context.Int64Type,
-                    dataArrPtrType)
+                    context.Int64Type.CreatePointerType())
                    .CreatePointerType();
             }
             else if (typeName == TypeNames.Callable || typeName == TypeNames.Qubit)
@@ -162,12 +162,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("the current function is null");
             }
 
+            // FIXME: THIS NEEDS TO BE ADAPTED ...
             (Value Length, Value DataArray) LoadSizedArray(Value value)
             {
                 var lengthPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(0));
                 var dataArrPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(1));
                 var length = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Int, lengthPtr);
-                var dataArr = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.DataArrayPointer, dataArrPtr);
+                var dataArr = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.DataArrayPointer, dataArrPtr); // FIXME
                 return (length, dataArr);
             }
 
@@ -229,6 +230,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsBigInt)
                 {
+                    // FIXME: DOUBLE CHECK ...
                     var createBigInt = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
                     var (length, dataArr) = LoadSizedArray(givenValue);
                     var argValue = this.sharedState.CurrentBuilder.Call(createBigInt, length, dataArr);
@@ -409,7 +411,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             else if (res.QSharpType.Resolution.IsBigInt)
             {
                 // TODO: We can't know the length of the big int without runtime support.
-                // We may also need functions to access the data array for both string and big int.
+                // We may also need functions to access the data array for big int.
                 throw new NotImplementedException("returning values of type BigInt is not yet supported");
             }
             else if (res.QSharpType.Resolution.IsString)
