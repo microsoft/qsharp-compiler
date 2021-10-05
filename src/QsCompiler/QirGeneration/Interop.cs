@@ -539,13 +539,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // print the return value
                 var message = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.Message);
-                var outputStr = QirExpressionKindTransformation.CreateStringLiteral(
-                    this.sharedState,
-                    result.QSharpType.Resolution.IsString ? "\"{0}\"" : "{0}",
-                    result);
+                var outputStr = QirExpressionKindTransformation.CreateStringLiteral(this.sharedState, "{0}", result);
                 this.sharedState.CurrentBuilder.Call(message, outputStr.Value);
-
-                this.sharedState.AddReturn(this.sharedState.Values.Unit, true);
             });
 
             return entryPointFunction;

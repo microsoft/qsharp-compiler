@@ -39,14 +39,14 @@ In order to communicate with the QIR Runtime, hardware backends or simulators ca
 - the gate set `IQuantumGateSet` : only used by those backends that want to provide the Q# instruction set
 - the diagnostics `IDiagnostics` : optional but helpful component to provide debug information of the backend state
 
-The first component of the Runtime stack is the QIR Bridge located at [lib/QIR/bridge-rt.ll](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/bridge-rt.ll) which translates between QIR and the Runtime implementation.
+The first component of the Runtime stack is the QIR Bridge at [public/QirRuntime.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/public/QirRuntime.hpp) which declares the functions for the runtime as `extern "C"`.
 Different parts of the QIR spec are then implemented in C++ in the [lib/QIR](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QIR) folder.
-For example, the `__quantum__rt__string_create` QIR function is translated to the C++ `quantum__rt__string_create` function which resides in [lib/QIR/strings.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/strings.cpp).
-For functions defined in [lib/QIR/delegated.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/delegated.cpp) such as `quantum__rt__qubit_allocate`, the Runtime eventually calls the implementation `IRuntimeDriver::Allocate` provided by the backend.
+For example, the `__quantum__rt__string_create` function resides in [lib/QIR/strings.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/strings.cpp).
+For functions defined in [lib/QIR/delegated.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/delegated.cpp) such as `__quantum__rt__qubit_allocate`, the Runtime eventually calls the implementation `IRuntimeDriver::Allocate` provided by the backend.
 
 Other components are provided for Q# programs compiled to QIR in [lib/QSharpCore](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpCore) and [lib/QSharpFoundation](https://github.com/microsoft/qsharp-runtime/tree/main/src/Qir/Runtime/lib/QSharpFoundation).
 In particular, the `QSharpCore` component provides the Q# instruction set.
-As above, a bridge [lib/QSharpCore/qsharp-core-qis.ll](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/qsharp-core-qis.ll) first translates a function such as `__quantum__qis__h__body` to `quantum__qis__h__body` located in [lib/QSharpCore/intrinsics.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/intrinsics.cpp), which then calls the specific implementation `IQuantumGateSet::H` provided by the backend.
+As above, a bridge [lib/QSharpCore/qsharp__core__qis.hpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/qsharp__core__qis.hpp) first declares a function such as `__quantum__qis__h__body` as `extern "C"`, which is then implemented in [lib/QSharpCore/intrinsics.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QSharpCore/intrinsics.cpp), which then calls the specific implementation `IQuantumGateSet::H` provided by the backend.
 
 A qubit manager (see next section) is also provided in [lib/QIR/QubitManager.cpp](https://github.com/microsoft/qsharp-runtime/blob/main/src/Qir/Runtime/lib/QIR/QubitManager.cpp).
 

@@ -151,7 +151,7 @@ statement
     | if='if' condition=expression body=scope # IfStatement
     | 'elif' expression scope # ElifStatement
     | else='else' body=scope # ElseStatement
-    | 'for' (forBinding | '(' forBinding ')') scope # ForStatement
+    | for='for' (binding=forBinding | openParen='(' binding=forBinding closeParen=')') body=scope # ForStatement
     | 'while' expression scope # WhileStatement
     | 'repeat' scope # RepeatStatement
     | 'until' expression (';' | 'fixup' scope) # UntilStatement
@@ -184,7 +184,7 @@ updateOperator
     | 'or='
     ;
 
-forBinding : symbolBinding 'in' expression;
+forBinding : binding=symbolBinding in='in' value=expression;
 
 qubitBinding : binding=symbolBinding equals='=' value=qubitInitializer;
 
@@ -209,6 +209,7 @@ expression
     | value=pauliLiteral # PauliExpression
     | openParen='(' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeParen=')' # TupleExpression
     | openBracket='[' (items+=expression (commas+=',' items+=expression)* commas+=','?)? closeBracket=']' # ArrayExpression
+    | openBracket='[' value=expression comma=',' size=sizeKey equals='=' length=expression closeBracket=']' # SizedArrayExpression
     | new='new' itemType=type openBracket='[' length=expression closeBracket=']' # NewArrayExpression
     | record=expression colon='::' name=Identifier # NamedItemAccessExpression
     | array=expression openBracket='[' index=expression closeBracket=']' # ArrayAccessExpression
@@ -235,6 +236,8 @@ expression
     | '...' # OpenRangeExpression
     | record=expression with='w/' item=expression arrow='<-' value=expression # UpdateExpression
     ;
+
+sizeKey : terminal=Identifier {_localctx.terminal.Text == "size"}?;
 
 typeTuple : openBracket='<' (typeArgs+=type (commas+=',' typeArgs+=type)* commas+=','?)? closeBracket='>';
 

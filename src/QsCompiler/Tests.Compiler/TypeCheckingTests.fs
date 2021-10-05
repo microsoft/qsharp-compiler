@@ -61,6 +61,20 @@ module TypeCheckingTests =
         expect "UnwrapInvalid2" [ Error ErrorCode.ExpectingUserDefinedType ]
 
     [<Fact>]
+    let ``Supports indexed types`` () =
+        expect "Indexed1" []
+        expect "Indexed2" []
+        expect "Indexed3" []
+        expect "Indexed4" []
+        expect "IndexedInvalid1" [ Error ErrorCode.ItemAccessForNonArray ]
+        expect "IndexedInvalid2" [ Error ErrorCode.ItemAccessForNonArray ]
+        expect "IndexedInvalid3" [ Error ErrorCode.InvalidArrayItemIndex ]
+        expect "IndexedInvalid4" [ Error ErrorCode.InvalidArrayItemIndex ]
+        expect "IndexedInvalid5" [ Error ErrorCode.UnknownIdentifier ]
+        expect "IndexedInvalid5" [ Error ErrorCode.UnknownIdentifier ]
+        expect "IndexedInvalid6" [ Error ErrorCode.UnknownIdentifier ]
+
+    [<Fact>]
     let ``Supports sized array literals`` () =
         expect "SizedArray1" []
         expect "SizedArray2" []

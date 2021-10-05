@@ -165,6 +165,7 @@ type internal 'result Reducer() as reducer =
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
+        | For loop -> reducer.For loop
         | Statement.Unknown terminal -> reducer.Terminal terminal
 
     abstract Let : lets: Let -> 'result
@@ -223,6 +224,19 @@ type internal 'result Reducer() as reducer =
         ]
         |> reduce
 
+    abstract For : loop: For -> 'result
+
+    default _.For loop =
+        [
+            reducer.Terminal loop.ForKeyword |> Some
+            loop.OpenParen |> Option.map reducer.Terminal
+            reducer.ForBinding(loop.Binding) |> Some
+            loop.CloseParen |> Option.map reducer.Terminal
+            reducer.Block(reducer.Statement, loop.Block) |> Some
+        ]
+        |> List.choose id
+        |> reduce
+
     abstract ParameterBinding : binding: ParameterBinding -> 'result
 
     default _.ParameterBinding binding =
@@ -249,6 +263,16 @@ type internal 'result Reducer() as reducer =
             reducer.SymbolBinding binding.Name
             reducer.Terminal binding.Equals
             reducer.QubitInitializer binding.Initializer
+        ]
+        |> reduce
+
+    abstract ForBinding : binding: ForBinding -> 'result
+
+    default _.ForBinding binding =
+        [
+            reducer.SymbolBinding binding.Name
+            reducer.Terminal binding.In
+            reducer.Expression binding.Value
         ]
         |> reduce
 
@@ -308,6 +332,7 @@ type internal 'result Reducer() as reducer =
         | InterpString interpString -> reducer.InterpString interpString
         | Tuple tuple -> reducer.Tuple(reducer.Expression, tuple)
         | NewArray newArray -> reducer.NewArray newArray
+        | NewSizedArray newSizedArray -> reducer.NewSizedArray newSizedArray
         | NamedItemAccess namedItemAccess -> reducer.NamedItemAccess namedItemAccess
         | ArrayAccess arrayAccess -> reducer.ArrayAccess arrayAccess
         | Call call -> reducer.Call call
@@ -343,6 +368,20 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal newArray.OpenBracket
             reducer.Expression newArray.Length
             reducer.Terminal newArray.CloseBracket
+        ]
+        |> reduce
+
+    abstract NewSizedArray : newSizedArray: NewSizedArray -> 'result
+
+    default _.NewSizedArray newSizedArray =
+        [
+            reducer.Terminal newSizedArray.OpenBracket
+            reducer.Expression newSizedArray.Value
+            reducer.Terminal newSizedArray.Comma
+            reducer.Terminal newSizedArray.Size
+            reducer.Terminal newSizedArray.Equals
+            reducer.Expression newSizedArray.Length
+            reducer.Terminal newSizedArray.CloseBracket
         ]
         |> reduce
 
