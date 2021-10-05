@@ -44,12 +44,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// <param name="udt">The Q# type of the value</param>
         internal TupleValue FromCustomType(Value value, UserDefinedType udt)
         {
-            if (!this.sharedState.TryGetCustomType(udt.GetFullName(), out var udtDecl))
-            {
-                throw new ArgumentException("type declaration not found");
-            }
-
-            var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item : ImmutableArray.Create(udtDecl.Type);
+            var elementTypes = this.sharedState.TupleValueItemTypes(udt);
             return new TupleValue(udt, value, elementTypes, this.sharedState);
         }
 

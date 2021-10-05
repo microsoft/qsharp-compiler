@@ -1985,12 +1985,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution is ResolvedTypeKind.UserDefinedType udt)
                 {
-                    if (!this.SharedState.TryGetCustomType(udt.Item.GetFullName(), out var udtDecl))
-                    {
-                        throw new ArgumentException("type declaration not found");
-                    }
-
-                    var elementTypes = udtDecl.Type.Resolution is ResolvedTypeKind.TupleType items ? items.Item : ImmutableArray.Create(udtDecl.Type);
+                    var elementTypes = this.SharedState.TupleValueItemTypes(udt.Item);
                     var values = elementTypes.Select(DefaultValue).ToArray();
                     return this.SharedState.Values.CreateCustomType(udt.Item, values);
                 }

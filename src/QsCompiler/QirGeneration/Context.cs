@@ -499,6 +499,19 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
             this.globalTypes.TryGetValue(fullName, out udt);
 
+        /// <summary>
+        /// Returns the ElementTypes of a TupleValue that represents a value of the given user-defined Q# type.
+        /// </summary>
+        internal ImmutableArray<ResolvedType> TupleValueItemTypes(UserDefinedType udt)
+        {
+            if (!this.TryGetCustomType(udt.GetFullName(), out var udtDecl))
+            {
+                throw new ArgumentException("type declaration not found");
+            }
+
+            return udtDecl.Type.Resolution is ResolvedTypeKind.TupleType ts ? ts.Item : ImmutableArray.Create(udtDecl.Type);
+        }
+
         #endregion
 
         #region Function management
