@@ -72,7 +72,7 @@ namespace Ubiquity.NET.Llvm.Values
         /// <summary>Gets a value indicating whether the Value is a function.</summary>
         public bool IsFunction => this.ValueHandle.Kind == LLVMValueKind.LLVMFunctionValueKind;
 
-        internal LLVMValueRef ValueHandle { get; }
+        public LLVMValueRef ValueHandle { get; }
 
         /// <summary>Generates a string representing the LLVM syntax of the value.</summary>
         /// <returns>string version of the value formatted by LLVM.</returns>

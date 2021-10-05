@@ -58,9 +58,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.decreaseCounts = decreaseCounts;
             }
 
-            private static bool ValueEquals((IValue, bool) tracked, IValue expected) =>
-                tracked.Item1.Value == expected.Value && tracked.Item2;
-
             private static bool ValueEquals((IValue, bool) tracked, (IValue, bool) expected) =>
                 tracked.Item1.Value == expected.Item1.Value && tracked.Item2 == expected.Item2;
 
@@ -127,27 +124,108 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // public and internal methods
 
             /// <summary>
+            /// Decreases the alias count of the unassigned value immediately.
+            /// Decreases the reference count immediately unless the decrease is only to be applied to the outermost
+            /// container (i.e. <paramref name="shallow"/> is set to true).
+            /// </summary>
+            internal void UnassignFromMutable(IValue value, bool shallow = false)
+            {
+                var change = new[] { (value, !shallow) };
+                this.decreaseCounts(AliasCountUpdateFunctionForType, change);
+
+                if (shallow)
+                {
+                    // As long as the count change only applies to the outermost container,
+                    // it is save to delay the decrease until the scope is closed.
+                    // This is important to ensure that for update-and-reassign statements,
+                    // the value can be formally unassigned prior to evaluating the copy-and-update
+                    // expression followed by the subsequent reassignment.
+                    this.RegisterValue(value, shallow: true);
+                }
+                else
+                {
+                    // If the change on the other hand also applies to inner items, then it needs to be
+                    // applied immediately, to ensure that it is applied to the currently stored inner items,
+                    // in case the container is modified in place later on.
+                    if (!TryRemoveValue(this.pendingReferences, v => ValueEquals(v, (value, !shallow))))
+                    {
+                        this.decreaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    }
+                }
+            }
+
+            /// <summary>
+            /// Increases the alias count of the assigned value immediately.
+            /// Increases the reference count immediately if the assigned value is accessed via a local identifier,
+            /// and otherwise removes a pending reference count decrease at the end of the scope if possible.
+            /// If <paramref name="isFromLocalId"/> is false and no reference count decrease is queued,
+            /// increases the reference count immediately.
+            /// </summary>
+            internal void AssignToMutable(bool isFromLocalId, IValue value, bool shallow = false)
+            {
+                var change = new[] { (value, !shallow) };
+                this.increaseCounts(AliasCountUpdateFunctionForType, change);
+
+                // If the assigned value is accessed via a local identifier (either directly or e.g. in the form
+                // of an item access expression), then we need to make sure to apply the reference count increase
+                // immediately to avoid that the bound value may be deallocated if either that local identifier
+                // or the mutable variable is rebound.
+                if (isFromLocalId || !this.TryRemoveValue(value, !shallow))
+                {
+                    // The corresponding decrease is automatically done for values assigned to mutable variables
+                    // when they go out of scope or are rebound.
+                    this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
+                }
+            }
+
+            /// <summary>
             /// Registers the given variable name with the scope.
             /// Increases the alias and reference count for the value if necessary,
-            /// and ensures that both are decreased again when the variable goes out of scope.
+            /// depending on whether the value is accessed via a mutable variable or assigned to a mutable variable.
+            /// Ensures that both are decreased again when the variable goes out of scope.
             /// The registered variable is mutable if the passed value is a pointer value.
             /// </summary>
-            public void RegisterVariable(string varName, IValue value)
+            public void RegisterVariable(string varName, IValue value, IValue? fromLocalId)
             {
                 this.variables.Add(varName, value);
 
-                // Since the value is necessarily created in the current or a parent scope,
-                // it won't go out of scope before the variable does.
-                // There is hence no need to increase the reference count if the variable is never rebound.
                 var change = new[] { (value, true) }; // true refers to whether the change also applies to inner items
                 this.increaseCounts(AliasCountUpdateFunctionForType, change);
+
+                // Since the value is necessarily created in the current or a parent scope,
+                // it won't go out of scope before the variable does.
+                // There is hence no need to increase the reference count unless either
+                // a) the value is assigned to a mutable variable (destination variable) that is later rebound, or
+                // b) the assigned value is accessed via a mutable variable (source variable) that is
+                //    rebound before the newly created variable goes out of scope.
+
+                // If either the source or destination variable can be rebound, however, then updating an item via a
+                // copy-and-reassign statement potentially leads to the updated item(s) being unreferenced in an inner scope,
+                // i.e. before the pending reference count increases of this scope are applied. We hence need to make sure
+                // to increase the reference count immediately when
+                // a) binding a value accessed via a local variable to a mutable variable, or
+                // b) assigning a value accessed via a mutable variable.
                 if (value is PointerValue)
                 {
-                    // If the variable can be rebound, however, then updating an item via a copy-and-reassign statement
-                    // potentially leads to the updated item(s) being unreferenced in an inner scope, i.e. before the
-                    // pending reference count increases of this scope are applied.
-                    // We hence need to make sure to increase the reference count immediately when binding to a mutable variable.
+                    // Assignment to a mutable variable:
+                    // We need to make sure that when a value is bound to a mutable variable, the reference count is increased immediately
+                    // if the value is accessed via an existing variable. As long as we make sure to immediately apply the reference
+                    // count decrease upon unassignment from mutable variables, the recursive reference count decrease of the
+                    // (potentially modified in place) value and its content at the end of the scope should be correct.
+                    if (fromLocalId != null || !this.TryRemoveValue(value))
+                    {
+                        // The corresponding decrease is automatically done for the current value of a mutable variable
+                        // when it is rebound or goes out of scope.
+                        this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    }
+                }
+                else if (fromLocalId is PointerValue)
+                {
+                    // Assignment from a mutable variable:
+                    // Increase the reference count of the assigned value if it is accessed via a mutable variable,
+                    // and queue the dereferencing of that value.
                     this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
+                    this.RegisterValue(value, shallow: false);
                 }
             }
 
@@ -231,8 +309,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             /// unreferenced when executing pending calls in preparation for exiting or closing the scope.
             /// Any release function that has been specified when adding the value will still execute.
             /// </summary>
-            internal bool TryRemoveValue(IValue value) =>
-                TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, value));
+            private bool TryRemoveValue(IValue value, bool recurIntoInnerItems = true) =>
+                TryRemoveValue(this.requiredUnreferences, tracked => ValueEquals(tracked, (value, recurIntoInnerItems)));
 
             /// <summary>
             /// Generates the necessary calls to unreference the tracked values, decreases the alias count for registered variables,
@@ -494,17 +572,17 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="InvalidOperationException">The scope has pending calls to increase the reference count for values</exception>
         public void CloseScope(bool isTerminated)
         {
-            if (!isTerminated)
+            if (isTerminated)
             {
-                this.ExecutePendingCalls();
+                // Note that it is perfectly possible that the scope has pending calls to increase reference counts;
+                // This can happen when code at the end of this scope is unreachable and all execution paths terminate
+                // in return or fail statements in inner scopes that have already been closed. In that case, the still
+                // pending references in this scope should have been properly applied when closing the inner scope(s).
+                this.scopes.Pop();
             }
             else
             {
-                var scope = this.scopes.Pop();
-                if (scope.HasPendingReferences)
-                {
-                    throw new InvalidOperationException("cannot close scope that has pending calls to increase reference counts");
-                }
+                this.ExecutePendingCalls();
             }
         }
 
@@ -567,6 +645,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.scopes.Peek().UnreferenceValue(value, !shallow);
 
         /// <summary>
+        /// Given a callable value, increases the reference count of its capture tuple by 1.
+        /// </summary>
+        /// <param name="callable">The callable whose capture tuple to reference</param>
+        internal void ReferenceCaptureTuple(CallableValue callable)
+        {
+            var updateRefCount = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CaptureUpdateReferenceCount);
+            this.sharedState.CurrentBuilder.Call(updateRefCount, callable.Value, this.plusOne);
+        }
+
+        /// <summary>
         /// Adds a call to a runtime library function to change the reference count for the given value.
         /// The count is changed recursively for subitems unless shallow is set to true.
         /// </summary>
@@ -579,41 +667,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Given a callable value, increases the reference count of its capture tuple by 1.
-        /// </summary>
-        /// <param name="callable">The callable whose capture tuple to reference</param>
-        internal void ReferenceCaptureTuple(CallableValue callable)
-        {
-            var updateRefCount = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.CaptureUpdateReferenceCount);
-            this.sharedState.CurrentBuilder.Call(updateRefCount, callable.Value, this.plusOne);
-        }
-
-        /// <summary>
-        /// Adds a call to a runtime library function to increase the alias count for the given value if necessary.
-        /// Adds a call to increase the reference count for the value. Both calls are executed immediately
-        /// opposed to only at the end of the scope.
-        /// Both counts are increased recursively for subitems unless shallow is set to true.
-        /// </summary>
-        /// <param name="value">The value which is assigned to a handle</param>
-        internal void IncreaseAliasCount(IValue value, bool shallow = false)
-        {
-            this.ModifyCounts(ReferenceCountUpdateFunctionForType, this.plusOne, value, !shallow);
-            this.ModifyCounts(AliasCountUpdateFunctionForType, this.plusOne, value, !shallow);
-        }
-
-        /// <summary>
-        /// Adds a call to a runtime library function to decrease the alias count for the given value if necessary.
-        /// Adds a call to decrease the reference count for the value to the list of pending calls.
-        /// Both counts are decreased recursively for subitems unless shallow is set to true.
-        /// </summary>
-        /// <param name="value">The value which is unassigned from a handle</param>
-        internal void DecreaseAliasCount(IValue value, bool shallow = false)
-        {
-            this.DecreaseReferenceCount(value, shallow);
-            this.ModifyCounts(AliasCountUpdateFunctionForType, this.minusOne, value, !shallow);
-        }
-
-        /// <summary>
         /// Adds a call to a runtime library function to change the alias count for the given value.
         /// The alias count is changed recursively for subitems unless shallow is set to true.
         /// Modifies *only* the alias count and not the reference count.
@@ -622,6 +675,51 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="value">The value for which to change the alias count</param>
         internal void UpdateAliasCount(Value change, IValue value, bool shallow = false) =>
             this.ModifyCounts(AliasCountUpdateFunctionForType, change, value, !shallow);
+
+        /// <summary>
+        /// <inheritdoc cref="Scope.AssignToMutable(bool, IValue, bool)" />
+        /// Counts changes are applied recursively for subitems unless <paramref name="shallow"/> is set to true.
+        /// </summary>
+        /// <param name="value">The value assigned to a mutable variable.</param>
+        /// <param name="fromLocalId">
+        /// Name of the local variable via which the assigned value is accessed
+        /// (can be obtained by querying <see cref="QirExpressionKindTransformation.AccessViaLocalId(SyntaxTree.TypedExpression, out string)"/>.)
+        /// </param>
+        internal void AssignToMutable(IValue value, string? fromLocalId, bool shallow = false) =>
+            this.scopes.Peek().AssignToMutable(fromLocalId != null, value, shallow: shallow);
+
+        /// <summary>
+        /// <inheritdoc cref="Scope.UnassignFromMutable(IValue, bool)" />
+        /// Counts changes are applied recursively for subitems unless <paramref name="shallow"/> is set to true.
+        /// </summary>
+        /// <param name="value">The value unassigned from a mutable variable.</param>
+        internal void UnassignFromMutable(IValue value, bool shallow = false) =>
+            this.scopes.Peek().UnassignFromMutable(value, shallow: shallow);
+
+        /// <summary>
+        /// Registers a variable name as an alias for an LLVM value.
+        /// Increases the alias and reference count for the value if necessary,
+        /// depending on whether the value is accessed via a mutable variable or assigned to a mutable variable.
+        /// Ensures that both are decreased again when the variable goes out of scope.
+        /// The registered variable is mutable if the passed value is a pointer value.
+        /// </summary>
+        /// <param name="name">The name to register.</param>
+        /// <param name="value">The LLVM value.</param>
+        /// <param name="fromLocalId">
+        /// Name of the local variable via which the assigned value is accessed
+        /// (can be obtained by querying <see cref="QirExpressionKindTransformation.AccessViaLocalId(SyntaxTree.TypedExpression, out string)"/>.)
+        /// </param>
+        internal void RegisterVariable(string name, IValue value, string? fromLocalId)
+        {
+            IValue? localId = null;
+            if (fromLocalId != null)
+            {
+                this.scopes.FirstOrDefault(scope => scope.TryGetVariable(fromLocalId, out localId));
+            }
+
+            value.RegisterName(this.sharedState.VariableName(name));
+            this.scopes.Peek().RegisterVariable(name, value, fromLocalId: localId);
+        }
 
         /// <summary>
         /// Registers the given value with the current scope, such that a call to a suitable runtime library function
@@ -647,44 +745,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Registers a variable name as an alias for an LLVM value.
-        /// Increases the alias and reference count for the value if necessary,
-        /// and ensures that both are decreased again when the variable goes out of scope.
-        /// The registered variable is mutable if the passed value is a pointer value.
-        /// </summary>
-        /// <param name="name">The name to register</param>
-        /// <param name="value">The LLVM value</param>
-        internal void RegisterVariable(string name, IValue value)
-        {
-            value.RegisterName(this.sharedState.VariableName(name));
-            this.scopes.Peek().RegisterVariable(name, value);
-        }
-
-        /// <summary>
-        /// Removes the given value from the list of registered values such that it will no longer be
-        /// unreferenced when exiting or closing the scope.
-        /// Any release function that has been specified when registering the value will still execute.
-        /// </summary>
-        internal bool TryRemoveValueFromCurrentScope(IValue value) =>
-            this.scopes.Peek().TryRemoveValue(value);
-
-        /// <summary>
         /// Gets the value of a named variable.
         /// The name must have been registered as an alias for the value using
-        /// <see cref="RegisterVariable(string, IValue)"/>.
+        /// <see cref="RegisterVariable(string, IValue, string?)"/>.
         /// </summary>
         /// <param name="name">The registered variable name to look for</param>
         internal IValue GetVariable(string name)
         {
-            foreach (var scope in this.scopes)
-            {
-                if (scope.TryGetVariable(name, out IValue value))
-                {
-                    return value;
-                }
-            }
-
-            throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
+            IValue? value = null;
+            this.scopes.FirstOrDefault(scope => scope.TryGetVariable(name, out value));
+            return value != null ? value : throw new KeyNotFoundException($"Could not find a Value for local symbol {name}");
         }
 
         /// <summary>

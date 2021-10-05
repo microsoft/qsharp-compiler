@@ -77,6 +77,18 @@ type QubitBindingVisitor(tokens) =
             Initializer = context.value |> qubitInitializerVistor.Visit
         }
 
+type ForBindingVisitor(tokens) =
+    inherit QSharpParserBaseVisitor<ForBinding>()
+
+    let symbolBindingVisitor = SymbolBindingVisitor tokens
+    let expressionVisitor = ExpressionVisitor tokens
+
+    override _.VisitForBinding context =
+        {
+            Name = context.binding |> symbolBindingVisitor.Visit
+            In = context.``in`` |> Node.toTerminal tokens
+            Value = context.value |> expressionVisitor.Visit
+        }
 
 type StatementVisitor(tokens) =
     inherit QSharpParserBaseVisitor<Statement>()
@@ -85,6 +97,7 @@ type StatementVisitor(tokens) =
 
     let symbolBindingVisitor = SymbolBindingVisitor tokens
     let qubitBindingVisitor = QubitBindingVisitor tokens
+    let forBindingVisitor = ForBindingVisitor tokens
 
     override _.DefaultResult = failwith "Unknown statement."
 
@@ -157,3 +170,18 @@ type StatementVisitor(tokens) =
                 }
         }
         |> Else
+
+    override visitor.VisitForStatement context =
+        {
+            ForKeyword = context.``for`` |> Node.toTerminal tokens
+            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Binding = context.binding |> forBindingVisitor.Visit
+            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Block =
+                {
+                    OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                    Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                    CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                }
+        }
+        |> For

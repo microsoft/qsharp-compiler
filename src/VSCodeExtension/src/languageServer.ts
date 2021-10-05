@@ -279,7 +279,7 @@ export class LanguageServer {
             console.log("[qsharp-lsp] Done decompressing, language server should be there.");
         } catch (err) {
             console.log(err);
-            throw new Error(err);
+            throw new Error(`${err}`);
         } finally {
             console.log("[qsharp-lsp] Removing downloaded ZIP.");
             fs.remove(downloadTarget);

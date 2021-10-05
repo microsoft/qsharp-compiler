@@ -150,6 +150,12 @@ type internal 'result Reducer =
     default Else: elses:Else -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="For"/> statement node.
+    /// </summary>
+    abstract For : loop: For -> 'result
+    default For : loop: For -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="ParameterBinding"/> node.
     /// </summary>
     abstract ParameterBinding: binding:ParameterBinding -> 'result
@@ -172,6 +178,12 @@ type internal 'result Reducer =
     /// </summary>
     abstract QubitBinding: binding:QubitBinding -> 'result
     default QubitBinding: binding:QubitBinding -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="ForBinding"/> node.
+    /// </summary>
+    abstract ForBinding : binding: ForBinding -> 'result
+    default ForBinding : binding: ForBinding -> 'result
 
     /// <summary>
     /// Reduces a <see cref="QubitInitializer"/> node.
@@ -226,6 +238,12 @@ type internal 'result Reducer =
     /// </summary>
     abstract NewArray: newArray:NewArray -> 'result
     default NewArray: newArray:NewArray -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="NewSizedArray"/> expression node.
+    /// </summary>
+    abstract NewSizedArray: newSizedArray:NewSizedArray -> 'result
+    default NewSizedArray: newSizedArray:NewSizedArray -> 'result
 
     /// <summary>
     /// Reduces a <see cref="NamedItemAccess"/> expression node.
