@@ -1,8 +1,5 @@
 name: $(Build.Major).$(Build.Minor).$(date:yyMM).$(BuildId)
 
-variables:
-  Skip.QirTools: 'true'
-
 parameters:
 - name: validation_level
   displayName: Validation Level

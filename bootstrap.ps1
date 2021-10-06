@@ -90,7 +90,7 @@ Push-Location (Join-Path $PSScriptRoot 'src/QsCompiler/QirGeneration')
 .\FindNuspecReferences.ps1;
 Pop-Location
 
-if ($Env:SKIP_QIRTOOLS -ne $true) {
+if ((Test-CI) -and (Test-BuildLlvmComponents)) {
     try {
         Push-Location (Join-Path $PSScriptRoot "src" "QirTools" "pyqir")
         if (Test-Path Cargo.toml) {
