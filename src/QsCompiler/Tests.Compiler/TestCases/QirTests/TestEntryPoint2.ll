@@ -3,9 +3,9 @@ entry:
   %0 = getelementptr { i64, i64* }, { i64, i64* }* %arr, i64 0, i32 0
   %1 = getelementptr { i64, i64* }, { i64, i64* }* %arr, i64 0, i32 1
   %2 = load i64, i64* %0, align 4
-  %3 = load i8*, i64** %1, align 8
+  %3 = load i64*, i64** %1, align 8
   %4 = call %Array* @__quantum__rt__array_create_1d(i32 8, i64 %2)
-  %5 = ptrtoint i8* %3 to i64
+  %5 = ptrtoint i64* %3 to i64
   %6 = sub i64 %2, 1
   br label %header__1
 

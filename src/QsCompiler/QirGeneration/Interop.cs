@@ -162,13 +162,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 throw new InvalidOperationException("the current function is null");
             }
 
-            // FIXME: THIS NEEDS TO BE ADAPTED ...
             (Value Length, Value DataArray) LoadSizedArray(Value value)
             {
                 var lengthPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(0));
                 var dataArrPtr = this.sharedState.CurrentBuilder.GetElementPtr(Types.PointerElementType(value), value, this.PointerIndex(1));
-                var length = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.Int, lengthPtr);
-                var dataArr = this.sharedState.CurrentBuilder.Load(this.sharedState.Types.DataArrayPointer, dataArrPtr); // FIXME
+                var length = this.sharedState.CurrentBuilder.Load(Types.PointerElementType(lengthPtr), lengthPtr);
+                var dataArr = this.sharedState.CurrentBuilder.Load(Types.PointerElementType(dataArrPtr), dataArrPtr);
                 return (length, dataArr);
             }
 
@@ -230,9 +229,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else if (type.Resolution.IsBigInt)
                 {
-                    // FIXME: DOUBLE CHECK ...
                     var createBigInt = this.sharedState.GetOrCreateRuntimeFunction(RuntimeLibrary.BigIntCreateArray);
-                    var (length, dataArr) = LoadSizedArray(givenValue);
+                    var (intLength, intArr) = LoadSizedArray(givenValue);
+                    var length = this.sharedState.CurrentBuilder.Mul(this.sharedState.Context.CreateConstant(8L), intLength);
+                    var dataArr = this.sharedState.CurrentBuilder.BitCast(intArr, this.sharedState.Types.DataArrayPointer);
                     var argValue = this.sharedState.CurrentBuilder.Call(createBigInt, length, dataArr);
                     var value = this.sharedState.Values.From(argValue, type);
                     if (registerWithScopeManager)
