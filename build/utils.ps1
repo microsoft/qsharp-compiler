@@ -220,13 +220,7 @@ function Get-LlvmSha {
         $env:AQ_LLVM_PACKAGE_GIT_VERSION
     }
     else {
-        $srcRoot = Get-RepoRoot
-        if (Test-Path env:\BUILD_SOURCESDIRECTORY) {
-            Write-Vso "Build.SourcesDirectory: $($env:BUILD_SOURCESDIRECTORY)"
-            $srcRoot = Resolve-Path $($env:BUILD_SOURCESDIRECTORY)
-        }
-
-        $sha = exec -wd $srcRoot { (git submodule status --cached (Join-Path external llvm-project)).substring(1,40) }
+        $sha = exec -wd (Join-Path $PSScriptRoot ..) { (git submodule status --cached (Join-Path external llvm-project)).substring(1,9) }
         $sha
     }
 }
