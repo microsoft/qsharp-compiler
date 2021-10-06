@@ -5,7 +5,14 @@ trigger: none
 
 variables:
   CCACHE_DIR: $(Pipeline.Workspace)/ccache
+  CMAKE_INSTALL_PREFIX: $(Pipeline.Workspace)/LLVM
+  INSTALL_LLVM_PACKAGE: true
+  SCCACHE_DIR: $(Pipeline.Workspace)\sccache
   AQ_LLVM_PACKAGE_GIT_VERSION: ""
+  ENABLE_COMPILER: false
+  ENABLE_VSIX: false
+  ENABLE_LLVM_BUILDS: true
+  AQ_DOWNLOAD_LLVM: false
 
 jobs:
 - job: GetLlvmSha
@@ -55,7 +62,9 @@ jobs:
         version2 | ccache | "$(Agent.OS)"
     displayName: ccache
 
-  - pwsh: ./build/llvm.ps1
+  - template: init.yml
+
+  - pwsh: ./build/build.ps1
     displayName: "LLVM"
     workingDirectory: $(System.DefaultWorkingDirectory)
 
@@ -90,18 +99,23 @@ jobs:
     displayName: 'Checkout submodules'
 
   - script: |
-      choco install --accept-license -y ccache ninja
-    displayName: Install build dependencies, ccache, and update PATH to use linked versions of gcc, cc, etc
+      choco install --accept-license -y sccache ninja
+    displayName: Install build dependencies, sccache, and update PATH to use linked versions of gcc, cc, etc
+
+  - pwsh: mkdir $(SCCACHE_DIR)
+    displayName: "Create sccache dir"
 
   - task: Cache@2
     inputs:
-      key: 'version6 | ccache | "$(Agent.OS)"'
-      path: $(CCACHE_DIR)
+      key: 'version7 | sccache | "$(Agent.OS)"'
+      path: $(SCCACHE_DIR)
       restoreKeys: |
-        version6 | ccache | "$(Agent.OS)"
-    displayName: ccache
+        version7 | sccache | "$(Agent.OS)"
+    displayName: sccache
 
-  - pwsh: .\build\llvm.ps1
+  - template: init.yml
+
+  - pwsh: .\build\build.ps1
     displayName: "LLVM"
     workingDirectory: $(System.DefaultWorkingDirectory)
 
@@ -148,7 +162,9 @@ jobs:
         ccache | "$(Agent.OS)"
     displayName: ccache
 
-  - pwsh: ./build/llvm.ps1
+  - template: init.yml
+
+  - pwsh: ./build/build.ps1
     displayName: "LLVM"
     workingDirectory: $(System.DefaultWorkingDirectory)
 

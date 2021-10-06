@@ -97,9 +97,10 @@ try {
     }
     Restore-CargoTomlWithVersionInfo Cargo.toml.template Cargo.toml $env:WHEEL_VERSION
 
+    Restore-ConfigTomlWithLlvmInfo
+
     . ./prerequisites.ps1
 }
 finally {
     Pop-Location
 }
-

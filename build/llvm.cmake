@@ -5,19 +5,21 @@ cmake_minimum_required(VERSION 3.4 FATAL_ERROR)
 
 message(STATUS CMAKE_HOST_SYSTEM_NAME=${CMAKE_HOST_SYSTEM_NAME})
 
-if($ENV{CMAKE_INSTALL_PREFIX})
-  set(CMAKE_INSTALL_PREFIX $ENV{CMAKE_INSTALL_PREFIX} CACHE STRING "")
-endif()
-
-# Prepare cache if we find it
-find_program(CCACHE ccache)
-if(CCACHE)
-  if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")
-    message(STATUS "Using CCache for windows")
-    set(LLVM_CCACHE_BUILD OFF CACHE BOOL "")
-    set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${CCACHE}")
-    message(STATUS RULE_LAUNCH_COMPILE=${RULE_LAUNCH_COMPILE})
+if (${CMAKE_HOST_SYSTEM_NAME} MATCHES "Windows")
+  find_program(SCCACHE sccache)
+  if(SCCACHE)
+      set(LLVM_CCACHE_BUILD OFF CACHE BOOL "")
+      set_property(GLOBAL PROPERTY RULE_LAUNCH_COMPILE "${SCCACHE}")
+      message(STATUS RULE_LAUNCH_COMPILE=${RULE_LAUNCH_COMPILE})
+      set(CMAKE_C_COMPILER_LAUNCHER "sccache" CACHE STRING "")
+      set(CMAKE_CXX_COMPILER_LAUNCHER "sccache" CACHE STRING "")
   else()
+    message(STATUS "Not using sccache")
+  endif()
+else()
+  # Prepare cache if we find it
+  find_program(CCACHE ccache)
+  if(CCACHE)
     message(STATUS "Using CCache for linux/darwin")
     set(LLVM_CCACHE_BUILD ON CACHE BOOL "")
     set(LLVM_CCACHE_DIR $ENV{CCACHE_DIR} CACHE STRING "")
@@ -26,15 +28,18 @@ if(CCACHE)
     message(STATUS LLVM_CCACHE_BUILD=${LLVM_CCACHE_BUILD})
     message(STATUS LLVM_CCACHE_DIR=${LLVM_CCACHE_DIR})
     message(STATUS LLVM_CCACHE_MAXSIZE=${LLVM_CCACHE_MAXSIZE})
+  else()
+    message(STATUS "Not using CCache")
   endif()
-else()
-  message(STATUS "Not using CCache")
 endif()
+
 
 set(CPACK_PACKAGE_FILE_NAME $ENV{PKG_NAME} CACHE STRING "")
 message(STATUS CPACK_PACKAGE_FILE_NAME=${CPACK_PACKAGE_FILE_NAME})
 
 # Set up main build props
+
+set(LLVM_ENABLE_LIBXML2 OFF CACHE BOOL "")
 
 #set(CMAKE_BUILD_TYPE Release CACHE STRING "")
 set(CMAKE_BUILD_TYPE MinSizeRel CACHE STRING "")
