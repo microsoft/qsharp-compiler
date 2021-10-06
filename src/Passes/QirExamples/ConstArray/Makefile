@@ -1,3 +1,7 @@
+link-new: QSharpVersion/qir/Example.ll  build-qat
+	../../Debug/Source/Apps/qat  QSharpVersion/qir/Example.ll arrays.cpp.ll -O3 -S --apply --assume-no-except > combined.ll 
+	opt -O3 -S combined.ll > optimised.ll
+
 link: QSharpVersion/qir/Example.ll CppRuntime/runtime.ll build-qat
 	../../Debug/Source/Apps/qat  QSharpVersion/qir/Example.ll CppRuntime/runtime.ll -O3 -S --apply --assume-no-except > combined.ll 
 	opt -O3 -S combined.ll > optimised.ll
