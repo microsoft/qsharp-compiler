@@ -217,6 +217,7 @@ function Use-LlvmInstallation {
 # on the CI this will come as an env var
 function Get-LlvmSha {
     if (Test-Path env:\AQ_LLVM_PACKAGE_GIT_VERSION) {
+        Write-Vso "Use environment submodule version: $($env:AQ_LLVM_PACKAGE_GIT_VERSION)"
         $env:AQ_LLVM_PACKAGE_GIT_VERSION
     }
     else {
