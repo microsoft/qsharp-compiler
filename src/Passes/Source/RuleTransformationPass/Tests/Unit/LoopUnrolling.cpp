@@ -2,52 +2,50 @@
 // Licensed under the MIT License.
 
 #include "Generators/DefaultProfileGenerator.hpp"
+#include "Llvm/Llvm.hpp"
 #include "Rules/Factory.hpp"
 #include "TestTools/IrManipulationTestHelper.hpp"
 #include "gtest/gtest.h"
-
-#include "Llvm/Llvm.hpp"
 
 #include <functional>
 
 using namespace microsoft::quantum;
 
-namespace
-{
+namespace {
 using IrManipulationTestHelperPtr = std::shared_ptr<IrManipulationTestHelper>;
-IrManipulationTestHelperPtr newIrManip(std::string const& script)
+IrManipulationTestHelperPtr newIrManip(std::string const &script)
 {
-    IrManipulationTestHelperPtr ir_manip = std::make_shared<IrManipulationTestHelper>();
+  IrManipulationTestHelperPtr ir_manip = std::make_shared<IrManipulationTestHelper>();
 
-    ir_manip->declareOpaque("Qubit");
-    ir_manip->declareOpaque("Result");
-    ir_manip->declareOpaque("Array");
-    ir_manip->declareOpaque("Tuple");
-    ir_manip->declareOpaque("Range");
-    ir_manip->declareOpaque("Callable");
-    ir_manip->declareOpaque("String");
+  ir_manip->declareOpaque("Qubit");
+  ir_manip->declareOpaque("Result");
+  ir_manip->declareOpaque("Array");
+  ir_manip->declareOpaque("Tuple");
+  ir_manip->declareOpaque("Range");
+  ir_manip->declareOpaque("Callable");
+  ir_manip->declareOpaque("String");
 
-    ir_manip->declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
-    ir_manip->declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
-    ir_manip->declareFunction("void @__quantum__qis__h__body(%Qubit*)");
+  ir_manip->declareFunction("%Qubit* @__quantum__rt__qubit_allocate()");
+  ir_manip->declareFunction("void @__quantum__rt__qubit_release(%Qubit*)");
+  ir_manip->declareFunction("void @__quantum__qis__h__body(%Qubit*)");
 
-    ir_manip->declareFunction("i64 @TeleportChain__Calculate__body(i64, %Qubit*)");
+  ir_manip->declareFunction("i64 @TeleportChain__Calculate__body(i64, %Qubit*)");
 
-    if (!ir_manip->fromBodyString(script))
-    {
-        llvm::outs() << ir_manip->generateScript(script) << "\n\n";
-        llvm::outs() << ir_manip->getErrorMessage() << "\n";
-        exit(-1);
-    }
-    return ir_manip;
+  if (!ir_manip->fromBodyString(script))
+  {
+    llvm::outs() << ir_manip->generateScript(script) << "\n\n";
+    llvm::outs() << ir_manip->getErrorMessage() << "\n";
+    exit(-1);
+  }
+  return ir_manip;
 }
 
-} // namespace
+}  // namespace
 
 // Single allocation with action and then release
 TEST(RuleTransformationPass, LoopUnroll)
 {
-    auto ir_manip = newIrManip(R"script(
+  auto ir_manip = newIrManip(R"script(
   %q = call %Qubit* @__quantum__rt__qubit_allocate()
   %ret = alloca i64, align 8
   store i64 1, i64* %ret, align 4
@@ -74,20 +72,18 @@ exit__1:                                          ; preds = %header__1
   call void @__quantum__rt__qubit_release(%Qubit* %q)
   )script");
 
-    auto profile = std::make_shared<DefaultProfileGenerator>();
+  auto profile = std::make_shared<DefaultProfileGenerator>();
 
-    ConfigurationManager& configuration_manager = profile->configurationManager();
-    configuration_manager.addConfig<FactoryConfiguration>();
+  ConfigurationManager &configuration_manager = profile->configurationManager();
+  configuration_manager.addConfig<FactoryConfiguration>();
 
-    ir_manip->applyProfile(profile);
+  ir_manip->applyProfile(profile);
 
-    EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"%0 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%1 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%2 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%3 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%4 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%5 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)"}));
-
-    llvm::outs() << *ir_manip->module() << "\n";
+  EXPECT_TRUE(ir_manip->hasInstructionSequence(
+      {"%0 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+       "%1 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+       "%2 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+       "%3 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+       "%4 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+       "%5 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)"}));
 }
