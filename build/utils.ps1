@@ -225,10 +225,8 @@ function Get-LlvmSha {
             Write-Vso "Build.SourcesDirectory: $($env:BUILD_SOURCESDIRECTORY)"
             $srcRoot = Resolve-Path $($env:BUILD_SOURCESDIRECTORY)
         }
-        $llvmDir = Join-Path $srcRoot external llvm-project
 
-        Assert (Test-Path $llvmDir) "llvm-project submodule is missing"
-        $sha = exec -wd $llvmDir { Get-CommitHash }
+        $sha = exec -wd $srcRoot { (git submodule status --cached (Join-Path external llvm-project)).substring(1,40) }
         $sha
     }
 }
