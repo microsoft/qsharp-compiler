@@ -197,7 +197,7 @@ module Discoverer =
         | Some reason -> Skip.If(true, reason)
         | None ->
             let after = example.After |> standardizeNewLines |> Ok |> ShowResult
-            let before = Formatter.update example.Before |> Result.map standardizeNewLines |> ShowResult
+            let before = Formatter.update "" example.Before |> Result.map standardizeNewLines |> ShowResult
             Assert.Equal(after, before)
 
     /// <summary>
