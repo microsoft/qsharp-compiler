@@ -220,7 +220,10 @@ function Get-LlvmSha {
         $env:AQ_LLVM_PACKAGE_GIT_VERSION
     }
     else {
-        $sha = exec -wd (Join-Path $PSScriptRoot ..) { (git submodule status --cached (Join-Path external llvm-project)).substring(1,9) }
+        $sha = exec -wd (Join-Path $PSScriptRoot ..) {
+            Write-Vso "Detected submodules: $(git submodule status --cached)"
+            (git submodule status --cached (Join-Path external llvm-project)).substring(1,9)
+        }
         $sha
     }
 }
