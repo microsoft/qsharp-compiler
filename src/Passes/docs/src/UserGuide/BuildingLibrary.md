@@ -100,7 +100,7 @@ By doing this, we will ensure that CMake can find LLVM and that all headers and 
 First
 
 ```sh
-cd Debu
+cd Debug
 Cmake ..
 make qat
 ```
