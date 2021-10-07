@@ -59,7 +59,7 @@ We recommend that you use version 11 of clang in order to be consistent with the
 
 ```sh
 export CC=clang-11
-export CXX=clang++
+export CXX=clang++-11
 ```
 
 ### Common to all platforms
