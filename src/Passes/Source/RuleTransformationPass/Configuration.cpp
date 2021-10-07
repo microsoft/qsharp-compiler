@@ -15,9 +15,10 @@ namespace quantum
         config.addParameter(delete_dead_code_, "delete-dead-code", "Deleted dead code.");
         config.addParameter(clone_functions_, "clone-functions", "Clone functions to ensure correct qubit allocation.");
 
-        config.addParameter(max_recursion_, "max-recursion", "max-recursion");
+        config.addParameter(
+            max_recursion_, "max-recursion", "Defines the maximum recursion when unrolling the execution path");
 
-        config.addParameter(reuse_qubits_, "reuse-qubits", "reuse-qubits");
+        config.addParameter(reuse_qubits_, "reuse-qubits", "Use to define whether or not to reuse qubits.");
         config.addParameter(annotate_qubit_use_, "annotate-qubit-use", "Annotate the number of qubits used");
 
         config.addParameter(

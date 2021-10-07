@@ -122,13 +122,13 @@ We note that we successfully have eliminated loops, arithmetic operations, dynam
 
 ## Goal
 
-We envision the tool to work as a standalone commandline tool which can either validate or generate a QIR in accordance with a given profile. To validate, one would run:
+We envision the tool to work as a stand-alone command line tool which can either validate or generate a QIR in accordance with a given profile. To validate, one would run:
 
 ```language
 qat -p profile.yaml --validate unvalidated-qir.ll
 ```
 
-In a similar fashion, generation is performed by adding `--generate` to the commandline:
+In a similar fashion, generation is performed by adding `--generate` to the command line:
 
 ```language
 qat -p profile.yaml --generate qir.ll > qir-profile.ll

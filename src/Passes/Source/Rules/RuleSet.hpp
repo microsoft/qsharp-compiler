@@ -32,36 +32,38 @@ namespace quantum
         using Builder              = ReplacementRule::Builder;
         using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
 
-        /// Constructors
-        /// @{
+        // Constructors
+        //
         RuleSet()               = default;
         RuleSet(RuleSet const&) = default;
         RuleSet(RuleSet&&)      = default;
         ~RuleSet()              = default;
-        /// @}
 
-        /// Operators
-        /// @{
+        // Operators
+        //
+
         RuleSet& operator=(RuleSet const&) = default;
         RuleSet& operator=(RuleSet&&) = default;
-        /// @}
 
-        /// Operating rule sets
-        /// @{
+        // Operating rule sets
+        //
+
         /// Matches patterns and runs the replacement routines if a match
         /// is found. The function returns true if a pattern is matched and
         /// and the replacement was a success. In all other cases, it returns
         /// false.
         bool matchAndReplace(Instruction* value, Replacements& replacements);
-        /// @}
 
-        /// Set up and configuration
-        /// @{
+        // Set up and configuration
+        //
+
         /// Adds a new replacement rule to the set.
         void addRule(ReplacementRulePtr const& rule);
-        /// @}
 
-        void     clear();
+        /// Clears the rule set for all rules.
+        void clear();
+
+        /// Returns the size of the rule set.
         uint64_t size() const;
 
       private:

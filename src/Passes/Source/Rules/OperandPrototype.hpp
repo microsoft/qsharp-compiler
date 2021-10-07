@@ -27,22 +27,28 @@ namespace quantum
         using Children    = std::vector<Child>;
         using Captures    = std::unordered_map<std::string, Value*>;
 
-        /// Constructors and desctructors
-        /// @{
+        // Constructors and destructors
+        //
+
         IOperandPrototype() = default;
         virtual ~IOperandPrototype();
-        /// @}
 
-        /// Interface functions
-        /// @{
-        virtual bool  match(Value* value, Captures& captures) const = 0;
-        virtual Child copy() const                                  = 0;
-        /// @}
+        // Interface functions
+        //
 
-        /// Shared functionality
-        /// @{
+        /// Interface function which determines if a given Value (and its precessors) matches the
+        /// implemented pattern. If any Values are required to be captured, they will be recorded in the
+        /// captures variable.
+        virtual bool match(Value* value, Captures& captures) const = 0;
 
-        /// Adds a child to be matched against the matchees children. Children
+        /// Interface function which defines a copy operation of the underlying implementation. Note that
+        /// unlike normal copy operators this operation returns a shared pointer to the new copy.
+        virtual Child copy() const = 0;
+
+        // Shared functionality
+        //
+
+        /// Adds a child to be matched against the matches children. Children
         /// are matched in order and by size.
         void addChild(Child const& child);
 
@@ -51,25 +57,34 @@ namespace quantum
         /// in this class is responsible for capturing (upon match) and
         /// uncapturing (upon backtrack) with specified name
         void enableCapture(std::string capture_name);
-        /// @}
+
       protected:
-        /// Function to indicate match success or failure. Either of these
-        /// must be called prior to return from an implementation of
-        /// IOperandPrototype::match.
-        /// @{
+        // Function to indicate match success or failure. Either of these
+        // must be called prior to return from an implementation of
+        // IOperandPrototype::match.
+        //
+
+        /// Function which should be called whenever a match fails.
         bool fail(Value* value, Captures& captures) const;
+
+        /// Function which should be called whenever a match is successful.
         bool success(Value* value, Captures& captures) const;
-        /// @}
 
-        /// Helper functions for the capture logic.
-        /// @{
+        // Helper functions for the capture logic.
+        //
+
+        /// Subroutine to match all children.
         bool matchChildren(Value* value, Captures& captures) const;
-        void capture(Value* value, Captures& captures) const;
-        void uncapture(Value* value, Captures& captures) const;
-        /// @}
 
-        /// Helper functions for operation
-        /// @{
+        /// Captures the value into the captures table if needed.
+        void capture(Value* value, Captures& captures) const;
+
+        /// Removes any captures from the captures table upon backtracking
+        void uncapture(Value* value, Captures& captures) const;
+
+        // Helper functions for operation
+        //
+
         /// Shallow copy of the operand to allow name change
         /// of the capture
         void copyPropertiesFrom(IOperandPrototype const& other)
@@ -77,14 +92,13 @@ namespace quantum
             capture_name_ = other.capture_name_;
             children_     = other.children_;
         }
-        /// @}
 
       private:
-        /// Data variables for common matching functionality
-        /// @{
+        // Data variables for common matching functionality
+        //
+
         std::string capture_name_{""}; ///< Name to captured value. Empty means no capture.
-        Children    children_{};       ///< Children to match aginst the values children.
-                                       /// @}
+        Children    children_{};       ///< Children to match against the values children.
     };
 
 } // namespace quantum

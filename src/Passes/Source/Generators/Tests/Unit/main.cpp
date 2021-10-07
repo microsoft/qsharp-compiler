@@ -12,6 +12,14 @@ using namespace microsoft::quantum;
 using GeneratorPtr = std::shared_ptr<DefaultProfileGenerator>;
 namespace
 {
+class ExposedDefaultProfileGenerator : public DefaultProfileGenerator
+{
+  public:
+    using DefaultProfileGenerator::createGenerationModulePass;
+    using DefaultProfileGenerator::createValidationModulePass;
+    using DefaultProfileGenerator::DefaultProfileGenerator;
+};
+
 class TestAnalysis
 {
   public:
@@ -78,32 +86,31 @@ TEST(GeneratorsTestSuite, ConfigureFunction)
     Profile  profile{false};
     uint64_t call_count{0};
     auto     configure = [&call_count](RuleSet&) { ++call_count; };
-    auto     generator = std::make_shared<DefaultProfileGenerator>(configure);
+    auto     generator = std::make_shared<ExposedDefaultProfileGenerator>(configure);
 
     TestAnalysis test;
-    generator->addFunctionAnalyses(test.functionAnalysisManager());
+
     auto module_pass_manager =
         generator->createGenerationModulePass(profile, llvm::PassBuilder::OptimizationLevel::O0, false);
 
     EXPECT_EQ(call_count, 1);
-    EXPECT_TRUE(generator->profilePassConfig().isDisabled());
-    EXPECT_TRUE(generator->llvmConfig().isDisabled());
+    EXPECT_TRUE(generator->ruleTransformationConfig().isDisabled());
+    EXPECT_TRUE(generator->llvmPassesConfig().isDisabled());
 }
 
 TEST(GeneratorsTestSuite, ConfigurationManager)
 {
     Profile               profile{false};
-    auto                  generator             = std::make_shared<DefaultProfileGenerator>();
+    auto                  generator             = std::make_shared<ExposedDefaultProfileGenerator>();
     ConfigurationManager& configuration_manager = generator->configurationManager();
     configuration_manager.addConfig<FactoryConfiguration>();
 
     TestAnalysis test;
 
-    generator->addFunctionAnalyses(test.functionAnalysisManager());
     auto module_pass_manager =
         generator->createGenerationModulePass(profile, llvm::PassBuilder::OptimizationLevel::O0, false);
 
-    EXPECT_TRUE(generator->profilePassConfig().isDefault());
-    EXPECT_TRUE(generator->llvmConfig().isDefault());
-    EXPECT_FALSE(generator->profilePassConfig().isDisabled());
+    EXPECT_TRUE(generator->ruleTransformationConfig().isDefault());
+    EXPECT_TRUE(generator->llvmPassesConfig().isDefault());
+    EXPECT_FALSE(generator->ruleTransformationConfig().isDisabled());
 }

@@ -24,7 +24,7 @@ namespace quantum
     {
         auto ret = next_qubit_index_;
 
-        // Creating a memory segment mappign in case we are dealing with qubits
+        // Creating a memory segment mapping in case we are dealing with qubits
         MemoryMapping map;
         map.name  = name;
         map.index = allocation_index_;
@@ -74,10 +74,14 @@ namespace quantum
                 throw std::runtime_error("Attempting to release more qubits than what is currently allocated.");
             }
 
+            // In case we are reusing registers, we update how many we are currently using
             updateRegistersInUse(registersInUse() - it->size);
 
             mappings_.erase(it);
 
+            // Updating the next qubit index with naive algorithm that guarantees
+            // 1. Continuous allocation
+            // 2. No overlap in address
             if (mappings_.empty())
             {
                 next_qubit_index_ = 0;
@@ -95,5 +99,12 @@ namespace quantum
         reuse_qubits_ = val;
     }
 
+    void BasicAllocationManager::reset()
+    {
+        updateRegistersInUse(0);
+        mappings_.clear();
+        allocation_index_ = 0;
+        next_qubit_index_ = 0;
+    }
 } // namespace quantum
 } // namespace microsoft

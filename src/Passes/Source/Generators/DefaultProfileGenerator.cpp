@@ -87,17 +87,12 @@ namespace quantum
         configurationManager().setConfig(llvm_config);
     }
 
-    FactoryConfiguration const& DefaultProfileGenerator::factoryConfig() const
-    {
-        return configurationManager().get<FactoryConfiguration>();
-    }
-
-    RuleTransformationPassConfiguration const& DefaultProfileGenerator::profilePassConfig() const
+    RuleTransformationPassConfiguration const& DefaultProfileGenerator::ruleTransformationConfig() const
     {
         return configurationManager().get<RuleTransformationPassConfiguration>();
     }
 
-    LlvmPassesConfiguration const& DefaultProfileGenerator::llvmConfig() const
+    LlvmPassesConfiguration const& DefaultProfileGenerator::llvmPassesConfig() const
     {
         return configurationManager().get<LlvmPassesConfiguration>();
     }

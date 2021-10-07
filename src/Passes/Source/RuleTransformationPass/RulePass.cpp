@@ -16,6 +16,15 @@ namespace microsoft
 namespace quantum
 {
 
+    RuleTransformationPass::RuleTransformationPass(
+        RuleSet&&                                  rule_set,
+        RuleTransformationPassConfiguration const& config,
+        Profile*                                   profile)
+      : rule_set_{std::move(rule_set)}
+      , config_{config}
+      , profile_{profile}
+    {
+    }
     void RuleTransformationPass::setupCopyAndExpand()
     {
         using namespace microsoft::quantum::notation;

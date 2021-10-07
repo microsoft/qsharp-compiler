@@ -49,9 +49,13 @@
 #include "Generators/LlvmPassesConfig.hpp"
 #include "Profile/Profile.hpp"
 #include "RuleTransformationPass/Configuration.hpp"
+#include "RuleTransformationPass/RulePass.hpp"
+#include "Rules/Factory.hpp"
 #include "Rules/FactoryConfig.hpp"
 
 #include "Llvm/Llvm.hpp"
+
+#include <dlfcn.h>
 
 #include <iomanip>
 #include <iostream>
@@ -64,28 +68,91 @@ int main(int argc, char** argv)
 {
     try
     {
-        auto generator = std::make_shared<DefaultProfileGenerator>();
+        // Default generator. A future version of QAT may allow the generator to be selected
+        // through the command line, but it is hard coded for now.
+        auto generator = std::make_shared<IProfileGenerator>();
+
+        // Configuration and command line parsing
+        //
 
         ConfigurationManager& configuration_manager = generator->configurationManager();
         configuration_manager.addConfig<QatConfig>();
         configuration_manager.addConfig<FactoryConfiguration>();
 
-        // Parsing command line arguments
         ParameterParser parser;
         configuration_manager.setupArguments(parser);
         parser.parseArgs(argc, argv);
         configuration_manager.configure(parser);
 
         // Getting the main configuration
-        auto const& config = configuration_manager.get<QatConfig>();
+        auto config = configuration_manager.get<QatConfig>();
+
+        // Loading components
+        //
+
+        generator->registerProfileComponent<RuleTransformationPassConfiguration>(
+            "transformation-rules",
+            [](RuleTransformationPassConfiguration const& cfg, IProfileGenerator* ptr, Profile& profile) {
+                auto& ret = ptr->modulePassManager();
+
+                // Defining the mapping
+                RuleSet rule_set;
+                auto    factory =
+                    RuleFactory(rule_set, profile.getQubitAllocationManager(), profile.getResultAllocationManager());
+                factory.usingConfiguration(ptr->configurationManager().get<FactoryConfiguration>());
+
+                // Creating profile pass
+                ret.addPass(RuleTransformationPass(std::move(rule_set), cfg, &profile));
+            });
+
+        if (!config.load().empty())
+        {
+            // TODO (tfr): Add support for multiple loads
+            void* handle = dlopen(config.load().c_str(), RTLD_LAZY);
+
+            if (handle == nullptr)
+            {
+                std::cerr << "Invalid module " << config.load() << std::endl;
+            }
+            else
+            {
+                using LoadFunctionPtr = void (*)(IProfileGenerator*);
+                LoadFunctionPtr load_component;
+                load_component = reinterpret_cast<LoadFunctionPtr>(dlsym(handle, "loadComponent"));
+
+                load_component(generator.get());
+            }
+        }
+
+        generator->registerProfileComponent<LlvmPassesConfiguration>(
+            "llvm-passes", [](LlvmPassesConfiguration const& cfg, IProfileGenerator* ptr, Profile&) {
+                // Configuring LLVM passes
+                if (cfg.alwaysInline())
+                {
+                    auto& ret          = ptr->modulePassManager();
+                    auto& pass_builder = ptr->passBuilder();
+                    ret.addPass(llvm::AlwaysInlinerPass());
+
+                    auto inliner_pass = pass_builder.buildInlinerPipeline(
+                        ptr->optimisationLevel(), llvm::PassBuilder::ThinLTOPhase::None, ptr->debug());
+                    ret.addPass(std::move(inliner_pass));
+                }
+            });
+
+        // Reconfiguring to get all the arguments of the passes registered
+        configuration_manager.setupArguments(parser);
+        configuration_manager.configure(parser);
 
         // In case we debug, we also print the settings to allow provide a full
-        // picture of what is going.
+        // picture of what is going. This step deliberately comes before validating
+        // the input to allow dumping the configuration if something goes wrong.
         if (config.dumpConfig())
         {
             configuration_manager.printConfiguration();
         }
 
+        // Checking that we have sufficient information to proceed. If not we print
+        // usage instructions and the corresponding description of how to use the tool.
         if (parser.arguments().empty())
         {
             std::cerr << "Usage: " << argv[0] << " [options] filename" << std::endl;
@@ -95,6 +162,8 @@ int main(int argc, char** argv)
         }
 
         // Loading IR from file.
+        //
+
         LLVMContext  context;
         SMDiagnostic error;
         auto         module = parseIRFile(parser.getArg(0), error, context);
@@ -105,8 +174,8 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        // Extracting commandline parameters
-
+        // Getting the optimisation level
+        //
         auto optimisation_level = llvm::PassBuilder::OptimizationLevel::O0;
 
         // Setting the optimisation level
@@ -125,46 +194,46 @@ int main(int argc, char** argv)
             optimisation_level = llvm::PassBuilder::OptimizationLevel::O3;
         }
 
-        // Checking if we are asked to generate a new QIR. If so, we will use
-        // the profile to setup passes to
+        // Profile manipulation
+        //
+
+        // Creating the profile that will be used for generation and validation
         auto profile = generator->newProfile(optimisation_level, config.debug());
+
         if (config.generate())
         {
             profile.apply(*module);
-
-            // Priniting either human readible LL code if requested to do so.
-
-            if (config.emitLlvm())
-            {
-                llvm::outs() << *module << "\n";
-            }
         }
 
-        // Verifying the module.
+        // We deliberately emit LLVM prior to verification and validation
+        // to allow output the IR for debugging purposes.
+        if (config.emitLlvm())
+        {
+            llvm::outs() << *module << "\n";
+        }
+
         if (config.verifyModule())
         {
             if (!profile.verify(*module))
             {
-                llvm::outs() << "IR is broken."
-                             << "\n";
+                std::cerr << "IR is broken." << std::endl;
                 exit(-1);
             }
         }
 
         if (config.validate())
         {
-            // Creating pass builder
-            Profile analyser{config.debug()};
-
-            // Creating a validation pass manager
-            auto module_pass_manager =
-                generator->createValidationModulePass(analyser.passBuilder(), optimisation_level, config.debug());
-            module_pass_manager.run(*module, analyser.moduleAnalysisManager());
+            if (!profile.validate(*module))
+            {
+                std::cerr << "QIR is not compliant with profile." << std::endl;
+                exit(-1);
+            }
         }
     }
     catch (std::exception const& e)
     {
-        llvm::outs() << "An error occured: " << e.what() << "\n";
+        std::cerr << "An error occurred: " << e.what() << std::endl;
+        exit(-1);
     }
 
     return 0;
