@@ -14,8 +14,10 @@ namespace Microsoft.Quantum.Qir.Emission {
         }
         return M(aux);
     }
+
     @EntryPoint()
-    operation EstimatePhaseByRandomWalk(nrIter : Int) : Double {
+    operation EstimatePhaseByRandomWalk() : Double {
+        let nrIter  = 4;        
         mutable mu = 0.7951;
         mutable sigma = 0.6065;
         use target = Qubit(); 
