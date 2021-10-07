@@ -52,7 +52,9 @@ TEST(RuleSetTestSuite, ResultTranslatedTo)
         factory.useStaticResultAllocation();
     };
 
-    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(
+        std::move(configure_profile), RuleTransformationPassConfiguration::disable(),
+        LlvmPassesConfiguration::disable());
     ir_manip->applyProfile(profile);
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence({

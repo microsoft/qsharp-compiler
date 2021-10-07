@@ -41,15 +41,18 @@ namespace quantum
         /// Whether or not the LLVM AlwaysInline pass should be added to the profile.
         bool alwaysInline() const;
 
+        /// Whether or not the default LLVM pipeline is disabled.
+        bool disableDefaultPipeline() const;
+
         std::string passPipeline() const;
 
       private:
         // Variables that enables or disables the adding of specific passes
         //
 
-        bool always_inline_{false}; ///< Whether or not LLVM component should inline.
-
-        std::string pass_pipeline_{""}; ///< Opt compatible LLVM passes pipeline
+        bool        always_inline_{false};            ///< Whether or not LLVM component should inline.
+        bool        disable_default_pipeline_{false}; ///< Whether or not the default pipeline is disabled
+        std::string pass_pipeline_{""};               ///< Opt compatible LLVM passes pipeline
     };
 
 } // namespace quantum

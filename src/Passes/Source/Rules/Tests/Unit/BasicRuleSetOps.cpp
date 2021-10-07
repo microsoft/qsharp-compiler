@@ -105,7 +105,7 @@ TEST(RuleSetTestSuite, NullPattern)
         ir_manip->hasInstructionSequence({"tail call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}) ||
         ir_manip->hasInstructionSequence({"call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}));
     ir_manip->applyProfile(profile);
-    llvm::outs() << *ir_manip->module() << "\n";
+
     EXPECT_TRUE(
         ir_manip->hasInstructionSequence({"tail call void @__quantum__rt__qubit_release(%Qubit* null)"}) ||
         ir_manip->hasInstructionSequence({"call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}));
@@ -132,7 +132,7 @@ TEST(RuleSetTestSuite, NullReplacer)
         ir_manip->hasInstructionSequence({"tail call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}) ||
         ir_manip->hasInstructionSequence({"call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}));
     ir_manip->applyProfile(profile);
-    llvm::outs() << *ir_manip->module() << "\n";
+
     EXPECT_TRUE(
         ir_manip->hasInstructionSequence({"tail call void @__quantum__rt__qubit_release(%Qubit* null)"}) ||
         ir_manip->hasInstructionSequence({"call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}));

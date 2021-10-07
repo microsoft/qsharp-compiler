@@ -30,10 +30,21 @@ namespace quantum
                 optimise_branch_quantum_one_, "optimise-branch-quantum-one",
                 "Maps branching based on quantum measurements compared to one to base profile "
                 "type measurement.");
+
             config.addParameter(
                 optimise_branch_quantum_zero_, "optimise-branch-quantum-zero",
                 "Maps branching based on quantum measurements compared to zero to base profile "
                 "type measurement.");
+
+            config.addParameter(
+                optimise_select_quantum_one_, "optimise-select-quantum-one",
+                "Maps selecting based on quantum measurements compared to one to base profile "
+                "type measurement.");
+            config.addParameter(
+                optimise_select_quantum_zero_, "optimise-select-quantum-zero",
+                "Maps selecting based on quantum measurements compared to zero to base profile "
+                "type measurement.");
+
             config.addParameter(
                 use_static_qubit_array_allocation_, "use-static-qubit-array-allocation",
                 "Maps allocation of qubit arrays to static array allocation.");
@@ -53,6 +64,8 @@ namespace quantum
             ret.disable_string_support_            = false;
             ret.optimise_branch_quantum_one_       = false;
             ret.optimise_branch_quantum_zero_      = false;
+            ret.optimise_select_quantum_one_       = false;
+            ret.optimise_select_quantum_zero_      = false;
             ret.use_static_qubit_array_allocation_ = false;
             ret.use_static_qubit_allocation_       = false;
             ret.use_static_result_allocation_      = false;
@@ -120,6 +133,7 @@ namespace quantum
                 disable_reference_counting_ == false && disable_alias_counting_ == false &&
                 disable_string_support_ == false && optimise_branch_quantum_one_ == false &&
                 optimise_branch_quantum_zero_ == false && use_static_qubit_array_allocation_ == false &&
+                optimise_select_quantum_one_ == false && optimise_select_quantum_zero_ == false &&
                 use_static_qubit_allocation_ == false && use_static_result_allocation_ == false);
         }
 
@@ -133,6 +147,8 @@ namespace quantum
                 disable_string_support_ == ref.disable_string_support_ &&
                 optimise_branch_quantum_one_ == ref.optimise_branch_quantum_one_ &&
                 optimise_branch_quantum_zero_ == ref.optimise_branch_quantum_zero_ &&
+                optimise_select_quantum_one_ == ref.optimise_select_quantum_one_ &&
+                optimise_select_quantum_zero_ == ref.optimise_select_quantum_zero_ &&
                 use_static_qubit_array_allocation_ == ref.use_static_qubit_array_allocation_ &&
                 use_static_qubit_allocation_ == ref.use_static_qubit_allocation_ &&
                 use_static_result_allocation_ == ref.use_static_result_allocation_);

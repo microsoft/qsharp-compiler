@@ -1,6 +1,7 @@
-link: QSharpVersion/qir/Example.ll CppRuntime/runtime.ll build-qat
+optimised.ll: QSharpVersion/qir/Example.ll CppRuntime/runtime.ll build-qat
 	../../Debug/Source/Apps/qat  QSharpVersion/qir/Example.ll CppRuntime/runtime.ll -S --apply --assume-no-except --no-transform-execution-path-only > combined.ll 
-	opt -O3 -S combined.ll
+	opt -O3 -S combined.ll > optimised.ll
+	cat optimised.ll
 
 CppRuntime/runtime.ll:
 	cd CppRuntime && make	
@@ -20,4 +21,4 @@ QSharpVersion/qir/Example.ll:
 clean:
 	cd QSharpVersion && make clean
 	cd CppRuntime && make clean
-	rm -f *.ll
+	rm -f combined.ll optimised.ll

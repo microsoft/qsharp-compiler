@@ -52,12 +52,14 @@ TEST(RuleSetTestSuite, AllocationActionRelease)
         factory.useStaticQubitAllocation();
     };
 
-    auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
+    auto profile = std::make_shared<DefaultProfileGenerator>(
+        std::move(configure_profile), RuleTransformationPassConfiguration::disable(),
+        LlvmPassesConfiguration::disable());
 
     ir_manip->applyProfile(profile);
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"%qubit = inttoptr i64 0 to %Qubit*", "tail call void @__quantum__qis__h__body(%Qubit* %qubit)"}));
+        {"%qubit = inttoptr i64 0 to %Qubit*", "call void @__quantum__qis__h__body(%Qubit* %qubit)"}));
 }
 
 // Scenario 2 - Multiple sequential allocations
@@ -71,11 +73,14 @@ TEST(RuleSetTestSuite, MultipleAllocationsNoRelease)
   %qubit5 = call %Qubit* @__quantum__rt__qubit_allocate()
   )script");
 
-    auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
+    auto profile = std::make_shared<DefaultProfileGenerator>(
+        [](RuleSet& rule_set) {
+            auto factory =
+                RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
-        factory.useStaticQubitAllocation();
-    });
+            factory.useStaticQubitAllocation();
+        },
+        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
 
     ir_manip->applyProfile(profile);
 
@@ -122,11 +127,14 @@ TEST(RuleSetTestSuite, AllocateReleaseMultipleTimes)
   call void @__quantum__rt__qubit_release(%Qubit* %qubit4)  
   )script");
 
-    auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
+    auto profile = std::make_shared<DefaultProfileGenerator>(
+        [](RuleSet& rule_set) {
+            auto factory =
+                RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
-        factory.useStaticQubitAllocation();
-    });
+            factory.useStaticQubitAllocation();
+        },
+        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
 
     ir_manip->applyProfile(profile);
 
@@ -166,11 +174,14 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByName)
   call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)  
   )script");
 
-    auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
+    auto profile = std::make_shared<DefaultProfileGenerator>(
+        [](RuleSet& rule_set) {
+            auto factory =
+                RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
-        factory.useStaticQubitAllocation();
-    });
+            factory.useStaticQubitAllocation();
+        },
+        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
 
     ir_manip->applyProfile(profile);
 
@@ -184,11 +195,14 @@ TEST(RuleSetTestSuite, ErrorAllocateReleaseByNameWithNoName)
   call void @__quantum__rt__qubit_release(%Qubit* %0)  
   )script");
 
-    auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
+    auto profile = std::make_shared<DefaultProfileGenerator>(
+        [](RuleSet& rule_set) {
+            auto factory =
+                RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
-        factory.useStaticQubitAllocation();
-    });
+            factory.useStaticQubitAllocation();
+        },
+        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
 
     ir_manip->applyProfile(profile);
 
@@ -203,11 +217,14 @@ TEST(RuleSetTestSuite, ErrorReleaseWithTypeErasedAllocation)
   call void @__quantum__rt__qubit_release(%Qubit* %1)  
   )script");
 
-    auto profile = std::make_shared<DefaultProfileGenerator>([](RuleSet& rule_set) {
-        auto factory = RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
+    auto profile = std::make_shared<DefaultProfileGenerator>(
+        [](RuleSet& rule_set) {
+            auto factory =
+                RuleFactory(rule_set, BasicAllocationManager::createNew(), BasicAllocationManager::createNew());
 
-        factory.useStaticQubitAllocation();
-    });
+            factory.useStaticQubitAllocation();
+        },
+        RuleTransformationPassConfiguration::disable(), LlvmPassesConfiguration::disable());
 
     ir_manip->applyProfile(profile);
 

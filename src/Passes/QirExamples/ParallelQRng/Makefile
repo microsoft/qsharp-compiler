@@ -1,7 +1,7 @@
 all: qat-qsharp
 
 qat-qsharp: build-qat QSharpVersion/qir/Example.ll
-	../../Debug/Source/Apps/qat --apply -S --verify-module --always-inline --profile baseProfile QSharpVersion/qir/Example.ll
+	../../Debug/Source/Apps/qat --apply -S --verify-module --always-inline --profile baseProfile QSharpVersion/qir/Example.ll > optimised.ll
 
 build-qat: build-prepare
 	pushd  ../../Debug && make qat  && popd || popd
@@ -14,4 +14,4 @@ QSharpVersion/qir/Example.ll:
 
 clean:
 	cd QSharpVersion && make clean
-
+	rm -f optimised.ll
