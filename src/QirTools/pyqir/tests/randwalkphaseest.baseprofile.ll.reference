@@ -1,0 +1,78 @@
+; ModuleID = './randwalkphaseest.ll'
+source_filename = "./randwalkphaseest.ll"
+
+%Result = type opaque
+%Qubit = type opaque
+%String = type opaque
+
+declare %Result* @__quantum__rt__result_get_one() local_unnamed_addr
+
+declare i1 @__quantum__rt__result_equal(%Result*, %Result*) local_unnamed_addr
+
+declare %Qubit* @__quantum__rt__qubit_allocate() local_unnamed_addr
+
+declare void @__quantum__rt__qubit_release(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__rt__result_update_reference_count(%Result*, i32) local_unnamed_addr
+
+declare void @__quantum__qis__crz__body(double, %Qubit*, %Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__h__body(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__x__body(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__reset__body(%Qubit*) local_unnamed_addr
+
+declare void @__quantum__qis__rz__body(double, %Qubit*) local_unnamed_addr
+
+declare %Result* @__quantum__qis__m__body(%Qubit*) local_unnamed_addr
+
+define double @Microsoft__Quantum__Qir__Emission__EstimatePhaseByRandomWalk__Interop() local_unnamed_addr #0 {
+entry:
+  tail call void @__quantum__qis__x__body(%Qubit* null)
+  br label %body__1.i
+
+body__1.i:                                        ; preds = %body__1.i, %entry
+  %0 = phi i64 [ 1, %entry ], [ %11, %body__1.i ]
+  %sigma.03.i = phi double [ 6.065000e-01, %entry ], [ %10, %body__1.i ]
+  %isigma.02.i = phi double [ 0x3FFA6180F3204A49, %entry ], [ %9, %body__1.i ]
+  %mu.01.i = phi double [ 7.951000e-01, %entry ], [ %8, %body__1.i ]
+  %1 = fmul double %isigma.02.i, %mu.01.i
+  %2 = fsub double 1.000000e+00, %1
+  %3 = fmul double %isigma.02.i, 5.000000e-01
+  tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+  %4 = fmul double %2, 5.000000e-01
+  tail call void @__quantum__qis__rz__body(double %4, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+  %5 = fmul double %3, 5.000000e-01
+  tail call void @__quantum__qis__crz__body(double %5, %Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* null)
+  tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+  tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* null)
+  tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))
+  %update.i.i = fmul double %sigma.03.i, 6.065000e-01
+  %6 = fneg double %update.i.i
+  %7 = tail call i1 @__quantum__qir__read_result(%Result* null)
+  %.p.i.i = select i1 %7, double %update.i.i, double %6
+  %8 = fadd double %mu.01.i, %.p.i.i
+  %9 = fmul double %isigma.02.i, 1.257700e+00
+  %10 = fmul double %sigma.03.i, 7.951000e-01
+  %11 = add nuw nsw i64 %0, 1
+  %12 = icmp ult i64 %0, 30
+  br i1 %12, label %body__1.i, label %Microsoft__Quantum__Qir__Emission__EstimatePhaseByRandomWalk__body.1.exit
+
+Microsoft__Quantum__Qir__Emission__EstimatePhaseByRandomWalk__body.1.exit: ; preds = %body__1.i
+  %13 = fmul double %8, 2.000000e+00
+  ret double %13
+}
+
+declare void @__quantum__rt__message(%String*) local_unnamed_addr
+
+declare %String* @__quantum__rt__double_to_string(double) local_unnamed_addr
+
+declare void @__quantum__rt__string_update_reference_count(%String*, i32) local_unnamed_addr
+
+declare void @__quantum__qis__mz__body(%Qubit*, %Result*)
+
+declare i1 @__quantum__qir__read_result(%Result*)
+
+attributes #0 = { "InteropFriendly" "requiredQubits"="2" }
+

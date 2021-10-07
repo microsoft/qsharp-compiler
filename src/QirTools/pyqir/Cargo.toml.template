@@ -28,6 +28,7 @@ classifier=[
 qirlib = {path = "../qirlib"}
 env_logger = "0.9.0"
 log = "0.4.14"
+llvm-ir = { version = "0.8.0", features = ["llvm-11"] }
 
 [dependencies.pyo3]
 version = "0.14.2"

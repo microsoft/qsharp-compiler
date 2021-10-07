@@ -170,6 +170,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "llvm-ir"
+version = "0.8.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "73570190dd9c3c060f807366ad78bf8a08fbfd294ad95b60cd0b4d124064f483"
+dependencies = [
+ "either",
+ "llvm-sys",
+ "log",
+]
+
+[[package]]
 name = "llvm-sys"
 version = "110.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -336,9 +347,10 @@ dependencies = [
 
 [[package]]
 name = "pyqir"
-version = "0.1.0-alpha"
+version = "0.9999.2110-alpha"
 dependencies = [
  "env_logger",
+ "llvm-ir",
  "log",
  "pyo3",
  "qirlib",
@@ -355,6 +367,7 @@ dependencies = [
  "libloading",
  "llvm-sys",
  "log",
+ "rand",
  "serial_test",
  "tempfile",
 ]

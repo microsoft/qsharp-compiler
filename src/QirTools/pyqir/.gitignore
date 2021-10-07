@@ -156,3 +156,6 @@ Cargo.lock
 
 # We inject version numbers into Cargo.toml, so don't want them stored in repo.
 Cargo.toml
+
+# Ignore the IR files generated during testing
+*.ll

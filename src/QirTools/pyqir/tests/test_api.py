@@ -1,4 +1,5 @@
 from pyqir import QirBuilder
+from pyqir import module_from_bitcode
 import pytest
 
 def test_bell(tmpdir):
@@ -127,3 +128,22 @@ def test_bernstein_vazirani_ir_string():
 
     ir = builder.get_ir_string()
     assert ir.startswith("; ModuleID = 'Bernstein-Vazirani'")
+
+def test_parser():
+    mod = module_from_bitcode("tests/randwalkphaseest.baseprofile.bc")
+    funcName = "Microsoft__Quantum__Qir__Emission__EstimatePhaseByRandomWalk__Interop"
+    func = mod.get_func_by_name(funcName)
+    assert(func.name == funcName)
+    assert(len(func.parameters) == 0)
+    assert(func.return_type.is_floating_point)
+    funcList = mod.functions
+    assert(len(funcList) == 1)
+    assert(funcList[0].name == funcName)
+    interop_funcs = mod.get_funcs_by_attr("InteropFriendly")
+    assert(len(interop_funcs) == 1)
+    assert(interop_funcs[0].name == funcName)
+    assert(interop_funcs[0].get_attribute_value("requiredQubits") == "2")
+    assert(interop_funcs[0].required_qubits == 2)
+    blocks = func.blocks
+    assert(len(blocks) == 3)
+    entry_block = func.get_block_by_name("entry")

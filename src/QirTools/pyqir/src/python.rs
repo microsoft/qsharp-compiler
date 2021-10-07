@@ -10,9 +10,19 @@ use qirlib::interop::{
     Single,
 };
 
+use crate::parser::QirModule;
+
 #[pymodule]
 fn pyqir(_py: Python<'_>, m: &PyModule) -> PyResult<()> {
     m.add_class::<PyQIR>()?;
+
+    #[pyfn(m)] #[pyo3(name =  "module_from_bitcode")]
+    fn module_from_bitcode_py(_py: Python, bc_path: String) -> PyResult<QirModule> {
+        match llvm_ir::Module::from_bc_path(&bc_path) {
+            Ok(m) => Ok(QirModule { module: m }),
+            Err(s) => Err(exceptions::PyTypeError::new_err(s)),
+        }
+    }
 
     Ok(())
 }
