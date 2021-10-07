@@ -142,8 +142,11 @@ namespace quantum
 
         /// Replaces branching of quantum results compared to zero. This method is not implemented yet.
         void optimiseBranchQuantumZero();
+<<<<<<< HEAD
+=======
 
         /// Replaces select based branching of quantum results compared to one.
+>>>>>>> features/llvm-passes
         void optimiseSelectQuantumOne();
 
         /// Replaces select based branching of quantum results compared to zero.
