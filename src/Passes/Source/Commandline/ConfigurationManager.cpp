@@ -10,51 +10,13 @@ namespace microsoft
 namespace quantum
 {
 
-    IConfigBind::IConfigBind(String const& name, String const& description)
-      : name_{name}
-      , description_{description}
-    {
-    }
-
-    IConfigBind::~IConfigBind() = default;
-
-    IConfigBind::String IConfigBind::name() const
-    {
-        return name_;
-    }
-
-    IConfigBind::String IConfigBind::description() const
-    {
-        return description_;
-    }
-
-    void IConfigBind::setName(String const& name)
-    {
-        name_ = name;
-    }
-
-    bool IConfigBind::isFlag() const
-    {
-        return is_flag_;
-    }
-
-    IConfigBind::String IConfigBind::defaultValue() const
-    {
-        return str_default_value_;
-    }
-
-    void IConfigBind::markAsFlag()
-    {
-        is_flag_ = true;
-    }
-
-    void IConfigBind::setDefault(String const& v)
-    {
-        str_default_value_ = v;
-    }
-
     void ConfigurationManager::setupArguments(ParameterParser& parser)
     {
+        for (auto& section : config_sections_)
+        {
+            parser.addFlag("disable-" + section.id);
+        }
+
         for (auto& section : config_sections_)
         {
             for (auto& c : section.settings)
@@ -66,6 +28,12 @@ namespace quantum
 
     void ConfigurationManager::configure(ParameterParser const& parser)
     {
+
+        for (auto& section : config_sections_)
+        {
+            *section.active = (parser.get("disable-" + section.id, "false") != "true");
+        }
+
         for (auto& section : config_sections_)
         {
             for (auto& c : section.settings)
@@ -78,6 +46,24 @@ namespace quantum
     void ConfigurationManager::printHelp() const
     {
         std::cout << std::setfill(' ');
+
+        // Enable or disable components
+        std::cout << std::endl;
+        std::cout << "Component configuration"
+                  << " - ";
+        std::cout << "Used to disable or enable components" << std::endl;
+        std::cout << std::endl;
+        for (auto& section : config_sections_)
+        {
+            if (!section.id.empty())
+            {
+                std::cout << std::setw(50) << std::left << ("--disable-" + section.id) << "Disables " << section.name
+                          << ". ";
+                std::cout << "Default: true" << std::endl;
+            }
+        }
+
+        // Component configuration
         for (auto& section : config_sections_)
         {
             std::cout << std::endl;
@@ -110,6 +96,20 @@ namespace quantum
     void ConfigurationManager::printConfiguration() const
     {
         std::cout << std::setfill('.');
+
+        std::cout << "; # "
+                  << "Components"
+                  << "\n";
+        for (auto& section : config_sections_)
+        {
+            if (!section.id.empty())
+            {
+                std::cout << "; " << std::setw(50) << std::left << ("disable-" + section.id) << ": "
+                          << (*section.active ? "false" : "true") << "\n";
+            }
+        }
+        std::cout << "; \n";
+
         for (auto& section : config_sections_)
         {
             std::cout << "; # " << section.name << "\n";
@@ -126,5 +126,6 @@ namespace quantum
         config_sections_.back().name        = name;
         config_sections_.back().description = description;
     }
+
 } // namespace quantum
 } // namespace microsoft

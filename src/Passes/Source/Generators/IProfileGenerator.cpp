@@ -14,7 +14,6 @@ namespace quantum
     {
         Profile ret{debug};
 
-        addFunctionAnalyses(ret.functionAnalysisManager());
         auto module_pass_manager = createGenerationModulePass(ret, optimisation_level, debug);
 
         ret.setModulePassManager(std::move(module_pass_manager));
@@ -54,8 +53,6 @@ namespace quantum
     {
         throw std::runtime_error("Validation is not supported yet.");
     }
-
-    void IProfileGenerator::addFunctionAnalyses(FunctionAnalysisManager&) {}
 
     llvm::ModulePassManager& IProfileGenerator::modulePassManager()
     {

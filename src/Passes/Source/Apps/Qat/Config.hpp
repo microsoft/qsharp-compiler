@@ -13,20 +13,56 @@ namespace quantum
       public:
         using String = std::string;
 
-        void   setup(ConfigurationManager& config);
-        bool   generate() const;
-        bool   validate() const;
+        // Configuration manager & pre-fabricated configurations
+        //
+
+        /// Setup function that binds instance variables to the commandline/configuration entries.
+        /// This function also provide descriptions of each of the properties below.
+        void setup(ConfigurationManager& config);
+
+        // Flags and options
+        //
+
+        /// List of dynamic libraries to load.
+        String load() const;
+
+        /// Flag that indicates whether or not we are generating a new QIR by applying a profile.
+        bool generate() const;
+
+        /// Flag to indicate whether or not to verify that the (Q)IR is a valid LLVM IR.
+        bool verifyModule() const;
+
+        /// Flag to indicate whether or not to validate the compliance with the QIR profile.
+        bool validate() const;
+
+        /// String to request a specific profile name. Default is baseProfile.
         String profile() const;
-        bool   emitLlvm() const;
-        bool   opt0() const;
-        bool   opt1() const;
-        bool   opt2() const;
-        bool   opt3() const;
-        bool   verifyModule() const;
-        bool   debug() const;
-        bool   dumpConfig() const;
+
+        /// Indicates whether or not the QIR adaptor tool should emit LLVM IR to the standard output.
+        bool emitLlvm() const;
+
+        /// Enables optimisation level 0. Note higher OX override lower ones.
+        bool opt0() const;
+
+        /// Enables optimisation level 1. Note higher OX override lower ones.
+        bool opt1() const;
+
+        /// Enables optimisation level 2. Note higher OX override lower ones.
+        bool opt2() const;
+
+        /// Enables optimisation level 3. Note higher OX override lower ones.
+        bool opt3() const;
+
+        /// Enables debug output.
+        bool debug() const;
+
+        /// Request the full configuration to be dumped to the screen.
+        bool dumpConfig() const;
 
       private:
+        // Variables to be bound to the configuration manager
+        //
+        String load_{""};
         bool   generate_{false};
         bool   validate_{false};
         String profile_{"baseProfile"};

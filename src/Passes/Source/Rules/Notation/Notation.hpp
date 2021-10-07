@@ -91,6 +91,9 @@ namespace quantum
         /// matches a call to the function `foo` with exactly two arguments.
         template <typename... Args> IOperandPrototypePtr call(std::string const& name, Args... args);
 
+        /// Matches a invoke instruction
+        IOperandPrototypePtr unnamedInvoke();
+
         /// Matches a phi node. TODO(tfr): More description
         template <typename... Args> IOperandPrototypePtr phi(Args... args);
 

@@ -2,6 +2,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+#include "Commandline/ConfigBind.hpp"
+#include "Commandline/ConfigurationBindInterface.hpp"
 #include "Commandline/ParameterParser.hpp"
 
 #include "Llvm/Llvm.hpp"
@@ -17,205 +19,111 @@ namespace microsoft
 namespace quantum
 {
 
-    class IConfigBind
-    {
-      public:
-        using String = std::string;
-
-        IConfigBind(String const& name, String const& description);
-        virtual ~IConfigBind();
-
-        virtual bool   setupArguments(ParameterParser& parser)  = 0;
-        virtual bool   configure(ParameterParser const& parser) = 0;
-        virtual String value()                                  = 0;
-
-        String name() const;
-        String description() const;
-        void   setName(String const& name);
-        bool   isFlag() const;
-        String defaultValue() const;
-
-      protected:
-        void markAsFlag();
-        void setDefault(String const& v);
-
-      private:
-        String name_;
-        String description_;
-        bool   is_flag_{false};
-        String str_default_value_;
-    };
-
-    template <typename T> class ConfigBind : public IConfigBind
-    {
-      public:
-        using String = std::string;
-        using Type   = T;
-        template <typename A, typename B, typename R>
-        using EnableIf = typename std::enable_if<std::is_same<A, B>::value, R>::type;
-
-        ConfigBind(Type& bind, T default_value, String const& name, String const& description)
-          : IConfigBind(name, description)
-          , bind_{bind}
-          , default_value_{std::move(default_value)}
-        {
-            alterNameBasedOnType(default_value_);
-        }
-
-        template <typename R> void alterNameBasedOnType(R const& default_value)
-        {
-            std::stringstream ss{""};
-            ss << default_value;
-            setDefault(ss.str());
-        }
-
-        void alterNameBasedOnType(bool const& default_value)
-        {
-            markAsFlag();
-
-            if (default_value)
-            {
-                setDefault("true");
-            }
-            else
-            {
-                setDefault("false");
-            }
-        }
-
-        bool setupArguments(ParameterParser& parser) override
-        {
-            return setupArguments(parser, default_value_);
-        }
-
-        template <typename R> bool setupArguments(ParameterParser&, R const&)
-        {
-            return true;
-        }
-
-        bool setupArguments(ParameterParser& parser, bool const&)
-        {
-            parser.addFlag(name());
-            return true;
-        }
-
-        bool configure(ParameterParser const& parser) override
-        {
-            loadValue<Type>(parser, default_value_);
-            return true;
-        }
-
-        String value() override
-        {
-            return valueAsString<Type>(default_value_);
-        }
-
-        Type& bind()
-        {
-            return bind_;
-        }
-
-      private:
-        template <typename A> String valueAsString(A const&)
-        {
-            std::stringstream ss{""};
-            ss << bind_;
-            return ss.str();
-        }
-
-        template <typename A> String valueAsString(EnableIf<A, bool, A> const&)
-        {
-            std::stringstream ss{""};
-            ss << (bind_ ? "true" : "false");
-            return ss.str();
-        }
-
-        template <typename R> void loadValue(ParameterParser const& parser, R const& default_value)
-        {
-            bind_ = default_value;
-
-            if (parser.has(name()))
-            {
-                std::stringstream ss{parser.get(name())};
-                ss >> bind_;
-            }
-        }
-
-        template <typename A> void loadValue(ParameterParser const& parser, EnableIf<A, bool, A> const& default_value)
-        {
-            bind_ = default_value;
-            if (parser.has(name()))
-            {
-                bind_ = true;
-            }
-            else if (parser.has("no-" + name()))
-            {
-                bind_ = false;
-            }
-        }
-
-        template <typename A> void loadValue(ParameterParser const& parser, EnableIf<A, String, A> const& default_value)
-        {
-            bind_ = default_value;
-
-            if (parser.has(name()))
-            {
-                bind_ = parser.get(name());
-            }
-        }
-
-        Type& bind_;
-        Type  default_value_;
-    };
-
-    struct ConfigurationManager
+    /// ConfigurationManager is a class that holds a collection of configurations (sections). Each of
+    /// these sections are embodied in their own class with a one-to-one mapping between configuration
+    /// section and the configuration type. As an example, if one wishes to make a configuration for the
+    /// class Foo, one would create a class FooConfig which would hold all the variables that are
+    /// configurable and then add FooConfig to the ConfigurationManager using `addConfig()`. For
+    /// FooConfig to fulfill the concept of a configuration, it must implement a setup functions whose
+    /// first argument is the ConfigurationManager.
+    class ConfigurationManager
     {
       public:
         using String         = std::string;
-        using IConfigBindPtr = std::shared_ptr<IConfigBind>;
-        using ConfigList     = std::vector<IConfigBindPtr>;
-        using VoidPtr        = std::shared_ptr<void>;
+        using IConfigBindPtr = std::shared_ptr<IConfigBind>; ///< Pointer class used to bind a parameter to a value.
+        using ConfigList     = std::vector<IConfigBindPtr>;  ///< List of bound variables.
+        using VoidPtr        = std::shared_ptr<void>;        ///< Type-erased configuration pointer.
+        using TypeId         = std::type_index;              ///< Type index class.
+        using BoolPtr        = std::shared_ptr<bool>;
+
+        /// Section defines a section in the configuration. It holds the type of the configuration class,
+        /// the name of the section a description, the instance of the configuration class itself and list
+        /// of parameter bindings.
         struct Section
         {
-            std::type_index type{std::type_index(typeid(std::nullptr_t))};
-            String          name{};
-            String          description{};
-            VoidPtr         configuration{};
-
-            ConfigList settings{};
+            TypeId     type{TypeId(typeid(std::nullptr_t))}; ///< Type of the configuration.
+            String     name{};                               ///< Name of the section.
+            String     description{};                        ///< Description of the section.
+            VoidPtr    configuration{};                      ///< Configuration class instance.
+            ConfigList settings{};                           ///< List of parameter bindings.
+            BoolPtr    active{nullptr};                      ///< Whether or not this component is active;
+            String     id{};                                 ///< Id referring to this component.
         };
-        using Sections = std::vector<Section>;
+        using Sections = std::vector<Section>; ///< List of available sections
 
+        // Constructors, copy and move operators, destructor
+        //
+
+        /// Configuration manager is default constructible, non-copyable and non-movable.
         ConfigurationManager()                            = default;
         ConfigurationManager(ConfigurationManager const&) = delete;
         ConfigurationManager(ConfigurationManager&&)      = delete;
         ConfigurationManager& operator=(ConfigurationManager const&) = delete;
         ConfigurationManager& operator=(ConfigurationManager&&) = delete;
 
+        // Configuration setup
+        //
+
+        /// Adds all bound variables as parser arguments.
         void setupArguments(ParameterParser& parser);
+
+        /// Configures the value of each bound variable given a parser instance.
         void configure(ParameterParser const& parser);
+
+        // Managing configuration
+        //
+
+        /// Given an instance of the ConfigurationManager, this method override settings of class T.
+        template <typename T> inline void setConfig(T const& value);
+
+        /// Gets the configuration instance of type T.
+        template <typename T> inline T const& get() const;
+
+        // Support functions
+        //
+
+        /// Prints options for configurability to the terminal.
         void printHelp() const;
+
+        /// Prints the configuration to the terminal. The configuration print is LLVM IR compatible
+        /// meaning that every line starts with a semicolon ; to ensure that it is interpreted as a
+        /// comment.
         void printConfiguration() const;
 
+        // Configuration functions
+        //
+
+        /// Adds a new configuration of type T.
+        template <typename T> inline void addConfig(String const& id = "");
+
+        /// Whether or not the component associated with T is active.
+        template <typename T> inline bool isActive();
+
+        /// Sets the section name. This method is used by the configuration class to set a section
+        /// name.
         void setSectionName(String const& name, String const& description);
 
-        template <typename T> inline void     addConfig();
-        template <typename T> inline void     setConfig(T const& value);
-        template <typename T> inline T const& get() const;
+        /// Adds a new parameter with a default value to the configuration section. This function should
+        /// be used by the configuration class.
         template <typename T>
         inline void addParameter(T& bind, T default_value, String const& name, String const& description);
+
+        /// Adds a new parameter to the configuration section. This method uses the bound variable value
+        /// as default value. This function should be used by the configuration class.
         template <typename T> inline void addParameter(T& bind, String const& name, String const& description);
 
       private:
-        Sections config_sections_;
+        Sections config_sections_{}; ///< All available sections within the ConfigurationManager instance
     };
 
-    template <typename T> inline void ConfigurationManager::addConfig()
+    template <typename T> inline void ConfigurationManager::addConfig(String const& id)
     {
         Section new_section{std::type_index(typeid(T))};
 
         auto ptr                  = std::make_shared<T>();
         new_section.configuration = ptr;
+        new_section.active        = std::make_shared<bool>(true);
+        new_section.id            = id;
 
         config_sections_.emplace_back(std::move(new_section));
         ptr->setup(*this);
@@ -225,6 +133,7 @@ namespace quantum
     {
         auto    type = std::type_index(typeid(T));
         VoidPtr ptr{nullptr};
+
         for (auto& section : config_sections_)
         {
             if (section.type == type)
@@ -263,6 +172,28 @@ namespace quantum
         }
 
         return *static_cast<T*>(ptr.get());
+    }
+
+    template <typename T> inline bool ConfigurationManager::isActive()
+    {
+        BoolPtr ptr{nullptr};
+        auto    type = std::type_index(typeid(T));
+
+        for (auto& section : config_sections_)
+        {
+            if (section.type == type)
+            {
+                ptr = section.active;
+                break;
+            }
+        }
+
+        if (ptr == nullptr)
+        {
+            throw std::runtime_error("Could not find configuration class.");
+        }
+
+        return *ptr;
     }
 
     template <typename T>

@@ -110,3 +110,4 @@ message(STATUS "${llvm_libs}")
 # Adding the libraries
 add_subdirectory(Source)
 
+add_subdirectory(ComponentExamples)

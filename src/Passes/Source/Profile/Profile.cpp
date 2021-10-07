@@ -46,6 +46,11 @@ namespace quantum
         return !result.IRBroken;
     }
 
+    bool Profile::validate(llvm::Module&)
+    {
+        throw std::runtime_error("Validation is not supported yet.");
+    }
+
     Profile::AllocationManagerPtr Profile::getQubitAllocationManager()
     {
         return qubit_allocation_manager_;

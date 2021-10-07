@@ -10,6 +10,16 @@ namespace microsoft
 {
 namespace quantum
 {
+    namespace
+    {
+        using Instruction  = llvm::Instruction;
+        using Value        = llvm::Value;
+        using Builder      = ReplacementRule::Builder;
+        using Captures     = ReplacementRule::Captures;
+        using Replacements = ReplacementRule::Replacements;
+
+    } // namespace
+
     using ReplacementRulePtr = RuleFactory::ReplacementRulePtr;
     using namespace microsoft::quantum::notation;
 
@@ -170,7 +180,7 @@ namespace quantum
                     return false;
                 }
 
-                // Computing the index by getting the current index value and offseting by
+                // Computing the index by getting the current index value and offsetting by
                 // the offset at which the qubit array is allocated.
                 auto offset_cst = llvm::dyn_cast<llvm::ConstantInt>(cap["arrayName"]);
                 if (offset_cst == nullptr)
@@ -434,7 +444,8 @@ namespace quantum
 
     void RuleFactory::optimiseBranchQuantumZero()
     {
-        // TODO(tfr): Not implemented
+        // TODO(tfr): implement this logic - do not throw std::logic_error("Optimisation not implemented
+        // yet.");
     }
 
     void RuleFactory::optimiseBranchQuantumOne()

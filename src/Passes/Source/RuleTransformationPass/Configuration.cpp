@@ -14,10 +14,16 @@ namespace quantum
         config.setSectionName("Pass configuration", "Configuration of the pass and its corresponding optimisations.");
         config.addParameter(delete_dead_code_, "delete-dead-code", "Deleted dead code.");
         config.addParameter(clone_functions_, "clone-functions", "Clone functions to ensure correct qubit allocation.");
+        config.addParameter(
+            transform_execution_path_only_, "transform-execution-path-only", "Transform execution paths only.");
 
-        config.addParameter(max_recursion_, "max-recursion", "max-recursion");
+        config.addParameter(
+            max_recursion_, "max-recursion", "Defines the maximum recursion when unrolling the execution path");
 
-        config.addParameter(reuse_qubits_, "reuse-qubits", "reuse-qubits");
+        config.addParameter(
+            assume_no_exceptions_, "assume-no-except", "Assumes that no exception will occur during runtime.");
+
+        config.addParameter(reuse_qubits_, "reuse-qubits", "Use to define whether or not to reuse qubits.");
         config.addParameter(annotate_qubit_use_, "annotate-qubit-use", "Annotate the number of qubits used");
 
         config.addParameter(
@@ -85,6 +91,11 @@ namespace quantum
     std::string RuleTransformationPassConfiguration::entryPointAttr() const
     {
         return entry_point_attr_;
+    }
+
+    bool RuleTransformationPassConfiguration::assumeNoExceptions() const
+    {
+        return assume_no_exceptions_;
     }
 
     bool RuleTransformationPassConfiguration::isDisabled() const

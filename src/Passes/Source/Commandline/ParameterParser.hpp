@@ -22,8 +22,9 @@ namespace quantum
         using Flags       = std::unordered_set<String>;
         using SettingsMap = std::unordered_map<String, String>;
 
-        /// Construction and deconstrution configuration
-        /// @{
+        // Construction and deconstrution configuration
+        //
+
         /// Parameter parsers requires a setting class to store
         /// parameters passed. The parameter parser takes a set of
         /// default Settings as its first argument.
@@ -37,10 +38,9 @@ namespace quantum
 
         // Default destruction.
         ~ParameterParser() = default;
-        /// @}
 
-        /// Configuration
-        /// @{
+        // Configuration
+        //
 
         /// Marks a name as a flag (as opposed to an option).
         /// This ensures that no parameter is expected after
@@ -48,10 +48,10 @@ namespace quantum
         /// a flag as opposed to `--log-level 3` which is an
         /// option.
         void addFlag(String const& v);
-        /// @}
 
-        /// Operation
-        /// @{
+        // Operation
+        //
+
         /// Parses the command line arguments given the argc and argv
         /// from the main function.
         void parseArgs(int argc, char** argv);
@@ -62,26 +62,29 @@ namespace quantum
 
         /// Returns the n'th commandline argument.
         String const& getArg(uint64_t const& n);
-        /// @}
 
-        /// @{
         /// Gets a named setting, falling back to a default if the key is not found.
         String get(String const& name, String const& default_value) const noexcept;
 
         /// Gets a named setting. This method throws if the setting is not present.
         String get(String const& name) const;
 
+        /// Checks whether or not a given parameter is present.
         bool has(String const& name) const noexcept;
-        ///@}
+
+        /// Resets the state of the parser to its construction state
+        void reset();
+
       private:
+        /// Struct that contains parsed and interpreted values of command line arguments.
         struct ParsedValue
         {
-            bool   is_key{false};
-            String value;
+            bool   is_key{false}; ///< Whether or not a parsed value should be considered a key
+            String value;         ///< Value after parsing.
         };
 
-        /// Helper functions and variables
-        /// @{
+        // Helper functions
+        //
 
         // Parses a single argument and returns the parsed value. This function
         // determines if the string was specified to be a key or a value.
@@ -89,16 +92,13 @@ namespace quantum
 
         /// Checks whether a key is an option (or a flag). Returns true if it is
         /// and option and false if it is a flags.
-        bool  isOption(String const& key);
-        Flags flags_{}; ///< Set of flags
-        /// @}
+        bool isOption(String const& key);
 
-        /// Storage of parsed data
-        /// @{
-        Arguments arguments_{}; ///< List of remaining arguments
-                                /// @}
-
-        SettingsMap settings_; ///< Settings map that keeps all specified settings.
+        // Storage of parsed data
+        //
+        Flags       flags_{};     ///< Set of flags
+        Arguments   arguments_{}; ///< List of remaining arguments
+        SettingsMap settings_;    ///< Settings map that keeps all specified settings.
     };
 
 } // namespace quantum

@@ -26,31 +26,30 @@ namespace quantum
         using OptimizationLevel = llvm::PassBuilder::OptimizationLevel;
         using GeneratorPtr      = std::shared_ptr<IProfileGenerator>;
 
-        /// IrManipulationTestHelper is default constructible with no ability to move
-        /// or copy.
-        /// @{
+        // IrManipulationTestHelper is default constructible with no ability to move
+        // or copy.
+        //
+
         IrManipulationTestHelper();
         IrManipulationTestHelper(IrManipulationTestHelper const&) = delete;
         IrManipulationTestHelper& operator=(IrManipulationTestHelper const&) = delete;
         IrManipulationTestHelper(IrManipulationTestHelper&&)                 = delete;
         IrManipulationTestHelper& operator=(IrManipulationTestHelper&&) = delete;
-        /// @}
 
-        /// Output functions
-        /// @{
+        // Output functions
+        //
 
         /// Generates a string for the IR currently held in the module.
         String toString() const;
 
         /// Generates a list of instructions for the main function in the module.
         Strings toBodyInstructions();
-        /// @}
 
-        /// Test functions
-        /// @{
+        // Test functions
+        //
 
         /// Tests whether the main body contains a sequence of instructions. This function
-        /// ignores instructions inbetween the instruction set given.
+        /// ignores instructions in-between the instruction set given.
         bool hasInstructionSequence(Strings const& instructions);
 
         /// Applies a profile to the module to allow which transforms the IR. This
@@ -59,10 +58,9 @@ namespace quantum
             GeneratorPtr const&      profile,
             OptimizationLevel const& optimisation_level = OptimizationLevel::O0,
             bool                     debug              = false);
-        /// @}
 
-        /// Declaration of partial or full IR
-        /// @{
+        // Declaration of partial or full IR
+        //
 
         /// Declares a opaque type. Only the name of the type should be supplied to
         /// this function. Example usage
@@ -108,33 +106,47 @@ namespace quantum
         /// Gets an error message if the compilation failed.
         String getErrorMessage() const;
 
-        /// @}
-
+        /// Whether or not the module is broken.
         bool isModuleBroken();
 
-        /// Acccess member functions
-        /// @{
+        // Acccess member functions
+        //
+
+        /// Returns a reference to the module
         ModulePtr& module();
-        /// @}
+
       private:
+        // Declarations
+        //
+
+        /// Set of opaque type declarations
         std::unordered_set<std::string> opaque_declarations_{};
+
+        /// Set of function declarations
         std::unordered_set<std::string> function_declarations_{};
 
-        /// @{
-        bool         compilation_failed_{false};
-        SMDiagnostic error_;
-        LLVMContext  context_;
-        ModulePtr    module_;
-        /// @}
+        // Compilation state
+        //
 
-        /// Objects used to run a set of passes
-        /// @{
+        /// Whether the compilation failed.
+        bool compilation_failed_{false};
+
+        /// The LLVM error encountered.
+        SMDiagnostic error_;
+
+        /// The LLVM context.
+        LLVMContext context_;
+
+        /// Pointer to the module obtained from the compilation process.
+        ModulePtr module_;
+
+        // Objects used to run a set of passes
+        //
         llvm::PassBuilder             pass_builder_;
         llvm::LoopAnalysisManager     loop_analysis_manager_;
         llvm::FunctionAnalysisManager function_analysis_manager_;
         llvm::CGSCCAnalysisManager    gscc_analysis_manager_;
         llvm::ModuleAnalysisManager   module_analysis_manager_;
-        /// @}
     };
 
 } // namespace quantum

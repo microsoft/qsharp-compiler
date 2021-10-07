@@ -44,6 +44,11 @@ namespace quantum
         rules_.push_back(rule);
     }
 
+    void RuleSet::addRule(ReplacementRule&& rule)
+    {
+        addRule(std::make_shared<ReplacementRule>(std::move(rule)));
+    }
+
     void RuleSet::clear()
     {
         rules_.clear();

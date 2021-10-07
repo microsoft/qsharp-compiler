@@ -3,6 +3,7 @@
 
 #include "Commandline/ParameterParser.hpp"
 
+#include <iostream>
 #include <stdexcept>
 #include <string>
 #include <unordered_map>
@@ -118,6 +119,13 @@ namespace quantum
         }
 
         return true;
+    }
+
+    void ParameterParser::reset()
+    {
+        arguments_.clear();
+        settings_.clear();
+        flags_.clear();
     }
 
 } // namespace quantum
