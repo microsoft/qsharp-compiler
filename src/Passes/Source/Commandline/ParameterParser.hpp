@@ -72,8 +72,11 @@ namespace quantum
         /// Checks whether or not a given parameter is present.
         bool has(String const& name) const noexcept;
 
+        /// Resets the state of the parser to its construction state
+        void reset();
+
       private:
-        /// Struct that contains parsed and intepreted values of commandline arguments.
+        /// Struct that contains parsed and interpreted values of command line arguments.
         struct ParsedValue
         {
             bool   is_key{false}; ///< Whether or not a parsed value should be considered a key

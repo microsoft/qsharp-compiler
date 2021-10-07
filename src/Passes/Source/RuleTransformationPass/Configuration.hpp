@@ -40,6 +40,9 @@ namespace quantum
         /// allocation if execution paths are expanded.
         bool cloneFunctions() const;
 
+        /// Whether or not we assume that the code does not throw at runtime.
+        bool assumeNoExceptions() const;
+
         /// Whether or not the component should follow the execution path only or it should be applied to
         /// all parts of the code. For statically allocated qubits one generally wants to follow the
         /// execution path whereas it makes more sense to apply to all parts of the code for dynamic qubit
@@ -74,6 +77,9 @@ namespace quantum
         bool        transform_execution_path_only_{true};
         uint64_t    max_recursion_{512};
         std::string entry_point_attr_{"EntryPoint"};
+
+        // Branching
+        bool assume_no_exceptions_{false};
 
         // Allocation options
         //

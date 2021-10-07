@@ -34,6 +34,7 @@ namespace quantum
         using ConfigList     = std::vector<IConfigBindPtr>;  ///< List of bound variables.
         using VoidPtr        = std::shared_ptr<void>;        ///< Type-erased configuration pointer.
         using TypeId         = std::type_index;              ///< Type index class.
+        using BoolPtr        = std::shared_ptr<bool>;
 
         /// Section defines a section in the configuration. It holds the type of the configuration class,
         /// the name of the section a description, the instance of the configuration class itself and list
@@ -45,11 +46,12 @@ namespace quantum
             String     description{};                        ///< Description of the section.
             VoidPtr    configuration{};                      ///< Configuration class instance.
             ConfigList settings{};                           ///< List of parameter bindings.
+            BoolPtr    active{nullptr};                      ///< Whether or not this component is active;
+            String     id{};                                 ///< Id referring to this component.
         };
-
         using Sections = std::vector<Section>; ///< List of available sections
 
-        // Constructors, copy and move operators, destructir
+        // Constructors, copy and move operators, destructor
         //
 
         /// Configuration manager is default constructible, non-copyable and non-movable.
@@ -92,9 +94,13 @@ namespace quantum
         //
 
         /// Adds a new configuration of type T.
-        template <typename T> inline void addConfig();
+        template <typename T> inline void addConfig(String const& id = "");
 
-        /// Sets the section name. This method is used by the configuration class to set a section name.
+        /// Whether or not the component associated with T is active.
+        template <typename T> inline bool isActive();
+
+        /// Sets the section name. This method is used by the configuration class to set a section
+        /// name.
         void setSectionName(String const& name, String const& description);
 
         /// Adds a new parameter with a default value to the configuration section. This function should
@@ -110,12 +116,14 @@ namespace quantum
         Sections config_sections_{}; ///< All available sections within the ConfigurationManager instance
     };
 
-    template <typename T> inline void ConfigurationManager::addConfig()
+    template <typename T> inline void ConfigurationManager::addConfig(String const& id)
     {
         Section new_section{std::type_index(typeid(T))};
 
         auto ptr                  = std::make_shared<T>();
         new_section.configuration = ptr;
+        new_section.active        = std::make_shared<bool>(true);
+        new_section.id            = id;
 
         config_sections_.emplace_back(std::move(new_section));
         ptr->setup(*this);
@@ -164,6 +172,28 @@ namespace quantum
         }
 
         return *static_cast<T*>(ptr.get());
+    }
+
+    template <typename T> inline bool ConfigurationManager::isActive()
+    {
+        BoolPtr ptr{nullptr};
+        auto    type = std::type_index(typeid(T));
+
+        for (auto& section : config_sections_)
+        {
+            if (section.type == type)
+            {
+                ptr = section.active;
+                break;
+            }
+        }
+
+        if (ptr == nullptr)
+        {
+            throw std::runtime_error("Could not find configuration class.");
+        }
+
+        return *ptr;
     }
 
     template <typename T>

@@ -47,6 +47,7 @@
 #include "Commandline/ParameterParser.hpp"
 #include "Generators/DefaultProfileGenerator.hpp"
 #include "Generators/LlvmPassesConfig.hpp"
+#include "ModuleLoader/ModuleLoader.hpp"
 #include "Profile/Profile.hpp"
 #include "RuleTransformationPass/Configuration.hpp"
 #include "RuleTransformationPass/RulePass.hpp"
@@ -112,7 +113,7 @@ int main(int argc, char** argv)
 
             if (handle == nullptr)
             {
-                std::cerr << "Invalid module " << config.load() << std::endl;
+                std::cerr << "Invalid component " << config.load() << std::endl;
             }
             else
             {
@@ -126,6 +127,17 @@ int main(int argc, char** argv)
 
         generator->registerProfileComponent<LlvmPassesConfiguration>(
             "llvm-passes", [](LlvmPassesConfiguration const& cfg, IProfileGenerator* ptr, Profile&) {
+                auto pass_pipeline = cfg.passPipeline();
+                if (!pass_pipeline.empty())
+                {
+                    auto& pass_builder = ptr->passBuilder();
+                    auto& npm          = ptr->modulePassManager();
+                    if (!pass_builder.parsePassPipeline(npm, pass_pipeline, false, false))
+                    {
+                        throw std::runtime_error("Failed to set pass pipeline up.");
+                    }
+                }
+
                 // Configuring LLVM passes
                 if (cfg.alwaysInline())
                 {
@@ -140,7 +152,9 @@ int main(int argc, char** argv)
             });
 
         // Reconfiguring to get all the arguments of the passes registered
+        parser.reset();
         configuration_manager.setupArguments(parser);
+        parser.parseArgs(argc, argv);
         configuration_manager.configure(parser);
 
         // In case we debug, we also print the settings to allow provide a full
@@ -161,12 +175,21 @@ int main(int argc, char** argv)
             exit(-1);
         }
 
-        // Loading IR from file.
+        // Loading IR from file(s).
         //
 
         LLVMContext  context;
-        SMDiagnostic error;
-        auto         module = parseIRFile(parser.getArg(0), error, context);
+        auto         module = std::make_unique<Module>("qat-link", context);
+        ModuleLoader loader(module.get());
+
+        for (auto const& arg : parser.arguments())
+        {
+            if (!loader.addIrFile(arg))
+            {
+                llvm::errs() << "Could not load " << arg << "\n";
+                return -1;
+            }
+        }
 
         if (!module)
         {

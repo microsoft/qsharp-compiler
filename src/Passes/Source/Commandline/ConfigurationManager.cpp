@@ -14,6 +14,11 @@ namespace quantum
     {
         for (auto& section : config_sections_)
         {
+            parser.addFlag("disable-" + section.id);
+        }
+
+        for (auto& section : config_sections_)
+        {
             for (auto& c : section.settings)
             {
                 c->setupArguments(parser);
@@ -23,6 +28,12 @@ namespace quantum
 
     void ConfigurationManager::configure(ParameterParser const& parser)
     {
+
+        for (auto& section : config_sections_)
+        {
+            *section.active = (parser.get("disable-" + section.id, "false") != "true");
+        }
+
         for (auto& section : config_sections_)
         {
             for (auto& c : section.settings)
@@ -35,6 +46,24 @@ namespace quantum
     void ConfigurationManager::printHelp() const
     {
         std::cout << std::setfill(' ');
+
+        // Enable or disable components
+        std::cout << std::endl;
+        std::cout << "Component configuration"
+                  << " - ";
+        std::cout << "Used to disable or enable components" << std::endl;
+        std::cout << std::endl;
+        for (auto& section : config_sections_)
+        {
+            if (!section.id.empty())
+            {
+                std::cout << std::setw(50) << std::left << ("--disable-" + section.id) << "Disables " << section.name
+                          << ". ";
+                std::cout << "Default: true" << std::endl;
+            }
+        }
+
+        // Component configuration
         for (auto& section : config_sections_)
         {
             std::cout << std::endl;
@@ -67,6 +96,20 @@ namespace quantum
     void ConfigurationManager::printConfiguration() const
     {
         std::cout << std::setfill('.');
+
+        std::cout << "; # "
+                  << "Components"
+                  << "\n";
+        for (auto& section : config_sections_)
+        {
+            if (!section.id.empty())
+            {
+                std::cout << "; " << std::setw(50) << std::left << ("disable-" + section.id) << ": "
+                          << (*section.active ? "false" : "true") << "\n";
+            }
+        }
+        std::cout << "; \n";
+
         for (auto& section : config_sections_)
         {
             std::cout << "; # " << section.name << "\n";

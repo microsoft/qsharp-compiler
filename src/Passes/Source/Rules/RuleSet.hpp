@@ -59,6 +59,7 @@ namespace quantum
 
         /// Adds a new replacement rule to the set.
         void addRule(ReplacementRulePtr const& rule);
+        void addRule(ReplacementRule&& rule);
 
         /// Clears the rule set for all rules.
         void clear();

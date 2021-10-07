@@ -12,6 +12,9 @@ namespace quantum
     class LlvmPassesConfiguration
     {
       public:
+        // Default constructor which sets the standard pipeline.
+        LlvmPassesConfiguration();
+
         // Setup and pre-fabricated configurations
 
         /// Setup function that registers the different LLVM passes available via LLVM component.
@@ -38,11 +41,15 @@ namespace quantum
         /// Whether or not the LLVM AlwaysInline pass should be added to the profile.
         bool alwaysInline() const;
 
+        std::string passPipeline() const;
+
       private:
         // Variables that enables or disables the adding of specific passes
         //
 
         bool always_inline_{false}; ///< Whether or not LLVM component should inline.
+
+        std::string pass_pipeline_{""}; ///< Opt compatible LLVM passes pipeline
     };
 
 } // namespace quantum

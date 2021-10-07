@@ -67,7 +67,7 @@ namespace quantum
         /// Registers a new profile component with a given configuration R. The profile component is given
         /// a name and a setup function which is responsible for configuring the profile in accordance
         /// with the configuration.
-        template <typename R> void registerProfileComponent(String const& name, SetupFunction<R> setup);
+        template <typename R> void registerProfileComponent(String const& id, SetupFunction<R> setup);
 
         // Support properties for generators
         //
@@ -116,16 +116,20 @@ namespace quantum
         bool debug_{false};
     };
 
-    template <typename R> void IProfileGenerator::registerProfileComponent(String const& name, SetupFunction<R> setup)
+    template <typename R> void IProfileGenerator::registerProfileComponent(String const& id, SetupFunction<R> setup)
     {
-        configuration_manager_.addConfig<R>();
+        configuration_manager_.addConfig<R>(id);
 
         auto setup_wrapper = [setup](IProfileGenerator* ptr, Profile& profile) {
-            auto& config = ptr->configuration_manager_.get<R>();
-            setup(config, ptr, profile);
+            if (ptr->configuration_manager_.isActive<R>())
+            {
+                auto& config = ptr->configuration_manager_.get<R>();
+
+                setup(config, ptr, profile);
+            }
         };
 
-        components_.push_back({name, std::move(setup_wrapper)});
+        components_.push_back({id, std::move(setup_wrapper)});
     }
 
 } // namespace quantum
