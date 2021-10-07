@@ -18,6 +18,7 @@ type Argument =
     | [<MainCommand; Unique; Last>] Inputs of string list
     | [<InheritAttribute; Unique; AltCommandLine("-b")>] Backup
     | [<InheritAttribute; Unique; AltCommandLine("-r")>] Recurse
+    | [<InheritAttribute; Unique>] QSharp_Version of string
     | [<InheritAttribute; Unique>] Project of string
     | [<SubCommand; CliPrefix(CliPrefix.None)>] Update
     | [<SubCommand; CliPrefix(CliPrefix.None)>] Format
@@ -28,9 +29,10 @@ type Argument =
             | Inputs _ -> "Files or folders to format or \"-\" to read from standard input."
             | Backup -> "Create backup files of input files."
             | Recurse -> "Process the input folder recursively."
+            | QSharp_Version _ -> "Provides a Q# version to the tool."
             | Project _ -> "The project file for the project to process."
-            | Update _ -> "Update depreciated syntax in the input files."
-            | Format _ -> "Format the source code in input files."
+            | Update -> "Update depreciated syntax in the input files."
+            | Format -> "Format the source code in input files."
 
 type CommandKind =
     | Update
@@ -41,6 +43,7 @@ type Arguments =
         CommandKind: CommandKind
         RecurseFlag: bool
         BackupFlag: bool
+        QSharp_Version: Version option
         Inputs: string list
     }
 
@@ -82,8 +85,8 @@ let run arguments inputs =
 
                     let command =
                         match arguments.CommandKind with
-                        | Update -> Formatter.update input
-                        | Format -> Formatter.format
+                        | Update -> Formatter.update input arguments.QSharp_Version
+                        | Format -> Formatter.format arguments.QSharp_Version
 
                     match command source with
                     | Ok result ->
@@ -142,25 +145,41 @@ let main args =
     try
         let results = parser.Parse args
 
-        let inputs, qsharp_version =
+        let inputs, version =
             match results.TryGetResult Project with
             | Some p -> getSourceFiles p
-            | None -> results.GetResult Inputs, None
+            | None ->
+                results.GetResult Inputs,
+                results.TryGetResult QSharp_Version
 
-        let args =
-            {
-                CommandKind =
-                    match results.TryGetSubCommand() with
-                    | None // default to update command
-                    | Some Argument.Update -> Update
-                    | Some Argument.Format -> Format
-                    | _ -> failwith "unrecognized command used"
-                RecurseFlag = results.Contains Recurse
-                BackupFlag = results.Contains Backup
-                Inputs = inputs
-            }
+        let isValidVersion, qsharp_version =
+            match version with
+            | Some s ->
+                match Version.TryParse s with
+                | true, v -> true, Some v
+                | false, _ -> false, None
+            | None -> true, None
 
-        args.Inputs |> run args
+        if isValidVersion then
+
+            let args =
+                {
+                    CommandKind =
+                        match results.TryGetSubCommand() with
+                        | None // default to update command
+                        | Some Argument.Update -> Update
+                        | Some Argument.Format -> Format
+                        | _ -> failwith "unrecognized command used"
+                    RecurseFlag = results.Contains Recurse
+                    BackupFlag = results.Contains Backup
+                    QSharp_Version = qsharp_version
+                    Inputs = inputs
+                }
+
+            args.Inputs |> run args
+        else
+            eprintf "Error: Bad version number."
+            2
     with
     | :? ArguParseException as ex ->
         eprintf "%s" ex.Message

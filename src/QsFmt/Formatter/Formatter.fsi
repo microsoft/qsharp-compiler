@@ -5,15 +5,15 @@
 module Microsoft.Quantum.QsFmt.Formatter.Formatter
 
 open Microsoft.Quantum.QsFmt.Formatter.Errors
+open System
 
 /// Formats the given Q# source code.
 [<CompiledName "Format">]
-val format: string -> Result<string, SyntaxError list>
+val format: Version option -> string -> Result<string, SyntaxError list>
 
 /// Updates deprecated syntax in the given source code.
-/// Takes a Q# file name and source code.
 [<CompiledName "Update">]
-val update: string -> string -> Result<string, SyntaxError list>
+val update: string -> Version option -> string -> Result<string, SyntaxError list>
 
 /// Parses then un-parses the given Q# source code without formatting.
 [<CompiledName "Identity">]
