@@ -78,7 +78,7 @@ namespace quantum
         using String       = std::string;
         using SMDiagnostic = llvm::SMDiagnostic;
 
-        ModuleLoader(Module* final_module)
+        explicit ModuleLoader(Module* final_module)
           : final_module_{final_module}
           , linker_{*final_module}
 

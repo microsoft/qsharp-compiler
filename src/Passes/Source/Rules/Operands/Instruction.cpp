@@ -45,6 +45,7 @@ namespace quantum
     template class InstructionPattern<llvm::BitCastInst>;
     template class InstructionPattern<llvm::IntToPtrInst>;
     template class InstructionPattern<llvm::BranchInst>;
+    template class InstructionPattern<llvm::SelectInst>;
     template class InstructionPattern<llvm::ConstantInt>;
     template class InstructionPattern<llvm::BasicBlock>;
 #pragma clang diagnostic pop
