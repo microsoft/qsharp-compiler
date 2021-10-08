@@ -158,3 +158,6 @@ def test_parser():
     assert(blocks[8].terminator.is_ret)
     assert(len(entry_block.instructions) == 11)
     assert(entry_block.instructions[0].is_call)
+    assert(entry_block.instructions[0].call_func_name == "__quantum__qis__h__body")
+    assert(entry_block.instructions[0].is_qis_call)
+    assert(entry_block.instructions[10].is_qir_call)

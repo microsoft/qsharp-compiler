@@ -581,6 +581,46 @@ impl QirInstruction {
             _ => false,
         }
     }
+
+    #[getter]
+    fn get_call_func_name(&self) -> PyResult<String> {
+        match &self.instr {
+            llvm_ir::instruction::Instruction::Call(call) => match call.function.clone().right() {
+                Some(llvm_ir::operand::Operand::ConstantOperand(cref)) => match cref.as_ref() {
+                    llvm_ir::constant::Constant::GlobalReference { name, ty: _ } => {
+                        Ok(name_to_string(&name))
+                    }
+                    _ => Err(exceptions::PyTypeError::new_err("Unhandled operand type in call.")),
+                },
+                _ => Err(exceptions::PyTypeError::new_err("Unhandled call type.")),
+            },
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not call.")),
+        }
+    }
+
+    #[getter]
+    fn get_is_qis_call(&self) -> bool {
+        match self.get_call_func_name() {
+            Ok(name) => name.starts_with("__quantum__qis__"),
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_is_qrt_call(&self) -> bool {
+        match self.get_call_func_name() {
+            Ok(name) => name.starts_with("__quantum__rt__"),
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_is_qir_call(&self) -> bool {
+        match self.get_call_func_name() {
+            Ok(name) => name.starts_with("__quantum__qir__"),
+            _ => false,
+        }
+    }
 }
 
 #[pymethods]
