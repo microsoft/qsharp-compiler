@@ -3,36 +3,61 @@
 
 module Microsoft.Quantum.QsFmt.App.Program
 
-open Argu
-open Microsoft.Quantum.QsFmt.Formatter
 open System
+open System.Collections.Generic
 open System.IO
-open Microsoft.Build.Locator
 open System.Runtime.Loader
+open CommandLine
+open CommandLine.Text
+open Microsoft.Build.Locator
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
+open Microsoft.Quantum.QsFmt.Formatter
 
-/// A command-line argument.
-[<HelpDescription "Display this list of options.">]
-type Argument =
-    /// The path to the input file.
-    | [<MainCommand; Unique; Last>] Inputs of string list
-    | [<InheritAttribute; Unique; AltCommandLine("-b")>] Backup
-    | [<InheritAttribute; Unique; AltCommandLine("-r")>] Recurse
-    | [<InheritAttribute; Unique>] QSharp_Version of string
-    | [<InheritAttribute; Unique>] Project of string
-    | [<SubCommand; CliPrefix(CliPrefix.None)>] Update
-    | [<SubCommand; CliPrefix(CliPrefix.None)>] Format
+[<Verb("format", HelpText = "Format the source code in input files.", Hidden = true)>]
+type FormatArguments = {
 
-    interface IArgParserTemplate with
-        member arg.Usage =
-            match arg with
-            | Inputs _ -> "Files or folders to format or \"-\" to read from standard input."
-            | Backup -> "Create backup files of input files."
-            | Recurse -> "Process the input folder recursively."
-            | QSharp_Version _ -> "Provides a Q# version to the tool."
-            | Project _ -> "The project file for the project to process."
-            | Update -> "Update depreciated syntax in the input files."
-            | Format -> "Format the source code in input files."
+    [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>] Backup : bool
+    [<Option('r', "recurse", SetName = "INPUT_FILES", HelpText = "Option to process input folders recursively.")>] Recurse : bool
+    [<Option("qsharp-version", SetName = "INPUT_FILES", HelpText = "Option to provide a Q# version to the tool.")>] QdkVersion : string
+    [<Option('i', "inputs", SetName = "INPUT_FILES", Required = true, Min = 1, HelpText = "Files or folders to format or \"-\" to read from standard input.")>] InputFiles : string seq
+    [<Option('p', "project", SetName = "PROJ_FILE", Required = true, HelpText = "The project file for the project to process.")>] ProjectFile : string
+}
+with
+
+    [<Usage(ApplicationAlias = "qsfmt")>]
+    static member examples
+        with get() = seq {
+            yield Example(
+                "Formats the source code in input files",
+                {Backup = false; Recurse = false; InputFiles = seq {"Path\To\My\File1.qs"; "Path\To\My\File2.qs"}; ProjectFile = null; QdkVersion = null; })
+
+            yield Example(
+                "Formats the source code in project",
+                {Backup = false; Recurse = false; InputFiles = Seq.empty; ProjectFile = "Path\To\My\Project.csproj"; QdkVersion = null; })
+        }
+
+[<Verb("update", HelpText = "Updates depreciated syntax in the input files.")>]
+type UpdateArguments = {
+
+    [<Option('b', "backup", HelpText = "Option to create backup files of input files.")>] Backup : bool
+    [<Option('r', "recurse", SetName = "INPUT_FILES", HelpText = "Option to process input folders recursively.")>] Recurse : bool
+    [<Option("qsharp-version", SetName = "INPUT_FILES", HelpText = "Option to provide a Q# version to the tool.")>] QdkVersion : string
+    [<Option('i', "inputs", SetName = "INPUT_FILES", Required = true, Min = 1, HelpText = "Files or folders to format or \"-\" to read from standard input.")>] InputFiles : string seq
+    [<Option('p', "project", SetName = "PROJ_FILE", Required = true, HelpText = "The project file for the project to process.")>] ProjectFile : string
+}
+with
+
+    [<Usage(ApplicationAlias = "qsfmt")>]
+    static member examples
+        with get() = seq {
+            yield Example(
+                "Updates the source code in input files",
+                {Backup = false; Recurse = false; InputFiles = seq {"Path\To\My\File1.qs"; "Path\To\My\File2.qs"}; ProjectFile = null; QdkVersion = null; })
+
+            yield Example(
+                "Updates the source code in project",
+                {Backup = false; Recurse = false; InputFiles = Seq.empty; ProjectFile = "Path\To\My\Project.csproj"; QdkVersion = null; })
+        }
 
 type CommandKind =
     | Update
@@ -83,20 +108,25 @@ let run arguments inputs =
                             if arguments.BackupFlag then File.Copy(input, (input + "~"), true)
                             File.ReadAllText input
 
-                    let command =
-                        match arguments.CommandKind with
-                        | Update -> Formatter.update input arguments.QSharp_Version
-                        | Format -> Formatter.format arguments.QSharp_Version
+                    //let command =
+                    //    match arguments.CommandKind with
+                    //    | Update -> Formatter.update input arguments.QSharp_Version
+                    //    | Format -> Formatter.format arguments.QSharp_Version
 
-                    match command source with
-                    | Ok result ->
-                        if input = "-" then printf "%s" result else File.WriteAllText(input, result)
-                        0
-                    | Error errors ->
-                        // Change the "-" input to say "<Standard Input>" in the error
-                        let input = if input = "-" then "<Standard Input>" else input
-                        errors |> List.iter (eprintfn "%s, %O" input)
-                        1
+                    match arguments.CommandKind with
+                        | Update -> printfn "Version %A, Updated %s" (arguments.QSharp_Version) input
+                        | Format -> printfn "Version %A, Formatted %s" (arguments.QSharp_Version) input
+                    0
+
+                    //match command source with
+                    //| Ok result ->
+                    //    if input = "-" then printf "%s" result else File.WriteAllText(input, result)
+                    //    0
+                    //| Error errors ->
+                    //    // Change the "-" input to say "<Standard Input>" in the error
+                    //    let input = if input = "-" then "<Standard Input>" else input
+                    //    errors |> List.iter (eprintfn "%s, %O" input)
+                    //    1
             with
             | :? IOException as ex ->
                 eprintfn "%s" ex.Message
@@ -109,6 +139,68 @@ let run arguments inputs =
         inputs |> Seq.fold (fun (rtrnCode: int) filePath -> max rtrnCode (filePath |> doOne arguments)) 0
 
     doMany arguments inputs
+
+let runFormat (arguments : FormatArguments) =
+    let inputs, version =
+        if isNull arguments.ProjectFile then
+            arguments.InputFiles |> Seq.toList,
+            arguments.QdkVersion |> Option.ofObj
+        else
+            getSourceFiles arguments.ProjectFile
+
+    let isValidVersion, qsharp_version =
+        match version with
+        | Some s ->
+            match Version.TryParse s with
+            | true, v -> true, Some v
+            | false, _ -> false, None
+        | None -> true, None
+
+    if isValidVersion then
+        let args =
+            {
+                CommandKind = Format
+                RecurseFlag = arguments.Recurse
+                BackupFlag = arguments.Backup
+                QSharp_Version = qsharp_version
+                Inputs = inputs
+            }
+    
+        args.Inputs |> run args
+    else
+        eprintf "Error: Bad version number."
+        2
+
+let runUpdate (arguments : UpdateArguments) =
+    let inputs, version =
+        if isNull arguments.ProjectFile then
+            arguments.InputFiles |> Seq.toList,
+            arguments.QdkVersion |> Option.ofObj
+        else
+            getSourceFiles arguments.ProjectFile
+
+    let isValidVersion, qsharp_version =
+        match version with
+        | Some s ->
+            match Version.TryParse s with
+            | true, v -> true, Some v
+            | false, _ -> false, None
+        | None -> true, None
+
+    if isValidVersion then
+        let args =
+            {
+                CommandKind = Update
+                RecurseFlag = arguments.Recurse
+                BackupFlag = arguments.Backup
+                QSharp_Version = qsharp_version
+                Inputs = inputs
+            }
+    
+        args.Inputs |> run args
+    else
+        eprintf "Error: Bad version number."
+        2
 
 [<CompiledName "Main">]
 [<EntryPoint>]
@@ -140,47 +232,10 @@ let main args =
         // TODO: give some meaningful warning?
         ()
 
-    let parser = ArgumentParser.Create()
 
-    try
-        let results = parser.Parse args
-
-        let inputs, version =
-            match results.TryGetResult Project with
-            | Some p -> getSourceFiles p
-            | None ->
-                results.GetResult Inputs,
-                results.TryGetResult QSharp_Version
-
-        let isValidVersion, qsharp_version =
-            match version with
-            | Some s ->
-                match Version.TryParse s with
-                | true, v -> true, Some v
-                | false, _ -> false, None
-            | None -> true, None
-
-        if isValidVersion then
-
-            let args =
-                {
-                    CommandKind =
-                        match results.TryGetSubCommand() with
-                        | None // default to update command
-                        | Some Argument.Update -> Update
-                        | Some Argument.Format -> Format
-                        | _ -> failwith "unrecognized command used"
-                    RecurseFlag = results.Contains Recurse
-                    BackupFlag = results.Contains Backup
-                    QSharp_Version = qsharp_version
-                    Inputs = inputs
-                }
-
-            args.Inputs |> run args
-        else
-            eprintf "Error: Bad version number."
-            2
-    with
-    | :? ArguParseException as ex ->
-        eprintf "%s" ex.Message
-        2
+    let result = CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments> args
+    result.MapResult(
+        (fun (options: FormatArguments) -> options |> runFormat),
+        (fun (options: UpdateArguments) -> options |> runUpdate),
+        (fun (_ : IEnumerable<Error>)-> 2)
+    )

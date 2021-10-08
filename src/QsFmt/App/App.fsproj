@@ -8,7 +8,6 @@
 
   <ItemGroup>
     <Compile Include="DesignTimeBuild.fs" />
-    <Compile Include="Program.fsi" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
@@ -18,6 +17,7 @@
 
   <ItemGroup>
     <PackageReference Include="Argu" Version="6.1.1" />
+    <PackageReference Include="CommandLineParser" Version="2.8.0" />
     <PackageReference Include="Microsoft.Build" Version="16.9.0" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Framework" Version="16.9.0" ExcludeAssets="runtime" />
     <PackageReference Include="Microsoft.Build.Locator" Version="1.4.1" />
