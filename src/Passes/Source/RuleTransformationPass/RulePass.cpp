@@ -277,7 +277,7 @@ namespace quantum
     {
         if (depth_ >= config_.maxRecursion())
         {
-            llvm::outs() << "Exceed max recursion of " << config_.maxRecursion() << "\n";
+            llvm::outs() << "Exceeded max recursion depth of " << config_.maxRecursion() << " when running on " << function.getName() << "." << "\n";
             return false;
         }
         ++depth_;
