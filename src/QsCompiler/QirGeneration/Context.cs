@@ -36,7 +36,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         static GenerationContext()
         {
             LibContext = Library.InitializeLLVM();
-            LibContext.RegisterTarget(CodeGenTarget.Native);
         }
 
         #region Member variables
@@ -106,6 +105,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly Stack<IValue> inlineLevels;
         private readonly Dictionary<string, int> uniqueLocalNames = new Dictionary<string, int>();
         private readonly Dictionary<string, int> uniqueGlobalNames = new Dictionary<string, int>();
+        private readonly Dictionary<string, GlobalVariable> definedStrings = new Dictionary<string, GlobalVariable>();
 
         private readonly List<(IrFunction, Action<IReadOnlyList<Argument>>)> liftedPartialApplications = new List<(IrFunction, Action<IReadOnlyList<Argument>>)>();
         private readonly Dictionary<string, (QsCallable, GlobalVariable)> callableTables = new Dictionary<string, (QsCallable, GlobalVariable)>();
@@ -286,10 +286,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // to-string conversion functions
             this.runtimeLibrary.AddFunction(RuntimeLibrary.BigIntToString, this.Types.String, this.Types.BigInt);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.BoolToString, this.Types.String, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.DoubleToString, this.Types.String, this.Context.DoubleType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.IntToString, this.Types.String, this.Context.Int64Type);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.PauliToString, this.Types.String, this.Types.Pauli);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.QubitToString, this.Types.String, this.Types.Qubit);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.RangeToString, this.Types.String, this.Types.Range);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ResultToString, this.Types.String, this.Types.Result);
@@ -330,7 +328,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayUpdateReferenceCount, this.Context.VoidType, this.Types.Array, this.Context.Int32Type);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayCopy, this.Types.Array, this.Types.Array, this.Context.BoolType);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayConcatenate, this.Types.Array, this.Types.Array, this.Types.Array);
-            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Context.BoolType);
+            this.runtimeLibrary.AddFunction(RuntimeLibrary.ArraySlice1d, this.Types.Array, this.Types.Array, this.Types.Range, this.Types.Bool);
             this.runtimeLibrary.AddFunction(RuntimeLibrary.ArrayGetSize1d, this.Context.Int64Type, this.Types.Array);
 
             // callable library functions
@@ -468,6 +466,22 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.quantumInstructionSet.GetOrCreateFunction(name);
 
         /// <summary>
+        /// Gets or creates a global constant (data array) that stores the given string.
+        /// The global constant contains a data array with the zero-terminated representation of the string.
+        /// </summary>
+        internal GlobalVariable GetOrCreateStringConstant(string str)
+        {
+            if (!this.definedStrings.TryGetValue(str, out var constant))
+            {
+                var constantString = this.Context.CreateConstantString(str, true);
+                constant = this.Module.AddGlobal(constantString.NativeType, true, Linkage.Internal, constantString);
+                this.definedStrings.Add(str, constant);
+            }
+
+            return constant;
+        }
+
+        /// <summary>
         /// Tries to find a global Q# callable in the current compilation.
         /// </summary>
         /// <param name="fullName">The callable's qualified name</param>
@@ -522,9 +536,16 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             this.ScopeMgr.CloseScope(this.CurrentBlock.Terminator != null);
 
-            if (this.CurrentBlock.Terminator == null && this.CurrentFunction.ReturnType.IsVoid)
+            if (this.CurrentBlock.Terminator == null)
             {
-                this.CurrentBuilder.Return();
+                if (this.CurrentFunction.ReturnType.IsVoid)
+                {
+                    this.CurrentBuilder.Return();
+                }
+                else
+                {
+                    this.CurrentBuilder.Unreachable();
+                }
             }
 
             if (generatePending)
@@ -658,7 +679,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 var name = outerArgItems[0].Item1;
                 if (name != null)
                 {
-                    this.ScopeMgr.RegisterVariable(name, innerTuple);
+                    this.ScopeMgr.RegisterVariable(name, innerTuple, fromLocalId: null);
                 }
                 else
                 {
@@ -677,7 +698,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (argName != null)
                     {
                         this.CurrentFunction.Parameters[i].Name = argName;
-                        this.ScopeMgr.RegisterVariable(argName, argValue);
+                        this.ScopeMgr.RegisterVariable(argName, argValue, fromLocalId: null);
                     }
                     else
                     {
@@ -701,7 +722,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     var element = tupleValue.GetTupleElement(i);
                     if (argName != null)
                     {
-                        this.ScopeMgr.RegisterVariable(argName, element);
+                        this.ScopeMgr.RegisterVariable(argName, element, fromLocalId: null);
                     }
                     else
                     {
@@ -722,7 +743,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
             {
-                this.AddReturn(this.Values.Unit, returnsVoid: false);
+                var udtTuple = this.Values.CreateTuple(this.Values.Unit);
+                this.AddReturn(udtTuple, returnsVoid: false);
             }
             else if (this.CurrentFunction != null)
             {
@@ -820,7 +842,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             // Build the callable table
             var array = ConstantArray.From(this.Types.FunctionSignature.CreatePointerType(), funcs);
-            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
+            return this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
         }
 
         /// <inheritdoc cref="CreateCallableTable"/>
@@ -891,7 +913,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             funcs[1] = func;
 
             var array = ConstantArray.From(this.Types.CaptureCountFunction.CreatePointerType(), funcs);
-            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, name);
+            table = this.Module.AddGlobal(array.NativeType, true, Linkage.Internal, array, $"{name}__FunctionTable");
             this.memoryManagementTables.Add(type, table);
             this.pendingMemoryManagementTables.Add(type);
             return table;
@@ -957,31 +979,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// It extracts the function arguments from the corresponding tuple, calls into the given implementation with them,
         /// and populates the third tuple with the returned values.
         /// </summary>
-        private void GenerateFunctionWrapper(IrFunction func, ResolvedSignature signature, Func<TupleValue, Value> implementation)
+        private void GenerateFunctionWrapper(IrFunction func, ResolvedSignature signature, Func<TupleValue, IValue> implementation)
         {
             // result value contains the return value, and output tuple is the tuple where that value should be stored
-            void PopulateResultTuple(ResolvedType resultType, Value resultValue, Value outputTuple)
+            void PopulateResultTuple(IValue resultValue, TupleValue outputTuple)
             {
-                var resultTupleItemTypes = resultType.Resolution is ResolvedTypeKind.TupleType ts
-                    ? ts.Item
-                    : ImmutableArray.Create(resultType);
-                var qirOutputTuple = this.Values.FromTuple(outputTuple, resultTupleItemTypes);
-
-                if (resultType.Resolution is ResolvedTypeKind.TupleType tupleType)
+                void StoreItemInOutputTuple(int itemIdx, IValue value)
                 {
-                    var resultTuple = this.Values.FromTuple(resultValue, resultTupleItemTypes);
-                    for (int j = 0; j < tupleType.Item.Length; j++)
+                    var itemOutputPointer = outputTuple.GetTupleElementPointer(itemIdx);
+                    itemOutputPointer.StoreValue(value);
+                    this.ScopeMgr.IncreaseReferenceCount(value);
+                }
+
+                if (resultValue is TupleValue resultTuple && resultTuple.TypeName == null)
+                {
+                    var outputItemPtrs = outputTuple.GetTupleElementPointers();
+                    for (int j = 0; j < outputItemPtrs.Length; j++)
                     {
-                        var itemOutputPointer = qirOutputTuple.GetTupleElementPointer(j);
                         var resItem = resultTuple.GetTupleElement(j);
-                        itemOutputPointer.StoreValue(resItem);
+                        StoreItemInOutputTuple(j, resItem);
                     }
                 }
-                else if (!resultType.Resolution.IsUnitType)
+                else if (!resultValue.QSharpType.Resolution.IsUnitType)
                 {
-                    var result = this.Values.From(resultValue, resultType);
-                    var outputPointer = qirOutputTuple.GetTupleElementPointer(0);
-                    outputPointer.StoreValue(result);
+                    StoreItemInOutputTuple(0, resultValue);
                 }
             }
 
@@ -989,7 +1010,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 var argTuple = this.AsArgumentTuple(signature.ArgumentType, parameters[1]);
                 var result = implementation(argTuple);
-                PopulateResultTuple(signature.ReturnType, result, parameters[2]);
+                var resultTupleItemTypes = signature.ReturnType.Resolution is ResolvedTypeKind.TupleType ts
+                    ? ts.Item
+                    : ImmutableArray.Create(signature.ReturnType);
+                var outputTuple = this.Values.FromTuple(parameters[2], resultTupleItemTypes);
+                PopulateResultTuple(result, outputTuple);
             });
         }
 
@@ -1019,20 +1044,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void GenerateRequiredFunctions()
         {
-            Value GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
+            IValue GenerateBaseMethodCall(QsCallable callable, QsSpecializationKind specKind, Value[] args)
             {
+                Value value;
                 if (NameGeneration.TryGetTargetInstructionName(callable, out var name))
                 {
                     var func = this.GetOrCreateTargetInstruction(name);
-                    return specKind == QsSpecializationKind.QsBody
+                    value = specKind == QsSpecializationKind.QsBody
                         ? this.CurrentBuilder.Call(func, args)
                         : throw new ArgumentException($"non-body specialization for target instruction");
                 }
                 else
                 {
                     var func = this.GetFunctionByName(callable.FullName, specKind);
-                    return this.CurrentBuilder.Call(func, args);
+                    value = this.CurrentBuilder.Call(func, args);
                 }
+
+                var result = this.Values.From(value, callable.Signature.ReturnType);
+                this.ScopeMgr.RegisterValue(result);
+                return result;
             }
 
             foreach (var tableName in this.pendingCallableTables)
@@ -1054,7 +1084,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                                     argTuple.ElementTypes.Length > 1 ? argTuple :
                                     argTuple.ElementTypes.Length == 1 ? argTuple.GetTupleElement(0) :
                                     this.Values.Unit;
-                                return implementation(arg).Value;
+                                return implementation(arg);
                             }
                             else
                             {
@@ -1084,10 +1114,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             foreach (var type in this.pendingMemoryManagementTables)
             {
                 var table = this.memoryManagementTables[type];
+                var name = table.Name.Substring(0, table.Name.Length - "__FunctionTable".Length);
                 var functions = new List<(string, Action<Value, IValue>)>
                 {
-                    ($"{table.Name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
-                    ($"{table.Name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
+                    ($"{name}__RefCount", (change, capture) => this.ScopeMgr.UpdateReferenceCount(change, capture)),
+                    ($"{name}__AliasCount", (change, capture) => this.ScopeMgr.UpdateAliasCount(change, capture)),
                 };
 
                 foreach (var (funcName, updateCounts) in functions)

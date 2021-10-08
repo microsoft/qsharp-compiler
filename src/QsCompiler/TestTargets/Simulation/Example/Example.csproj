@@ -17,7 +17,7 @@
   <PropertyGroup>
     <GeneratedFilesOutputPath>generated/</GeneratedFilesOutputPath>
     <ExecutionTestsDir>ExecutionTests/</ExecutionTestsDir>
-    <SimulationTarget>../Target/bin/$(Configuration)/netstandard2.1/Simulation.dll</SimulationTarget>
+    <SimulationTarget>../Target/bin/$(Configuration)/netcoreapp3.1/Simulation.dll</SimulationTarget>
     <AdditionalQscArguments>--load $(SimulationTarget)</AdditionalQscArguments>
     <QscExe>dotnet "../../../CommandLineTool/bin/$(Configuration)/netcoreapp3.1/qsc.dll"</QscExe>
   </PropertyGroup>
