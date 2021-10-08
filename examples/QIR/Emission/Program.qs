@@ -1,46 +1,40 @@
 ﻿namespace Microsoft.Quantum.Qir.Emission {
-
     open Microsoft.Quantum.Intrinsic;
-    open Microsoft.Quantum.Math;
+    open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Arrays;
+    open Microsoft.Quantum.Measurement;
+    open Microsoft.Quantum.Preparation;  
 
-    operation Prepare(target : Qubit) : Unit {
-        H(target);
+    operation PrepareEntangledPair(left : Qubit, right : Qubit) : Unit is Adj + Ctl {
+        H(left);
+        CNOT(left, right);
     }
 
-    operation Iterate(time : Double, theta : Double, target : Qubit) : Result {
+    operation ApplyCorrection(src : Qubit, intermediary : Qubit, dest : Qubit) : Unit {
+        if (MResetZ(src) == One) { Z(dest); }
+        if (MResetZ(intermediary) == One) { X(dest); }
+    }
 
-        use aux = Qubit();
-        within {
-            H(aux);
-        } apply {
-            Rz(-theta * time, aux);
-            Controlled Rz([aux], (PI() * time, target));
-        }
-        return M(aux);
+    operation TeleportQubitUsingPresharedEntanglement(src : Qubit, intermediary : Qubit, dest : Qubit) : Unit {
+        Adjoint PrepareEntangledPair(src, intermediary);
+        ApplyCorrection(src, intermediary, dest);
     }
 
     @EntryPoint()
-    operation EstimatePhaseByRandomWalk(nrIter : Int) : Double {
-            
-        mutable mu = 0.7951;
-        mutable sigma = 0.6065;
-
-        use target = Qubit(); 
-        Prepare(target);
-    
-        for _ in 1 .. nrIter {
-    
-            let theta = mu - PI() * sigma / 2.0;
-            let time = 1.0 / sigma;
-
-            let datum = Iterate(time, theta, target);
-    
-            set mu = datum == Zero
-                ? mu - sigma * 0.6065
-                | mu + sigma * 0.6065;    
-            set sigma *= 0.7951;
+    operation DemonstrateTeleportationUsingPresharedEntanglement() : Bool {
+        let nPairs = 2;
+        use (leftMessage, rightMessage, leftPreshared, rightPreshared) = (Qubit(), Qubit(), Qubit[nPairs], Qubit[nPairs]);
+        PrepareEntangledPair(leftMessage, rightMessage);
+        for i in 0..nPairs-1 {
+            PrepareEntangledPair(leftPreshared[i], rightPreshared[i]);
         }
-        return mu;
+
+        TeleportQubitUsingPresharedEntanglement(rightMessage, leftPreshared[0], rightPreshared[0]);
+        for i in 1..nPairs-1 {
+            TeleportQubitUsingPresharedEntanglement(rightPreshared[i-1], leftPreshared[i], rightPreshared[i]);
+        }
+        
+        return MResetZ(leftMessage) == MResetZ(rightPreshared[nPairs-1]);
     }
 }
 
