@@ -130,20 +130,31 @@ def test_bernstein_vazirani_ir_string():
     assert ir.startswith("; ModuleID = 'Bernstein-Vazirani'")
 
 def test_parser():
-    mod = module_from_bitcode("tests/randwalkphaseest.baseprofile.bc")
-    funcName = "Microsoft__Quantum__Qir__Emission__EstimatePhaseByRandomWalk__Interop"
+    mod = module_from_bitcode("tests/teleportchain.baseprofile.bc")
+    funcName = "TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__Interop"
     func = mod.get_func_by_name(funcName)
     assert(func.name == funcName)
     assert(len(func.parameters) == 0)
-    assert(func.return_type.is_floating_point)
+    assert(func.return_type.is_integer)
     funcList = mod.functions
     assert(len(funcList) == 1)
     assert(funcList[0].name == funcName)
     interop_funcs = mod.get_funcs_by_attr("InteropFriendly")
     assert(len(interop_funcs) == 1)
     assert(interop_funcs[0].name == funcName)
-    assert(interop_funcs[0].get_attribute_value("requiredQubits") == "2")
-    assert(interop_funcs[0].required_qubits == 2)
+    assert(interop_funcs[0].get_attribute_value("requiredQubits") == "6")
+    assert(interop_funcs[0].required_qubits == 6)
     blocks = func.blocks
-    assert(len(blocks) == 3)
+    assert(len(blocks) == 9)
+    assert(blocks[0].name == "entry")
     entry_block = func.get_block_by_name("entry")
+    assert(entry_block.name == "entry")
+    assert(entry_block.terminator.is_condbr)
+    assert(not entry_block.terminator.is_ret)
+    assert(entry_block.terminator.condbr_true_dest == "then0__1.i.i.i")
+    assert(entry_block.terminator.condbr_false_dest == "continue__1.i.i.i")
+    assert(blocks[1].terminator.is_br)
+    assert(blocks[1].terminator.br_dest == "continue__1.i.i.i")
+    assert(blocks[8].terminator.is_ret)
+    assert(len(entry_block.instructions) == 11)
+    assert(entry_block.instructions[0].is_call)
