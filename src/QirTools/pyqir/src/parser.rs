@@ -4,6 +4,7 @@ use pyo3::exceptions;
 use pyo3::prelude::*;
 
 use llvm_ir;
+use llvm_ir::types::Typed;
 
 #[pyclass]
 pub struct QirModule {
@@ -13,6 +14,7 @@ pub struct QirModule {
 #[pyclass]
 pub struct QirFunction {
     pub(super) function: llvm_ir::Function,
+    pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
@@ -23,26 +25,31 @@ pub struct QirParameter {
 #[pyclass]
 pub struct QirBasicBlock {
     pub(super) block: llvm_ir::BasicBlock,
+    pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
 pub struct QirInstruction {
     pub(super) instr: llvm_ir::instruction::Instruction,
+    pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
 pub struct QirTerminator {
     pub(super) term: llvm_ir::terminator::Terminator,
+    pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
 pub struct QirOperand {
     pub(super) op: llvm_ir::Operand,
+    pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
 pub struct QirConstant {
     pub(super) constantref: llvm_ir::ConstantRef,
+    pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
@@ -59,6 +66,7 @@ impl QirModule {
             .iter()
             .map(|f| QirFunction {
                 function: f.clone(),
+                types: self.module.types.clone(),
             })
             .collect()
     }
@@ -67,6 +75,7 @@ impl QirModule {
         match self.module.get_func_by_name(&name) {
             Some(f) => Ok(QirFunction {
                 function: f.clone(),
+                types: self.module.types.clone(),
             }),
             None => Err(exceptions::PyTypeError::new_err(format!(
                 "Function with name '{}' not found",
@@ -89,6 +98,7 @@ impl QirModule {
             })
             .map(|f| QirFunction {
                 function: f.clone(),
+                types: self.module.types.clone(),
             })
             .collect()
     }
@@ -122,7 +132,10 @@ impl QirFunction {
         self.function
             .basic_blocks
             .iter()
-            .map(|b| QirBasicBlock { block: b.clone() })
+            .map(|b| QirBasicBlock {
+                block: b.clone(),
+                types: self.types.clone(),
+            })
             .collect()
     }
 
@@ -164,12 +177,37 @@ impl QirFunction {
             .function
             .get_bb_by_name(&llvm_ir::Name::from(name.clone()))
         {
-            Some(b) => Ok(QirBasicBlock { block: b.clone() }),
+            Some(b) => Ok(QirBasicBlock {
+                block: b.clone(),
+                types: self.types.clone(),
+            }),
             None => Err(exceptions::PyTypeError::new_err(format!(
                 "Block with name '{}' not found",
                 name
             ))),
         }
+    }
+
+    fn get_instruction_by_output_name(&self, name: String) -> PyResult<QirInstruction> {
+        for block in &self.function.basic_blocks {
+            for instr in &block.instrs {
+                match instr.try_get_result() {
+                    Some(resname) => {
+                        if name_to_string(resname) == name {
+                            return Ok(QirInstruction {
+                                instr: instr.clone(),
+                                types: self.types.clone(),
+                            });
+                        }
+                    }
+                    None => continue,
+                }
+            }
+        }
+        Err(exceptions::PyTypeError::new_err(format!(
+            "Instruction with result name '{}' not found",
+            name
+        )))
     }
 }
 
@@ -200,7 +238,10 @@ impl QirBasicBlock {
         self.block
             .instrs
             .iter()
-            .map(|i| QirInstruction { instr: i.clone() })
+            .map(|i| QirInstruction {
+                instr: i.clone(),
+                types: self.types.clone(),
+            })
             .collect()
     }
 
@@ -208,6 +249,7 @@ impl QirBasicBlock {
     fn get_terminator(&self) -> QirTerminator {
         QirTerminator {
             term: self.block.term.clone(),
+            types: self.types.clone(),
         }
     }
 }
@@ -217,7 +259,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_add(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Add(_) => true,
+            llvm_ir::Instruction::Add(_) => true,
             _ => false,
         }
     }
@@ -225,7 +267,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_sub(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Sub(_) => true,
+            llvm_ir::Instruction::Sub(_) => true,
             _ => false,
         }
     }
@@ -233,7 +275,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_mul(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Mul(_) => true,
+            llvm_ir::Instruction::Mul(_) => true,
             _ => false,
         }
     }
@@ -241,7 +283,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_udiv(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::UDiv(_) => true,
+            llvm_ir::Instruction::UDiv(_) => true,
             _ => false,
         }
     }
@@ -249,7 +291,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_sdiv(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::SDiv(_) => true,
+            llvm_ir::Instruction::SDiv(_) => true,
             _ => false,
         }
     }
@@ -257,7 +299,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_urem(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::URem(_) => true,
+            llvm_ir::Instruction::URem(_) => true,
             _ => false,
         }
     }
@@ -265,7 +307,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_srem(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::SRem(_) => true,
+            llvm_ir::Instruction::SRem(_) => true,
             _ => false,
         }
     }
@@ -273,7 +315,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_and(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::And(_) => true,
+            llvm_ir::Instruction::And(_) => true,
             _ => false,
         }
     }
@@ -281,7 +323,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_or(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Or(_) => true,
+            llvm_ir::Instruction::Or(_) => true,
             _ => false,
         }
     }
@@ -289,7 +331,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_xor(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Xor(_) => true,
+            llvm_ir::Instruction::Xor(_) => true,
             _ => false,
         }
     }
@@ -297,7 +339,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_shl(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Shl(_) => true,
+            llvm_ir::Instruction::Shl(_) => true,
             _ => false,
         }
     }
@@ -305,7 +347,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_lshr(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::LShr(_) => true,
+            llvm_ir::Instruction::LShr(_) => true,
             _ => false,
         }
     }
@@ -313,7 +355,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_ashr(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::AShr(_) => true,
+            llvm_ir::Instruction::AShr(_) => true,
             _ => false,
         }
     }
@@ -321,7 +363,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fadd(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FAdd(_) => true,
+            llvm_ir::Instruction::FAdd(_) => true,
             _ => false,
         }
     }
@@ -329,7 +371,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fsub(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FSub(_) => true,
+            llvm_ir::Instruction::FSub(_) => true,
             _ => false,
         }
     }
@@ -337,7 +379,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fmul(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FMul(_) => true,
+            llvm_ir::Instruction::FMul(_) => true,
             _ => false,
         }
     }
@@ -345,7 +387,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fdiv(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FDiv(_) => true,
+            llvm_ir::Instruction::FDiv(_) => true,
             _ => false,
         }
     }
@@ -353,7 +395,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_frem(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FRem(_) => true,
+            llvm_ir::Instruction::FRem(_) => true,
             _ => false,
         }
     }
@@ -361,7 +403,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fneg(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FNeg(_) => true,
+            llvm_ir::Instruction::FNeg(_) => true,
             _ => false,
         }
     }
@@ -369,7 +411,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_extractelement(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::ExtractElement(_) => true,
+            llvm_ir::Instruction::ExtractElement(_) => true,
             _ => false,
         }
     }
@@ -377,7 +419,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_insertelement(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::InsertElement(_) => true,
+            llvm_ir::Instruction::InsertElement(_) => true,
             _ => false,
         }
     }
@@ -385,7 +427,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_shufflevector(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::ShuffleVector(_) => true,
+            llvm_ir::Instruction::ShuffleVector(_) => true,
             _ => false,
         }
     }
@@ -393,7 +435,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_extractvalue(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::ExtractValue(_) => true,
+            llvm_ir::Instruction::ExtractValue(_) => true,
             _ => false,
         }
     }
@@ -401,7 +443,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_insertvalue(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::InsertValue(_) => true,
+            llvm_ir::Instruction::InsertValue(_) => true,
             _ => false,
         }
     }
@@ -409,7 +451,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_alloca(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Alloca(_) => true,
+            llvm_ir::Instruction::Alloca(_) => true,
             _ => false,
         }
     }
@@ -417,7 +459,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_load(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Load(_) => true,
+            llvm_ir::Instruction::Load(_) => true,
             _ => false,
         }
     }
@@ -425,7 +467,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_store(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Store(_) => true,
+            llvm_ir::Instruction::Store(_) => true,
             _ => false,
         }
     }
@@ -433,7 +475,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_getelementptr(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::GetElementPtr(_) => true,
+            llvm_ir::Instruction::GetElementPtr(_) => true,
             _ => false,
         }
     }
@@ -441,7 +483,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_trunc(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Trunc(_) => true,
+            llvm_ir::Instruction::Trunc(_) => true,
             _ => false,
         }
     }
@@ -449,7 +491,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_zext(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::ZExt(_) => true,
+            llvm_ir::Instruction::ZExt(_) => true,
             _ => false,
         }
     }
@@ -457,7 +499,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_sext(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::SExt(_) => true,
+            llvm_ir::Instruction::SExt(_) => true,
             _ => false,
         }
     }
@@ -465,7 +507,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fptrunc(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FPTrunc(_) => true,
+            llvm_ir::Instruction::FPTrunc(_) => true,
             _ => false,
         }
     }
@@ -473,7 +515,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fpext(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FPExt(_) => true,
+            llvm_ir::Instruction::FPExt(_) => true,
             _ => false,
         }
     }
@@ -481,7 +523,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fptoui(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FPToUI(_) => true,
+            llvm_ir::Instruction::FPToUI(_) => true,
             _ => false,
         }
     }
@@ -489,7 +531,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fptosi(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FPToSI(_) => true,
+            llvm_ir::Instruction::FPToSI(_) => true,
             _ => false,
         }
     }
@@ -497,7 +539,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_uitofp(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::UIToFP(_) => true,
+            llvm_ir::Instruction::UIToFP(_) => true,
             _ => false,
         }
     }
@@ -505,7 +547,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_sitofp(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::SIToFP(_) => true,
+            llvm_ir::Instruction::SIToFP(_) => true,
             _ => false,
         }
     }
@@ -513,7 +555,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_ptrtoint(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::PtrToInt(_) => true,
+            llvm_ir::Instruction::PtrToInt(_) => true,
             _ => false,
         }
     }
@@ -521,7 +563,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_inttoptr(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::IntToPtr(_) => true,
+            llvm_ir::Instruction::IntToPtr(_) => true,
             _ => false,
         }
     }
@@ -529,7 +571,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_bitcast(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::BitCast(_) => true,
+            llvm_ir::Instruction::BitCast(_) => true,
             _ => false,
         }
     }
@@ -537,7 +579,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_addrspacecast(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::AddrSpaceCast(_) => true,
+            llvm_ir::Instruction::AddrSpaceCast(_) => true,
             _ => false,
         }
     }
@@ -545,7 +587,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_icmp(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::ICmp(_) => true,
+            llvm_ir::Instruction::ICmp(_) => true,
             _ => false,
         }
     }
@@ -553,7 +595,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_fcmp(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::FCmp(_) => true,
+            llvm_ir::Instruction::FCmp(_) => true,
             _ => false,
         }
     }
@@ -561,7 +603,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_phi(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Phi(_) => true,
+            llvm_ir::Instruction::Phi(_) => true,
             _ => false,
         }
     }
@@ -569,7 +611,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_select(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Select(_) => true,
+            llvm_ir::Instruction::Select(_) => true,
             _ => false,
         }
     }
@@ -577,7 +619,7 @@ impl QirInstruction {
     #[getter]
     fn get_is_call(&self) -> bool {
         match self.instr {
-            llvm_ir::instruction::Instruction::Call(_) => true,
+            llvm_ir::Instruction::Call(_) => true,
             _ => false,
         }
     }
@@ -585,15 +627,32 @@ impl QirInstruction {
     #[getter]
     fn get_call_func_name(&self) -> PyResult<String> {
         match &self.instr {
-            llvm_ir::instruction::Instruction::Call(call) => match call.function.clone().right() {
+            llvm_ir::Instruction::Call(call) => match call.function.clone().right() {
                 Some(llvm_ir::operand::Operand::ConstantOperand(cref)) => match cref.as_ref() {
                     llvm_ir::constant::Constant::GlobalReference { name, ty: _ } => {
                         Ok(name_to_string(&name))
                     }
-                    _ => Err(exceptions::PyTypeError::new_err("Unhandled operand type in call.")),
+                    _ => Err(exceptions::PyTypeError::new_err(
+                        "Unhandled operand type in call.",
+                    )),
                 },
                 _ => Err(exceptions::PyTypeError::new_err("Unhandled call type.")),
             },
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not call.")),
+        }
+    }
+
+    #[getter]
+    fn get_call_func_params(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::Call(call) => Ok(call
+                .arguments
+                .iter()
+                .map(|o| QirOperand {
+                    op: o.0.clone(),
+                    types: self.types.clone(),
+                })
+                .collect()),
             _ => Err(exceptions::PyTypeError::new_err("Instruction is not call.")),
         }
     }
@@ -621,6 +680,24 @@ impl QirInstruction {
             _ => false,
         }
     }
+
+    #[getter]
+    fn get_has_output(&self) -> bool {
+        match self.instr.try_get_result() {
+            Some(_) => true,
+            None => false,
+        }
+    }
+
+    #[getter]
+    fn get_output_name(&self) -> PyResult<String> {
+        match self.instr.try_get_result() {
+            Some(name) => Ok(name_to_string(name)),
+            None => Err(exceptions::PyTypeError::new_err(
+                "Instruction has no output.",
+            )),
+        }
+    }
 }
 
 #[pymethods]
@@ -628,7 +705,7 @@ impl QirTerminator {
     #[getter]
     fn get_is_ret(&self) -> bool {
         match self.term {
-            llvm_ir::terminator::Terminator::Ret(_) => true,
+            llvm_ir::Terminator::Ret(_) => true,
             _ => false,
         }
     }
@@ -636,11 +713,14 @@ impl QirTerminator {
     #[getter]
     fn get_ret_operand(&self) -> PyResult<QirOperand> {
         match &self.term {
-            llvm_ir::terminator::Terminator::Ret(llvm_ir::terminator::Ret {
+            llvm_ir::Terminator::Ret(llvm_ir::terminator::Ret {
                 return_operand,
                 debugloc: _,
             }) => match return_operand {
-                Some(op) => Ok(QirOperand { op: op.clone() }),
+                Some(op) => Ok(QirOperand {
+                    op: op.clone(),
+                    types: self.types.clone(),
+                }),
                 None => Err(exceptions::PyTypeError::new_err(
                     "Return is void and has no operand.",
                 )),
@@ -654,7 +734,7 @@ impl QirTerminator {
     #[getter]
     fn get_is_br(&self) -> bool {
         match self.term {
-            llvm_ir::terminator::Terminator::Br(_) => true,
+            llvm_ir::Terminator::Br(_) => true,
             _ => false,
         }
     }
@@ -662,7 +742,7 @@ impl QirTerminator {
     #[getter]
     fn get_br_dest(&self) -> PyResult<String> {
         match &self.term {
-            llvm_ir::terminator::Terminator::Br(llvm_ir::terminator::Br { dest, debugloc: _ }) => {
+            llvm_ir::Terminator::Br(llvm_ir::terminator::Br { dest, debugloc: _ }) => {
                 Ok(name_to_string(&dest))
             }
             _ => Err(exceptions::PyTypeError::new_err(
@@ -674,7 +754,7 @@ impl QirTerminator {
     #[getter]
     fn get_is_condbr(&self) -> bool {
         match self.term {
-            llvm_ir::terminator::Terminator::CondBr(_) => true,
+            llvm_ir::Terminator::CondBr(_) => true,
             _ => false,
         }
     }
@@ -682,13 +762,14 @@ impl QirTerminator {
     #[getter]
     fn get_condbr_condition(&self) -> PyResult<QirOperand> {
         match &self.term {
-            llvm_ir::terminator::Terminator::CondBr(llvm_ir::terminator::CondBr {
+            llvm_ir::Terminator::CondBr(llvm_ir::terminator::CondBr {
                 condition,
                 true_dest: _,
                 false_dest: _,
                 debugloc: _,
             }) => Ok(QirOperand {
                 op: condition.clone(),
+                types: self.types.clone(),
             }),
             _ => Err(exceptions::PyTypeError::new_err(
                 "Terminator is not condition branch.",
@@ -699,7 +780,7 @@ impl QirTerminator {
     #[getter]
     fn get_condbr_true_dest(&self) -> PyResult<String> {
         match &self.term {
-            llvm_ir::terminator::Terminator::CondBr(llvm_ir::terminator::CondBr {
+            llvm_ir::Terminator::CondBr(llvm_ir::terminator::CondBr {
                 condition: _,
                 true_dest,
                 false_dest: _,
@@ -714,7 +795,7 @@ impl QirTerminator {
     #[getter]
     fn get_condbr_false_dest(&self) -> PyResult<String> {
         match &self.term {
-            llvm_ir::terminator::Terminator::CondBr(llvm_ir::terminator::CondBr {
+            llvm_ir::Terminator::CondBr(llvm_ir::terminator::CondBr {
                 condition: _,
                 true_dest: _,
                 false_dest,
@@ -729,7 +810,7 @@ impl QirTerminator {
     #[getter]
     fn get_is_switch(&self) -> bool {
         match self.term {
-            llvm_ir::terminator::Terminator::Switch(_) => true,
+            llvm_ir::Terminator::Switch(_) => true,
             _ => false,
         }
     }
@@ -737,7 +818,7 @@ impl QirTerminator {
     #[getter]
     fn get_switch_operand(&self) -> PyResult<QirOperand> {
         match self.term {
-            llvm_ir::terminator::Terminator::Switch(_) => Err(exceptions::PyTypeError::new_err(
+            llvm_ir::Terminator::Switch(_) => Err(exceptions::PyTypeError::new_err(
                 "Switch handling not supported.",
             )),
             _ => Err(exceptions::PyTypeError::new_err(
@@ -749,7 +830,7 @@ impl QirTerminator {
     #[getter]
     fn get_switch_dest_values(&self) -> PyResult<Vec<QirConstant>> {
         match self.term {
-            llvm_ir::terminator::Terminator::Switch(_) => Err(exceptions::PyTypeError::new_err(
+            llvm_ir::Terminator::Switch(_) => Err(exceptions::PyTypeError::new_err(
                 "Switch handling not supported.",
             )),
             _ => Err(exceptions::PyTypeError::new_err(
@@ -761,7 +842,7 @@ impl QirTerminator {
     #[getter]
     fn get_switch_dest_names(&self) -> PyResult<Vec<String>> {
         match self.term {
-            llvm_ir::terminator::Terminator::Switch(_) => Err(exceptions::PyTypeError::new_err(
+            llvm_ir::Terminator::Switch(_) => Err(exceptions::PyTypeError::new_err(
                 "Switch handling not supported.",
             )),
             _ => Err(exceptions::PyTypeError::new_err(
@@ -773,8 +854,205 @@ impl QirTerminator {
     #[getter]
     fn get_is_unreachable(&self) -> bool {
         match self.term {
-            llvm_ir::terminator::Terminator::Unreachable(_) => true,
+            llvm_ir::Terminator::Unreachable(_) => true,
             _ => false,
+        }
+    }
+}
+
+#[pymethods]
+impl QirOperand {
+    #[getter]
+    fn get_is_local(&self) -> bool {
+        match self.op {
+            llvm_ir::Operand::LocalOperand { name: _, ty: _ } => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_local_name(&self) -> PyResult<String> {
+        match &self.op {
+            llvm_ir::Operand::LocalOperand { name, ty: _ } => Ok(name_to_string(&name)),
+            _ => Err(exceptions::PyTypeError::new_err("Operand is not local.")),
+        }
+    }
+
+    #[getter]
+    fn get_local_type(&self) -> PyResult<QirType> {
+        match &self.op {
+            llvm_ir::Operand::LocalOperand { name: _, ty } => Ok(QirType {
+                typeref: ty.clone(),
+            }),
+            _ => Err(exceptions::PyTypeError::new_err("Operand is not local.")),
+        }
+    }
+
+    #[getter]
+    fn get_is_constant(&self) -> bool {
+        match self.op {
+            llvm_ir::Operand::ConstantOperand(_) => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_constant(&self) -> PyResult<QirConstant> {
+        match &self.op {
+            llvm_ir::Operand::ConstantOperand(cref) => Ok(QirConstant {
+                constantref: cref.clone(),
+                types: self.types.clone(),
+            }),
+            _ => Err(exceptions::PyTypeError::new_err("Operand is not constant.")),
+        }
+    }
+}
+
+#[pymethods]
+impl QirConstant {
+    #[getter]
+    fn get_is_int(&self) -> bool {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::Int { bits: _, value: _ } => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_int_value(&self) -> PyResult<i64> {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::Int { bits: _, value } => Ok(value.clone() as i64),
+            _ => Err(exceptions::PyTypeError::new_err("Constant is not int.")),
+        }
+    }
+
+    #[getter]
+    fn get_int_width(&self) -> PyResult<u32> {
+        match &self.constantref.as_ref() {
+            llvm_ir::Constant::Int { bits, value: _ } => Ok(bits.clone()),
+            _ => Err(exceptions::PyTypeError::new_err("Constant is not int.")),
+        }
+    }
+
+    #[getter]
+    fn get_is_float(&self) -> bool {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::Float(_) => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_is_null(&self) -> bool {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::Null(_) => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_is_agregate_zero(&self) -> bool {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::AggregateZero(_) => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_is_array(&self) -> bool {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::Array {
+                element_type: _,
+                elements: _,
+            } => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_is_vector(&self) -> bool {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::Vector(_) => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_is_undef(&self) -> bool {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::Undef(_) => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_is_global_reference(&self) -> bool {
+        match self.constantref.as_ref() {
+            llvm_ir::Constant::GlobalReference { name: _, ty: _ } => true,
+            _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_type(&self) -> QirType {
+        QirType {
+            typeref: self.constantref.get_type(&self.types),
+        }
+    }
+
+    #[getter]
+    fn get_is_qubit(&self) -> bool {
+        self.get_type().get_is_qubit()
+    }
+
+    #[getter]
+    fn get_qubit_static_id(&self) -> PyResult<u64> {
+        if !self.get_is_qubit() {
+            Err(exceptions::PyTypeError::new_err("Constant is not qubit."))
+        } else {
+            match &self.constantref.as_ref() {
+                llvm_ir::Constant::Null(_) => Ok(0),
+                llvm_ir::Constant::IntToPtr(llvm_ir::constant::IntToPtr {
+                    operand,
+                    to_type: _,
+                }) => match operand.as_ref() {
+                    llvm_ir::Constant::Int { bits: 64, value } => Ok(value.clone()),
+                    _ => Err(exceptions::PyTypeError::new_err(
+                        "Qubit is not recognized constant.",
+                    )),
+                },
+                _ => Err(exceptions::PyTypeError::new_err(
+                    "Qubit is not recognized constant.",
+                )),
+            }
+        }
+    }
+
+    #[getter]
+    fn get_is_result(&self) -> bool {
+        self.get_type().get_is_result()
+    }
+
+    #[getter]
+    fn get_result_static_id(&self) -> PyResult<u64> {
+        if !self.get_is_result() {
+            Err(exceptions::PyTypeError::new_err("Constant is not result."))
+        } else {
+            match &self.constantref.as_ref() {
+                llvm_ir::Constant::Null(_) => Ok(0),
+                llvm_ir::Constant::IntToPtr(llvm_ir::constant::IntToPtr {
+                    operand,
+                    to_type: _,
+                }) => match operand.as_ref() {
+                    llvm_ir::Constant::Int { bits: 64, value } => Ok(value.clone()),
+                    _ => Err(exceptions::PyTypeError::new_err(
+                        "Result is not recognized constant.",
+                    )),
+                },
+                _ => Err(exceptions::PyTypeError::new_err(
+                    "Result is not recognized constant.",
+                )),
+            }
         }
     }
 }
@@ -953,7 +1231,7 @@ impl QirType {
 
 fn name_to_string(name: &llvm_ir::Name) -> String {
     match name {
-        llvm_ir::name::Name::Name(n) => n.to_string(),
-        llvm_ir::name::Name::Number(n) => n.to_string(),
+        llvm_ir::Name::Name(n) => n.to_string(),
+        llvm_ir::Name::Number(n) => n.to_string(),
     }
 }
