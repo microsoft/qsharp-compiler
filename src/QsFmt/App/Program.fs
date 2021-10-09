@@ -140,23 +140,38 @@ let run arguments inputs =
 
     doMany arguments inputs
 
+let checkFormatArguments (arguments : FormatArguments) =
+    let mutable errors = []
+
+    if not (isNull arguments.ProjectFile) && String.IsNullOrWhiteSpace arguments.ProjectFile then
+        errors <- "Error: Bad project file given." :: errors
+
+    if arguments.InputFiles |> Seq.exists String.IsNullOrWhiteSpace then
+        errors <- "Error: Bad input(s) given." :: errors
+
+    if not (isNull arguments.QdkVersion) then
+        match Version.TryParse arguments.QdkVersion with
+        | false, _  -> errors <- "Error: Bad version number given." :: errors
+        | _ -> ()
+
+    errors
+
 let runFormat (arguments : FormatArguments) =
-    let inputs, version =
-        if isNull arguments.ProjectFile then
-            arguments.InputFiles |> Seq.toList,
-            arguments.QdkVersion |> Option.ofObj
-        else
-            getSourceFiles arguments.ProjectFile
+    let errors = checkFormatArguments arguments
+    if List.isEmpty errors then
 
-    let isValidVersion, qsharp_version =
-        match version with
-        | Some s ->
-            match Version.TryParse s with
-            | true, v -> true, Some v
-            | false, _ -> false, None
-        | None -> true, None
+        let inputs, version =
+            if isNull arguments.ProjectFile then
+                arguments.InputFiles |> Seq.toList,
+                arguments.QdkVersion |> Option.ofObj
+            else
+                getSourceFiles arguments.ProjectFile
 
-    if isValidVersion then
+        let qsharp_version =
+            match version with
+            | Some s -> Version.Parse s |> Some
+            | None -> None
+
         let args =
             {
                 CommandKind = Format
@@ -165,29 +180,44 @@ let runFormat (arguments : FormatArguments) =
                 QSharp_Version = qsharp_version
                 Inputs = inputs
             }
-    
+
         args.Inputs |> run args
     else
-        eprintf "Error: Bad version number."
+        for e in errors do
+            eprintfn "%s" e
         2
 
+let checkUpdateArguments (arguments : UpdateArguments) =
+    let mutable errors = []
+
+    if not (isNull arguments.ProjectFile) && String.IsNullOrWhiteSpace arguments.ProjectFile then
+        errors <- "Error: Bad project file given." :: errors
+
+    if arguments.InputFiles |> Seq.exists String.IsNullOrWhiteSpace then
+        errors <- "Error: Bad input(s) given." :: errors
+
+    if not (isNull arguments.QdkVersion) then
+        match Version.TryParse arguments.QdkVersion with
+        | false, _  -> errors <- "Error: Bad version number given." :: errors
+        | _ -> ()
+
+    errors
+
 let runUpdate (arguments : UpdateArguments) =
-    let inputs, version =
-        if isNull arguments.ProjectFile then
-            arguments.InputFiles |> Seq.toList,
-            arguments.QdkVersion |> Option.ofObj
-        else
-            getSourceFiles arguments.ProjectFile
+    let errors = checkUpdateArguments arguments
+    if List.isEmpty errors then
+        let inputs, version =
+            if isNull arguments.ProjectFile then
+                arguments.InputFiles |> Seq.toList,
+                arguments.QdkVersion |> Option.ofObj
+            else
+                getSourceFiles arguments.ProjectFile
 
-    let isValidVersion, qsharp_version =
-        match version with
-        | Some s ->
-            match Version.TryParse s with
-            | true, v -> true, Some v
-            | false, _ -> false, None
-        | None -> true, None
+        let qsharp_version =
+            match version with
+            | Some s -> Version.Parse s |> Some
+            | None -> None
 
-    if isValidVersion then
         let args =
             {
                 CommandKind = Update
@@ -196,10 +226,11 @@ let runUpdate (arguments : UpdateArguments) =
                 QSharp_Version = qsharp_version
                 Inputs = inputs
             }
-    
+
         args.Inputs |> run args
     else
-        eprintf "Error: Bad version number."
+        for e in errors do
+            eprintfn "%s" e
         2
 
 [<CompiledName "Main">]
