@@ -265,10 +265,44 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_add_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::Add(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not add.")),
+        }
+    }
+
+    #[getter]
     fn get_is_sub(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::Sub(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_sub_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::Sub(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not sub.")),
         }
     }
 
@@ -281,10 +315,44 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_mul_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::Mul(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not mul.")),
+        }
+    }
+
+    #[getter]
     fn get_is_udiv(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::UDiv(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_udiv_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::UDiv(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not udiv.")),
         }
     }
 
@@ -297,10 +365,44 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_sdiv_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::SDiv(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not sdiv.")),
+        }
+    }
+
+    #[getter]
     fn get_is_urem(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::URem(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_urem_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::URem(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not urem.")),
         }
     }
 
@@ -313,10 +415,44 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_srem_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::SRem(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not srem.")),
+        }
+    }
+
+    #[getter]
     fn get_is_and(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::And(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_and_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::And(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not and.")),
         }
     }
 
@@ -329,10 +465,44 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_or_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::Or(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not or.")),
+        }
+    }
+
+    #[getter]
     fn get_is_xor(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::Xor(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_xor_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::Xor(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not xor.")),
         }
     }
 
@@ -345,10 +515,44 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_shl_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::Shl(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not shl.")),
+        }
+    }
+
+    #[getter]
     fn get_is_lshr(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::LShr(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_lshr_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::LShr(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not lshr.")),
         }
     }
 
@@ -361,10 +565,44 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_ashr_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::AShr(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not ashr.")),
+        }
+    }
+
+    #[getter]
     fn get_is_fadd(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::FAdd(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_fadd_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::FAdd(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not fadd.")),
         }
     }
 
@@ -377,10 +615,44 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_fsub_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::FSub(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not fsub.")),
+        }
+    }
+
+    #[getter]
     fn get_is_fmul(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::FMul(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_fmul_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::FMul(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not fmul.")),
         }
     }
 
@@ -393,6 +665,23 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_fdiv_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::FDiv(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not fdiv.")),
+        }
+    }
+
+    #[getter]
     fn get_is_frem(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::FRem(_) => true,
@@ -401,10 +690,38 @@ impl QirInstruction {
     }
 
     #[getter]
+    fn get_frem_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::FRem(instr) => Ok(vec![
+                QirOperand {
+                    op: instr.operand0.clone(),
+                    types: self.types.clone(),
+                },
+                QirOperand {
+                    op: instr.operand1.clone(),
+                    types: self.types.clone(),
+                },
+            ]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not frem.")),
+        }
+    }
+
+    #[getter]
     fn get_is_fneg(&self) -> bool {
         match self.instr {
             llvm_ir::Instruction::FNeg(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_fneg_targets(&self) -> PyResult<Vec<QirOperand>> {
+        match &self.instr {
+            llvm_ir::Instruction::FNeg(instr) => Ok(vec![QirOperand {
+                op: instr.operand.clone(),
+                types: self.types.clone(),
+            }]),
+            _ => Err(exceptions::PyTypeError::new_err("Instruction is not fneg.")),
         }
     }
 
@@ -939,6 +1256,19 @@ impl QirConstant {
         match self.constantref.as_ref() {
             llvm_ir::Constant::Float(_) => true,
             _ => false,
+        }
+    }
+
+    #[getter]
+    fn get_float_double_value(&self) -> PyResult<f64> {
+        match &self.constantref.as_ref() {
+            llvm_ir::Constant::Float(f) => match f {
+                llvm_ir::constant::Float::Double(d) => Ok(d.clone()),
+                _ => Err(exceptions::PyTypeError::new_err(
+                    "Constant is not float double.",
+                )),
+            },
+            _ => Err(exceptions::PyTypeError::new_err("Constant is not float.")),
         }
     }
 
