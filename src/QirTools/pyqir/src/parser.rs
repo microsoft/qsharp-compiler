@@ -246,6 +246,28 @@ impl QirBasicBlock {
     }
 
     #[getter]
+    fn get_phi_nodes(&self) -> Vec<QirInstruction> {
+        self.get_instructions()
+            .into_iter()
+            .filter(|i| i.get_is_phi())
+            .collect()
+    }
+
+    fn get_phi_pairs_by_source_name(&self, name: String) -> Vec<(String, QirOperand)> {
+        self.get_phi_nodes()
+            .iter()
+            .map(|i| {
+                (
+                    i.get_output_name().unwrap(),
+                    i.get_phi_incoming_value_for_name(name.clone()),
+                )
+            })
+            .filter(|phi_pair| phi_pair.1.is_ok())
+            .map(|phi_pair| (phi_pair.0, phi_pair.1.unwrap()))
+            .collect()
+    }
+
+    #[getter]
     fn get_terminator(&self) -> QirTerminator {
         QirTerminator {
             term: self.block.term.clone(),
