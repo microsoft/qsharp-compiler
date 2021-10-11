@@ -72,6 +72,53 @@ type Arguments =
         Inputs: string list
     }
 
+module Arguments =
+    let private checkArguments (arguments : UpdateArguments) =
+        let mutable errors = []
+    
+        if not (isNull arguments.ProjectFile) && String.IsNullOrWhiteSpace arguments.ProjectFile then
+            errors <- "Error: Bad project file given." :: errors
+    
+        if arguments.InputFiles |> Seq.exists String.IsNullOrWhiteSpace then
+            errors <- "Error: Bad input(s) given." :: errors
+    
+        if not (isNull arguments.QdkVersion) then
+            match Version.TryParse arguments.QdkVersion with
+            | false, _  -> errors <- "Error: Bad version number given." :: errors
+            | _ -> ()
+    
+        errors
+
+    let fromUpdateArguments (arguments : UpdateArguments) =
+        let errors = checkArguments arguments
+        if List.isEmpty errors then
+    
+            let inputs, version =
+                if isNull arguments.ProjectFile then
+                    arguments.InputFiles |> Seq.toList,
+                    arguments.QdkVersion |> Option.ofObj
+                else
+                    getSourceFiles arguments.ProjectFile
+    
+            let qsharp_version =
+                match version with
+                | Some s -> Version.Parse s |> Some
+                | None -> None
+    
+            {
+                CommandKind = Format
+                RecurseFlag = arguments.Recurse
+                BackupFlag = arguments.Backup
+                QSharp_Version = qsharp_version
+                Inputs = inputs
+            } |> Result.Ok
+    
+            //args.Inputs |> run args
+        else
+            for e in errors do
+                eprintfn "%s" e
+            2 |> Result.Error
+
 let makeFullPath input =
     if input = "-" then input else Path.GetFullPath input
 
@@ -108,25 +155,20 @@ let run arguments inputs =
                             if arguments.BackupFlag then File.Copy(input, (input + "~"), true)
                             File.ReadAllText input
 
-                    //let command =
-                    //    match arguments.CommandKind with
-                    //    | Update -> Formatter.update input arguments.QSharp_Version
-                    //    | Format -> Formatter.format arguments.QSharp_Version
+                    let command =
+                        match arguments.CommandKind with
+                        | Update -> Formatter.update input arguments.QSharp_Version
+                        | Format -> Formatter.format arguments.QSharp_Version
 
-                    match arguments.CommandKind with
-                        | Update -> printfn "Version %A, Updated %s" (arguments.QSharp_Version) input
-                        | Format -> printfn "Version %A, Formatted %s" (arguments.QSharp_Version) input
-                    0
-
-                    //match command source with
-                    //| Ok result ->
-                    //    if input = "-" then printf "%s" result else File.WriteAllText(input, result)
-                    //    0
-                    //| Error errors ->
-                    //    // Change the "-" input to say "<Standard Input>" in the error
-                    //    let input = if input = "-" then "<Standard Input>" else input
-                    //    errors |> List.iter (eprintfn "%s, %O" input)
-                    //    1
+                    match command source with
+                    | Ok result ->
+                        if input = "-" then printf "%s" result else File.WriteAllText(input, result)
+                        0
+                    | Error errors ->
+                        // Change the "-" input to say "<Standard Input>" in the error
+                        let input = if input = "-" then "<Standard Input>" else input
+                        errors |> List.iter (eprintfn "%s, %O" input)
+                        1
             with
             | :? IOException as ex ->
                 eprintfn "%s" ex.Message
@@ -140,98 +182,24 @@ let run arguments inputs =
 
     doMany arguments inputs
 
-let checkFormatArguments (arguments : FormatArguments) =
-    let mutable errors = []
-
-    if not (isNull arguments.ProjectFile) && String.IsNullOrWhiteSpace arguments.ProjectFile then
-        errors <- "Error: Bad project file given." :: errors
-
-    if arguments.InputFiles |> Seq.exists String.IsNullOrWhiteSpace then
-        errors <- "Error: Bad input(s) given." :: errors
-
-    if not (isNull arguments.QdkVersion) then
-        match Version.TryParse arguments.QdkVersion with
-        | false, _  -> errors <- "Error: Bad version number given." :: errors
-        | _ -> ()
-
-    errors
+let runUpdate (arguments : UpdateArguments) =
+    match Arguments.fromUpdateArguments arguments with
+    | Ok args -> args.Inputs |> run args
+    | Error errorCode -> errorCode
 
 let runFormat (arguments : FormatArguments) =
-    let errors = checkFormatArguments arguments
-    if List.isEmpty errors then
+    let asUpdateArguments =
+        {
+            Backup = arguments.Backup
+            Recurse = arguments.Recurse
+            QdkVersion = arguments.QdkVersion
+            InputFiles = arguments.InputFiles
+            ProjectFile = arguments.ProjectFile
+        }
 
-        let inputs, version =
-            if isNull arguments.ProjectFile then
-                arguments.InputFiles |> Seq.toList,
-                arguments.QdkVersion |> Option.ofObj
-            else
-                getSourceFiles arguments.ProjectFile
-
-        let qsharp_version =
-            match version with
-            | Some s -> Version.Parse s |> Some
-            | None -> None
-
-        let args =
-            {
-                CommandKind = Format
-                RecurseFlag = arguments.Recurse
-                BackupFlag = arguments.Backup
-                QSharp_Version = qsharp_version
-                Inputs = inputs
-            }
-
-        args.Inputs |> run args
-    else
-        for e in errors do
-            eprintfn "%s" e
-        2
-
-let checkUpdateArguments (arguments : UpdateArguments) =
-    let mutable errors = []
-
-    if not (isNull arguments.ProjectFile) && String.IsNullOrWhiteSpace arguments.ProjectFile then
-        errors <- "Error: Bad project file given." :: errors
-
-    if arguments.InputFiles |> Seq.exists String.IsNullOrWhiteSpace then
-        errors <- "Error: Bad input(s) given." :: errors
-
-    if not (isNull arguments.QdkVersion) then
-        match Version.TryParse arguments.QdkVersion with
-        | false, _  -> errors <- "Error: Bad version number given." :: errors
-        | _ -> ()
-
-    errors
-
-let runUpdate (arguments : UpdateArguments) =
-    let errors = checkUpdateArguments arguments
-    if List.isEmpty errors then
-        let inputs, version =
-            if isNull arguments.ProjectFile then
-                arguments.InputFiles |> Seq.toList,
-                arguments.QdkVersion |> Option.ofObj
-            else
-                getSourceFiles arguments.ProjectFile
-
-        let qsharp_version =
-            match version with
-            | Some s -> Version.Parse s |> Some
-            | None -> None
-
-        let args =
-            {
-                CommandKind = Update
-                RecurseFlag = arguments.Recurse
-                BackupFlag = arguments.Backup
-                QSharp_Version = qsharp_version
-                Inputs = inputs
-            }
-
-        args.Inputs |> run args
-    else
-        for e in errors do
-            eprintfn "%s" e
-        2
+    match Arguments.fromUpdateArguments asUpdateArguments with
+    | Ok args -> args.Inputs |> run { args with CommandKind = Format }
+    | Error errorCode -> errorCode
 
 [<CompiledName "Main">]
 [<EntryPoint>]
