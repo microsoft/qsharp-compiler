@@ -144,10 +144,13 @@ namespace quantum
         void optimiseBranchQuantumZero();
 <<<<<<< HEAD
 =======
-        void optimiseSelectQuantumOne();
-        void optimiseSelectQuantumZero();
-        /// @}
+
+        /// Replaces select based branching of quantum results compared to one.
 >>>>>>> features/llvm-passes
+        void optimiseSelectQuantumOne();
+
+        /// Replaces select based branching of quantum results compared to zero.
+        void optimiseSelectQuantumZero();
 
         // Disabling by feature
         //
