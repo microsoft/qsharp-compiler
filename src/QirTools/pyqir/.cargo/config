@@ -15,4 +15,3 @@ rustflags = [
   "-C", "target-feature=+crt-static",
   "-C", "control-flow-guard",
 ]
-
