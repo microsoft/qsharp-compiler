@@ -262,3 +262,65 @@ This input has already been processed: Examples\Example1.qs
         Example1.Path
     |]
     |> runWithFiles true files "" outputResult
+
+[<Fact>]
+let ``Project file as input`` () =
+
+    let makeTestFile (path: string) (index: int) =
+        {
+            Path = path
+            Original = File.ReadAllText path
+            Formatted =
+                index
+                |>  sprintf
+                    "namespace QSharpApplication1 {
+    function Bar%i() : Int {
+        for (i in 0..1) {}
+        return 0;
+    }
+}
+"
+                |> standardizeNewLines
+            Updated =
+                index
+                |> sprintf
+                    "namespace QSharpApplication1 { function Bar%i() : Int { for i in 0..1 {} return 0; } }
+"
+                |> standardizeNewLines
+        }
+    
+    let TestTargetProgram =
+        let path = "..\\TestTargets\\QSharpApplication1\\Program.qs"
+        {
+            Path = path
+            Original = File.ReadAllText path
+            Formatted = "namespace QSharpApplication1 {
+    operation Bar() : Unit {
+        for (i in 0..1) {}
+    }
+}
+"
+                |> standardizeNewLines
+            Updated = "namespace QSharpApplication1 { operation Bar() : Unit { for i in 0..1 {} } }
+"
+                |> standardizeNewLines
+        }
+    let TestTargetIncluded = makeTestFile "..\\TestTargets\\QSharpApplication1\\Included.qs" 1
+    let TestTargetExcluded1 = makeTestFile "..\\TestTargets\\QSharpApplication1\\Excluded1.qs" 2
+    let TestTargetExcluded2 = makeTestFile "..\\TestTargets\\QSharpApplication1\\Excluded2.qs" 3
+
+
+    let files = [ TestTargetProgram; TestTargetIncluded; ]
+
+    [|
+        "update"
+        "-p"
+        "..\\TestTargets\\QSharpApplication1\\QSharpApplication.csproj"
+    |]
+    |> runWithFiles true files "" CleanResult
+
+    let excluded1 = File.ReadAllText TestTargetExcluded1.Path
+    Assert.Equal(excluded1, TestTargetExcluded1.Original)
+
+    let excluded2 = File.ReadAllText TestTargetExcluded2.Path
+    Assert.Equal(excluded2, TestTargetExcluded2.Original)
