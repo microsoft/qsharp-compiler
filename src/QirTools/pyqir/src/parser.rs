@@ -1,5 +1,14 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
+
+// TODO(swernli): The initial version of the parser exposes a subset of the llvm_ir crate API into
+// python directly, along with some extensions that provide QIR specific support (such as `get_qubit_static_id`).
+// Eventually this should be split up similar to how QIR emission functionality works; these wrappers will
+// remain here and provide the pyclass-compatible implementation, the QIR specific extensions will be implemented
+// as traits and extended onto the llvm_ir types as part of the qirlib such that they can be conveniently used
+// from within rust, and wrappers for each class and function will be added to __init__.py so that the 
+// parser API can have full python doc comments for usability.
+
 use pyo3::exceptions;
 use pyo3::prelude::*;
 
