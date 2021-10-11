@@ -189,14 +189,16 @@ let ``Input directories with recursive flag`` () =
             NestedExample2
         ]
 
-    let args = [|
-        "update"
-        "-r"
-        "-i"
-        Example1.Path
-        "Examples\\SubExamples1"
-        "Examples\\SubExamples2"
-    |]
+    let args =
+        [|
+            "update"
+            "-r"
+            "-i"
+            Example1.Path
+            "Examples\\SubExamples1"
+            "Examples\\SubExamples2"
+        |]
+
     runWithFiles true files "" CleanResult args
 
 [<Fact>]
@@ -204,8 +206,7 @@ let ``Process correct files while erroring on incorrect`` () =
     let files = [ Example1; Example2 ]
 
     try
-        let result =
-            run [| "update"; "-i"; Example1.Path; "Examples\\NotFound.qs"; Example2.Path |] ""
+        let result = run [| "update"; "-i"; Example1.Path; "Examples\\NotFound.qs"; Example2.Path |] ""
 
         Assert.Equal(3, result.Code)
         Assert.NotEmpty(result.Error)
@@ -272,7 +273,7 @@ let ``Project file as input`` () =
             Original = File.ReadAllText path
             Formatted =
                 index
-                |>  sprintf
+                |> sprintf
                     "namespace TestTarget {
     function Bar%i() : Int {
         for (i in 0..1) {}
@@ -288,13 +289,15 @@ let ``Project file as input`` () =
 "
                 |> standardizeNewLines
         }
-    
+
     let TestTargetProgram =
         let path = "Examples\\TestTarget\\Program.qs"
+
         {
             Path = path
             Original = File.ReadAllText path
-            Formatted = "namespace TestTarget {
+            Formatted =
+                "namespace TestTarget {
     @EntryPoint()
     operation Bar() : Unit {
         for (i in 0..1) {}
@@ -302,22 +305,20 @@ let ``Project file as input`` () =
 }
 "
                 |> standardizeNewLines
-            Updated = "namespace TestTarget { @EntryPoint() operation Bar() : Unit { for i in 0..1 {} } }
+            Updated =
+                "namespace TestTarget { @EntryPoint() operation Bar() : Unit { for i in 0..1 {} } }
 "
                 |> standardizeNewLines
         }
+
     let TestTargetIncluded = makeTestFile "Examples\\TestTarget\\Included.qs" 1
     let TestTargetExcluded1 = makeTestFile "Examples\\TestTarget\\Excluded1.qs" 2
     let TestTargetExcluded2 = makeTestFile "Examples\\TestTarget\\Excluded2.qs" 3
 
 
-    let files = [ TestTargetProgram; TestTargetIncluded; ]
+    let files = [ TestTargetProgram; TestTargetIncluded ]
 
-    [|
-        "update"
-        "-p"
-        "Examples\\TestTarget\\TestTarget.csproj"
-    |]
+    [| "update"; "-p"; "Examples\\TestTarget\\TestTarget.csproj" |]
     |> runWithFiles true files "" CleanResult
 
     let excluded1 = File.ReadAllText TestTargetExcluded1.Path
