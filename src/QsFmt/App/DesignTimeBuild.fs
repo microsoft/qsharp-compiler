@@ -24,12 +24,13 @@ let getItemsByType (project: ProjectInstance) (itemType: string) =
     project.Items
     |> Seq.where
         (fun item ->
-            item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase) && item.EvaluatedInclude <> null)
+            item.ItemType.Equals(itemType, StringComparison.OrdinalIgnoreCase) && not (isNull item.EvaluatedInclude))
     |> Seq.map (fun item -> Path.Combine(project.Directory, item.EvaluatedInclude))
 
 let getSourceFiles (projectFile: string) =
 
-    // todo: check project file exists?
+    if not <| File.Exists(projectFile) then
+        failwith (sprintf "The given project file, %s does not exist." projectFile)
 
     let mutable project = null
 
@@ -37,7 +38,7 @@ let getSourceFiles (projectFile: string) =
         // Unloading the project unloads the project but *doesn't* clear the cache to be resilient to inconsistent states.
         // Hence we actually need to unload all projects, which does make sure the cache is cleared and changes on disk are reflected.
         // See e.g. https://github.com/Microsoft/msbuild/issues/795
-        if ProjectCollection.GlobalProjectCollection = null then
+        if not (isNull ProjectCollection.GlobalProjectCollection) then
             ProjectCollection.GlobalProjectCollection.UnloadAllProjects() // needed due to the caching behavior of MS build
 
         let properties = globalProperties // TODO: we may need to revise that
@@ -45,7 +46,8 @@ let getSourceFiles (projectFile: string) =
         let instance = project.CreateProjectInstance()
 
         // do we want to check if the project is a Q# project and if not fail?
-        //let isQsProject = instance.Targets.ContainsKey "QSharpCompile"
+        if not <| instance.Targets.ContainsKey "QSharpCompile" then
+            failwith (sprintf "The given project file, %s is not a Q# project file." projectFile)
 
         // get all the source files in the project
         let sourceFiles = getItemsByType instance "QSharpCompile" |> Seq.toList
@@ -58,5 +60,5 @@ let getSourceFiles (projectFile: string) =
         (sourceFiles, version)
 
     finally
-        if project <> null && ProjectCollection.GlobalProjectCollection <> null then
+        if not (isNull project || isNull ProjectCollection.GlobalProjectCollection) then
             ProjectCollection.GlobalProjectCollection.UnloadProject project

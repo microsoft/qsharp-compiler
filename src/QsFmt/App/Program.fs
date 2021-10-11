@@ -106,14 +106,12 @@ module Arguments =
                 | None -> None
     
             {
-                CommandKind = Format
+                CommandKind = Update
                 RecurseFlag = arguments.Recurse
                 BackupFlag = arguments.Backup
                 QSharp_Version = qsharp_version
                 Inputs = inputs
             } |> Result.Ok
-    
-            //args.Inputs |> run args
         else
             for e in errors do
                 eprintfn "%s" e

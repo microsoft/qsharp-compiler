@@ -139,9 +139,9 @@ let private runWithFiles isUpdate files standardInput expectedOutput args =
 
 [<Fact>]
 let ``Updates file`` () =
-    runWithFiles true [ Example1 ] "" CleanResult [| "update"; Example1.Path |]
+    runWithFiles true [ Example1 ] "" CleanResult [| "update"; "-i"; Example1.Path |]
 
-[<Fact>]
+[<Fact(Skip = "Standard Input is not currently supported.")>]
 let ``Updates standard input`` () =
     Assert.Equal(
         {
@@ -152,24 +152,9 @@ let ``Updates standard input`` () =
         run [| "update"; "-" |] StandardInputTest.Original
     )
 
-[<Theory>]
-[<InlineData("namespace Foo { invalid syntax; } ",
-             "<Standard Input>, Line 1, Character 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
-")>]
-let ``Shows syntax errors`` input errors =
-    Assert.Equal(
-        {
-            Code = 1
-            Out = ""
-            Error = errors |> standardizeNewLines
-        },
-        run [| "-" |] input
-    )
-
-[<Theory>]
-[<InlineData "Examples\\NotFound.qs">]
-let ``Shows file not found error`` path =
-    let result = run [| path |] ""
+[<Fact>]
+let ``Shows file not found error`` () =
+    let result = run [| "update"; "-i"; "Examples\\NotFound.qs" |] ""
     Assert.Equal(3, result.Code)
     Assert.Empty result.Out
     Assert.NotEmpty result.Error
@@ -178,27 +163,19 @@ let ``Shows file not found error`` path =
 let ``Input multiple files`` () =
     let files = [ Example1; Example2 ]
 
-    runWithFiles true files "" CleanResult [| "update"; Example1.Path; Example2.Path |]
+    runWithFiles true files "" CleanResult [| "update"; "-i"; Example1.Path; Example2.Path |]
 
 [<Fact>]
 let ``Input directories`` () =
     let files = [ SubExample1; SubExample2; SubExample3 ]
-    runWithFiles true files "" CleanResult [| "update"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
+
+    runWithFiles true files "" CleanResult [| "update"; "-i"; "Examples\\SubExamples1"; "Examples\\SubExamples2" |]
 
 [<Fact>]
-let ``Input directories with files and stdin`` () =
+let ``Input directories with files`` () =
     let files = [ Example1; SubExample1; SubExample2 ]
 
-    [| "update"; Example1.Path; "-"; "Examples\\SubExamples1" |]
-    |> runWithFiles
-        true
-        files
-        StandardInputTest.Original
-        {
-            Code = 0
-            Out = StandardInputTest.Updated
-            Error = ""
-        }
+    runWithFiles true files "" CleanResult [| "update"; "-i"; Example1.Path; "Examples\\SubExamples1" |]
 
 [<Fact>]
 let ``Input directories with recursive flag`` () =
@@ -212,23 +189,15 @@ let ``Input directories with recursive flag`` () =
             NestedExample2
         ]
 
-    [|
+    let args = [|
         "update"
         "-r"
+        "-i"
         Example1.Path
-        "-"
         "Examples\\SubExamples1"
         "Examples\\SubExamples2"
     |]
-    |> runWithFiles
-        true
-        files
-        StandardInputTest.Original
-        {
-            Code = 0
-            Out = StandardInputTest.Updated
-            Error = ""
-        }
+    runWithFiles true files "" CleanResult args
 
 [<Fact>]
 let ``Process correct files while erroring on incorrect`` () =
@@ -236,10 +205,9 @@ let ``Process correct files while erroring on incorrect`` () =
 
     try
         let result =
-            run [| "update"; Example1.Path; "-"; "Examples\\NotFound.qs"; Example2.Path |] StandardInputTest.Original
+            run [| "update"; "-i"; Example1.Path; "Examples\\NotFound.qs"; Example2.Path |] ""
 
         Assert.Equal(3, result.Code)
-        Assert.Equal(StandardInputTest.Updated, result.Out)
         Assert.NotEmpty(result.Error)
 
         for file in files do
@@ -254,16 +222,9 @@ let ``Backup flag`` () =
     let files = [ Example1; SubExample3 ]
 
     try
-        let result = run [| "update"; "-b"; "-"; Example1.Path; "Examples\\SubExamples2" |] StandardInputTest.Original
+        let result = run [| "update"; "-b"; "-i"; Example1.Path; "Examples\\SubExamples2" |] ""
 
-        Assert.Equal(
-            {
-                Code = 0
-                Out = StandardInputTest.Updated
-                Error = ""
-            },
-            result
-        )
+        Assert.Equal(CleanResult, result)
 
         for file in files do
             let backup = file.Path + "~"
@@ -294,6 +255,7 @@ This input has already been processed: Examples\Example1.qs
 
     [|
         "update"
+        "-i"
         Example1.Path
         "Examples\\SubExamples1"
         SubExample1.Path
