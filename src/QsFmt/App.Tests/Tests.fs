@@ -273,7 +273,7 @@ let ``Project file as input`` () =
             Formatted =
                 index
                 |>  sprintf
-                    "namespace QSharpApplication1 {
+                    "namespace TestTarget {
     function Bar%i() : Int {
         for (i in 0..1) {}
         return 0;
@@ -284,30 +284,31 @@ let ``Project file as input`` () =
             Updated =
                 index
                 |> sprintf
-                    "namespace QSharpApplication1 { function Bar%i() : Int { for i in 0..1 {} return 0; } }
+                    "namespace TestTarget { function Bar%i() : Int { for i in 0..1 {} return 0; } }
 "
                 |> standardizeNewLines
         }
     
     let TestTargetProgram =
-        let path = "..\\TestTargets\\QSharpApplication1\\Program.qs"
+        let path = "Examples\\TestTarget\\Program.qs"
         {
             Path = path
             Original = File.ReadAllText path
-            Formatted = "namespace QSharpApplication1 {
+            Formatted = "namespace TestTarget {
+    @EntryPoint()
     operation Bar() : Unit {
         for (i in 0..1) {}
     }
 }
 "
                 |> standardizeNewLines
-            Updated = "namespace QSharpApplication1 { operation Bar() : Unit { for i in 0..1 {} } }
+            Updated = "namespace TestTarget { @EntryPoint() operation Bar() : Unit { for i in 0..1 {} } }
 "
                 |> standardizeNewLines
         }
-    let TestTargetIncluded = makeTestFile "..\\TestTargets\\QSharpApplication1\\Included.qs" 1
-    let TestTargetExcluded1 = makeTestFile "..\\TestTargets\\QSharpApplication1\\Excluded1.qs" 2
-    let TestTargetExcluded2 = makeTestFile "..\\TestTargets\\QSharpApplication1\\Excluded2.qs" 3
+    let TestTargetIncluded = makeTestFile "Examples\\TestTarget\\Included.qs" 1
+    let TestTargetExcluded1 = makeTestFile "Examples\\TestTarget\\Excluded1.qs" 2
+    let TestTargetExcluded2 = makeTestFile "Examples\\TestTarget\\Excluded2.qs" 3
 
 
     let files = [ TestTargetProgram; TestTargetIncluded; ]
@@ -315,7 +316,7 @@ let ``Project file as input`` () =
     [|
         "update"
         "-p"
-        "..\\TestTargets\\QSharpApplication1\\QSharpApplication.csproj"
+        "Examples\\TestTarget\\TestTarget.csproj"
     |]
     |> runWithFiles true files "" CleanResult
 
