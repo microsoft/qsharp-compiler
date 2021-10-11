@@ -1,4 +1,3 @@
-mod intrinsics;
 mod runtime;
 mod simulation;
 
@@ -8,7 +7,7 @@ use inkwell::execution_engine::JitFunction;
 use inkwell::OptimizationLevel;
 
 type SumU64 = unsafe extern "C" fn(u64, u64) -> u64;
-use libloading::{Error, Library, library_filename};
+use libloading::{library_filename, Error, Library};
 
 pub(crate) unsafe fn load_library<P: AsRef<Path>>(base: P, lib: &str) -> Result<Library, Error> {
     let name = library_filename(lib)
@@ -17,6 +16,13 @@ pub(crate) unsafe fn load_library<P: AsRef<Path>>(base: P, lib: &str) -> Result<
     let path = base.as_ref().join(name);
     println!("Loading {:?}", path);
     let runtime = Library::new(path.as_os_str())?;
+
+    let loaded = inkwell::support::load_library_permanently(path.to_str().unwrap());
+    if loaded {
+        println!("Failed to load {} into LLVM", path.to_str().unwrap());
+    } else {
+        println!("Loaded {} into LLVM", path.to_str().unwrap());
+    }
     Ok(runtime)
 }
 
@@ -67,15 +73,13 @@ mod tests {
     use std::path::PathBuf;
 
     use crate::emit::populate_context;
-    use crate::interop::{ClassicalRegister,  QuantumRegister, SemanticModel};
-    use crate::interop::{
-        Controlled, Instruction, Measured, Single,
-    };
+    use crate::interop::{ClassicalRegister, Measured, QuantumRegister, SemanticModel};
+    use crate::interop::{Controlled, Instruction, Single};
     use crate::jit::runtime::Runtime;
     use crate::jit::simulation::Simulator;
     use crate::jit::Context;
     use inkwell::passes::PassManager;
-    use inkwell::targets::TargetTriple;
+    use inkwell::targets::{TargetMachine};
     use inkwell::{
         passes::PassManagerBuilder,
         targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target},
@@ -102,7 +106,7 @@ mod tests {
     }
 
     #[test]
-    #[ignore = "Need QIR Runtime C interface to initialize FullStateSimulator"]
+    #[ignore = "Needs Runtime package to run"]
     fn generate_output_function() {
         let dir = tempdir().expect("");
         let tmp_path = dir.into_path();
@@ -122,6 +126,7 @@ mod tests {
             String::from("qr0"),
             String::from("qr1"),
         )));
+        model.add_inst(Instruction::DumpMachine);
         model.add_inst(Instruction::M(Measured::new(
             String::from("qr0"),
             String::from("qc0"),
@@ -135,13 +140,15 @@ mod tests {
         let context = populate_context(&ctx, &model).unwrap();
 
         Target::initialize_x86(&InitializationConfig::default());
+
         let opt = OptimizationLevel::Default;
         let reloc = RelocMode::Default;
         let model = CodeModel::Default;
-        let target = Target::from_name("x86-64").expect("Unable to load target");
-        let target_triple = TargetTriple::create("x86_64-pc-linux-gnu");
+        let default_triple = TargetMachine::get_default_triple();
+
+        let target = Target::from_triple(&default_triple).expect("Unable to create target machine");
         let target_machine = target
-            .create_target_machine(&target_triple, "x86-64", "", opt, reloc, model)
+            .create_target_machine(&default_triple, "x86-64", "", opt, reloc, model)
             .expect("Unable to create target machine");
 
         assert!(target.has_asm_backend());
@@ -173,21 +180,25 @@ mod tests {
             .write_to_file(&context.module, FileType::Object, &obj_path)
             .is_ok());
         unsafe {
-            let runtime = Runtime::new(&PathBuf::from("/tmp/.tmpbkRoXE")).unwrap();
-            let _simulator = Simulator::new(&PathBuf::from("/tmp/.tmpbkRoXE")).unwrap();
+            let runtime_path = std::env::var("QSHARP_RUNTIME_PATH").unwrap();
+            let runtime = Runtime::new(&PathBuf::from(runtime_path)).unwrap();
+            let simulator_path = std::env::var("QSHARP_NATIVE_SIM_PATH").unwrap();
+            let _simulator = Simulator::new(&PathBuf::from(simulator_path)).unwrap();
 
-            // TODO: Initialize QIR runtime.
+            let driver = runtime.CreateFullstateSimulatorC(rand::prelude::random::<i32>());
+            runtime.InitializeQirContext(driver, true);
 
             let ee = context
                 .module
                 .create_jit_execution_engine(OptimizationLevel::None)
                 .unwrap();
 
-            runtime.map_runtime_calls(&context, &ee);
             let main = ee
                 .get_function::<unsafe extern "C" fn() -> i64>("QuantumApplication__Run")
                 .unwrap();
-            main.call();
+            for _ in 1..10 {
+                main.call();
+            }
         }
     }
 }

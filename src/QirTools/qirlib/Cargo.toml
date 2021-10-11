@@ -10,6 +10,7 @@ inkwell = { git = "https://github.com/TheDan64/inkwell", branch = "master", defa
 log = "0.4.14"
 libloading = "0.7.0"
 cty="0.2.1"
+rand="0.8.4"
 
 [dev-dependencies]
 serial_test = "0.5.1"
