@@ -1,6 +1,8 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
+use log;
+
 use inkwell::context::Context;
 use inkwell::module::Module;
 use inkwell::types::FloatType;
@@ -9,32 +11,19 @@ use inkwell::types::PointerType;
 use inkwell::types::StructType;
 use inkwell::AddressSpace;
 
-const INT: &str = "Int";
-const DOUBLE: &str = "Double";
-const BOOL: &str = "Bool";
-const PAULI: &str = "Pauli";
-//const CALLABLE: &str = "Callable";
-const RESULT: &str = "Result";
-const QUBIT: &str = "Qubit";
-//const RANGE: &str = "Range";
-const BIG_INT: &str = "BigInt";
-const STRING: &str = "String";
-const ARRAY: &str = "Array";
-//const TUPLE: &str = "Tuple";
-
 pub struct Types<'ctx> {
     pub(crate) int: IntType<'ctx>,
     pub(crate) double: FloatType<'ctx>,
     pub(crate) bool: IntType<'ctx>,
     pub(crate) pauli: IntType<'ctx>,
-    //pub(crate) range: StructType<'ctx>,
+    pub(crate) range: Option<StructType<'ctx>>,
     pub(crate) result: PointerType<'ctx>,
     pub(crate) qubit: PointerType<'ctx>,
     pub(crate) string: PointerType<'ctx>,
-    //pub(crate) big_int: PointerType<'ctx>,
-    //pub(crate) tuple: PointerType<'ctx>,
+    pub(crate) big_int: Option<PointerType<'ctx>>,
+    pub(crate) tuple: Option<PointerType<'ctx>>,
     pub(crate) array: PointerType<'ctx>,
-    //pub(crate) callable: PointerType<'ctx>,
+    pub(crate) callable: Option<PointerType<'ctx>>,
 }
 
 impl<'ctx> Types<'ctx> {
@@ -45,30 +34,37 @@ impl<'ctx> Types<'ctx> {
             bool: context.bool_type(),
             pauli: context.custom_width_int_type(2),
 
-            //range: Types::get_struct(module, RANGE),
-            result: Types::get_struct_pointer(module, RESULT),
-            qubit: Types::get_struct_pointer(module, QUBIT),
-            string: Types::get_struct_pointer(module, STRING),
-            // todo: big_int isn't defined in the current template .ll
-            //big_int: Types::get_struct_pointer(module, BIG_INT),
-            //tuple: Types::get_struct_pointer(module, TUPLE),
-            array: Types::get_struct_pointer(module, ARRAY),
-            //callable: Types::get_struct_pointer(module, CALLABLE),
+            range: Types::get_struct(module, "Range"),
+            result: Types::get_struct_pointer(module, "Result").expect("Result must be defined"),
+            qubit: Types::get_struct_pointer(module, "Qubit").expect("Qubit must be defined"),
+            string: Types::get_struct_pointer(module, "String").expect("String must be defined"),
+            big_int: Types::get_struct_pointer(module, "BigInt"),
+            tuple: Types::get_struct_pointer(module, "Tuple"),
+            array: Types::get_struct_pointer(module, "Array").expect("Array must be defined"),
+            callable: Types::get_struct_pointer(module, "Callable"),
         }
     }
 
-    fn get_struct(module: &Module<'ctx>, name: &str) -> StructType<'ctx> {
-        if let Some(defined_struct) = module.get_struct_type(name) {
-            return defined_struct;
+    fn get_struct(module: &Module<'ctx>, name: &str) -> Option<StructType<'ctx>> {
+        let defined_struct = module.get_struct_type(name);
+        match defined_struct {
+            None => {
+                log::debug!("{} was not defined in the module", name);
+                None
+            }
+            Some(value) => Some(value),
         }
-        panic!("{} was not defined in the module", name);
     }
 
-    fn get_struct_pointer(module: &Module<'ctx>, name: &str) -> PointerType<'ctx> {
-        if let Some(defined_struct) = module.get_struct_type(name) {
-            return defined_struct.ptr_type(AddressSpace::Generic);
+    fn get_struct_pointer(module: &Module<'ctx>, name: &str) -> Option<PointerType<'ctx>> {
+        let defined_struct = module.get_struct_type(name);
+        match defined_struct {
+            None => {
+                log::debug!("{} struct was not defined in the module", name);
+                None
+            }
+            Some(value) => Some(value.ptr_type(AddressSpace::Generic)),
         }
-        panic!("{} struct was not defined in the module", name);
     }
 }
 

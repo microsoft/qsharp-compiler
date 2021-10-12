@@ -5,14 +5,26 @@
 
 # Build
 
-$srcRoot = Get-Location
+$srcRoot = Get-RepoRoot
 $buildDir = Join-Path $srcRoot build
 $llvmCmakeFile = Join-Path $buildDir llvm.cmake
 $llvmRootDir = Join-Path $srcRoot external llvm-project
 $llvmBuildDir = Join-Path $llvmRootDir build
 $llvmDir = Join-Path $llvmRootDir llvm
 
-if ($null -ne (get-command ccache -ErrorAction SilentlyContinue) ) {
+if (Test-CommandExists sccache) {
+    Write-Vso "Found sccache command"
+    # Set cap and make sure dir is created
+    if ((Test-Path Env:\SCCACHE_DIR)) {
+        $Env:SCCACHE_DIR = Resolve-Path $Env:SCCACHE_DIR
+    }
+    if (!(Test-Path $Env:SCCACHE_DIR)) {
+        mkdir $Env:SCCACHE_DIR | Out-Null
+    }
+    $Env:SCCACHE_CACHE_SIZE = "2G"
+    & { sccache --start-server } -ErrorAction SilentlyContinue
+}
+elseif (Test-CommandExists ccache) {
     Write-Vso "Found ccache command"
 
     if (-not (Test-Path env:\CCACHE_DIR)) {
@@ -22,7 +34,7 @@ if ($null -ne (get-command ccache -ErrorAction SilentlyContinue) ) {
     Assert (![string]::IsNullOrWhiteSpace($Env:CCACHE_DIR)) "CCACHE_DIR is not set"
 
     # Set cap and make sure dir is created
-    if(!(Test-Path $Env:CCACHE_DIR)) {
+    if (!(Test-Path $Env:CCACHE_DIR)) {
         mkdir $Env:CCACHE_DIR | Out-Null
     }
     $Env:CCACHE_DIR = Resolve-Path $Env:CCACHE_DIR
@@ -45,11 +57,11 @@ Assert (![string]::IsNullOrWhiteSpace($Env:PKG_NAME)) "PKG_NAME is not set"
 
 Assert (Test-CommandExists "cmake") "CMAKE not found"
 Assert (Test-CommandExists "ninja") "Ninja-Build not found"
-if($IsLinux) {
+if ($IsLinux) {
     Assert (Test-CommandExists "docker") "Docker not found"
 }
 
-if(!(Test-Path $llvmBuildDir)) {
+if (!(Test-Path $llvmBuildDir)) {
     mkdir $llvmBuildDir | Out-Null
 }
 
@@ -73,14 +85,24 @@ if ($IsLinux) {
         Assert (Test-Path $srcRoot) "$($srcRoot) is missing"
 
         Write-Vso "Running container image:"
-        $command = "docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $($srcRoot):$($srcRoot) -v $($cacheRoot):$($cacheRoot) manylinux-llvm-builder"
-        if(Test-Path env:\CMAKE_INSTALL_PREFIX) {
-            $command = "docker run --rm -t --user vsts -e CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX) -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $($srcRoot):$($srcRoot) -v $($cacheRoot):$($cacheRoot) manylinux-llvm-builder"
-        }
+        $srcVolume = "$($srcRoot):$($srcRoot)"
+        $cacheVolume = "$($cacheRoot):$($cacheRoot)"
 
-        Write-Vso $command
-        exec {
-            Invoke-Expression $command
+        if (Test-Path env:\CMAKE_INSTALL_PREFIX) {
+            if (!(Test-Path $env:CMAKE_INSTALL_PREFIX)) {
+                New-Item -ItemType Directory -Path $env:CMAKE_INSTALL_PREFIX -Force | Out-Null
+            }
+            $cmakeInstallVolume = "$($env:CMAKE_INSTALL_PREFIX):$($env:CMAKE_INSTALL_PREFIX)"
+            Write-Vso "docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume -v $cmakeInstallVolume -e LLVM_INSTALL_DIR=$Env:CMAKE_INSTALL_PREFIX -e CMAKE_FLAGS=""-D CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX)"" manylinux-llvm-builder" "command"
+            exec {
+                docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume -v $cmakeInstallVolume -e LLVM_INSTALL_DIR=$Env:CMAKE_INSTALL_PREFIX -e CMAKE_FLAGS="-D CMAKE_INSTALL_PREFIX=$($Env:CMAKE_INSTALL_PREFIX)" manylinux-llvm-builder
+            }
+        }
+        else {
+            Write-Vso "docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume manylinux-llvm-builder" "command"
+            exec {
+                docker run --rm -t --user vsts -e PKG_NAME=$($Env:PKG_NAME) -e SOURCE_DIR=$srcRoot -e LLVM_CMAKEFILE=$llvmCmakeFile -e LLVM_DIR=$llvmDir -e LLVM_BUILD_DIR=$llvmBuildDir -e CCACHE_DIR=$cacheRoot -e CCACHE_CONFIGPATH=$cacheRoot -v $srcVolume -v $cacheVolume manylinux-llvm-builder
+            }
         }
     }
 
@@ -88,41 +110,34 @@ if ($IsLinux) {
     Invoke-ContainerImage
 }
 else {
-
     if ($IsWindows) {
-        # find VS root
-        $vswhere = "${env:ProgramFiles(x86)}\Microsoft Visual Studio\Installer\vswhere.exe"
-        $visualStudioPath = & $vswhere -prerelease -latest -property installationPath
-        Write-Output "vs located at: $visualStudioPath"
-
-        # Call vcvars64.bat and write the set calls to file
-        cmd.exe /c "call `"$visualStudioPath\VC\Auxiliary\Build\vcvars64.bat`" && set > %temp%\vcvars.txt"
-
-        # Read the set calls and set the corresponding pwsh env vars
-        Get-Content "$Env:temp\vcvars.txt" | Foreach-Object {
-            if ($_ -match "^(.*?)=(.*)$") {
-                Set-Content "env:\$($matches[1])" $matches[2]
-                Write-Host "setting env: $($matches[1]) = $($matches[2])"
-            }
-        }
-
-        # set up ccache env vars which are fed to ccache on the commandline on linux/mac
-        $Env:CCACHE_CPP2 = "yes"
-        $Env:CCACHE_HASHDIR = "yes"
+        . (Join-Path $PSScriptRoot "vcvars.ps1")
     }
 
     exec -wd $llvmBuildDir {
         Write-Vso "Generating makefiles"
-        cmake -G Ninja -C $llvmCmakeFile $llvmDir
+        $flags = ""
+        if (Test-Path env:\CMAKE_INSTALL_PREFIX) {
+            $flags += "-D CMAKE_INSTALL_PREFIX=""$($Env:CMAKE_INSTALL_PREFIX)"""
+        }
+        cmake -G Ninja -C $llvmCmakeFile $flags $llvmDir
     }
 
     exec -wd $llvmBuildDir {
         Write-Vso "ninja package" "command"
         ninja package
     }
+
+    if ((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE)) {
+        Write-Vso "ninja install" "command"
+        exec -wd $llvmBuildDir {
+            ninja install
+        }
+    }
 }
 
 exec -wd $llvmBuildDir {
-    $package = Resolve-Path "$($Env:PKG_NAME)*"
+    $package = Resolve-Path "$($Env:PKG_NAME)*" -ErrorAction SilentlyContinue
+    Assert ($null -ne $package) "Package is null"
     Assert (Test-Path $package) "Could not resolve package $package"
 }

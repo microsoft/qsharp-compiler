@@ -1,22 +1,24 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qirlib::{
-    emit::Emitter,
-    interop::{
-        ClassicalRegister, Controlled, Instruction, QuantumRegister, Rotated, SemanticModel, Single,
-    },
+use qirlib::emit;
+use qirlib::interop::{
+    ClassicalRegister, Controlled, Instruction, Measured, QuantumRegister, Rotated, SemanticModel,
+    Single,
 };
+
 use serial_test::serial;
+use std::path::Path;
 use std::{env, fs};
 use std::{
     io::{self, Write},
     path::PathBuf,
 };
-use std::{ops::Add, path::Path};
+use tempfile::tempdir;
 
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn zero_to_one_x_measure() {
     execute(
         "zero_to_one_x_measure",
@@ -26,6 +28,7 @@ fn zero_to_one_x_measure() {
 }
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn zero_to_one_or_zero_h_measure() {
     execute(
         "zero_to_one_or_zero_h_measure",
@@ -36,6 +39,7 @@ fn zero_to_one_or_zero_h_measure() {
 
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn one_to_one_or_zero_h_measure() {
     execute(
         "one_to_one_or_zero_h_measure",
@@ -45,6 +49,7 @@ fn one_to_one_or_zero_h_measure() {
 }
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn bell_circuit_with_measurement() {
     execute(
         "bell_measure",
@@ -55,18 +60,21 @@ fn bell_circuit_with_measurement() {
 
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn bell_circuit_no_measurement() {
     execute("bell_no_measure", write_bell_no_measure, vec!["[]"]);
 }
 
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn empty_model() {
     execute("empty", write_empty_model, vec!["[]"]);
 }
 
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_only_qubit_allocations() {
     execute(
         "model_with_only_qubit_allocations",
@@ -76,6 +84,7 @@ fn model_with_only_qubit_allocations() {
 }
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_only_result_allocations() {
     execute(
         "model_with_only_result_allocations",
@@ -86,6 +95,7 @@ fn model_with_only_result_allocations() {
 
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_no_instructions() {
     execute(
         "model_with_no_instructions",
@@ -95,6 +105,7 @@ fn model_with_no_instructions() {
 }
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_single_qubit_instructions() {
     execute(
         "model_with_single_qubit_instructions",
@@ -104,6 +115,7 @@ fn model_with_single_qubit_instructions() {
 }
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn single_qubit_model_with_measurement() {
     execute(
         "single_qubit_model_with_measurement",
@@ -113,6 +125,7 @@ fn single_qubit_model_with_measurement() {
 }
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_instruction_cx() {
     execute(
         "model_with_instruction_cx",
@@ -123,6 +136,7 @@ fn model_with_instruction_cx() {
 
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_instruction_cz() {
     execute(
         "model_with_instruction_cz",
@@ -132,6 +146,7 @@ fn model_with_instruction_cz() {
 }
 #[test]
 #[serial]
+#[ignore = "TODO: Replace with JIT execution."]
 fn bernstein_vazirani() {
     execute(
         "bernstein_vazirani",
@@ -140,34 +155,24 @@ fn bernstein_vazirani() {
     );
 }
 
+// Assumes compiler is on the path.
 fn get_compiler_name() -> &'static str {
-    // todo: resolve which clang is needed here.
     if cfg!(target_os = "windows") {
-        return r"C:\LLVM\bin\clang++";
+        return r"clang++";
     } else {
-        return r"/usr/bin/clang++-11";
+        return r"clang++-11";
     }
 }
 fn execute(name: &str, generator: fn(&str) -> (), expected_results: Vec<&str>) {
-    // set up test dir
-    // todo: create new random tmp dir. The copies for now overwrite
-    let mut test_dir = env::temp_dir();
-    test_dir.push("tests");
-
-    if let Err(_) = fs::create_dir(&test_dir) {
-        // todo: check if the dir exists. Rust implementation returns an error
-        // instead of being idempotent.
-    }
-    println!("{}", test_dir.display());
+    let dir = tempdir().expect("Could not create temporary directory");
+    let test_dir = dir.path().to_path_buf();
+    let ir_path = dir.path().join(format!("{}.ll", name.replace(" ", "_")));
 
     // generate the QIR
-    let mut ir_path = PathBuf::from(&test_dir);
-    ir_path.push(name.replace(" ", "_"));
-    ir_path.set_extension("ll");
-    generator(ir_path.to_str().unwrap());
+    println!("Writing {:?}", ir_path);
+    generator(ir_path.display().to_string().as_str());
 
-    let mut app = PathBuf::from(&test_dir);
-    app.push(name);
+    let mut app = dir.path().join(name);
 
     // todo change extension based on platform
     // ie exe on windows.
@@ -268,14 +273,15 @@ fn copy_files(source: &PathBuf, target: &PathBuf) {
 
 fn execute_circuit(app: &str, expected_results: Vec<&str>) {
     let parent = String::from(Path::new(app).parent().unwrap().to_str().unwrap());
-    let mut ld_path = parent.clone();
-    if let Ok(existing_value) = env::var("LD_LIBRARY_PATH") {
-        ld_path = format!("{}:{}", parent.as_str(), existing_value);
-    }
 
     let mut command = std::process::Command::new(app);
     if cfg!(target_os = "linux") {
-        command.env("LD_LIBRARY_PATH", ld_path.as_str());
+        if let Ok(existing_value) = env::var("LD_LIBRARY_PATH") {
+            let ld_path = format!("{}:{}", parent.as_str(), existing_value);
+            command.env("LD_LIBRARY_PATH", ld_path);
+        } else {
+            command.env("LD_LIBRARY_PATH", parent);
+        }
     }
 
     println!("{:?}", command);
@@ -295,7 +301,7 @@ fn execute_circuit(app: &str, expected_results: Vec<&str>) {
 fn write_empty_model(file_name: &str) {
     let name = String::from("empty");
     let model = SemanticModel::new(name);
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_single_qubit_instructions(file_name: &str) {
     let name = String::from("model_with_single_qubit_instructions");
@@ -312,7 +318,7 @@ fn write_model_with_single_qubit_instructions(file_name: &str) {
     model.add_inst(Instruction::T(Single::new(String::from("qr0"))));
     model.add_inst(Instruction::TAdj(Single::new(String::from("qr0"))));
 
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_instruction_cx(file_name: &str) {
     let name = String::from("model_with_instruction_cx");
@@ -325,7 +331,7 @@ fn write_model_with_instruction_cx(file_name: &str) {
         String::from("qr1"),
     )));
 
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 
 fn write_model_with_instruction_cz(file_name: &str) {
@@ -339,14 +345,14 @@ fn write_model_with_instruction_cz(file_name: &str) {
         String::from("qr1"),
     )));
 
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_only_qubit_allocations(file_name: &str) {
     let name = String::from("model_with_only_qubit_allocations");
     let mut model = SemanticModel::new(name);
     model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
     model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_only_result_allocations(file_name: &str) {
     let name = String::from("model_with_only_result_allocations");
@@ -354,7 +360,7 @@ fn write_model_with_only_result_allocations(file_name: &str) {
     model.add_reg(ClassicalRegister::new(String::from("qa"), 4).as_register());
     model.add_reg(ClassicalRegister::new(String::from("qb"), 3).as_register());
     model.add_reg(ClassicalRegister::new(String::from("qc"), 2).as_register());
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_no_instructions(file_name: &str) {
     let name = String::from("model_with_no_instructions");
@@ -362,7 +368,7 @@ fn write_model_with_no_instructions(file_name: &str) {
     model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
     model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
     model.add_reg(ClassicalRegister::new(String::from("qc"), 2).as_register());
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 fn write_bell_no_measure(file_name: &str) {
     let name = String::from("Bell circuit");
@@ -375,7 +381,7 @@ fn write_bell_no_measure(file_name: &str) {
         String::from("qr0"),
         String::from("qr1"),
     )));
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 
 fn write_single_qubit_model_with_measurement(file_name: &str) {
@@ -384,12 +390,12 @@ fn write_single_qubit_model_with_measurement(file_name: &str) {
     model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
     model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
 
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("qr0"),
+        String::from("qc0"),
+    )));
 
-    Emitter::write(&model, file_name).unwrap();
+    emit::write(&model, file_name).unwrap();
 }
 fn write_one_to_one_or_zero_h_measure(file_name: &str) {
     let name = String::from("write_one_to_one_or_zero_h_measure");
@@ -399,11 +405,11 @@ fn write_one_to_one_or_zero_h_measure(file_name: &str) {
 
     model.add_inst(Instruction::X(Single::new(String::from("qr0"))));
     model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
-    Emitter::write(&model, file_name).unwrap();
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("qr0"),
+        String::from("qc0"),
+    )));
+    emit::write(&model, file_name).unwrap();
 }
 fn write_zero_to_one_or_zero_h_measure(file_name: &str) {
     let name = String::from("write_zero_to_one_or_zero_h_measure");
@@ -412,11 +418,11 @@ fn write_zero_to_one_or_zero_h_measure(file_name: &str) {
     model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
 
     model.add_inst(Instruction::H(Single::new(String::from("qr0"))));
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
-    Emitter::write(&model, file_name).unwrap();
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("qr0"),
+        String::from("qc0"),
+    )));
+    emit::write(&model, file_name).unwrap();
 }
 fn write_zero_to_one_x_measure(file_name: &str) {
     let name = String::from("Bell circuit");
@@ -425,11 +431,11 @@ fn write_zero_to_one_x_measure(file_name: &str) {
     model.add_reg(ClassicalRegister::new(String::from("qc"), 1).as_register());
 
     model.add_inst(Instruction::X(Single::new(String::from("qr0"))));
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
-    Emitter::write(&model, file_name).unwrap();
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("qr0"),
+        String::from("qc0"),
+    )));
+    emit::write(&model, file_name).unwrap();
 }
 fn write_bell_measure(file_name: &str) {
     let name = String::from("Bell circuit");
@@ -443,15 +449,15 @@ fn write_bell_measure(file_name: &str) {
         String::from("qr0"),
         String::from("qr1"),
     )));
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr0"),
-        target: String::from("qc0"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("qr1"),
-        target: String::from("qc1"),
-    });
-    Emitter::write(&model, file_name).unwrap();
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("qr0"),
+        String::from("qc0"),
+    )));
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("qr1"),
+        String::from("qc1"),
+    )));
+    emit::write(&model, file_name).unwrap();
 }
 
 fn write_bernstein_vazirani(file_name: &str) {
@@ -494,30 +500,33 @@ fn write_bernstein_vazirani(file_name: &str) {
     model.add_inst(Instruction::H(Single::new(String::from("input_2"))));
     model.add_inst(Instruction::H(Single::new(String::from("input_3"))));
     model.add_inst(Instruction::H(Single::new(String::from("input_4"))));
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_0"),
-        target: String::from("output_0"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_1"),
-        target: String::from("output_1"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_2"),
-        target: String::from("output_2"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_3"),
-        target: String::from("output_3"),
-    });
-    model.add_inst(Instruction::M {
-        qubit: String::from("input_4"),
-        target: String::from("output_4"),
-    });
+
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("input_0"),
+        String::from("output_0"),
+    )));
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("input_1"),
+        String::from("output_1"),
+    )));
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("input_2"),
+        String::from("output_2"),
+    )));
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("input_3"),
+        String::from("output_3"),
+    )));
+    model.add_inst(Instruction::M(Measured::new(
+        String::from("input_4"),
+        String::from("output_4"),
+    )));
+
     model.add_inst(Instruction::Reset(Single::new(String::from("input_0"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_1"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_2"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_3"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_4"))));
-    Emitter::write(&model, file_name).unwrap();
+
+    emit::write(&model, file_name).unwrap();
 }

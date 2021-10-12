@@ -5,6 +5,15 @@ use inkwell::values::{BasicValue, BasicValueEnum};
 
 use crate::emit::Context;
 
+pub(crate) fn i8_null_ptr<'ctx>(context: &Context<'ctx>) -> BasicValueEnum<'ctx> {
+    context
+        .context
+        .i8_type()
+        .ptr_type(inkwell::AddressSpace::Generic)
+        .const_null()
+        .as_basic_value_enum()
+}
+
 pub(crate) fn f64_to_f64<'ctx>(context: &Context<'ctx>, value: &f64) -> BasicValueEnum<'ctx> {
     context
         .types

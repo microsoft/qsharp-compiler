@@ -19,21 +19,31 @@ pub mod types;
 
 pub fn write(model: &SemanticModel, file_name: &str) -> Result<(), String> {
     let ctx = inkwell::context::Context::create();
-    let context = Context::new(&ctx, model.name.as_str());
+    let context = populate_context(&ctx, &model)?;
 
-    build_entry_function(&context, model)?;
-    context.emit_ir(file_name);
+    context.emit_ir(file_name)?;
 
     Ok(())
 }
 
 pub fn get_ir_string(model: &SemanticModel) -> Result<String, String> {
     let ctx = inkwell::context::Context::create();
+    let context = populate_context(&ctx, &model)?;
+
+    let ir = context.get_ir_string();
+
+    Ok(ir)
+}
+
+pub fn populate_context<'a>(
+    ctx: &'a inkwell::context::Context,
+    model: &'a SemanticModel,
+) -> Result<Context<'a>, String> {
     let context = Context::new(&ctx, model.name.as_str());
 
     build_entry_function(&context, model)?;
 
-    Ok(context.get_ir_string())
+    Ok(context)
 }
 
 fn build_entry_function(context: &Context<'_>, model: &SemanticModel) -> Result<(), String> {
@@ -159,11 +169,12 @@ impl<'ctx> Context<'ctx> {
         self.module.write_bitcode_to_path(&bitcode_path);
     }
 
-    pub fn emit_ir(&self, file_path: &str) {
+    pub fn emit_ir(&self, file_path: &str) -> Result<(), String> {
         let ir_path = Path::new(file_path);
-        if let Err(_) = self.module.print_to_file(ir_path) {
-            todo!()
+        if let Err(llvmstr) = self.module.print_to_file(ir_path) {
+            return Err(llvmstr.to_string());
         }
+        Ok(())
     }
 
     pub fn get_ir_string(&self) -> String {

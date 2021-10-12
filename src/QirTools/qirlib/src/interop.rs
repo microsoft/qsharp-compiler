@@ -104,6 +104,7 @@ pub enum Instruction {
     X(Single),
     Y(Single),
     Z(Single),
+    DumpMachine,
 }
 
 pub struct SemanticModel {
