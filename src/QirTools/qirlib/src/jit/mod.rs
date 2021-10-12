@@ -3,10 +3,8 @@ mod simulation;
 
 use std::path::Path;
 
-use inkwell::execution_engine::JitFunction;
 use inkwell::OptimizationLevel;
 
-type SumU64 = unsafe extern "C" fn(u64, u64) -> u64;
 use libloading::{library_filename, Error, Library};
 
 pub(crate) unsafe fn load_library<P: AsRef<Path>>(base: P, lib: &str) -> Result<Library, Error> {
@@ -49,24 +47,6 @@ impl<'ctx> Context<'ctx> {
             execution_engine,
         }
     }
-
-    fn jit_compile_sumu64(&self, name: &'ctx str) -> Option<JitFunction<'ctx, SumU64>> {
-        let i64_type = self.context.i64_type();
-        let fn_type = i64_type.fn_type(&[i64_type.into(), i64_type.into()], false);
-        let function = self.module.add_function(name, fn_type, None);
-        let basic_block = self.context.append_basic_block(function, "entry");
-
-        self.builder.position_at_end(basic_block);
-
-        let x = function.get_nth_param(0)?.into_int_value();
-        let y = function.get_nth_param(1)?.into_int_value();
-
-        let sum = self.builder.build_int_add(x, y, name);
-
-        self.builder.build_return(Some(&sum));
-
-        unsafe { self.execution_engine.get_function(name).ok() }
-    }
 }
 
 #[cfg(test)]
@@ -79,6 +59,7 @@ mod tests {
     use crate::jit::runtime::Runtime;
     use crate::jit::simulation::Simulator;
     use crate::jit::Context;
+    use inkwell::execution_engine::JitFunction;
     use inkwell::passes::PassManager;
     use inkwell::targets::{TargetMachine};
     use inkwell::{
@@ -87,6 +68,7 @@ mod tests {
         OptimizationLevel,
     };
     use tempfile::tempdir;
+    type SumU64 = unsafe extern "C" fn(u64, u64) -> u64;
 
     #[test]
     fn jit_compilation_of_simple_function() {
@@ -94,8 +76,7 @@ mod tests {
         let name = "jit_compilation_of_simple_function";
         let context = Context::new(&ctx, name);
 
-        let sum = context
-            .jit_compile_sumu64(name)
+        let sum = jit_compile_sumu64(context, name)
             .expect("Unable to JIT compile sum function");
 
         let x = 1u64;
@@ -104,6 +85,24 @@ mod tests {
         unsafe {
             assert_eq!(sum.call(x, y), x + y);
         }
+    }
+
+    fn jit_compile_sumu64<'ctx>(context: Context<'ctx>, name: &'ctx str) -> Option<JitFunction<'ctx, SumU64>> {
+        let i64_type = context.context.i64_type();
+        let fn_type = i64_type.fn_type(&[i64_type.into(), i64_type.into()], false);
+        let function = context.module.add_function(name, fn_type, None);
+        let basic_block = context.context.append_basic_block(function, "entry");
+
+        context.builder.position_at_end(basic_block);
+
+        let x = function.get_nth_param(0)?.into_int_value();
+        let y = function.get_nth_param(1)?.into_int_value();
+
+        let sum = context.builder.build_int_add(x, y, name);
+
+        context.builder.build_return(Some(&sum));
+
+        unsafe { context.execution_engine.get_function(name).ok() }
     }
 
     #[test]
