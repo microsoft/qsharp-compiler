@@ -185,11 +185,29 @@ function Restore-ConfigTomlWithLlvmInfo {
     Add-Content -Path $configPath -Value "LLVM_SYS_110_PREFIX = '$installationDirectory'"
 }
 
-# Get the current git hash. This code is depenedent on the current working directory
-function Get-CommitHash {
-    # rev-parse changes length based on your git settings, use length = 9
-    # to match azure devops
-    exec { git rev-parse --short=9 HEAD }
+function Get-LlvmSubmoduleSha {
+    $status = Get-LlvmSubmoduleStatus
+    $sha = $status.Substring(1, 9)
+    $sha
+}
+
+function Get-LlvmSubmoduleStatus {
+    Write-Vso "Detected submodules: $(git submodule status --cached)"
+    $statusResult = exec -wd (Get-RepoRoot) { git submodule status --cached }
+    # on all platforms, the status uses '/' in the module path.
+    $status = $statusResult.Split([Environment]::NewLine) | ? { $_.Contains("external/llvm-project") } | Select-Object -First 1
+    $status
+}
+
+function Test-LlvmSubmoduleInitialized {
+    $status = Get-LlvmSubmoduleStatus
+    if($status.Substring(0,1) -eq "-") {
+        Write-Vso "LLVM Submodule Uninitialized"
+        return $false
+    } else {
+        Write-Vso "LLVM Submodule Initialized"
+        return $true
+    }
 }
 
 # Gets the LLVM package triple for the current platform
@@ -223,18 +241,12 @@ function Get-LlvmSha {
     # Sometimes the CI fails to initilize AQ_LLVM_PACKAGE_GIT_VERSION correctly
     # so we need to make sure it isn't empty.
     if ((Test-Path env:\AQ_LLVM_PACKAGE_GIT_VERSION) -and ![string]::IsNullOrWhiteSpace($Env:AQ_LLVM_PACKAGE_GIT_VERSION)) {
+        Write-Vso "Use environment submodule version: $($env:AQ_LLVM_PACKAGE_GIT_VERSION)"
         $env:AQ_LLVM_PACKAGE_GIT_VERSION
     }
     else {
-        $srcRoot = Get-RepoRoot
-        if (Test-Path env:\BUILD_SOURCESDIRECTORY) {
-            Write-Vso "Build.SourcesDirectory: $($env:BUILD_SOURCESDIRECTORY)"
-            $srcRoot = Resolve-Path $($env:BUILD_SOURCESDIRECTORY)
-        }
-        $llvmDir = Join-Path $srcRoot external llvm-project
-
-        Assert (Test-Path $llvmDir) "llvm-project submodule is missing"
-        $sha = exec -wd $llvmDir { Get-CommitHash }
+        $sha = exec { Get-LlvmSubmoduleSha }
+        Write-Vso "Use cached submodule version: $sha"
         $sha
     }
 }

@@ -125,20 +125,14 @@ function Install-LlvmFromSource {
 }
 
 function Test-Prerequisites {
-    function Test-SubmoduleInitialized {
-        $repoSha = exec -wd (Get-RepoRoot) { Get-CommitHash }
-        $submoduleSha = Get-LlvmSha
-        $repoSha -ne $submoduleSha
-    }
-
-    if (!(Test-SubmoduleInitialized)) {
+    if (!(Test-LlvmSubmoduleInitialized)) {
         Write-Vso "llvm-project submodule isn't initialized"
         Write-Vso "Initializing submodules: git submodule init"
         exec -wd (Get-RepoRoot) { git submodule init }
         Write-Vso "Updating submodules: git submodule update --depth 1 --recursive"
         exec -wd (Get-RepoRoot) { git submodule update --depth 1 --recursive }
     }
-    Assert (Test-SubmoduleInitialized) "Failed to read initialized llvm-project submodule"
+    Assert (Test-LlvmSubmoduleInitialized) "Failed to read initialized llvm-project submodule"
 }
 
 function Initialize-Environment {
