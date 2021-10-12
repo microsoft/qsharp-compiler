@@ -120,8 +120,7 @@ let main args =
         finally
             Directory.SetCurrentDirectory(cwd)
     with
-    | _ ->
-        ()
+    | _ -> ()
 
 
     let result = CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments> args

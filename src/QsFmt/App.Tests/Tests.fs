@@ -158,7 +158,9 @@ let ``Shows syntax errors`` () =
         {
             Code = 1
             Out = ""
-            Error = standardizeNewLines "Examples\SyntaxError.qs, Line 1, Character 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
+            Error =
+                standardizeNewLines
+                    "Examples\SyntaxError.qs, Line 1, Character 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
 "
         },
         run [| "update"; "-i"; "Examples\\SyntaxError.qs" |] ""
