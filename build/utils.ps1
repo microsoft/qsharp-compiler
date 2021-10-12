@@ -201,10 +201,11 @@ function Get-LlvmSubmoduleStatus {
 
 function Test-LlvmSubmoduleInitialized {
     $status = Get-LlvmSubmoduleStatus
-    if($status.Substring(0,1) -eq "-") {
+    if ($status.Substring(0, 1) -eq "-") {
         Write-Vso "LLVM Submodule Uninitialized"
         return $false
-    } else {
+    }
+    else {
         Write-Vso "LLVM Submodule Initialized"
         return $true
     }

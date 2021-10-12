@@ -18,7 +18,7 @@ if (Test-CommandExists sccache) {
     if ((Test-Path Env:\SCCACHE_DIR)) {
         $Env:SCCACHE_DIR = Resolve-Path $Env:SCCACHE_DIR
     }
-    if(!(Test-Path $Env:SCCACHE_DIR)) {
+    if (!(Test-Path $Env:SCCACHE_DIR)) {
         mkdir $Env:SCCACHE_DIR | Out-Null
     }
     $Env:SCCACHE_CACHE_SIZE = "2G"
@@ -89,7 +89,7 @@ if ($IsLinux) {
         $cacheVolume = "$($cacheRoot):$($cacheRoot)"
 
         if (Test-Path env:\CMAKE_INSTALL_PREFIX) {
-            if(!(Test-Path $env:CMAKE_INSTALL_PREFIX)) {
+            if (!(Test-Path $env:CMAKE_INSTALL_PREFIX)) {
                 New-Item -ItemType Directory -Path $env:CMAKE_INSTALL_PREFIX -Force | Out-Null
             }
             $cmakeInstallVolume = "$($env:CMAKE_INSTALL_PREFIX):$($env:CMAKE_INSTALL_PREFIX)"
