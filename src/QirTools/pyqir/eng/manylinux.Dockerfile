@@ -36,4 +36,4 @@ WORKDIR /io
 
 RUN yum install -y libffi-devel
 
-RUN python -m pip install --user -U tox
+ENTRYPOINT ["/usr/bin/maturin"]
