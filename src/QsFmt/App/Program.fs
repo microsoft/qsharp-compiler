@@ -121,7 +121,6 @@ let main args =
             Directory.SetCurrentDirectory(cwd)
     with
     | _ ->
-        // TODO: give some meaningful warning?
         ()
 
 

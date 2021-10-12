@@ -7,6 +7,7 @@ open System
 open CommandLine
 open CommandLine.Text
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
+open System.IO
 
 [<Verb("format", HelpText = "Format the source code in input files.", Hidden = true)>]
 type FormatArguments =
@@ -23,13 +24,13 @@ type FormatArguments =
                  SetName = "INPUT_FILES",
                  Required = true,
                  Min = 1,
-                 HelpText = "Files or folders to format or \"-\" to read from standard input.")>]
+                 HelpText = "Files or folders to format.")>]
         InputFiles: string seq
         [<Option('p',
                  "project",
                  SetName = "PROJ_FILE",
                  Required = true,
-                 HelpText = "The project file for the project to process.")>]
+                 HelpText = "The project file for the project to format.")>]
         ProjectFile: string
     }
 
@@ -44,8 +45,8 @@ type FormatArguments =
                         Recurse = false
                         InputFiles =
                             seq {
-                                "Path\To\My\File1.qs"
-                                "Path\To\My\File2.qs"
+                                Path.Combine("Path", "To", "My", "File1.qs")
+                                Path.Combine("Path", "To", "My", "File2.qs")
                             }
                         ProjectFile = null
                         QdkVersion = null
@@ -59,7 +60,7 @@ type FormatArguments =
                         Backup = false
                         Recurse = false
                         InputFiles = Seq.empty
-                        ProjectFile = "Path\To\My\Project.csproj"
+                        ProjectFile = Path.Combine("Path", "To", "My", "Project.csproj")
                         QdkVersion = null
                     }
                 )
@@ -80,13 +81,13 @@ type UpdateArguments =
                  SetName = "INPUT_FILES",
                  Required = true,
                  Min = 1,
-                 HelpText = "Files or folders to format or \"-\" to read from standard input.")>]
+                 HelpText = "Files or folders to update.")>]
         InputFiles: string seq
         [<Option('p',
                  "project",
                  SetName = "PROJ_FILE",
                  Required = true,
-                 HelpText = "The project file for the project to process.")>]
+                 HelpText = "The project file for the project to update.")>]
         ProjectFile: string
     }
 
@@ -101,8 +102,8 @@ type UpdateArguments =
                         Recurse = false
                         InputFiles =
                             seq {
-                                "Path\To\My\File1.qs"
-                                "Path\To\My\File2.qs"
+                                Path.Combine("Path", "To", "My", "File1.qs")
+                                Path.Combine("Path", "To", "My", "File2.qs")
                             }
                         ProjectFile = null
                         QdkVersion = null
@@ -116,7 +117,7 @@ type UpdateArguments =
                         Backup = false
                         Recurse = false
                         InputFiles = Seq.empty
-                        ProjectFile = "Path\To\My\Project.csproj"
+                        ProjectFile = Path.Combine("Path", "To", "My", "Project.csproj")
                         QdkVersion = null
                     }
                 )
