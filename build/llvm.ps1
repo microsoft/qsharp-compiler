@@ -111,7 +111,7 @@ if ($IsLinux) {
 }
 else {
     if ($IsWindows) {
-        . ./vcvars.ps1
+        . (Join-Path $PSScriptRoot "vcvars.ps1")
     }
 
     exec -wd $llvmBuildDir {
