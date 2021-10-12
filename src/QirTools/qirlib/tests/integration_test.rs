@@ -18,7 +18,7 @@ use tempfile::tempdir;
 
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn zero_to_one_x_measure() {
     execute(
         "zero_to_one_x_measure",
@@ -28,7 +28,7 @@ fn zero_to_one_x_measure() {
 }
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn zero_to_one_or_zero_h_measure() {
     execute(
         "zero_to_one_or_zero_h_measure",
@@ -39,7 +39,7 @@ fn zero_to_one_or_zero_h_measure() {
 
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn one_to_one_or_zero_h_measure() {
     execute(
         "one_to_one_or_zero_h_measure",
@@ -49,7 +49,7 @@ fn one_to_one_or_zero_h_measure() {
 }
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn bell_circuit_with_measurement() {
     execute(
         "bell_measure",
@@ -60,21 +60,21 @@ fn bell_circuit_with_measurement() {
 
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn bell_circuit_no_measurement() {
     execute("bell_no_measure", write_bell_no_measure, vec!["[]"]);
 }
 
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn empty_model() {
     execute("empty", write_empty_model, vec!["[]"]);
 }
 
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_only_qubit_allocations() {
     execute(
         "model_with_only_qubit_allocations",
@@ -84,7 +84,7 @@ fn model_with_only_qubit_allocations() {
 }
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_only_result_allocations() {
     execute(
         "model_with_only_result_allocations",
@@ -95,7 +95,7 @@ fn model_with_only_result_allocations() {
 
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_no_instructions() {
     execute(
         "model_with_no_instructions",
@@ -105,7 +105,7 @@ fn model_with_no_instructions() {
 }
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_single_qubit_instructions() {
     execute(
         "model_with_single_qubit_instructions",
@@ -115,7 +115,7 @@ fn model_with_single_qubit_instructions() {
 }
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn single_qubit_model_with_measurement() {
     execute(
         "single_qubit_model_with_measurement",
@@ -125,7 +125,7 @@ fn single_qubit_model_with_measurement() {
 }
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_instruction_cx() {
     execute(
         "model_with_instruction_cx",
@@ -136,7 +136,7 @@ fn model_with_instruction_cx() {
 
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn model_with_instruction_cz() {
     execute(
         "model_with_instruction_cz",
@@ -146,7 +146,7 @@ fn model_with_instruction_cz() {
 }
 #[test]
 #[serial]
-#[ignore = "Requires qubit reset/read fixes with latest runtime"]
+#[ignore = "TODO: Replace with JIT execution."]
 fn bernstein_vazirani() {
     execute(
         "bernstein_vazirani",
