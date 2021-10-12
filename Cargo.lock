@@ -349,7 +349,6 @@ dependencies = [
 name = "pyqir"
 version = "0.9999.2110-alpha"
 dependencies = [
- "either",
  "env_logger",
  "llvm-ir",
  "log",
@@ -366,6 +365,7 @@ dependencies = [
  "cty",
  "inkwell",
  "libloading",
+ "llvm-ir",
  "llvm-sys",
  "log",
  "rand",

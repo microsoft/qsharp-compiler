@@ -6,7 +6,7 @@
 // Eventually this should be split up similar to how QIR emission functionality works; these wrappers will
 // remain here and provide the pyclass-compatible implementation, the QIR specific extensions will be implemented
 // as traits and extended onto the llvm_ir types as part of the qirlib such that they can be conveniently used
-// from within rust, and wrappers for each class and function will be added to __init__.py so that the 
+// from within rust, and wrappers for each class and function will be added to __init__.py so that the
 // parser API can have full python doc comments for usability.
 
 use pyo3::exceptions;
@@ -86,7 +86,7 @@ impl QirModule {
                 function: f.clone(),
                 types: self.module.types.clone(),
             }),
-            None => Err(exceptions::PyTypeError::new_err(format!(
+            None => Err(exceptions::PyLookupError::new_err(format!(
                 "Function with name '{}' not found",
                 name
             ))),
@@ -175,7 +175,7 @@ impl QirFunction {
                 _ => continue,
             }
         }
-        Err(exceptions::PyTypeError::new_err(format!(
+        Err(exceptions::PyLookupError::new_err(format!(
             "Attribute with name '{}' not found",
             attr_name
         )))
@@ -190,7 +190,7 @@ impl QirFunction {
                 block: b.clone(),
                 types: self.types.clone(),
             }),
-            None => Err(exceptions::PyTypeError::new_err(format!(
+            None => Err(exceptions::PyLookupError::new_err(format!(
                 "Block with name '{}' not found",
                 name
             ))),
@@ -213,7 +213,7 @@ impl QirFunction {
                 }
             }
         }
-        Err(exceptions::PyTypeError::new_err(format!(
+        Err(exceptions::PyLookupError::new_err(format!(
             "Instruction with result name '{}' not found",
             name
         )))
@@ -670,7 +670,7 @@ impl QirInstruction {
             .find(|phi_pair| phi_pair.1 == name)
         {
             Some((op, _)) => Ok(op),
-            None => Err(exceptions::PyTypeError::new_err(format!(
+            None => Err(exceptions::PyLookupError::new_err(format!(
                 "Phi instruction has no incoming value for block named '{}'",
                 name
             ))),
@@ -695,11 +695,11 @@ impl QirInstruction {
                     llvm_ir::constant::Constant::GlobalReference { name, ty: _ } => {
                         Ok(name_to_string(&name))
                     }
-                    _ => Err(exceptions::PyTypeError::new_err(
+                    _ => Err(exceptions::PyNotImplementedError::new_err(
                         "Unhandled operand type in call.",
                     )),
                 },
-                _ => Err(exceptions::PyTypeError::new_err("Unhandled call type.")),
+                _ => Err(exceptions::PyNotImplementedError::new_err("Unhandled call type.")),
             },
             _ => Err(exceptions::PyTypeError::new_err("Instruction is not call.")),
         }
