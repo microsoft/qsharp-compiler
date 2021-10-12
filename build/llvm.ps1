@@ -127,17 +127,17 @@ else {
         Write-Vso "ninja package" "command"
         ninja package
     }
+
+    if ((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE)) {
+        Write-Vso "ninja install" "command"
+        exec -wd $llvmBuildDir {
+            ninja install
+        }
+    }
 }
 
 exec -wd $llvmBuildDir {
     $package = Resolve-Path "$($Env:PKG_NAME)*" -ErrorAction SilentlyContinue
     Assert ($null -ne $package) "Package is null"
     Assert (Test-Path $package) "Could not resolve package $package"
-}
-
-if ((Test-Path Env:\INSTALL_LLVM_PACKAGE) -and ($true -eq $Env:INSTALL_LLVM_PACKAGE)) {
-    Write-Vso "ninja install" "command"
-    exec -wd $llvmBuildDir {
-        ninja install
-    }
 }
