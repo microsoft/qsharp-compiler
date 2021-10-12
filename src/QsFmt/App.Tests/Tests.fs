@@ -153,6 +153,18 @@ let ``Updates standard input`` () =
     )
 
 [<Fact>]
+let ``Shows syntax errors`` () =
+    Assert.Equal(
+        {
+            Code = 1
+            Out = ""
+            Error = standardizeNewLines "Examples\SyntaxError.qs, Line 1, Character 16: mismatched input 'invalid' expecting {'function', 'internal', 'newtype', 'open', 'operation', '@', '}'}
+"
+        },
+        run [| "update"; "-i"; "Examples\\SyntaxError.qs" |] ""
+    )
+
+[<Fact>]
 let ``Shows file not found error`` () =
     let result = run [| "update"; "-i"; "Examples\\NotFound.qs" |] ""
     Assert.Equal(3, result.Code)

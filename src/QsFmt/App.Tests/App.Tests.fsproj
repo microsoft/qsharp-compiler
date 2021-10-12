@@ -6,6 +6,9 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Content Include="Examples\SyntaxError.qs">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Content>
     <Content Include="Examples\Example1.qs" CopyToOutputDirectory="PreserveNewest" />
     <Content Include="Examples\Example2.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
