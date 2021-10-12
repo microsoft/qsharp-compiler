@@ -7,8 +7,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Include="DesignTimeBuild.fsi" />
     <Compile Include="DesignTimeBuild.fs" />
+    <Compile Include="CommandLineArguments.fsi" />
     <Compile Include="CommandLineArguments.fs" />
+    <Compile Include="Program.fsi" />
     <Compile Include="Program.fs" />
   </ItemGroup>
 
