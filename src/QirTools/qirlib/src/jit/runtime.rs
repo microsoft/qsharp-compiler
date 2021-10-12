@@ -10,13 +10,6 @@ use libloading::Library;
 
 use super::load_library;
 
-#[repr(C)]
-#[derive(Debug, Copy, Clone)]
-pub struct QUBIT {
-    _unused: [u8; 0],
-}
-
-
 pub(crate) struct Runtime {
     core: Library,
     foundation: Library,
