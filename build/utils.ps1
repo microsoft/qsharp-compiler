@@ -7,8 +7,12 @@ if (Test-Path function:\exec) {
 }
 
 if (!(Test-Path function:\Get-RepoRoot)) {
+    # git revparse uses cwd. E2E builds use a different
+    # working dir, so we pin it to out repo (submodule in E2E)
     function Get-RepoRoot {
-        git rev-parse --show-toplevel
+        exec -wd $PSScriptRoot {
+            git rev-parse --show-toplevel
+        }
     }
 }
 

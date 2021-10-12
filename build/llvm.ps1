@@ -1,10 +1,6 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
-function Get-RepoRoot {
-    git rev-parse --show-toplevel
-}
-
 . (Join-Path $PSScriptRoot "utils.ps1")
 
 # Build
