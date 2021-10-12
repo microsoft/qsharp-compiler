@@ -130,7 +130,7 @@ function Test-Prerequisites {
         Write-Vso "Initializing submodules: git submodule init"
         exec -wd (Get-RepoRoot) { git submodule init }
         Write-Vso "Updating submodules: git submodule update --depth 1 --recursive"
-        exec -wd (Get-RepoRoot) { git submodule update --depth 1 --recursive }
+        exec -wd (Get-RepoRoot) { git submodule update --recommend-shallow --single-branch --recursive }
     }
     Assert (Test-LlvmSubmoduleInitialized) "Failed to read initialized llvm-project submodule"
 }
