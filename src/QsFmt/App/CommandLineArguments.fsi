@@ -8,7 +8,6 @@ module Microsoft.Quantum.QsFmt.App.Arguments
     open CommandLine.Text
 
     /// Object for capturing the arguments used with the `format` command.
-    [<Verb ("format", false)>]
     type FormatArguments =
         {
             /// Flag to indicate if the `--backup` option was specified.
@@ -31,7 +30,6 @@ module Microsoft.Quantum.QsFmt.App.Arguments
             static member examples : seq<Example>
 
     /// Object for capturing the arguments used with the `update` command.
-    [<Verb ("update", false)>]
     type UpdateArguments =
         {
             /// Flag to indicate if the `--backup` option was specified.
