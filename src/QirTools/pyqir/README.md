@@ -6,7 +6,7 @@ Python API for generating QIR modules.
 
 The project uses `module.ll` produced from a minimal Q# compilation in `module.qs` and compiled with `llvm-as-11` to create `module.bc`. This module contains the `QIR` generated.
 
-This allow the loading of base QIR profile from which the entrypoint is replaced with a method body containing the circuit translation.
+This allows the loading of base QIR profile from which the entrypoint is replaced with a method body containing the circuit translation.
 
 # Building
 
