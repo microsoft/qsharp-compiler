@@ -3,12 +3,12 @@
 
 module Microsoft.Quantum.QsFmt.App.DesignTimeBuild
 
-open Microsoft.Build.Utilities
-open Microsoft.Build.Evaluation
-open System.Collections.Generic
-open Microsoft.Build.Execution
-open System.IO
 open System
+open System.Collections.Generic
+open System.IO
+open Microsoft.Build.Evaluation
+open Microsoft.Build.Execution
+open Microsoft.Build.Utilities
 
 let globalProperties =
     let dict = new Dictionary<_, _>()

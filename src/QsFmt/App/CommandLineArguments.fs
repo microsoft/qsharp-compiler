@@ -4,10 +4,10 @@
 module Microsoft.Quantum.QsFmt.App.Arguments
 
 open System
+open System.IO
 open CommandLine
 open CommandLine.Text
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
-open System.IO
 
 [<Verb("format", HelpText = "Format the source code in input files.", Hidden = true)>]
 type FormatArguments =

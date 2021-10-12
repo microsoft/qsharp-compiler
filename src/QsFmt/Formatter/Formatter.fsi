@@ -4,8 +4,8 @@
 /// The Q# formatter.
 module Microsoft.Quantum.QsFmt.Formatter.Formatter
 
-open Microsoft.Quantum.QsFmt.Formatter.Errors
 open System
+open Microsoft.Quantum.QsFmt.Formatter.Errors
 
 /// Formats the given Q# source code.
 [<CompiledName "Format">]

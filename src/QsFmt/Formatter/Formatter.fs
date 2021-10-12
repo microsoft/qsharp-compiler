@@ -3,16 +3,16 @@
 
 module Microsoft.Quantum.QsFmt.Formatter.Formatter
 
+open System
+open System.Collections.Immutable
 open Antlr4.Runtime
 open Microsoft.Quantum.QsFmt.Formatter.Errors
 open Microsoft.Quantum.QsFmt.Formatter.ParseTree.Namespace
 open Microsoft.Quantum.QsFmt.Formatter.Printer
 open Microsoft.Quantum.QsFmt.Formatter.Rules
+open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 open Microsoft.Quantum.QsFmt.Formatter.Utils
 open Microsoft.Quantum.QsFmt.Parser
-open System
-open System.Collections.Immutable
-open Microsoft.Quantum.QsFmt.Formatter.SyntaxTree
 
 /// <summary>
 /// Parses the Q# source code into a <see cref="QsFmt.Formatter.SyntaxTree.Document"/>.

@@ -9,8 +9,8 @@ open System.IO
 open System.Runtime.Loader
 open CommandLine
 open Microsoft.Build.Locator
-open Microsoft.Quantum.QsFmt.Formatter
 open Microsoft.Quantum.QsFmt.App.Arguments
+open Microsoft.Quantum.QsFmt.Formatter
 
 let makeFullPath input =
     if input = "-" then input else Path.GetFullPath input

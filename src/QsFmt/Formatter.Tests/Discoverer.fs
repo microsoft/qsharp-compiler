@@ -3,9 +3,9 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.Tests
 
-open Microsoft.Quantum.QsFmt.Formatter
 open System
 open System.Reflection
+open Microsoft.Quantum.QsFmt.Formatter
 open Xunit
 
 /// A test case containing source code that should not change after formatting.
