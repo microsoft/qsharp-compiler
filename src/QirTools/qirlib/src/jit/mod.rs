@@ -17,11 +17,12 @@ pub(crate) unsafe fn load_library<P: AsRef<Path>>(base: P, lib: &str) -> Result<
     println!("Loading {:?}", path);
     let runtime = Library::new(path.as_os_str())?;
 
-    let loaded = inkwell::support::load_library_permanently(path.to_str().unwrap());
-    if loaded {
-        println!("Failed to load {} into LLVM", path.to_str().unwrap());
+    let library_path = path.to_str().expect("Could not convert library path to &str");
+    let was_loaded_by_llvm = inkwell::support::load_library_permanently(library_path);
+    if was_loaded_by_llvm {
+        log::error!("Failed to load {} into LLVM", library_path);
     } else {
-        println!("Loaded {} into LLVM", path.to_str().unwrap());
+        log::debug!("Loaded {} into LLVM", library_path);
     }
     Ok(runtime)
 }
