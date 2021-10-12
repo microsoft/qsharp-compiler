@@ -220,7 +220,9 @@ function Use-LlvmInstallation {
 # Gets the LLVM version git hash
 # on the CI this will come as an env var
 function Get-LlvmSha {
-    if (Test-Path env:\AQ_LLVM_PACKAGE_GIT_VERSION) {
+    # Sometimes the CI fails to initilize AQ_LLVM_PACKAGE_GIT_VERSION correctly
+    # so we need to make sure it isn't empty.
+    if ((Test-Path env:\AQ_LLVM_PACKAGE_GIT_VERSION) -and ![string]::IsNullOrWhiteSpace($Env:AQ_LLVM_PACKAGE_GIT_VERSION)) {
         $env:AQ_LLVM_PACKAGE_GIT_VERSION
     }
     else {
