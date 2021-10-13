@@ -13,6 +13,7 @@
     <QSharpCompile Include="..\..\Example1.qs">
       <Link>Example1.qs</Link>
     </QSharpCompile>
+    <QSharpCompile Include="..\..\Example2.qs" />
   </ItemGroup>
 
   <ItemGroup>

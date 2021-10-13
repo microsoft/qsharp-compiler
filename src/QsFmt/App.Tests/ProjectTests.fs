@@ -24,6 +24,7 @@ let SimpleApplication () =
             "Examples\TestProjects\SimpleApplication\SubFolder2\Included3.qs"
             "Examples\TestProjects\SimpleApplication\SubFolder1\SubSubFolder\Included4.qs"
             "Examples\Example1.qs"
+            "Examples\Example2.qs"
         ]
         |> List.map Path.GetFullPath
 
@@ -47,6 +48,7 @@ let SimpleLibrary () =
             "Examples\TestProjects\SimpleLibrary\SubFolder2\Included3.qs"
             "Examples\TestProjects\SimpleLibrary\SubFolder1\SubSubFolder\Included4.qs"
             "Examples\Example1.qs"
+            "Examples\Example2.qs"
         ]
         |> List.map Path.GetFullPath
 
@@ -72,6 +74,7 @@ let SimpleTestProject () =
             "Examples\TestProjects\SimpleTestProject\SubFolder2\Included3.qs"
             "Examples\TestProjects\SimpleTestProject\SubFolder1\SubSubFolder\Included4.qs"
             "Examples\Example1.qs"
+            "Examples\Example2.qs"
         ]
         |> List.map Path.GetFullPath
 
