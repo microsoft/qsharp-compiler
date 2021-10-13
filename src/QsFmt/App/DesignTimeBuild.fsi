@@ -7,5 +7,5 @@ module internal Microsoft.Quantum.QsFmt.App.DesignTimeBuild
     /// to the project and the Quantum SDK version if found.
     val getSourceFiles : string -> string list * string option
 
-    /// Initializes the ??? // TODO
-    val initiate : Unit -> Unit
+    /// Initializes the assembly load context needed for building project files.
+    val assemblyLoadContextSetup : Unit -> Unit

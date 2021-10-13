@@ -66,7 +66,7 @@ let getSourceFiles (projectFile: string) =
         if not (isNull project || isNull ProjectCollection.GlobalProjectCollection) then
             ProjectCollection.GlobalProjectCollection.UnloadProject project
 
-let initiate () =
+let assemblyLoadContextSetup () =
     // We need to set the current directory to the same directory of
     // the LanguageServer executable so that it will pick the global.json file
     // and force the MSBuildLocator to use .NET Core SDK 3.1

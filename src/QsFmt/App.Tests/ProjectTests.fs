@@ -9,7 +9,7 @@ open Xunit
 
 [<Fact>]
 let SimpleApplication () =
-    DesignTimeBuild.initiate()
+    DesignTimeBuild.assemblyLoadContextSetup()
 
     let files, version = DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleApplication\QSharpApplication1.csproj"
     let files = files |> List.map Path.GetFullPath
@@ -31,7 +31,7 @@ let SimpleApplication () =
 
 [<Fact>]
 let SimpleLibrary () =
-    DesignTimeBuild.initiate()
+    DesignTimeBuild.assemblyLoadContextSetup()
 
     let files, version = DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleLibrary\QSharpLibrary1.csproj"
     let files = files |> List.map Path.GetFullPath
@@ -53,7 +53,7 @@ let SimpleLibrary () =
 
 [<Fact>]
 let SimpleTestProject () =
-    DesignTimeBuild.initiate()
+    DesignTimeBuild.assemblyLoadContextSetup()
 
     let files, version = DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleTestProject\QSharpTestProject1.csproj"
     let files = files |> List.map Path.GetFullPath
