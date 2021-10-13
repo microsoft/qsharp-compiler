@@ -11,7 +11,7 @@ using CommandLine;
 using CommandLine.Text;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 
-namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
+namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler //RyanNote
 {
     public static class BuildCompilation
     {
@@ -78,6 +78,14 @@ namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
                 SetName = CodeMode,
                 HelpText = "Destination folder where the output of the performance assessment will be generated.")]
             public string PerfOutputFolder { get; set; }
+
+            [Option(
+                "debug-info",
+                Required = false,
+                Default = false,
+                SetName = CodeMode,
+                HelpText = "Specifies whether the compiler should include debug information in the generated QIR.")]
+            public bool IncludeDebugInfo { get; set; }
 
 #nullable restore annotations
 

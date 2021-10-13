@@ -314,7 +314,7 @@ and StatementTransformationBase internal (options: TransformationOptions, _inter
     default this.OnStatement stm =
         if not options.Enable then
             stm
-        else
+        else // RyanNote: This is the point at which we have the location and need it within the kind transformer
             let location = this.OnLocation stm.Location
             let comments = stm.Comments
             let kind = this.StatementKinds.OnStatementKind stm.Statement

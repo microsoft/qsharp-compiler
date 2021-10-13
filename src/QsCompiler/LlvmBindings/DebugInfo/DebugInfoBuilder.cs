@@ -53,7 +53,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         */
     }
 
-    /// <summary>DebugInfoBuilder is a factory class for creating DebugInformation for an LLVM <see cref="BitcodeModule"/></summary>
+    /// <summary>DebugInfoBuilder is a factory class for creating DebugInformation for an LLVM <see cref="BitcodeModule"/></summary> //RyanNote: Useful LLVM Binding
     /// <remarks>
     /// Many Debug information metadata nodes are created with unresolved references to additional
     /// metadata. To ensure such metadata is resolved applications should call the <see cref="Finish()"/>
@@ -135,7 +135,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 compilationFlags,
                 runtimeVersion,
                 string.Empty,
-                LLVMDWARFEmissionKind.LLVMDWARFEmissionFull,
+                LLVMDWARFEmissionKind.LLVMDWARFEmissionFull, // RyanNote: If we want to edit Emission kind would need to have that ability here, but there are not many options in LLVMSharp
                 0,
                 0,
                 0,
@@ -315,11 +315,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 file?.MetadataHandle ?? default,
                 line,
                 signatureType?.MetadataHandle ?? default,
-                isLocalToUnit ? 1 : 0,
-                isDefinition ? 1 : 0,
+                isLocalToUnit ? 1 : 0, // RyanNote: gets packed into DISPFlags
+                isDefinition ? 1 : 0, // RyanNote: gets packed into DISPFlags
                 scopeLine,
                 (LLVMDIFlags)debugFlags,
-                isOptimized ? 1 : 0);
+                isOptimized ? 1 : 0); // RyanNote: gets packed into DISPFlags
 
             var retVal = MDNode.FromHandle<DISubProgram>(handle)!;
             function.DISubProgram = retVal;

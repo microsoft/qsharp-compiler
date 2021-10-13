@@ -11,6 +11,7 @@ using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
@@ -87,6 +88,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumInstructionSet;
+
+        internal DebugInfoManager DIManager { get; private set; }
 
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
@@ -184,7 +187,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.globalTypes = syntaxTree.GlobalTypeResolutions();
 
             this.Context = new Context();
-            this.Module = this.Context.CreateBitcodeModule();
+
+            this.DIManager = new DebugInfoManager(this);
+            this.Module = DIManager.CreateModuleWithCompileUnit();
+
+            // this.Module = this.Context.CreateBitcodeModule(); // RyanNote: Module created. Need to initiate in a way that creates compileunit within
+            // DIFile diFile = this.Module.DIBuilder.CreateFile(srcFilePath); // will want this in the debug class eventually do I need this?
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.Types);
@@ -384,7 +392,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the givne name
+        /// Invokes <paramref name="createBridge"/>, passing it the declaration of the callable with the given name
         /// and the corresponding QIR function for the given specialization kind.
         /// Attaches the attributes with the given names to the returned IrFunction.
         /// </summary>
@@ -422,6 +430,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <exception cref="ArgumentException">No callable with the given name exists in the compilation.</exception>
         public void CreateInteropFriendlyWrapper(QsQualifiedName qualifiedName)
         {
+            // RyanNote: Is this where I'll add in the FunctionAttributes comment?
             string wrapperName = NameGeneration.InteropFriendlyWrapperName(qualifiedName);
             IrFunction InteropWrapper(QsCallable callable, IrFunction implementation) =>
                 Interop.GenerateWrapper(this, wrapperName, callable.ArgumentTuple, callable.Signature.ReturnType, implementation);
@@ -474,7 +483,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (!this.definedStrings.TryGetValue(str, out var constant))
             {
                 var constantString = this.Context.CreateConstantString(str, true);
-                constant = this.Module.AddGlobal(constantString.NativeType, true, Linkage.Internal, constantString);
+                constant = this.Module.AddGlobal(constantString.NativeType, true, Linkage.Internal, constantString); //RyanNote: what's the scope of the module here?
                 this.definedStrings.Add(str, constant);
             }
 
@@ -499,6 +508,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
             this.globalTypes.TryGetValue(fullName, out udt);
 
+        internal ImmutableDictionary<QsQualifiedName, QsCallable> GetGlobalCallables()
+        {
+            return this.globalCallables;
+        }
+
         #endregion
 
         #region Function management
@@ -522,7 +536,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         }
 
         /// <summary>
-        /// Ends a QIR function by finishing the current basic block, closing the current scope in teh scope manager
+        /// Ends a QIR function by finishing the current basic block, closing the current scope in the scope manager
         /// and closing a naming scope.
         /// </summary>
         /// <returns>true if the function has been properly ended</returns>
@@ -610,7 +624,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            return this.Module.CreateFunction(name, signature);
+            // return DIManager.CreateLocalFunction(spec, name, signature, isDefinition: false, returnTypeRef, argTypeRefs); // RyanQuestion: can I assume it's not extern here? (see input to GenerateFunctionHeader) What about local? (see implementation of CreateLocalFunction)
+            return this.Module.CreateFunction(name, signature); // RyanTODO: swap this out for the new function creation
         }
 
         /// <summary>
@@ -621,7 +636,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <param name="argTuple">The specialization's argument tuple.</param>
         /// <param name="deconstuctArgument">Whether or not to deconstruct the argument tuple.</param>
         /// <param name="shouldBeExtern">Whether the given specialization should be generated as extern.</param>
-        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false)
+        internal void GenerateFunctionHeader(QsSpecialization spec, ArgumentTuple argTuple, bool deconstuctArgument = true, bool shouldBeExtern = false) //RyanNote: will need a comment above the functions. Maybe that should all go in CreateFunction tho?
         {
             (string?, ResolvedType)[] ArgTupleToArgItems(ArgumentTuple arg, Queue<(string?, ArgumentTuple)> tupleQueue)
             {
@@ -736,9 +751,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Generates the default constructor for a Q# user-defined type.
         /// This routine generates all the code for the constructor, not just the header.
         /// </summary>
-        internal void GenerateConstructor(QsSpecialization spec, ArgumentTuple argTuple)
+        internal void GenerateConstructor(QsSpecialization spec, ArgumentTuple argTuple) //RyanNote: Maybe the comment goes here?
         {
-            this.GenerateFunctionHeader(spec, argTuple, deconstuctArgument: false);
+            this.GenerateFunctionHeader(spec, argTuple, deconstuctArgument: false); // RyanNote: comment goes right before this? Or maybe just before generateFUnctionHeader? confused
 
             // create the udt (output value)
             if (spec.Signature.ArgumentType.Resolution.IsUnitType)
@@ -948,7 +963,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal void GenerateFunction(IrFunction func, string?[] argNames, Action<IReadOnlyList<Argument>> executeBody)
         {
-            this.StartFunction();
+            this.StartFunction(); // RyanNote: this is probs a good spot for the comment (in StartFunction)
             this.CurrentFunction = func;
             for (var i = 0; i < argNames.Length; ++i)
             {
@@ -1056,12 +1071,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    var func = this.GetFunctionByName(callable.FullName, specKind);
+                    var func = this.GetFunctionByName(callable.FullName, specKind); // RyanNote: This function shouold be decorated when it's created
                     value = this.CurrentBuilder.Call(func, args);
                 }
 
                 var result = this.Values.From(value, callable.Signature.ReturnType);
-                this.ScopeMgr.RegisterValue(result);
+                this.ScopeMgr.RegisterValue(result); //RyanNote: example of a registerValue we wouldn't want debug info for necessarily since result isn't from the code
                 return result;
             }
 
@@ -1338,6 +1353,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // Update the iteration value (phi node) and enter the next iteration
                 this.SetCurrentBlock(exitingBlock);
+                // RyanNote: do I need debug info within this add?
                 var nextValue = this.CurrentBuilder.Add(loopUpdate.LoopVariable, loopUpdate.Increment);
                 loopUpdate.LoopVariable.AddIncoming(nextValue, exitingBlock);
                 outputUpdate?.PhiNode.AddIncoming(outputUpdate.Value.NewValue, exitingBlock);
@@ -1654,7 +1670,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Generates a unique name for a local variable.
         /// </summary>
-        internal string VariableName(string name)
+        internal string VariableName(string name) // RyanNote: This looks useful
         {
             var index = this.uniqueLocalNames.TryGetValue(name, out int n) ? n + 1 : 0;
             this.uniqueLocalNames[name] = index;

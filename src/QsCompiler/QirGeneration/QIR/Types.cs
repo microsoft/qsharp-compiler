@@ -293,7 +293,7 @@ namespace Microsoft.Quantum.QIR
     /// <summary>
     /// Contains the names of common QIR attributes.
     /// </summary>
-    public static class AttributeNames
+    public static class AttributeNames // RyanNote
     {
         public const string EntryPoint = "EntryPoint";
         public const string InteropFriendly = "InteropFriendly";

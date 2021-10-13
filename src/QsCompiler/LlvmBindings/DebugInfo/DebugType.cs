@@ -229,7 +229,7 @@ namespace Ubiquity.NET.Llvm.DebugInfo
     }
 
     /// <summary>Utility class to provide mix-in type extensions and support for Debug Types</summary>
-    public static class DebugType
+    public static class DebugType // RyanNote: might need this for the IDebugType in CreateLocalFunction
     {
         /// <summary>Creates a new <see cref="DebugType"/>instance inferring the generic arguments from the parameters</summary>
         /// <typeparam name="TNative">Type of the Native LLVM type for the association</typeparam>

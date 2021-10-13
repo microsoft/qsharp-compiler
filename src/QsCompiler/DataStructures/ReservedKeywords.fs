@@ -238,7 +238,7 @@ module GeneratedAttributes =
     let Namespace = "Microsoft.Quantum.QsCompiler.Metadata.Attributes"
     let LoadedViaTestNameInsteadOf = "__LoadedViaTestNameInsteadOf__"
 
-/// contains project specific settings specified during Q# compilation
+/// contains project specific settings specified during Q# compilation // RyanNote - Maybe need to have the debug flag name here? Probs not since it's a bool
 module AssemblyConstants =
     let OutputPath = "OutputPath"
     let AssemblyName = "AssemblyName"

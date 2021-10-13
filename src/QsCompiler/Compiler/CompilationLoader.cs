@@ -578,9 +578,10 @@ namespace Microsoft.Quantum.QsCompiler
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.Build);
 
             // executing the specified rewrite steps
-            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps);
+            PerformanceTracking.TaskStart(PerformanceTracking.Task.RewriteSteps); //RyanNote: probably don't need an additional Task here bc debug will be part of qir generation
             var steps = new List<(int, string, Func<QsCompilation?>)>();
-            this.config.PrepareQirGeneration = this.config.PrepareQirGeneration || this.externalRewriteSteps.Any(step => step.Name == "QIR Generation");
+            // RyanQuestion: When is this config flag used
+            this.config.PrepareQirGeneration = this.config.PrepareQirGeneration || this.externalRewriteSteps.Any(step => step.Name == "QIR Generation"); // RyanNote: will I need to check externalRewrite steps for debug info call?
 
             if (this.config.IsExecutable && !this.config.SkipSyntaxTreeTrimming)
             {
@@ -618,7 +619,7 @@ namespace Microsoft.Quantum.QsCompiler
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.PreEvaluation)));
             }
 
-            if (this.config.Monomorphize)
+            if (this.config.Monomorphize) //RyanNote: call to monomorphize which is necessary for qir generation
             {
                 var rewriteStep = new LoadedStep(new Monomorphization(monomorphizeIntrinsics: false), typeof(IRewriteStep), thisDllUri);
                 steps.Add((rewriteStep.Priority, rewriteStep.Name, () => this.ExecuteAsAtomicTransformation(rewriteStep, ref this.compilationStatus.Monomorphization)));
@@ -643,7 +644,7 @@ namespace Microsoft.Quantum.QsCompiler
             foreach (var (_, name, rewriteStep) in steps)
             {
                 PerformanceTracking.TaskStart(PerformanceTracking.Task.SingleRewriteStep, name);
-                this.CompilationOutput = rewriteStep();
+                this.CompilationOutput = rewriteStep(); // RyanNote: Here's where QIR Generation is called I suppose
                 PerformanceTracking.TaskEnd(PerformanceTracking.Task.SingleRewriteStep, name);
             }
 
@@ -888,7 +889,7 @@ namespace Microsoft.Quantum.QsCompiler
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.CsharpGenerationGeneratedError) :
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.CsharpGenerationGeneratedWarning) :
                 rewriteStep.Name == "CSharpGeneration" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.CsharpGenerationGeneratedInfo) :
-                rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.QirEmissionGeneratedError) :
+                rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Error ? Errors.Code(ErrorCode.QirEmissionGeneratedError) : // RyanNote: QirEmissionGeneratedError
                 rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Warning ? Warnings.Code(WarningCode.QirEmissionGeneratedWarning) :
                 rewriteStep.Name == "QIR Generation" && severity == DiagnosticSeverity.Information ? Informations.Code(InformationCode.QirEmissionGeneratedInfo) :
                 null;

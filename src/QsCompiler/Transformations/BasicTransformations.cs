@@ -245,7 +245,7 @@ namespace Microsoft.Quantum.QsCompiler.Transformations.BasicTransformations
                 this.CreateSelector = createSelector;
 
             /// <inheritdoc/>
-            public override QsStatement OnStatement(QsStatement stm)
+            public override QsStatement OnStatement(QsStatement stm) //RyanNote: another override example with folding
             {
                 this.SubSelector = this.CreateSelector(this.SharedState);
                 var loc = this.SubSelector.Statements.OnLocation(stm.Location);

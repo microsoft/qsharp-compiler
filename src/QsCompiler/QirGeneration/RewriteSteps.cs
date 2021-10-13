@@ -17,7 +17,7 @@ using Microsoft.Quantum.QsCompiler.Transformations.Targeting;
 
 namespace Microsoft.Quantum.QsCompiler
 {
-    public class QirGeneration : IRewriteStep
+    public class QirGeneration : IRewriteStep //RyanNote this file's important
     {
         internal const int EmissionPriority = -10;
 
@@ -51,7 +51,7 @@ namespace Microsoft.Quantum.QsCompiler
         public bool ImplementsPostconditionVerification => false;
 
         /// <inheritdoc/>
-        public bool PreconditionVerification(QsCompilation compilation)
+        public bool PreconditionVerification(QsCompilation compilation) // RyanNote: seems like we should be checking for isExecutable here
         {
             try
             {
@@ -88,7 +88,7 @@ namespace Microsoft.Quantum.QsCompiler
             generator.Emit(bcFile, emitBitcode: true);
             PerformanceTracking.TaskEnd(PerformanceTracking.Task.BitcodeGeneration);
 
-            if (this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QirOutputPath, out path) && !string.IsNullOrWhiteSpace(path))
+            if (this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.QirOutputPath, out path) && !string.IsNullOrWhiteSpace(path)) // RyanQuestion: Here's where the flag is?
             {
                 // create the human readable version as well
                 var llvmSourceFile = CompilationLoader.GeneratedFile(targetFile, Path.GetFullPath(path), ".ll", "");
