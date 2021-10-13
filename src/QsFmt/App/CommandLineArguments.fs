@@ -169,14 +169,19 @@ module Arguments =
                 | Some s -> Version.Parse s |> Some
                 | None -> None
 
-            {
-                CommandKind = Update
-                RecurseFlag = arguments.Recurse
-                BackupFlag = arguments.Backup
-                QSharp_Version = qsharp_version
-                Inputs = inputs
-            }
-            |> Result.Ok
+            match qsharp_version with
+            | Some v when v < Version("0.16.2104.138035") ->
+                eprintfn "Error: Qdk Version is out of date. Only Qdk version 0.16.2104.138035 or later is supported."
+                6 |> Result.Error
+            | _ ->
+                {
+                    CommandKind = Update
+                    RecurseFlag = arguments.Recurse
+                    BackupFlag = arguments.Backup
+                    QSharp_Version = qsharp_version
+                    Inputs = inputs
+                }
+                |> Result.Ok
         else
             for e in errors do
                 eprintfn "%s" e
