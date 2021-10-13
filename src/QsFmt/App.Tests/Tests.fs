@@ -340,3 +340,17 @@ let ``Project file as input`` () =
 
     let excluded2 = File.ReadAllText TestTargetExcluded2.Path
     Assert.Equal(excluded2, TestTargetExcluded2.Original)
+
+[<Fact>]
+let ``Old version project file as input`` () =
+    Assert.Equal(
+        {
+            Code = 6
+            Out = ""
+            Error =
+                standardizeNewLines
+                    "Error: Qdk Version is out of date. Only Qdk version 0.16.2104.138035 or later is supported.
+"
+        },
+        run [| "update"; "-p"; "Examples\\TestProjects\\OldVersion\\OldVersion.csproj" |] ""
+    )

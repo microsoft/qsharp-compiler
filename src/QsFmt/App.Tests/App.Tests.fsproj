@@ -141,6 +141,21 @@
     <Content Include="Examples\TestProjects\ReferenceLibrary\Library.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Examples\TestProjects\OldApplication\OldApplication.csproj">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\OldApplication\Driver.cs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\OldApplication\Operation.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\OldVersion\OldVersion.csproj">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\OldVersion\Program.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Tests.fs" />
     <Compile Include="ProjectTests.fs" />
   </ItemGroup>
