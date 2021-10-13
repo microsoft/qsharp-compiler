@@ -890,13 +890,18 @@ type QsExpression with
             TypedExpression.New(callExpression, callable.TypeParameterResolutions, resultType, info, this.Range)
 
         let buildLambda (lambda: _ Lambda) =
+            let freeVars = Context.freeVariables this
+
+            for var in symbols.CurrentDeclarations.Variables do
+                if var.InferredInformation.IsMutable && Set.contains var.VariableName freeVars then
+                    // TODO: Range?
+                    QsCompilerDiagnostic.Error(ErrorCode.MutableClosure, [ var.VariableName ]) var.Range |> diagnose
+
             symbols.BeginScope ImmutableHashSet.Empty
 
             let addBinding (name: string, range) type_ =
-                let _, diagnostics =
-                    LocalVariableDeclaration.New false ((Null, range), name, type_, true)
-                    |> symbols.TryAddVariableDeclartion
-
+                let var = LocalVariableDeclaration.New false ((Null, range), name, type_, true)
+                let _, diagnostics = symbols.TryAddVariableDeclartion var
                 None, diagnostics
 
             let inputType = inference.Fresh lambda.Param.RangeOrDefault

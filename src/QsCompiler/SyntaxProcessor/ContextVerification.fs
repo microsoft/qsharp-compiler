@@ -298,3 +298,63 @@ let VerifySyntaxTokenContext =
             | NamespaceDeclaration _ -> verifyNamespace context
             | InvalidFragment _ -> false, [||]
         |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New(x, []) y))
+
+let rec private unqualifiedSymbols s =
+    match s.Symbol with
+    | QualifiedSymbol _
+    | OmittedSymbols
+    | MissingSymbol
+    | InvalidSymbol -> Set.empty
+    | Symbol name -> Set.singleton name
+    | SymbolTuple ss -> ss |> Seq.map unqualifiedSymbols |> Set.unionMany
+
+let rec internal freeVariables e =
+    match e.Expression with
+    | Identifier ({ Symbol = Symbol name }, _) -> Set.singleton name
+    | UnitValue
+    | IntLiteral _
+    | BigIntLiteral _
+    | DoubleLiteral _
+    | BoolLiteral _
+    | ResultLiteral _
+    | PauliLiteral _
+    | MissingExpr
+    | InvalidExpr
+    | Identifier _ -> Set.empty
+    | NewArray (_, e)
+    | NamedItem (e, _)
+    | NEG e
+    | NOT e
+    | BNOT e
+    | UnwrapApplication e
+    | AdjointApplication e
+    | ControlledApplication e -> freeVariables e
+    | RangeLiteral (e1, e2)
+    | ArrayItem (e1, e2)
+    | ADD (e1, e2)
+    | SUB (e1, e2)
+    | MUL (e1, e2)
+    | DIV (e1, e2)
+    | MOD (e1, e2)
+    | POW (e1, e2)
+    | EQ (e1, e2)
+    | NEQ (e1, e2)
+    | LT (e1, e2)
+    | LTE (e1, e2)
+    | GT (e1, e2)
+    | GTE (e1, e2)
+    | AND (e1, e2)
+    | OR (e1, e2)
+    | BOR (e1, e2)
+    | BAND (e1, e2)
+    | BXOR (e1, e2)
+    | LSHIFT (e1, e2)
+    | RSHIFT (e1, e2)
+    | CopyAndUpdate (e1, _, e2)
+    | CallLikeExpression (e1, e2)
+    | SizedArray (e1, e2) -> freeVariables e1 |> Set.union (freeVariables e2)
+    | CONDITIONAL (e1, e2, e3) -> freeVariables e1 |> Set.union (freeVariables e2) |> Set.union (freeVariables e3)
+    | ValueTuple es
+    | StringLiteral (_, es)
+    | ValueArray es -> es |> Seq.map freeVariables |> Set.unionMany
+    | Lambda lambda -> Set.difference (freeVariables lambda.Body) (unqualifiedSymbols lambda.Param)

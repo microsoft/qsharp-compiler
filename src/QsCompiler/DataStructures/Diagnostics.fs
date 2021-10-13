@@ -10,6 +10,7 @@ type ErrorCode =
     | TypeMismatch = 1
     | TypeIntersectionMismatch = 2
     | InfiniteType = 3
+    | MutableClosure = 4
 
     | ExcessBracketError = 1001
     | MissingBracketError = 1002
@@ -479,6 +480,9 @@ type DiagnosticItem =
                 unlines [ "The type {0} cannot be unified with {1} because it would create an infinite type."
                           "Left-hand type:  {2}"
                           "Right-hand type: {3}" ]
+            | ErrorCode.MutableClosure ->
+                "A lambda expression cannot close over a mutable variable. "
+                + "Declare '{0}' as immutable or remove the reference to '{0}'."
 
             | ErrorCode.ExcessBracketError -> "No matching opening bracket for this closing bracket."
             | ErrorCode.MissingBracketError -> "An opening bracket has not been closed."
