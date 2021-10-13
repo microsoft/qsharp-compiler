@@ -58,6 +58,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             { Task.SyntaxTreeDeserialization, Task.ReferenceLoading },
             { Task.HeaderAttributesLoading, Task.ReferenceLoading },
             { Task.ReferenceHeadersCreation, Task.ReferenceLoading },
+            // { Task.DebugInfoGeneration, Task.QirGeneration }, RyanNote
         };
 
         /// <summary>
@@ -68,7 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
         /// <summary>
         /// Represents a compiler task whose performance is tracked.
         /// </summary>
-        public enum Task
+        public enum Task //RyanNote: Task for debug info? Or include in qir?
         {
             /// <summary>
             /// Overall compilation process.
@@ -121,7 +122,7 @@ namespace Microsoft.Quantum.QsCompiler.Diagnostics
             DllGeneration,
 
             /// <summary>
-            /// Task that generates QIR as part of the 'OutputGeneration' task.
+            /// Task that generates QIR as part of the 'OutputGeneration' task. //RyanNote: Debug info as part of this task
             /// </summary>
             QirGeneration,
 

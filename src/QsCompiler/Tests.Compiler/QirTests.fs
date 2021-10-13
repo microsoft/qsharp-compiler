@@ -47,7 +47,7 @@ let private compilerArgs target (name: string) =
         "--verbosity"
         "Diagnostic"
         "--assembly-properties"
-        "QirOutputPath:qir"
+        "QirOutputPath:qir" // RyanNote: QirOutputPath could be where to look for flag use
     }
 
 let private customTest name compilerArgs snippets =

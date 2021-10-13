@@ -72,6 +72,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
         /// <summary>[Ubiquity.NET.Llvm] .NET IL Assembly language (ILAsm)</summary>
         ILAsm = UserMin + 0x01001,
 
+        /// <summary>[Ubiquity.NET.Llvm] Q# Language</summary>
+        QSharp = UserMin + 0x01010, // RyanNote: strange thing, if I use this it says the value is out of range (comes out way larger than 65535); same for CSharp which was already there
+        // QSharp = 0x8004,
+        // QSharp = 32772,
+
         /// <summary>Max Value for unofficial language ids</summary>
         UserMax = 0xffff,
     }

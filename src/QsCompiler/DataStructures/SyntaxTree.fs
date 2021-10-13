@@ -839,7 +839,7 @@ and QsQubitScope =
     }
 
 
-and QsStatementKind =
+and QsStatementKind = // RyanNote: Here are all the types of things that make up statements
     | QsExpressionStatement of TypedExpression
     | QsReturnStatement of TypedExpression
     | QsFailStatement of TypedExpression
@@ -872,7 +872,7 @@ and QsStatement =
     }
 
 
-/// The source files of a syntax tree node.
+/// The source files of a syntax tree node. // RyanNote: Here's how I get the source file
 type Source =
     {
         /// The path to the original source code file.
@@ -1039,7 +1039,7 @@ type QsCallable =
         /// contains the name of the callable
         FullName: QsQualifiedName
         /// contains all attributes associated with the callable
-        Attributes: ImmutableArray<QsDeclarationAttribute>
+        Attributes: ImmutableArray<QsDeclarationAttribute> // RyanNote: Here's where we get the attributes associated with a callable
         /// The accessibility of the callable.
         Access: Access
         /// The source where the callable is declared in.
@@ -1048,7 +1048,7 @@ type QsCallable =
         /// The position offset represents the position in the source file where the callable is declared,
         /// and the range contains the range occupied by its name relative to that position.
         /// The location is Null for auto-generated callable constructed e.g. when lifting code blocks or lambdas to a global scope.
-        Location: QsNullable<QsLocation>
+        Location: QsNullable<QsLocation> // RyanNote: Here's where we would get location debug info
         /// full resolved signature of the callable
         Signature: ResolvedSignature
         /// the argument tuple containing the names of the argument tuple items
