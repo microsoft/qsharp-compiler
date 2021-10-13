@@ -1,4 +1,4 @@
-<Project Sdk="Microsoft.NET.Sdk">
+﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <TargetFramework>netcoreapp3.1</TargetFramework>
     <AssemblyName>Microsoft.Quantum.QsFmt.App.Tests</AssemblyName>
@@ -7,9 +7,11 @@
 
   <ItemGroup>
     <Content Include="Examples\SyntaxError.qs">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
-    <Content Include="Examples\Example1.qs" CopyToOutputDirectory="PreserveNewest" />
+    <Content Include="Examples\Example1.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Content Include="Examples\Example2.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
@@ -43,8 +45,101 @@
     <Content Include="Examples\TestTarget\Excluded2.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\QSharpApplication1.csproj">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\Program.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\Included1.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\Excluded1.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\SubFolder1\Included2.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\SubFolder1\Excluded2.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\SubFolder1\SubSubFolder\Included4.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\SubFolder1\SubSubFolder\Excluded4.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\SubFolder2\Included3.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleApplication\SubFolder2\Excluded3.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\QSharpLibrary1.csproj">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\Library.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\Included1.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\Excluded1.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\SubFolder1\Included2.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\SubFolder1\Excluded2.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\SubFolder1\SubSubFolder\Included4.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\SubFolder1\SubSubFolder\Excluded4.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\SubFolder2\Included3.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleLibrary\SubFolder2\Excluded3.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\QSharpTestProject1.csproj">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\Tests.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\Included1.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\Excluded1.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\SubFolder1\Included2.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\SubFolder1\Excluded2.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\SubFolder1\SubSubFolder\Included4.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\SubFolder1\SubSubFolder\Excluded4.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\SubFolder2\Included3.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\SimpleTestProject\SubFolder2\Excluded3.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Tests.fs" />
+    <Compile Include="ProjectTests.fs" />
   </ItemGroup>
+
+  <ItemGroup />
 
   <ItemGroup>
     <PackageReference Include="Microsoft.NET.Test.Sdk" Version="16.8.0" />

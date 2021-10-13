@@ -10,7 +10,7 @@ open Microsoft.Quantum.QsFmt.App.Program
 open Xunit
 
 /// The result of running the application.
-type Result =
+type private Result =
     {
         /// The exit status code.
         Code: int
@@ -22,7 +22,7 @@ type Result =
         Error: string
     }
 
-type TestFile =
+type private TestFile =
     {
         Path: string
         Original: string
@@ -33,17 +33,17 @@ type TestFile =
 /// <summary>
 /// Ensures that the new line characters will conform to the standard of the environment's new line character.
 /// </summary>
-let standardizeNewLines (s: string) =
+let private standardizeNewLines (s: string) =
     s.Replace("\r", "").Replace("\n", Environment.NewLine)
 
-let CleanResult =
+let private CleanResult =
     {
         Code = 0
         Out = ""
         Error = ""
     }
 
-let makeTestFile (path: string) =
+let private makeTestFile (path: string) =
     let name = path.[(path.LastIndexOf "\\") + 1..(path.LastIndexOf ".qs") - 1]
 
     {
@@ -68,15 +68,15 @@ let makeTestFile (path: string) =
             |> standardizeNewLines
     }
 
-let Example1 = makeTestFile "Examples\\Example1.qs"
-let Example2 = makeTestFile "Examples\\Example2.qs"
-let SubExample1 = makeTestFile "Examples\\SubExamples1\\SubExample1.qs"
-let SubExample2 = makeTestFile "Examples\\SubExamples1\\SubExample2.qs"
-let SubExample3 = makeTestFile "Examples\\SubExamples2\\SubExample3.qs"
-let NestedExample1 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample1.qs"
-let NestedExample2 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample2.qs"
+let private Example1 = makeTestFile "Examples\\Example1.qs"
+let private Example2 = makeTestFile "Examples\\Example2.qs"
+let private SubExample1 = makeTestFile "Examples\\SubExamples1\\SubExample1.qs"
+let private SubExample2 = makeTestFile "Examples\\SubExamples1\\SubExample2.qs"
+let private SubExample3 = makeTestFile "Examples\\SubExamples2\\SubExample3.qs"
+let private NestedExample1 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample1.qs"
+let private NestedExample2 = makeTestFile "Examples\\SubExamples2\\NestedExamples\\NestedExample2.qs"
 
-let StandardInputTest =
+let private StandardInputTest =
     {
         Path = "-"
         Original =
