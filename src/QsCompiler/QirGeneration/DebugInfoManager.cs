@@ -18,7 +18,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// It contains a reference to the GenerationContext that owns it because it needs
     /// access to the same shared state represented by the GenerationContext.
     /// </summary>
-    internal sealed class DebugInfoManager // RyanQuestion: Do I need to inherit from IDisposable?
+    internal sealed class DebugInfoManager
     {
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal Stack<QsLocation> LocationStack { get; }
 
         /// <summary>
-        /// The context that owns this DebugInfoManager
+        /// The GenerationContext that owns this DebugInfoManager
         /// </summary>
         private readonly GenerationContext sharedState;
 
@@ -103,21 +103,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             this.sharedState = generationContext;
             this.LocationStack = new Stack<QsLocation>();
-            // perhaps safer to set up to call setupmoduleandcompileunit in here (and just set the compile unit through the context) but seems like bad practice cause I'm setting someone else's member variables
         }
 
         internal BitcodeModule CreateModuleWithCompileUnit()
-        { // RyanNote: a compilation  unit is bound to a BitcodeModule, even though, technically the types are owned by a Context
+        {
             if (this.DebugFlag)
             {
                 // Find an entry point in order to find the source file path
-                bool foundAttribute = false;
+                bool foundEntryAttribute = false;
                 string sourcePath = "";
 
                ImmutableDictionary<QsQualifiedName, QsCallable> globalCallables = this.sharedState.GetGlobalCallables();
                foreach (QsCallable callable in globalCallables.Values)
                 {
-                    if (foundAttribute)
+                    if (foundEntryAttribute)
                     {
                         break;
                     }
@@ -128,37 +127,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         if (atrName == AttributeNames.EntryPoint)
                         {
                             sourcePath = callable.Source.CodeFile;
-                            foundAttribute = true;
+                            foundEntryAttribute = true;
                             break;
                         }
                     }
                 }
 
-                if (!foundAttribute)
+                if (!foundEntryAttribute)
                 {
-                    sourcePath = ""; // RyanTODO: throw exception here
+                    throw new Exception("No entry point found in the source code");
                 }
 
-                string moduleID = Path.GetFileName(sourcePath!);
-                string producerVersionIdent = "Qsharp-Compiler"; // this should eventually include the version and be some constant in some file with names like this
-                string compilationFlags = "";
-                bool optimized = false;
-                uint runtimeVersion = 0;
+                string moduleID = Path.GetFileName(sourcePath);
+                string producerVersionIdent = "Qsharp-Compiler"; // RyanTODO: this should eventually include the version and be some constant in some file with names like this
+                string compilationFlags = ""; // RyanTODO
+                bool optimized = false; // RyanTODO
+                uint runtimeVersion = 0; // RyanTODO
 
-                // change the extension for to .c because of the language/extension issue
+                // Change the extension for to .c because of the language/extension issue
                 string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
-                // RyanTODO: copy qs source file into a c file
 
                 return this.Context.CreateBitcodeModule(
                     moduleID,
-
-                    // ideally this would be a user defined language for Q#
-                    SourceLanguage.C99,
-                    // SourceLanguage.QSharp,
-
-                    // ideally this would be the original source file path with a .qs extension
-                    cSourcePath,
-                    // sourcePath,
+                    SourceLanguage.C99, // For now, we are using the C interface. Ideally this would be a user defined language for Q#
+                    cSourcePath, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
                     producerVersionIdent,
                     optimized,
                     compilationFlags,
@@ -168,84 +160,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             {
                 return this.Context.CreateBitcodeModule();
             }
-
         }
-
-        // private void EmitLocation(IAstNode? node) //TODO write this correctly
-        // {
-        //     // Get current scope
-        //     DILocalScope? scope = null;
-        //     if(LexicalBlocks.Count > 0)
-        //     {
-        //         scope = LexicalBlocks.Peek();
-        //     } // RyanNote: This DISubProgram looks important for debug information
-        //     else if(InstructionBuilder.InsertFunction != null && InstructionBuilder.InsertFunction.DISubProgram != null)
-        //     {
-        //         scope = InstructionBuilder.InsertFunction.DISubProgram;
-        //     }
-
-        //     DILocation? loc = null;
-        //     if(scope != null)
-        //     {
-        //         loc = new DILocation(this.Context)
-        //                             , ( uint )( node?.Location.StartLine ?? 0 )
-        //                             , ( uint )( node?.Location.StartColumn ?? 0 )
-        //                             , scope
-        //                             );
-        //     }
-
-        //     InstructionBuilder.SetDebugLocation( loc );
-        // }
-
-        internal IrFunction CreateLocalFunction(QsSpecialization spec, string name, IFunctionType signature, bool isDefinition, ITypeRef retType, ITypeRef[] argTypes)
-        {
-            if (this.DebugFlag && spec.Kind == QsSpecializationKind.QsBody)
-            {
-                DIFile debugFile = this.DIBuilder.CreateFile(this.DICompileUnit.File?.FileName, this.DICompileUnit.File?.Directory);
-                QsNullable<QsLocation> debugLoc = spec.Location; // RyanNote: here's where we get the location.
-                uint line;
-
-                if (debugLoc.IsNull)
-                {
-                    throw new ArgumentException("Expected a specialiazation with a non-null location");
-                    return this.Module.CreateFunction(name, signature);
-                }
-
-                // create the debugSignature
-                var voidType = DebugType.Create<ITypeRef, DIType>(this.Module.Context.VoidType, null); // RyanNote: pass retType in for first arg, not sure for second
-                IDebugType<ITypeRef, DIType>[] voidTypeArr = { voidType, voidType };
-                DebugInfoFlags debugFlags = DebugInfoFlags.None; // RyanTODO: Might want flags here. Also might want to define our own. Also can we have multiple?
-                DebugFunctionType debugSignature = new DebugFunctionType(signature, this.Module, debugFlags, voidType, voidTypeArr); // RyanTODO: the voidType stuff is for sure wrong, but just want to compile rn
-
-    // public DebugFunctionType( // here's what I need to construct a DebugFunctionType
-    //         IFunctionType llvmType,
-    //         BitcodeModule module,
-    //         DebugInfoFlags debugFlags,
-    //         IDebugType<ITypeRef, DIType> retType,
-    //         params IDebugType<ITypeRef, DIType>[] argTypes)
-
-    // this.Context.GetFunctionType(returnTypeRef, argTypeRefs); // from context.cs in QIR
-    //     var signature = DebugFunctionType( Module.DIBuilder, DoubleType, prototype.Parameters.Select( _ => DoubleType ) ); // from code generation in Kaleidoscope (this function doesn't exist here)
-
-                return this.Module.CreateFunction(
-                    scope: this.DICompileUnit,
-                    name: name,
-                    mangledName: null,
-                    file: debugFile,
-                    line: (uint) debugLoc.Item.Offset.Line,
-                    signature: debugSignature,
-                    isLocalToUnit: true,
-                    isDefinition: isDefinition,
-                    scopeLine: (uint) debugLoc.Item.Offset.Line, // RyanTODO: Need to be more exact bc of formatting (see lastParamLocation in Kaleidescope tutorial)
-                    debugFlags: debugFlags,
-                    isOptimized: false); // RyanQuestion: is this always the case?
-            }
-            else
-            {
-                return this.Module.CreateFunction(name, signature);
-            }
-        }
-
     }
-
 }

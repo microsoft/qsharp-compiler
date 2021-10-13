@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public QirNamespaceTransformation(GenerationContext sharedState)
             : base(sharedState)
-        {// RyanQuestion: where is base defined?
+        {
         }
 
         /* public overrides */

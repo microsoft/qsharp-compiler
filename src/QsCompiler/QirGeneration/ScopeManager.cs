@@ -227,13 +227,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
                     this.RegisterValue(value, shallow: false);
                 }
-
-                // Only need to emit debug information if the variable is from a source file RyanTODO: move this to the manager registerVariable so we have access to stack
-                // if (fromLocalID != null)
-                // {
-                //     DILocalScope scope = null; // RyanTODO: where do I get this
-                //     this.SharedState.DIManager.emitLocation(scope);
-                // }
             }
 
             public bool TryGetVariable(string varName, out IValue value) =>
