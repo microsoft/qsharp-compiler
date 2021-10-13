@@ -48,7 +48,7 @@ and internal ArrayType =
         /// The type of items in the array.
         ItemType: Type
 
-        /// The opening bracket
+        /// The opening bracket.
         OpenBracket: Terminal
 
         /// The closing bracket.
