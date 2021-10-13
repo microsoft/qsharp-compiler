@@ -2,643 +2,675 @@
 // Licensed under the MIT License.
 
 #include "Rules/Factory.hpp"
-#include "Rules/Notation/Notation.hpp"
 
 #include "Llvm/Llvm.hpp"
+#include "Rules/Notation/Notation.hpp"
 
-namespace microsoft
+namespace microsoft {
+namespace quantum {
+namespace {
+using Instruction  = llvm::Instruction;
+using Value        = llvm::Value;
+using Builder      = ReplacementRule::Builder;
+using Captures     = ReplacementRule::Captures;
+using Replacements = ReplacementRule::Replacements;
+
+}  // namespace
+
+using ReplacementRulePtr = RuleFactory::ReplacementRulePtr;
+using namespace microsoft::quantum::notation;
+
+RuleFactory::RuleFactory(RuleSet &rule_set, AllocationManagerPtr qubit_alloc_manager,
+                         AllocationManagerPtr result_alloc_manager)
+  : rule_set_{rule_set}
+  , qubit_alloc_manager_{std::move(qubit_alloc_manager)}
+  , result_alloc_manager_{std::move(result_alloc_manager)}
+{}
+
+void RuleFactory::usingConfiguration(FactoryConfiguration const &config)
 {
-namespace quantum
+  default_integer_width_ = config.defaultIntegerWidth();
+
+  // TODO: Add config
+  resolveConstantArraySizes();
+
+  if (config.disableReferenceCounting())
+  {
+    disableReferenceCounting();
+  }
+
+  if (config.disableAliasCounting())
+  {
+    disableAliasCounting();
+  }
+
+  if (config.disableStringSupport())
+  {
+    disableStringSupport();
+  }
+
+  if (config.optimiseBranchQuantumOne())
+  {
+    optimiseBranchQuantumOne();
+  }
+
+  if (config.optimiseBranchQuantumZero())
+  {
+    optimiseBranchQuantumZero();
+  }
+
+  if (config.optimiseSelectQuantumOne())
+  {
+    optimiseSelectQuantumOne();
+  }
+
+  if (config.optimiseSelectQuantumZero())
+  {
+    optimiseSelectQuantumZero();
+  }
+
+  if (config.useStaticQubitArrayAllocation())
+  {
+    useStaticQubitArrayAllocation();
+  }
+
+  if (config.useStaticQubitAllocation())
+  {
+    useStaticQubitAllocation();
+  }
+
+  if (config.useStaticResultAllocation())
+  {
+    useStaticResultAllocation();
+  }
+}
+
+void RuleFactory::removeFunctionCall(String const &name)
 {
-    namespace
+  addRule({callByNameOnly(name), deleteInstruction()});
+}
+
+void RuleFactory::resolveConstantArraySizes()
+{
+  /// Array access replacement
+  auto size_replacer = [](Builder &, Value *val, Captures &cap, Replacements &replacements) {
+    // Get the index and testing that it is a constant int
+    auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
+    if (cst == nullptr)
     {
-        using Instruction  = llvm::Instruction;
-        using Value        = llvm::Value;
-        using Builder      = ReplacementRule::Builder;
-        using Captures     = ReplacementRule::Captures;
-        using Replacements = ReplacementRule::Replacements;
-
-    } // namespace
-
-    using ReplacementRulePtr = RuleFactory::ReplacementRulePtr;
-    using namespace microsoft::quantum::notation;
-
-    RuleFactory::RuleFactory(
-        RuleSet&             rule_set,
-        AllocationManagerPtr qubit_alloc_manager,
-        AllocationManagerPtr result_alloc_manager)
-      : rule_set_{rule_set}
-      , qubit_alloc_manager_{std::move(qubit_alloc_manager)}
-      , result_alloc_manager_{std::move(result_alloc_manager)}
-    {
+      // ... if not, we cannot perform the mapping.
+      return false;
     }
 
-    void RuleFactory::usingConfiguration(FactoryConfiguration const& config)
+    val->replaceAllUsesWith(cst);
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
+
+    return true;
+  };
+  llvm::errs() << "Creating pattern\n";
+
+  // Casted const
+  // constInt()
+  auto create_array = call("__quantum__rt__array_create_1d", "elementSize"_cap = _, "size"_cap = _);
+  auto get_size     = call("__quantum__rt__array_get_size_1d", create_array);
+
+  addRule({std::move(get_size), size_replacer});
+}
+
+void RuleFactory::useStaticQubitArrayAllocation()
+{
+  // TODO(QAT-private-issue-32): Use weak pointers to capture allocation managers
+  auto qubit_alloc_manager = qubit_alloc_manager_;
+
+  /// Allocation
+  auto default_iw          = default_integer_width_;
+  auto allocation_replacer = [default_iw, qubit_alloc_manager](Builder &builder, Value *val,
+                                                               Captures &    cap,
+                                                               Replacements &replacements) {
+    auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
+    if (cst == nullptr)
     {
-        default_integer_width_ = config.defaultIntegerWidth();
-
-        if (config.disableReferenceCounting())
-        {
-            disableReferenceCounting();
-        }
-
-        if (config.disableAliasCounting())
-        {
-            disableAliasCounting();
-        }
-
-        if (config.disableStringSupport())
-        {
-            disableStringSupport();
-        }
-
-        if (config.optimiseBranchQuantumOne())
-        {
-            optimiseBranchQuantumOne();
-        }
-
-        if (config.optimiseBranchQuantumZero())
-        {
-            optimiseBranchQuantumZero();
-        }
-
-        if (config.optimiseSelectQuantumOne())
-        {
-            optimiseSelectQuantumOne();
-        }
-
-        if (config.optimiseSelectQuantumZero())
-        {
-            optimiseSelectQuantumZero();
-        }
-
-        if (config.useStaticQubitArrayAllocation())
-        {
-            useStaticQubitArrayAllocation();
-        }
-
-        if (config.useStaticQubitAllocation())
-        {
-            useStaticQubitAllocation();
-        }
-
-        if (config.useStaticResultAllocation())
-        {
-            useStaticResultAllocation();
-        }
+      return false;
     }
 
-    void RuleFactory::removeFunctionCall(String const& name)
+    auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
+    if (ptr_type == nullptr)
     {
-        addRule({callByNameOnly(name), deleteInstruction()});
+      return false;
     }
 
-    void RuleFactory::useStaticQubitArrayAllocation()
+    if (cst == nullptr)
     {
-        // TODO(QAT-private-issue-32): Use weak pointers to capture allocation managers
-        auto qubit_alloc_manager = qubit_alloc_manager_;
-
-        /// Allocation
-        auto default_iw = default_integer_width_;
-        auto allocation_replacer =
-            [default_iw, qubit_alloc_manager](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-                auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
-                if (cst == nullptr)
-                {
-                    return false;
-                }
-
-                auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
-                if (ptr_type == nullptr)
-                {
-                    return false;
-                }
-
-                if (cst == nullptr)
-                {
-                    return false;
-                }
-
-                auto llvm_size = cst->getValue();
-                auto name      = val->getName().str();
-                auto size      = llvm_size.getZExtValue();
-                auto offset    = qubit_alloc_manager->allocate(name, size);
-
-                // Creating a new index APInt that is shifted by the offset of the allocation
-                auto idx = llvm::APInt(default_iw, offset);
-
-                // Computing offset
-                auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
-
-                auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
-                instr->takeName(val);
-
-                // Replacing the instruction with new instruction
-                auto old_instr = llvm::dyn_cast<Instruction>(val);
-
-                // Safety precaution to ensure that we are dealing with a Instruction
-                if (old_instr == nullptr)
-                {
-                    return false;
-                }
-
-                // Ensuring that we have replaced the instruction before
-                // identifying release
-                old_instr->replaceAllUsesWith(instr);
-
-                replacements.push_back({old_instr, instr});
-                return true;
-            };
-
-        /// This rule is replacing the allocate qubit array instruction
-        ///
-        /// %leftPreshared = call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
-        ///
-        /// by changing it to a constant pointer
-        ///
-        /// %leftPreshared = inttoptr i64 0 to %Array*
-        ///
-        /// In this way, we use the
-
-        addRule({call("__quantum__rt__qubit_allocate_array", "size"_cap = _), allocation_replacer});
-
-        /// Array access replacement
-        auto access_replacer =
-            [qubit_alloc_manager](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-                // Getting the type pointer
-                auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
-                if (ptr_type == nullptr)
-                {
-                    return false;
-                }
-
-                // Get the index and testing that it is a constant int
-                auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["index"]);
-                if (cst == nullptr)
-                {
-                    // ... if not, we cannot perform the mapping.
-                    return false;
-                }
-
-                // Computing the index by getting the current index value and offsetting by
-                // the offset at which the qubit array is allocated.
-                auto offset_cst = llvm::dyn_cast<llvm::ConstantInt>(cap["arrayName"]);
-                if (offset_cst == nullptr)
-                {
-                    return false;
-                }
-                auto llvm_offset = offset_cst->getValue();
-                auto offset      = llvm_offset.getZExtValue();
-
-                // Creating a new index APInt that is shifted by the offset of the allocation
-                auto llvm_size = cst->getValue();
-                auto idx       = llvm::APInt(llvm_size.getBitWidth(), llvm_size.getZExtValue() + offset);
-
-                // Computing offset
-                auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
-
-                // Converting pointer
-                auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
-                instr->takeName(val);
-
-                // Replacing the instruction with new instruction
-                replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
-
-                // Deleting the getelement and cast operations
-                replacements.push_back({llvm::dyn_cast<Instruction>(cap["getElement"]), nullptr});
-                replacements.push_back({llvm::dyn_cast<Instruction>(cap["cast"]), nullptr});
-
-                return true;
-            };
-
-        // Casted const
-        auto get_element = call(
-            "__quantum__rt__array_get_element_ptr_1d", intToPtr("arrayName"_cap = constInt()),
-            "index"_cap = constInt());
-        auto cast_pattern = bitCast("getElement"_cap = get_element);
-        auto load_pattern = load("cast"_cap = cast_pattern);
-
-        addRule({std::move(load_pattern), access_replacer});
-
-        /// Release replacement
-        auto deleter = deleteInstruction();
-
-        addRule(
-            {call("__quantum__rt__qubit_release_array", intToPtr("const"_cap = constInt())),
-             [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
-                 // Recovering the qubit id
-                 auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["const"]);
-                 if (cst == nullptr)
-                 {
-                     return false;
-                 }
-                 auto address = cst->getValue().getZExtValue();
-
-                 // Releasing
-                 qubit_alloc_manager->release(address);
-
-                 // Deleting instruction
-                 return deleter(builder, val, cap, rep);
-             }});
+      return false;
     }
 
-    void RuleFactory::useStaticQubitAllocation()
+    auto llvm_size = cst->getValue();
+    auto name      = val->getName().str();
+    auto size      = llvm_size.getZExtValue();
+    auto offset    = qubit_alloc_manager->allocate(name, size);
+
+    // Creating a new index APInt that is shifted by the offset of the allocation
+    auto idx = llvm::APInt(default_iw, offset);
+
+    // Computing offset
+    auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+
+    auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+    instr->takeName(val);
+
+    // Replacing the instruction with new instruction
+    auto old_instr = llvm::dyn_cast<Instruction>(val);
+
+    // Safety precaution to ensure that we are dealing with a Instruction
+    if (old_instr == nullptr)
     {
-        auto qubit_alloc_manager = qubit_alloc_manager_;
-        auto default_iw          = default_integer_width_;
-        auto allocation_replacer =
-            [default_iw, qubit_alloc_manager](Builder& builder, Value* val, Captures&, Replacements& replacements) {
-                // Getting the type pointer
-                auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
-                if (ptr_type == nullptr)
-                {
-                    return false;
-                }
+      return false;
+    }
 
-                auto qubit_name = val->getName().str();
+    // Ensuring that we have replaced the instruction before
+    // identifying release
+    old_instr->replaceAllUsesWith(instr);
 
-                // Computing the index by getting the current index value and offseting by
-                // the offset at which the qubit array is allocated.
-                auto offset = qubit_alloc_manager->allocate(qubit_name);
+    replacements.push_back({old_instr, instr});
+    return true;
+  };
 
-                // Creating a new index APInt that is shifted by the offset of the allocation
-                auto idx = llvm::APInt(default_iw, offset);
+  /// This rule is replacing the allocate qubit array instruction
+  ///
+  /// %leftPreshared = call %Array* @__quantum__rt__qubit_allocate_array(i64 2)
+  ///
+  /// by changing it to a constant pointer
+  ///
+  /// %leftPreshared = inttoptr i64 0 to %Array*
+  ///
+  /// In this way, we use the
 
-                // Computing offset
-                auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+  addRule({call("__quantum__rt__qubit_allocate_array", "size"_cap = _), allocation_replacer});
 
-                auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
-                instr->takeName(val);
+  /// Array access replacement
+  auto access_replacer = [qubit_alloc_manager](Builder &builder, Value *val, Captures &cap,
+                                               Replacements &replacements) {
+    // Getting the type pointer
+    auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
+    if (ptr_type == nullptr)
+    {
+      return false;
+    }
 
-                // Replacing the instruction with new instruction
-                auto old_instr = llvm::dyn_cast<Instruction>(val);
+    // Get the index and testing that it is a constant int
+    auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["index"]);
+    if (cst == nullptr)
+    {
+      // ... if not, we cannot perform the mapping.
+      return false;
+    }
 
-                // Safety precaution to ensure that we are dealing with a Instruction
-                if (old_instr == nullptr)
-                {
-                    return false;
-                }
+    // Computing the index by getting the current index value and offsetting by
+    // the offset at which the qubit array is allocated.
+    auto offset_cst = llvm::dyn_cast<llvm::ConstantInt>(cap["arrayName"]);
+    if (offset_cst == nullptr)
+    {
+      return false;
+    }
+    auto llvm_offset = offset_cst->getValue();
+    auto offset      = llvm_offset.getZExtValue();
 
-                // Ensuring that we have replaced the instruction before
-                // identifying release
-                old_instr->replaceAllUsesWith(instr);
+    // Creating a new index APInt that is shifted by the offset of the allocation
+    auto llvm_size = cst->getValue();
+    auto idx       = llvm::APInt(llvm_size.getBitWidth(), llvm_size.getZExtValue() + offset);
 
-                replacements.push_back({old_instr, instr});
+    // Computing offset
+    auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
 
-                return true;
-            };
+    // Converting pointer
+    auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+    instr->takeName(val);
 
-        // Dealing with qubit allocation
-        addRule({call("__quantum__rt__qubit_allocate"), allocation_replacer});
+    // Replacing the instruction with new instruction
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
 
-        /// Release replacement
-        auto deleter = deleteInstruction();
+    // Deleting the getelement and cast operations
+    replacements.push_back({llvm::dyn_cast<Instruction>(cap["getElement"]), nullptr});
+    replacements.push_back({llvm::dyn_cast<Instruction>(cap["cast"]), nullptr});
 
-        // Handling the case where a constant integer is cast to a pointer and the pointer
-        // is used in a call to qubit_release:
-        //
-        // %0 = inttoptr i64 0 to %Qubit*
-        // call void @__quantum__rt__qubit_release(%Qubit* %0
-        //
-        // The case of named addresses are also covered, by this pattern:
-        // %leftMessage = inttoptr i64 0 to %Qubit*
-        // call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
+    return true;
+  };
 
-        addRule(
-            {call("__quantum__rt__qubit_release", intToPtr("const"_cap = constInt())),
-             [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
-                 // Recovering the qubit id
-                 auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["const"]);
-                 if (cst == nullptr)
-                 {
-                     return false;
-                 }
-                 auto address = cst->getValue().getZExtValue();
+  // Casted const
+  auto get_element  = call("__quantum__rt__array_get_element_ptr_1d",
+                          intToPtr("arrayName"_cap = constInt()), "index"_cap = constInt());
+  auto cast_pattern = bitCast("getElement"_cap = get_element);
+  auto load_pattern = load("cast"_cap = cast_pattern);
 
-                 // Releasing
-                 qubit_alloc_manager->release(address);
+  addRule({std::move(load_pattern), access_replacer});
 
-                 // Deleting instruction
-                 return deleter(builder, val, cap, rep);
-             }});
+  /// Release replacement
+  auto deleter = deleteInstruction();
 
-        // Handling where allocation is done by non-standard functions. In
-        // this rule reports an error as we cannot reliably do a mapping.
-        //
-        // %leftMessage = call %Qubit* @__non_standard_allocator()
-        // call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
-        addRule(
-            {call("__quantum__rt__qubit_release", "name"_cap = _),
-             [qubit_alloc_manager, deleter](Builder& builder, Value* val, Captures& cap, Replacements& rep) {
-                 // Getting the name
-                 auto name = cap["name"]->getName().str();
+  addRule({call("__quantum__rt__qubit_release_array", intToPtr("const"_cap = constInt())),
+           [qubit_alloc_manager, deleter](Builder &builder, Value *val, Captures &cap,
+                                          Replacements &rep) {
+             // Recovering the qubit id
+             auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["const"]);
+             if (cst == nullptr)
+             {
+               return false;
+             }
+             auto address = cst->getValue().getZExtValue();
 
-                 // Returning in case the name comes out empty
-                 if (name.empty())
-                 {
+             // Releasing
+             qubit_alloc_manager->release(address);
 
-                     // TODO(tfr): report error
-                     llvm::outs() << "FAILED due to unnamed non standard allocation:\n";
-                     llvm::outs() << *val << "\n\n";
+             // Deleting instruction
+             return deleter(builder, val, cap, rep);
+           }});
+}
 
-                     // Deleting the instruction in order to proceed
-                     // and trying to discover as many other errors as possible
-                     return deleter(builder, val, cap, rep);
-                 }
+void RuleFactory::useStaticQubitAllocation()
+{
+  auto qubit_alloc_manager = qubit_alloc_manager_;
+  auto default_iw          = default_integer_width_;
+  auto allocation_replacer = [default_iw, qubit_alloc_manager](Builder &builder, Value *val,
+                                                               Captures &,
+                                                               Replacements &replacements) {
+    // Getting the type pointer
+    auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
+    if (ptr_type == nullptr)
+    {
+      return false;
+    }
 
-                 // TODO(tfr): report error
-                 llvm::outs() << "FAILED due to non standard allocation:\n";
-                 llvm::outs() << *cap["name"] << "\n";
-                 llvm::outs() << *val << "\n\n";
+    auto qubit_name = val->getName().str();
 
-                 return deleter(builder, val, cap, rep);
+    // Computing the index by getting the current index value and offseting by
+    // the offset at which the qubit array is allocated.
+    auto offset = qubit_alloc_manager->allocate(qubit_name);
+
+    // Creating a new index APInt that is shifted by the offset of the allocation
+    auto idx = llvm::APInt(default_iw, offset);
+
+    // Computing offset
+    auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+
+    auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+    instr->takeName(val);
+
+    // Replacing the instruction with new instruction
+    auto old_instr = llvm::dyn_cast<Instruction>(val);
+
+    // Safety precaution to ensure that we are dealing with a Instruction
+    if (old_instr == nullptr)
+    {
+      return false;
+    }
+
+    // Ensuring that we have replaced the instruction before
+    // identifying release
+    old_instr->replaceAllUsesWith(instr);
+
+    replacements.push_back({old_instr, instr});
+
+    return true;
+  };
+
+  // Dealing with qubit allocation
+  addRule({call("__quantum__rt__qubit_allocate"), allocation_replacer});
+
+  /// Release replacement
+  auto deleter = deleteInstruction();
+
+  // Handling the case where a constant integer is cast to a pointer and the pointer
+  // is used in a call to qubit_release:
+  //
+  // %0 = inttoptr i64 0 to %Qubit*
+  // call void @__quantum__rt__qubit_release(%Qubit* %0
+  //
+  // The case of named addresses are also covered, by this pattern:
+  // %leftMessage = inttoptr i64 0 to %Qubit*
+  // call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
+
+  addRule({call("__quantum__rt__qubit_release", intToPtr("const"_cap = constInt())),
+           [qubit_alloc_manager, deleter](Builder &builder, Value *val, Captures &cap,
+                                          Replacements &rep) {
+             // Recovering the qubit id
+             auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["const"]);
+             if (cst == nullptr)
+             {
+               return false;
+             }
+             auto address = cst->getValue().getZExtValue();
+
+             // Releasing
+             qubit_alloc_manager->release(address);
+
+             // Deleting instruction
+             return deleter(builder, val, cap, rep);
+           }});
+
+  // Handling where allocation is done by non-standard functions. In
+  // this rule reports an error as we cannot reliably do a mapping.
+  //
+  // %leftMessage = call %Qubit* @__non_standard_allocator()
+  // call void @__quantum__rt__qubit_release(%Qubit* %leftMessage)
+  addRule({call("__quantum__rt__qubit_release", "name"_cap = _),
+           [qubit_alloc_manager, deleter](Builder &builder, Value *val, Captures &cap,
+                                          Replacements &rep) {
+             // Getting the name
+             auto name = cap["name"]->getName().str();
+
+             // Returning in case the name comes out empty
+             if (name.empty())
+             {
+
+               // TODO(tfr): report error
+               llvm::outs() << "FAILED due to unnamed non standard allocation:\n";
+               llvm::outs() << *val << "\n\n";
+
+               // Deleting the instruction in order to proceed
+               // and trying to discover as many other errors as possible
+               return deleter(builder, val, cap, rep);
              }
 
-            });
-    }
+             // TODO(tfr): report error
+             llvm::outs() << "FAILED due to non standard allocation:\n";
+             llvm::outs() << *cap["name"] << "\n";
+             llvm::outs() << *val << "\n\n";
 
-    void RuleFactory::useStaticResultAllocation()
+             return deleter(builder, val, cap, rep);
+           }
+
+  });
+}
+
+void RuleFactory::useStaticResultAllocation()
+{
+  auto result_alloc_manager = result_alloc_manager_;
+  auto default_iw           = default_integer_width_;
+  auto replace_measurement  = [default_iw, result_alloc_manager](Builder &builder, Value *val,
+                                                                Captures &    cap,
+                                                                Replacements &replacements) {
+    // Getting the type pointer
+    auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
+    if (ptr_type == nullptr)
     {
-        auto result_alloc_manager = result_alloc_manager_;
-        auto default_iw           = default_integer_width_;
-        auto replace_measurement  = [default_iw, result_alloc_manager](
-                                       Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-            // Getting the type pointer
-            auto ptr_type = llvm::dyn_cast<llvm::PointerType>(val->getType());
-            if (ptr_type == nullptr)
-            {
-                return false;
-            }
-
-            // Computing the index by getting the current index value and offseting by
-            // the offset at which the qubit array is allocated.
-            auto offset = result_alloc_manager->allocate();
-
-            // Creating a new index APInt that is shifted by the offset of the allocation
-            auto idx = llvm::APInt(default_iw, offset);
-
-            // Computing offset
-            auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
-
-            auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
-
-            if (instr == nullptr)
-            {
-                return false;
-            }
-
-            instr->takeName(val);
-
-            auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
-            if (orig_instr == nullptr)
-            {
-                return false;
-            }
-
-            auto module   = orig_instr->getModule();
-            auto function = module->getFunction("__quantum__qis__mz__body");
-
-            std::vector<llvm::Value*> arguments;
-            arguments.push_back(cap["qubit"]);
-            arguments.push_back(instr);
-
-            if (!function)
-            {
-                std::vector<llvm::Type*> types;
-                types.resize(arguments.size());
-                for (uint64_t i = 0; i < types.size(); ++i)
-                {
-                    types[i] = arguments[i]->getType();
-                }
-
-                auto return_type = llvm::Type::getVoidTy(val->getContext());
-
-                llvm::FunctionType* fnc_type = llvm::FunctionType::get(return_type, types, false);
-                function                     = llvm::Function::Create(
-                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qis__mz__body", module);
-            }
-
-            // Ensuring we are inserting after the instruction being deleted
-            builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val)->getNextNode());
-
-            builder.CreateCall(function, arguments);
-
-            // Replacing the instruction with new instruction
-            replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
-
-            return true;
-        };
-
-        // This rules identifies result allocations through the function "__quantum__qis__m__body".
-        // As an example, the following
-        //
-        // %result1 = call %Result* @__quantum__qis__m__body(%Qubit* %0)
-        //
-        // translates into
-        //
-        // %result1 = inttoptr i64 0 to %Result*
-        // call void @__quantum__qis__mz__body(%Qubit* %0, %Result* %result1)
-
-        addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
+      return false;
     }
 
-    void RuleFactory::optimiseBranchQuantumZero()
+    // Computing the index by getting the current index value and offseting by
+    // the offset at which the qubit array is allocated.
+    auto offset = result_alloc_manager->allocate();
+
+    // Creating a new index APInt that is shifted by the offset of the allocation
+    auto idx = llvm::APInt(default_iw, offset);
+
+    // Computing offset
+    auto new_index = llvm::ConstantInt::get(builder.getContext(), idx);
+
+    auto instr = new llvm::IntToPtrInst(new_index, ptr_type);
+
+    if (instr == nullptr)
     {
-        // TODO(tfr): implement this logic - do not throw std::logic_error("Optimisation not implemented
-        // yet.");
+      return false;
     }
 
-    void RuleFactory::optimiseBranchQuantumOne()
+    instr->takeName(val);
+
+    auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+    if (orig_instr == nullptr)
     {
-        auto replace_branch_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-            auto cond = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
-            if (cond == nullptr)
-            {
-                return false;
-            }
-            auto result = cap["result"];
-            // Replacing result
-            auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
-            if (orig_instr == nullptr)
-            {
-                return false;
-            }
-
-            auto                      module   = orig_instr->getModule();
-            auto                      function = module->getFunction("__quantum__qir__read_result");
-            std::vector<llvm::Value*> arguments;
-            arguments.push_back(result);
-
-            if (!function)
-            {
-                std::vector<llvm::Type*> types;
-                types.resize(arguments.size());
-                for (uint64_t i = 0; i < types.size(); ++i)
-                {
-                    types[i] = arguments[i]->getType();
-                }
-
-                auto return_type = llvm::Type::getInt1Ty(val->getContext());
-
-                llvm::FunctionType* fnc_type = llvm::FunctionType::get(return_type, types, false);
-                function                     = llvm::Function::Create(
-                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qir__read_result", module);
-            }
-
-            builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
-            auto new_call = builder.CreateCall(function, arguments);
-
-            new_call->takeName(cond);
-
-            for (auto& use : cond->uses())
-            {
-                llvm::User* user = use.getUser();
-                user->setOperand(use.getOperandNo(), new_call);
-            }
-            cond->replaceAllUsesWith(new_call);
-
-            // Deleting the previous condition and function to fetch one
-            replacements.push_back({cond, nullptr});
-            replacements.push_back({cap["one"], nullptr});
-
-            return true;
-        };
-
-        /*
-          Here is an example IR for which we want to make a match:
-
-          %1 = call %Result* @__quantum__rt__result_get_one()
-          %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
-          br i1 %2, label %then0__1, label %continue__1
-        */
-
-        // Variations of get_one
-        auto get_one = call("__quantum__rt__result_get_one");
-        addRule(
-            {branch("cond"_cap = call("__quantum__rt__result_equal", "result"_cap = _, "one"_cap = get_one), _, _),
-             replace_branch_positive});
-
-        addRule(
-            {branch("cond"_cap = call("__quantum__rt__result_equal", "one"_cap = get_one, "result"_cap = _), _, _),
-             replace_branch_positive});
+      return false;
     }
 
-    void RuleFactory::optimiseSelectQuantumOne()
+    auto module   = orig_instr->getModule();
+    auto function = module->getFunction("__quantum__qis__mz__body");
+
+    std::vector<llvm::Value *> arguments;
+    arguments.push_back(cap["qubit"]);
+    arguments.push_back(instr);
+
+    if (!function)
     {
-        auto replace_select_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
-            auto cond = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
-            if (cond == nullptr)
-            {
-                return false;
-            }
-            auto result = cap["result"];
-            // Replacing result
-            auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
-            if (orig_instr == nullptr)
-            {
-                return false;
-            }
+      std::vector<llvm::Type *> types;
+      types.resize(arguments.size());
+      for (uint64_t i = 0; i < types.size(); ++i)
+      {
+        types[i] = arguments[i]->getType();
+      }
 
-            auto                      module   = orig_instr->getModule();
-            auto                      function = module->getFunction("__quantum__qir__read_result");
-            std::vector<llvm::Value*> arguments;
-            arguments.push_back(result);
+      auto return_type = llvm::Type::getVoidTy(val->getContext());
 
-            if (!function)
-            {
-                std::vector<llvm::Type*> types;
-                types.resize(arguments.size());
-                for (size_t i = 0; i < types.size(); ++i)
-                {
-                    types[i] = arguments[i]->getType();
-                }
-
-                auto return_type = llvm::Type::getInt1Ty(val->getContext());
-
-                llvm::FunctionType* fnc_type = llvm::FunctionType::get(return_type, types, false);
-                function                     = llvm::Function::Create(
-                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qir__read_result", module);
-            }
-
-            builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
-            auto new_call = builder.CreateCall(function, arguments);
-
-            new_call->takeName(cond);
-
-            for (auto& use : cond->uses())
-            {
-                llvm::User* user = use.getUser();
-                user->setOperand(use.getOperandNo(), new_call);
-            }
-            cond->replaceAllUsesWith(new_call);
-
-            // Deleting the previous condition and function to fetch one
-            replacements.push_back({cond, nullptr});
-            replacements.push_back({cap["one"], nullptr});
-
-            return true;
-        };
-
-        /*
-          Here is an example IR for which we want to make a match:
-
-          %1 = call %Result* @__quantum__rt__result_get_one()
-          %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
-          ...
-          %5 = select i1 %2, <type> %3, <type> %4
-        */
-
-        // Variations of get_one
-        auto get_one = call("__quantum__rt__result_get_one");
-        addRule(
-            {select("cond"_cap = call("__quantum__rt__result_equal", "result"_cap = _, "one"_cap = get_one), _, _),
-             replace_select_positive});
-
-        addRule(
-            {select("cond"_cap = call("__quantum__rt__result_equal", "one"_cap = get_one, "result"_cap = _), _, _),
-             replace_select_positive});
+      llvm::FunctionType *fnc_type = llvm::FunctionType::get(return_type, types, false);
+      function = llvm::Function::Create(fnc_type, llvm::Function::ExternalLinkage,
+                                        "__quantum__qis__mz__body", module);
     }
 
-    void RuleFactory::optimiseSelectQuantumZero()
+    // Ensuring we are inserting after the instruction being deleted
+    builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val)->getNextNode());
+
+    builder.CreateCall(function, arguments);
+
+    // Replacing the instruction with new instruction
+    replacements.push_back({llvm::dyn_cast<Instruction>(val), instr});
+
+    return true;
+  };
+
+  // This rules identifies result allocations through the function "__quantum__qis__m__body".
+  // As an example, the following
+  //
+  // %result1 = call %Result* @__quantum__qis__m__body(%Qubit* %0)
+  //
+  // translates into
+  //
+  // %result1 = inttoptr i64 0 to %Result*
+  // call void @__quantum__qis__mz__body(%Qubit* %0, %Result* %result1)
+
+  addRule({call("__quantum__qis__m__body", "qubit"_cap = _), std::move(replace_measurement)});
+}
+
+void RuleFactory::optimiseBranchQuantumZero()
+{
+  // TODO(tfr): implement this logic - do not throw std::logic_error("Optimisation not implemented
+  // yet.");
+}
+
+void RuleFactory::optimiseBranchQuantumOne()
+{
+  auto replace_branch_positive = [](Builder &builder, Value *val, Captures &cap,
+                                    Replacements &replacements) {
+    auto cond = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+    if (cond == nullptr)
     {
-        // TODO(swernli): Not implemented
+      return false;
     }
-
-    void RuleFactory::disableReferenceCounting()
+    auto result = cap["result"];
+    // Replacing result
+    auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+    if (orig_instr == nullptr)
     {
-        removeFunctionCall("__quantum__rt__array_update_reference_count");
-        removeFunctionCall("__quantum__rt__string_update_reference_count");
-        removeFunctionCall("__quantum__rt__result_update_reference_count");
+      return false;
     }
 
-    void RuleFactory::disableAliasCounting()
+    auto                       module   = orig_instr->getModule();
+    auto                       function = module->getFunction("__quantum__qir__read_result");
+    std::vector<llvm::Value *> arguments;
+    arguments.push_back(result);
+
+    if (!function)
     {
-        removeFunctionCall("__quantum__rt__array_update_alias_count");
-        removeFunctionCall("__quantum__rt__string_update_alias_count");
-        removeFunctionCall("__quantum__rt__result_update_alias_count");
+      std::vector<llvm::Type *> types;
+      types.resize(arguments.size());
+      for (uint64_t i = 0; i < types.size(); ++i)
+      {
+        types[i] = arguments[i]->getType();
+      }
+
+      auto return_type = llvm::Type::getInt1Ty(val->getContext());
+
+      llvm::FunctionType *fnc_type = llvm::FunctionType::get(return_type, types, false);
+      function = llvm::Function::Create(fnc_type, llvm::Function::ExternalLinkage,
+                                        "__quantum__qir__read_result", module);
     }
 
-    void RuleFactory::disableStringSupport()
+    builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
+    auto new_call = builder.CreateCall(function, arguments);
+
+    new_call->takeName(cond);
+
+    for (auto &use : cond->uses())
     {
-        removeFunctionCall("__quantum__rt__string_create");
-        removeFunctionCall("__quantum__rt__string_update_reference_count");
-        removeFunctionCall("__quantum__rt__string_update_alias_count");
-        removeFunctionCall("__quantum__rt__message");
+      llvm::User *user = use.getUser();
+      user->setOperand(use.getOperandNo(), new_call);
     }
+    cond->replaceAllUsesWith(new_call);
 
-    ReplacementRulePtr RuleFactory::addRule(ReplacementRule&& rule)
+    // Deleting the previous condition and function to fetch one
+    replacements.push_back({cond, nullptr});
+    replacements.push_back({cap["one"], nullptr});
+
+    return true;
+  };
+
+  /*
+    Here is an example IR for which we want to make a match:
+
+    %1 = call %Result* @__quantum__rt__result_get_one()
+    %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
+    br i1 %2, label %then0__1, label %continue__1
+  */
+
+  // Variations of get_one
+  auto get_one = call("__quantum__rt__result_get_one");
+  addRule({branch("cond"_cap =
+                      call("__quantum__rt__result_equal", "result"_cap = _, "one"_cap = get_one),
+                  _, _),
+           replace_branch_positive});
+
+  addRule({branch("cond"_cap =
+                      call("__quantum__rt__result_equal", "one"_cap = get_one, "result"_cap = _),
+                  _, _),
+           replace_branch_positive});
+}
+
+void RuleFactory::optimiseSelectQuantumOne()
+{
+  auto replace_select_positive = [](Builder &builder, Value *val, Captures &cap,
+                                    Replacements &replacements) {
+    auto cond = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+    if (cond == nullptr)
     {
-        auto ret = std::make_shared<ReplacementRule>(std::move(rule));
-
-        rule_set_.addRule(ret);
-
-        return ret;
+      return false;
     }
-
-    void RuleFactory::setDefaultIntegerWidth(uint32_t v)
+    auto result = cap["result"];
+    // Replacing result
+    auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+    if (orig_instr == nullptr)
     {
-        default_integer_width_ = v;
+      return false;
     }
 
-} // namespace quantum
-} // namespace microsoft
+    auto                       module   = orig_instr->getModule();
+    auto                       function = module->getFunction("__quantum__qir__read_result");
+    std::vector<llvm::Value *> arguments;
+    arguments.push_back(result);
+
+    if (!function)
+    {
+      std::vector<llvm::Type *> types;
+      types.resize(arguments.size());
+      for (size_t i = 0; i < types.size(); ++i)
+      {
+        types[i] = arguments[i]->getType();
+      }
+
+      auto return_type = llvm::Type::getInt1Ty(val->getContext());
+
+      llvm::FunctionType *fnc_type = llvm::FunctionType::get(return_type, types, false);
+      function = llvm::Function::Create(fnc_type, llvm::Function::ExternalLinkage,
+                                        "__quantum__qir__read_result", module);
+    }
+
+    builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
+    auto new_call = builder.CreateCall(function, arguments);
+
+    new_call->takeName(cond);
+
+    for (auto &use : cond->uses())
+    {
+      llvm::User *user = use.getUser();
+      user->setOperand(use.getOperandNo(), new_call);
+    }
+    cond->replaceAllUsesWith(new_call);
+
+    // Deleting the previous condition and function to fetch one
+    replacements.push_back({cond, nullptr});
+    replacements.push_back({cap["one"], nullptr});
+
+    return true;
+  };
+
+  /*
+    Here is an example IR for which we want to make a match:
+
+    %1 = call %Result* @__quantum__rt__result_get_one()
+    %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
+    ...
+    %5 = select i1 %2, <type> %3, <type> %4
+  */
+
+  // Variations of get_one
+  auto get_one = call("__quantum__rt__result_get_one");
+  addRule({select("cond"_cap =
+                      call("__quantum__rt__result_equal", "result"_cap = _, "one"_cap = get_one),
+                  _, _),
+           replace_select_positive});
+
+  addRule({select("cond"_cap =
+                      call("__quantum__rt__result_equal", "one"_cap = get_one, "result"_cap = _),
+                  _, _),
+           replace_select_positive});
+}
+
+void RuleFactory::optimiseSelectQuantumZero()
+{
+  // TODO(swernli): Not implemented
+}
+
+void RuleFactory::disableReferenceCounting()
+{
+  removeFunctionCall("__quantum__rt__array_update_reference_count");
+  removeFunctionCall("__quantum__rt__string_update_reference_count");
+  removeFunctionCall("__quantum__rt__result_update_reference_count");
+}
+
+void RuleFactory::disableAliasCounting()
+{
+  removeFunctionCall("__quantum__rt__array_update_alias_count");
+  removeFunctionCall("__quantum__rt__string_update_alias_count");
+  removeFunctionCall("__quantum__rt__result_update_alias_count");
+}
+
+void RuleFactory::disableStringSupport()
+{
+  removeFunctionCall("__quantum__rt__string_create");
+  removeFunctionCall("__quantum__rt__string_update_reference_count");
+  removeFunctionCall("__quantum__rt__string_update_alias_count");
+  removeFunctionCall("__quantum__rt__message");
+}
+
+ReplacementRulePtr RuleFactory::addRule(ReplacementRule &&rule)
+{
+  auto ret = std::make_shared<ReplacementRule>(std::move(rule));
+
+  rule_set_.addRule(ret);
+
+  return ret;
+}
+
+void RuleFactory::setDefaultIntegerWidth(uint32_t v)
+{
+  default_integer_width_ = v;
+}
+
+}  // namespace quantum
+}  // namespace microsoft
