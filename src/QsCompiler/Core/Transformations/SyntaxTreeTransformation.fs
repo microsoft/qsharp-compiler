@@ -187,7 +187,7 @@ and StatementKindTransformation<'T> internal (options, _internal_) =
             this.ExpressionTransformationHandle <- fun _ -> value.Expressions :> ExpressionTransformationBase
 
     member this.SharedState = this.Transformation.SharedState
-// RyanNote: Here's SharedState for the entire syntax tree
+
     new(parentTransformation: SyntaxTreeTransformation<'T>, options: TransformationOptions) as this =
         StatementKindTransformation<'T>(options, "_internal_")
         then this.Transformation <- parentTransformation
@@ -285,7 +285,7 @@ and NamespaceTransformation<'T> internal (options, _internal_: string) =
     new(sharedState: 'T) = new NamespaceTransformation<'T>(sharedState, TransformationOptions.Default)
 
 
-// setup for syntax tree transformations without internal state // RyanNote: SyntaxTreeTransformation defined here
+// setup for syntax tree transformations without internal state
 
 type SyntaxTreeTransformation private (options: TransformationOptions, _internal_: string) =
 

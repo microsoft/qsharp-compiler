@@ -31,7 +31,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 this.currentSpecialization = value;
         }
 
-        private readonly TransformationContext context = new TransformationContext(); // RyanQuestion: where does this get populated? Seems that context should be looking back at Generator Context
+        private readonly TransformationContext context = new TransformationContext();
 
         public QirNamespaceTransformation(SyntaxTreeTransformation<GenerationContext> parentTransformation, TransformationOptions options)
             : base(parentTransformation, options)
@@ -50,7 +50,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public QirNamespaceTransformation(GenerationContext sharedState)
             : base(sharedState)
-        {// RyanQuestion: where is base defined?
+        {
         }
 
         /* public overrides */

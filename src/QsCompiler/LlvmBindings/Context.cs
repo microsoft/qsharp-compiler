@@ -15,7 +15,6 @@ using LLVMSharp.Interop;
 using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
-using Ubiquity.NET.Llvm.DebugInfo;
 
 namespace Ubiquity.NET.Llvm
 {
@@ -577,19 +576,6 @@ namespace Ubiquity.NET.Llvm
         public BitcodeModule CreateBitcodeModule(string moduleId)
         {
             return this.moduleCache.CreateBitcodeModule(moduleId);
-        }
-
-        /// <inheritdoc/>
-        public BitcodeModule CreateBitcodeModule(
-                string moduleId,
-                SourceLanguage language,
-                string srcFilePath,
-                string producer,
-                bool optimized = false,
-                string compilationFlags = "",
-                uint runtimeVersion = 0)
-        {
-            return this.moduleCache.CreateBitcodeModule(moduleId, language, srcFilePath, producer, optimized, compilationFlags, runtimeVersion);
         }
 
         /// <summary>Gets non-zero Metadata kind ID for a given name.</summary>
