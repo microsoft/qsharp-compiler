@@ -299,6 +299,13 @@ let VerifySyntaxTokenContext =
             | InvalidFragment _ -> false, [||]
         |> fun (kind, tuple) -> kind, tuple |> Array.map (fun (x, y) -> QsCompilerDiagnostic.New(x, []) y))
 
+let private mergeMaps onDuplicateKey =
+    fun map key value ->
+        match Map.tryFind key map with
+        | Some value' -> Map.add key (onDuplicateKey value value') map
+        | None -> Map.add key value map
+    |> Map.fold
+
 let rec private unqualifiedSymbols s =
     match s.Symbol with
     | QualifiedSymbol _
@@ -309,8 +316,10 @@ let rec private unqualifiedSymbols s =
     | SymbolTuple ss -> ss |> Seq.map unqualifiedSymbols |> Set.unionMany
 
 let rec internal freeVariables e =
+    let merge = mergeMaps (@)
+
     match e.Expression with
-    | Identifier ({ Symbol = Symbol name }, _) -> Set.singleton name
+    | Identifier ({ Symbol = Symbol name }, _) -> Map.add name [ e.Range ] Map.empty
     | UnitValue
     | IntLiteral _
     | BigIntLiteral _
@@ -320,7 +329,7 @@ let rec internal freeVariables e =
     | PauliLiteral _
     | MissingExpr
     | InvalidExpr
-    | Identifier _ -> Set.empty
+    | Identifier _ -> Map.empty
     | NewArray (_, e)
     | NamedItem (e, _)
     | NEG e
@@ -352,9 +361,11 @@ let rec internal freeVariables e =
     | RSHIFT (e1, e2)
     | CopyAndUpdate (e1, _, e2)
     | CallLikeExpression (e1, e2)
-    | SizedArray (e1, e2) -> freeVariables e1 |> Set.union (freeVariables e2)
-    | CONDITIONAL (e1, e2, e3) -> freeVariables e1 |> Set.union (freeVariables e2) |> Set.union (freeVariables e3)
+    | SizedArray (e1, e2) -> freeVariables e1 |> merge (freeVariables e2)
+    | CONDITIONAL (e1, e2, e3) -> freeVariables e1 |> merge (freeVariables e2) |> merge (freeVariables e3)
     | ValueTuple es
     | StringLiteral (_, es)
-    | ValueArray es -> es |> Seq.map freeVariables |> Set.unionMany
-    | Lambda lambda -> Set.difference (freeVariables lambda.Body) (unqualifiedSymbols lambda.Param)
+    | ValueArray es -> es |> Seq.map freeVariables |> Seq.reduce merge
+    | Lambda lambda ->
+        let bindings = unqualifiedSymbols lambda.Param
+        freeVariables lambda.Body |> Map.filter (fun name _ -> Set.contains name bindings |> not)
