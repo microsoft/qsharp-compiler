@@ -11,7 +11,7 @@ using CommandLine;
 using CommandLine.Text;
 using Microsoft.Quantum.QsCompiler.Diagnostics;
 
-namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler //RyanNote
+namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
     public static class BuildCompilation
     {

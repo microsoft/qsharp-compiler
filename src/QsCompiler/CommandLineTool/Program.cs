@@ -8,7 +8,7 @@ using Microsoft.Quantum.QsCompiler.Diagnostics;
 
 namespace Microsoft.Quantum.QsCompiler.CommandLineCompiler
 {
-    public static class ReturnCode // RyanNote: No error code for QIR generation?
+    public static class ReturnCode
     {
         /// <summary>
         /// Return code indicating that the invoked command to the Q# command line compiler succeeded.

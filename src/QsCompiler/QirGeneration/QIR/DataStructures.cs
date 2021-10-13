@@ -107,7 +107,7 @@ namespace Microsoft.Quantum.QIR.Emission
         /// Registers the given name as the name of the LLVM value using <see cref="ValueExtensions.RegisterName" />.
         /// Does nothing if a name is already defined for the value.
         /// </summary>
-        internal void RegisterName(string name) //RyanNote: This looks useful
+        internal void RegisterName(string name)
         {
             if (string.IsNullOrEmpty(this.Value.Name))
             {

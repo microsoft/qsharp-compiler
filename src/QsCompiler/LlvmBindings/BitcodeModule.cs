@@ -131,7 +131,7 @@ namespace Ubiquity.NET.Llvm
             }
         }
 
-        /// <summary>Gets the Debug Compile unit for this module</summary> //RyanNote: will need this
+        /// <summary>Gets the Debug Compile unit for this module</summary>
         public DICompileUnit? DICompileUnit { get; internal set; }
 
         /// <summary>Gets the Data layout string for this module</summary>

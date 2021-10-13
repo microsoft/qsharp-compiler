@@ -25,7 +25,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     {
         private class Scope
         {
-            private readonly Action<Func<ITypeRef, string?>, (IValue, bool)[]> increaseCounts; //RyanQuestion: What are these
+            private readonly Action<Func<ITypeRef, string?>, (IValue, bool)[]> increaseCounts;
             private readonly Action<Func<ITypeRef, string?>, (IValue, bool)[]> decreaseCounts;
 
             /// <summary>
@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            private static IValue LoadValue(IValue value) // RyanNote: handles pointer to pointer to pointer situation
+            private static IValue LoadValue(IValue value)
             {
                 while (value is PointerValue ptr)
                 {
@@ -722,7 +722,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (fromLocalId != null)
             {
                 this.scopes.FirstOrDefault(scope => scope.TryGetVariable(fromLocalId, out localId));
-                // RyanNote: could potentially do debug info here but probably cleaner when actually registering the individual variable in the subroutine call
             }
 
             value.RegisterName(this.sharedState.VariableName(name));
