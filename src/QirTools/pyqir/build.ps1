@@ -4,14 +4,17 @@
 if (!(Test-Path function:\Get-RepoRoot)) {
     # git revparse uses cwd. E2E builds use a different
     # working dir, so we pin it to out repo (submodule in E2E)
-    function Get-RepoRoot {
-        exec -wd $PSScriptRoot {
-            git rev-parse --show-toplevel
+    $should_push = (Get-Location) -ne $PSScriptRoot
+    try {
+        if ($should_push) { Push-Location -Path $PSScriptRoot }
+        . (Join-Path (git rev-parse --show-toplevel) build "utils.ps1")
+    }
+    finally {
+        if ($should_push) {
+            Pop-Location
         }
     }
 }
-
-. (Join-Path (Get-RepoRoot) build "utils.ps1")
 
 function Use-ExternalLlvmInstallation {
     Write-Vso "Using LLVM installation specified by AQ_LLVM_EXTERNAL_DIR"
