@@ -97,7 +97,7 @@ let runFormat (arguments: FormatArguments) =
 [<EntryPoint>]
 let main args =
 
-    initiate()
+    assemblyLoadContextSetup ()
 
     let result = CommandLine.Parser.Default.ParseArguments<FormatArguments, UpdateArguments> args
 

@@ -9,10 +9,13 @@ open Xunit
 
 [<Fact>]
 let SimpleApplication () =
-    DesignTimeBuild.assemblyLoadContextSetup()
+    DesignTimeBuild.assemblyLoadContextSetup ()
 
-    let files, version = DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleApplication\QSharpApplication1.csproj"
+    let files, version =
+        DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleApplication\QSharpApplication1.csproj"
+
     let files = files |> List.map Path.GetFullPath
+
     let expectedFiles =
         [
             "Examples\TestProjects\SimpleApplication\Program.qs"
@@ -31,10 +34,11 @@ let SimpleApplication () =
 
 [<Fact>]
 let SimpleLibrary () =
-    DesignTimeBuild.assemblyLoadContextSetup()
+    DesignTimeBuild.assemblyLoadContextSetup ()
 
     let files, version = DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleLibrary\QSharpLibrary1.csproj"
     let files = files |> List.map Path.GetFullPath
+
     let expectedFiles =
         [
             "Examples\TestProjects\SimpleLibrary\Library.qs"
@@ -53,10 +57,13 @@ let SimpleLibrary () =
 
 [<Fact>]
 let SimpleTestProject () =
-    DesignTimeBuild.assemblyLoadContextSetup()
+    DesignTimeBuild.assemblyLoadContextSetup ()
 
-    let files, version = DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleTestProject\QSharpTestProject1.csproj"
+    let files, version =
+        DesignTimeBuild.getSourceFiles "Examples\TestProjects\SimpleTestProject\QSharpTestProject1.csproj"
+
     let files = files |> List.map Path.GetFullPath
+
     let expectedFiles =
         [
             "Examples\TestProjects\SimpleTestProject\Tests.qs"
