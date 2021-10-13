@@ -135,6 +135,12 @@
     <Content Include="Examples\TestProjects\SimpleTestProject\SubFolder2\Excluded3.qs">
       <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </Content>
+    <Content Include="Examples\TestProjects\ReferenceLibrary\ReferenceLibrary.csproj">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
+    <Content Include="Examples\TestProjects\ReferenceLibrary\Library.qs">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
     <Compile Include="Tests.fs" />
     <Compile Include="ProjectTests.fs" />
   </ItemGroup>

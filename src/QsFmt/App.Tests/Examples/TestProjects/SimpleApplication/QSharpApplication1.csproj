@@ -16,4 +16,8 @@
     <QSharpCompile Include="..\..\Example2.qs" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\ReferenceLibrary\ReferenceLibrary.csproj" />
+  </ItemGroup>
+
 </Project>

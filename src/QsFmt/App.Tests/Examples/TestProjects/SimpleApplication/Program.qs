@@ -2,10 +2,12 @@
 
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Intrinsic;
+    open Quantum.ReferenceLibrary;
 
     
     @EntryPoint()
     operation HelloQ () : Unit {
         Message("Hello quantum world!");
+        LibraryOperation();
     }
 }

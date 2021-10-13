@@ -2,6 +2,7 @@
     open Microsoft.Quantum.Canon;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
+    open Quantum.ReferenceLibrary;
 
     
     @Test("QuantumSimulator")
@@ -11,5 +12,6 @@
         AssertMeasurement([PauliZ], [q], Zero, "Newly allocated qubit must be in |0> state.");
 
         Message("Test passed.");
+        LibraryOperation();
     }
 }
