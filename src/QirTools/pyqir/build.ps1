@@ -1,9 +1,11 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+# git revparse uses cwd. E2E builds use a different
+# working dir, so we pin it to out repo (submodule in E2E)
+# We can't rely on Get-RepoRoot as it isn't availble when
+# running this script standalone
 if (!(Test-Path function:\Get-RepoRoot)) {
-    # git revparse uses cwd. E2E builds use a different
-    # working dir, so we pin it to out repo (submodule in E2E)
     $should_push = (Get-Location) -ne $PSScriptRoot
     try {
         if ($should_push) { Push-Location -Path $PSScriptRoot }
