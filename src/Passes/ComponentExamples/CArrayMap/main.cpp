@@ -171,9 +171,9 @@ void replaceAccess(RuleSet &ruleset)
             "index"_cap = _),
        replacer});
 
-  ruleset.addRule(
-      {callByNameOnly("__quantum__rt__array_update_reference_count"), deleteInstruction()});
-  ruleset.addRule({callByNameOnly("__quantum__rt__array_update_alias_count"), deleteInstruction()});
+  // ruleset.addRule(
+  //     {callByNameOnly("__quantum__rt__array_update_reference_count"), deleteInstruction()});
+  // ruleset.addRule({callByNameOnly("__quantum__rt__array_update_alias_count"), deleteInstruction()});
 }
 
 void removeArrayCopies(RuleSet &ruleset)
