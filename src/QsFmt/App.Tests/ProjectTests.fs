@@ -82,29 +82,3 @@ let SimpleTestProject () =
 
     for expected in expectedFiles do
         Assert.True(List.contains expected files, sprintf "Expected but did not find file %s" expected)
-
-[<Fact>]
-let OldApplication () =
-    DesignTimeBuild.assemblyLoadContextSetup ()
-
-    let files, version =
-        DesignTimeBuild.getSourceFiles "Examples\TestProjects\OldApplication\OldApplication.csproj"
-
-    let files = files |> List.map Path.GetFullPath
-
-    let expectedFiles =
-        [
-            "Examples\TestProjects\SimpleTestProject\Tests.qs"
-            "Examples\TestProjects\SimpleTestProject\Included1.qs"
-            "Examples\TestProjects\SimpleTestProject\SubFolder1\Included2.qs"
-            "Examples\TestProjects\SimpleTestProject\SubFolder2\Included3.qs"
-            "Examples\TestProjects\SimpleTestProject\SubFolder1\SubSubFolder\Included4.qs"
-            "Examples\Example1.qs"
-            "Examples\Example2.qs"
-        ]
-        |> List.map Path.GetFullPath
-
-    Assert.True(expectedFiles.Length = files.Length, "Didn't get the expected number of files.")
-
-    for expected in expectedFiles do
-        Assert.True(List.contains expected files, sprintf "Expected but did not find file %s" expected)

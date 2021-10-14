@@ -342,7 +342,7 @@ let ``Project file as input`` () =
     Assert.Equal(excluded2, TestTargetExcluded2.Original)
 
 [<Fact>]
-let ``Old version project file as input`` () =
+let ``Outdated version project file as input`` () =
     Assert.Equal(
         {
             Code = 6
@@ -354,3 +354,11 @@ let ``Old version project file as input`` () =
         },
         run [| "update"; "-p"; "Examples\\TestProjects\\OldVersion\\OldVersion.csproj" |] ""
     )
+
+// ToDo
+[<Fact(Skip="Not sure how yet to discriminate between old setup and current setup for Q# projects.")>]
+let ``Outdated system project file as input`` () =
+    let project = "Examples\\TestProjects\\OldApplication\\OldApplication.csproj"
+    let act = Action(fun () -> run [| "update"; "-p"; project |] "" |> ignore)
+    let sysException = Assert.Throws<SystemException>(act)
+    ()

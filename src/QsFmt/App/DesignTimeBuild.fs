@@ -48,7 +48,6 @@ let getSourceFiles (projectFile: string) =
         project <- new Project(projectFile, properties, ToolLocationHelper.CurrentToolsVersion)
         let instance = project.CreateProjectInstance()
 
-        // do we want to check if the project is a Q# project and if not fail?
         if not <| instance.Targets.ContainsKey "QSharpCompile" then
             failwith (sprintf "The given project file, %s is not a Q# project file." projectFile)
 
