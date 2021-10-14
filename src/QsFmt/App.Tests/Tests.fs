@@ -356,7 +356,7 @@ let ``Outdated version project file as input`` () =
     )
 
 // ToDo
-[<Fact(Skip="Not sure how yet to discriminate between old setup and current setup for Q# projects.")>]
+[<Fact(Skip = "Not sure how yet to discriminate between old setup and current setup for Q# projects.")>]
 let ``Outdated system project file as input`` () =
     let project = "Examples\\TestProjects\\OldApplication\\OldApplication.csproj"
     let act = Action(fun () -> run [| "update"; "-p"; project |] "" |> ignore)
