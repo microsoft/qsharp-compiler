@@ -1,5 +1,7 @@
 ﻿namespace Quantum.QSharpTestProject1 {
+
     open Microsoft.Quantum.Canon;
+    open Microsoft.Quantum.Chemistry;
     open Microsoft.Quantum.Diagnostics;
     open Microsoft.Quantum.Intrinsic;
     open Quantum.ReferenceLibrary;
@@ -13,5 +15,6 @@
 
         Message("Test passed.");
         LibraryOperation();
+        let x = HTerm([], []);
     }
 }

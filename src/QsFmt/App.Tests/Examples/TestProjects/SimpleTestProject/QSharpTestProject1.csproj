@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\ReferenceLibrary\ReferenceLibrary.csproj" />
+    <PackageReference Include="Microsoft.Quantum.Chemistry" Version ="0.18.2109162713" />
   </ItemGroup>
 
   <ItemGroup>
