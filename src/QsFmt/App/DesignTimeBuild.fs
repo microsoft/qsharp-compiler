@@ -48,16 +48,13 @@ let getSourceFiles (projectFile: string) =
         project <- new Project(projectFile, properties, ToolLocationHelper.CurrentToolsVersion)
         let instance = project.CreateProjectInstance()
 
-        if not <| instance.Targets.ContainsKey "QSharpCompile" then
-            failwith (sprintf "The given project file, %s is not a Q# project file." projectFile)
-
         // get all the source files in the project
         let sourceFiles = getItemsByType instance "QSharpCompile" |> Seq.toList
 
         let version =
-            instance.Properties
-            |> Seq.tryFind (fun x -> x.Name = "QuantumSdkVersion")
-            |> Option.map (fun x -> x.EvaluatedValue)
+            match instance.Properties |> Seq.tryFind (fun x -> x.Name = "QuantumSdkVersion") with
+            | Some v -> v.EvaluatedValue
+            | _ -> failwith (sprintf "The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk." projectFile)
 
         (sourceFiles, version)
 

@@ -162,12 +162,9 @@ module Arguments =
                 if isNull arguments.ProjectFile then
                     arguments.InputFiles |> Seq.toList, arguments.QdkVersion |> Option.ofObj
                 else
-                    getSourceFiles arguments.ProjectFile
+                    getSourceFiles arguments.ProjectFile |> (fun (i, v) -> (i, v |> Some))
 
-            let qsharp_version =
-                match version with
-                | Some s -> Version.Parse s |> Some
-                | None -> None
+            let qsharp_version = version |> Option.map Version.Parse
 
             match qsharp_version with
             | Some v when v < Version("0.16.2104.138035") ->

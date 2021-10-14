@@ -355,10 +355,9 @@ let ``Outdated version project file as input`` () =
         run [| "update"; "-p"; "Examples\\TestProjects\\OldVersion\\OldVersion.csproj" |] ""
     )
 
-// ToDo
-[<Fact(Skip = "Not sure how yet to discriminate between old setup and current setup for Q# projects.")>]
+[<Fact>]
 let ``Outdated system project file as input`` () =
     let project = "Examples\\TestProjects\\OldApplication\\OldApplication.csproj"
     let act = Action(fun () -> run [| "update"; "-p"; project |] "" |> ignore)
-    let sysException = Assert.Throws<SystemException>(act)
-    ()
+    let ex = Assert.Throws<Exception>(act)
+    Assert.Equal(ex.Message, sprintf "The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk." project)
