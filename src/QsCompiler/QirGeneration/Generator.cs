@@ -11,7 +11,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// <summary>
     /// Transformation class used to generate QIR.
     /// </summary>
-    // RyanNote: SyntaxTreeTransformation is the Q# framework to walk the AST
     public class Generator : SyntaxTreeTransformation<GenerationContext>, IDisposable
     {
         /// <summary>
@@ -37,9 +36,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Instantiates a transformation capable of emitting QIR for the given compilation.
         /// </summary>
         /// <param name="compilation">The compilation for which to generate QIR</param>
-        public Generator(QsCompilation compilation) //RyanNote here are the transformations listed
+        public Generator(QsCompilation compilation)
         : base(new GenerationContext(compilation.Namespaces, compilation.EntryPoints.Length == 0), TransformationOptions.NoRebuild)
-        { // RyanQuestion: it seems like we're passing in a GenerationContext instead of a compilation? Answer: just using a different constructor I think
+        {
             this.Compilation = compilation;
 
             this.Namespaces = new QirNamespaceTransformation(this, TransformationOptions.NoRebuild);

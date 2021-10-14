@@ -322,7 +322,6 @@ module SimulationCode =
             parent.DeclarationsInScope <- scope.KnownSymbols
             base.OnScope scope
 
-          // RyanNote: Here's what overriding the OnStatement function would look like
         override this.OnStatement(node: QsStatement) =
             match node.Location with
             | Value loc ->

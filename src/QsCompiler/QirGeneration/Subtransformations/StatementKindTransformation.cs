@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (symbols is SymbolTuple.VariableName varName)
             {
-                bindVariable(varName.Item, value); // RyanNOte: probably better not to do it in here since we don't know what bindVariable does necessarily
+                bindVariable(varName.Item, value);
             }
             else if (symbols is SymbolTuple.VariableNameTuple syms)
             {
@@ -176,7 +176,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                         throw new NotImplementedException("unknown initializer in qubit allocation");
                     }
                 }
-                // RyanNote: variable declaration? This seems to only be for qubits though
+
                 // Generate the allocations for an item, which might be a single variable or might be a tuple
                 void AllocateAndAssign(SymbolTuple item, ResolvedInitializer itemInit)
                 {
@@ -284,7 +284,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
         public override QsStatementKind OnExpressionStatement(TypedExpression ex)
         {
-            this.SharedState.EvaluateSubexpression(ex); //RyanNote: look at this
+            this.SharedState.EvaluateSubexpression(ex);
             return QsStatementKind.EmptyStatement;
         }
 
@@ -332,7 +332,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     if (loopVarName != null)
                     {
                         this.SharedState.ScopeMgr.RegisterVariable(loopVarName, variableValue, fromLocalId: accessedViaLocal);
-                        // RyanNote: only registering variable if accessible in the code. How could it not be named in the loop?
                     }
 
                     this.Transformation.Statements.OnScope(stm.Body);
@@ -346,7 +345,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 void ExecuteBody(IValue arrayItem)
                 {
                     // If we iterate through an array, we inject a binding at the beginning of the body.
-                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, (varName, value) => // RyanNote: will we want debug info for this? So could pass in here then or just do in BindSymbolTuple. I think actually in Register Variable if it's fromLocalID
+                    this.BindSymbolTuple(stm.LoopItem.Item1, arrayItem, (varName, value) =>
                         this.SharedState.ScopeMgr.RegisterVariable(varName, value, fromLocalId: accessedViaLocal));
                     this.Transformation.Statements.OnScope(stm.Body);
                 }
@@ -423,7 +422,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return QsStatementKind.EmptyStatement;
         }
 
-        public override QsStatementKind OnValueUpdate(QsValueUpdate stm) // RyanNote: debugging info here for sure
+        public override QsStatementKind OnValueUpdate(QsValueUpdate stm)
         {
             var symbols = SyntaxGenerator.ExpressionAsSymbolTuple(stm.Lhs);
             if (stm.Rhs.Expression is ResolvedExpressionKind.CopyAndUpdate ex
@@ -472,12 +471,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             return QsStatementKind.EmptyStatement;
         }
 
-        public override QsStatementKind OnVariableDeclaration(QsBinding<TypedExpression> stm) // RyanNote: Here's the variable declaration
+        public override QsStatementKind OnVariableDeclaration(QsBinding<TypedExpression> stm)
         {
             Action<string, IValue> BindVariable(TypedExpression ex) =>
                 (string varName, IValue value) =>
-                { // RyanQuestion: What is this syntax?? Returning the string, value pair
-                // RyanNote: will have call to DebugInfoBuilder here or near here
+                {
                     if (stm.Kind.IsMutableBinding)
                     {
                         value = this.SharedState.Values.CreatePointer(value);
@@ -487,7 +485,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.SharedState.ScopeMgr.RegisterVariable(varName, value, fromLocalId: localId);
                 };
 
-            this.BindSymbolTuple(stm.Lhs, stm.Rhs, (syms, boundEx) => //RyanNote: maybe could have debug info in here instead
+            this.BindSymbolTuple(stm.Lhs, stm.Rhs, (syms, boundEx) =>
                 this.BindSymbolTuple(syms, this.SharedState.EvaluateSubexpression(boundEx), BindVariable(boundEx)));
             return QsStatementKind.EmptyStatement;
         }
