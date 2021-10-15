@@ -54,7 +54,12 @@ let getSourceFiles (projectFile: string) =
         let version =
             match instance.Properties |> Seq.tryFind (fun x -> x.Name = "QuantumSdkVersion") with
             | Some v -> v.EvaluatedValue
-            | _ -> failwith (sprintf "The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk." projectFile)
+            | _ ->
+                failwith (
+                    sprintf
+                        "The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk."
+                        projectFile
+                )
 
         (sourceFiles, version)
 

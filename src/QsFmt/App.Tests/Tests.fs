@@ -360,4 +360,10 @@ let ``Outdated system project file as input`` () =
     let project = "Examples\\TestProjects\\OldApplication\\OldApplication.csproj"
     let act = Action(fun () -> run [| "update"; "-p"; project |] "" |> ignore)
     let ex = Assert.Throws<Exception>(act)
-    Assert.Equal(ex.Message, sprintf "The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk." project)
+
+    Assert.Equal(
+        ex.Message,
+        sprintf
+            "The given project file, %s is not a Q# project file. Please ensure your project file uses the Microsoft.Quantum.Sdk."
+            project
+    )
