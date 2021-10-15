@@ -162,6 +162,7 @@ namespace Microsoft.Quantum.Telemetry
             var totalRunningTime = DateTime.Now - startTime;
             TelemetryManager.LogToDebug($"Exited. Total running time: {totalRunningTime:G})");
             #endif
+            TelemetryManager.TearDown();
             Environment.Exit(0);
         }
     }
