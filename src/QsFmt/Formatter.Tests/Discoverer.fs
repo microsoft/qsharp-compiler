@@ -3,9 +3,9 @@
 
 namespace Microsoft.Quantum.QsFmt.Formatter.Tests
 
-open Microsoft.Quantum.QsFmt.Formatter
 open System
 open System.Reflection
+open Microsoft.Quantum.QsFmt.Formatter
 open Xunit
 
 /// A test case containing source code that should not change after formatting.
@@ -183,7 +183,7 @@ module Discoverer =
         | Some reason -> Skip.If(true, reason)
         | None ->
             let after = example.After |> standardizeNewLines |> Ok |> ShowResult
-            let before = Formatter.format example.Before |> Result.map standardizeNewLines |> ShowResult
+            let before = Formatter.format None example.Before |> Result.map standardizeNewLines |> ShowResult
             Assert.Equal(after, before)
 
     /// <summary>
@@ -197,7 +197,7 @@ module Discoverer =
         | Some reason -> Skip.If(true, reason)
         | None ->
             let after = example.After |> standardizeNewLines |> Ok |> ShowResult
-            let before = Formatter.update "" example.Before |> Result.map standardizeNewLines |> ShowResult
+            let before = Formatter.update "" None example.Before |> Result.map standardizeNewLines |> ShowResult
             Assert.Equal(after, before)
 
     /// <summary>
@@ -210,5 +210,5 @@ module Discoverer =
         | Some reason -> Skip.If(true, reason)
         | None ->
             let original = Ok fixedPoint.Source |> ShowResult
-            let formatted = Formatter.format fixedPoint.Source |> ShowResult
+            let formatted = Formatter.format None fixedPoint.Source |> ShowResult
             Assert.Equal(original, formatted)

@@ -32,6 +32,5 @@ val forParensUpdate: unit Rewriter
 /// Updates the `new <Type>[n]` array syntax to the new `[val, size = n]` array syntax.
 val arraySyntaxUpdate: unit Rewriter
 
-/// Provides warnings for deprecated syntax still in the syntax tree.
-/// Takes the file name as well as the syntax tree.
-val updateChecker: string -> Document -> string list
+/// Provides warnings for deprecated array syntax still in the syntax tree.
+val checkArraySyntax: string -> Document -> string list
