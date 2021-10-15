@@ -83,11 +83,10 @@ module TypeCheckingTests =
         expect "LambdaInvalid1" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid2" [ Error ErrorCode.TypeMismatchInReturn ]
         expect "LambdaInvalid3" (Error ErrorCode.InfiniteType |> List.replicate 2)
-
-        // TODO: Prevent lambdas from closing over a mutable variable.
-        // Issue: https://github.com/microsoft/qsharp-compiler/issues/1113
-        // expect "LambdaInvalid4" [ ... ]
-        ()
+        expect "LambdaInvalid4" [ Error ErrorCode.MutableClosure ]
+        expect "LambdaInvalid5" [ Error ErrorCode.MutableClosure; Error ErrorCode.MutableClosure ]
+        expect "LambdaInvalid6" [ Error ErrorCode.LocalVariableAlreadyExists ]
+        expect "LambdaInvalid7" [ Error ErrorCode.LocalVariableAlreadyExists ]
 
 type TypeCheckingTests() =
     member private this.Expect name diagnostics =

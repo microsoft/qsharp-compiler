@@ -860,4 +860,19 @@ namespace Microsoft.Quantum.Testing.TypeChecking {
         mutable x = 0;
         return () -> x;
     }
+
+    function LambdaInvalid5() : Unit -> Int {
+        mutable x = 0;
+        return () -> x + x;
+    }
+
+    function LambdaInvalid6() : Int -> Int {
+        let x = 0;
+        return x -> x;
+    }
+
+    function LambdaInvalid7() : Int -> Int {
+        mutable x = 0;
+        return x -> x;
+    }
 }
