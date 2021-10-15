@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.Telemetry
     /// <summary>
     /// Helper class to convert values into types that are accepted by Aria
     /// </summary>
-    internal static class TypeConversionHelper
+    public static class TypeConversionHelper
     {
         internal static PiiKind ToPiiKind(this bool isPii) =>
             isPii ? PiiKind.GenericData : PiiKind.None;
@@ -57,6 +57,9 @@ namespace Microsoft.Quantum.Telemetry
 
         internal static void SetProperty(this EventProperties eventProperties, string name, object value, TelemetryPropertyType propertyType, PiiKind piiKind) =>
             setPropertyMethods[propertyType](eventProperties, name, value, piiKind);
+
+        public static void SetProperty(this EventProperties eventProperties, string name, int value, PiiKind piiKind = PiiKind.None) =>
+            eventProperties.SetProperty(name, (long)value, piiKind);
 
         internal static void SetProperty(this EventProperties eventProperties, string name, object? value, bool isPii, bool serializeJson)
         {

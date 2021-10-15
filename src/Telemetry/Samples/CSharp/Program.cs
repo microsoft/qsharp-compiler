@@ -14,6 +14,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
             var stopwatch = Stopwatch.StartNew();
             try
             {
+                // Initialize the TelemetryManager
                 TelemetryManager.Initialize(
                     new TelemetryManagerConfig()
                     {
@@ -76,6 +77,10 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                         SampleGuid = Guid.NewGuid(),
                     };
                 TelemetryManager.LogObject(executionCompletedEvent);
+            }
+            catch (Exception exception)
+            {
+                TelemetryManager.LogObject(exception);
             }
             finally
             {

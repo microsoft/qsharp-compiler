@@ -5,13 +5,24 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": ".NET Core Launch (console)",
+            "name": "C# Sample App",
             "type": "coreclr",
             "request": "launch",
             "preLaunchTask": "build",
             "program": "${workspaceFolder}/Samples/CSharp/bin/Debug/net5.0/sampleTelAppCs.dll",
             "args": [],
             "cwd": "${workspaceFolder}/Samples/CSharp",
+            "console": "internalConsole",
+            "stopAtEntry": false
+        },
+        {
+            "name": "F# Sample App",
+            "type": "coreclr",
+            "request": "launch",
+            "preLaunchTask": "build",
+            "program": "${workspaceFolder}/Samples/FSharp/bin/Debug/net5.0/sampleTelAppFs.dll",
+            "args": [],
+            "cwd": "${workspaceFolder}/Samples/FSharp",
             "console": "internalConsole",
             "stopAtEntry": false
         },
