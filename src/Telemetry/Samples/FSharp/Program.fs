@@ -52,7 +52,7 @@ let main args =
         TelemetryManager.Initialize(telemetryConfig, args)
 
         try 
-            // Log an event using Aria
+            // Log an event using Aria EventProperties object
             // Properties that contain PII or customer data should be tagged
             // with the PiiKind != None
             let eventProperties = 
