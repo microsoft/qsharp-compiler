@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net5.0</TargetFramework>
+    <RootNamespace>Microsoft.Quantum.Telemetry</RootNamespace>
+    <AssemblyName>Microsoft.Quantum.Telemetry</AssemblyName>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Applications.Events.Client" Version="1.1.1.337" />
+  </ItemGroup>
+</Project>
