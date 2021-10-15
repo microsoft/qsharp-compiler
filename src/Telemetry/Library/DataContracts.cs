@@ -13,9 +13,9 @@ namespace Microsoft.Quantum.Telemetry
     /// be hashed with a rotating salt.
     /// </summary>
     [AttributeUsage(AttributeTargets.Property | AttributeTargets.Field)]
-    public sealed class PIIDataAttribute : Attribute
+    public sealed class PiiDataAttribute : Attribute
     {
-        public PIIDataAttribute()
+        public PiiDataAttribute()
         {
         }
     }

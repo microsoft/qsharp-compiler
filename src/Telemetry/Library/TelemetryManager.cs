@@ -261,12 +261,13 @@ namespace Microsoft.Quantum.Telemetry
         ///   The name of the event will be "Exception" and the type name of the exception will be
         ///   logged in the "ExceptionTypeName" property.
         /// - Null objects won't be logged.
-        /// - Value types will be converted to values accepted by Aria.
-        /// - Nullable value types will be converted to string using.
-        /// - Enum types will be converted to strings.
-        /// - Properties with [PIIData] attribute will be marked as PII and will be hashed.
-        /// - Properties with [SerializeJson] attribute will be serialized as Json.
+        /// - Value types will not get logged.
         /// - Properties with null values will not be logged.
+        /// - Properties of value types will be converted to values accepted by Aria.
+        /// - Properties with nullable value types will be converted their corresponding non-nullable type.
+        /// - Enum types will be converted to strings.
+        /// - Properties with [PiiData] attribute will be marked as PII and will be hashed.
+        /// - Properties with [SerializeJson] attribute will be serialized as Json.
         /// - All other property types won't be logged.
         /// </summary>
         public static void LogObject(object obj)
@@ -296,7 +297,7 @@ namespace Microsoft.Quantum.Telemetry
                 var properties = ReflectionCache.GetProperties(type);
                 foreach (var property in properties)
                 {
-                    var isPii = property.GetCustomAttribute<PIIDataAttribute>() != null;
+                    var isPii = property.GetCustomAttribute<PiiDataAttribute>() != null;
                     var serializeJson = property.GetCustomAttribute<SerializeJsonAttribute>() != null;
                     var value = property.GetValue(obj);
                     eventProperties.SetProperty(property.Name, value, isPii, serializeJson);

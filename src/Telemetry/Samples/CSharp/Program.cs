@@ -14,7 +14,8 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
             var stopwatch = Stopwatch.StartNew();
             try
             {
-                // Initialize the TelemetryManager
+                // REQUIRED:
+                // Initialize the TelemetryManager right at the beggining of your program
                 TelemetryManager.Initialize(
                     new TelemetryManagerConfig()
                     {
@@ -26,6 +27,17 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                     },
                     args);
 
+                // OPTIONAL:
+                // Set context properties that are included in every event
+                TelemetryManager.SetContext("CommonDateTime", DateTime.Now);
+                TelemetryManager.SetContext("CommonString", "my string");
+                TelemetryManager.SetContext("CommonLong", 123);
+                TelemetryManager.SetContext("CommonDouble", 123.123);
+                TelemetryManager.SetContext("CommonGuid", Guid.NewGuid());
+                TelemetryManager.SetContext("CommonBool", true);
+                TelemetryManager.SetContext("CommonPIIData", "username", isPii: true);
+
+                // OPTIONAL:
                 // Log an event using Aria EventProperties object
                 // Properties that contain PII or customer data should be tagged
                 // with the PiiKind != None
@@ -40,9 +52,16 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 eventProperties.SetProperty("SampleGuid", Guid.NewGuid());
                 eventProperties.SetProperty("SampleBool", true);
                 eventProperties.SetProperty("SamplePIIData", "username", Applications.Events.PiiKind.Identity);
+                eventProperties.SetProperty("CommonPIIData", true);
+                eventProperties.SetProperty("CommonGuid", true);
                 TelemetryManager.LogEvent(eventProperties);
 
-                // Log an Exception
+                // OPTIONAL:
+                // Log just the event name, with no extra properties (context properties will still be added)
+                TelemetryManager.LogEvent("MyEventName");
+
+                // OPTIONAL:
+                // Log an Exception. The name of the event will be "Exception".
                 // Note that when we log an exception, only the name of the class will be logged.
                 // No properties of the exception will be logged as they can contain customer data
                 try
@@ -75,6 +94,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                         },
                         SampleGenericObject = new Dictionary<int, string>(),
                         SampleGuid = Guid.NewGuid(),
+                        SampleException = new System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'"),
                     };
                 TelemetryManager.LogObject(executionCompletedEvent);
             }
@@ -109,7 +129,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
 
         public SampleEnumType SampleEnum { get; set; }
 
-        [PIIData]
+        [PiiData]
         public string? SamplePII { get; set; }
 
         [SerializeJson]
@@ -125,5 +145,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
         public Dictionary<string, string>? SampleDictionary { get; set; }
 
         public object? SampleGenericObject { get; set; }
+
+        public Exception? SampleException { get; set; }
     }
 }
