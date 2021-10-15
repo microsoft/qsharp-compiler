@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using Microsoft.Applications.Events;
 
 namespace Microsoft.Quantum.Telemetry
@@ -65,7 +66,7 @@ namespace Microsoft.Quantum.Telemetry
         {
             if (value != null)
             {
-                var convertedValue = TypeConversionHelper.ConvertValue(value.GetType(), value, serializeJson);
+                var convertedValue = TypeConversionHelper.ConvertValue(value, serializeJson);
                 if (convertedValue != null)
                 {
                     eventProperties.SetProperty(name, convertedValue.Item2, convertedValue.Item1, isPii.ToPiiKind());
@@ -106,27 +107,7 @@ namespace Microsoft.Quantum.Telemetry
             return telemetryEvent;
         }
 
-        internal static Tuple<TelemetryPropertyType, object>? ConvertValue(Type fromType, object value, bool serializeJson)
-        {
-            if (serializeJson)
-            {
-                return AnyToJson(value);
-            }
-
-            if (convertValueFunctions.TryGetValue(fromType, out var conversionFunction))
-            {
-                return conversionFunction(value);
-            }
-
-            if (value is Enum)
-            {
-                return AnyToString(value);
-            }
-
-            return null;
-        }
-
-        private static Tuple<TelemetryPropertyType, object> AnyToJson(object value) =>
+        private static Tuple<TelemetryPropertyType, object> AnyToJson(object? value) =>
             new Tuple<TelemetryPropertyType, object>(TelemetryPropertyType.String, JsonSerializer.Serialize(value));
 
         private static Tuple<TelemetryPropertyType, object> AnyToString(object value) =>
@@ -181,6 +162,65 @@ namespace Microsoft.Quantum.Telemetry
             // TimeSpan values to be converted to string
             { typeof(TimeSpan), TimeSpanToString },
         };
+
+        internal static Tuple<TelemetryPropertyType, object>? ConvertValue(object value, bool serializeJson)
+        {
+            if (value == null)
+            {
+                return null;
+            }
+
+            if (value is Exception exception)
+            {
+                return AnyToJson(exception.ToExceptionLogRecord(TelemetryManager.Configuration.ExceptionLoggingOptions));
+            }
+
+            if (serializeJson)
+            {
+                return AnyToJson(value);
+            }
+
+            // Note that GetType() will return the underlying type of a Nullable type
+            // https://docs.microsoft.com/en-us/dotnet/csharp/language-reference/builtin-types/nullable-value-types#how-to-identify-a-nullable-value-type
+            Type fromType = value.GetType();
+
+            if (convertValueFunctions.TryGetValue(fromType, out var conversionFunction))
+            {
+                return conversionFunction(value);
+            }
+
+            if (value is Enum)
+            {
+                return AnyToString(value);
+            }
+
+            return null;
+        }
+
+        public static TelemetryExceptionRecord ToExceptionLogRecord(this Exception exception, ExceptionLoggingOptions loggingOptions) =>
+            new TelemetryExceptionRecord()
+            {
+                FullName = exception.GetType().FullName,
+                TargetSite = loggingOptions.CollectTargetSite ? $"{exception.TargetSite?.DeclaringType?.FullName}: {exception.TargetSite}" : null,
+                StackTrace = loggingOptions.CollectSanitizedStackTrace ? SanitizeStackTrace(exception.StackTrace) : null,
+            };
+
+        private static readonly Regex StackTraceSanitizerRegex = new(@"^\s*(at)?\s+(?<method>[^)]*\)).*$", RegexOptions.Compiled | RegexOptions.IgnoreCase | RegexOptions.Multiline);
+
+        private static string? SanitizeStackTrace(string? originalStackTrace)
+        {
+            if (originalStackTrace == null)
+            {
+                return null;
+            }
+
+            var sanitizedStackTrace = string.Join(
+                                        '\n',
+                                        StackTraceSanitizerRegex
+                                            .Matches(originalStackTrace)
+                                            .Select((match) => match.Groups["method"].Value));
+            return sanitizedStackTrace;
+        }
     }
 
     /// <summary>

@@ -24,11 +24,18 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                         TelemetryOptOutVariableName = "QDK_TELEMETRY_OPT_OUT",
                         MaxTeardownUploadTime = TimeSpan.FromSeconds(2),
                         OutOfProcessUpload = false,
+                        ExceptionLoggingOptions = new()
+                        {
+                            CollectTargetSite = true,
+                            CollectSanitizedStackTrace = true,
+                        },
                     },
                     args);
 
                 // OPTIONAL:
                 // Set context properties that are included in every event
+                // If an event later set a property with the same name, the context property
+                // will be completely overridden in that specific event instance.
                 TelemetryManager.SetContext("CommonDateTime", DateTime.Now);
                 TelemetryManager.SetContext("CommonString", "my string");
                 TelemetryManager.SetContext("CommonLong", 123);
@@ -57,7 +64,8 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 TelemetryManager.LogEvent(eventProperties);
 
                 // OPTIONAL:
-                // Log just the event name, with no extra properties (context properties will still be added)
+                // Log just the event name, with no extra properties
+                // Context properties will still be added.
                 TelemetryManager.LogEvent("MyEventName");
 
                 // OPTIONAL:
@@ -66,13 +74,14 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 // No properties of the exception will be logged as they can contain customer data
                 try
                 {
-                    throw new System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'");
+                    ThrowANestedException();
                 }
                 catch (Exception exception)
                 {
                     TelemetryManager.LogObject(exception);
                 }
 
+                // OPTIONAL:
                 // Log a custom object
                 // Custom objects will have all of their non-null public properties
                 // logged with some rules applied.
@@ -94,7 +103,9 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                         },
                         SampleGenericObject = new Dictionary<int, string>(),
                         SampleGuid = Guid.NewGuid(),
-                        SampleException = new System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'"),
+                        SampleException = CreateExceptionWithStackTrace(),
+                        SampleNullableWithValue = 123,
+                        SampleNullableWithNull = null,
                     };
                 TelemetryManager.LogObject(executionCompletedEvent);
             }
@@ -111,6 +122,25 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
             Console.WriteLine($"Total time elapsed: {stopwatch.Elapsed}");
             Environment.Exit(0);
         }
+
+        private static Exception? CreateExceptionWithStackTrace()
+        {
+            try
+            {
+                ThrowANestedException();
+                return null;
+            }
+            catch (Exception exception)
+            {
+                return exception;
+            }
+        }
+
+        private static void ThrowANestedException() =>
+            ThrowAnException();
+
+        private static void ThrowAnException() =>
+            throw new System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'");
     }
 
     public enum SampleEnumType
@@ -119,7 +149,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
         SampleEnumValue2,
     }
 
-    public class ExecutionCompleted
+    public record ExecutionCompleted
     {
         public DateTime SampleDateTime { get; set; }
 
@@ -147,5 +177,9 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
         public object? SampleGenericObject { get; set; }
 
         public Exception? SampleException { get; set; }
+
+        public int? SampleNullableWithValue { get; set; }
+
+        public int? SampleNullableWithNull { get; set; }
     }
 }

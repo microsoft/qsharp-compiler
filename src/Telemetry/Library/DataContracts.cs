@@ -47,7 +47,7 @@ namespace Microsoft.Quantum.Telemetry
     /// <summary>
     /// A property that belongs to a telemetry event
     /// </summary>
-    public class TelemetryEventProperty
+    public record TelemetryEventProperty
     {
         public object? Value { get; set; }
 
@@ -59,7 +59,7 @@ namespace Microsoft.Quantum.Telemetry
     /// <summary>
     /// A telemetry event
     /// </summary>
-    public class TelemetryEvent
+    public record TelemetryEvent
     {
         public string Name { get; set; }
 
@@ -105,5 +105,17 @@ namespace Microsoft.Quantum.Telemetry
 
         public void SetProperty(string name, long value, bool isPii = false) =>
             this.SetProperty(name, value, isPii, TelemetryPropertyType.Long);
+    }
+
+    /// <summary>
+    /// Contains non-sensitive/identifiable information from an Exception
+    /// </summary>
+    public record TelemetryExceptionRecord
+    {
+        public string? FullName { get; set; }
+
+        public string? TargetSite { get; set; }
+
+        public string? StackTrace { get; set; }
     }
 }

@@ -11,7 +11,14 @@ using Microsoft.Applications.Events;
 
 namespace Microsoft.Quantum.Telemetry
 {
-    public class TelemetryManagerConfig
+    public record ExceptionLoggingOptions
+    {
+        public bool CollectTargetSite { get; set; } = true;
+
+        public bool CollectSanitizedStackTrace { get; set; } = true;
+    }
+
+    public record TelemetryManagerConfig
     {
         private string appId = "DefaultQDKApp";
 
@@ -85,6 +92,8 @@ namespace Microsoft.Quantum.Telemetry
         /// we don't want to add additional runtime just for the sake of uploading telemetry data.
         /// </summary>
         public bool OutOfProcessUpload { get; set; } = false;
+
+        public ExceptionLoggingOptions ExceptionLoggingOptions { get; set; } = new();
 
         private static readonly Regex NameValidationRegex = new("^[a-zA-Z0-9]{3,20}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
@@ -255,20 +264,20 @@ namespace Microsoft.Quantum.Telemetry
             });
 
         /// <summary>
-        /// Logs all public properties of the object into an event named $"Quantum_{AppId}_{object type name}".
-        /// Remarks:
+        /// Logs all public properties of the object into an event, respecting the following rules:
         /// - Exceptions won't have their properties logged as they could contain customer data or PII.
-        ///   The name of the event will be "Exception" and the type name of the exception will be
+        ///   The name of the event will be "Quantum_{AppId}_.Exception" and the type name of the exception will be
         ///   logged in the "ExceptionTypeName" property.
         /// - Null objects won't be logged.
         /// - Value types will not get logged.
-        /// - Properties with null values will not be logged.
-        /// - Properties of value types will be converted to values accepted by Aria.
-        /// - Properties with nullable value types will be converted their corresponding non-nullable type.
-        /// - Enum types will be converted to strings.
-        /// - Properties with [PiiData] attribute will be marked as PII and will be hashed.
-        /// - Properties with [SerializeJson] attribute will be serialized as Json.
-        /// - All other property types won't be logged.
+        /// - Other object types will be logged in an event named $"Quantum_{AppId}_{object type name}".
+        ///   - Properties with null values will not be logged.
+        ///   - Properties of value types will be converted to values accepted by Aria.
+        ///   - Properties with nullable value types will be converted their corresponding non-nullable type.
+        ///   - Enum types will be converted to strings.
+        ///   - Properties with [PiiData] attribute will be marked as PII and will be hashed.
+        ///   - Properties with [SerializeJson] attribute will be serialized as Json.
+        ///   - All other property types won't be logged.
         /// </summary>
         public static void LogObject(object obj)
         {
@@ -282,26 +291,25 @@ namespace Microsoft.Quantum.Telemetry
                 return;
             }
 
-            var type = obj.GetType();
             EventProperties eventProperties = new();
+            string? eventName = null;
 
             // We don't log exception fields as they can potentially contain customer data
-            if (obj is Exception)
+            if (obj is Exception exception)
             {
-                eventProperties.Name = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_Exception";
-                eventProperties.SetProperty(key: "ExceptionTypeName", value: type.FullName);
+                obj = exception.ToExceptionLogRecord(Configuration.ExceptionLoggingOptions);
+                eventName = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_Exception";
             }
-            else
+
+            var type = obj.GetType();
+            eventProperties.Name = eventName ?? $"{Configuration.EventNamePrefix}_{Configuration.AppId}_{type.Name}";
+            var properties = ReflectionCache.GetProperties(type);
+            foreach (var property in properties)
             {
-                eventProperties.Name = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_{type.Name}";
-                var properties = ReflectionCache.GetProperties(type);
-                foreach (var property in properties)
-                {
-                    var isPii = property.GetCustomAttribute<PiiDataAttribute>() != null;
-                    var serializeJson = property.GetCustomAttribute<SerializeJsonAttribute>() != null;
-                    var value = property.GetValue(obj);
-                    eventProperties.SetProperty(property.Name, value, isPii, serializeJson);
-                }
+                var isPii = property.GetCustomAttribute<PiiDataAttribute>() != null;
+                var serializeJson = property.GetCustomAttribute<SerializeJsonAttribute>() != null;
+                var value = property.GetValue(obj);
+                eventProperties.SetProperty(property.Name, value, isPii, serializeJson);
             }
 
             LogEvent(eventProperties);
