@@ -243,7 +243,7 @@ namespace Microsoft.Quantum.Telemetry
                 {
                     if (Configuration.SendTelemetryTearDownEvent && !IsOutOfProcessInstance)
                     {
-                        LogObject(new TelemetryTearDown(DateTime.Now - initializationTime, totalEventsCount));
+                        LogObject(new TelemetryTearDown(DateTime.Now - initializationTime, totalEventsCount + 1));
                     }
 
                     if (telemetryLogger is OutOfProcessLogger outOfProcessLogger)
