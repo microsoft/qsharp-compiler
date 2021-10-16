@@ -46,7 +46,10 @@ namespace Microsoft.Quantum.Telemetry.Tests
             this.ThrowAnException();
 
         private void ThrowAnException() =>
-            throw new System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'");
+            throw this.CreateException();
+
+        private Exception CreateException() =>
+            new System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'");
 
         private TestEvent CreateTestEventObject() =>
             new()
@@ -79,7 +82,8 @@ namespace Microsoft.Quantum.Telemetry.Tests
             };
             eventProperties.SetProperty("SampleDateTime", DateTime.Now);
             eventProperties.SetProperty("SampleString", "my string");
-            eventProperties.SetProperty("SampleLong", 123);
+            eventProperties.SetProperty("SampleLong", 123L);
+            TypeConversionHelper.SetProperty(eventProperties, "SampleInt", 456);
             eventProperties.SetProperty("SampleDouble", 123.123);
             eventProperties.SetProperty("SampleGuid", Guid.NewGuid());
             eventProperties.SetProperty("SampleBool", true);
@@ -287,7 +291,37 @@ namespace Microsoft.Quantum.Telemetry.Tests
         {
             try
             {
-                var telemetryManagerConfig = this.GetConfig();
+                var telemetryManagerConfig = this.GetConfig() with
+                {
+                    ExceptionLoggingOptions = new()
+                    {
+                        CollectSanitizedStackTrace = true,
+                        CollectTargetSite = true,
+                    },
+                };
+                TelemetryManager.Initialize(telemetryManagerConfig);
+
+                TelemetryManager.LogObject(this.CreateExceptionWithStackTrace());
+                Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
+
+                TelemetryManager.LogObject(this.CreateException());
+                Assert.AreEqual(2, TelemetryManager.TotalEventsCount);
+            }
+            finally
+            {
+                TelemetryManager.TearDown();
+            }
+
+            try
+            {
+                var telemetryManagerConfig = this.GetConfig() with
+                {
+                    ExceptionLoggingOptions = new()
+                    {
+                        CollectSanitizedStackTrace = false,
+                        CollectTargetSite = false,
+                    },
+                };
                 TelemetryManager.Initialize(telemetryManagerConfig);
 
                 TelemetryManager.LogObject(this.CreateExceptionWithStackTrace());
@@ -407,12 +441,12 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 var telemetryLogger = typeof(TelemetryManager)
                                       .GetField("telemetryLogger", BindingFlags.Static | BindingFlags.NonPublic)!
                                       .GetValue(null) as Applications.Events.ILogger;
-                telemetryLogger!.SetContext("CommonLong", (sbyte)123);
-                telemetryLogger!.SetContext("CommonLong", (byte)123);
-                telemetryLogger!.SetContext("CommonLong", (ushort)123);
-                telemetryLogger!.SetContext("CommonLong", (short)123);
-                telemetryLogger!.SetContext("CommonLong", 123u);
-                telemetryLogger!.SetContext("CommonLong", (int)123);
+                telemetryLogger!.SetContext("CommonSByte", (sbyte)123);
+                telemetryLogger!.SetContext("CommonByte", (byte)123);
+                telemetryLogger!.SetContext("CommonUShort", (ushort)123);
+                telemetryLogger!.SetContext("CommonShort", (short)123);
+                telemetryLogger!.SetContext("CommonUInt", 123u);
+                telemetryLogger!.SetContext("CommonInt", (int)123);
 
                 TelemetryManager.LogObject(this.CreateTestEventObject());
                 Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
@@ -491,35 +525,59 @@ namespace Microsoft.Quantum.Telemetry.Tests
 
     public record TestEvent
     {
-        public DateTime SampleDateTime { get; set; }
+        public DateTime SampleDateTime { get; set; } = DateTime.Now;
 
-        public string? SampleString { get; set; }
+        public string? SampleString { get; set; } = "sample string";
 
-        public bool SampleBool { get; set; }
+        public bool SampleBool { get; set; } = true;
 
-        public SampleEnumType SampleEnum { get; set; }
+        public SampleEnumType SampleEnum { get; set; } = SampleEnumType.SampleEnumValue1;
 
         [PiiData]
-        public string? SamplePII { get; set; }
+        public string? SamplePII { get; set; } = "myusername";
 
         [SerializeJson]
-        public string[]? SampleArray { get; set; }
+        public string[]? SampleArray { get; set; } = new string[] { "element1", "element2" };
 
-        public TimeSpan SampleTimeSpan { get; set; }
+        public TimeSpan SampleTimeSpan { get; set; } = new TimeSpan(1, 2, 3, 4, 5);
 
-        public int SampleInt { get; set; }
-
-        public Guid SampleGuid { get; set; }
+        public Guid SampleGuid { get; set; } = Guid.NewGuid();
 
         [SerializeJson]
-        public Dictionary<string, string>? SampleDictionary { get; set; }
+        public Dictionary<string, string>? SampleDictionary { get; set; } = new()
+            {
+                { "key1", "value1" },
+                { "key2", "value2" },
+            };
 
-        public object? SampleGenericObject { get; set; }
+        public object? SampleGenericObject { get; set; } = TimeZoneInfo.Local;
 
         public Exception? SampleException { get; set; }
 
-        public int? SampleNullableWithValue { get; set; }
+        public int? SampleNullableWithValue { get; set; } = 123;
 
-        public int? SampleNullableWithNull { get; set; }
+        public int? SampleNullableWithNull { get; set; } = null;
+
+        public sbyte SampleSByte { get; set; } = 1;
+
+        public byte SampleByte { get; set; } = 2;
+
+        public ushort SampleUShort { get; set; } = 3;
+
+        public short SampleShort { get; set; } = 4;
+
+        public uint SampleUInt { get; set; } = 5;
+
+        public int SampleInt { get; set; } = 6;
+
+        public ulong SampleULong { get; set; } = 7;
+
+        public long SampleLong { get; set; } = 8;
+
+        public float SampleFloat { get; set; } = 9.1F;
+
+        public double SampleDouble { get; set; } = 9.2;
+
+        public decimal SampleDecimal { get; set; } = 9.3M;
     }
 }
