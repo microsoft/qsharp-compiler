@@ -57,6 +57,19 @@ namespace Microsoft.Quantum.Telemetry
         public string HostingEnvironmentVariableName { get; set; } = "QDK_HOSTING_ENV";
 
         /// <summary>
+        /// The name of the environment variable to control whether the telemetry library throws exceptions.
+        /// The value of this env var will override the compiler directive ENABLE_QDK_TELEMETRY_EXCEPTIONS.
+        /// Modes:
+        ///  - Enabled: The telemetry library will freely throw exceptions to the caller program
+        ///    Recommended for development, debug, and automated tests
+        ///  - Disabled: The telemetry library will quietly catch all exceptions
+        ///    Recommended for customer release, where we don't want the telemetry to impact user experience
+        /// Conditions:
+        ///  - Enabled if ENABLE_QDK_TELEMETRY_EXCEPTIONS or DEBUG are present in the compiler directives,
+        ///    Disabled otherwise
+        /// Override:
+        ///  - The value of the env var given by this property can force enable or disable the exceptions by
+        ///    setting "1" or "0" respectivilly.
         /// </summary>
         public string EnableTelemetryExceptionsVariableName { get; set; } = "ENABLE_QDK_TELEMETRY_EXCEPTIONS";
 
