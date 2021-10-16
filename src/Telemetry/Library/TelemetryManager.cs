@@ -187,7 +187,7 @@ namespace Microsoft.Quantum.Telemetry
 
                     LogEvent("TelemetryInitialized");
                 },
-                initializing: true);
+                initializingOrTearingDown: true);
         }
 
         private static bool GetEnableTelemetryExceptions()
@@ -245,23 +245,25 @@ namespace Microsoft.Quantum.Telemetry
         /// to upload the remaining events.
         /// </summary>
         public static void TearDown() =>
-            CheckAndRunSafe(() =>
-            {
-                if (telemetryLogger is OutOfProcessLogger outOfProcessLogger)
+            CheckAndRunSafe(
+                () =>
                 {
-                    outOfProcessLogger.Quit();
-                    #if DEBUG
-                    outOfProcessLogger.AwaitForExternalProcessExit();
-                    #endif
-                }
+                    if (telemetryLogger is OutOfProcessLogger outOfProcessLogger)
+                    {
+                        outOfProcessLogger.Quit();
+                        #if DEBUG
+                        outOfProcessLogger.AwaitForExternalProcessExit();
+                        #endif
+                    }
 
-                telemetryLogger = null;
+                    telemetryLogger = null;
 
-                if (tearDownLogManager)
-                {
-                    LogManager.Teardown();
-                }
-            });
+                    if (tearDownLogManager)
+                    {
+                        LogManager.Teardown();
+                    }
+                },
+                initializingOrTearingDown: true);
 
         /// <summary>
         /// Logs all public properties of the object into an event, respecting the following rules:
@@ -371,7 +373,7 @@ namespace Microsoft.Quantum.Telemetry
         public static void UploadNow() =>
             CheckAndRunSafe(() => LogManager.UploadNow());
 
-        private static void CheckAndRunSafe(Action action, bool initializing = false)
+        private static void CheckAndRunSafe(Action action, bool initializingOrTearingDown = false)
         {
             if (TelemetryOptOut)
             {
@@ -380,7 +382,7 @@ namespace Microsoft.Quantum.Telemetry
 
             try
             {
-                if (telemetryLogger == null && !initializing)
+                if (telemetryLogger == null && !initializingOrTearingDown)
                 {
                     throw new ArgumentException("TelemetryManager has not been initialized. Please call TelemetryManager.Initialize before attempting to log anything.");
                 }

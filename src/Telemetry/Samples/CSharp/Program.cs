@@ -121,7 +121,8 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 if (TelemetryManager.Configuration.OutOfProcessUpload)
                 {
                     // we stop the stopwatch here because in debug mode
-                    // the teardown will wait for the external process to finish
+                    // the teardown will await for the external process to finish
+                    // in order to keep listening for debug information
                     stopwatch.Stop();
                 }
                 #endif
@@ -133,11 +134,11 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 // communicate the out-of-process uploader that we are done creating
                 // events.
                 TelemetryManager.TearDown();
-            }
 
-            stopwatch.Stop();
-            Console.WriteLine($"Total time elapsed: {stopwatch.Elapsed}");
-            Environment.Exit(0);
+                stopwatch.Stop();
+                Console.WriteLine($"Total time elapsed: {stopwatch.Elapsed}");
+                Environment.Exit(0);
+            }
         }
 
         private static Exception? CreateExceptionWithStackTrace()
