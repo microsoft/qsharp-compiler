@@ -311,22 +311,22 @@ namespace Microsoft.Quantum.Telemetry
             this.SetContext(name, value, TelemetryPropertyType.Guid, piiKind);
 
         public EVTStatus SetContext(string name, sbyte value, PiiKind piiKind = PiiKind.None) =>
-            this.SetContext(name, value, piiKind);
+            this.SetContext(name, (long)value, piiKind);
 
         public EVTStatus SetContext(string name, short value, PiiKind piiKind = PiiKind.None) =>
-            this.SetContext(name, value, piiKind);
+            this.SetContext(name, (long)value, piiKind);
 
         public EVTStatus SetContext(string name, int value, PiiKind piiKind = PiiKind.None) =>
-            this.SetContext(name, value, piiKind);
+            this.SetContext(name, (long)value, piiKind);
 
         public EVTStatus SetContext(string name, byte value, PiiKind piiKind = PiiKind.None) =>
-            this.SetContext(name, value, piiKind);
+            this.SetContext(name, (long)value, piiKind);
 
         public EVTStatus SetContext(string name, ushort value, PiiKind piiKind = PiiKind.None) =>
-            this.SetContext(name, value, piiKind);
+            this.SetContext(name, (long)value, piiKind);
 
         public EVTStatus SetContext(string name, uint value, PiiKind piiKind = PiiKind.None) =>
-            this.SetContext(name, value, piiKind);
+            this.SetContext(name, (long)value, piiKind);
 
         #if DEBUG
         private Thread CreateDebugThread()

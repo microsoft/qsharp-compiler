@@ -4,6 +4,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 namespace Microsoft.Quantum.Telemetry.Tests
@@ -374,6 +375,47 @@ namespace Microsoft.Quantum.Telemetry.Tests
                 TelemetryManager.SetContext("CommonBool", true);
                 TelemetryManager.SetContext("CommonPIIData", "username", isPii: true);
                 TelemetryManager.SetContext("CommonPIIData2", "username", TelemetryPropertyType.String, isPii: true);
+            }
+            finally
+            {
+                TelemetryManager.TearDown();
+            }
+        }
+
+        [TestMethod]
+        public void TestLogObjectOutOfProcess()
+        {
+            try
+            {
+                var telemetryManagerConfig = this.GetConfig() with
+                {
+                    OutOfProcessMaxTeardownUploadTime = TimeSpan.Zero,
+                    OutOProcessMaxIdleTime = TimeSpan.Zero,
+                    OutOfProcessUpload = true,
+                };
+                var args = new string[] { };
+                TelemetryManager.Initialize(telemetryManagerConfig, args);
+
+                TelemetryManager.SetContext("CommonDateTime", DateTime.Now);
+                TelemetryManager.SetContext("CommonString", "my string");
+                TelemetryManager.SetContext("CommonLong", 123);
+                TelemetryManager.SetContext("CommonDouble", 123.123);
+                TelemetryManager.SetContext("CommonGuid", Guid.NewGuid());
+                TelemetryManager.SetContext("CommonBool", true);
+                TelemetryManager.SetContext("CommonPIIData", "username", isPii: true);
+
+                var telemetryLogger = typeof(TelemetryManager)
+                                      .GetField("telemetryLogger", BindingFlags.Static | BindingFlags.NonPublic)!
+                                      .GetValue(null) as Applications.Events.ILogger;
+                telemetryLogger!.SetContext("CommonLong", (sbyte)123);
+                telemetryLogger!.SetContext("CommonLong", (byte)123);
+                telemetryLogger!.SetContext("CommonLong", (ushort)123);
+                telemetryLogger!.SetContext("CommonLong", (short)123);
+                telemetryLogger!.SetContext("CommonLong", 123u);
+                telemetryLogger!.SetContext("CommonLong", (int)123);
+
+                TelemetryManager.LogObject(this.CreateTestEventObject());
+                Assert.AreEqual(1, TelemetryManager.TotalEventsCount);
             }
             finally
             {
