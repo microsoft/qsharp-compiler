@@ -95,6 +95,10 @@ namespace Microsoft.Quantum.Telemetry
 
         public ExceptionLoggingOptions ExceptionLoggingOptions { get; set; } = new();
 
+        public bool SendTelemetryInitializedEvent { get; set; } = true;
+
+        public bool SendTelemetryTearDownEvent { get; set; } = true;
+
         private static readonly Regex NameValidationRegex = new("^[a-zA-Z0-9]{3,20}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 
         private static string ValidateName(string value)
@@ -108,6 +112,8 @@ namespace Microsoft.Quantum.Telemetry
         }
     }
 
+    internal record TelemetryTearDown(TimeSpan? TotalRunningTime, int TotalEventsCount);
+
     /// <summary>
     /// Handles general telemetry logic that is used accross Microsoft Quantum developer tools.
     /// </summary>
@@ -118,6 +124,8 @@ namespace Microsoft.Quantum.Telemetry
 
         private static ILogger? telemetryLogger;
         private static bool tearDownLogManager = false;
+        private static DateTime? initializationTime;
+        private static int totalEventsCount = 0;
 
         /// <summary>
         /// Handles general telemetry logic that is used accross Microsoft Quantum developer tools.
@@ -154,6 +162,7 @@ namespace Microsoft.Quantum.Telemetry
         /// </summary>
         public static void Initialize(TelemetryManagerConfig configuration, string[]? args = null)
         {
+            initializationTime = DateTime.Now;
             Configuration = configuration;
             EnableTelemetryExceptions = GetEnableTelemetryExceptions();
             TelemetryOptOut = GetTelemetryOptOut(configuration);
@@ -185,31 +194,12 @@ namespace Microsoft.Quantum.Telemetry
 
                     SetStartupContext();
 
-                    LogEvent("TelemetryInitialized");
+                    if (Configuration.SendTelemetryInitializedEvent)
+                    {
+                        LogEvent("TelemetryInitialized");
+                    }
                 },
                 initializingOrTearingDown: true);
-        }
-
-        private static bool GetEnableTelemetryExceptions()
-        {
-            var enableTelemetryExceptions = false;
-
-            #if ENABLE_QDK_TELEMETRY_EXCEPTIONS || DEBUG
-            enableTelemetryExceptions = true;
-            #endif
-
-            var envVarValue = Environment.GetEnvironmentVariable("ENABLE_QDK_TELEMETRY_EXCEPTIONS");
-            switch (envVarValue)
-            {
-                case "0":
-                    enableTelemetryExceptions = false;
-                    break;
-                case "1":
-                    enableTelemetryExceptions = true;
-                    break;
-            }
-
-            return enableTelemetryExceptions;
         }
 
         private static void SetStartupContext()
@@ -248,6 +238,11 @@ namespace Microsoft.Quantum.Telemetry
             CheckAndRunSafe(
                 () =>
                 {
+                    if (Configuration.SendTelemetryTearDownEvent)
+                    {
+                        LogObject(new TelemetryTearDown(DateTime.Now - initializationTime, totalEventsCount));
+                    }
+
                     if (telemetryLogger is OutOfProcessLogger outOfProcessLogger)
                     {
                         outOfProcessLogger.Quit();
@@ -267,55 +262,55 @@ namespace Microsoft.Quantum.Telemetry
 
         /// <summary>
         /// Logs all public properties of the object into an event, respecting the following rules:
-        /// - Exceptions won't have their properties logged as they could contain customer data or PII.
-        ///   The name of the event will be "Quantum_{AppId}_.Exception" and the type name of the exception will be
-        ///   logged in the "ExceptionTypeName" property.
+        /// - Exception objects will be partially serialized to Json respecting the Configuration.ExceptionLoggingOptions.
+        ///   - The name of the event will be "Quantum_{AppId}_.Exception"
+        ///   - We only serialize the exception full type name, and based on the ExceptionLoggingOptions we can serialize:
+        ///     - TargetSite (the signature of the method that raised the exception)
+        ///     - SanitizedStackTrace (the stack trace without the file paths)
+        ///   - Other properties are not captured as they could contain customer data or PII.
         /// - Null objects won't be logged.
         /// - Value types will not get logged.
         /// - Other object types will be logged in an event named $"Quantum_{AppId}_{object type name}".
         ///   - Properties with null values will not be logged.
-        ///   - Properties of value types will be converted to values accepted by Aria.
-        ///   - Properties with nullable value types will be converted their corresponding non-nullable type.
-        ///   - Enum types will be converted to strings.
+        ///   - Properties of Value types will be converted to values accepted by Aria.
+        ///   - Properties with Nullable types will be converted their corresponding non-nullable types accepted by Aria.
+        ///   - Properties of Exception types will be partially serialized to Json respecting the Configuration.ExceptionLoggingOptions.
+        ///   - Properties of Enum types will be converted to strings.
         ///   - Properties with [PiiData] attribute will be marked as PII and will be hashed.
         ///   - Properties with [SerializeJson] attribute will be serialized as Json.
         ///   - All other property types won't be logged.
         /// </summary>
-        public static void LogObject(object obj)
-        {
-            if (TelemetryOptOut)
+        public static void LogObject(object obj) =>
+            CheckAndRunSafe(() =>
             {
-                return;
-            }
+                if (obj == null || obj is ValueType)
+                {
+                    return;
+                }
 
-            if (obj == null)
-            {
-                return;
-            }
+                EventProperties eventProperties = new();
+                string? eventName = null;
 
-            EventProperties eventProperties = new();
-            string? eventName = null;
+                // We don't log exception fields as they can potentially contain customer data
+                if (obj is Exception exception)
+                {
+                    obj = exception.ToExceptionLogRecord(Configuration.ExceptionLoggingOptions);
+                    eventName = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_Exception";
+                }
 
-            // We don't log exception fields as they can potentially contain customer data
-            if (obj is Exception exception)
-            {
-                obj = exception.ToExceptionLogRecord(Configuration.ExceptionLoggingOptions);
-                eventName = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_Exception";
-            }
+                var type = obj.GetType();
+                eventProperties.Name = eventName ?? $"{Configuration.EventNamePrefix}_{Configuration.AppId}_{type.Name}";
+                var properties = ReflectionCache.GetProperties(type);
+                foreach (var property in properties)
+                {
+                    var isPii = property.GetCustomAttribute<PiiDataAttribute>() != null;
+                    var serializeJson = property.GetCustomAttribute<SerializeJsonAttribute>() != null;
+                    var value = property.GetValue(obj);
+                    eventProperties.SetProperty(property.Name, value, isPii, serializeJson);
+                }
 
-            var type = obj.GetType();
-            eventProperties.Name = eventName ?? $"{Configuration.EventNamePrefix}_{Configuration.AppId}_{type.Name}";
-            var properties = ReflectionCache.GetProperties(type);
-            foreach (var property in properties)
-            {
-                var isPii = property.GetCustomAttribute<PiiDataAttribute>() != null;
-                var serializeJson = property.GetCustomAttribute<SerializeJsonAttribute>() != null;
-                var value = property.GetValue(obj);
-                eventProperties.SetProperty(property.Name, value, isPii, serializeJson);
-            }
-
-            LogEvent(eventProperties);
-        }
+                LogEvent(eventProperties);
+            });
 
         /// <summary>
         /// Logs the given Aria event.
@@ -324,6 +319,8 @@ namespace Microsoft.Quantum.Telemetry
         public static void LogEvent(EventProperties eventProperties) =>
             CheckAndRunSafe(() =>
             {
+                totalEventsCount++;
+
                 var eventNamePrefix = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_";
                 if (!eventProperties.Name.StartsWith(eventNamePrefix))
                 {
@@ -415,6 +412,28 @@ namespace Microsoft.Quantum.Telemetry
 
         private static bool GetTelemetryOptOut(TelemetryManagerConfig configuration) =>
             Environment.GetEnvironmentVariable(configuration.TelemetryOptOutVariableName) == "1";
+
+        private static bool GetEnableTelemetryExceptions()
+        {
+            var enableTelemetryExceptions = false;
+
+            #if ENABLE_QDK_TELEMETRY_EXCEPTIONS || DEBUG
+            enableTelemetryExceptions = true;
+            #endif
+
+            var envVarValue = Environment.GetEnvironmentVariable("ENABLE_QDK_TELEMETRY_EXCEPTIONS");
+            switch (envVarValue)
+            {
+                case "0":
+                    enableTelemetryExceptions = false;
+                    break;
+                case "1":
+                    enableTelemetryExceptions = true;
+                    break;
+            }
+
+            return enableTelemetryExceptions;
+        }
 
         private static readonly Regex EventNameValidationRegex = new("^[a-zA-Z0-9]{3,30}$", RegexOptions.IgnoreCase | RegexOptions.Compiled);
 

@@ -29,6 +29,8 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                             CollectTargetSite = true,
                             CollectSanitizedStackTrace = true,
                         },
+                        SendTelemetryInitializedEvent = true,
+                        SendTelemetryTearDownEvent = true,
                     },
                     args);
 
