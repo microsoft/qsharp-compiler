@@ -60,10 +60,10 @@ namespace Microsoft.Quantum.Telemetry
         /// The name of the environment variable to control whether the telemetry library throws exceptions.
         /// The value of this env var will override the compiler directive ENABLE_QDK_TELEMETRY_EXCEPTIONS.
         /// Modes:
+        ///  - Disabled (default): The telemetry library will quietly catch all exceptions
+        ///    Recommended for customer release, where we don't want the telemetry to impact user experience
         ///  - Enabled: The telemetry library will freely throw exceptions to the caller program
         ///    Recommended for development, debug, and automated tests
-        ///  - Disabled: The telemetry library will quietly catch all exceptions
-        ///    Recommended for customer release, where we don't want the telemetry to impact user experience
         /// Conditions:
         ///  - Enabled if ENABLE_QDK_TELEMETRY_EXCEPTIONS or DEBUG are present in the compiler directives,
         ///    Disabled otherwise
@@ -501,7 +501,7 @@ namespace Microsoft.Quantum.Telemetry
                 Console.WriteLine(message);
             }
 
-            Debug.WriteLine(message, "QDK Telemetry");
+            Debug.WriteLine(message, category: "QDK Telemetry");
         }
 
         private static void SubscribeTelemetryEventsForDebugging()
