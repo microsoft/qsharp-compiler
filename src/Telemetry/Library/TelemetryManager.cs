@@ -57,6 +57,10 @@ namespace Microsoft.Quantum.Telemetry
         public string HostingEnvironmentVariableName { get; set; } = "QDK_HOSTING_ENV";
 
         /// <summary>
+        /// </summary>
+        public string EnableTelemetryExceptionsVariableName { get; set; } = "ENABLE_QDK_TELEMETRY_EXCEPTIONS";
+
+        /// <summary>
         /// Await up to X milliseconds for the telemetry
         /// to get uploaded before tearing down.
         /// Defaults to 2 seconds.
@@ -68,7 +72,7 @@ namespace Microsoft.Quantum.Telemetry
         /// to get uploaded before tearing down.
         /// Defaults to 30 seconds.
         /// </summary>
-        public TimeSpan OutOProcessMaxTeardownUploadTime { get; set; } = TimeSpan.FromSeconds(30);
+        public TimeSpan OutOfProcessMaxTeardownUploadTime { get; set; } = TimeSpan.FromSeconds(30);
 
         /// <summary>
         /// How long the external process will await without receiving any messages
@@ -120,17 +124,26 @@ namespace Microsoft.Quantum.Telemetry
     public static class TelemetryManager
     {
         private const string TOKEN = "55aee962ee9445f3a86af864fc0fa766-48882422-3439-40de-8030-228042bd9089-7794";
-        internal const string OUTOFPROCESSUPLOADARG = "--OUT_OF_PROCESS_UPLOAD_ARG";
+        public const string OUTOFPROCESSUPLOADARG = "--OUT_OF_PROCESS_TELEMETRY_UPLOAD";
+        public const string TESTMODE = "--TELEMETRY_TEST_MODE";
 
         private static ILogger? telemetryLogger;
         private static bool tearDownLogManager = false;
-        private static DateTime? initializationTime;
-        private static int totalEventsCount = 0;
+
+        public static DateTime? InitializationTime { get; private set; }
+
+        public static int TotalEventsCount { get; private set; } = 0;
 
         /// <summary>
         /// Handles general telemetry logic that is used accross Microsoft Quantum developer tools.
         /// </summary>
         public static bool IsOutOfProcessInstance { get; private set; } = false;
+
+        /// <summary>
+        /// True if the UNITTESTARG argument was passed during initialization.
+        /// This is used for some special cases of running unit tests.
+        /// </summary>
+        public static bool TestMode { get; private set; } = false;
 
         /// <summary>
         /// Compiler directive ENABLE_QDK_TELEMETRY_EXCEPTIONS or DEBUG will set it to true
@@ -162,11 +175,12 @@ namespace Microsoft.Quantum.Telemetry
         /// </summary>
         public static void Initialize(TelemetryManagerConfig configuration, string[]? args = null)
         {
-            initializationTime = DateTime.Now;
+            InitializationTime = DateTime.Now;
             Configuration = configuration;
             EnableTelemetryExceptions = GetEnableTelemetryExceptions();
             TelemetryOptOut = GetTelemetryOptOut(configuration);
             IsOutOfProcessInstance = args != null && args.Contains(OUTOFPROCESSUPLOADARG);
+            TestMode = args != null && args.Contains(TESTMODE);
 
             CheckAndRunSafe(
                 () =>
@@ -174,6 +188,11 @@ namespace Microsoft.Quantum.Telemetry
                     if (telemetryLogger != null)
                     {
                         throw new InvalidOperationException("The TelemetryManager was already initialized");
+                    }
+
+                    if (configuration.OutOfProcessUpload & args == null)
+                    {
+                        throw new ArgumentNullException(nameof(args), "The application start arguments array must be passed when using OutOfProcessUpload");
                     }
 
                     if (configuration.OutOfProcessUpload & !IsOutOfProcessInstance)
@@ -208,7 +227,7 @@ namespace Microsoft.Quantum.Telemetry
         private static void SetStartupContext()
         {
             SetContext("AppId", Configuration.AppId);
-            SetContext("AppVersion", Assembly.GetEntryAssembly()?.GetName().Version?.ToString());
+            SetContext("AppVersion", Assembly.GetEntryAssembly()!.GetName().Version!.ToString());
             SetContext("DeviceId", GetDeviceId(), isPii: true);
             SetContext("SessionId", Guid.NewGuid().ToString());
             SetContext("HostingEnvironment", Environment.GetEnvironmentVariable(Configuration.HostingEnvironmentVariableName));
@@ -220,7 +239,7 @@ namespace Microsoft.Quantum.Telemetry
         {
             LogManager.Start(new LogConfiguration()
             {
-                MaxTeardownUploadTime = (int)(IsOutOfProcessInstance ? Configuration.OutOProcessMaxTeardownUploadTime :
+                MaxTeardownUploadTime = (int)(IsOutOfProcessInstance ? Configuration.OutOfProcessMaxTeardownUploadTime :
                                               Configuration.MaxTeardownUploadTime).TotalMilliseconds,
             });
 
@@ -241,9 +260,11 @@ namespace Microsoft.Quantum.Telemetry
             CheckAndRunSafe(
                 () =>
                 {
-                    if (Configuration.SendTelemetryTearDownEvent && !IsOutOfProcessInstance)
+                    if (telemetryLogger != null
+                        && Configuration.SendTelemetryTearDownEvent
+                        && !IsOutOfProcessInstance)
                     {
-                        LogObject(new TelemetryTearDown(DateTime.Now - initializationTime, totalEventsCount + 1));
+                        LogObject(new TelemetryTearDown(DateTime.Now - InitializationTime, TotalEventsCount + 1));
                     }
 
                     if (telemetryLogger is OutOfProcessLogger outOfProcessLogger)
@@ -255,6 +276,8 @@ namespace Microsoft.Quantum.Telemetry
                     }
 
                     telemetryLogger = null;
+                    TotalEventsCount = 0;
+                    InitializationTime = null;
 
                     if (tearDownLogManager)
                     {
@@ -291,6 +314,12 @@ namespace Microsoft.Quantum.Telemetry
                     return;
                 }
 
+                if (obj is EventProperties eventProp)
+                {
+                    LogEvent(eventProp);
+                    return;
+                }
+
                 EventProperties eventProperties = new();
                 string? eventName = null;
 
@@ -322,7 +351,7 @@ namespace Microsoft.Quantum.Telemetry
         public static void LogEvent(EventProperties eventProperties) =>
             CheckAndRunSafe(() =>
             {
-                totalEventsCount++;
+                TotalEventsCount++;
 
                 var eventNamePrefix = $"{Configuration.EventNamePrefix}_{Configuration.AppId}_";
                 if (!eventProperties.Name.StartsWith(eventNamePrefix))
@@ -335,10 +364,10 @@ namespace Microsoft.Quantum.Telemetry
                     eventProperties.SetProperty("TimestampUTC", DateTime.UtcNow);
                 }
 
-                telemetryLogger?.LogEvent(eventProperties);
+                telemetryLogger!.LogEvent(eventProperties);
 
                 #if DEBUG
-                LogToDebug($"{telemetryLogger?.GetType().Name} logged event {eventProperties.Name}");
+                LogToDebug($"{telemetryLogger!.GetType().Name} logged event {eventProperties.Name}");
                 #endif
             });
 
@@ -350,25 +379,25 @@ namespace Microsoft.Quantum.Telemetry
             CheckAndRunSafe(() => LogEvent(new EventProperties() { Name = ValidateEventName(eventName) }));
 
         public static void SetContext(string name, object value, TelemetryPropertyType propertyType, bool isPii) =>
-            CheckAndRunSafe(() => telemetryLogger?.SetContext(name, value, propertyType, isPii));
+            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, propertyType, isPii));
 
         public static void SetContext(string name, string? value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger?.SetContext(name, value, isPii.ToPiiKind()));
+            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
 
         public static void SetContext(string name, long value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger?.SetContext(name, value, isPii.ToPiiKind()));
+            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
 
         public static void SetContext(string name, Guid value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger?.SetContext(name, value, isPii.ToPiiKind()));
+            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
 
         public static void SetContext(string name, bool value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger?.SetContext(name, value, isPii.ToPiiKind()));
+            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
 
         public static void SetContext(string name, double value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger?.SetContext(name, value, isPii.ToPiiKind()));
+            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
 
         public static void SetContext(string name, DateTime value, bool isPii = false) =>
-            CheckAndRunSafe(() => telemetryLogger?.SetContext(name, value, isPii.ToPiiKind()));
+            CheckAndRunSafe(() => telemetryLogger!.SetContext(name, value, isPii.ToPiiKind()));
 
         public static void UploadNow() =>
             CheckAndRunSafe(() => LogManager.UploadNow());
@@ -384,7 +413,7 @@ namespace Microsoft.Quantum.Telemetry
             {
                 if (telemetryLogger == null && !initializingOrTearingDown)
                 {
-                    throw new ArgumentException("TelemetryManager has not been initialized. Please call TelemetryManager.Initialize before attempting to log anything.");
+                    throw new InvalidOperationException("TelemetryManager has not been initialized. Please call TelemetryManager.Initialize before attempting to log anything.");
                 }
 
                 action();
@@ -424,7 +453,7 @@ namespace Microsoft.Quantum.Telemetry
             enableTelemetryExceptions = true;
             #endif
 
-            var envVarValue = Environment.GetEnvironmentVariable("ENABLE_QDK_TELEMETRY_EXCEPTIONS");
+            var envVarValue = Environment.GetEnvironmentVariable(Configuration.EnableTelemetryExceptionsVariableName);
             switch (envVarValue)
             {
                 case "0":

@@ -40,7 +40,7 @@ namespace Microsoft.Quantum.Telemetry
             { TelemetryPropertyType.Double, (jsonElement) => jsonElement.GetDouble() },
             { TelemetryPropertyType.Guid, (jsonElement) => jsonElement.GetGuid() },
             { TelemetryPropertyType.Long, (jsonElement) => jsonElement.GetInt64() },
-            { TelemetryPropertyType.String, (jsonElement) => jsonElement.GetString() ?? "" },
+            { TelemetryPropertyType.String, (jsonElement) => jsonElement.GetString()! },
         };
 
         internal static object FromJsonElement(JsonElement jsonElement, TelemetryPropertyType propertyType) =>

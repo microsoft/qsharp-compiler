@@ -143,12 +143,12 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
             }
         }
 
-        private static Exception? CreateExceptionWithStackTrace()
+        private static Exception CreateExceptionWithStackTrace()
         {
             try
             {
                 ThrowANestedException();
-                return null;
+                return null!;
             }
             catch (Exception exception)
             {

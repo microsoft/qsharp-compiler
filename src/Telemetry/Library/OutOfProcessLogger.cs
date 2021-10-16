@@ -165,12 +165,19 @@ namespace Microsoft.Quantum.Telemetry
         private static void Quit()
         {
             TelemetryManager.UploadNow();
+
             #if DEBUG
             var totalRunningTime = DateTime.Now - startTime;
             TelemetryManager.LogToDebug($"Exited. Total running time: {totalRunningTime:G})");
             #endif
+
             TelemetryManager.TearDown();
-            Environment.Exit(0);
+
+            // We don't want to exit from the process that is running the unit tests
+            if (!TelemetryManager.TestMode)
+            {
+                Environment.Exit(0);
+            }
         }
     }
 
@@ -219,7 +226,7 @@ namespace Microsoft.Quantum.Telemetry
 
         private Process? CreateExternalProcess()
         {
-            var currentExecutablePath = Process.GetCurrentProcess().MainModule?.FileName;
+            var currentExecutablePath = Process.GetCurrentProcess().MainModule!.FileName;
             if (currentExecutablePath != null)
             {
                 StringBuilder arguments = new();
@@ -230,7 +237,7 @@ namespace Microsoft.Quantum.Telemetry
                                 "dotnet",
                                 StringComparison.InvariantCultureIgnoreCase))
                 {
-                    arguments.Append($"run {Assembly.GetEntryAssembly()?.Location} ");
+                    arguments.Append($"run {Assembly.GetEntryAssembly()!.Location} ");
                 }
 
                 arguments.Append(TelemetryManager.OUTOFPROCESSUPLOADARG);
