@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.Telemetry
     {
         public string Name { get; set; }
 
-        public Dictionary<string, TelemetryEventProperty> Properties { get; private set; } = new();
+        public Dictionary<string, TelemetryEventProperty> Properties { get; set; } = new();
 
         public TelemetryEvent()
             : this(name: "TelemetryEvent")

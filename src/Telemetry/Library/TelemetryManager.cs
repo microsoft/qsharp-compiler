@@ -146,7 +146,7 @@ namespace Microsoft.Quantum.Telemetry
         /// This property is automatically set to true during initialization if the environment variable
         /// named in Configuration.HostingEnvironmentVariableName has a value of "1".
         /// </summary>
-        public static bool TelemetryOptOut { get; set; } = false;
+        public static bool TelemetryOptOut { get; private set; } = false;
 
         /// <summary>
         /// Initializes the TelemetryManager with the given configuration.

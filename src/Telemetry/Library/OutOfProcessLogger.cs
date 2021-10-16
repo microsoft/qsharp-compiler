@@ -115,6 +115,14 @@ namespace Microsoft.Quantum.Telemetry
             var telemetryEvent = JsonSerializer.Deserialize<TelemetryEvent>(args);
             if (telemetryEvent != null)
             {
+                foreach (var property in telemetryEvent.Properties.Values)
+                {
+                    if (property.Value != null)
+                    {
+                        property.Value = TypeConversionHelper.FromJsonElement((JsonElement)property.Value, property.PropertyType);
+                    }
+                }
+
                 TelemetryManager.LogEvent(telemetryEvent.ToEventProperties());
             }
         }

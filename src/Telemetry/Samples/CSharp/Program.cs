@@ -14,7 +14,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
             var stopwatch = Stopwatch.StartNew();
             try
             {
-                // REQUIRED:
+                // REQUIRED: Initialize
                 // Initialize the TelemetryManager right at the beggining of your program
                 TelemetryManager.Initialize(
                     new TelemetryManagerConfig()
@@ -23,7 +23,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                         HostingEnvironmentVariableName = "SAMPLECSHARPAPP_HOSTING_ENV",
                         TelemetryOptOutVariableName = "QDK_TELEMETRY_OPT_OUT",
                         MaxTeardownUploadTime = TimeSpan.FromSeconds(2),
-                        OutOfProcessUpload = false,
+                        OutOfProcessUpload = true,
                         ExceptionLoggingOptions = new()
                         {
                             CollectTargetSite = true,
@@ -32,7 +32,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                     },
                     args);
 
-                // OPTIONAL:
+                // OPTIONAL: Context Properties
                 // Set context properties that are included in every event
                 // If an event later set a property with the same name, the context property
                 // will be completely overridden in that specific event instance.
@@ -44,7 +44,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 TelemetryManager.SetContext("CommonBool", true);
                 TelemetryManager.SetContext("CommonPIIData", "username", isPii: true);
 
-                // OPTIONAL:
+                // OPTIONAL: Manually construct an Aria event
                 // Log an event using Aria EventProperties object
                 // Properties that contain PII or customer data should be tagged
                 // with the PiiKind != None
@@ -63,7 +63,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                 eventProperties.SetProperty("CommonGuid", true);
                 TelemetryManager.LogEvent(eventProperties);
 
-                // OPTIONAL:
+                // OPTIONAL: Just log an event name
                 // Log just the event name, with no extra properties
                 // Context properties will still be added.
                 TelemetryManager.LogEvent("MyEventName");
@@ -81,8 +81,7 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
                     TelemetryManager.LogObject(exception);
                 }
 
-                // OPTIONAL:
-                // Log a custom object
+                // OPTIONAL: Log a custom object
                 // Custom objects will have all of their non-null public properties
                 // logged with some rules applied.
                 // Please check the TelemetryManager.LogObject documentation.
@@ -111,10 +110,28 @@ namespace Microsoft.Quantum.Telemetry.Samples.CSharp
             }
             catch (Exception exception)
             {
+                // RECOMMENDED: Log unhandled exceptions
+                // Catch and log unhandled exceptions in main code.
                 TelemetryManager.LogObject(exception);
+                throw;
             }
             finally
             {
+                #if DEBUG
+                if (TelemetryManager.Configuration.OutOfProcessUpload)
+                {
+                    // we stop the stopwatch here because in debug mode
+                    // the teardown will wait for the external process to finish
+                    stopwatch.Stop();
+                }
+                #endif
+
+                // REQUIRED: TearDown
+                // Before existing the program you should call the TearDown
+                // such that it will attempt to upload remaining events within the
+                // MaxTeardownUploadTime limit for an in-process uploader, or
+                // communicate the out-of-process uploader that we are done creating
+                // events.
                 TelemetryManager.TearDown();
             }
 
