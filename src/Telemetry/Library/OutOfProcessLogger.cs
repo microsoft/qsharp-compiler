@@ -18,7 +18,6 @@ namespace Microsoft.Quantum.Telemetry
         SetContext,
         LogEvent,
         Quit,
-        Debug,
     }
 
     internal class OutOfProcessCommand
@@ -68,7 +67,7 @@ namespace Microsoft.Quantum.Telemetry
     {
         private static DateTime startTime;
 
-        public static void Start(TelemetryManagerConfig configuration)
+        public static void RunAndExit(TelemetryManagerConfig configuration)
         {
             #if DEBUG
             startTime = DateTime.Now;
@@ -253,18 +252,25 @@ namespace Microsoft.Quantum.Telemetry
 
         private EVTStatus SendCommand(OutOfProcessCommandType commandType, object? args = null)
         {
-            this.CreateExternalProcessIfNeeded();
-
-            if (this.externalProcess == null || this.externalProcess.HasExited)
+            // let's not start a new process just to ask it to quit
+            if (commandType != OutOfProcessCommandType.Quit)
             {
-                throw new InvalidOperationException("OutOfProcessUpload external process is not running");
+                this.CreateExternalProcessIfNeeded();
+
+                if (this.externalProcess == null || this.externalProcess.HasExited)
+                {
+                    throw new InvalidOperationException("OutOfProcessUpload external process is not running");
+                }
             }
 
-            var command = new OutOfProcessCommand(commandType, args);
-            var message = JsonSerializer.Serialize(command);
-            lock (this.instanceLock)
+            if (this.externalProcess != null && !this.externalProcess.HasExited)
             {
-                this.externalProcess.StandardInput.WriteLine(message);
+                var command = new OutOfProcessCommand(commandType, args);
+                var message = JsonSerializer.Serialize(command);
+                lock (this.instanceLock)
+                {
+                    this.externalProcess.StandardInput.WriteLine(message);
+                }
             }
 
             return EVTStatus.OK;

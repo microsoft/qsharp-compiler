@@ -188,15 +188,18 @@ namespace Microsoft.Quantum.Telemetry
 
                     if (IsOutOfProcessInstance)
                     {
-                        OutOfProcessServer.Start(configuration);
-                        Environment.Exit(0);
+                        // After completing the next line, the current process
+                        // will exit with exit code 0.
+                        OutOfProcessServer.RunAndExit(configuration);
                     }
-
-                    SetStartupContext();
-
-                    if (Configuration.SendTelemetryInitializedEvent)
+                    else
                     {
-                        LogEvent("TelemetryInitialized");
+                        SetStartupContext();
+
+                        if (Configuration.SendTelemetryInitializedEvent)
+                        {
+                            LogEvent("TelemetryInitialized");
+                        }
                     }
                 },
                 initializingOrTearingDown: true);
@@ -238,7 +241,7 @@ namespace Microsoft.Quantum.Telemetry
             CheckAndRunSafe(
                 () =>
                 {
-                    if (Configuration.SendTelemetryTearDownEvent)
+                    if (Configuration.SendTelemetryTearDownEvent && !IsOutOfProcessInstance)
                     {
                         LogObject(new TelemetryTearDown(DateTime.Now - initializationTime, totalEventsCount));
                     }
