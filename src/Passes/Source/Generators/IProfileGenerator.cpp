@@ -26,10 +26,8 @@ namespace quantum
         OptimizationLevel const& optimisation_level,
         bool                     debug)
     {
-        auto&                   pass_builder          = profile.passBuilder();
-        llvm::ModulePassManager ret                   = pass_builder.buildPerModuleDefaultPipeline(optimisation_level);
-        auto                    function_pass_manager = pass_builder.buildFunctionSimplificationPipeline(
-            optimisation_level, llvm::PassBuilder::ThinLTOPhase::None, debug);
+        auto&                   pass_builder = profile.passBuilder();
+        llvm::ModulePassManager ret{};
 
         module_pass_manager_ = &ret;
         pass_builder_        = &pass_builder;

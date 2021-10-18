@@ -83,7 +83,8 @@ continue__1:
     //
     // will be mapped to using this instruction.
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"%0 = call i1 @__quantum__qir__read_result(%Result* null)", "br i1 %0, label %then0__1, label %continue__1"}));
+        {"%0 = tail call i1 @__quantum__qir__read_result(%Result* null)",
+         "br i1 %0, label %then0__1, label %continue__1"}));
 
     EXPECT_FALSE(
         ir_manip->hasInstructionSequence({"%2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)"}) ||

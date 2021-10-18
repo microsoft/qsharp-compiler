@@ -179,50 +179,51 @@ TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit: 
     configuration_manager.addConfig<FactoryConfiguration>();
 
     ir_manip->applyProfile(profile);
-
-    EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"%leftMessage.i = inttoptr i64 0 to %Qubit*", "%rightMessage.i = inttoptr i64 1 to %Qubit*",
-         "tail call void @__quantum__qis__h__body(%Qubit* %leftMessage.i)",
-         "tail call void @__quantum__qis__cnot__body(%Qubit* %leftMessage.i, %Qubit* "
-         "%rightMessage.i)"}));
-
+    llvm::outs() << *ir_manip->module() << "\n";
     EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        "%0 = inttoptr i64 2 to %Qubit*",
-        "%1 = inttoptr i64 4 to %Qubit*",
-        "tail call void @__quantum__qis__h__body(%Qubit* %0)",
-        "tail call void @__quantum__qis__cnot__body(%Qubit* %0, %Qubit* %1)",
-        "%2 = inttoptr i64 3 to %Qubit*",
-        "%3 = inttoptr i64 5 to %Qubit*",
-        "tail call void @__quantum__qis__h__body(%Qubit* %2)",
-        "tail call void @__quantum__qis__cnot__body(%Qubit* %2, %Qubit* %3)",
-        "%4 = inttoptr i64 2 to %Qubit*",
-        "%5 = inttoptr i64 4 to %Qubit*",
-        "tail call void @__quantum__qis__cnot__body(%Qubit* %rightMessage.i, %Qubit* %4)",
-        "tail call void @__quantum__qis__h__body(%Qubit* %rightMessage.i)",
+        // clang-format off
+      "tail call void @__quantum__qis__h__body(%Qubit* null)",
+      "tail call void @__quantum__qis__cnot__body(%Qubit* null, %Qubit* nonnull inttoptr (i64 1 to %Qubit*))",
+      "tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))",
+      "tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Qubit* nonnull inttoptr (i64 4 to %Qubit*))",
+      "tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*))",
+      "tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Qubit* nonnull inttoptr (i64 5 to %Qubit*))",
+      "tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Qubit* nonnull inttoptr (i64 2 to %Qubit*))",
+      "tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))",
+      "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*), %Result* null)",
+      "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 1 to %Qubit*))",
+      "%0 = tail call i1 @__quantum__qir__read_result(%Result* null)",
+      "br i1 %0, label %then0__1.i.i.i, label %continue__1.i.i.i",
+        // clang-format on
     }));
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        "%0 = inttoptr i64 2 to %Qubit*",
-        "%1 = inttoptr i64 4 to %Qubit*",
-        "tail call void @__quantum__qis__h__body(%Qubit* %0)",
-        "tail call void @__quantum__qis__cnot__body(%Qubit* %0, %Qubit* %1)",
-        "%2 = inttoptr i64 3 to %Qubit*",
-        "%3 = inttoptr i64 5 to %Qubit*",
-        "tail call void @__quantum__qis__h__body(%Qubit* %2)",
-        "tail call void @__quantum__qis__cnot__body(%Qubit* %2, %Qubit* %3)",
-        "%4 = inttoptr i64 2 to %Qubit*",
-        "%5 = inttoptr i64 4 to %Qubit*",
-        "tail call void @__quantum__qis__cnot__body(%Qubit* %rightMessage.i, %Qubit* %4)",
-        "tail call void @__quantum__qis__h__body(%Qubit* %rightMessage.i)",
+        // clang-format off
+      "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*), %Result* nonnull inttoptr (i64 1 to %Result*))",
+      "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 2 to %Qubit*))",
+      "%1 = tail call i1 @__quantum__qir__read_result(%Result* nonnull inttoptr (i64 1 to %Result*))",
+      "br i1 %1, label %then0__2.i.i.i, label %TeleportChain__TeleportQubitUsingPresharedEntanglement__body.2.exit.i",
+        // clang-format on
+
     }));
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        "call void @__quantum__qis__mz__body(%Qubit* %leftMessage.i, %Result* %result.i.i)",
-        "tail call void @__quantum__qis__reset__body(%Qubit* %leftMessage.i)",
-        "%13 = inttoptr i64 5 to %Qubit*",
-        "%result.i1.i = inttoptr i64 5 to %Result*",
-        "call void @__quantum__qis__mz__body(%Qubit* %13, %Result* %result.i1.i)",
-        "tail call void @__quantum__qis__reset__body(%Qubit* %13)",
-        "%14 = tail call %String* @__quantum__rt__result_to_string(%Result* %result.i1.i)",
+        // clang-format off
+      "tail call void @__quantum__qis__cnot__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*), %Qubit* nonnull inttoptr (i64 3 to %Qubit*))",
+      "tail call void @__quantum__qis__h__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))",
+      "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*), %Result* nonnull inttoptr (i64 2 to %Result*))",
+      "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 4 to %Qubit*))",
+      "%2 = tail call i1 @__quantum__qir__read_result(%Result* nonnull inttoptr (i64 2 to %Result*))",
+      "br i1 %2, label %then0__1.i.i2.i, label %continue__1.i.i4.i",
+        // clang-format on
+    }));
+
+    EXPECT_TRUE(ir_manip->hasInstructionSequence({
+        // clang-format off
+      "tail call void @__quantum__qis__mz__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*), %Result* nonnull inttoptr (i64 3 to %Result*))",
+      "tail call void @__quantum__qis__reset__body(%Qubit* nonnull inttoptr (i64 3 to %Qubit*))",
+      "%3 = tail call i1 @__quantum__qir__read_result(%Result* nonnull inttoptr (i64 3 to %Result*))",
+      "br i1 %3, label %then0__2.i.i5.i, label %TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__body.1.exit",
+        // clang-format on
     }));
 }
