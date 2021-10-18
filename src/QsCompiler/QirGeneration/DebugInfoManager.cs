@@ -141,22 +141,23 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 string moduleID = Path.GetFileName(sourcePath);
-                AssemblyName compilationAssemblyName = CompilationLoader.GetQSharpCompilerAssemblyName();
-                string producerIdent = compilationAssemblyName.Name + " V." + compilationAssemblyName.Version;
-
-                // TODO: If we need compilation flags in the future we will need to figure out how to get the compile options in the CompilationLoader.Configuration
-                // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
-                string compilationFlags = "";
+                AssemblyName compilationInfo = CompilationLoader.GetQSharpCompilerAssemblyName();
+                AssemblyName qirGenerationInfo = Assembly.GetExecutingAssembly().GetName();
+                string producerIdent = compilationInfo.Name + " with " + qirGenerationInfo.Name + " V " + qirGenerationInfo.Version;
 
                 // Change the extension for to .c because of the language/extension issue
                 string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
+
+                // TODO: If we need compilation flags (an optional argument to CreateBitcodeModule) in the future we will need
+                // to figure out how to get the compile options in the CompilationLoader.Configuration
+                // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
+
 
                 BitcodeModule newModule = this.Context.CreateBitcodeModule(
                     moduleID,
                     SourceLanguage.C99, // For now, we are using the C interface. Ideally this would be a user defined language for Q#
                     cSourcePath, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
-                    producerIdent,
-                    compilationFlags: compilationFlags);
+                    producerIdent);
 
                 // Add Module identity and Module Flags
                 newModule.AddProducerIdentMetadata(producerIdent);
