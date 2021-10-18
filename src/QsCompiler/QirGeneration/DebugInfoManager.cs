@@ -10,6 +10,7 @@ using System.IO;
 using System;
 using System.Collections.Immutable;
 using System.Collections.Generic;
+using System.Reflection;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
@@ -20,6 +21,25 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal sealed class DebugInfoManager
     {
+
+        #region Member variables
+
+        /// <summary>
+        /// Dwarf version we are using for the debug info in the QIR generation
+        /// </summary>
+        private static readonly uint DWARF_VERSION = 4;
+
+        /// <summary>
+        /// Title of the CodeView module flag for debug info
+        /// </summary>
+        private static readonly string CODEVIEW_NAME = "CodeView";
+
+        /// <summary>
+        /// CodeView version we are using for the debug info in the QIR generation
+        /// </summary>
+        private static readonly uint CODEVIEW_VERSION = 1;
+
+
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
         /// </summary>
@@ -35,69 +55,32 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private readonly GenerationContext sharedState;
 
+        #endregion
+
+        #region Shortcut access to member variables' content
+
         /// <summary>
         /// Access to the GenerationContext's Module
         /// </summary>
-        internal BitcodeModule Module
-        {
-            get
-            {
-                if (this.sharedState.Module == null)
-                {
-                    throw new NullReferenceException("Cannot access Module because it is null");
-                }
+        internal BitcodeModule Module => this.sharedState.Module;
 
-                return this.sharedState.Module;
-            }
-        }
 
         /// <summary>
         /// Access to the GenerationContext's Module's DICompileUnit
         /// </summary>
-        internal DICompileUnit DICompileUnit
-        {
-            get
-            {
-                if (this.Module.DICompileUnit == null)
-                {
-                    throw new NullReferenceException("Cannot access DICompileUnit because it is null");
-                }
-
-                return this.Module.DICompileUnit;
-            }
-        }
+        internal DICompileUnit? DICompileUnit => this.sharedState.Module.DICompileUnit;
 
         /// <summary>
         /// Access to the GenerationContext's Module's DIBuilder
         /// </summary>
-        internal DebugInfoBuilder DIBuilder
-        {
-            get
-            {
-                if (this.Module.DIBuilder == null)
-                {
-                    throw new NullReferenceException("Cannot access DIBuilder because it is null");
-                }
-
-                return this.Module.DIBuilder;
-            }
-        }
+        internal DebugInfoBuilder DIBuilder => this.sharedState.Module.DIBuilder;
 
         /// <summary>
         /// Access to the GenerationContext's Context
         /// </summary>
-        internal Context Context
-        {
-            get
-            {
-                if (this.sharedState.Context == null)
-                {
-                    throw new NullReferenceException("Cannot access Context because it is null");
-                }
+        internal Context Context => this.sharedState.Context;
 
-                return this.sharedState.Context;
-            }
-        }
+        #endregion
 
         internal DebugInfoManager(GenerationContext generationContext)
         {
@@ -105,6 +88,30 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.LocationStack = new Stack<QsLocation>();
         }
 
+        #region Top Level Debug Functions
+
+        /// <summary>
+        /// Gets the Dwarf version we are using for the debug info in the QIR generation
+        /// </summary>
+        internal uint GetDwarfVersion() => DWARF_VERSION;
+
+        /// <summary>
+        /// Gets the CodeView version we are using for the debug info in the QIR generation
+        /// </summary>
+        internal string GetCodeViewName() => CODEVIEW_NAME;
+
+        /// <summary>
+        /// Gets the title for the CodeView module flag for debug info
+        /// </summary>
+        internal uint GetCodeViewVersion() => CODEVIEW_VERSION;
+
+
+        /// <summary>
+        /// If DebugFlag is set to false, simply creates a module for the owning GenerationContext, attaches it to its Context, and returns it.
+        /// If DebugFlag is set to true, creates a module with a compile unit and top level debug info, attaches it, and returns it.
+        /// Note: because this is called from within the constructor of the GenerationContext,
+        /// we cannot access this.Module or anything else that uses this.sharedState
+        /// </summary>
         internal BitcodeModule CreateModuleWithCompileUnit()
         {
             if (this.DebugFlag)
@@ -113,8 +120,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 bool foundEntryAttribute = false;
                 string sourcePath = "";
 
-               ImmutableDictionary<QsQualifiedName, QsCallable> globalCallables = this.sharedState.GetGlobalCallables();
-               foreach (QsCallable callable in globalCallables.Values)
+                ImmutableDictionary<QsQualifiedName, QsCallable> globalCallables = this.sharedState.GetGlobalCallables();
+                foreach (QsCallable callable in globalCallables.Values)
                 {
                     if (foundEntryAttribute)
                     {
@@ -139,27 +146,42 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
 
                 string moduleID = Path.GetFileName(sourcePath);
-                string producerVersionIdent = "Qsharp-Compiler"; // RyanTODO: this should eventually include the version and be some constant in some file with names like this
-                string compilationFlags = ""; // RyanTODO
-                bool optimized = false; // RyanTODO
-                uint runtimeVersion = 0; // RyanTODO
+                AssemblyName compilationAssemblyName = CompilationLoader.GetQSharpCompilerAssemblyName();
+                string producerIdent = compilationAssemblyName.Name + " V." + compilationAssemblyName.Version;
+                string compilationFlags = ""; // TODO: Need to figure out how to get the compile options in the CompilationLoader.Configuration and turn them into a string (although even with a testing string, this doesn't seem to be output into the QIR)
 
                 // Change the extension for to .c because of the language/extension issue
                 string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
 
-                return this.Context.CreateBitcodeModule(
+                BitcodeModule newModule = this.Context.CreateBitcodeModule(
                     moduleID,
                     SourceLanguage.C99, // For now, we are using the C interface. Ideally this would be a user defined language for Q#
                     cSourcePath, // Note that to debug the source file, you'll have to copy the content of the .qs file into a .c file with the same name
-                    producerVersionIdent,
-                    optimized,
-                    compilationFlags,
-                    runtimeVersion);
+                    producerIdent,
+                    compilationFlags: compilationFlags);
+
+                // Add Module identity and Module Flags
+                newModule.AddProducerIdentMetadata(producerIdent);
+                newModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, this.GetDwarfVersion());
+                newModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
+                newModule.AddModuleFlag(ModuleFlagBehavior.Warning, this.GetCodeViewName(), this.GetCodeViewVersion());
+
+                return newModule;
             }
             else
             {
                 return this.Context.CreateBitcodeModule();
             }
+
+            void AddTargetSpecificModuleFlags(BitcodeModule module)
+            {
+                // TODO: could be useful to have target-specific module flags at some point
+                // Examples: AddModuleFlag(ModuleFlagBehavior.Error, "PIC Level", 2); (ModuleFlagBehavior.Error, "wchar_size", 4); (ModuleFlagBehavior.Error, "min_enum_size", 4)
+                return;
+            }
         }
+
+        #endregion
+
     }
 }

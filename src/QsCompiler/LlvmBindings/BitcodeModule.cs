@@ -632,6 +632,45 @@ namespace Ubiquity.NET.Llvm
             return hGlobal == default ? default : Value.FromHandle<GlobalVariable>(hGlobal);
         }
 
+        /// <summary>Adds a module flag to the module</summary>
+        /// <param name="behavior">Module flag behavior for this flag</param>
+        /// <param name="name">Name of the flag</param>
+        /// <param name="value">Value of the flag</param>
+        public void AddModuleFlag(ModuleFlagBehavior behavior, string name, UInt32 value)
+        {
+            this.ThrowIfDisposed();
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                throw new ArgumentException();
+            }
+
+            LLVMValueRef flagNode = LLVMValueRef.CreateMDNode(new[]
+            {
+                LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, (ulong)behavior),
+                this.Context.ContextHandle.GetMDString(name),
+                LLVMValueRef.CreateConstInt(LLVMTypeRef.Int32, value),
+            });
+            this.ModuleHandle.AddNamedMetadataOperand("llvm.module.flags", flagNode);
+        }
+
+        /// <summary>Adds an llvm.ident metadata string to the module</summary>
+        /// <param name="producer">producer and version information to place in the llvm.ident metadata</param>
+        public void AddProducerIdentMetadata(string producer)
+        {
+            this.ThrowIfDisposed();
+
+            if (string.IsNullOrWhiteSpace(producer))
+            {
+                throw new ArgumentException();
+            }
+
+            LLVMValueRef identNode = LLVMValueRef.CreateMDNode(new[]
+            {
+                this.Context.ContextHandle.GetMDString(producer),
+            });
+            this.ModuleHandle.AddNamedMetadataOperand("llvm.ident", identNode);
+        }
+
         /// <summary>
         /// Get the operands of a <see cref="NamedMDNode"/>.
         /// </summary>

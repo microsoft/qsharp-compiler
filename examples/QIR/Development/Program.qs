@@ -7,12 +7,11 @@
     open Microsoft.Quantum.Math;
 
     @EntryPoint()
-    operation RunExample() : String {
+    operation RunExample() : Int {
 
-        // Add additional code here
-        // for experimenting with and debugging QIR generation.
+        mutable var_x = 26;
+        return var_x;
 
-        return "Executed successfully!";
     }
 }
 

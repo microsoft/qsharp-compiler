@@ -78,6 +78,16 @@ namespace Microsoft.Quantum.QsCompiler
             using var generator = new Generator(transformed);
             generator.Apply();
 
+            string dictionaryString = "{";
+            foreach(KeyValuePair < string, string? > keyValues in this.AssemblyConstants) {
+                string val = "NULL";
+                if (keyValues.Value != null) {
+                    val = keyValues.Value;
+                }
+                dictionaryString += keyValues.Key + " : " + val + ", ";
+            }
+            dictionaryString = dictionaryString.TrimEnd(',', ' ') + "}";
+
             // write generated QIR to disk
             var assemblyName = this.AssemblyConstants.TryGetValue(ReservedKeywords.AssemblyConstants.AssemblyName, out var asmName) ? asmName : null;
             var targetFile = Path.GetFullPath(string.IsNullOrWhiteSpace(assemblyName) ? "main.txt" : $"{Path.GetFileName(assemblyName)}.txt");

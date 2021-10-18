@@ -188,7 +188,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context = new Context();
 
             this.DIManager = new DebugInfoManager(this);
-            this.Module = DIManager.CreateModuleWithCompileUnit();
+            this.Module = this.DIManager.CreateModuleWithCompileUnit();
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.Types);
