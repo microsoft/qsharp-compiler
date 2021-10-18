@@ -54,7 +54,7 @@ TEST(RuleSetTestSuite, RemovingFunctionCall)
     auto profile = std::make_shared<DefaultProfileGenerator>(std::move(configure_profile));
 
     ir_manip->applyProfile(profile);
-    llvm::outs() << *ir_manip->module() << "\n";
+
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
         {"%qubit = tail call %Qubit* @__quantum__rt__qubit_allocate()",
          "tail call void @__quantum__rt__qubit_release(%Qubit* %qubit)"}));

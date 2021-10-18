@@ -82,12 +82,10 @@ exit__1:                                          ; preds = %header__1
     ir_manip->applyProfile(profile);
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence(
-        {"%0 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%1 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%2 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%3 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%4 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)",
-         "%5 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* %q)"}));
-
-    llvm::outs() << *ir_manip->module() << "\n";
+        {"%0 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+         "%1 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+         "%2 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+         "%3 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+         "%4 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)",
+         "%5 = tail call i64 @TeleportChain__Calculate__body(i64 4, %Qubit* null)"}));
 }

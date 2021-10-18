@@ -97,12 +97,10 @@ continue__1:                                      ; preds = %then0__1, %entry
     configuration_manager.addConfig<FactoryConfiguration>();
 
     ir_manip->applyProfile(profile);
-
     EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        "%q = inttoptr i64 0 to %Qubit*",
-        "tail call void @Microsoft__Quantum__Intrinsic__H__body(%Qubit* %q)",
-        "tail call void @Microsoft__Quantum__Intrinsic__CNOT__body(%Qubit* null, %Qubit* %q)",
-        "%0 = tail call i64 @TeleportChain__Calculate__body(i64 0, %Qubit* %q)",
+        "tail call void @Microsoft__Quantum__Intrinsic__H__body(%Qubit* null)",
+        "tail call void @Microsoft__Quantum__Intrinsic__CNOT__body(%Qubit* null, %Qubit* null)",
+        "%0 = tail call i64 @TeleportChain__Calculate__body(i64 0, %Qubit* null)",
     }));
 }
 
@@ -139,10 +137,8 @@ continue__1:                                      ; preds = %then0__1, %entry
     ir_manip->applyProfile(profile);
 
     EXPECT_TRUE(ir_manip->hasInstructionSequence({
-        "%q = inttoptr i64 0 to %Qubit*",
-        "tail call void @Microsoft__Quantum__Intrinsic__H__body(%Qubit* %q)",
-        "tail call void @Microsoft__Quantum__Intrinsic__CNOT__body(%Qubit* null, %Qubit* %q)",
-
+        "tail call void @Microsoft__Quantum__Intrinsic__H__body(%Qubit* null)",
+        "tail call void @Microsoft__Quantum__Intrinsic__CNOT__body(%Qubit* null, %Qubit* null)",
     }));
 
     EXPECT_FALSE(ir_manip->hasInstructionSequence({

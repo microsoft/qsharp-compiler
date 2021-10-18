@@ -36,7 +36,7 @@ namespace quantum
             ConfigureFunction const&                   configure,
             RuleTransformationPassConfiguration const& profile_pass_config =
                 RuleTransformationPassConfiguration::disable(),
-            LlvmPassesConfiguration const& llvm_config = LlvmPassesConfiguration::disable());
+            LlvmPassesConfiguration const& llvm_config = LlvmPassesConfiguration());
 
         // Shorthand notation to access configurations
         //
