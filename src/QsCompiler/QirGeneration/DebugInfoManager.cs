@@ -1,16 +1,15 @@
-using Microsoft.Quantum.QsCompiler.SyntaxTree;
-using Microsoft.Quantum.QsCompiler.DataTypes;
-using Microsoft.Quantum.QsCompiler.QIR;
-using Microsoft.Quantum.QIR;
-using Ubiquity.NET.Llvm.DebugInfo;
-using Ubiquity.NET.Llvm;
-using Ubiquity.NET.Llvm.Values;
-using Ubiquity.NET.Llvm.Types;
-using System.IO;
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 using System;
-using System.Collections.Immutable;
 using System.Collections.Generic;
+using System.Collections.Immutable;
+using System.IO;
 using System.Reflection;
+using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QsCompiler.SyntaxTree;
+using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.DebugInfo;
 
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
@@ -21,7 +20,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal sealed class DebugInfoManager
     {
-
         #region Member variables
 
         /// <summary>
@@ -38,7 +36,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// CodeView version we are using for the debug info in the QIR generation
         /// </summary>
         private static readonly uint CODEVIEW_VERSION = 1;
-
 
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
@@ -63,7 +60,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Access to the GenerationContext's Module
         /// </summary>
         internal BitcodeModule Module => this.sharedState.Module;
-
 
         /// <summary>
         /// Access to the GenerationContext's Module's DICompileUnit
@@ -104,7 +100,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Gets the title for the CodeView module flag for debug info
         /// </summary>
         internal uint GetCodeViewVersion() => CODEVIEW_VERSION;
-
 
         /// <summary>
         /// If DebugFlag is set to false, simply creates a module for the owning GenerationContext, attaches it to its Context, and returns it.
@@ -148,7 +143,10 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 string moduleID = Path.GetFileName(sourcePath);
                 AssemblyName compilationAssemblyName = CompilationLoader.GetQSharpCompilerAssemblyName();
                 string producerIdent = compilationAssemblyName.Name + " V." + compilationAssemblyName.Version;
-                string compilationFlags = ""; // TODO: Need to figure out how to get the compile options in the CompilationLoader.Configuration and turn them into a string (although even with a testing string, this doesn't seem to be output into the QIR)
+
+                // TODO: If we need compilation flags in the future we will need to figure out how to get the compile options in the CompilationLoader.Configuration
+                // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
+                string compilationFlags = "";
 
                 // Change the extension for to .c because of the language/extension issue
                 string cSourcePath = Path.ChangeExtension(sourcePath, ".c");
@@ -162,9 +160,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // Add Module identity and Module Flags
                 newModule.AddProducerIdentMetadata(producerIdent);
+
+                // TODO: ModuleFlagBehavior.Warning is emitting a 1 (indicating error) instead of 2
                 newModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DwarfVersionValue, this.GetDwarfVersion());
                 newModule.AddModuleFlag(ModuleFlagBehavior.Warning, BitcodeModule.DebugVersionValue, BitcodeModule.DebugMetadataVersion);
-                newModule.AddModuleFlag(ModuleFlagBehavior.Warning, this.GetCodeViewName(), this.GetCodeViewVersion());
+                newModule.AddModuleFlag(ModuleFlagBehavior.Warning, this.GetCodeViewName(), this.GetCodeViewVersion()); // TODO: We seem to need this flag and not Dwarf in order to debug on Windows. Need to look into why LLDB is using CodeView on Windows
+                AddTargetSpecificModuleFlags();
 
                 return newModule;
             }
@@ -173,10 +174,11 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return this.Context.CreateBitcodeModule();
             }
 
-            void AddTargetSpecificModuleFlags(BitcodeModule module)
+            void AddTargetSpecificModuleFlags()
             {
                 // TODO: could be useful to have target-specific module flags at some point
                 // Examples: AddModuleFlag(ModuleFlagBehavior.Error, "PIC Level", 2); (ModuleFlagBehavior.Error, "wchar_size", 4); (ModuleFlagBehavior.Error, "min_enum_size", 4)
+                // Have access to newModule here
                 return;
             }
         }

@@ -12,10 +12,10 @@ using System.Globalization;
 using System.Linq;
 using System.Text;
 using LLVMSharp.Interop;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
 using Ubiquity.NET.Llvm.Values;
-using Ubiquity.NET.Llvm.DebugInfo;
 
 namespace Ubiquity.NET.Llvm
 {

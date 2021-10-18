@@ -73,6 +73,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
 
             this.SharedState.GenerateRequiredFunctions();
+
+            this.SharedState.DIManager.DIBuilder.Finish(); // must be called after all QIR generation
         }
 
         /// <summary>
