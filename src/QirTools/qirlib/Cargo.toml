@@ -11,6 +11,7 @@ log = "0.4.14"
 libloading = "0.7.0"
 cty="0.2.1"
 rand="0.8.4"
+llvm-ir = { version = "0.8.0", features = ["llvm-11"] }
 
 [dev-dependencies]
 serial_test = "0.5.1"
