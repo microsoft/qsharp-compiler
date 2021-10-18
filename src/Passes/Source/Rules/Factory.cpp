@@ -470,8 +470,97 @@ void RuleFactory::useStaticResultAllocation()
 
 void RuleFactory::optimiseBranchQuantumZero()
 {
-  // TODO(tfr): implement this logic - do not throw std::logic_error("Optimisation not implemented
-  // yet.");
+  auto replace_branch_positive = [](Builder &builder, Value *val, Captures &cap,
+                                    Replacements &replacements) {
+    auto branch = llvm::dyn_cast<llvm::BranchInst>(val);
+    if (branch == nullptr)
+    {
+      return false;
+    }
+
+    if (branch->getNumOperands() != 3)
+    {
+      return false;
+    }
+
+    auto cond = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+    if (cond == nullptr)
+    {
+      return false;
+    }
+    auto result = cap["result"];
+    // Replacing result
+    auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+    if (orig_instr == nullptr)
+    {
+      return false;
+    }
+
+    auto                       module   = orig_instr->getModule();
+    auto                       function = module->getFunction("__quantum__qir__read_result");
+    std::vector<llvm::Value *> arguments;
+    arguments.push_back(result);
+
+    if (!function)
+    {
+      std::vector<llvm::Type *> types;
+      types.resize(arguments.size());
+      for (uint64_t i = 0; i < types.size(); ++i)
+      {
+        types[i] = arguments[i]->getType();
+      }
+
+      auto return_type = llvm::Type::getInt1Ty(val->getContext());
+
+      llvm::FunctionType *fnc_type = llvm::FunctionType::get(return_type, types, false);
+      function = llvm::Function::Create(fnc_type, llvm::Function::ExternalLinkage,
+                                        "__quantum__qir__read_result", module);
+    }
+
+    builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
+    auto new_call = builder.CreateCall(function, arguments);
+
+    new_call->takeName(cond);
+
+    for (auto &use : cond->uses())
+    {
+      llvm::User *user = use.getUser();
+      user->setOperand(use.getOperandNo(), new_call);
+    }
+    cond->replaceAllUsesWith(new_call);
+
+    // Swapping block order in branch statement to compensate for comparing to zero
+    auto val1 = branch->getOperand(1);
+    auto val2 = branch->getOperand(2);
+    branch->setOperand(1, val2);
+    branch->setOperand(2, val1);
+
+    // Deleting the previous condition and function to fetch one
+    replacements.push_back({cond, nullptr});
+    replacements.push_back({cap["zero"], nullptr});
+
+    return true;
+  };
+
+  /*
+    Here is an example IR for which we want to make a match:
+
+    %1 = call %Result* @__quantum__rt__result_get_one()
+    %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
+    br i1 %2, label %then0__1, label %continue__1
+  */
+
+  // Variations of get_one
+  auto get_zero = call("__quantum__rt__result_get_zero");
+  addRule({branch("cond"_cap =
+                      call("__quantum__rt__result_equal", "result"_cap = _, "zero"_cap = get_zero),
+                  _, _),
+           replace_branch_positive});
+
+  addRule({branch("cond"_cap =
+                      call("__quantum__rt__result_equal", "zero"_cap = get_zero, "result"_cap = _),
+                  _, _),
+           replace_branch_positive});
 }
 
 void RuleFactory::optimiseBranchQuantumOne()
