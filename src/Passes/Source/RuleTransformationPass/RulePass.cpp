@@ -21,6 +21,7 @@ RuleTransformationPass::RuleTransformationPass(RuleSet &&                       
   , config_{config}
   , profile_{profile}
 {}
+
 void RuleTransformationPass::setupCopyAndExpand()
 {
   using namespace microsoft::quantum::notation;
@@ -60,6 +61,29 @@ void RuleTransformationPass::setupCopyAndExpand()
 
          return true;
        }});
+
+  // Switch replacement:
+  //  addConstExprRule({switchOp("cond"_cap = _, "cases"_cap = _, _),
+  //                    [](Builder & /*builder*/, Value *val, Captures & /*captures*/,
+  //                       Replacements & /*replacements*/) {
+  //                      auto instr = llvm::dyn_cast<llvm::Instruction>(val);
+  //
+  //                      llvm::errs() << "SWITCH OP: "
+  //                                   << "\n";
+  //                      auto user = llvm::dyn_cast<llvm::User>(val);
+  //
+  //                      uint64_t       i = 0;
+  //                      uint64_t const N = instr->getNumOperands();
+  //                      while (i < N)
+  //                      {
+  //                        auto v = user->getOperand(static_cast<uint32_t>(i));
+  //                        llvm::errs() << *v << "\n";
+  //                        ++i;
+  //                      }
+  //
+  //                      return false;
+  //                    }});
+  //
 
   if (config_.assumeNoExceptions())
   {
@@ -342,6 +366,23 @@ bool RuleTransformationPass::runOnFunction(llvm::Function &           function,
               queue.push_back(bb);
               blocks_queued.insert(bb);
             }
+          }
+        }
+        continue;
+      }
+
+      // Follow the branches of
+      auto *switch_instr = llvm::dyn_cast<llvm::SwitchInst>(&instr);
+      if (switch_instr != nullptr)
+      {
+        for (uint64_t i = 0; i < switch_instr->getNumSuccessors(); ++i)
+        {
+          auto bb = switch_instr->getSuccessor(static_cast<uint32_t>(i));
+          // Ensuring that we are not scheduling the same block twice
+          if (blocks_queued.find(bb) == blocks_queued.end())
+          {
+            queue.push_back(bb);
+            blocks_queued.insert(bb);
           }
         }
         continue;

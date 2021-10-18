@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.4.3)
 
 project(QirPasses)
-
+set(CMAKE_BUILD_TYPE "Debug")
 option(MICROSOFT_ENABLE_TESTS               "Enable test targets"   ON)
 option(MICROSOFT_ENABLE_DYNAMIC_LOADING     "Use dynamic loading"   ON)
 option(MICROSOFT_GENERATE_COVERAGE          "Generate coverage"     OFF)

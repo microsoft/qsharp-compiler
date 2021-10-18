@@ -1,32 +1,34 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#include "Rules/OperandPrototype.hpp"
 #include "Rules/Operands/Instruction.hpp"
 
-namespace microsoft
+#include "Rules/OperandPrototype.hpp"
+
+namespace microsoft {
+namespace quantum {
+
+template <typename T>
+InstructionPattern<T>::~InstructionPattern() = default;
+template <typename T>
+bool InstructionPattern<T>::match(Value *instr, Captures &captures) const
 {
-namespace quantum
+  auto *load_instr = llvm::dyn_cast<T>(instr);
+  if (load_instr == nullptr)
+  {
+    return fail(instr, captures);
+  }
+
+  return success(instr, captures);
+}
+
+template <typename T>
+typename InstructionPattern<T>::Child InstructionPattern<T>::copy() const
 {
-
-    template <typename T> InstructionPattern<T>::~InstructionPattern() = default;
-    template <typename T> bool InstructionPattern<T>::match(Value* instr, Captures& captures) const
-    {
-        auto* load_instr = llvm::dyn_cast<T>(instr);
-        if (load_instr == nullptr)
-        {
-            return fail(instr, captures);
-        }
-
-        return success(instr, captures);
-    }
-
-    template <typename T> typename InstructionPattern<T>::Child InstructionPattern<T>::copy() const
-    {
-        auto ret = std::make_shared<InstructionPattern<T>>();
-        ret->copyPropertiesFrom(*this);
-        return std::move(ret);
-    }
+  auto ret = std::make_shared<InstructionPattern<T>>();
+  ret->copyPropertiesFrom(*this);
+  return std::move(ret);
+}
 
 // TODO(QAT-private-issue-34): This seems to be a bug in LLVM. Template instantiations in
 // a single translation unit is not supposed to reinstantiate across other
@@ -40,15 +42,17 @@ namespace quantum
 // for more information
 #pragma clang diagnostic push
 #pragma clang diagnostic ignored "-Wweak-template-vtables"
-    template class InstructionPattern<llvm::StoreInst>;
-    template class InstructionPattern<llvm::LoadInst>;
-    template class InstructionPattern<llvm::BitCastInst>;
-    template class InstructionPattern<llvm::IntToPtrInst>;
-    template class InstructionPattern<llvm::BranchInst>;
-    template class InstructionPattern<llvm::SelectInst>;
-    template class InstructionPattern<llvm::ConstantInt>;
-    template class InstructionPattern<llvm::BasicBlock>;
+template class InstructionPattern<llvm::StoreInst>;
+template class InstructionPattern<llvm::LoadInst>;
+template class InstructionPattern<llvm::BitCastInst>;
+template class InstructionPattern<llvm::IntToPtrInst>;
+template class InstructionPattern<llvm::BranchInst>;
+template class InstructionPattern<llvm::SelectInst>;
+template class InstructionPattern<llvm::ConstantInt>;
+template class InstructionPattern<llvm::BasicBlock>;
+template class InstructionPattern<llvm::SwitchInst>;
+
 #pragma clang diagnostic pop
 
-} // namespace quantum
-} // namespace microsoft
+}  // namespace quantum
+}  // namespace microsoft

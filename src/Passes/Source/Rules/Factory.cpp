@@ -32,7 +32,7 @@ void RuleFactory::usingConfiguration(FactoryConfiguration const &config)
   default_integer_width_ = config.defaultIntegerWidth();
 
   // TODO: Add config
-  resolveConstantArraySizes();
+  // resolveConstantArraySizes();
 
   if (config.disableReferenceCounting())
   {
@@ -638,14 +638,14 @@ void RuleFactory::optimiseSelectQuantumZero()
 
 void RuleFactory::disableReferenceCounting()
 {
-  removeFunctionCall("__quantum__rt__array_update_reference_count");
+  //  removeFunctionCall("__quantum__rt__array_update_reference_count");
   removeFunctionCall("__quantum__rt__string_update_reference_count");
   removeFunctionCall("__quantum__rt__result_update_reference_count");
 }
 
 void RuleFactory::disableAliasCounting()
 {
-  removeFunctionCall("__quantum__rt__array_update_alias_count");
+  //  removeFunctionCall("__quantum__rt__array_update_alias_count");
   removeFunctionCall("__quantum__rt__string_update_alias_count");
   removeFunctionCall("__quantum__rt__result_update_alias_count");
 }
@@ -656,6 +656,7 @@ void RuleFactory::disableStringSupport()
   removeFunctionCall("__quantum__rt__string_update_reference_count");
   removeFunctionCall("__quantum__rt__string_update_alias_count");
   removeFunctionCall("__quantum__rt__message");
+  removeFunctionCall("__quantum__rt__fail");
 }
 
 ReplacementRulePtr RuleFactory::addRule(ReplacementRule &&rule)
