@@ -7,8 +7,8 @@ open Microsoft.Quantum.Telemetry
 open Microsoft.Applications.Events
 
 type SampleEnumType =
-    | SampleEnumValue1 = 0
-    | SampleEnumValue2 = 1
+    | SampleEnumValue1
+    | SampleEnumValue2
 
 [<Struct>]
 type ExecutionCompleted
