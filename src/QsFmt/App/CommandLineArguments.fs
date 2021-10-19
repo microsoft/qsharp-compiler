@@ -5,6 +5,7 @@ module Microsoft.Quantum.QsFmt.App.Arguments
 
 open System
 open System.IO
+open System.Text.RegularExpressions;
 open CommandLine
 open CommandLine.Text
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
@@ -146,11 +147,6 @@ module Arguments =
         if arguments.InputFiles |> Seq.exists String.IsNullOrWhiteSpace then
             errors <- "Error: Bad input(s) given." :: errors
 
-        if not (isNull arguments.QdkVersion) then
-            match Version.TryParse arguments.QdkVersion with
-            | false, _ -> errors <- "Error: Bad version number given." :: errors
-            | _ -> ()
-
         errors
 
     let fromUpdateArguments (arguments: UpdateArguments) =
@@ -164,21 +160,39 @@ module Arguments =
                 else
                     getSourceFiles arguments.ProjectFile |> (fun (i, v) -> (i, v |> Some))
 
-            let qsharp_version = version |> Option.map Version.Parse
+            let isVersionOkay, qsharp_version =
+                match version with
+                | Some v ->
+                    let m = Regex.Match(v, "^[0-9\\.]+")
+                    if m.Success then
+                        match Version.TryParse m.Value with
+                        | true, ver -> true, Some ver
+                        | false, _ -> false, None
+                    else
+                        false, None
+                | None -> true, None
 
-            match qsharp_version with
-            | Some v when v < Version("0.16.2104.138035") ->
-                eprintfn "Error: Qdk Version is out of date. Only Qdk version 0.16.2104.138035 or later is supported."
-                6 |> Result.Error
-            | _ ->
-                {
-                    CommandKind = Update
-                    RecurseFlag = arguments.Recurse
-                    BackupFlag = arguments.Backup
-                    QSharp_Version = qsharp_version
-                    Inputs = inputs
-                }
-                |> Result.Ok
+            if isVersionOkay then
+                match qsharp_version with
+                | Some v when v < Version("0.16.2104.138035") ->
+                    eprintfn "Error: Qdk Version is out of date. Only Qdk version 0.16.2104.138035 or later is supported."
+                    6 |> Result.Error
+                | _ ->
+                    {
+                        CommandKind = Update
+                        RecurseFlag = arguments.Recurse
+                        BackupFlag = arguments.Backup
+                        QSharp_Version = qsharp_version
+                        Inputs = inputs
+                    }
+                    |> Result.Ok
+            else
+                let s =
+                    match version with
+                    | Some v -> sprintf ": %s" v
+                    | None -> "."
+                eprintfn "Error: Bad Qdk version number%s" s
+                2 |> Result.Error
         else
             for e in errors do
                 eprintfn "%s" e
