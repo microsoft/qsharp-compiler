@@ -164,6 +164,8 @@ def test_parser_pythonic():
     assert(instr.output_name == var_name)
     assert(instr.func_name == "__quantum__qir__read_result")
     assert(instr.func_args[0].id == 3)
+    assert(isinstance(instr.type, QirIntegerType))
+    assert(instr.type.width == 1)
 
 
 def test_parser():

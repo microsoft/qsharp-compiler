@@ -286,6 +286,13 @@ impl PyQirInstruction {
     }
 
     #[getter]
+    fn get_type(&self) -> Option<PyQirType> {
+        Some(PyQirType {
+            typeref: self.instr.get_type(&self.types),
+        })
+    }
+
+    #[getter]
     fn get_is_add(&self) -> bool {
         matches!(self.instr, llvm_ir::Instruction::Add(_))
     }

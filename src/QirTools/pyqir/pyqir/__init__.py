@@ -578,6 +578,11 @@ class QirInstruction:
     def output_name(self):
         return self.instr.output_name
 
+    @property
+    def type(self):
+        return QirType(self.instr.type)
+
+
 class QirOpInstr(QirInstruction):
     @property
     def target_operands(self):
@@ -757,6 +762,10 @@ class QirConstant:
 
     def __init__(self, const: PyQirConstant):
         self.const = const
+
+    @property
+    def type(self):
+        return QirType(self.const.type)
 
 class QirIntConstant(QirConstant):
     @property
