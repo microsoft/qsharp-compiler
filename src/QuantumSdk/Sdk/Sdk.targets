@@ -134,19 +134,6 @@
     </ItemGroup>
   </Target>
 
-  <!-- Invokes the Q# formatting and update tool to update deprecated syntax and common syntax errors. -->
-  <Target Name="UpdateSyntax" Condition="'$(DesignTimeBuild)' != 'true'">
-    <PropertyGroup>
-      <QsFmtCommand>$(QsFmtExe) update --qsharp-version $(QuantumSdkVersion) --inputs @(QSharpCompile)</QsFmtCommand>
-    </PropertyGroup>
-    <Exec Command="$(QsFmtCommand)" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
-      <Output TaskParameter="ExitCode" PropertyName="QsFmtExitCode"/>
-    </Exec>
-    <Message Importance="low" Text="Invoking QsFmt: $(QsFmtCommand)"/>        
-    <Message Importance="low" Text="QsFmt command exit code: $(QsFmtExitCode)"/>    
-    <Error Text="Q# update tool failed with exit code: $(QsFmtExitCode)." Condition="'$(QsFmtExitCode)' != '0'" />
-  </Target>
-
   <!-- Invokes the Q# command line compiler to build the project. -->
   <Target Name="QSharpCompile"
           Condition="'$(DesignTimeBuild)' != 'true'"
@@ -189,6 +176,18 @@
       Importance="High" />
   </Target>
 
+  <!-- Invokes the Q# formatting and update tool to update deprecated syntax and common syntax errors. -->
+  <Target Name="UpdateSyntax" Condition="'$(DesignTimeBuild)' != 'true'">
+    <PropertyGroup>
+      <QsFmtCommand>$(QsFmtExe) update --qsharp-version $(QuantumSdkVersion) --inputs @(QSharpCompile)</QsFmtCommand>
+    </PropertyGroup>
+    <Exec Command="$(QsFmtCommand)" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
+      <Output TaskParameter="ExitCode" PropertyName="QsFmtExitCode"/>
+    </Exec>
+    <Message Importance="low" Text="Invoking QsFmt: $(QsFmtCommand)"/>        
+    <Message Importance="low" Text="QsFmt command exit code: $(QsFmtExitCode)"/>    
+    <Error Text="Q# update tool failed with exit code: $(QsFmtExitCode)." Condition="'$(QsFmtExitCode)' != '0'" />
+  </Target>
 
   <!-- The following targets need to live in this file since they are specifically defined
   anchor the targets that a project may redefine to execute at a certain stage during the build.
