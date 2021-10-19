@@ -1,6 +1,8 @@
 # Copyright (c) Microsoft Corporation.
 # Licensed under the MIT License.
 
+. (Join-Path $PSScriptRoot .. .. .. build "utils.ps1")
+
 if (!(Test-Path function:\Get-RepoRoot)) {
     # git revparse uses cwd. E2E builds use a different
     # working dir, so we pin it to out repo (submodule in E2E)
@@ -10,8 +12,6 @@ if (!(Test-Path function:\Get-RepoRoot)) {
         }
     }
 }
-
-. (Join-Path (Get-RepoRoot) build "utils.ps1")
 
 function Use-ExternalLlvmInstallation {
     Write-Vso "Using LLVM installation specified by AQ_LLVM_EXTERNAL_DIR"

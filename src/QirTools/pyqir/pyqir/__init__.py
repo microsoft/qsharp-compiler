@@ -404,7 +404,8 @@ class QirFunction:
         :return: the QirBlock with that name or None
         :rtype: QirBlock
         """
-        if (b := self.func.get_block_by_name(name)) is not None:
+        b = self.func.get_block_by_name(name)
+        if b is not None:
             return QirBlock(b)
         return None
 
@@ -419,7 +420,8 @@ class QirFunction:
         :return: the QirInstruction that defines that variable or None
         :rtype: QirInstruction
         """
-        if (instr := self.func.get_instruction_by_output_name(name)) is not None:
+        instr = self.func.get_instruction_by_output_name(name)
+        if instr is not None:
             return QirInstruction(instr)
         return None
 
@@ -581,7 +583,6 @@ class QirInstruction:
     @property
     def type(self):
         return QirType(self.instr.type)
-
 
 class QirOpInstr(QirInstruction):
     @property
