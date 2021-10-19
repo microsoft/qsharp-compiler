@@ -587,7 +587,7 @@ class QirInstruction:
 class QirOpInstr(QirInstruction):
     @property
     def target_operands(self):
-        return list(map(QirOperand, self.target_operands))
+        return list(map(QirOperand, self.instr.target_operands))
 
 class QirAddInstr(QirOpInstr):
     pass
