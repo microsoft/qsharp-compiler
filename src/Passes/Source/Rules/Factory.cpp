@@ -31,9 +31,6 @@ void RuleFactory::usingConfiguration(FactoryConfiguration const &config)
 {
   default_integer_width_ = config.defaultIntegerWidth();
 
-  // TODO: Add config
-  // resolveConstantArraySizes();
-
   if (config.disableReferenceCounting())
   {
     disableReferenceCounting();
@@ -83,6 +80,10 @@ void RuleFactory::usingConfiguration(FactoryConfiguration const &config)
   {
     useStaticResultAllocation();
   }
+
+  // TODO: Add config
+  // resolveConstantArraySizes();
+  // inlineCallables();
 }
 
 void RuleFactory::removeFunctionCall(String const &name)
@@ -115,6 +116,26 @@ void RuleFactory::resolveConstantArraySizes()
   auto get_size     = call("__quantum__rt__array_get_size_1d", create_array);
 
   addRule({std::move(get_size), size_replacer});
+}
+
+void RuleFactory::inlineCallables()
+{
+  /// Array access replacement
+  auto callable_replacer = [](Builder &, Value *val, Captures &captures, Replacements &) {
+    llvm::errs() << "FOUND CALLABLE\n";
+    llvm::errs() << *val << "\n";
+    llvm::errs() << "Calling " << *captures["function"] << "\n";
+    return false;
+  };
+
+  // Casted const
+  // constInt()
+  auto create_callable =
+      call("__quantum__rt__callable_create", "function"_cap = _, "size"_cap = _, _);
+  auto invoke =
+      call("__quantum__rt__callable_invoke", create_callable, "args"_cap = _, "ret"_cap = _);
+
+  addRule({std::move(invoke), callable_replacer});
 }
 
 void RuleFactory::useStaticQubitArrayAllocation()

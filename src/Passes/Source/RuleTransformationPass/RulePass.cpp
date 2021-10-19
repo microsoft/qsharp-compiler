@@ -199,7 +199,7 @@ llvm::Value *RuleTransformationPass::copyAndExpand(
     auto &instr = *instr_ptr;
 
     auto callee_function = call_instr->getCalledFunction();
-    if (!callee_function->isDeclaration())
+    if (callee_function != nullptr && !callee_function->isDeclaration())
     {
       ConstantArguments     argument_constants{};
       std::vector<uint32_t> remaining_arguments{};
@@ -339,7 +339,7 @@ bool RuleTransformationPass::runOnFunction(llvm::Function &           function,
       if (call_instr != nullptr)
       {
         auto callee_function = call_instr->getCalledFunction();
-        if (!callee_function->isDeclaration())
+        if (callee_function != nullptr && !callee_function->isDeclaration())
         {
           runOnFunction(*callee_function, modifier);
         }
@@ -443,10 +443,43 @@ void RuleTransformationPass::runCopyAndExpand(llvm::Module &module, llvm::Module
     }
   }
 
-  // Dead code detection
+  // Active code detection
+  for (auto &global : module.globals())
+  {
+    active_pieces_.insert(&global);
+    for (auto &op : global.operands())
+    {
+      active_pieces_.insert(op);
+    }
+  }
+
   for (auto &function : module)
   {
-    if (function.hasFnAttribute(config_.entryPointAttr()))
+    bool is_active = false;
+
+    // Checking if the function is referenced by a global variable
+    llvm::errs() << "::: " << function.getName() << "\n";
+    for (auto user : function.users())
+    {
+      llvm::errs() << "  - " << *user << "\n";
+      for (auto user2 : user->users())
+      {
+        if (llvm::dyn_cast<llvm::GlobalValue>(user2) != nullptr)
+        {
+          llvm::errs() << "GLOBAL FOUND: " << *user2 << "\n";
+          is_active = true;
+          break;
+        }
+      }
+      if (llvm::dyn_cast<llvm::GlobalValue>(user) != nullptr)
+      {
+        llvm::errs() << "GLOBAL FOUND: " << *user << "\n";
+        is_active = true;
+        break;
+      }
+    }
+
+    if (is_active || function.hasFnAttribute(config_.entryPointAttr()))
     {
       // Marking function as active
       active_pieces_.insert(&function);

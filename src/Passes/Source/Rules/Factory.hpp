@@ -115,6 +115,8 @@ public:
 
   void resolveConstantArraySizes();
 
+  void inlineCallables();
+
   // Optimisations
   //
 
