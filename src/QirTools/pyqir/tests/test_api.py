@@ -168,17 +168,17 @@ def test_parser_pythonic():
 
 def test_parser():
     mod = module_from_bitcode("tests/teleportchain.baseprofile.bc")
-    funcName = "TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__Interop"
-    func = mod.get_func_by_name(funcName)
-    assert(func.name == funcName)
+    func_name = "TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__Interop"
+    func = mod.get_func_by_name(func_name)
+    assert(func.name == func_name)
     assert(len(func.parameters) == 0)
     assert(func.return_type.is_integer)
-    funcList = mod.functions
-    assert(len(funcList) == 1)
-    assert(funcList[0].name == funcName)
+    func_list = mod.functions
+    assert(len(func_list) == 1)
+    assert(func_list[0].name == func_name)
     interop_funcs = mod.get_funcs_by_attr("InteropFriendly")
     assert(len(interop_funcs) == 1)
-    assert(interop_funcs[0].name == funcName)
+    assert(interop_funcs[0].name == func_name)
     assert(interop_funcs[0].get_attribute_value("requiredQubits") == "6")
     assert(interop_funcs[0].required_qubits == 6)
     blocks = func.blocks
@@ -197,11 +197,11 @@ def test_parser():
     assert(entry_block.instructions[0].is_call)
     assert(entry_block.instructions[0].call_func_name == "__quantum__qis__h__body")
     assert(entry_block.instructions[0].is_qis_call)
-    paramList = entry_block.instructions[0].call_func_params
-    assert(len(paramList) == 1)
-    assert(paramList[0].is_constant)
-    assert(paramList[0].constant.is_qubit)
-    assert(paramList[0].constant.qubit_static_id == 0)
+    param_list = entry_block.instructions[0].call_func_params
+    assert(len(param_list) == 1)
+    assert(param_list[0].is_constant)
+    assert(param_list[0].constant.is_qubit)
+    assert(param_list[0].constant.qubit_static_id == 0)
     assert(entry_block.instructions[8].is_qis_call)
     assert(entry_block.instructions[8].call_func_name == "__quantum__qis__mz__body")
     assert(entry_block.instructions[8].call_func_params[0].constant.qubit_static_id == 1)
