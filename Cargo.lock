@@ -347,7 +347,7 @@ dependencies = [
 
 [[package]]
 name = "pyqir"
-version = "0.9999.2110-alpha"
+version = "0.1.0-alpha"
 dependencies = [
  "env_logger",
  "llvm-ir",
