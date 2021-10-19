@@ -503,8 +503,28 @@ impl PyQirInstruction {
     }
 
     #[getter]
+    fn get_icmp_predicate(&self) -> Option<String> {
+        Some(
+            llvm_ir::instruction::ICmp::try_from(self.instr.clone())
+                .ok()?
+                .predicate
+                .to_string(),
+        )
+    }
+
+    #[getter]
     fn get_is_fcmp(&self) -> bool {
         matches!(self.instr, llvm_ir::Instruction::FCmp(_))
+    }
+
+    #[getter]
+    fn get_fcmp_predicate(&self) -> Option<String> {
+        Some(
+            llvm_ir::instruction::FCmp::try_from(self.instr.clone())
+                .ok()?
+                .predicate
+                .to_string(),
+        )
     }
 
     #[getter]

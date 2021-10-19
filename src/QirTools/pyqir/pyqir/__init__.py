@@ -647,10 +647,14 @@ class QirFNegInstr(QirOpInstr):
     pass
 
 class QirICmpInstr(QirOpInstr):
-    pass
+    @property
+    def predicate(self):
+        return self.instr.icmp_predicate
 
 class QirFCmpInstr(QirOpInstr):
-    pass
+    @property
+    def predicate(self):
+        return self.instr.fcmp_predicate
 
 class QirPhiInstr(QirInstruction):
     @property
