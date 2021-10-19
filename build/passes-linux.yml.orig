@@ -9,11 +9,7 @@ steps:
       sudo apt install -y clang-11 cmake clang-format-11 clang-tidy-11 
       sudo apt-get install -y llvm-11 lldb-11 llvm-11-dev libllvm11 llvm-11-runtime
       sudo apt install -y python3 python3-pip 
-<<<<<<< HEAD
       sudo apt-get remove -y llvm-10      
-=======
-      sudo apt-get remove -y llvm-10
->>>>>>> feature/interface-updates
       sudo update-alternatives --install /usr/bin/python python /usr/bin/python3 0
       git submodule update --init --recursive
       cd src/Passes/
