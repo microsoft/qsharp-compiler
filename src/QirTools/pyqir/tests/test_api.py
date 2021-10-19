@@ -1,4 +1,4 @@
-from pyqir import QirBuilder
+from pyqir import *
 from pyqir import module_from_bitcode
 import pytest
 
@@ -128,6 +128,43 @@ def test_bernstein_vazirani_ir_string():
 
     ir = builder.get_ir_string()
     assert ir.startswith("; ModuleID = 'Bernstein-Vazirani'")
+
+def test_parser_pythonic():
+    mod = QirModule("tests/teleportchain.baseprofile.bc")
+    func_name = "TeleportChain__DemonstrateTeleportationUsingPresharedEntanglement__Interop"
+    func = mod.get_func_by_name(func_name)
+    assert(func.name == func_name)
+    func_list = mod.functions
+    assert(len(func_list) == 1)
+    assert(func_list[0].name == func_name)
+    interop_funcs = mod.get_funcs_by_attr("InteropFriendly")
+    assert(len(interop_funcs) == 1)
+    assert(len(mod.interop_funcs) == 1)
+    assert(mod.interop_funcs[0].name == interop_funcs[0].name)
+    assert(len(mod.entrypoint_funcs) == 0)
+    blocks = func.blocks
+    assert(len(blocks) == 9)
+    assert(blocks[0].name == "entry")
+    term = blocks[0].terminator
+    assert(isinstance(term, QirTerminator))
+    assert(isinstance(term, QirCondBrTerminator))
+    assert(term.true_dest == "then0__1.i.i.i")
+    assert(term.false_dest == "continue__1.i.i.i")
+    assert(term.condition.name == "0")
+    assert(blocks[1].terminator.dest == "continue__1.i.i.i")
+    assert(blocks[8].terminator.operand.type.width == 8)
+    block = func.get_block_by_name("then0__2.i.i3.i")
+    assert(isinstance(block.instructions[0], QirQisCallInstr))
+    assert(isinstance(block.instructions[0].func_args[0], QirQubitConstant))
+    assert(block.instructions[0].func_args[0].id == 5)
+    block = func.get_block_by_name("continue__1.i.i2.i")
+    var_name = block.terminator.condition.name
+    instr = func.get_instruction_by_output_name(var_name)
+    assert(isinstance(instr, QirQirCallInstr))
+    assert(instr.output_name == var_name)
+    assert(instr.func_name == "__quantum__qir__read_result")
+    assert(instr.func_args[0].id == 3)
+
 
 def test_parser():
     mod = module_from_bitcode("tests/teleportchain.baseprofile.bc")

@@ -16,53 +16,53 @@ use qirlib::parse::*;
 use std::convert::TryFrom;
 
 #[pyclass]
-pub struct QirModule {
+pub struct PyQirModule {
     pub(super) module: llvm_ir::Module,
 }
 
 #[pyclass]
-pub struct QirFunction {
+pub struct PyQirFunction {
     pub(super) function: llvm_ir::Function,
     pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
-pub struct QirParameter {
+pub struct PyQirParameter {
     pub(super) param: llvm_ir::function::Parameter,
 }
 
 #[pyclass]
-pub struct QirBasicBlock {
+pub struct PyQirBasicBlock {
     pub(super) block: llvm_ir::BasicBlock,
     pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
-pub struct QirInstruction {
+pub struct PyQirInstruction {
     pub(super) instr: llvm_ir::instruction::Instruction,
     pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
-pub struct QirTerminator {
+pub struct PyQirTerminator {
     pub(super) term: llvm_ir::terminator::Terminator,
     pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
-pub struct QirOperand {
+pub struct PyQirOperand {
     pub(super) op: llvm_ir::Operand,
     pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
-pub struct QirConstant {
+pub struct PyQirConstant {
     pub(super) constantref: llvm_ir::ConstantRef,
     pub(super) types: llvm_ir::types::Types,
 }
 
 #[pyclass]
-pub struct QirType {
+pub struct PyQirType {
     pub(super) typeref: llvm_ir::TypeRef,
 }
 
@@ -76,22 +76,22 @@ macro_rules! match_contents {
 }
 
 #[pymethods]
-impl QirModule {
+impl PyQirModule {
     #[getter]
-    fn get_functions(&self) -> Vec<QirFunction> {
+    fn get_functions(&self) -> Vec<PyQirFunction> {
         self.module
             .functions
             .iter()
-            .map(|f| QirFunction {
+            .map(|f| PyQirFunction {
                 function: f.clone(),
                 types: self.module.types.clone(),
             })
             .collect()
     }
 
-    fn get_func_by_name(&self, name: String) -> Option<QirFunction> {
+    fn get_func_by_name(&self, name: String) -> Option<PyQirFunction> {
         match self.module.get_func_by_name(&name) {
-            Some(f) => Some(QirFunction {
+            Some(f) => Some(PyQirFunction {
                 function: f.clone(),
                 types: self.module.types.clone(),
             }),
@@ -99,33 +99,33 @@ impl QirModule {
         }
     }
 
-    fn get_funcs_by_attr(&self, attr: String) -> Vec<QirFunction> {
+    fn get_funcs_by_attr(&self, attr: String) -> Vec<PyQirFunction> {
         self.module
             .get_func_by_attr_name(&attr)
             .iter()
-            .map(|f| QirFunction {
+            .map(|f| PyQirFunction {
                 function: (*f).clone(),
                 types: self.module.types.clone(),
             })
             .collect()
     }
 
-    fn get_entrypoint_funcs(&self) -> Vec<QirFunction> {
+    fn get_entrypoint_funcs(&self) -> Vec<PyQirFunction> {
         self.module
             .get_entrypoint_funcs()
             .iter()
-            .map(|f| QirFunction {
+            .map(|f| PyQirFunction {
                 function: (*f).clone(),
                 types: self.module.types.clone(),
             })
             .collect()
     }
 
-    fn get_interop_funcs(&self) -> Vec<QirFunction> {
+    fn get_interop_funcs(&self) -> Vec<PyQirFunction> {
         self.module
             .get_interop_funcs()
             .iter()
-            .map(|f| QirFunction {
+            .map(|f| PyQirFunction {
                 function: (*f).clone(),
                 types: self.module.types.clone(),
             })
@@ -134,34 +134,34 @@ impl QirModule {
 }
 
 #[pymethods]
-impl QirFunction {
+impl PyQirFunction {
     #[getter]
     fn get_name(&self) -> String {
         self.function.name.clone()
     }
 
     #[getter]
-    fn get_parameters(&self) -> Vec<QirParameter> {
+    fn get_parameters(&self) -> Vec<PyQirParameter> {
         self.function
             .parameters
             .iter()
-            .map(|p| QirParameter { param: p.clone() })
+            .map(|p| PyQirParameter { param: p.clone() })
             .collect()
     }
 
     #[getter]
-    fn get_return_type(&self) -> QirType {
-        QirType {
+    fn get_return_type(&self) -> PyQirType {
+        PyQirType {
             typeref: self.function.return_type.clone(),
         }
     }
 
     #[getter]
-    fn get_blocks(&self) -> Vec<QirBasicBlock> {
+    fn get_blocks(&self) -> Vec<PyQirBasicBlock> {
         self.function
             .basic_blocks
             .iter()
-            .map(|b| QirBasicBlock {
+            .map(|b| PyQirBasicBlock {
                 block: b.clone(),
                 types: self.types.clone(),
             })
@@ -182,8 +182,8 @@ impl QirFunction {
         self.function.get_attribute_value(&attr_name)
     }
 
-    fn get_block_by_name(&self, name: String) -> Option<QirBasicBlock> {
-        Some(QirBasicBlock {
+    fn get_block_by_name(&self, name: String) -> Option<PyQirBasicBlock> {
+        Some(PyQirBasicBlock {
             block: self
                 .function
                 .get_bb_by_name(&llvm_ir::Name::from(name.clone()))?
@@ -192,8 +192,8 @@ impl QirFunction {
         })
     }
 
-    fn get_instruction_by_output_name(&self, name: String) -> Option<QirInstruction> {
-        Some(QirInstruction {
+    fn get_instruction_by_output_name(&self, name: String) -> Option<PyQirInstruction> {
+        Some(PyQirInstruction {
             instr: self.function.get_instruction_by_output_name(&name)?.clone(),
             types: self.types.clone(),
         })
@@ -201,33 +201,33 @@ impl QirFunction {
 }
 
 #[pymethods]
-impl QirParameter {
+impl PyQirParameter {
     #[getter]
     fn get_name(&self) -> String {
         self.param.name.get_string()
     }
 
     #[getter]
-    fn get_type(&self) -> QirType {
-        QirType {
+    fn get_type(&self) -> PyQirType {
+        PyQirType {
             typeref: self.param.ty.clone(),
         }
     }
 }
 
 #[pymethods]
-impl QirBasicBlock {
+impl PyQirBasicBlock {
     #[getter]
     fn get_name(&self) -> String {
         self.block.name.get_string()
     }
 
     #[getter]
-    fn get_instructions(&self) -> Vec<QirInstruction> {
+    fn get_instructions(&self) -> Vec<PyQirInstruction> {
         self.block
             .instrs
             .iter()
-            .map(|i| QirInstruction {
+            .map(|i| PyQirInstruction {
                 instr: i.clone(),
                 types: self.types.clone(),
             })
@@ -235,25 +235,25 @@ impl QirBasicBlock {
     }
 
     #[getter]
-    fn get_phi_nodes(&self) -> Vec<QirInstruction> {
+    fn get_phi_nodes(&self) -> Vec<PyQirInstruction> {
         self.block
             .get_phi_nodes()
             .iter()
-            .map(|phi| QirInstruction {
+            .map(|phi| PyQirInstruction {
                 instr: llvm_ir::Instruction::from(phi.clone()),
                 types: self.types.clone(),
             })
             .collect()
     }
 
-    fn get_phi_pairs_by_source_name(&self, name: String) -> Vec<(String, QirOperand)> {
+    fn get_phi_pairs_by_source_name(&self, name: String) -> Vec<(String, PyQirOperand)> {
         self.block
             .get_phi_pairs_by_source_name(&name)
             .iter()
             .map(|(n, op)| {
                 (
                     n.get_string(),
-                    QirOperand {
+                    PyQirOperand {
                         op: op.clone(),
                         types: self.types.clone(),
                     },
@@ -263,8 +263,8 @@ impl QirBasicBlock {
     }
 
     #[getter]
-    fn get_terminator(&self) -> QirTerminator {
-        QirTerminator {
+    fn get_terminator(&self) -> PyQirTerminator {
+        PyQirTerminator {
             term: self.block.term.clone(),
             types: self.types.clone(),
         }
@@ -272,13 +272,13 @@ impl QirBasicBlock {
 }
 
 #[pymethods]
-impl QirInstruction {
+impl PyQirInstruction {
     #[getter]
-    fn get_target_operands(&self) -> Vec<QirOperand> {
+    fn get_target_operands(&self) -> Vec<PyQirOperand> {
         self.instr
             .get_target_operands()
             .iter()
-            .map(|op| QirOperand {
+            .map(|op| PyQirOperand {
                 op: op.clone(),
                 types: self.types.clone(),
             })
@@ -506,7 +506,7 @@ impl QirInstruction {
     }
 
     #[getter]
-    fn get_phi_incoming_values(&self) -> Option<Vec<(QirOperand, String)>> {
+    fn get_phi_incoming_values(&self) -> Option<Vec<(PyQirOperand, String)>> {
         Some(
             llvm_ir::instruction::Phi::try_from(self.instr.clone())
                 .ok()?
@@ -514,7 +514,7 @@ impl QirInstruction {
                 .iter()
                 .map(|(op, name)| {
                     (
-                        QirOperand {
+                        PyQirOperand {
                             op: op.clone(),
                             types: self.types.clone(),
                         },
@@ -525,8 +525,8 @@ impl QirInstruction {
         )
     }
 
-    fn get_phi_incoming_value_for_name(&self, name: String) -> Option<QirOperand> {
-        Some(QirOperand {
+    fn get_phi_incoming_value_for_name(&self, name: String) -> Option<PyQirOperand> {
+        Some(PyQirOperand {
             op: llvm_ir::instruction::Phi::try_from(self.instr.clone())
                 .ok()?
                 .get_incoming_value_for_name(&name)?,
@@ -555,13 +555,13 @@ impl QirInstruction {
     }
 
     #[getter]
-    fn get_call_func_params(&self) -> Option<Vec<QirOperand>> {
+    fn get_call_func_params(&self) -> Option<Vec<PyQirOperand>> {
         Some(
             llvm_ir::instruction::Call::try_from(self.instr.clone())
                 .ok()?
                 .arguments
                 .iter()
-                .map(|o| QirOperand {
+                .map(|o| PyQirOperand {
                     op: o.0.clone(),
                     types: self.types.clone(),
                 })
@@ -599,21 +599,21 @@ impl QirInstruction {
 }
 
 #[pymethods]
-impl QirTerminator {
+impl PyQirTerminator {
     #[getter]
     fn get_is_ret(&self) -> bool {
         matches!(self.term, llvm_ir::Terminator::Ret(_))
     }
 
     #[getter]
-    fn get_ret_operand(&self) -> Option<QirOperand> {
+    fn get_ret_operand(&self) -> Option<PyQirOperand> {
         match_contents!(
             &self.term,
             llvm_ir::Terminator::Ret(llvm_ir::terminator::Ret {
                 return_operand,
                 debugloc: _,
             }),
-            QirOperand {
+            PyQirOperand {
                 op: return_operand.as_ref()?.clone(),
                 types: self.types.clone(),
             }
@@ -640,7 +640,7 @@ impl QirTerminator {
     }
 
     #[getter]
-    fn get_condbr_condition(&self) -> Option<QirOperand> {
+    fn get_condbr_condition(&self) -> Option<PyQirOperand> {
         match_contents!(
             &self.term,
             llvm_ir::Terminator::CondBr(llvm_ir::terminator::CondBr {
@@ -649,7 +649,7 @@ impl QirTerminator {
                 false_dest: _,
                 debugloc: _,
             }),
-            QirOperand {
+            PyQirOperand {
                 op: condition.clone(),
                 types: self.types.clone(),
             }
@@ -696,7 +696,7 @@ impl QirTerminator {
 }
 
 #[pymethods]
-impl QirOperand {
+impl PyQirOperand {
     #[getter]
     fn get_is_local(&self) -> bool {
         matches!(self.op, llvm_ir::Operand::LocalOperand { name: _, ty: _ })
@@ -712,11 +712,11 @@ impl QirOperand {
     }
 
     #[getter]
-    fn get_local_type(&self) -> Option<QirType> {
+    fn get_local_type(&self) -> Option<PyQirType> {
         match_contents!(
             &self.op,
             llvm_ir::Operand::LocalOperand { name: _, ty },
-            QirType {
+            PyQirType {
                 typeref: ty.clone(),
             }
         )
@@ -728,11 +728,11 @@ impl QirOperand {
     }
 
     #[getter]
-    fn get_constant(&self) -> Option<QirConstant> {
+    fn get_constant(&self) -> Option<PyQirConstant> {
         match_contents!(
             &self.op,
             llvm_ir::Operand::ConstantOperand(cref),
-            QirConstant {
+            PyQirConstant {
                 constantref: cref.clone(),
                 types: self.types.clone(),
             }
@@ -741,7 +741,7 @@ impl QirOperand {
 }
 
 #[pymethods]
-impl QirConstant {
+impl PyQirConstant {
     #[getter]
     fn get_is_int(&self) -> bool {
         matches!(
@@ -825,8 +825,8 @@ impl QirConstant {
     }
 
     #[getter]
-    fn get_type(&self) -> QirType {
-        QirType {
+    fn get_type(&self) -> PyQirType {
+        PyQirType {
             typeref: self.constantref.get_type(&self.types),
         }
     }
@@ -853,7 +853,7 @@ impl QirConstant {
 }
 
 #[pymethods]
-impl QirType {
+impl PyQirType {
     #[getter]
     fn get_is_void(&self) -> bool {
         matches!(self.typeref.as_ref(), llvm_ir::Type::VoidType)
@@ -888,14 +888,14 @@ impl QirType {
     }
 
     #[getter]
-    fn get_pointer_type(&self) -> Option<QirType> {
+    fn get_pointer_type(&self) -> Option<PyQirType> {
         match_contents!(
             self.typeref.as_ref(),
             llvm_ir::Type::PointerType {
                 pointee_type,
                 addr_space: _
             },
-            QirType {
+            PyQirType {
                 typeref: pointee_type.clone()
             }
         )
@@ -933,14 +933,14 @@ impl QirType {
     }
 
     #[getter]
-    fn get_array_element_type(&self) -> Option<QirType> {
+    fn get_array_element_type(&self) -> Option<PyQirType> {
         match_contents!(
             self.typeref.as_ref(),
             llvm_ir::Type::ArrayType {
                 element_type,
                 num_elements: _,
             },
-            QirType {
+            PyQirType {
                 typeref: element_type.clone()
             }
         )
@@ -970,7 +970,7 @@ impl QirType {
     }
 
     #[getter]
-    fn get_struct_element_types(&self) -> Option<Vec<QirType>> {
+    fn get_struct_element_types(&self) -> Option<Vec<PyQirType>> {
         match_contents!(
             self.typeref.as_ref(),
             llvm_ir::Type::StructType {
@@ -979,7 +979,7 @@ impl QirType {
             },
             element_types
                 .iter()
-                .map(|t| QirType { typeref: t.clone() })
+                .map(|t| PyQirType { typeref: t.clone() })
                 .collect()
         )
     }
