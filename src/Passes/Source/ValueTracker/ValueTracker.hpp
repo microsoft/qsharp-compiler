@@ -1,45 +1,50 @@
 #pragma once
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
+
 #include "Llvm/Llvm.hpp"
 
 #include <memory>
 #include <unordered_map>
 
-namespace microsoft {
-namespace quantum {
-
-class ValueTracker
+namespace microsoft
 {
-public:
-  using ValueTrackerPtr = std::shared_ptr<ValueTracker>;
-  using OffsetToValue   = std::unordered_map<uint64_t, llvm::Value *>;
-  using ValueMap        = std::unordered_map<llvm::Value *, OffsetToValue>;
+namespace quantum
+{
 
-  static ValueTrackerPtr createNew()
-  {
-    ValueTrackerPtr ret;
-    ret.reset(new ValueTracker());
-    return ret;
-  }
+    class ValueTracker
+    {
+      public:
+        using ValueTrackerPtr = std::shared_ptr<ValueTracker>;
+        using OffsetToValue   = std::unordered_map<uint64_t, llvm::Value*>;
+        using ValueMap        = std::unordered_map<llvm::Value*, OffsetToValue>;
 
-  void alloc(llvm::Value *address)
-  {
-    values_[address] = OffsetToValue();
-  }
+        static ValueTrackerPtr createNew()
+        {
+            ValueTrackerPtr ret;
+            ret.reset(new ValueTracker());
+            return ret;
+        }
 
-  void store(llvm::Value *address, uint64_t offset, llvm::Value *value)
-  {
-    values_[address][offset] = value;
-  }
+        void alloc(llvm::Value* address)
+        {
+            values_[address] = OffsetToValue();
+        }
 
-  llvm::Value *load(llvm::Value *address, uint64_t offset)
-  {
-    return values_[address][offset];
-  }
+        void store(llvm::Value* address, uint64_t offset, llvm::Value* value)
+        {
+            values_[address][offset] = value;
+        }
 
-private:
-  ValueTracker() = default;
-  ValueMap values_{};
-};
+        llvm::Value* load(llvm::Value* address, uint64_t offset)
+        {
+            return values_[address][offset];
+        }
 
-}  // namespace quantum
-}  // namespace microsoft
+      private:
+        ValueTracker() = default;
+        ValueMap values_{};
+    };
+
+} // namespace quantum
+} // namespace microsoft
