@@ -516,7 +516,7 @@ class QirBlock:
         :return: the list of name-value pairs for the given source block name
         :rtype: list[(str, QirOperand)]
         """
-        return list(map(lambda p: (p[0], QirOperand(p[1])) ,self.get_phi_pairs_by_source_name(name)))
+        return list(map(lambda p: (p[0], QirOperand(p[1])) ,self.block.get_phi_pairs_by_source_name(name)))
 
 class QirInstruction:
     def __new__(cls, instr: PyQirInstruction):
