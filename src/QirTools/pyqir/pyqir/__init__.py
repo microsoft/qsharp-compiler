@@ -570,6 +570,8 @@ class QirInstruction:
             return super().__new__(QirICmpInstr)
         elif instr.is_fcmp:
             return super().__new__(QirFCmpInstr)
+        elif instr.is_phi:
+            return super().__new__(QirPhiInstr)
         else:
             return super().__new__(cls)
 
