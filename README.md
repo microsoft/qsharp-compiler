@@ -27,7 +27,7 @@ See the [introduction to quantum computing](https://docs.microsoft.com/azure/qua
 **If you're looking to use Q# to write quantum applications, please see the instructions on how to get started with using the [Quantum Development Kit](https://docs.microsoft.com/azure/quantum/install-overview-qdk/) including the Q# compiler, language server, and development environment extensions.**
 
 Please see the [installation guide](https://docs.microsoft.com/azure/quantum/install-overview-qdk) for further information on how to get started using the Quantum Development Kit to develop quantum applications.
-You may also visit our [Quantum](https://github.com/microsoft/quantum) repository, which offers a wide variety of samples on how to write quantum based programs.
+You may also visit our [Quantum](https://github.com/microsoft/quantum) repository, which offers a wide variety of samples on how to write quantum-based programs.
 
 ## Building from Source ##
 
@@ -88,7 +88,7 @@ The Visual Studio extension is built on the [.NET Framework 4.7.2](https://dotne
 We recommend uninstalling any other Q# extensions when working on the extensions in this repository.
 
 ### Tips for using VSCode ###
-This repository includes both C# and F# code, as well as .csproj and .fsproj projects organizing that code. The recommended extensions for interacting with these language types are the [Microsoft C# extension powered by OmniSharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) and the [Ionide FSharp extension](https://marketplace.visualstudio.com/items?itemName=Ionide.Ionide-fsharp). Several of the projects in each language express dependencies on the other language, which can cause errors resolving namespaces even when the builds succeed without errors. To resolve these errors in C# projects that depend on F# resources, ensure the the MSBuild utilized by Omnisharp comes from an install of Visual Studio or Visual Studio Community edition with support for F# installed. To resolve errors loading .csproj files in the Ionide extension, use the "Change Workspace or Solution" option in the F#: Solution Explorer to select the top level "qsharp-compiler" folder. This will allow Ionide to find only the .fsproj projects instead of trying to load both .csproj and .fsproj listed in the solution files.
+This repository includes both C# and F# code, as well as .csproj and .fsproj projects organizing that code. The recommended extensions for interacting with these language types are the [Microsoft C# extension powered by OmniSharp](https://marketplace.visualstudio.com/items?itemName=ms-dotnettools.csharp) and the [Ionide FSharp extension](https://marketplace.visualstudio.com/items?itemName=Ionide.Ionide-fsharp). Several of the projects in each language express dependencies on the other language, which can cause errors resolving namespaces even when the builds succeed without errors. To resolve these errors in C# projects that depend on F# resources, ensure that the MSBuild utilized by Omnisharp comes from an install of Visual Studio or Visual Studio Community edition with support for F# installed. To resolve errors loading .csproj files in the Ionide extension, use the "Change Workspace or Solution" option in the F#: Solution Explorer to select the top level "qsharp-compiler" folder. This will allow Ionide to find only the .fsproj projects instead of trying to load both .csproj and .fsproj listed in the solution files.
 
 ## Build Status ##
 
@@ -114,7 +114,7 @@ the [Security TechCenter](https://technet.microsoft.com/en-us/security/default).
 
 ### Telemetry ###
 
-By default, sending out telemetry is disabled for all code in this repository, but it can be enabled via compilation flag.
+By default, sending out telemetry is disabled for all code in this repository, but it can be enabled via a compilation flag.
 Our shipped extensions that are built based on the code in this repository support collecting telemetry.
 In that case, opt-in or opt-out works via the corresponding setting in Visual Studio and Visual Studio Code,
 and the telemetry we collect falls under the [Microsoft Privacy Statement](https://privacy.microsoft.com/privacystatement).
