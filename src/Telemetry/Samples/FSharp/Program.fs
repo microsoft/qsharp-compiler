@@ -82,15 +82,14 @@ let main args =
             // Log just the event name
             TelemetryManager.LogEvent("MyEventName")
 
-            let mutable unhandledException = null
-
             // Log an Exception
             // Note that when we log an exception, only the name of the class will be logged.
             // No properties of the exception will be logged as they can contain customer data
-            try
-                raise (System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'"))
-            with
-            | ex -> unhandledException <- ex
+            let unhandledException =
+                try
+                    raise (System.IO.FileNotFoundException(@"File path 'C:\Users\johndoe\file.txt'"))
+                with
+                | ex -> ex
             //TelemetryManager.LogObject(ex);
 
             // Log a custom object
