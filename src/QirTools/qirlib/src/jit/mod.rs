@@ -15,7 +15,9 @@ pub(crate) unsafe fn load_library<P: AsRef<Path>>(base: P, lib: &str) -> Result<
     println!("Loading {:?}", path);
     let runtime = Library::new(path.as_os_str())?;
 
-    let library_path = path.to_str().expect("Could not convert library path to &str");
+    let library_path = path
+        .to_str()
+        .expect("Could not convert library path to &str");
     let was_loaded_by_llvm = inkwell::support::load_library_permanently(library_path);
     if was_loaded_by_llvm {
         log::error!("Failed to load {} into LLVM", library_path);
@@ -61,7 +63,7 @@ mod tests {
     use crate::jit::Context;
     use inkwell::execution_engine::JitFunction;
     use inkwell::passes::PassManager;
-    use inkwell::targets::{TargetMachine};
+    use inkwell::targets::TargetMachine;
     use inkwell::{
         passes::PassManagerBuilder,
         targets::{CodeModel, FileType, InitializationConfig, RelocMode, Target},
@@ -76,8 +78,7 @@ mod tests {
         let name = "jit_compilation_of_simple_function";
         let context = Context::new(&ctx, name);
 
-        let sum = jit_compile_sumu64(context, name)
-            .expect("Unable to JIT compile sum function");
+        let sum = jit_compile_sumu64(context, name).expect("Unable to JIT compile sum function");
 
         let x = 1u64;
         let y = 2u64;
@@ -87,7 +88,10 @@ mod tests {
         }
     }
 
-    fn jit_compile_sumu64<'ctx>(context: Context<'ctx>, name: &'ctx str) -> Option<JitFunction<'ctx, SumU64>> {
+    fn jit_compile_sumu64<'ctx>(
+        context: Context<'ctx>,
+        name: &'ctx str,
+    ) -> Option<JitFunction<'ctx, SumU64>> {
         let i64_type = context.context.i64_type();
         let fn_type = i64_type.fn_type(&[i64_type.into(), i64_type.into()], false);
         let function = context.module.add_function(name, fn_type, None);

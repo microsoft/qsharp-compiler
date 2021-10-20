@@ -223,6 +223,16 @@ impl PyQIR {
         }
     }
 
+    fn get_bitcode_base64_string(&self) -> PyResult<String> {
+        match qirlib::emit::get_bitcode_base64_string(&self.model) {
+            Err(msg) => {
+                let err: PyErr = PyOSError::new_err::<String>(msg);
+                Err(err)
+            }
+            Ok(ir) => Ok(ir),
+        }
+    }
+
     fn enable_logging(&self) -> PyResult<()> {
         let _ = env_logger::try_init();
         Ok(())

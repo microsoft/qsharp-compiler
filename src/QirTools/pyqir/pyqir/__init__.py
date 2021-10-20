@@ -221,9 +221,15 @@ class QirBuilder:
 
     def get_ir_string(self):
         """
-        Returns the modeled circuit as a string.
+        Returns the modeled circuit as an LLVM IR module (human readable) string.
         """
         return self.pyqir.get_ir_string()
+
+    def get_bitcode_base64_string(self):
+        """
+        Returns the modeled circuit as a base64 encoded LLVM bitcode module.
+        """
+        return self.pyqir.get_bitcode_base64_string()
 
     def enable_logging(self):
         """
