@@ -1,11 +1,11 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-use qirlib::emit;
 use qirlib::interop::{
     ClassicalRegister, Controlled, Instruction, Measured, QuantumRegister, Rotated, SemanticModel,
     Single,
 };
+use qirlib::{emit, interop};
 
 use serial_test::serial;
 use std::path::Path;
@@ -301,7 +301,7 @@ fn execute_circuit(app: &str, expected_results: Vec<&str>) {
 fn write_empty_model(file_name: &str) {
     let name = String::from("empty");
     let model = SemanticModel::new(name);
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_single_qubit_instructions(file_name: &str) {
     let name = String::from("model_with_single_qubit_instructions");
@@ -318,7 +318,7 @@ fn write_model_with_single_qubit_instructions(file_name: &str) {
     model.add_inst(Instruction::T(Single::new(String::from("qr0"))));
     model.add_inst(Instruction::TAdj(Single::new(String::from("qr0"))));
 
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_instruction_cx(file_name: &str) {
     let name = String::from("model_with_instruction_cx");
@@ -331,7 +331,7 @@ fn write_model_with_instruction_cx(file_name: &str) {
         String::from("qr1"),
     )));
 
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 
 fn write_model_with_instruction_cz(file_name: &str) {
@@ -345,14 +345,14 @@ fn write_model_with_instruction_cz(file_name: &str) {
         String::from("qr1"),
     )));
 
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_only_qubit_allocations(file_name: &str) {
     let name = String::from("model_with_only_qubit_allocations");
     let mut model = SemanticModel::new(name);
     model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
     model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_only_result_allocations(file_name: &str) {
     let name = String::from("model_with_only_result_allocations");
@@ -360,7 +360,7 @@ fn write_model_with_only_result_allocations(file_name: &str) {
     model.add_reg(ClassicalRegister::new(String::from("qa"), 4).as_register());
     model.add_reg(ClassicalRegister::new(String::from("qb"), 3).as_register());
     model.add_reg(ClassicalRegister::new(String::from("qc"), 2).as_register());
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_model_with_no_instructions(file_name: &str) {
     let name = String::from("model_with_no_instructions");
@@ -368,7 +368,7 @@ fn write_model_with_no_instructions(file_name: &str) {
     model.add_reg(QuantumRegister::new(String::from("qr"), 0).as_register());
     model.add_reg(QuantumRegister::new(String::from("qr"), 1).as_register());
     model.add_reg(ClassicalRegister::new(String::from("qc"), 2).as_register());
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_bell_no_measure(file_name: &str) {
     let name = String::from("Bell circuit");
@@ -381,7 +381,7 @@ fn write_bell_no_measure(file_name: &str) {
         String::from("qr0"),
         String::from("qr1"),
     )));
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 
 fn write_single_qubit_model_with_measurement(file_name: &str) {
@@ -395,7 +395,7 @@ fn write_single_qubit_model_with_measurement(file_name: &str) {
         String::from("qc0"),
     )));
 
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_one_to_one_or_zero_h_measure(file_name: &str) {
     let name = String::from("write_one_to_one_or_zero_h_measure");
@@ -409,7 +409,7 @@ fn write_one_to_one_or_zero_h_measure(file_name: &str) {
         String::from("qr0"),
         String::from("qc0"),
     )));
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_zero_to_one_or_zero_h_measure(file_name: &str) {
     let name = String::from("write_zero_to_one_or_zero_h_measure");
@@ -422,7 +422,7 @@ fn write_zero_to_one_or_zero_h_measure(file_name: &str) {
         String::from("qr0"),
         String::from("qc0"),
     )));
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_zero_to_one_x_measure(file_name: &str) {
     let name = String::from("Bell circuit");
@@ -435,7 +435,7 @@ fn write_zero_to_one_x_measure(file_name: &str) {
         String::from("qr0"),
         String::from("qc0"),
     )));
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 fn write_bell_measure(file_name: &str) {
     let name = String::from("Bell circuit");
@@ -457,7 +457,7 @@ fn write_bell_measure(file_name: &str) {
         String::from("qr1"),
         String::from("qc1"),
     )));
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }
 
 fn write_bernstein_vazirani(file_name: &str) {
@@ -528,5 +528,5 @@ fn write_bernstein_vazirani(file_name: &str) {
     model.add_inst(Instruction::Reset(Single::new(String::from("input_3"))));
     model.add_inst(Instruction::Reset(Single::new(String::from("input_4"))));
 
-    emit::write(&model, file_name).unwrap();
+    interop::emit::write(&model, file_name).unwrap();
 }

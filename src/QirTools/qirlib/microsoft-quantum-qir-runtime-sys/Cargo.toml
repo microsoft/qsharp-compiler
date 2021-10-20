@@ -1,0 +1,18 @@
+[package]
+name = "microsoft-quantum-qir-runtime-sys"
+version = "0.1.0"
+edition = "2018"
+links = "Microsoft.Quantum.Qir.Runtime"
+build = "build.rs"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+cty = "0.2.1"
+libloading = "0.7.0"
+qir-libloading = { path = "../qir-libloading" }
+lazy_static = "1.4.0"
+mut_static = "5.0.0"
+
+[build-dependencies]
+libloading = "0.7.0"

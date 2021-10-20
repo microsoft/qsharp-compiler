@@ -2,4 +2,6 @@
 members = [
     "src/QirTools/pyqir",
     "src/QirTools/qirlib",
+    "src/QirTools/qirlib/microsoft-quantum-qir-runtime-sys",
+    "src/QirTools/qirlib/microsoft-quantum-qir-qsharp-foundation-sys",
 ]

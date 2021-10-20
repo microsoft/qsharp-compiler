@@ -1,7 +1,10 @@
 // Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+pub mod emit;
+pub mod pyjit;
+
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct QuantumRegister {
     pub name: String,
     pub index: u64,
@@ -17,7 +20,7 @@ impl QuantumRegister {
     }
 }
 
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
 pub struct ClassicalRegister {
     pub name: String,
     pub size: u64,
@@ -107,6 +110,7 @@ pub enum Instruction {
     DumpMachine,
 }
 
+#[derive(Clone, Default)]
 pub struct SemanticModel {
     pub name: String,
     pub registers: Vec<ClassicalRegister>,

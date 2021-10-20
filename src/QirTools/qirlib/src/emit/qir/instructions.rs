@@ -42,25 +42,25 @@ pub(crate) fn emit<'ctx>(
         Instruction::Cx(inst) => {
             let control = ctl(&find_qubit(&inst.control));
             let qubit = find_qubit(&inst.target);
-            controlled(context, intrinsics.x_ctl, control, qubit);
+            controlled(context, intrinsics.x_ctl.expect("x_ctl must be defined in the template"), control, qubit);
         }
         Instruction::Cz(inst) => {
             let control = ctl(&find_qubit(&inst.control));
             let qubit = find_qubit(&inst.target);
-            controlled(context, intrinsics.z_ctl, control, qubit);
+            controlled(context, intrinsics.z_ctl.expect("z_ctl must be defined in the template"), control, qubit);
         }
         Instruction::H(inst) => {
-            calls::emit_void_call(context, intrinsics.h, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.h.expect("h must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::M(inst) => {
             measure(context, &inst.qubit, &inst.target, qubits, registers);
         }
         Instruction::Reset(inst) => {
-            calls::emit_void_call(context, intrinsics.reset, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.reset.expect("reset must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::Rx(inst) => calls::emit_void_call(
             context,
-            intrinsics.r_x,
+            intrinsics.r_x.expect("r_x must be defined in the template"),
             &[
                 basic_values::f64_to_f64(context, &inst.theta),
                 find_qubit(&inst.qubit),
@@ -68,7 +68,7 @@ pub(crate) fn emit<'ctx>(
         ),
         Instruction::Ry(inst) => calls::emit_void_call(
             context,
-            intrinsics.r_y,
+            intrinsics.r_y.expect("r_y must be defined in the template"),
             &[
                 basic_values::f64_to_f64(context, &inst.theta),
                 find_qubit(&inst.qubit),
@@ -76,36 +76,36 @@ pub(crate) fn emit<'ctx>(
         ),
         Instruction::Rz(inst) => calls::emit_void_call(
             context,
-            intrinsics.r_z,
+            intrinsics.r_z.expect("r_z must be defined in the template"),
             &[
                 basic_values::f64_to_f64(context, &inst.theta),
                 find_qubit(&inst.qubit),
             ],
         ),
         Instruction::S(inst) => {
-            calls::emit_void_call(context, intrinsics.s, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.s.expect("s must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::SAdj(inst) => {
-            calls::emit_void_call(context, intrinsics.s_adj, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.s_adj.expect("s_adj must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::T(inst) => {
-            calls::emit_void_call(context, intrinsics.t, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.t.expect("t must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::TAdj(inst) => {
-            calls::emit_void_call(context, intrinsics.t_adj, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.t_adj.expect("t_adj must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::X(inst) => {
-            calls::emit_void_call(context, intrinsics.x, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.x.expect("x must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::Y(inst) => {
-            calls::emit_void_call(context, intrinsics.y, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.y.expect("y must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::Z(inst) => {
-            calls::emit_void_call(context, intrinsics.z, &[find_qubit(&inst.qubit)])
+            calls::emit_void_call(context, intrinsics.z.expect("z must be defined in the template"), &[find_qubit(&inst.qubit)])
         }
         Instruction::DumpMachine => calls::emit_void_call(
             context,
-            intrinsics.dumpmachine,
+            intrinsics.dumpmachine.expect("dumpmachine must be defined before use"),
             &[basic_values::i8_null_ptr(context)],
         ),
     }
@@ -123,7 +123,7 @@ pub(crate) fn emit<'ctx>(
         // measure the qubit and save the result to a temporary value
         let result = calls::emit_call_with_return(
             context,
-            context.intrinsics.m,
+            context.intrinsics.m.expect("m must be defined in the template"),
             &[find_qubit(qubit)],
             "measurement",
         );

@@ -129,6 +129,15 @@ function Install-LlvmFromSource {
     Use-LlvmInstallation $packagePath
 }
 
+function Install-Prerequisites {
+    $install_path = Join-Path (Get-RepoRoot) target nuget
+    $config_file = Join-Path $PSScriptRoot NuGet.Config
+    exec -wd $PSScriptRoot {
+        Write-Vso "dotnet restore --packages $install_path --configfile $config_file --no-dependencies"
+        dotnet restore --packages $install_path --configfile $config_file --no-dependencies
+    }
+}
+
 function Test-Prerequisites {
     if (!(Test-LlvmSubmoduleInitialized)) {
         Write-Vso "llvm-project submodule isn't initialized"
@@ -253,6 +262,7 @@ function Build-PyQIR {
     }
 }
 
+Install-Prerequisites
 Test-Prerequisites
 Initialize-Environment
 Build-PyQIR

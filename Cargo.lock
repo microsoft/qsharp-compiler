@@ -72,6 +72,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "error-chain"
+version = "0.10.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "d9435d864e017c3c6afeac1654189b06cdb491cf2ff73dbf0d73b0f292f42ff8"
+
+[[package]]
 name = "getrandom"
 version = "0.2.3"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -224,6 +230,35 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "0ee1c47aaa256ecabcaea351eae4a9b01ef39ed810004e298d2511ed284b1525"
 
 [[package]]
+name = "microsoft-quantum-qir-qsharp-foundation-sys"
+version = "0.1.0"
+dependencies = [
+ "cty",
+ "libloading",
+ "qir-libloading",
+]
+
+[[package]]
+name = "microsoft-quantum-qir-runtime-sys"
+version = "0.1.0"
+dependencies = [
+ "cty",
+ "lazy_static",
+ "libloading",
+ "mut_static",
+ "qir-libloading",
+]
+
+[[package]]
+name = "mut_static"
+version = "5.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "248cd8eb389a4e3618bba47c9a171a4bbb271c29c07e03c4ff4ff74946336f66"
+dependencies = [
+ "error-chain",
+]
+
+[[package]]
 name = "once_cell"
 version = "1.5.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -365,16 +400,31 @@ dependencies = [
 ]
 
 [[package]]
+name = "qir-libloading"
+version = "0.1.0"
+dependencies = [
+ "inkwell",
+ "libloading",
+ "llvm-sys",
+ "log",
+ "tempfile",
+]
+
+[[package]]
 name = "qirlib"
 version = "0.1.0"
 dependencies = [
  "base64",
  "cty",
  "inkwell",
+ "lazy_static",
  "libloading",
  "llvm-ir",
  "llvm-sys",
  "log",
+ "microsoft-quantum-qir-qsharp-foundation-sys",
+ "microsoft-quantum-qir-runtime-sys",
+ "mut_static",
  "rand",
  "serial_test",
  "tempfile",

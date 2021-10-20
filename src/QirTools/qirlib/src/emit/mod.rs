@@ -12,37 +12,10 @@ use std::collections::HashMap;
 use std::path::Path;
 
 pub mod constants;
-mod intrinsics;
+pub mod intrinsics;
 pub mod qir;
 mod runtime_library;
 pub mod types;
-
-pub fn write(model: &SemanticModel, file_name: &str) -> Result<(), String> {
-    let ctx = inkwell::context::Context::create();
-    let context = populate_context(&ctx, &model)?;
-
-    context.emit_ir(file_name)?;
-
-    Ok(())
-}
-
-pub fn get_ir_string(model: &SemanticModel) -> Result<String, String> {
-    let ctx = inkwell::context::Context::create();
-    let context = populate_context(&ctx, &model)?;
-
-    let ir = context.get_ir_string();
-
-    Ok(ir)
-}
-
-pub fn get_bitcode_base64_string(model: &SemanticModel) -> Result<String, String> {
-    let ctx = inkwell::context::Context::create();
-    let context = populate_context(&ctx, &model)?;
-
-    let b64 = context.get_bitcode_base64_string();
-
-    Ok(b64)
-}
 
 pub fn populate_context<'a>(
     ctx: &'a inkwell::context::Context,
