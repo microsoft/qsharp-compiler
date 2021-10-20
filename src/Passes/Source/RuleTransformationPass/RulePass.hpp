@@ -162,6 +162,8 @@ namespace quantum
         llvm::Value* deleteDeadCode(llvm::Value* input, DeletableInstructions&);
         bool         isActive(llvm::Value* value) const;
 
+        void followUsers(llvm::Value* value);
+
         // Phi replacement
         //
 

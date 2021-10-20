@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 3.4.3)
 
 project(QirPasses)
-
+set(CMAKE_BUILD_TYPE "Debug")
 option(MICROSOFT_ENABLE_TESTS               "Enable test targets"   ON)
 option(MICROSOFT_ENABLE_DYNAMIC_LOADING     "Use dynamic loading"   ON)
 option(MICROSOFT_GENERATE_COVERAGE          "Generate coverage"     OFF)
@@ -18,9 +18,13 @@ include(CheckCXXCompilerFlag)
 message(STATUS "Found LLVM ${LLVM_PACKAGE_VERSION}")
 message(STATUS "Using LLVMConfig.cmake in: ${LLVM_DIR}")
 
+set (CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined -g -O0 -fno-sanitize-recover=all")
+set (CMAKE_LINKER_FLAGS_DEBUG "${CMAKE_LINKER_FLAGS_DEBUG} -fno-omit-frame-pointer -fsanitize=address,undefined  -g -O0 -fno-sanitize-recover=all")
+set (CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} -fno-omit-frame-pointer -fsanitize=address,undefined -g -O3 -fno-sanitize-recover=all")
+set (CMAKE_LINKER_FLAGS_RELEASE "${CMAKE_LINKER_FLAGS_RELEASE} -fno-omit-frame-pointer -fsanitize=address,undefined  -g -O3 -fno-sanitize-recover=all")
 
 # -fvisibility-inlines-hidden is set when building LLVM and on Darwin warnings
-# are triggered if llvm-tutor is built without this flag (though otherwise it
+# are triggered if the passes library is built without this flag (though otherwise it
 # builds fine). For consistency, add it here too.
 check_cxx_compiler_flag("-fvisibility-inlines-hidden" SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG)
 if(${SUPPORTS_FVISIBILITY_INLINES_HIDDEN_FLAG})

@@ -31,5 +31,7 @@ namespace quantum
     using BranchPattern     = InstructionPattern<llvm::BranchInst>;
     using SelectPattern     = InstructionPattern<llvm::SelectInst>;
     using BasicBlockPattern = InstructionPattern<llvm::BasicBlock>;
+    using SwitchPattern     = InstructionPattern<llvm::SwitchInst>;
+
 } // namespace quantum
 } // namespace microsoft

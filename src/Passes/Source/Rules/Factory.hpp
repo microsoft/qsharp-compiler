@@ -118,6 +118,10 @@ namespace quantum
         /// the result allocation manager.
         void useStaticResultAllocation();
 
+        void resolveConstantArraySizes();
+
+        void inlineCallables();
+
         // Optimisations
         //
 

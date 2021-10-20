@@ -90,7 +90,6 @@ int main(int argc, char** argv)
 
         // Loading components
         //
-
         generator->registerProfileComponent<RuleTransformationPassConfiguration>(
             "transformation-rules",
             [](RuleTransformationPassConfiguration const& cfg, IProfileGenerator* ptr, Profile& profile) {

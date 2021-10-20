@@ -86,11 +86,60 @@ namespace quantum
         {
             useStaticResultAllocation();
         }
+
+        // TODO(troelsfr): Add config
+        // resolveConstantArraySizes();
+        // inlineCallables();
     }
 
     void RuleFactory::removeFunctionCall(String const& name)
     {
         addRule({callByNameOnly(name), deleteInstruction()});
+    }
+
+    void RuleFactory::resolveConstantArraySizes()
+    {
+        /// Array access replacement
+        auto size_replacer = [](Builder&, Value* val, Captures& cap, Replacements& replacements) {
+            // Get the index and testing that it is a constant int
+            auto cst = llvm::dyn_cast<llvm::ConstantInt>(cap["size"]);
+            if (cst == nullptr)
+            {
+                // ... if not, we cannot perform the mapping.
+                return false;
+            }
+
+            val->replaceAllUsesWith(cst);
+            replacements.push_back({llvm::dyn_cast<Instruction>(val), nullptr});
+
+            return true;
+        };
+        llvm::errs() << "Creating pattern\n";
+
+        // Casted const
+        // constInt()
+        auto create_array = call("__quantum__rt__array_create_1d", "elementSize"_cap = _, "size"_cap = _);
+        auto get_size     = call("__quantum__rt__array_get_size_1d", create_array);
+
+        addRule({std::move(get_size), size_replacer});
+    }
+
+    void RuleFactory::inlineCallables()
+    {
+        /// Array access replacement
+        auto callable_replacer = [](Builder&, Value* val, Captures& captures, Replacements&) {
+            llvm::errs() << "FOUND CALLABLE\n";
+            llvm::errs() << *val << "\n";
+            llvm::errs() << "Calling " << *captures["function"] << "\n";
+            return false;
+        };
+
+        // Casted const
+        // constInt()
+        auto create_callable = call("__quantum__rt__callable_create", "function"_cap = _, "size"_cap = _, _);
+        auto invoke          = call("__quantum__rt__callable_invoke", create_callable, "args"_cap = _, "ret"_cap = _);
+
+        addRule({std::move(invoke), callable_replacer});
     }
 
     void RuleFactory::useStaticQubitArrayAllocation()
@@ -444,8 +493,94 @@ namespace quantum
 
     void RuleFactory::optimiseBranchQuantumZero()
     {
-        // TODO(tfr): implement this logic - do not throw std::logic_error("Optimisation not implemented
-        // yet.");
+        auto replace_branch_negative = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
+            auto branch = llvm::dyn_cast<llvm::BranchInst>(val);
+            if (branch == nullptr)
+            {
+                return false;
+            }
+
+            if (branch->getNumOperands() != 3)
+            {
+                return false;
+            }
+
+            auto cond = llvm::dyn_cast<llvm::Instruction>(cap["cond"]);
+            if (cond == nullptr)
+            {
+                return false;
+            }
+            auto result = cap["result"];
+            // Replacing result
+            auto orig_instr = llvm::dyn_cast<llvm::Instruction>(val);
+            if (orig_instr == nullptr)
+            {
+                return false;
+            }
+
+            auto                      module   = orig_instr->getModule();
+            auto                      function = module->getFunction("__quantum__qir__read_result");
+            std::vector<llvm::Value*> arguments;
+            arguments.push_back(result);
+
+            if (!function)
+            {
+                std::vector<llvm::Type*> types;
+                types.resize(arguments.size());
+                for (uint64_t i = 0; i < types.size(); ++i)
+                {
+                    types[i] = arguments[i]->getType();
+                }
+
+                auto return_type = llvm::Type::getInt1Ty(val->getContext());
+
+                llvm::FunctionType* fnc_type = llvm::FunctionType::get(return_type, types, false);
+                function                     = llvm::Function::Create(
+                    fnc_type, llvm::Function::ExternalLinkage, "__quantum__qir__read_result", module);
+            }
+
+            builder.SetInsertPoint(llvm::dyn_cast<llvm::Instruction>(val));
+            auto new_call = builder.CreateCall(function, arguments);
+
+            new_call->takeName(cond);
+
+            for (auto& use : cond->uses())
+            {
+                llvm::User* user = use.getUser();
+                user->setOperand(use.getOperandNo(), new_call);
+            }
+            cond->replaceAllUsesWith(new_call);
+
+            // Swapping block order in branch statement to compensate for comparing to zero
+            auto val1 = branch->getOperand(1);
+            auto val2 = branch->getOperand(2);
+            branch->setOperand(1, val2);
+            branch->setOperand(2, val1);
+
+            // Deleting the previous condition and function to fetch one
+            replacements.push_back({cond, nullptr});
+            replacements.push_back({cap["zero"], nullptr});
+
+            return true;
+        };
+
+        /*
+          Here is an example IR for which we want to make a match:
+
+          %1 = call %Result* @__quantum__rt__result_get_zero()
+          %2 = call i1 @__quantum__rt__result_equal(%Result* %0, %Result* %1)
+          br i1 %2, label %then0__1, label %continue__1
+        */
+
+        // Variations of get_one
+        auto get_zero = call("__quantum__rt__result_get_zero");
+        addRule(
+            {branch("cond"_cap = call("__quantum__rt__result_equal", "result"_cap = _, "zero"_cap = get_zero), _, _),
+             replace_branch_negative});
+
+        addRule(
+            {branch("cond"_cap = call("__quantum__rt__result_equal", "zero"_cap = get_zero, "result"_cap = _), _, _),
+             replace_branch_negative});
     }
 
     void RuleFactory::optimiseBranchQuantumOne()
@@ -606,14 +741,14 @@ namespace quantum
 
     void RuleFactory::disableReferenceCounting()
     {
-        removeFunctionCall("__quantum__rt__array_update_reference_count");
+        //  removeFunctionCall("__quantum__rt__array_update_reference_count");
         removeFunctionCall("__quantum__rt__string_update_reference_count");
         removeFunctionCall("__quantum__rt__result_update_reference_count");
     }
 
     void RuleFactory::disableAliasCounting()
     {
-        removeFunctionCall("__quantum__rt__array_update_alias_count");
+        //  removeFunctionCall("__quantum__rt__array_update_alias_count");
         removeFunctionCall("__quantum__rt__string_update_alias_count");
         removeFunctionCall("__quantum__rt__result_update_alias_count");
     }
@@ -624,6 +759,7 @@ namespace quantum
         removeFunctionCall("__quantum__rt__string_update_reference_count");
         removeFunctionCall("__quantum__rt__string_update_alias_count");
         removeFunctionCall("__quantum__rt__message");
+        removeFunctionCall("__quantum__rt__fail");
     }
 
     ReplacementRulePtr RuleFactory::addRule(ReplacementRule&& rule)

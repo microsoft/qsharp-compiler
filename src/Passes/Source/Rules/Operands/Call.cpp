@@ -25,7 +25,12 @@ namespace quantum
         }
 
         auto target_function = call_instr->getCalledFunction();
-        auto name            = target_function->getName();
+        if (target_function == nullptr)
+        {
+            return fail(instr, captures);
+        }
+
+        auto name = target_function->getName();
 
         if (name != name_)
         {

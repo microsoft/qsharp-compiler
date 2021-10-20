@@ -123,6 +123,11 @@ namespace quantum
             IOperandPrototypePtr const& arg1,
             IOperandPrototypePtr const& arg2);
 
+        IOperandPrototypePtr switchOp(
+            IOperandPrototypePtr const& cond,
+            IOperandPrototypePtr const& arg1,
+            IOperandPrototypePtr const& arg2);
+
         /// Matches a select instruction given a condition and two arguments.
         IOperandPrototypePtr select(
             IOperandPrototypePtr const& cond,

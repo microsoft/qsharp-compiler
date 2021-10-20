@@ -25,6 +25,7 @@ namespace quantum
       , profile_{profile}
     {
     }
+
     void RuleTransformationPass::setupCopyAndExpand()
     {
         using namespace microsoft::quantum::notation;
@@ -64,6 +65,29 @@ namespace quantum
 
                  return true;
              }});
+
+        // TODO(tfr): Switch replacement: WiP left here intentionally
+        //  addConstExprRule({switchOp("cond"_cap = _, "cases"_cap = _, _),
+        //                    [](Builder & /*builder*/, Value *val, Captures & /*captures*/,
+        //                       Replacements & /*replacements*/) {
+        //                      auto instr = llvm::dyn_cast<llvm::Instruction>(val);
+        //
+        //                      llvm::errs() << "SWITCH OP: "
+        //                                   << "\n";
+        //                      auto user = llvm::dyn_cast<llvm::User>(val);
+        //
+        //                      uint64_t       i = 0;
+        //                      uint64_t const N = instr->getNumOperands();
+        //                      while (i < N)
+        //                      {
+        //                        auto v = user->getOperand(static_cast<uint32_t>(i));
+        //                        llvm::errs() << *v << "\n";
+        //                        ++i;
+        //                      }
+        //
+        //                      return false;
+        //                    }});
+        //
 
         if (config_.assumeNoExceptions())
         {
@@ -179,7 +203,7 @@ namespace quantum
             auto& instr = *instr_ptr;
 
             auto callee_function = call_instr->getCalledFunction();
-            if (!callee_function->isDeclaration())
+            if (callee_function != nullptr && !callee_function->isDeclaration())
             {
                 ConstantArguments     argument_constants{};
                 std::vector<uint32_t> remaining_arguments{};
@@ -275,6 +299,11 @@ namespace quantum
 
     bool RuleTransformationPass::runOnFunction(llvm::Function& function, InstructionModifier const& modifier)
     {
+        if (function.isDeclaration())
+        {
+            return false;
+        }
+
         if (depth_ >= config_.maxRecursion())
         {
             llvm::outs() << "Exceed max recursion of " << config_.maxRecursion() << "\n";
@@ -318,7 +347,7 @@ namespace quantum
                 if (call_instr != nullptr)
                 {
                     auto callee_function = call_instr->getCalledFunction();
-                    if (!callee_function->isDeclaration())
+                    if (callee_function != nullptr && !callee_function->isDeclaration())
                     {
                         runOnFunction(*callee_function, modifier);
                     }
@@ -345,6 +374,23 @@ namespace quantum
                                 queue.push_back(bb);
                                 blocks_queued.insert(bb);
                             }
+                        }
+                    }
+                    continue;
+                }
+
+                // Follow the branches of
+                auto* switch_instr = llvm::dyn_cast<llvm::SwitchInst>(&instr);
+                if (switch_instr != nullptr)
+                {
+                    for (uint64_t i = 0; i < switch_instr->getNumSuccessors(); ++i)
+                    {
+                        auto bb = switch_instr->getSuccessor(static_cast<uint32_t>(i));
+                        // Ensuring that we are not scheduling the same block twice
+                        if (blocks_queued.find(bb) == blocks_queued.end())
+                        {
+                            queue.push_back(bb);
+                            blocks_queued.insert(bb);
                         }
                     }
                     continue;
@@ -404,15 +450,37 @@ namespace quantum
             }
         }
 
-        // Dead code detection
+        // Active code detection
+        for (auto& global : module.globals())
+        {
+            active_pieces_.insert(&global);
+            for (auto& op : global.operands())
+            {
+                active_pieces_.insert(op);
+            }
+        }
+
         for (auto& function : module)
         {
-            if (function.hasFnAttribute(config_.entryPointAttr()))
+            bool is_active = false;
+
+            // Checking if the function is referenced by a global variable
+            for (auto user : function.users())
+            {
+                // If the user is active, then it should be expected that the function is also active
+                if (isActive(user))
+                {
+                    is_active = true;
+                    break;
+                }
+            }
+
+            if (is_active || function.hasFnAttribute(config_.entryPointAttr()))
             {
                 // Marking function as active
                 active_pieces_.insert(&function);
 
-                // Detectecting active code
+                // Detecting active code
                 runOnFunction(function, [this](llvm::Value* value, DeletableInstructions& modifier) {
                     return detectActiveCode(value, modifier);
                 });
@@ -506,6 +574,7 @@ namespace quantum
 
     void RuleTransformationPass::runDeleteDeadCode(llvm::Module&, llvm::ModuleAnalysisManager&)
     {
+
         // Removing all function references and scheduling blocks for deletion
         for (auto& function : functions_to_delete_)
         {
@@ -526,7 +595,7 @@ namespace quantum
             for (auto it = blocks.rbegin(); it != blocks.rend(); ++it)
             {
                 auto& block = **it;
-                // Deleting instructions in reverse order (needed bauase it is a DAG structure)
+                // Deleting instructions in reverse order (needed because it is a DAG structure)
                 std::vector<llvm::Instruction*> instructions;
                 for (auto& instr : block)
                 {
@@ -559,9 +628,13 @@ namespace quantum
             else
             {
                 llvm::errs() << "; INTERNAL ERROR: block was supposed to be unused.\n";
+                for (auto& x : block->uses())
+                {
+                    llvm::errs() << " -x " << *x << "\n";
+                }
                 for (auto x : block->users())
                 {
-                    llvm::errs() << " - " << *x << "\n";
+                    llvm::errs() << " -: " << *x << "\n";
                 }
                 llvm::errs() << " ----- \n";
                 llvm::errs() << *block << "\n";
@@ -585,12 +658,17 @@ namespace quantum
         IOperandPrototype::Captures     captures;
         std::vector<llvm::Instruction*> to_delete;
 
+        std::unordered_map<llvm::Instruction*, llvm::Value*> replacements;
+
         for (auto& function : module)
         {
             for (auto& block : function)
             {
+                std::vector<llvm::Instruction*> instrs;
+
                 for (auto& instr : block)
                 {
+
                     if (rule->match(&instr, captures))
                     {
                         auto phi = llvm::dyn_cast<llvm::PHINode>(&instr);
@@ -608,13 +686,16 @@ namespace quantum
                         if (!isActive(block1))
                         {
                             val2->takeName(&instr);
-                            instr.replaceAllUsesWith(val2);
+
+                            replacements[&instr] = val2;
+
                             to_delete.push_back(&instr);
                         }
                         else if (!isActive(block2))
                         {
                             val1->takeName(&instr);
-                            instr.replaceAllUsesWith(val1);
+
+                            replacements[&instr] = val2;
                             to_delete.push_back(&instr);
                         }
 
@@ -622,6 +703,11 @@ namespace quantum
                     }
                 }
             }
+        }
+
+        for (auto& r : replacements)
+        {
+            r.first->replaceAllUsesWith(r.second);
         }
 
         for (auto& x : to_delete)
@@ -632,6 +718,7 @@ namespace quantum
 
     void RuleTransformationPass::runApplyRules(llvm::Module& module, llvm::ModuleAnalysisManager&)
     {
+
         replacements_.clear();
 
         std::unordered_set<llvm::Value*> already_visited;

@@ -4,6 +4,7 @@
 
 #include "AllocationManager/AllocationManager.hpp"
 #include "AllocationManager/IAllocationManager.hpp"
+#include "ValueTracker/ValueTracker.hpp"
 
 #include "Llvm/Llvm.hpp"
 
@@ -23,14 +24,15 @@ namespace quantum
         /// Allocation manager pointer type. Used to reference to concrete allocation manager
         /// implementations which defines the allocation logic of the profile.
         using AllocationManagerPtr = IAllocationManager::AllocationManagerPtr;
-
+        using ValueTrackerPtr      = ValueTracker::ValueTrackerPtr;
         // Constructors
         //
 
         explicit Profile(
             bool                 debug,
             AllocationManagerPtr qubit_allocation_manager  = BasicAllocationManager::createNew(),
-            AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew());
+            AllocationManagerPtr result_allocation_manager = BasicAllocationManager::createNew(),
+            ValueTrackerPtr      value_tracker             = ValueTracker::createNew());
 
         // Default construction not allowed as this leads to invalid configuration of the allocation
         // managers.
@@ -104,6 +106,9 @@ namespace quantum
         /// Interface pointer to the results allocation manager. Again here the manager behaviour is
         /// determined by its implementation details.
         AllocationManagerPtr result_allocation_manager_{};
+
+        /// Value Tracker
+        ValueTrackerPtr value_tracker_{};
     };
 
 } // namespace quantum

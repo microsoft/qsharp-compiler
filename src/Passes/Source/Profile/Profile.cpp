@@ -13,16 +13,16 @@ namespace quantum
     Profile::Profile(
         bool                 debug,
         AllocationManagerPtr qubit_allocation_manager,
-        AllocationManagerPtr result_allocation_manager)
+        AllocationManagerPtr result_allocation_manager,
+        ValueTrackerPtr      value_tracker)
       : loop_analysis_manager_{debug}
       , function_analysis_manager_{debug}
       , gscc_analysis_manager_{debug}
       , module_analysis_manager_{debug}
       , qubit_allocation_manager_{std::move(qubit_allocation_manager)}
       , result_allocation_manager_{std::move(result_allocation_manager)}
-
+      , value_tracker_{std::move(value_tracker)}
     {
-
         // Creating a full pass builder and registering each of the
         // components to make them accessible to the developer.
         pass_builder_.registerModuleAnalyses(module_analysis_manager_);

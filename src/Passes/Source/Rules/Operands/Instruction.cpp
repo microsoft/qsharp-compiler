@@ -48,6 +48,8 @@ namespace quantum
     template class InstructionPattern<llvm::SelectInst>;
     template class InstructionPattern<llvm::ConstantInt>;
     template class InstructionPattern<llvm::BasicBlock>;
+    template class InstructionPattern<llvm::SwitchInst>;
+
 #pragma clang diagnostic pop
 
 } // namespace quantum
