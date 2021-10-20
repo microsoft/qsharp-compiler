@@ -493,7 +493,7 @@ namespace quantum
 
     void RuleFactory::optimiseBranchQuantumZero()
     {
-        auto replace_branch_positive = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
+        auto replace_branch_negative = [](Builder& builder, Value* val, Captures& cap, Replacements& replacements) {
             auto branch = llvm::dyn_cast<llvm::BranchInst>(val);
             if (branch == nullptr)
             {
@@ -576,11 +576,11 @@ namespace quantum
         auto get_zero = call("__quantum__rt__result_get_zero");
         addRule(
             {branch("cond"_cap = call("__quantum__rt__result_equal", "result"_cap = _, "zero"_cap = get_zero), _, _),
-             replace_branch_positive});
+             replace_branch_negative});
 
         addRule(
             {branch("cond"_cap = call("__quantum__rt__result_equal", "zero"_cap = get_zero, "result"_cap = _), _, _),
-             replace_branch_positive});
+             replace_branch_negative});
     }
 
     void RuleFactory::optimiseBranchQuantumOne()

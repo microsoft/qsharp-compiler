@@ -90,7 +90,6 @@ int main(int argc, char** argv)
 
         // Loading components
         //
-        llvm::errs() << "; Registering components\n";
         generator->registerProfileComponent<RuleTransformationPassConfiguration>(
             "transformation-rules",
             [](RuleTransformationPassConfiguration const& cfg, IProfileGenerator* ptr, Profile& profile) {
@@ -280,7 +279,6 @@ int main(int argc, char** argv)
         std::cerr << "An error occurred: " << e.what() << std::endl;
         exit(-1);
     }
-    llvm::errs() << "; Exiting\n";
 
     return 0;
 }

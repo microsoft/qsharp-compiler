@@ -66,7 +66,7 @@ namespace quantum
                  return true;
              }});
 
-        // Switch replacement:
+        // TODO(tfr): Switch replacement: WiP left here intentionally
         //  addConstExprRule({switchOp("cond"_cap = _, "cases"_cap = _, _),
         //                    [](Builder & /*builder*/, Value *val, Captures & /*captures*/,
         //                       Replacements & /*replacements*/) {
@@ -299,6 +299,11 @@ namespace quantum
 
     bool RuleTransformationPass::runOnFunction(llvm::Function& function, InstructionModifier const& modifier)
     {
+        if (function.isDeclaration())
+        {
+            return false;
+        }
+
         if (depth_ >= config_.maxRecursion())
         {
             llvm::outs() << "Exceed max recursion of " << config_.maxRecursion() << "\n";
@@ -460,22 +465,11 @@ namespace quantum
             bool is_active = false;
 
             // Checking if the function is referenced by a global variable
-            llvm::errs() << "::: " << function.getName() << "\n";
             for (auto user : function.users())
             {
-                llvm::errs() << "  - " << *user << "\n";
-                for (auto user2 : user->users())
+                // If the user is active, then it should be expected that the function is also active
+                if (isActive(user))
                 {
-                    if (llvm::dyn_cast<llvm::GlobalValue>(user2) != nullptr)
-                    {
-                        llvm::errs() << "GLOBAL FOUND: " << *user2 << "\n";
-                        is_active = true;
-                        break;
-                    }
-                }
-                if (llvm::dyn_cast<llvm::GlobalValue>(user) != nullptr)
-                {
-                    llvm::errs() << "GLOBAL FOUND: " << *user << "\n";
                     is_active = true;
                     break;
                 }
@@ -486,7 +480,7 @@ namespace quantum
                 // Marking function as active
                 active_pieces_.insert(&function);
 
-                // Detectecting active code
+                // Detecting active code
                 runOnFunction(function, [this](llvm::Value* value, DeletableInstructions& modifier) {
                     return detectActiveCode(value, modifier);
                 });
@@ -558,7 +552,7 @@ namespace quantum
     {
         blocks_to_delete_.clear();
         functions_to_delete_.clear();
-        llvm::errs() << "; Detecting active code\n";
+
         for (auto& function : module)
         {
             if (isActive(&function))
@@ -576,12 +570,10 @@ namespace quantum
                 functions_to_delete_.push_back(&function);
             }
         }
-        llvm::errs() << "; Done\n";
     }
 
     void RuleTransformationPass::runDeleteDeadCode(llvm::Module&, llvm::ModuleAnalysisManager&)
     {
-        llvm::errs() << "; Deleting dead code\n";
 
         // Removing all function references and scheduling blocks for deletion
         for (auto& function : functions_to_delete_)
@@ -657,7 +649,6 @@ namespace quantum
                 function->eraseFromParent();
             }
         }
-        llvm::errs() << "; Done\n";
     }
 
     void RuleTransformationPass::runReplacePhi(llvm::Module& module, llvm::ModuleAnalysisManager&)
@@ -666,7 +657,7 @@ namespace quantum
         auto                            rule = phi("b1"_cap = _, "b2"_cap = _);
         IOperandPrototype::Captures     captures;
         std::vector<llvm::Instruction*> to_delete;
-        llvm::errs() << "; Replacing Phi\n";
+
         std::unordered_map<llvm::Instruction*, llvm::Value*> replacements;
 
         for (auto& function : module)
@@ -723,12 +714,10 @@ namespace quantum
         {
             x->eraseFromParent();
         }
-        llvm::errs() << "; Done\n";
     }
 
     void RuleTransformationPass::runApplyRules(llvm::Module& module, llvm::ModuleAnalysisManager&)
     {
-        llvm::errs() << "; Applying rules\n";
 
         replacements_.clear();
 
@@ -765,7 +754,6 @@ namespace quantum
         }
 
         applyReplacements();
-        llvm::errs() << "; Done\n";
     }
 
     llvm::PreservedAnalyses RuleTransformationPass::run(llvm::Module& module, llvm::ModuleAnalysisManager& mam)
