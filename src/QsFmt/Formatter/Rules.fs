@@ -261,7 +261,7 @@ let arraySyntaxUpdate =
             | _ -> base.Expression((), expression)
     }
 
-let updateChecker fileName document =
+let checkArraySyntax fileName document =
     let mutable lineNumber = 1
     let mutable charNumber = 1
 
