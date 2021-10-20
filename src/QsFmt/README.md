@@ -94,3 +94,15 @@ Then the transformation pipeline is:
 This allows transformations to be written separately, and in many cases may be independent from each other.
 (However, there may be dependencies where one transformation must run before another.)
 This will hopefully make the transformation rules more modular and simpler to write.
+
+## Building From Source
+
+To build the tool from the source code, you will need to have Java installed. The latest version of
+Java can be downloaded from Oracle's website found [here](https://www.oracle.com/java/technologies/downloads/).
+Java is used by ANTLR to build the concrete syntax tree.
+
+Once Java in installed, you may build the App project by executing the command
+```
+dotnet build ./App/App.fsproj
+```
+from this directory.
