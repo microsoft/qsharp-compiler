@@ -179,7 +179,7 @@
   <!-- Invokes the Q# formatting and update tool to update deprecated syntax and common syntax errors. -->
   <Target Name="UpdateSyntax" Condition="'$(DesignTimeBuild)' != 'true'">
     <PropertyGroup>
-      <QsFmtCommand>$(QsFmtExe) update --qsharp-version $(QuantumSdkVersion) --inputs @(QSharpCompile)</QsFmtCommand>
+      <QsFmtCommand>$(QsFmtExe) update --qsharp-version $(QuantumSdkVersion) --inputs "@(QSharpCompile->'%(FullPath)', '" "')"</QsFmtCommand>
     </PropertyGroup>
     <Exec Command="$(QsFmtCommand)" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
       <Output TaskParameter="ExitCode" PropertyName="QsFmtExitCode"/>
