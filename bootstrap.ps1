@@ -18,6 +18,10 @@ param(
 
 . (Join-Path $PSScriptRoot build "utils.ps1")
 
+if ((Test-CI) -and $IsWindows) {
+    choco uninstall llvm --allversions --confirm
+}
+
 if ("$AssemblyVersion".Trim().Length -eq 0) {
     $Date = Get-Date;
     $Year = $Date.Year.ToString().Substring(2);
@@ -105,3 +109,6 @@ finally {
     Pop-Location
 }
 
+if (Test-CI) {
+    git config --list
+}
