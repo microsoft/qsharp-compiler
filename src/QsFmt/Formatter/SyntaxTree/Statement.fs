@@ -50,6 +50,10 @@ module QubitBinding =
     let mapPrefix mapper (binding: QubitBinding) =
         { binding with Name = SymbolBinding.mapPrefix mapper binding.Name }
 
+type QubitDeclarationKind =
+    | Use
+    | Borrow
+
 type ForBinding =
     {
         Name: SymbolBinding
@@ -61,6 +65,25 @@ module ForBinding =
     let mapPrefix mapper (binding: ForBinding) =
         { binding with Name = SymbolBinding.mapPrefix mapper binding.Name }
 
+// Expression Statement
+
+// ToDo
+
+// Return Statement
+
+type Return =
+    {
+        ReturnKeyword: Terminal
+        Expression: Expression
+        Semicolon: Terminal
+    }
+
+// Fail Statement
+
+// ToDo
+
+// Let Statement
+
 type Let =
     {
         LetKeyword: Terminal
@@ -70,18 +93,73 @@ type Let =
         Semicolon: Terminal
     }
 
-type Return =
+// Mutable Statement
+
+// ToDo
+
+// Set Statement
+
+// ToDo
+
+// Set and Update Statement
+
+// ToDo
+
+// Set-With Statement
+
+// ToDo
+
+// If Statement
+
+type If =
     {
-        ReturnKeyword: Terminal
-        Expression: Expression
-        Semicolon: Terminal
+        IfKeyword: Terminal
+        Condition: Expression
+        Block: Statement Block
     }
 
-type QubitDeclarationKind =
-    | Use
-    | Borrow
+// Elif Statement
 
-type QubitDeclarationCoda =
+// ToDo
+
+// Else Statement
+
+and Else = { ElseKeyword: Terminal; Block: Statement Block }
+
+// For Statement
+
+and For =
+    {
+        ForKeyword: Terminal
+        OpenParen: Terminal option
+        Binding: ForBinding
+        CloseParen: Terminal option
+        Block: Statement Block
+    }
+
+// While Statement
+
+// ToDo
+
+// Repeat Statement
+
+// ToDo
+
+// Until Statement
+
+// ToDo
+
+// Within Statement
+
+// ToDo
+
+// Apply Statement
+
+// ToDo
+
+// Qubit Declaration Statement
+
+and QubitDeclarationCoda =
     | Semicolon of Terminal
     | Block of Statement Block
 
@@ -95,23 +173,7 @@ and QubitDeclaration =
         Coda: QubitDeclarationCoda
     }
 
-and If =
-    {
-        IfKeyword: Terminal
-        Condition: Expression
-        Block: Statement Block
-    }
-
-and Else = { ElseKeyword: Terminal; Block: Statement Block }
-
-and For =
-    {
-        ForKeyword: Terminal
-        OpenParen: Terminal option
-        Binding: ForBinding
-        CloseParen: Terminal option
-        Block: Statement Block
-    }
+// Statement
 
 and Statement =
     | Let of Let
