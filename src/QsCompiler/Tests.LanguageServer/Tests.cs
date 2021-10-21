@@ -138,7 +138,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             initReply.Capabilities.WorkspaceSymbolProvider.AssertCapability(shouldHave: false);
             initReply.Capabilities.RenameProvider.AssertCapability();
             initReply.Capabilities.HoverProvider.AssertCapability();
-            initReply.Capabilities.DocumentFormattingProvider.AssertCapability(shouldHave: false);
+            initReply.Capabilities.DocumentFormattingProvider.AssertCapability(shouldHave: true);
             initReply.Capabilities.DocumentRangeFormattingProvider.AssertCapability(shouldHave: false);
             initReply.Capabilities.CodeActionProvider.AssertCapability();
         }

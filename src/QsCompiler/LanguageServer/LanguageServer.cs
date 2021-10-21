@@ -292,6 +292,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             capabilities.WorkspaceSymbolProvider = false;
             capabilities.RenameProvider = true;
             capabilities.HoverProvider = true;
+            capabilities.DocumentFormattingProvider = true;
             capabilities.DocumentHighlightProvider = true;
             capabilities.SignatureHelpProvider.TriggerCharacters = new[] { "(", "," };
             capabilities.ExecuteCommandProvider.Commands = new[] { CommandIds.ApplyEdit }; // do not declare internal capabilities
@@ -418,6 +419,33 @@ namespace Microsoft.Quantum.QsLanguageServer
             catch
             {
                 return null;
+            }
+        }
+
+        [JsonRpcMethod(Methods.TextDocumentFormattingName)]
+        public object OnFormatting(JToken arg)
+        {
+            if (this.waitForInit != null)
+            {
+                return ProtocolError.AwaitingInitialization;
+            }
+
+            var param = Utils.TryJTokenAs<DocumentFormattingParams>(arg);
+            if (param == null)
+            {
+                throw new JsonSerializationException($"Expected parameters for {Methods.TextDocumentFormattingName}, but got null.");
+            }
+
+            try
+            {
+                return
+                    QsCompilerError.RaiseOnFailure(
+                        () => this.editorState.Formatting(param) ?? Array.Empty<TextEdit>(),
+                        "Formatting threw an exception");
+            }
+            catch
+            {
+                return Array.Empty<TextEdit>();
             }
         }
 

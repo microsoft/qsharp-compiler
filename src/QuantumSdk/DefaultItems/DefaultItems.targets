@@ -60,6 +60,7 @@
 
   <!-- Set all unspecified properties configuring the paths for output generated during Q# compilation. -->
   <PropertyGroup>
+    <QuantumSdkPath>"$(MSBuildThisFileDirectory)../</QuantumSdkPath>
     <DefaultEntryPointGeneration>dotnet "$(MSBuildThisFileDirectory)../tools/utils/Microsoft.Quantum.Sdk.DefaultEntryPoint.Generation.dll"</DefaultEntryPointGeneration>
     <!-- true/false optional properties -->
     <QirGeneration Condition="'$(QirOutputPath)' != '' And '$(QirGeneration)' == 'default'">true</QirGeneration>

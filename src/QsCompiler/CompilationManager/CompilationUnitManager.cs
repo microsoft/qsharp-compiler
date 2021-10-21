@@ -6,6 +6,7 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -779,6 +780,32 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     : null,
                 out var edit);
             return success ? edit : null;
+        }
+
+        /// <summary>
+        /// Returns the edits to format the file according to the specified settings.
+        /// </summary>
+        /// <remarks>
+        /// Returns null if some parameters are unspecified (null),
+        /// or if the specified file is not listed as source file
+        /// </remarks>
+        public TextEdit[]? Formatting(TextDocumentIdentifier? textDocument)
+        {
+            var succeeded = this.Processing.QueueForExecution(
+                () => this.FileQuery<TextEdit[]>(
+                    textDocument,
+                    (file, compilation) =>
+                    {
+                        var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".qs");
+                        var currentContent = file.GetFileContent();
+                        File.WriteAllText(tempFile, currentContent);
+
+                        // TODO ... format the tempFile, and create an edit based on that
+                        return null;
+                    },
+                    suppressExceptionLogging: false), // since the operation is blocking, no exceptions should occur
+                out var edits);
+            return succeeded ? edits : null;
         }
 
         // routines related to providing information for non-blocking editor commands

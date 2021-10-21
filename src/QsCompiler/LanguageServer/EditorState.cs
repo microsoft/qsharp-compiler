@@ -412,6 +412,15 @@ namespace Microsoft.Quantum.QsLanguageServer
             ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.Rename(param, versionedChanges) : null;
 
         /// <summary>
+        /// Returns the edits to format the file according to the specified settings.
+        /// Returns null if the specified uri is not a valid file uri,
+        /// or the given file is listed as to be ignored,
+        /// or if some parameters are unspecified (null).
+        /// </summary>
+        public TextEdit[]? Formatting(DocumentFormattingParams param) =>
+            ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.Formatting(param) : null;
+
+        /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns the given position and file otherwise.
         /// Returns null if the given file is listed as to be ignored or if the information cannot be determined at this point.

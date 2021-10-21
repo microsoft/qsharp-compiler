@@ -1069,6 +1069,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         // -> if the query cannot be processed immediately, they simply return null
 
         /// <summary>
+        /// Returns the edits to format the file according to the specified settings.
+        /// </summary>
+        /// <remarks>
+        /// Returns null if some parameters are unspecified (null),
+        /// or if the specified file is not listed as source file
+        /// </remarks>
+        public TextEdit[]? Formatting(DocumentFormattingParams? param) =>
+            this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument); // Formatting flushes unprocessed text changes
+
+        /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
         /// if such a declaration exists, and returns null otherwise.
         /// </summary>
@@ -1084,8 +1094,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the signature help information for a call expression if there is such an expression at the specified position.
         /// </summary>
         /// <remarks>
-        /// Returns null if the given file is listed as to be ignored,
-        /// or if some parameters are unspecified (null),
+        /// Returns null if some parameters are unspecified (null),
+        /// or if the specified file is not listed as source file,
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no call expression exists at the specified position at this time,
         /// or if no signature help information can be provided for the call expression at the specified position.
