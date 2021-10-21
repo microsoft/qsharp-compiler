@@ -1,18 +1,27 @@
 ﻿# QsFmt: Q# Formatter
 
 QsFmt is a source code formatter and updater for Q#.
-It's in the very early stages of development and is currently experimental.
-It will very likely eat your code when it tries to format it!
+
+## Building From Source
+
+To build the tool from the source code, you will need to have Java installed. The latest version of
+Java can be downloaded from Oracle's website found [here](https://www.oracle.com/java/technologies/downloads/).
+Java is used by ANTLR to build the concrete syntax tree.
+
+Once Java in installed, you may build the App project by executing the following command from this directory:
+```
+dotnet build ./App/App.fsproj
+```
 
 ## Usage
 
 Updates the source code in input files:  
-&nbsp;&nbsp;&nbsp;&nbsp;`qsfmt update --inputs Path\To\My\File1.qs Path\To\My\File2.qs`  
+&nbsp;&nbsp;&nbsp;&nbsp;`qsfmt update --input Path\To\My\File1.qs Path\To\My\File2.qs`  
 Updates the source code in project:  
 &nbsp;&nbsp;&nbsp;&nbsp;`qsfmt update --project Path\To\My\Project.csproj`
 
 Command Line Options:  
-&nbsp;&nbsp;&nbsp;&nbsp;`-i`, `--inputs`: Required. Files or folders to update.  
+&nbsp;&nbsp;&nbsp;&nbsp;`-i`, `--input`: Required. Files or folders to update.  
 &nbsp;&nbsp;&nbsp;&nbsp;`-p`, `--project`: Required. The project file for the project to update.  
 &nbsp;&nbsp;&nbsp;&nbsp;`-b`, `--backup`: Option to create backup files of input files.  
 &nbsp;&nbsp;&nbsp;&nbsp;`-r`, `--recurse`: Option to process input folders recursively.  
@@ -20,8 +29,8 @@ Command Line Options:
 &nbsp;&nbsp;&nbsp;&nbsp;`--help`: Display this help screen.  
 &nbsp;&nbsp;&nbsp;&nbsp;`--version`: Display version information.
 
-Either the `--inputs` option or the `--project` must be used to specify the input files to the tool.  
-The `--recurse` and `--qsharp-version` options can only be used with the `--inputs` option.
+Either the `--input` option or the `--project` must be used to specify the input files to the tool.  
+The `--recurse` and `--qsharp-version` options can only be used with the `--input` option.
 
 ## Input and Output
 Input to the formatter can be specified in one of two ways.  
@@ -94,15 +103,3 @@ Then the transformation pipeline is:
 This allows transformations to be written separately, and in many cases may be independent from each other.
 (However, there may be dependencies where one transformation must run before another.)
 This will hopefully make the transformation rules more modular and simpler to write.
-
-## Building From Source
-
-To build the tool from the source code, you will need to have Java installed. The latest version of
-Java can be downloaded from Oracle's website found [here](https://www.oracle.com/java/technologies/downloads/).
-Java is used by ANTLR to build the concrete syntax tree.
-
-Once Java in installed, you may build the App project by executing the command
-```
-dotnet build ./App/App.fsproj
-```
-from this directory.
