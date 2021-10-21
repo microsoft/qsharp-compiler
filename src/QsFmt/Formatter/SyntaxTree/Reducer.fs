@@ -172,11 +172,7 @@ type internal 'result Reducer() as reducer =
     abstract ExpressionStatement : expr: ExpressionStatement -> 'result
 
     default _.ExpressionStatement expr =
-        [
-            reducer.Expression expr.Value
-            reducer.Terminal expr.Semicolon
-        ]
-        |> reduce
+        [ reducer.Expression expr.Value; reducer.Terminal expr.Semicolon ] |> reduce
 
     abstract Let : lets: Let -> 'result
 
