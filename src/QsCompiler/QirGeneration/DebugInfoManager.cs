@@ -21,22 +21,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
     /// </summary>
     internal sealed class DebugInfoManager
     {
-        #region Member variables
-
         /// <summary>
         /// Dwarf version we are using for the debug info in the QIR generation
         /// </summary>
-        private static readonly uint DWARF_VERSION = 4;
+        private static readonly uint DwarfVersion = 4;
 
         /// <summary>
         /// Title of the CodeView module flag for debug info
         /// </summary>
-        private static readonly string CODEVIEW_NAME = "CodeView";
+        private static readonly string CodeviewName = "CodeView";
 
         /// <summary>
         /// CodeView version we are using for the debug info in the QIR generation
         /// </summary>
-        private static readonly uint CODEVIEW_VERSION = 1;
+        private static readonly uint CodeviewVersion = 1;
 
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
@@ -54,10 +52,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         private readonly GenerationContext sharedState;
 
-        #endregion
-
-        #region Shortcut access to member variables' content
-
         /// <summary>
         /// Access to the GenerationContext's Module's DIBuilder
         /// </summary>
@@ -68,30 +62,26 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal Context Context => this.sharedState.Context;
 
-        #endregion
-
         internal DebugInfoManager(GenerationContext generationContext)
         {
             this.sharedState = generationContext;
             this.LocationStack = new Stack<QsNullable<QsLocation>>();
         }
 
-        #region Top Level Debug Functions
-
         /// <summary>
         /// Gets the Dwarf version we are using for the debug info in the QIR generation
         /// </summary>
-        internal uint GetDwarfVersion() => DWARF_VERSION;
+        internal uint GetDwarfVersion() => DwarfVersion;
 
         /// <summary>
         /// Gets the CodeView version we are using for the debug info in the QIR generation
         /// </summary>
-        internal string GetCodeViewName() => CODEVIEW_NAME;
+        internal string GetCodeViewName() => CodeviewName;
 
         /// <summary>
         /// Gets the title for the CodeView module flag for debug info
         /// </summary>
-        internal uint GetCodeViewVersion() => CODEVIEW_VERSION;
+        internal uint GetCodeViewVersion() => CodeviewVersion;
 
         /// <summary>
         /// If DebugFlag is set to false, simply creates a module for the owning GenerationContext, attaches it to its Context, and returns it.
@@ -163,8 +153,5 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 return;
             }
         }
-
-        #endregion
-
     }
 }
