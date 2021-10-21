@@ -73,8 +73,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal Functions Functions { get; }
 
-        internal ImmutableArray<QsQualifiedName> EntryPoints { get; set; }
-
         /// <summary>
         /// The syntax tree transformation that constructs QIR.
         /// </summary>
@@ -181,7 +179,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         /// <param name="syntaxTree">The syntax tree for which QIR is generated.</param>
         /// <param name="isLibrary">Whether the current compilation is being performed for a library.</param>
-        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary)
+        internal GenerationContext(IEnumerable<QsNamespace> syntaxTree, bool isLibrary, ImmutableArray<QsQualifiedName> entryPoints)
         {
             this.IsLibrary = isLibrary;
             this.globalCallables = syntaxTree.GlobalCallableResolutions();
@@ -190,7 +188,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             this.Context = new Context();
 
             this.DIManager = new DebugInfoManager(this);
-            this.Module = this.DIManager.CreateModuleWithCompileUnit();
+            this.Module = this.DIManager.CreateModuleWithCompileUnit(entryPoints);
 
             this.Types = new Types(this.Context, name => this.globalTypes.TryGetValue(name, out var decl) ? decl : null);
             this.Constants = new Constants(this.Context, this.Module, this.Types);

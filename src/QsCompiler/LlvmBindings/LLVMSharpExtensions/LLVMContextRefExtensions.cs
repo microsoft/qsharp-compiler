@@ -1,6 +1,6 @@
-// <copyright file="LLVMModuleRefExtensions.cs" company="Ubiquity.NET Contributors">
-// Copyright (c) Ubiquity.NET Contributors. All rights reserved.
-// Portions Copyright (c) Microsoft Corporation
+// <copyright file="LLVMContextRefExtensions.cs" company="Microsoft Corporation">
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT License.
 // </copyright>
 
 using System;
