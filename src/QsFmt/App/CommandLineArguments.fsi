@@ -77,7 +77,7 @@ module Microsoft.Quantum.QsFmt.App.Arguments
             QSharp_Version: Version option
 
             /// The paths to the files to process.
-            Inputs: string list
+            Input: string list
         }
 
     module internal Arguments =

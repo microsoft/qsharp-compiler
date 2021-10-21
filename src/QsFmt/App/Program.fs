@@ -76,7 +76,7 @@ let run arguments inputs =
 
 let runUpdate (arguments: UpdateArguments) =
     match Arguments.fromUpdateArguments arguments with
-    | Ok args -> args.Inputs |> run args
+    | Ok args -> args.Input |> run args
     | Error errorCode -> errorCode
 
 let runFormat (arguments: FormatArguments) =
@@ -90,7 +90,7 @@ let runFormat (arguments: FormatArguments) =
         }
 
     match Arguments.fromUpdateArguments asUpdateArguments with
-    | Ok args -> args.Inputs |> run { args with CommandKind = Format }
+    | Ok args -> args.Input |> run { args with CommandKind = Format }
     | Error errorCode -> errorCode
 
 [<CompiledName "Main">]
