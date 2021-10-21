@@ -1188,7 +1188,25 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
-                param?.TextDocument, (file, c) => file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context), suppressExceptionLogging: true);
+                param?.TextDocument,
+                (file, c) =>
+                {
+                    var codeActionSuggestions = file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context);
+                    var diagnostics = param?.Context?.Diagnostics;
+                    // TODO: add more that can be formatted
+                    if (diagnostics != null && diagnostics.Any(DiagnosticTools.WarningType(WarningCode.DeprecatedTupleBrackets)))
+                    {
+                        var formattingEdits = this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument);
+                        if (formattingEdits != null)
+                        {
+                            codeActionSuggestions = codeActionSuggestions.Append(
+                                ("Format file to update syntax.", file.GetWorkspaceEdit(formattingEdits)));
+                        }
+                    }
+
+                    return codeActionSuggestions.ToLookup(s => s.Item1, s => s.Item2);
+                },
+                suppressExceptionLogging: true);
 
         /// <summary>
         /// Returns a list of suggested completion items for the given location.

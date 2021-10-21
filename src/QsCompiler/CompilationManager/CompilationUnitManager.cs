@@ -801,7 +801,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var currentContent = file.GetFileContent();
                 File.WriteAllText(tempFile, currentContent);
 
-                var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
                 var qsfmtPath = Path.Combine(this.sdkPath, "tools", "qsfmt", "qsfmt.dll");
                 var compilerVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version; // FIXME: OR TAKE Q# VERSION?
                 var commandArgs = $"{qsfmtPath} update --qsharp-version {compilerVersion} --inputs {tempFile}";
@@ -809,7 +808,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 if (ProcessRunner.Run("dotnet", commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: 3000)
                     && exitCode == 0 && ex == null)
                 {
-                    return new[] { new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) } };
+                    var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
+                    var edit = new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) };
+                    File.Delete(tempFile);
+                    return new[] { edit };
                 }
                 else if (Directory.Exists(qsfmtPath))
                 {

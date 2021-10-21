@@ -28,7 +28,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// <summary>
         /// Returns <paramref name="edits"/> for <paramref name="file"/> as a <see cref="WorkspaceEdit"/>.
         /// </summary>
-        private static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits)
+        internal static WorkspaceEdit GetWorkspaceEdit(this FileContentManager file, params TextEdit[] edits)
         {
             var versionedFileId = new VersionedTextDocumentIdentifier { Uri = file.Uri, Version = file.Version ?? 1 };
             return new WorkspaceEdit
