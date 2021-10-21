@@ -20,6 +20,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     {
         public string Version { get; }
 
+        public string SdkPath { get; }
+
         public string OutputPath { get; }
 
         public RuntimeCapability RuntimeCapability { get; }
@@ -32,13 +34,15 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public ProjectProperties(
             string version,
+            string sdkPath,
             string outputPath,
             RuntimeCapability runtimeCapability,
             bool isExecutable,
             string processorArchitecture,
             bool loadTestNames)
         {
-            this.Version = version ?? "";
+            this.Version = version;
+            this.SdkPath = sdkPath;
             this.OutputPath = outputPath;
             this.RuntimeCapability = runtimeCapability;
             this.IsExecutable = isExecutable;
@@ -65,6 +69,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 RuntimeCapability capability) =>
             new ProjectInformation(
                 version,
+                string.Empty, // no sdk path specified
                 outputPath,
                 capability,
                 false,
@@ -76,6 +81,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
         public ProjectInformation(
             string version,
+            string sdkPath,
             string outputPath,
             RuntimeCapability runtimeCapability,
             bool isExecutable,
@@ -86,7 +92,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             IEnumerable<string> references)
         {
             this.Properties = new ProjectProperties(
-                version, outputPath, runtimeCapability, isExecutable, processorArchitecture, loadTestNames);
+                version, sdkPath, outputPath, runtimeCapability, isExecutable, processorArchitecture, loadTestNames);
             this.SourceFiles = sourceFiles.ToImmutableArray();
             this.ProjectReferences = projectReferences.ToImmutableArray();
             this.References = references.ToImmutableArray();
@@ -206,7 +212,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     syntaxCheckOnly: ignore,
                     this.Properties.RuntimeCapability,
                     this.Properties.IsExecutable,
-                    this.Properties.ProcessorArchitecture);
+                    this.Properties.ProcessorArchitecture,
+                    sdkPath: this.Properties.SdkPath);
                 this.log = log ?? ((msg, severity) => Console.WriteLine($"{severity}: {msg}"));
 
                 this.loadedSourceFiles = ImmutableHashSet<Uri>.Empty;
@@ -730,7 +737,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         {
             this.load = new ProcessingQueue(exceptionLogger);
             this.projects = new ConcurrentDictionary<Uri, Project>();
-            this.defaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true);
+            this.defaultManager = new CompilationUnitManager(exceptionLogger, publishDiagnostics, syntaxCheckOnly: true, sdkPath: null);
             this.publishDiagnostics = publishDiagnostics;
             this.logException = exceptionLogger;
             this.log = log;
@@ -1094,8 +1101,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns the signature help information for a call expression if there is such an expression at the specified position.
         /// </summary>
         /// <remarks>
-        /// Returns null if some parameters are unspecified (null),
-        /// or if the specified file is not listed as source file,
+        /// Returns null if the given file is listed as to be ignored,
+        /// or if some parameters are unspecified (null),
         /// or if the specified position is not a valid position within the currently processed file content,
         /// or if no call expression exists at the specified position at this time,
         /// or if no signature help information can be provided for the call expression at the specified position.

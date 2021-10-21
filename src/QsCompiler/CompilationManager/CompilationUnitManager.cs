@@ -28,6 +28,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
     /// </remarks>
     public class CompilationUnitManager : IDisposable
     {
+        private readonly string sdkPath;
+
         internal bool EnableVerification { get; private set; }
 
         /// <summary>
@@ -79,8 +81,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             bool syntaxCheckOnly = false,
             RuntimeCapability? capability = null,
             bool isExecutable = false,
-            string processorArchitecture = "Unspecified")
+            string processorArchitecture = "Unspecified",
+            string? sdkPath = null)
         {
+            this.sdkPath = sdkPath ?? string.Empty;
             this.EnableVerification = !syntaxCheckOnly;
             this.compilationUnit = new CompilationUnit(capability ?? RuntimeCapability.FullComputation, isExecutable, processorArchitecture);
             this.fileContentManagers = new ConcurrentDictionary<string, FileContentManager>();
@@ -791,18 +795,35 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// </remarks>
         public TextEdit[]? Formatting(TextDocumentIdentifier? textDocument)
         {
-            var succeeded = this.Processing.QueueForExecution(
-                () => this.FileQuery<TextEdit[]>(
-                    textDocument,
-                    (file, compilation) =>
-                    {
-                        var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".qs");
-                        var currentContent = file.GetFileContent();
-                        File.WriteAllText(tempFile, currentContent);
+            TextEdit[]? FormatFile(FileContentManager file)
+            {
+                var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".qs");
+                var currentContent = file.GetFileContent();
+                File.WriteAllText(tempFile, currentContent);
 
-                        // TODO ... format the tempFile, and create an edit based on that
-                        return null;
-                    },
+                var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
+                var qsfmtPath = Path.Combine(this.sdkPath, "tools", "qsfmt", "qsfmt.dll");
+                var compilerVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version; // FIXME: OR TAKE Q# VERSION?
+                var commandArgs = $"{qsfmtPath} update --qsharp-version {compilerVersion} --inputs {tempFile}";
+
+                if (ProcessRunner.Run("dotnet", commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: 3000)
+                    && exitCode == 0 && ex == null)
+                {
+                    return new[] { new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) } };
+                }
+                else if (Directory.Exists(qsfmtPath))
+                {
+                    ex ??= new Exception($"Formatting exited with code {exitCode}.");
+                    this.LogException(ex);
+                }
+
+                return null;
+            }
+
+            var succeeded = this.Processing.QueueForExecution(
+                () => this.FileQuery(
+                    textDocument,
+                    (file, _) => FormatFile(file),
                     suppressExceptionLogging: false), // since the operation is blocking, no exceptions should occur
                 out var edits);
             return succeeded ? edits : null;

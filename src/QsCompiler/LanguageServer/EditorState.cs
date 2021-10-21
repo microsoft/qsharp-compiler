@@ -133,6 +133,7 @@ namespace Microsoft.Quantum.QsLanguageServer
             var projectReferences = GetItemsByType(projectInstance, "ProjectReference");
             var references = GetItemsByType(projectInstance, "Reference");
 
+            var sdkPath = projectInstance.GetPropertyValue("QuantumSdkPath");
             var version = projectInstance.GetPropertyValue("QSharpLangVersion");
             var isExecutable = "QSharpExe".Equals(projectInstance.GetPropertyValue("ResolvedQSharpOutputType"), StringComparison.OrdinalIgnoreCase);
             var loadTestNames = "true".Equals(projectInstance.GetPropertyValue("ExposeReferencesViaTestNames"), StringComparison.OrdinalIgnoreCase);
@@ -143,16 +144,18 @@ namespace Microsoft.Quantum.QsLanguageServer
             telemetryMeas["csharpfiles"] = csharpFiles.Count();
             telemetryProps["defaultSimulator"] = defaultSimulator;
             this.sendTelemetry("project-load", telemetryProps, telemetryMeas); // does not send anything unless the corresponding flag is defined upon compilation
+
             info = new ProjectInformation(
-                version,
-                outputPath,
-                runtimeCapability,
-                isExecutable,
-                string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture,
-                loadTestNames,
-                sourceFiles,
-                projectReferences,
-                references);
+                version: version,
+                sdkPath: sdkPath,
+                outputPath: outputPath,
+                runtimeCapability: runtimeCapability,
+                isExecutable: isExecutable,
+                processorArchitecture: string.IsNullOrWhiteSpace(processorArchitecture) ? "Unspecified" : processorArchitecture,
+                loadTestNames: loadTestNames,
+                sourceFiles: sourceFiles,
+                projectReferences: projectReferences,
+                references: references);
             return true;
         }
 
