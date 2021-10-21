@@ -34,18 +34,9 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         public override QsStatement OnStatement(QsStatement stm)
         {
             QsNullable<QsLocation> loc = stm.Location;
-            if (loc.IsValue)
-            {
-                this.SharedState.DIManager.LocationStack.Push(loc.Item);
-            }
-
+            this.SharedState.DIManager.LocationStack.Push(loc);
             QsStatement result = base.OnStatement(stm);
-
-            if (loc.IsValue)
-            {
-                this.SharedState.DIManager.LocationStack.Pop();
-            }
-
+            this.SharedState.DIManager.LocationStack.Pop();
             return result;
         }
     }

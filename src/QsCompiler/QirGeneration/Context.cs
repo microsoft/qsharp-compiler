@@ -73,6 +73,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// </summary>
         internal Functions Functions { get; }
 
+        internal ImmutableArray<QsQualifiedName> EntryPoints { get; set; }
+
         /// <summary>
         /// The syntax tree transformation that constructs QIR.
         /// </summary>
@@ -88,7 +90,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         private readonly FunctionLibrary runtimeLibrary;
         private readonly FunctionLibrary quantumInstructionSet;
 
-        internal DebugInfoManager DIManager { get; private set; }
+        internal DebugInfoManager DIManager { get; }
 
         internal IrFunction? CurrentFunction { get; private set; }
         internal BasicBlock? CurrentBlock { get; private set; }
@@ -502,11 +504,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <returns>true if the UDT is found, false if not</returns>
         internal bool TryGetCustomType(QsQualifiedName fullName, [MaybeNullWhen(false)] out QsCustomType udt) =>
             this.globalTypes.TryGetValue(fullName, out udt);
-
-        internal ImmutableDictionary<QsQualifiedName, QsCallable> GetGlobalCallables()
-        {
-            return this.globalCallables;
-        }
 
         #endregion
 

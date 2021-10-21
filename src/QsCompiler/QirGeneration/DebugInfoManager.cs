@@ -7,10 +7,10 @@ using System.Collections.Immutable;
 using System.IO;
 using System.Reflection;
 using Microsoft.Quantum.QIR;
+using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.DebugInfo;
-
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
     /// <summary>
@@ -40,12 +40,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Whether or not to emit debug information during QIR generation
         /// </summary>
-        public bool DebugFlag { get; internal set; } = true;
+        public bool DebugFlag { get; } = true;
 
         /// <summary>
         /// Contains the location information for the syntax tree node we are currently parsing and its parents
+        /// Currently this is only used for statement nodes, but will be used for other types of nodes in the future
         /// </summary>
-        internal Stack<QsLocation> LocationStack { get; }
+        internal Stack<QsNullable<QsLocation>> LocationStack { get; }
 
         /// <summary>
         /// The GenerationContext that owns this DebugInfoManager
@@ -55,16 +56,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         #endregion
 
         #region Shortcut access to member variables' content
-
-        /// <summary>
-        /// Access to the GenerationContext's Module
-        /// </summary>
-        internal BitcodeModule Module => this.sharedState.Module;
-
-        /// <summary>
-        /// Access to the GenerationContext's Module's DICompileUnit
-        /// </summary>
-        internal DICompileUnit? DICompileUnit => this.sharedState.Module.DICompileUnit;
 
         /// <summary>
         /// Access to the GenerationContext's Module's DIBuilder
@@ -81,7 +72,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         internal DebugInfoManager(GenerationContext generationContext)
         {
             this.sharedState = generationContext;
-            this.LocationStack = new Stack<QsLocation>();
+            this.LocationStack = new Stack<QsNullable<QsLocation>>();
         }
 
         #region Top Level Debug Functions
@@ -111,31 +102,20 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         {
             if (this.DebugFlag)
             {
-                // Find an entry point in order to find the source file path
-                bool foundEntryAttribute = false;
+                // Get the source file path from an entry point. For now this only handles modules with one source file.
                 string sourcePath = "";
-
-                ImmutableDictionary<QsQualifiedName, QsCallable> globalCallables = this.sharedState.GetGlobalCallables();
-                foreach (QsCallable callable in globalCallables.Values)
+                if (this.sharedState.EntryPoints.Length > 0)
                 {
-                    if (foundEntryAttribute)
+                    if (this.sharedState.TryGetGlobalCallable(this.sharedState.EntryPoints[0], out QsCallable? entry))
                     {
-                        break;
+                        sourcePath = entry.Source.CodeFile;
                     }
-
-                    foreach (QsDeclarationAttribute atr in callable.Attributes)
+                    else
                     {
-                        string atrName = atr.TypeId.IsValue ? atr.TypeId.Item.Name : "";
-                        if (atrName == AttributeNames.EntryPoint)
-                        {
-                            sourcePath = callable.Source.CodeFile;
-                            foundEntryAttribute = true;
-                            break;
-                        }
+                        throw new Exception("Entry point not found");
                     }
                 }
-
-                if (!foundEntryAttribute)
+                else
                 {
                     throw new Exception("No entry point found in the source code");
                 }
