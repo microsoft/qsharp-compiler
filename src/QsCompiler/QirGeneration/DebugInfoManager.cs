@@ -11,6 +11,7 @@ using Microsoft.Quantum.QsCompiler.DataTypes;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
 using Ubiquity.NET.Llvm.DebugInfo;
+
 namespace Microsoft.Quantum.QsCompiler.QIR
 {
     /// <summary>
@@ -98,15 +99,15 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// Note: because this is called from within the constructor of the GenerationContext,
         /// we cannot access this.Module or anything else that uses this.sharedState
         /// </summary>
-        internal BitcodeModule CreateModuleWithCompileUnit()
+        internal BitcodeModule CreateModuleWithCompileUnit(ImmutableArray<QsQualifiedName> entryPoints)
         {
             if (this.DebugFlag)
             {
                 // Get the source file path from an entry point. For now this only handles modules with one source file.
                 string sourcePath = "";
-                if (this.sharedState.EntryPoints.Length > 0)
+                if (!entryPoints.IsEmpty)
                 {
-                    if (this.sharedState.TryGetGlobalCallable(this.sharedState.EntryPoints[0], out QsCallable? entry))
+                    if (this.sharedState.TryGetGlobalCallable(entryPoints[0], out QsCallable? entry))
                     {
                         sourcePath = entry.Source.CodeFile;
                     }
@@ -131,7 +132,6 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 // TODO: If we need compilation flags (an optional argument to CreateBitcodeModule) in the future we will need
                 // to figure out how to get the compile options in the CompilationLoader.Configuration
                 // and turn them into a string (although the compilation flags don't seem to be emitted to the IR anyways)
-
 
                 BitcodeModule newModule = this.Context.CreateBitcodeModule(
                     moduleID,
