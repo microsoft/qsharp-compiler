@@ -116,6 +116,12 @@ type internal 'context Rewriter =
     default Statement: context:'context * statement:Statement -> Statement
 
     /// <summary>
+    /// Rewrites an <see cref="ExpressionStatement"/> statement node.
+    /// </summary>
+    abstract ExpressionStatement: context:'context * expr:ExpressionStatement -> ExpressionStatement
+    default ExpressionStatement: context:'context * expr:ExpressionStatement -> ExpressionStatement
+
+    /// <summary>
     /// Rewrites a <see cref="Let"/> statement node.
     /// </summary>
     abstract Let: context:'context * lets:Let -> Let

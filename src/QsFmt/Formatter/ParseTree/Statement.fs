@@ -104,6 +104,13 @@ type StatementVisitor(tokens) =
     override _.VisitChildren node =
         Node.toUnknown tokens node |> Statement.Unknown
 
+    override _.VisitExpressionStatement context =
+        {
+            Value = context.value |> expressionVisitor.Visit
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> ExpressionStatement
+
     override _.VisitReturnStatement context =
         {
             ReturnKeyword = context.``return`` |> Node.toTerminal tokens
@@ -111,30 +118,6 @@ type StatementVisitor(tokens) =
             Semicolon = context.semicolon |> Node.toTerminal tokens
         }
         |> Return
-
-    override visitor.VisitQubitDeclaration context =
-        {
-            Kind =
-                match context.keyword.Text with
-                | "use"
-                | "using" -> Use
-                | _ -> Borrow
-            Keyword = context.keyword |> Node.toTerminal tokens
-            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            Binding = context.binding |> qubitBindingVisitor.Visit
-            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
-            Coda =
-                if context.body <> null then
-                    {
-                        OpenBrace = context.body.openBrace |> Node.toTerminal tokens
-                        Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
-                        CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
-                    }
-                    |> Block
-                else
-                    context.semicolon |> Node.toTerminal tokens |> Semicolon
-        }
-        |> QubitDeclaration
 
     override _.VisitLetStatement context =
         {
@@ -185,3 +168,27 @@ type StatementVisitor(tokens) =
                 }
         }
         |> For
+
+    override visitor.VisitQubitDeclaration context =
+        {
+            Kind =
+                match context.keyword.Text with
+                | "use"
+                | "using" -> Use
+                | _ -> Borrow
+            Keyword = context.keyword |> Node.toTerminal tokens
+            OpenParen = context.openParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Binding = context.binding |> qubitBindingVisitor.Visit
+            CloseParen = context.closeParen |> Option.ofObj |> Option.map (Node.toTerminal tokens)
+            Coda =
+                if context.body <> null then
+                    {
+                        OpenBrace = context.body.openBrace |> Node.toTerminal tokens
+                        Items = context.body._statements |> Seq.map visitor.Visit |> List.ofSeq
+                        CloseBrace = context.body.closeBrace |> Node.toTerminal tokens
+                    }
+                    |> Block
+                else
+                    context.semicolon |> Node.toTerminal tokens |> Semicolon
+        }
+        |> QubitDeclaration

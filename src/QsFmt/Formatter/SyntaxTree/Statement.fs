@@ -67,7 +67,11 @@ module ForBinding =
 
 // Expression Statement
 
-// ToDo
+type ExpressionStatement =
+    {
+        Value: Expression
+        Semicolon: Terminal
+    }
 
 // Return Statement
 
@@ -176,6 +180,7 @@ and QubitDeclaration =
 // Statement
 
 and Statement =
+    | ExpressionStatement of ExpressionStatement
     | Let of Let
     | Return of Return
     | QubitDeclaration of QubitDeclaration
@@ -187,6 +192,7 @@ and Statement =
 module Statement =
     let mapPrefix mapper =
         function
+        | ExpressionStatement expr -> { expr with Value = expr.Value |> Expression.mapPrefix mapper } |> ExpressionStatement
         | Let lets -> { lets with LetKeyword = lets.LetKeyword |> Terminal.mapPrefix mapper } |> Let
         | Return returns ->
             { returns with ReturnKeyword = returns.ReturnKeyword |> Terminal.mapPrefix mapper } |> Return

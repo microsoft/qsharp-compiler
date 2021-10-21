@@ -159,6 +159,7 @@ type 'context Rewriter() =
 
     default rewriter.Statement(context, statement) =
         match statement with
+        | ExpressionStatement expr -> rewriter.ExpressionStatement(context, expr) |> ExpressionStatement
         | Let lets -> rewriter.Let(context, lets) |> Let
         | Return returns -> rewriter.Return(context, returns) |> Return
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
@@ -166,6 +167,14 @@ type 'context Rewriter() =
         | Else elses -> rewriter.Else(context, elses) |> Else
         | For loop -> rewriter.For(context, loop) |> For
         | Statement.Unknown terminal -> rewriter.Terminal(context, terminal) |> Statement.Unknown
+
+    abstract ExpressionStatement : context: 'context * expr: ExpressionStatement -> ExpressionStatement
+
+    default rewriter.ExpressionStatement(context, expr) =
+        {
+            Value = rewriter.Expression(context, expr.Value)
+            Semicolon = rewriter.Terminal(context, expr.Semicolon)
+        }
 
     abstract Let : context: 'context * lets: Let -> Let
 

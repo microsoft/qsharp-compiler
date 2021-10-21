@@ -160,6 +160,7 @@ type internal 'result Reducer() as reducer =
 
     default _.Statement statement =
         match statement with
+        | ExpressionStatement expr -> reducer.ExpressionStatement expr
         | Let lets -> reducer.Let lets
         | Return returns -> reducer.Return returns
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
@@ -167,6 +168,15 @@ type internal 'result Reducer() as reducer =
         | Else elses -> reducer.Else elses
         | For loop -> reducer.For loop
         | Statement.Unknown terminal -> reducer.Terminal terminal
+
+    abstract ExpressionStatement : expr: ExpressionStatement -> 'result
+
+    default _.ExpressionStatement expr =
+        [
+            reducer.Expression expr.Value
+            reducer.Terminal expr.Semicolon
+        ]
+        |> reduce
 
     abstract Let : lets: Let -> 'result
 

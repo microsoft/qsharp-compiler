@@ -120,6 +120,12 @@ type internal 'result Reducer =
     default Statement: statement:Statement -> 'result
 
     /// <summary>
+    /// Reduces an <see cref="ExpressionStatement"/> statement node.
+    /// </summary>
+    abstract ExpressionStatement: expr:ExpressionStatement -> 'result
+    default ExpressionStatement: expr:ExpressionStatement -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="Let"/> statement node.
     /// </summary>
     abstract Let: lets:Let -> 'result

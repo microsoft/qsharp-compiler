@@ -98,6 +98,19 @@ module internal QubitBinding =
     /// </summary>
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> binding: QubitBinding -> QubitBinding
 
+/// The kind of qubit declaration.
+type internal QubitDeclarationKind =
+
+    /// <summary>
+    /// Indicates a <c>use</c> qubit declaration.
+    /// </summary>
+    | Use
+
+    /// <summary>
+    /// Indicates a <c>borrow</c> qubit declaration.
+    /// </summary>
+    | Borrow
+
 /// The binding for a for-loop variable.
 type internal ForBinding =
     {
@@ -116,6 +129,35 @@ module internal ForBinding =
     /// Maps <paramref name="binding"/> by applying <paramref name="mapper"/> to its leftmost terminal's trivia prefix.
     /// </summary>
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> binding: ForBinding -> ForBinding
+
+/// <summary>
+/// A <c>return</c> statement.
+/// </summary>
+type internal Return =
+    {
+        /// <summary>
+        /// The <c>return</c> keyword.
+        /// </summary>
+        ReturnKeyword: Terminal
+
+        /// The returned expression.
+        Expression: Expression
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
+/// <summary>
+/// An expression statement.
+/// </summary>
+type internal ExpressionStatement =
+    {
+        // The inner expression of the statement.
+        Value: Expression
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
 
 /// <summary>
 /// A <c>let</c> statement.
@@ -141,70 +183,9 @@ type internal Let =
     }
 
 /// <summary>
-/// A <c>return</c> statement.
-/// </summary>
-type internal Return =
-    {
-        /// <summary>
-        /// The <c>return</c> keyword.
-        /// </summary>
-        ReturnKeyword: Terminal
-
-        /// The returned expression.
-        Expression: Expression
-
-        /// The semicolon.
-        Semicolon: Terminal
-    }
-
-/// The kind of qubit declaration.
-type internal QubitDeclarationKind =
-
-    /// <summary>
-    /// Indicates a <c>use</c> qubit declaration.
-    /// </summary>
-    | Use
-
-    /// <summary>
-    /// Indicates a <c>borrow</c> qubit declaration.
-    /// </summary>
-    | Borrow
-
-/// The concluding section of a qubit declaration.
-type internal QubitDeclarationCoda =
-
-    /// The semicolon.
-    | Semicolon of Terminal
-
-    /// The block of statements after the declaration.
-    | Block of Statement Block
-
-/// A qubit declaration statement.
-and internal QubitDeclaration =
-    {
-        /// The kind of qubit declaration.
-        Kind: QubitDeclarationKind
-
-        /// The keyword used in the declaration.
-        Keyword: Terminal
-
-        /// Optional open parentheses.
-        OpenParen: Terminal option
-
-        /// The qubit binding.
-        Binding: QubitBinding
-
-        /// Optional close parentheses.
-        CloseParen: Terminal option
-
-        /// The concluding section.
-        Coda: QubitDeclarationCoda
-    }
-
-/// <summary>
 /// An <c>if</c> statement.
 /// </summary>
-and internal If =
+type internal If =
     {
         /// <summary>
         /// The <c>if</c> keyword.
@@ -255,8 +236,44 @@ and internal For =
         Block: Statement Block
     }
 
+
+/// The concluding section of a qubit declaration.
+and internal QubitDeclarationCoda =
+
+    /// The semicolon.
+    | Semicolon of Terminal
+
+    /// The block of statements after the declaration.
+    | Block of Statement Block
+
+/// A qubit declaration statement.
+and internal QubitDeclaration =
+    {
+        /// The kind of qubit declaration.
+        Kind: QubitDeclarationKind
+
+        /// The keyword used in the declaration.
+        Keyword: Terminal
+
+        /// Optional open parentheses.
+        OpenParen: Terminal option
+
+        /// The qubit binding.
+        Binding: QubitBinding
+
+        /// Optional close parentheses.
+        CloseParen: Terminal option
+
+        /// The concluding section.
+        Coda: QubitDeclarationCoda
+    }
+
 /// A statement.
 and internal Statement =
+
+    /// An expression statement.
+    | ExpressionStatement of ExpressionStatement
+
     /// <summary>
     /// A <c>let</c> statement.
     /// </summary>
