@@ -11,6 +11,7 @@ using Microsoft.Quantum.QIR.Emission;
 using Microsoft.Quantum.QsCompiler.SyntaxTokens;
 using Microsoft.Quantum.QsCompiler.SyntaxTree;
 using Ubiquity.NET.Llvm;
+using Ubiquity.NET.Llvm.DebugInfo;
 using Ubiquity.NET.Llvm.Instructions;
 using Ubiquity.NET.Llvm.Interop;
 using Ubiquity.NET.Llvm.Types;
@@ -616,7 +617,8 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 new ITypeRef[] { this.LlvmTypeFromQsharpType(spec.Signature.ArgumentType) };
 
             var signature = this.Context.GetFunctionType(returnTypeRef, argTypeRefs);
-            return this.Module.CreateFunction(name, signature);
+            // return DIManager.CreateLocalFunction(spec, name, signature, isDefinition: false, returnTypeRef, argTypeRefs); // RyanQuestion: can I assume it's not extern here? (see input to GenerateFunctionHeader) What about local? (see implementation of CreateLocalFunction)
+            return this.Module.CreateFunction(name, signature); // RyanTODO: swap this out for the new function creation
         }
 
         /// <summary>
@@ -1062,12 +1064,12 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
                 else
                 {
-                    var func = this.GetFunctionByName(callable.FullName, specKind);
+                    var func = this.GetFunctionByName(callable.FullName, specKind); // RyanNote: This function shouold be decorated when it's created
                     value = this.CurrentBuilder.Call(func, args);
                 }
 
                 var result = this.Values.From(value, callable.Signature.ReturnType);
-                this.ScopeMgr.RegisterValue(result);
+                this.ScopeMgr.RegisterValue(result); //RyanNote: example of a registerValue we wouldn't want debug info for necessarily since result isn't from the code
                 return result;
             }
 
@@ -1344,6 +1346,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
                 // Update the iteration value (phi node) and enter the next iteration
                 this.SetCurrentBlock(exitingBlock);
+                // RyanNote: do I need debug info within this add?
                 var nextValue = this.CurrentBuilder.Add(loopUpdate.LoopVariable, loopUpdate.Increment);
                 loopUpdate.LoopVariable.AddIncoming(nextValue, exitingBlock);
                 outputUpdate?.PhiNode.AddIncoming(outputUpdate.Value.NewValue, exitingBlock);
@@ -1660,7 +1663,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
         /// <summary>
         /// Generates a unique name for a local variable.
         /// </summary>
-        internal string VariableName(string name)
+        internal string VariableName(string name) // RyanNote: This looks useful
         {
             var index = this.uniqueLocalNames.TryGetValue(name, out int n) ? n + 1 : 0;
             this.uniqueLocalNames[name] = index;

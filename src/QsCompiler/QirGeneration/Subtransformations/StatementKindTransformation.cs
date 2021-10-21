@@ -99,7 +99,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
 
             if (symbols is SymbolTuple.VariableName varName)
             {
-                bindVariable(varName.Item, value);
+                bindVariable(varName.Item, value); // RyanNOte: probably better not to do it in here since we don't know what bindVariable does necessarily
             }
             else if (symbols is SymbolTuple.VariableNameTuple syms)
             {

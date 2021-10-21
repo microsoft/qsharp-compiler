@@ -315,11 +315,11 @@ namespace Ubiquity.NET.Llvm.DebugInfo
                 file?.MetadataHandle ?? default,
                 line,
                 signatureType?.MetadataHandle ?? default,
-                isLocalToUnit ? 1 : 0,
-                isDefinition ? 1 : 0,
+                isLocalToUnit ? 1 : 0, // RyanNote: gets packed into DISPFlags
+                isDefinition ? 1 : 0, // RyanNote: gets packed into DISPFlags
                 scopeLine,
                 (LLVMDIFlags)debugFlags,
-                isOptimized ? 1 : 0);
+                isOptimized ? 1 : 0); // RyanNote: gets packed into DISPFlags
 
             var retVal = MDNode.FromHandle<DISubProgram>(handle)!;
             function.DISubProgram = retVal;

@@ -164,6 +164,81 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             }
         }
 
+                // private void EmitLocation(IAstNode? node) //TODO write this correctly
+        // {
+        //     // Get current scope
+        //     DILocalScope? scope = null;
+        //     if(LexicalBlocks.Count > 0)
+        //     {
+        //         scope = LexicalBlocks.Peek();
+        //     } // RyanNote: This DISubProgram looks important for debug information
+        //     else if(InstructionBuilder.InsertFunction != null && InstructionBuilder.InsertFunction.DISubProgram != null)
+        //     {
+        //         scope = InstructionBuilder.InsertFunction.DISubProgram;
+        //     }
+
+        //     DILocation? loc = null;
+        //     if(scope != null)
+        //     {
+        //         loc = new DILocation(this.Context)
+        //                             , ( uint )( node?.Location.StartLine ?? 0 )
+        //                             , ( uint )( node?.Location.StartColumn ?? 0 )
+        //                             , scope
+        //                             );
+        //     }
+
+        //     InstructionBuilder.SetDebugLocation( loc );
+        // }
+
+        internal IrFunction CreateLocalFunction(QsSpecialization spec, string name, IFunctionType signature, bool isDefinition, ITypeRef retType, ITypeRef[] argTypes)
+        {
+            if (this.DebugFlag && spec.Kind == QsSpecializationKind.QsBody)
+            {
+                DIFile debugFile = this.DIBuilder.CreateFile(this.DICompileUnit.File?.FileName, this.DICompileUnit.File?.Directory);
+                QsNullable<QsLocation> debugLoc = spec.Location; // RyanNote: here's where we get the location.
+                uint line;
+
+                if (debugLoc.IsNull)
+                {
+                    throw new ArgumentException("Expected a specialiazation with a non-null location");
+                    return this.Module.CreateFunction(name, signature);
+                }
+
+                // create the debugSignature
+                var voidType = DebugType.Create<ITypeRef, DIType>(this.Module.Context.VoidType, null); // RyanNote: pass retType in for first arg, not sure for second
+                IDebugType<ITypeRef, DIType>[] voidTypeArr = { voidType, voidType };
+                DebugInfoFlags debugFlags = DebugInfoFlags.None; // RyanTODO: Might want flags here. Also might want to define our own. Also can we have multiple?
+                DebugFunctionType debugSignature = new DebugFunctionType(signature, this.Module, debugFlags, voidType, voidTypeArr); // RyanTODO: the voidType stuff is for sure wrong, but just want to compile rn
+
+    // public DebugFunctionType( // here's what I need to construct a DebugFunctionType
+    //         IFunctionType llvmType,
+    //         BitcodeModule module,
+    //         DebugInfoFlags debugFlags,
+    //         IDebugType<ITypeRef, DIType> retType,
+    //         params IDebugType<ITypeRef, DIType>[] argTypes)
+
+    // this.Context.GetFunctionType(returnTypeRef, argTypeRefs); // from context.cs in QIR
+    //     var signature = DebugFunctionType( Module.DIBuilder, DoubleType, prototype.Parameters.Select( _ => DoubleType ) ); // from code generation in Kaleidoscope (this function doesn't exist here)
+
+                return this.Module.CreateFunction(
+                    scope: this.DICompileUnit,
+                    name: name,
+                    mangledName: null,
+                    file: debugFile,
+                    line: (uint) debugLoc.Item.Offset.Line,
+                    signature: debugSignature,
+                    isLocalToUnit: true,
+                    isDefinition: isDefinition,
+                    scopeLine: (uint) debugLoc.Item.Offset.Line, // RyanTODO: Need to be more exact bc of formatting (see lastParamLocation in Kaleidescope tutorial)
+                    debugFlags: debugFlags,
+                    isOptimized: false); // RyanQuestion: is this always the case?
+            }
+            else
+            {
+                return this.Module.CreateFunction(name, signature);
+            }
+        }
+
         #endregion
 
     }

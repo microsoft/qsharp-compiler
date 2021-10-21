@@ -75,7 +75,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                 }
             }
 
-            private static IValue LoadValue(IValue value)
+            private static IValue LoadValue(IValue value) // RyanNote: handles pointer to pointer to pointer situation
             {
                 while (value is PointerValue ptr)
                 {
@@ -227,6 +227,13 @@ namespace Microsoft.Quantum.QsCompiler.QIR
                     this.increaseCounts(ReferenceCountUpdateFunctionForType, change);
                     this.RegisterValue(value, shallow: false);
                 }
+
+                // Only need to emit debug information if the variable is from a source file RyanTODO: move this to the manager registerVariable so we have access to stack
+                // if (fromLocalID != null)
+                // {
+                //     DILocalScope scope = null; // RyanTODO: where do I get this
+                //     this.SharedState.DIManager.emitLocation(scope);
+                // }
             }
 
             public bool TryGetVariable(string varName, out IValue value) =>
@@ -715,6 +722,7 @@ namespace Microsoft.Quantum.QsCompiler.QIR
             if (fromLocalId != null)
             {
                 this.scopes.FirstOrDefault(scope => scope.TryGetVariable(fromLocalId, out localId));
+                // RyanNote: could potentially do debug info here but probably cleaner when actually registering the individual variable in the subroutine call
             }
 
             value.RegisterName(this.sharedState.VariableName(name));
