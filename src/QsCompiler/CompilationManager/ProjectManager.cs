@@ -1083,7 +1083,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified file is not listed as source file
         /// </remarks>
         public TextEdit[]? Formatting(DocumentFormattingParams? param) =>
-            this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument); // Formatting flushes unprocessed text changes
+            this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, timeout: 5000); // Formatting flushes unprocessed text changes
 
         /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
@@ -1196,7 +1196,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     // TODO: add more that can be formatted
                     if (diagnostics != null && diagnostics.Any(DiagnosticTools.WarningType(WarningCode.DeprecatedTupleBrackets)))
                     {
-                        var formattingEdits = this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument);
+                        var formattingEdits = this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, timeout: 1000);
                         if (formattingEdits != null)
                         {
                             codeActionSuggestions = codeActionSuggestions.Append(

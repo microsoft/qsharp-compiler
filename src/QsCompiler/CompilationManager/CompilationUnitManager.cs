@@ -793,7 +793,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified file is not listed as source file
         /// </remarks>
-        public TextEdit[]? Formatting(TextDocumentIdentifier? textDocument)
+        public TextEdit[]? Formatting(TextDocumentIdentifier? textDocument, int timeout = 3000)
         {
             TextEdit[]? FormatFile(FileContentManager file)
             {
@@ -803,10 +803,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
 
                 var qsfmtPath = Path.Combine(this.sdkPath, "tools", "qsfmt", "qsfmt.dll");
                 var compilerVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version; // FIXME: OR TAKE Q# VERSION?
-                var commandArgs = $"{qsfmtPath} update --qsharp-version {compilerVersion} --inputs {tempFile}";
+                var updateArgs = $"{qsfmtPath} update --qsharp-version {compilerVersion} --inputs {tempFile}";
+                var formatArgs = $"{qsfmtPath} format --inputs {tempFile}";
 
-                if (ProcessRunner.Run("dotnet", commandArgs, out var _, out var _, out var exitCode, out var ex, timeout: 3000)
-                    && exitCode == 0 && ex == null)
+                var updatingSucceeded =
+                    ProcessRunner.Run("dotnet", updateArgs, out var _, out var _, out var exitCode, out var ex1, timeout: timeout)
+                    && exitCode == 0 && ex1 == null;
+                var formattingSucceeded =
+                    ProcessRunner.Run("dotnet", formatArgs, out var _, out var _, out exitCode, out var ex2, timeout: timeout)
+                    && exitCode == 0 && ex2 == null;
+
+                if (updatingSucceeded && formattingSucceeded)
                 {
                     var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
                     var edit = new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) };
@@ -815,8 +822,9 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 else if (Directory.Exists(qsfmtPath))
                 {
-                    ex ??= new Exception($"Formatting exited with code {exitCode}.");
-                    this.LogException(ex);
+                    // FIXME: CHECK IF A TIME OUT RESULTS IN THIS EXCEPTION BEING SHOWN
+                    ex1 ??= ex2 ?? new Exception($"Formatting exited with code {exitCode}.");
+                    this.LogException(ex1);
                 }
 
                 return null;
