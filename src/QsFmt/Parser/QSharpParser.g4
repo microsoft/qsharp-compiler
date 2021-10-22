@@ -227,8 +227,8 @@ expression
     | left=expression operator='&&&' right=expression # BitwiseAndExpression
     | left=expression operator='^^^' right=expression # BitwiseXorExpression
     | left=expression operator='|||' right=expression # BitwiseOrExpression
-    | left=expression operator='and' right=expression # AndExpression
-    | left=expression operator='or' right=expression # OrExpression
+    | left=expression operator=('&&' | 'and') right=expression # AndExpression
+    | left=expression operator=('||' | 'or') right=expression # OrExpression
     | <assoc=right> cond=expression question='?' ifTrue=expression pipe='|' ifFalse=expression # ConditionalExpression
     | left=expression ellipsis='..' right=expression # RangeExpression
     | left=expression ellipsis='...' # RightOpenRangeExpression

@@ -368,3 +368,19 @@ let ``Array Syntax Expression Size`` =
         let t2 = [0.0, size = 2+1];
     }
 }"""
+
+[<Example(ExampleKind.Update)>]
+let ``Binary Boolean Operators`` =
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = True && False;
+        let t2 = True||False;
+    }
+}""",
+
+    """namespace Foo {
+    operation Bar() : Unit {
+        let t1 = True and False;
+        let t2 = True or False;
+    }
+}"""

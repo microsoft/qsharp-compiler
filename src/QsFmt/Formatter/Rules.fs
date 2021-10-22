@@ -323,3 +323,32 @@ let checkArraySyntax fileName document =
         }
 
     reducer.Document document
+
+/// <summary>
+/// Prepends the <paramref name="prefix"/> with a new line <see cref="Trivia"/> node if it does not already contain one.
+/// </summary>
+let ensureSpace prefix =
+    if List.isEmpty prefix then [spaces 1] else prefix
+
+let booleanOperatorUpdate =
+    { new Rewriter<_>() with
+        override _.Expression((), expression) =
+            let dict = Map [ ("&&", "and"); ("||", "or") ]
+
+            let updated =
+                match expression with
+                | InfixOperator infixOperator when dict |> Map.containsKey infixOperator.InfixOperator.Text ->
+                    {
+                        Left = infixOperator.Left
+                        InfixOperator =
+                            {
+                                Prefix = infixOperator.InfixOperator.Prefix |> ensureSpace
+                                Text = dict |> Map.find infixOperator.InfixOperator.Text
+                            }
+                        Right = infixOperator.Right |> Expression.mapPrefix ensureSpace
+                    }
+                    |> InfixOperator
+                | _ -> expression
+
+            base.Expression((), updated)
+    }
