@@ -21,7 +21,7 @@ type FormatArguments =
         [<Option("qsharp-version", SetName = "INPUT_FILES", HelpText = "Option to provide a Q# version to the tool.")>]
         QdkVersion: string
         [<Option('i',
-                 "inputs",
+                 "input",
                  SetName = "INPUT_FILES",
                  Required = true,
                  Min = 1,
@@ -78,7 +78,7 @@ type UpdateArguments =
         [<Option("qsharp-version", SetName = "INPUT_FILES", HelpText = "Option to provide a Q# version to the tool.")>]
         QdkVersion: string
         [<Option('i',
-                 "inputs",
+                 "input",
                  SetName = "INPUT_FILES",
                  Required = true,
                  Min = 1,
@@ -134,7 +134,7 @@ type Arguments =
         RecurseFlag: bool
         BackupFlag: bool
         QSharp_Version: Version option
-        Inputs: string list
+        Input: string list
     }
 
 module Arguments =
@@ -154,7 +154,7 @@ module Arguments =
 
         if List.isEmpty errors then
 
-            let inputs, version =
+            let input, version =
                 if isNull arguments.ProjectFile then
                     arguments.InputFiles |> Seq.toList, arguments.QdkVersion |> Option.ofObj
                 else
@@ -183,7 +183,7 @@ module Arguments =
                         RecurseFlag = arguments.Recurse
                         BackupFlag = arguments.Backup
                         QSharp_Version = qsharp_version
-                        Inputs = inputs
+                        Input = input
                     }
                     |> Result.Ok
             else
