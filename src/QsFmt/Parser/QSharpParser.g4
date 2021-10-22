@@ -142,7 +142,7 @@ type
 statement
     : value=expression semicolon=';' # ExpressionStatement
     | return='return' value=expression semicolon=';' # ReturnStatement
-    | 'fail' expression ';' # FailStatement
+    | fail='fail' value=expression semicolon=';' # FailStatement
     | let='let' binding=symbolBinding equals='=' value=expression semicolon=';' # LetStatement
     | 'mutable' symbolBinding '=' expression ';' # MutableStatement
     | 'set' symbolBinding '=' expression ';' # SetStatement

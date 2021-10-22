@@ -131,6 +131,18 @@ module internal ForBinding =
     val mapPrefix: mapper:(Trivia list -> Trivia list) -> binding: ForBinding -> ForBinding
 
 /// <summary>
+/// An expression statement.
+/// </summary>
+type internal ExpressionStatement =
+    {
+        // The inner expression of the statement.
+        Expression: Expression
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
+/// <summary>
 /// A <c>return</c> statement.
 /// </summary>
 type internal Return =
@@ -148,11 +160,16 @@ type internal Return =
     }
 
 /// <summary>
-/// An expression statement.
+/// A <c>fail</c> statement.
 /// </summary>
-type internal ExpressionStatement =
+type internal Fail =
     {
-        // The inner expression of the statement.
+        /// <summary>
+        /// The <c>fail</c> keyword.
+        /// </summary>
+        FailKeyword: Terminal
+
+        /// The inner expression of the statement.
         Expression: Expression
 
         /// The semicolon.
@@ -275,14 +292,19 @@ and internal Statement =
     | ExpressionStatement of ExpressionStatement
 
     /// <summary>
-    /// A <c>let</c> statement.
-    /// </summary>
-    | Let of Let
-
-    /// <summary>
     /// A <c>return</c> statement.
     /// </summary>
     | Return of Return
+
+    /// <summary>
+    /// A <c>fail</c> statement.
+    /// </summary>
+    | Fail of Fail
+
+    /// <summary>
+    /// A <c>let</c> statement.
+    /// </summary>
+    | Let of Let
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

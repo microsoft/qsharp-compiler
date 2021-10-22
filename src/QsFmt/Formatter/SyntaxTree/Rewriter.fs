@@ -160,8 +160,9 @@ type 'context Rewriter() =
     default rewriter.Statement(context, statement) =
         match statement with
         | ExpressionStatement expr -> rewriter.ExpressionStatement(context, expr) |> ExpressionStatement
-        | Let lets -> rewriter.Let(context, lets) |> Let
         | Return returns -> rewriter.Return(context, returns) |> Return
+        | Fail fails -> rewriter.Fail(context, fails) |> Fail
+        | Let lets -> rewriter.Let(context, lets) |> Let
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
@@ -173,6 +174,24 @@ type 'context Rewriter() =
     default rewriter.ExpressionStatement(context, expr) =
         { Expression = rewriter.Expression(context, expr.Expression); Semicolon = rewriter.Terminal(context, expr.Semicolon) }
 
+    abstract Return : context: 'context * returns: Return -> Return
+
+    default rewriter.Return(context, returns) =
+        {
+            ReturnKeyword = rewriter.Terminal(context, returns.ReturnKeyword)
+            Expression = rewriter.Expression(context, returns.Expression)
+            Semicolon = rewriter.Terminal(context, returns.Semicolon)
+        }
+
+    abstract Fail : context: 'context * fails: Fail -> Fail
+
+    default rewriter.Fail(context, fails) =
+        {
+            FailKeyword = rewriter.Terminal(context, fails.FailKeyword)
+            Expression = rewriter.Expression(context, fails.Expression)
+            Semicolon = rewriter.Terminal(context, fails.Semicolon)
+        }
+
     abstract Let : context: 'context * lets: Let -> Let
 
     default rewriter.Let(context, lets) =
@@ -182,15 +201,6 @@ type 'context Rewriter() =
             Equals = rewriter.Terminal(context, lets.Equals)
             Value = rewriter.Expression(context, lets.Value)
             Semicolon = rewriter.Terminal(context, lets.Semicolon)
-        }
-
-    abstract Return : context: 'context * returns: Return -> Return
-
-    default rewriter.Return(context, returns) =
-        {
-            ReturnKeyword = rewriter.Terminal(context, returns.ReturnKeyword)
-            Expression = rewriter.Expression(context, returns.Expression)
-            Semicolon = rewriter.Terminal(context, returns.Semicolon)
         }
 
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

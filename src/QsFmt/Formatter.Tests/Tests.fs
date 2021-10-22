@@ -211,3 +211,41 @@ let ``Expression Statement Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Return Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Int {
+        return (new Int[3])[0];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Int {
+        return ([0, size = 3])[0];
+    }
+}"""
+
+    run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Fail Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        fail (new String[3])[0];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        fail (["", size = 3])[0];
+    }
+}"""
+
+    run input expectedOutput String.Empty

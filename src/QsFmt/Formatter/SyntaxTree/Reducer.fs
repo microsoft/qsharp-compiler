@@ -161,8 +161,9 @@ type internal 'result Reducer() as reducer =
     default _.Statement statement =
         match statement with
         | ExpressionStatement expr -> reducer.ExpressionStatement expr
-        | Let lets -> reducer.Let lets
         | Return returns -> reducer.Return returns
+        | Fail fails -> reducer.Fail fails
+        | Let lets -> reducer.Let lets
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
@@ -174,6 +175,26 @@ type internal 'result Reducer() as reducer =
     default _.ExpressionStatement expr =
         [ reducer.Expression expr.Expression; reducer.Terminal expr.Semicolon ] |> reduce
 
+    abstract Return : returns: Return -> 'result
+
+    default _.Return returns =
+        [
+            reducer.Terminal returns.ReturnKeyword
+            reducer.Expression returns.Expression
+            reducer.Terminal returns.Semicolon
+        ]
+        |> reduce
+
+    abstract Fail : fails: Fail -> 'result
+
+    default _.Fail fails =
+        [
+            reducer.Terminal fails.FailKeyword
+            reducer.Expression fails.Expression
+            reducer.Terminal fails.Semicolon
+        ]
+        |> reduce
+
     abstract Let : lets: Let -> 'result
 
     default _.Let lets =
@@ -183,16 +204,6 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal lets.Equals
             reducer.Expression lets.Value
             reducer.Terminal lets.Semicolon
-        ]
-        |> reduce
-
-    abstract Return : returns: Return -> 'result
-
-    default _.Return returns =
-        [
-            reducer.Terminal returns.ReturnKeyword
-            reducer.Expression returns.Expression
-            reducer.Terminal returns.Semicolon
         ]
         |> reduce
 

@@ -80,7 +80,12 @@ type Return =
 
 // Fail Statement
 
-// ToDo
+type Fail =
+    {
+        FailKeyword: Terminal
+        Expression: Expression
+        Semicolon: Terminal
+    }
 
 // Let Statement
 
@@ -177,8 +182,9 @@ and QubitDeclaration =
 
 and Statement =
     | ExpressionStatement of ExpressionStatement
-    | Let of Let
     | Return of Return
+    | Fail of Fail
+    | Let of Let
     | QubitDeclaration of QubitDeclaration
     | If of If
     | Else of Else
@@ -190,9 +196,11 @@ module Statement =
         function
         | ExpressionStatement expr ->
             { expr with Expression = expr.Expression |> Expression.mapPrefix mapper } |> ExpressionStatement
-        | Let lets -> { lets with LetKeyword = lets.LetKeyword |> Terminal.mapPrefix mapper } |> Let
         | Return returns ->
             { returns with ReturnKeyword = returns.ReturnKeyword |> Terminal.mapPrefix mapper } |> Return
+        | Fail fails ->
+            { fails with FailKeyword = fails.FailKeyword |> Terminal.mapPrefix mapper } |> Fail
+        | Let lets -> { lets with LetKeyword = lets.LetKeyword |> Terminal.mapPrefix mapper } |> Let
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else

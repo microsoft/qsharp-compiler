@@ -126,16 +126,22 @@ type internal 'result Reducer =
     default ExpressionStatement: expr:ExpressionStatement -> 'result
 
     /// <summary>
-    /// Reduces a <see cref="Let"/> statement node.
-    /// </summary>
-    abstract Let: lets:Let -> 'result
-    default Let: lets:Let -> 'result
-
-    /// <summary>
     /// Reduces a <see cref="Return"/> statement node.
     /// </summary>
     abstract Return: returns:Return -> 'result
     default Return: returns:Return -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="Fail"/> statement node.
+    /// </summary>
+    abstract Fail: fails:Fail -> 'result
+    default Fail: fails:Fail -> 'result
+
+    /// <summary>
+    /// Reduces a <see cref="Let"/> statement node.
+    /// </summary>
+    abstract Let: lets:Let -> 'result
+    default Let: lets:Let -> 'result
 
     /// <summary>
     /// Reduces a <see cref="QubitDeclaration"/> statement node.

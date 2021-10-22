@@ -122,16 +122,22 @@ type internal 'context Rewriter =
     default ExpressionStatement: context:'context * expr:ExpressionStatement -> ExpressionStatement
 
     /// <summary>
-    /// Rewrites a <see cref="Let"/> statement node.
-    /// </summary>
-    abstract Let: context:'context * lets:Let -> Let
-    default Let: context:'context * lets:Let -> Let
-
-    /// <summary>
     /// Rewrites a <see cref="Return"/> statement node.
     /// </summary>
     abstract Return: context:'context * returns:Return -> Return
     default Return: context:'context * returns:Return -> Return
+
+    /// <summary>
+    /// Rewrites a <see cref="Fail"/> statement node.
+    /// </summary>
+    abstract Fail: context:'context * fails:Fail -> Fail
+    default Fail: context:'context * fails:Fail -> Fail
+
+    /// <summary>
+    /// Rewrites a <see cref="Let"/> statement node.
+    /// </summary>
+    abstract Let: context:'context * lets:Let -> Let
+    default Let: context:'context * lets:Let -> Let
 
     /// <summary>
     /// Rewrites a <see cref="QubitDeclaration"/> statement node.

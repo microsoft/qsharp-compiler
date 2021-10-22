@@ -116,6 +116,14 @@ type StatementVisitor(tokens) =
         }
         |> Return
 
+    override _.VisitFailStatement context =
+        {
+            FailKeyword = context.fail |> Node.toTerminal tokens
+            Expression = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> Fail
+
     override _.VisitLetStatement context =
         {
             LetKeyword = context.``let`` |> Node.toTerminal tokens
