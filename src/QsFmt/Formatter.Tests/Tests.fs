@@ -249,3 +249,22 @@ let ``Fail Statement Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Let Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        let x = new Double[3];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        let x = [0.0, size = 3];
+    }
+}"""
+
+    run input expectedOutput String.Empty
