@@ -2,9 +2,12 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Threading;
 using System.Threading.Tasks;
+using Microsoft.Quantum.QsCompiler.CompilationBuilder;
 using Microsoft.VisualStudio.LanguageServer.Protocol;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Newtonsoft.Json.Linq;
@@ -312,6 +315,46 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
                 Assert.AreEqual(expectedContent.Count(), trackedContent.Count(), $"expected: \n{expected} \ngot: \n{got}");
                 Assert.AreEqual(expected, got);
             }
+        }
+
+        [TestMethod]
+        public async Task UpdateAndFormatAsync()
+        {
+            var eventSignal = new ManualResetEvent(false);
+            void CheckForLoadingCompleted(string msg, MessageType _)
+            {
+                if (msg.StartsWith("Done loading project"))
+                {
+                    eventSignal.Set();
+                }
+            }
+
+            var projectFile = ProjectLoaderTests.ProjectUri("test12");
+            var projDir = Path.GetDirectoryName(projectFile.LocalPath) ?? "";
+            var projectManager = new ProjectManager(ex => Assert.IsNull(ex), CheckForLoadingCompleted);
+            await projectManager.LoadProjectsAsync(
+                new[] { projectFile },
+                CompilationContext.Editor.QsProjectLoader,
+                enableLazyLoading: false);
+
+            // Note that the formatting command will return null until the project has finished loading,
+            // and similarly when a project is reloaded because it has been modified.
+            // All in all, that seem like reasonable behavior.
+            eventSignal.WaitOne();
+            eventSignal.Reset();
+
+            var fileToFormat = new Uri(Path.Combine(projDir, "format", "Unformatted.qs"));
+            var expectedContent = File.ReadAllText(Path.Combine(projDir, "format", "Formatted.qs"));
+            var param = new DocumentFormattingParams
+            {
+                TextDocument = new TextDocumentIdentifier { Uri = fileToFormat },
+                Options = new FormattingOptions { TabSize = 2, InsertSpaces = false, OtherOptions = new Dictionary<string, object>() },
+            };
+
+            var edits = projectManager.Formatting(param);
+            Assert.IsNotNull(edits);
+            Assert.AreEqual(1, edits!.Length);
+            Assert.AreEqual(expectedContent, edits[0].NewText);
         }
     }
 }

@@ -821,7 +821,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         public Task LoadProjectsAsync(
             IEnumerable<Uri> projectFiles,
             ProjectInformation.Loader projectLoader,
-            Func<Uri, FileContentManager?>? openInEditor = null)
+            Func<Uri, FileContentManager?>? openInEditor = null,
+            bool enableLazyLoading = true)
         {
             openInEditor ??= _ => null;
 
@@ -847,7 +848,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         continue;
                     }
 
-                    if (project.ContainsAnySourceFiles(uri => openInEditor(uri) != null))
+                    if (!enableLazyLoading || project.ContainsAnySourceFiles(uri => openInEditor(uri) != null))
                     {
                         project.LoadProjectAsync(outputPaths, this.MigrateToProject(openInEditor), null);
                     }
@@ -1083,7 +1084,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// or if the specified file is not listed as source file
         /// </remarks>
         public TextEdit[]? Formatting(DocumentFormattingParams? param) =>
-            this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, timeout: 5000); // Formatting flushes unprocessed text changes
+            this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, format: true, update: true, timeout: 5000); // Formatting flushes unprocessed text changes
 
         /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
@@ -1193,14 +1194,17 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 {
                     var codeActionSuggestions = file.CodeActions(c, param?.Range?.ToQSharp(), param?.Context);
                     var diagnostics = param?.Context?.Diagnostics;
-                    // TODO: add more that can be formatted
-                    if (diagnostics != null && diagnostics.Any(DiagnosticTools.WarningType(WarningCode.DeprecatedTupleBrackets)))
+                    if (diagnostics != null && diagnostics.Any(DiagnosticTools.WarningType(
+                        WarningCode.DeprecatedTupleBrackets,
+                        WarningCode.DeprecatedUnitType,
+                        WarningCode.DeprecatedQubitBindingKeyword))) // TODO: IT WOULD BE NICE TO JUST CHECK FOR DEPRECATED ANYTHING (NYI IN FORMATTER)
                     {
-                        var formattingEdits = this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, timeout: 1000);
+                        var formattingEdits = this.Manager(
+                            param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, update: true, format: false, timeout: 2000);
                         if (formattingEdits != null)
                         {
                             codeActionSuggestions = codeActionSuggestions.Append(
-                                ("Format file to update syntax.", file.GetWorkspaceEdit(formattingEdits)));
+                                ("Update deprecated syntax in file.", file.GetWorkspaceEdit(formattingEdits)));
                         }
                     }
 

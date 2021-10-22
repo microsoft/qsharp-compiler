@@ -793,8 +793,13 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified file is not listed as source file
         /// </remarks>
-        public TextEdit[]? Formatting(TextDocumentIdentifier? textDocument, int timeout = 3000)
+        public TextEdit[]? Formatting(TextDocumentIdentifier? textDocument, bool format = true, bool update = true, int timeout = 3000)
         {
+            if (!update && !format)
+            {
+                return null;
+            }
+
             TextEdit[]? FormatFile(FileContentManager file)
             {
                 var tempFile = Path.ChangeExtension(Path.GetTempFileName(), ".qs");
@@ -806,25 +811,26 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 var updateArgs = $"{qsfmtPath} update --qsharp-version {compilerVersion} --inputs {tempFile}";
                 var formatArgs = $"{qsfmtPath} format --inputs {tempFile}";
 
-                var updatingSucceeded =
-                    ProcessRunner.Run("dotnet", updateArgs, out var _, out var _, out var exitCode, out var ex1, timeout: timeout)
+                // TODO: We should have a verb format-and-update
+                (Exception? ex1, Exception? ex2) = (null, null);
+                var updatingSucceeded = update
+                    && ProcessRunner.Run("dotnet", updateArgs, out var _, out var _, out var exitCode, out ex1, timeout: timeout)
                     && exitCode == 0 && ex1 == null;
-                var formattingSucceeded =
-                    ProcessRunner.Run("dotnet", formatArgs, out var _, out var _, out exitCode, out var ex2, timeout: timeout)
+                var formattingSucceeded = format
+                    && ProcessRunner.Run("dotnet", formatArgs, out var _, out var _, out exitCode, out ex2, timeout: timeout)
                     && exitCode == 0 && ex2 == null;
 
-                if (updatingSucceeded && formattingSucceeded)
+                if ((!update || updatingSucceeded) && (!format || formattingSucceeded))
                 {
                     var range = DataTypes.Range.Create(DataTypes.Position.Zero, file.End());
                     var edit = new TextEdit { Range = range.ToLsp(), NewText = File.ReadAllText(tempFile) };
                     File.Delete(tempFile);
                     return new[] { edit };
                 }
-                else if (Directory.Exists(qsfmtPath))
+                else if (Directory.Exists(qsfmtPath) && (ex1 != null || ex2 != null))
                 {
                     // FIXME: CHECK IF A TIME OUT RESULTS IN THIS EXCEPTION BEING SHOWN
-                    ex1 ??= ex2 ?? new Exception($"Formatting exited with code {exitCode}.");
-                    this.LogException(ex1);
+                    this.LogException(ex1 ?? ex2 ?? new Exception($"Failed to format and/or update file."));
                 }
 
                 return null;
