@@ -255,6 +255,10 @@ int main(int argc, char** argv)
         {
             llvm::outs() << *module << "\n";
         }
+        else
+        {
+            llvm::WriteBitcodeToFile(*module, llvm::outs());
+        }
 
         if (config.verifyModule())
         {
