@@ -153,7 +153,7 @@ type internal Return =
 type internal ExpressionStatement =
     {
         // The inner expression of the statement.
-        Value: Expression
+        Expression: Expression
 
         /// The semicolon.
         Semicolon: Terminal

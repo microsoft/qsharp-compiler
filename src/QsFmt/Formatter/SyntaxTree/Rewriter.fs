@@ -171,7 +171,7 @@ type 'context Rewriter() =
     abstract ExpressionStatement : context: 'context * expr: ExpressionStatement -> ExpressionStatement
 
     default rewriter.ExpressionStatement(context, expr) =
-        { Value = rewriter.Expression(context, expr.Value); Semicolon = rewriter.Terminal(context, expr.Semicolon) }
+        { Expression = rewriter.Expression(context, expr.Expression); Semicolon = rewriter.Terminal(context, expr.Semicolon) }
 
     abstract Let : context: 'context * lets: Let -> Let
 

@@ -67,7 +67,7 @@ module ForBinding =
 
 // Expression Statement
 
-type ExpressionStatement = { Value: Expression; Semicolon: Terminal }
+type ExpressionStatement = { Expression: Expression; Semicolon: Terminal }
 
 // Return Statement
 
@@ -189,7 +189,7 @@ module Statement =
     let mapPrefix mapper =
         function
         | ExpressionStatement expr ->
-            { expr with Value = expr.Value |> Expression.mapPrefix mapper } |> ExpressionStatement
+            { expr with Expression = expr.Expression |> Expression.mapPrefix mapper } |> ExpressionStatement
         | Let lets -> { lets with LetKeyword = lets.LetKeyword |> Terminal.mapPrefix mapper } |> Let
         | Return returns ->
             { returns with ReturnKeyword = returns.ReturnKeyword |> Terminal.mapPrefix mapper } |> Return
