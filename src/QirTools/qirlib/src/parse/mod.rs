@@ -10,13 +10,13 @@ use llvm_ir;
 // convenience functions as well as QIR-specific utilities.
 
 pub trait ModuleExt {
-    fn get_func_by_attr_name(&self, name: &str) -> Vec<&llvm_ir::Function>;
+    fn get_funcs_by_attr_name(&self, name: &str) -> Vec<&llvm_ir::Function>;
     fn get_entrypoint_funcs(&self) -> Vec<&llvm_ir::Function>;
     fn get_interop_funcs(&self) -> Vec<&llvm_ir::Function>;
 }
 
 impl ModuleExt for llvm_ir::Module {
-    fn get_func_by_attr_name(&self, name: &str) -> Vec<&llvm_ir::Function> {
+    fn get_funcs_by_attr_name(&self, name: &str) -> Vec<&llvm_ir::Function> {
         self.functions
             .iter()
             .filter(|f| {
@@ -31,11 +31,11 @@ impl ModuleExt for llvm_ir::Module {
     }
 
     fn get_entrypoint_funcs(&self) -> Vec<&llvm_ir::Function> {
-        self.get_func_by_attr_name("EntryPoint")
+        self.get_funcs_by_attr_name("EntryPoint")
     }
 
     fn get_interop_funcs(&self) -> Vec<&llvm_ir::Function> {
-        self.get_func_by_attr_name("InteropFriendly")
+        self.get_funcs_by_attr_name("InteropFriendly")
     }
 }
 
@@ -187,7 +187,7 @@ impl IntructionExt for llvm_ir::Instruction {
 pub trait CallExt {
     fn get_func_name(&self) -> Option<llvm_ir::Name>;
     fn is_qis(&self) -> bool;
-    fn is_qrt(&self) -> bool;
+    fn is_rt(&self) -> bool;
     fn is_qir(&self) -> bool;
 }
 
@@ -206,9 +206,9 @@ impl CallExt for llvm_ir::instruction::Call {
         self.get_func_name()
             .map_or(false, |n| n.get_string().starts_with("__quantum__qis__"))
     }
-    fn is_qrt(&self) -> bool {
+    fn is_rt(&self) -> bool {
         self.get_func_name()
-            .map_or(false, |n| n.get_string().starts_with("__quantum__qrt__"))
+            .map_or(false, |n| n.get_string().starts_with("__quantum__rt__"))
     }
     fn is_qir(&self) -> bool {
         self.get_func_name()

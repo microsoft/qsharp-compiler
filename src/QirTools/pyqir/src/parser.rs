@@ -101,7 +101,7 @@ impl PyQirModule {
 
     fn get_funcs_by_attr(&self, attr: String) -> Vec<PyQirFunction> {
         self.module
-            .get_func_by_attr_name(&attr)
+            .get_funcs_by_attr_name(&attr)
             .iter()
             .map(|f| PyQirFunction {
                 function: (*f).clone(),
@@ -602,8 +602,8 @@ impl PyQirInstruction {
     }
 
     #[getter]
-    fn get_is_qrt_call(&self) -> bool {
-        llvm_ir::instruction::Call::try_from(self.instr.clone()).map_or(false, |c| c.is_qrt())
+    fn get_is_rt_call(&self) -> bool {
+        llvm_ir::instruction::Call::try_from(self.instr.clone()).map_or(false, |c| c.is_rt())
     }
 
     #[getter]
