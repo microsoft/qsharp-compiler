@@ -190,3 +190,24 @@ Warning: Unable to updated deprecated new array syntax in input from line 6, cha
 """
 
     run input expectedOutput expectedWarnings
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Expression Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar1(x : Int) : Unit {}
+    operation Bar2() : Unit {
+        Bar1((new Int[3])[2]);
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar1(x : Int) : Unit {}
+    operation Bar2() : Unit {
+        Bar1(([0, size = 3])[2]);
+    }
+}"""
+
+    run input expectedOutput String.Empty
