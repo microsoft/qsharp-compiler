@@ -5,7 +5,7 @@ module Microsoft.Quantum.QsFmt.App.Arguments
 
 open System
 open System.IO
-open System.Text.RegularExpressions;
+open System.Text.RegularExpressions
 open CommandLine
 open CommandLine.Text
 open Microsoft.Quantum.QsFmt.App.DesignTimeBuild
@@ -164,6 +164,7 @@ module Arguments =
                 match version with
                 | Some v ->
                     let m = Regex.Match(v, "^[0-9\\.]+")
+
                     if m.Success then
                         match Version.TryParse m.Value with
                         | true, ver -> true, Some ver
@@ -175,7 +176,9 @@ module Arguments =
             if isVersionOkay then
                 match qsharp_version with
                 | Some v when v < Version("0.16.2104.138035") ->
-                    eprintfn "Error: Qdk Version is out of date. Only Qdk version 0.16.2104.138035 or later is supported."
+                    eprintfn
+                        "Error: Qdk Version is out of date. Only Qdk version 0.16.2104.138035 or later is supported."
+
                     6 |> Result.Error
                 | _ ->
                     {
@@ -191,6 +194,7 @@ module Arguments =
                     match version with
                     | Some v -> sprintf ": %s" v
                     | None -> "."
+
                 eprintfn "Error: Bad Qdk version number%s" s
                 2 |> Result.Error
         else
