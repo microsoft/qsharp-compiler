@@ -18,59 +18,57 @@ namespace Microsoft.Quantum.QsCompiler
         /// </summary>
         public static bool Run(Process process, StringBuilder output, StringBuilder error, out Exception? ex, int timeout)
         {
-            using (var outputWaitHandle = new AutoResetEvent(false))
-            using (var errorWaitHandle = new AutoResetEvent(false))
+            using var outputWaitHandle = new AutoResetEvent(false);
+            using var errorWaitHandle = new AutoResetEvent(false);
+            void AddOutput(object sender, DataReceivedEventArgs e)
             {
-                void AddOutput(object sender, DataReceivedEventArgs e)
+                if (e.Data == null)
                 {
-                    if (e.Data == null)
-                    {
-                        outputWaitHandle.Set();
-                    }
-                    else
-                    {
-                        output.AppendLine(e.Data);
-                    }
+                    outputWaitHandle.Set();
                 }
-
-                void AddError(object sender, DataReceivedEventArgs e)
+                else
                 {
-                    if (e.Data == null)
-                    {
-                        errorWaitHandle.Set();
-                    }
-                    else
-                    {
-                        error.AppendLine(e.Data);
-                    }
+                    output.AppendLine(e.Data);
                 }
-
-                process.OutputDataReceived += AddOutput;
-                process.ErrorDataReceived += AddError;
-
-                try
-                {
-                    ex = null;
-                    process.Start();
-                    process.BeginOutputReadLine();
-                    process.BeginErrorReadLine();
-                    return process.WaitForExit(timeout)
-                        && outputWaitHandle.WaitOne()
-                        && errorWaitHandle.WaitOne();
-                }
-                catch (Exception e)
-                {
-                    ex = e;
-                }
-                finally
-                {
-                    // unsubscribe such that the AutoResetEvents are not accessed after disposing
-                    process.OutputDataReceived -= AddOutput;
-                    process.ErrorDataReceived -= AddError;
-                }
-
-                return ex == null;
             }
+
+            void AddError(object sender, DataReceivedEventArgs e)
+            {
+                if (e.Data == null)
+                {
+                    errorWaitHandle.Set();
+                }
+                else
+                {
+                    error.AppendLine(e.Data);
+                }
+            }
+
+            process.OutputDataReceived += AddOutput;
+            process.ErrorDataReceived += AddError;
+
+            try
+            {
+                ex = null;
+                process.Start();
+                process.BeginOutputReadLine();
+                process.BeginErrorReadLine();
+                return process.WaitForExit(timeout)
+                    && outputWaitHandle.WaitOne()
+                    && errorWaitHandle.WaitOne();
+            }
+            catch (Exception e)
+            {
+                ex = e;
+            }
+            finally
+            {
+                // unsubscribe such that the AutoResetEvents are not accessed after disposing
+                process.OutputDataReceived -= AddOutput;
+                process.ErrorDataReceived -= AddError;
+            }
+
+            return ex == null;
         }
 
         /// <summary>
@@ -114,7 +112,7 @@ namespace Microsoft.Quantum.QsCompiler
             try
             {
                 var exited = Run(process, outstream, errstream, out ex, timeout);
-                exitCode = process.ExitCode;
+                exitCode = process.HasExited ? process.ExitCode : 1;
                 return exited;
             }
             finally

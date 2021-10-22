@@ -1049,7 +1049,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 //     TextDocumentEdit | CreateFile | RenameFile | DeleteFile.
                 //     Note that the SumType struct is defined in the LSP client,
                 //     and works by defining explicit cast operators for each case.
-                IEnumerable<SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>> CastToSumType(SumType<TextDocumentEdit[], SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>[]>? editCollection) =>
+                static IEnumerable<SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>> CastToSumType(SumType<TextDocumentEdit[], SumType<TextDocumentEdit, CreateFile, RenameFile, DeleteFile>[]>? editCollection) =>
                     editCollection switch
                     {
                         { } edits => edits.Match(
@@ -1083,8 +1083,18 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Returns null if some parameters are unspecified (null),
         /// or if the specified file is not listed as source file
         /// </remarks>
-        public TextEdit[]? Formatting(DocumentFormattingParams? param) =>
-            this.Manager(param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, format: true, update: true, timeout: 5000); // Formatting flushes unprocessed text changes
+        public TextEdit[]? Formatting(DocumentFormattingParams? param)
+        {
+            var manager = this.Manager(param?.TextDocument?.Uri);
+            var edits = manager?.Formatting(param?.TextDocument, format: true, update: true, timeout: 10000); // Formatting flushes unprocessed text changes
+
+            if (manager != null && edits == null)
+            {
+                this.log?.Invoke("Failed to format document. Formatter may be unavailable.", MessageType.Info);
+            }
+
+            return edits;
+        }
 
         /// <summary>
         /// Returns the source file and position where the item at the given position is declared at,
@@ -1187,7 +1197,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
         /// Fails silently without logging anything if an exception occurs upon evaluating the query
         /// (occasional failures are to be expected as the evaluation is a readonly query running in parallel to the ongoing processing).
         /// </remarks>
-        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams? param) =>
+        public IEnumerable<CodeAction>? CodeActions(CodeActionParams? param) =>
             this.Manager(param?.TextDocument?.Uri)?.FileQuery(
                 param?.TextDocument,
                 (file, c) =>
@@ -1197,7 +1207,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                     if (diagnostics != null && diagnostics.Any(DiagnosticTools.WarningType(
                         WarningCode.DeprecatedTupleBrackets,
                         WarningCode.DeprecatedUnitType,
-                        WarningCode.DeprecatedQubitBindingKeyword))) // TODO: IT WOULD BE NICE TO JUST CHECK FOR DEPRECATED ANYTHING (NYI IN FORMATTER)
+                        WarningCode.DeprecatedQubitBindingKeyword)))
                     {
                         var formattingEdits = this.Manager(
                             param?.TextDocument?.Uri)?.Formatting(param?.TextDocument, update: true, format: false, timeout: 2000);
@@ -1208,7 +1218,16 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                         }
                     }
 
-                    return codeActionSuggestions.ToLookup(s => s.Item1, s => s.Item2);
+                    return codeActionSuggestions
+                        .ToLookup(s => s.Item1, s => s.Item2)
+                        .SelectMany(vs => vs.Select(v => CreateAction(vs.Key, v)));
+
+                    static CodeAction CreateAction(string title, WorkspaceEdit edit) =>
+                        new CodeAction
+                        {
+                            Title = title,
+                            Edit = edit,
+                        };
                 },
                 suppressExceptionLogging: true);
 

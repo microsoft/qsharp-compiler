@@ -807,8 +807,7 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 File.WriteAllText(tempFile, currentContent);
 
                 var qsfmtPath = Path.Combine(this.sdkPath, "tools", "qsfmt", "qsfmt.dll");
-                var compilerVersion = System.Reflection.Assembly.GetExecutingAssembly().GetName().Version; // FIXME: OR TAKE Q# VERSION?
-                var updateArgs = $"{qsfmtPath} update --qsharp-version {compilerVersion} --inputs {tempFile}";
+                var updateArgs = $"{qsfmtPath} update --inputs {tempFile}";
                 var formatArgs = $"{qsfmtPath} format --inputs {tempFile}";
 
                 // TODO: We should have a verb format-and-update
@@ -829,7 +828,6 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 }
                 else if (Directory.Exists(qsfmtPath) && (ex1 != null || ex2 != null))
                 {
-                    // FIXME: CHECK IF A TIME OUT RESULTS IN THIS EXCEPTION BEING SHOWN
                     this.LogException(ex1 ?? ex2 ?? new Exception($"Failed to format and/or update file."));
                 }
 

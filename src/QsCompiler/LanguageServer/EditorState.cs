@@ -484,7 +484,7 @@ namespace Microsoft.Quantum.QsLanguageServer
         /// The key of the look-up is a suitable title for the corresponding edits that can be presented to the user.
         /// Returns null if the given file is listed as to be ignored, or if the given parameter or its uri is null.
         /// </summary>
-        public ILookup<string, WorkspaceEdit>? CodeActions(CodeActionParams param) =>
+        public IEnumerable<CodeAction>? CodeActions(CodeActionParams param) =>
             ValidFileUri(param?.TextDocument?.Uri) && !this.IgnoreFile(param?.TextDocument?.Uri) ? this.projects.CodeActions(param) : null;
 
         /// <summary>
