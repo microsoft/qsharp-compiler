@@ -134,6 +134,16 @@ type StatementVisitor(tokens) =
         }
         |> Let
 
+    override _.VisitMutableStatement context =
+        {
+            MutableKeyword = context.``mutable`` |> Node.toTerminal tokens
+            Binding = symbolBindingVisitor.Visit context.binding
+            Equals = context.equals |> Node.toTerminal tokens
+            Value = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> Mutable
+
     override visitor.VisitIfStatement context =
         {
             IfKeyword = context.``if`` |> Node.toTerminal tokens

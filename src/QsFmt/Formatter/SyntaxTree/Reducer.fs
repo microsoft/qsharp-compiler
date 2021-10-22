@@ -164,6 +164,7 @@ type internal 'result Reducer() as reducer =
         | Return returns -> reducer.Return returns
         | Fail fails -> reducer.Fail fails
         | Let lets -> reducer.Let lets
+        | Mutable mutables -> reducer.Mutable mutables
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
@@ -204,6 +205,18 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal lets.Equals
             reducer.Expression lets.Value
             reducer.Terminal lets.Semicolon
+        ]
+        |> reduce
+
+    abstract Mutable : mutables: Mutable -> 'result
+
+    default _.Mutable mutables =
+        [
+            reducer.Terminal mutables.MutableKeyword
+            reducer.SymbolBinding mutables.Binding
+            reducer.Terminal mutables.Equals
+            reducer.Expression mutables.Value
+            reducer.Terminal mutables.Semicolon
         ]
         |> reduce
 

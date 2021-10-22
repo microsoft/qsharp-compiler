@@ -268,3 +268,22 @@ let ``Let Statement Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Mutable Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = new Double[3];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = [0.0, size = 3];
+    }
+}"""
+
+    run input expectedOutput String.Empty

@@ -200,6 +200,29 @@ type internal Let =
     }
 
 /// <summary>
+/// A <c>mutable</c> declaration statement.
+/// </summary>
+type internal Mutable =
+    {
+        /// <summary>
+        /// The <c>mutable</c> keyword.
+        /// </summary>
+        MutableKeyword: Terminal
+
+        /// The symbol binding.
+        Binding: SymbolBinding
+
+        /// The equals symbol.
+        Equals: Terminal
+
+        /// The value of the symbol binding.
+        Value: Expression
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
+/// <summary>
 /// An <c>if</c> statement.
 /// </summary>
 type internal If =
@@ -305,6 +328,11 @@ and internal Statement =
     /// A <c>let</c> statement.
     /// </summary>
     | Let of Let
+
+    /// <summary>
+    /// A <c>mutable</c> declaration statement.
+    /// </summary>
+    | Mutable of Mutable
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

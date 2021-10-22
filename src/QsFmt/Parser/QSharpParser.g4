@@ -144,7 +144,7 @@ statement
     | return='return' value=expression semicolon=';' # ReturnStatement
     | fail='fail' value=expression semicolon=';' # FailStatement
     | let='let' binding=symbolBinding equals='=' value=expression semicolon=';' # LetStatement
-    | 'mutable' symbolBinding '=' expression ';' # MutableStatement
+    | mutable='mutable' binding=symbolBinding equals='=' value=expression semicolon=';' # MutableStatement
     | 'set' symbolBinding '=' expression ';' # SetStatement
     | 'set' Identifier updateOperator expression ';' # SetUpdateStatement
     | 'set' Identifier 'w/=' expression '<-' expression ';' # SetWithStatement

@@ -163,6 +163,7 @@ type 'context Rewriter() =
         | Return returns -> rewriter.Return(context, returns) |> Return
         | Fail fails -> rewriter.Fail(context, fails) |> Fail
         | Let lets -> rewriter.Let(context, lets) |> Let
+        | Mutable mutables -> rewriter.Mutable(context, mutables) |> Mutable
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
@@ -201,6 +202,17 @@ type 'context Rewriter() =
             Equals = rewriter.Terminal(context, lets.Equals)
             Value = rewriter.Expression(context, lets.Value)
             Semicolon = rewriter.Terminal(context, lets.Semicolon)
+        }
+
+    abstract Mutable : context: 'context * mutables: Mutable -> Mutable
+
+    default rewriter.Mutable(context, mutables) =
+        {
+            MutableKeyword = rewriter.Terminal(context, mutables.MutableKeyword)
+            Binding = rewriter.SymbolBinding(context, mutables.Binding)
+            Equals = rewriter.Terminal(context, mutables.Equals)
+            Value = rewriter.Expression(context, mutables.Value)
+            Semicolon = rewriter.Terminal(context, mutables.Semicolon)
         }
 
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

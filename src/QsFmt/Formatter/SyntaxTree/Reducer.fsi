@@ -144,6 +144,12 @@ type internal 'result Reducer =
     default Let: lets:Let -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="Mutable"/> declaration statement node.
+    /// </summary>
+    abstract Mutable: mutables:Mutable -> 'result
+    default Mutable: mutables:Mutable -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result
