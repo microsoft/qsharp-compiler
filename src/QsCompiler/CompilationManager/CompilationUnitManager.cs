@@ -807,8 +807,8 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
                 File.WriteAllText(tempFile, currentContent);
 
                 var qsfmtPath = Path.Combine(this.sdkPath, "tools", "qsfmt", "qsfmt.dll");
-                var updateArgs = $"{qsfmtPath} update --inputs {tempFile}";
-                var formatArgs = $"{qsfmtPath} format --inputs {tempFile}";
+                var updateArgs = $"{qsfmtPath} update --input {tempFile}";
+                var formatArgs = $"{qsfmtPath} format --input {tempFile}";
 
                 // TODO: We should have a verb format-and-update
                 (Exception? ex1, Exception? ex2) = (null, null);

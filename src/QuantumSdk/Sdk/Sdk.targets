@@ -179,7 +179,7 @@
   <!-- Invokes the Q# formatting and update tool to update deprecated syntax and common syntax errors. -->
   <Target Name="UpdateSyntax" Condition="'$(DesignTimeBuild)' != 'true'">
     <PropertyGroup>
-      <QSharpSyntaxUpdate Condition="$(QSharpSyntaxUpdate) == ''">$(QsFmtExe) update --qsharp-version $(QuantumSdkVersion) --inputs </QSharpSyntaxUpdate>
+      <QSharpSyntaxUpdate Condition="$(QSharpSyntaxUpdate) == ''">$(QsFmtExe) update --qsharp-version $(QuantumSdkVersion) --input </QSharpSyntaxUpdate>
       <QSharpSyntaxUpdateCommand>$(QSharpSyntaxUpdate) "@(QSharpCompile->'%(FullPath)', '" "')"</QSharpSyntaxUpdateCommand>
     </PropertyGroup>
     <Exec Command="$(QSharpSyntaxUpdateCommand)" IgnoreExitCode="true" ContinueOnError="ErrorAndContinue">
