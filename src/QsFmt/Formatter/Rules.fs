@@ -328,15 +328,27 @@ let checkArraySyntax fileName document =
 /// Prepends the <paramref name="prefix"/> with a new line <see cref="Trivia"/> node if it does not already contain one.
 /// </summary>
 let ensureSpace prefix =
-    if List.isEmpty prefix then [spaces 1] else prefix
+    if List.isEmpty prefix then [ spaces 1 ] else prefix
 
 let booleanOperatorUpdate =
     { new Rewriter<_>() with
         override _.Expression((), expression) =
-            let dict = Map [ ("&&", "and"); ("||", "or") ]
+            let dict =
+                Map [ ("!", "not")
+                      ("&&", "and")
+                      ("||", "or") ]
 
             let updated =
                 match expression with
+                | PrefixOperator prefixOperator when dict |> Map.containsKey prefixOperator.PrefixOperator.Text ->
+                    {
+                        PrefixOperator =
+                            { prefixOperator.PrefixOperator with
+                                Text = dict |> Map.find prefixOperator.PrefixOperator.Text
+                            }
+                        Operand = prefixOperator.Operand |> Expression.mapPrefix ensureSpace
+                    }
+                    |> PrefixOperator
                 | InfixOperator infixOperator when dict |> Map.containsKey infixOperator.InfixOperator.Text ->
                     {
                         Left = infixOperator.Left
