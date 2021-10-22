@@ -62,6 +62,9 @@
 // Linking
 #include "llvm/Linker/Linker.h"
 
+// Bitcode output
+#include "llvm/Bitcode/BitcodeWriter.h"
+
 #if defined(__clang__)
 #pragma clang diagnostic pop
 #endif
