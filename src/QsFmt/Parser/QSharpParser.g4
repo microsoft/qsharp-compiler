@@ -145,9 +145,9 @@ statement
     | fail='fail' value=expression semicolon=';' # FailStatement
     | let='let' binding=symbolBinding equals='=' value=expression semicolon=';' # LetStatement
     | mutable='mutable' binding=symbolBinding equals='=' value=expression semicolon=';' # MutableStatement
-    | 'set' symbolBinding '=' expression ';' # SetStatement
-    | 'set' Identifier updateOperator expression ';' # SetUpdateStatement
-    | 'set' Identifier 'w/=' expression '<-' expression ';' # SetWithStatement
+    | set='set' binding=symbolBinding equals='=' value=expression semicolon=';' # SetStatement
+    | set='set' name=Identifier operator=updateOperator value=expression semicolon=';' # SetUpdateStatement
+    | set='set' name=Identifier withOperator='w/=' index=expression arrow='<-' value=expression semicolon=';' # SetWithStatement
     | if='if' condition=expression body=scope # IfStatement
     | 'elif' expression scope # ElifStatement
     | else='else' body=scope # ElseStatement

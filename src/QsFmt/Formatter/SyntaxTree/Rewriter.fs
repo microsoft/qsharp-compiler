@@ -164,6 +164,7 @@ type 'context Rewriter() =
         | Fail fails -> rewriter.Fail(context, fails) |> Fail
         | Let lets -> rewriter.Let(context, lets) |> Let
         | Mutable mutables -> rewriter.Mutable(context, mutables) |> Mutable
+        | SetStatement sets -> rewriter.SetStatement(context, sets) |> SetStatement
         | QubitDeclaration decl -> rewriter.QubitDeclaration(context, decl) |> QubitDeclaration
         | If ifs -> rewriter.If(context, ifs) |> If
         | Else elses -> rewriter.Else(context, elses) |> Else
@@ -213,6 +214,17 @@ type 'context Rewriter() =
             Equals = rewriter.Terminal(context, mutables.Equals)
             Value = rewriter.Expression(context, mutables.Value)
             Semicolon = rewriter.Terminal(context, mutables.Semicolon)
+        }
+
+    abstract SetStatement : context: 'context * sets: SetStatement -> SetStatement
+
+    default rewriter.SetStatement(context, sets) =
+        {
+            SetKeyword = rewriter.Terminal(context, sets.SetKeyword)
+            Binding = rewriter.SymbolBinding(context, sets.Binding)
+            Equals = rewriter.Terminal(context, sets.Equals)
+            Value = rewriter.Expression(context, sets.Value)
+            Semicolon = rewriter.Terminal(context, sets.Semicolon)
         }
 
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration

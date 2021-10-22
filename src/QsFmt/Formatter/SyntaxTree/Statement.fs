@@ -111,7 +111,14 @@ type Mutable =
 
 // Set Statement
 
-// ToDo
+type SetStatement =
+    {
+        SetKeyword: Terminal
+        Binding: SymbolBinding
+        Equals: Terminal
+        Value: Expression
+        Semicolon: Terminal
+    }
 
 // Set and Update Statement
 
@@ -193,6 +200,7 @@ and Statement =
     | Fail of Fail
     | Let of Let
     | Mutable of Mutable
+    | SetStatement of SetStatement
     | QubitDeclaration of QubitDeclaration
     | If of If
     | Else of Else
@@ -210,6 +218,8 @@ module Statement =
         | Let lets -> { lets with LetKeyword = lets.LetKeyword |> Terminal.mapPrefix mapper } |> Let
         | Mutable mutables ->
             { mutables with MutableKeyword = mutables.MutableKeyword |> Terminal.mapPrefix mapper } |> Mutable
+        | SetStatement sets ->
+            { sets with SetKeyword = sets.SetKeyword |> Terminal.mapPrefix mapper } |> SetStatement
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else

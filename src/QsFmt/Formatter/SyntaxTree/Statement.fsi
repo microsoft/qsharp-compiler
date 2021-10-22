@@ -223,6 +223,29 @@ type internal Mutable =
     }
 
 /// <summary>
+/// A <c>set</c> statement.
+/// </summary>
+type internal SetStatement =
+    {
+        /// <summary>
+        /// The <c>set</c> keyword.
+        /// </summary>
+        SetKeyword: Terminal
+
+        /// The symbol binding.
+        Binding: SymbolBinding
+
+        /// The equals symbol.
+        Equals: Terminal
+
+        /// The value of the symbol binding.
+        Value: Expression
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
+/// <summary>
 /// An <c>if</c> statement.
 /// </summary>
 type internal If =
@@ -333,6 +356,11 @@ and internal Statement =
     /// A <c>mutable</c> declaration statement.
     /// </summary>
     | Mutable of Mutable
+
+    /// <summary>
+    /// A <c>set</c> statement.
+    /// </summary>
+    | SetStatement of SetStatement
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

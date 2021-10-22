@@ -150,6 +150,12 @@ type internal 'result Reducer =
     default Mutable: mutables:Mutable -> 'result
 
     /// <summary>
+    /// Reduces a <see cref="Set"/> statement node.
+    /// </summary>
+    abstract SetStatement: sets:SetStatement -> 'result
+    default SetStatement: sets:SetStatement -> 'result
+
+    /// <summary>
     /// Reduces a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : decl: QubitDeclaration -> 'result

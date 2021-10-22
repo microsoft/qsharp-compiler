@@ -146,6 +146,12 @@ type internal 'context Rewriter =
     default Mutable: context:'context * mutables:Mutable -> Mutable
 
     /// <summary>
+    /// Rewrites a <see cref="Set"/> statement node.
+    /// </summary>
+    abstract SetStatement: context:'context * sets:SetStatement -> SetStatement
+    default SetStatement: context:'context * sets:SetStatement -> SetStatement
+
+    /// <summary>
     /// Rewrites a <see cref="QubitDeclaration"/> statement node.
     /// </summary>
     abstract QubitDeclaration : context: 'context * decl: QubitDeclaration -> QubitDeclaration
