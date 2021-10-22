@@ -325,7 +325,7 @@ let checkArraySyntax fileName document =
     reducer.Document document
 
 /// <summary>
-/// Prepends the <paramref name="prefix"/> with a new line <see cref="Trivia"/> node if it does not already contain one.
+/// Insert a whitespace to <paramref name="prefix"/> if it is empty.
 /// </summary>
 let ensureSpace prefix =
     if List.isEmpty prefix then [ spaces 1 ] else prefix
