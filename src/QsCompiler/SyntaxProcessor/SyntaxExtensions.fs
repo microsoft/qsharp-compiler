@@ -25,6 +25,8 @@ let private AttributeAsCallExpr (sym: QsSymbol, ex: QsExpression) =
     let id = { Expression = QsExpressionKind.Identifier(sym, Null); Range = sym.Range }
     { Expression = QsExpressionKind.CallLikeExpression(id, ex); Range = combinedRange }
 
+// TODO: Remove after 2022-05 release.
+[<Obsolete "Replaced by SymbolOccurrence.">]
 type SymbolInformation =
     {
         DeclaredSymbols: ImmutableHashSet<QsSymbol>
@@ -33,7 +35,9 @@ type SymbolInformation =
         UsedLiterals: ImmutableHashSet<QsExpression>
     }
 
+// TODO: Remove after 2022-05 release.
 [<Extension>]
+[<Obsolete "Replaced by SymbolOccurrence.InFragment.">]
 let public SymbolInformation fragmentKind =
     let occurrences = SymbolOccurrence.inFragment fragmentKind
 
