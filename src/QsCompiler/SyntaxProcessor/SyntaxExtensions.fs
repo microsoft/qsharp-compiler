@@ -175,59 +175,58 @@ let private SymbolsInCallableDeclaration (name: QsSymbol, signature: CallableSig
                    signature.ReturnType |> TypeNameSymbols ],
      exs)
 
-// TODO: Changing the collection type to ImmutableList is a breaking change; we can make a new type instead.
 type SymbolInformation =
     {
-        DeclaredSymbols: QsSymbol ImmutableList
-        UsedVariables: QsSymbol ImmutableList
-        UsedTypes: QsType ImmutableList
-        UsedLiterals: QsExpression ImmutableList
+        DeclaredSymbols: ImmutableHashSet<QsSymbol>
+        UsedVariables: ImmutableHashSet<QsSymbol>
+        UsedTypes: ImmutableHashSet<QsType>
+        UsedLiterals: ImmutableHashSet<QsExpression>
     }
+    static member internal New(decl: QsSymbol list, (vars: QsSymbol list, ts: QsType list, ex: QsExpression list)) =
+        {
+            DeclaredSymbols = decl.ToImmutableHashSet()
+            UsedVariables = vars.ToImmutableHashSet()
+            UsedTypes = ts.ToImmutableHashSet()
+            UsedLiterals = ex.ToImmutableHashSet()
+        }
 
 [<Extension>]
 let public SymbolInformation fragmentKind =
     let chooseValues = QsNullable<_>.Choose id >> Seq.toList
     let addVariable var (syms, ts, exs) = var :: syms, ts, exs
 
-    let declarations, (variables, types, literals) =
-        match fragmentKind with
-        | ExpressionStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-        | ReturnStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-        | FailStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-        | QsFragmentKind.MutableBinding (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
-        | QsFragmentKind.ImmutableBinding (sym, ex) ->
-            symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
-        | ValueUpdate (lhs, rhs) -> [], ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-        | IfClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-        | ElifClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-        | ElseClause -> [], ([], [], [])
-        | ForLoopIntro (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
-        | WhileLoopIntro ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-        | RepeatIntro -> [], ([], [], [])
-        | UntilSuccess (ex, _) -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-        | WithinBlockIntro -> [], ([], [], [])
-        | ApplyBlockIntro -> [], ([], [], [])
-        | UsingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
-        | BorrowingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
-        | BodyDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-        | AdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-        | ControlledDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-        | ControlledAdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-        | OperationDeclaration callable -> (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
-        | FunctionDeclaration callable -> (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
-        | TypeDefinition typeDef -> (typeDef.Name, typeDef.UnderlyingType) |> SymbolsInArgumentTuple
-        | DeclarationAttribute (sym, ex) ->
-            [], ([ AttributeAsCallExpr(sym, ex) ], []) |> collectWith SymbolsFromExpr |> addVariable sym
-        | NamespaceDeclaration sym -> symbolDeclarations sym, ([], [], [])
-        | OpenDirective (nsName, alias) -> [ alias ] |> chooseValues, ([ nsName ], [], [])
+    match fragmentKind with
+    | ExpressionStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | ReturnStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | FailStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.MutableBinding (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ImmutableBinding (sym, ex) ->
+        symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
+    | ValueUpdate (lhs, rhs) -> [], ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
+    | IfClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | ElifClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | ElseClause -> [], ([], [], [])
+    | ForLoopIntro (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
+    | WhileLoopIntro ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | RepeatIntro -> [], ([], [], [])
+    | UntilSuccess (ex, _) -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | WithinBlockIntro -> [], ([], [], [])
+    | ApplyBlockIntro -> [], ([], [], [])
+    | UsingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
+    | BorrowingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
+    | BodyDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | AdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | ControlledDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | ControlledAdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | OperationDeclaration callable -> (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
+    | FunctionDeclaration callable -> (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
+    | TypeDefinition typeDef -> (typeDef.Name, typeDef.UnderlyingType) |> SymbolsInArgumentTuple
+    | DeclarationAttribute (sym, ex) ->
+        [], ([ AttributeAsCallExpr(sym, ex) ], []) |> collectWith SymbolsFromExpr |> addVariable sym
+    | NamespaceDeclaration sym -> symbolDeclarations sym, ([], [], [])
+    | OpenDirective (nsName, alias) -> [ alias ] |> chooseValues, ([ nsName ], [], [])
         | InvalidFragment _ -> [], ([], [], [])
-
-    {
-        DeclaredSymbols = ImmutableList.CreateRange declarations
-        UsedVariables = ImmutableList.CreateRange variables
-        UsedTypes = ImmutableList.CreateRange types
-        UsedLiterals = ImmutableList.CreateRange literals
-    }
+    |> SymbolInformation.New
 
 let rec private ExpressionsInInitializer item =
     match item.Initializer with

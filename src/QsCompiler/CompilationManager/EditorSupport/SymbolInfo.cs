@@ -121,10 +121,10 @@ namespace Microsoft.Quantum.QsCompiler.CompilationBuilder
             QsCompilerError.Verify(overlappingLiterals.Count() <= 1, "more than one literal overlaps with the same position");
 
             return new QsSymbolInfo(
-                declaredSymbols: overlappingDecl.ToImmutableList(),
-                usedVariables: overlappingVariables.ToImmutableList(),
-                usedTypes: overlappingTypes.ToImmutableList(),
-                usedLiterals: overlappingLiterals.ToImmutableList());
+                declaredSymbols: overlappingDecl.ToImmutableHashSet(),
+                usedVariables: overlappingVariables.ToImmutableHashSet(),
+                usedTypes: overlappingTypes.ToImmutableHashSet(),
+                usedLiterals: overlappingLiterals.ToImmutableHashSet());
         }
 
         /// <summary>
