@@ -196,36 +196,36 @@ let public SymbolInformation fragmentKind =
     let addVariable var (syms, ts, exs) = var :: syms, ts, exs
 
     match fragmentKind with
-    | ExpressionStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | ReturnStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | FailStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ExpressionStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ReturnStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.FailStatement ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
     | QsFragmentKind.MutableBinding (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
-    | QsFragmentKind.ImmutableBinding (sym, ex) ->
-        symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
-    | ValueUpdate (lhs, rhs) -> [], ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
-    | IfClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | ElifClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | ElseClause -> [], ([], [], [])
-    | ForLoopIntro (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
-    | WhileLoopIntro ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | RepeatIntro -> [], ([], [], [])
-    | UntilSuccess (ex, _) -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
-    | WithinBlockIntro -> [], ([], [], [])
-    | ApplyBlockIntro -> [], ([], [], [])
-    | UsingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
-    | BorrowingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
-    | BodyDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | AdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | ControlledDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | ControlledAdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
-    | OperationDeclaration callable -> (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
-    | FunctionDeclaration callable -> (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
-    | TypeDefinition typeDef -> (typeDef.Name, typeDef.UnderlyingType) |> SymbolsInArgumentTuple
-    | DeclarationAttribute (sym, ex) ->
+    | QsFragmentKind.ImmutableBinding (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ValueUpdate (lhs, rhs) -> [], ([ lhs; rhs ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.IfClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ElifClause ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.ElseClause -> [], ([], [], [])
+    | QsFragmentKind.ForLoopIntro (sym, ex) -> symbolDeclarations sym, ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.WhileLoopIntro ex -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.RepeatIntro -> [], ([], [], [])
+    | QsFragmentKind.UntilSuccess (ex, _) -> [], ([ ex ], []) |> collectWith SymbolsFromExpr
+    | QsFragmentKind.WithinBlockIntro -> [], ([], [], [])
+    | QsFragmentKind.ApplyBlockIntro -> [], ([], [], [])
+    | QsFragmentKind.UsingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
+    | QsFragmentKind.BorrowingBlockIntro (sym, init) -> symbolDeclarations sym, VariablesInInitializer init
+    | QsFragmentKind.BodyDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | QsFragmentKind.AdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | QsFragmentKind.ControlledDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | QsFragmentKind.ControlledAdjointDeclaration gen -> gen |> SymbolsInGenerator, ([], [], [])
+    | QsFragmentKind.OperationDeclaration callable ->
+        (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
+    | QsFragmentKind.FunctionDeclaration callable -> (callable.Name, callable.Signature) |> SymbolsInCallableDeclaration
+    | QsFragmentKind.TypeDefinition typeDef -> (typeDef.Name, typeDef.UnderlyingType) |> SymbolsInArgumentTuple
+    | QsFragmentKind.DeclarationAttribute (sym, ex) ->
         [], ([ AttributeAsCallExpr(sym, ex) ], []) |> collectWith SymbolsFromExpr |> addVariable sym
-    | NamespaceDeclaration sym -> symbolDeclarations sym, ([], [], [])
-    | OpenDirective (nsName, alias) -> [ alias ] |> chooseValues, ([ nsName ], [], [])
-        | InvalidFragment _ -> [], ([], [], [])
+    | QsFragmentKind.NamespaceDeclaration sym -> symbolDeclarations sym, ([], [], [])
+    | QsFragmentKind.OpenDirective (nsName, alias) -> [ alias ] |> chooseValues, ([ nsName ], [], [])
+    | QsFragmentKind.InvalidFragment _ -> [], ([], [], [])
     |> SymbolInformation.New
 
 let rec private ExpressionsInInitializer item =
