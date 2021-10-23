@@ -154,6 +154,17 @@ type StatementVisitor(tokens) =
         }
         |> SetStatement
 
+    override _.VisitSetUpdateStatement context =
+        {
+            SetKeyword = context.set |> Node.toTerminal tokens
+            Name = context.name |> Node.toTerminal tokens
+            Operator =
+                { Prefix = Node.prefix tokens context.operator.Start.TokenIndex; Text = context.operator.GetText() }
+            Value = expressionVisitor.Visit context.value
+            Semicolon = context.semicolon |> Node.toTerminal tokens
+        }
+        |> UpdateStatement
+
     override visitor.VisitIfStatement context =
         {
             IfKeyword = context.``if`` |> Node.toTerminal tokens

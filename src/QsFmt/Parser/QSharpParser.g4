@@ -147,7 +147,7 @@ statement
     | mutable='mutable' binding=symbolBinding equals='=' value=expression semicolon=';' # MutableStatement
     | set='set' binding=symbolBinding equals='=' value=expression semicolon=';' # SetStatement
     | set='set' name=Identifier operator=updateOperator value=expression semicolon=';' # SetUpdateStatement
-    | set='set' name=Identifier withOperator='w/=' index=expression arrow='<-' value=expression semicolon=';' # SetWithStatement
+    | set='set' name=Identifier with='w/=' index=expression arrow='<-' value=expression semicolon=';' # SetWithStatement
     | if='if' condition=expression body=scope # IfStatement
     | 'elif' expression scope # ElifStatement
     | else='else' body=scope # ElseStatement

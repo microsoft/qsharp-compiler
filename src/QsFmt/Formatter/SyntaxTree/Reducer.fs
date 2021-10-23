@@ -166,6 +166,7 @@ type internal 'result Reducer() as reducer =
         | Let lets -> reducer.Let lets
         | Mutable mutables -> reducer.Mutable mutables
         | SetStatement sets -> reducer.SetStatement sets
+        | UpdateStatement updates -> reducer.UpdateStatement updates
         | QubitDeclaration decl -> reducer.QubitDeclaration decl
         | If ifs -> reducer.If ifs
         | Else elses -> reducer.Else elses
@@ -230,6 +231,18 @@ type internal 'result Reducer() as reducer =
             reducer.Terminal sets.Equals
             reducer.Expression sets.Value
             reducer.Terminal sets.Semicolon
+        ]
+        |> reduce
+
+    abstract UpdateStatement : updates: UpdateStatement -> 'result
+
+    default _.UpdateStatement updates =
+        [
+            reducer.Terminal updates.SetKeyword
+            reducer.Terminal updates.Name
+            reducer.Terminal updates.Operator
+            reducer.Expression updates.Value
+            reducer.Terminal updates.Semicolon
         ]
         |> reduce
 

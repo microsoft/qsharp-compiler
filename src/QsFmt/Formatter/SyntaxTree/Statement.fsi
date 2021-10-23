@@ -246,6 +246,29 @@ type internal SetStatement =
     }
 
 /// <summary>
+/// An <c>update</c> statement.
+/// </summary>
+type internal UpdateStatement =
+    {
+        /// <summary>
+        /// The <c>set</c> keyword.
+        /// </summary>
+        SetKeyword: Terminal
+
+        /// The identifier being updated.
+        Name: Terminal
+
+        // The update operator.
+        Operator: Terminal
+
+        /// The value used as the left-hand side of the update operator.
+        Value: Expression
+
+        /// The semicolon.
+        Semicolon: Terminal
+    }
+
+/// <summary>
 /// An <c>if</c> statement.
 /// </summary>
 type internal If =
@@ -361,6 +384,11 @@ and internal Statement =
     /// A <c>set</c> statement.
     /// </summary>
     | SetStatement of SetStatement
+    
+    /// <summary>
+    /// An <c>update</c> statement.
+    /// </summary>
+    | UpdateStatement of UpdateStatement
 
     /// A qubit declaration statement.
     | QubitDeclaration of QubitDeclaration

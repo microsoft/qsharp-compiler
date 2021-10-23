@@ -308,3 +308,24 @@ let ``Set Statement Support`` () =
 }"""
 
     run input expectedOutput String.Empty
+
+[<Fact>]
+[<Trait("Category", "Statement Kinds Support")>]
+let ``Update Statement Support`` () =
+    let input =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = 4;
+        set x += (new Int[2])[0];
+    }
+}"""
+
+    let expectedOutput =
+        """namespace Foo {
+    operation Bar() : Unit {
+        mutable x = 4;
+        set x += ([0, size = 2])[0];
+    }
+}"""
+
+    run input expectedOutput String.Empty

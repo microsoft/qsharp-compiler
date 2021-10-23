@@ -120,9 +120,16 @@ type SetStatement =
         Semicolon: Terminal
     }
 
-// Set and Update Statement
+// Update Statement
 
-// ToDo
+type UpdateStatement =
+    {
+        SetKeyword: Terminal
+        Name: Terminal
+        Operator: Terminal
+        Value: Expression
+        Semicolon: Terminal
+    }
 
 // Set-With Statement
 
@@ -201,6 +208,7 @@ and Statement =
     | Let of Let
     | Mutable of Mutable
     | SetStatement of SetStatement
+    | UpdateStatement of UpdateStatement
     | QubitDeclaration of QubitDeclaration
     | If of If
     | Else of Else
@@ -220,6 +228,8 @@ module Statement =
             { mutables with MutableKeyword = mutables.MutableKeyword |> Terminal.mapPrefix mapper } |> Mutable
         | SetStatement sets ->
             { sets with SetKeyword = sets.SetKeyword |> Terminal.mapPrefix mapper } |> SetStatement
+        | UpdateStatement updates ->
+            { updates with SetKeyword = updates.SetKeyword |> Terminal.mapPrefix mapper } |> UpdateStatement
         | QubitDeclaration decl -> { decl with Keyword = decl.Keyword |> Terminal.mapPrefix mapper } |> QubitDeclaration
         | If ifs -> { ifs with IfKeyword = ifs.IfKeyword |> Terminal.mapPrefix mapper } |> If
         | Else elses -> { elses with ElseKeyword = elses.ElseKeyword |> Terminal.mapPrefix mapper } |> Else
