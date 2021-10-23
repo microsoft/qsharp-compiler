@@ -227,6 +227,10 @@ type Range =
     static member (+)(position: Position, range: Range) =
         Range(position + range.Start, position + range.End)
 
+    /// Subtracts the position from the range's start and end positions.
+    static member (-)(range: Range, position: Position) =
+        Range(range.Start - position, range.End - position)
+
     /// Returns true if the ranges have the same start and end positions.
     static member op_Equality(a: Range, b: Range) = a = b
 
