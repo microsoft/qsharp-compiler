@@ -359,9 +359,30 @@ class QirSwitchTerminator(QirTerminator):
     Instances of QirSwitchTerminator represent a switch terminator instruction that can jump
     to one or more blocks based on matching values of a given operand, or jump to a fallback block
     in the case that no matches are found.
-    Currently unimplemented.
     """
-    pass
+    
+    @property
+    def operand(self) -> QirLocalOperand:
+        """
+        Gets the operand variable of the switch statement.
+        """
+        return QirLocalOperand(self.term.switch_operand)
+
+    @property
+    def dest_pairs(self) -> List[Tuple[QirConstant, str]]:
+        """
+        Gets a list of pairs representing the constant values to compare the operand against and the
+        matching block name to jump to if the comparison succeeds.
+        """
+        return list(map(lambda p: (QirConstant(p[0]), p[1]), self.term.switch_dests))
+
+    @property
+    def default_dest(self) -> str:
+        """
+        Gets the name of the default block that the switch will jump to if no values match the given
+        operand.
+        """
+        return self.term.switch_default_dest
 
 class QirUnreachableTerminator(QirTerminator):
     """

@@ -717,6 +717,60 @@ impl PyQirTerminator {
     }
 
     #[getter]
+    fn get_switch_operand(&self) -> Option<PyQirOperand> {
+        match_contents!(
+            &self.term,
+            llvm_ir::Terminator::Switch(llvm_ir::terminator::Switch {
+                operand,
+                dests: _,
+                default_dest: _,
+                debugloc: _,
+            }),
+            PyQirOperand {
+                op: operand.clone(),
+                types: self.types.clone(),
+            }
+        )
+    }
+
+    #[getter]
+    fn get_switch_dests(&self) -> Option<Vec<(PyQirOperand, String)>> {
+        match_contents!(
+            &self.term,
+            llvm_ir::Terminator::Switch(llvm_ir::terminator::Switch {
+                operand: _,
+                dests,
+                default_dest: _,
+                debugloc: _,
+            }),
+            dests
+                .iter()
+                .map(|(cref, name)| (
+                    PyQirOperand {
+                        op: llvm_ir::Operand::ConstantOperand(cref.clone()),
+                        types: self.types.clone()
+                    },
+                    name.get_string()
+                ))
+                .collect()
+        )
+    }
+
+    #[getter]
+    fn get_switch_default_dest(&self) -> Option<String> {
+        match_contents!(
+            &self.term,
+            llvm_ir::Terminator::Switch(llvm_ir::terminator::Switch {
+                operand: _,
+                dests: _,
+                default_dest,
+                debugloc: _,
+            }),
+            default_dest.get_string()
+        )
+    }
+
+    #[getter]
     fn get_is_unreachable(&self) -> bool {
         matches!(self.term, llvm_ir::Terminator::Unreachable(_))
     }
