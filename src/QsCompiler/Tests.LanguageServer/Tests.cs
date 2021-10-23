@@ -317,8 +317,7 @@ namespace Microsoft.Quantum.QsLanguageServer.Testing
             }
         }
 
-        // TODO: WILL REENABLE AS SOON AS I HAVE A SUITABLE PACKAGE THAT I CAN USE FOR THE PROJECT
-        // [TestMethod]
+        [TestMethod]
         public async Task UpdateAndFormatAsync()
         {
             var eventSignal = new ManualResetEvent(false);
